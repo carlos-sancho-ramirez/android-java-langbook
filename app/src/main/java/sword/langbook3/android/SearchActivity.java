@@ -20,9 +20,12 @@ public class SearchActivity extends Activity {
             if (cursor != null) {
                 try {
                     if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-                        final String str = cursor.getInt(0) + ": " + cursor.getString(1);
+                        StringBuilder builder = new StringBuilder();
+                        do {
+                            builder.append(cursor.getInt(0)).append(": ").append(cursor.getString(1)).append('\n');
+                        } while (cursor.moveToNext());
                         final TextView textView = (TextView) findViewById(R.id.textView);
-                        textView.setText(str);
+                        textView.setText(builder.toString());
                     }
                 }
                 finally {

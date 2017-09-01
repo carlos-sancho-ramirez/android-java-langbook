@@ -18,7 +18,13 @@ android {
     }
 }
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'sword:bit-streams-library:1.0'
     testCompile 'junit:junit:4.12'
 }
