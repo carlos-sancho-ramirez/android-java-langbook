@@ -14,22 +14,18 @@ public class SearchActivity extends Activity {
         setContentView(R.layout.search_activity);
 
         final StringBuilder builder = new StringBuilder();
-        final DbManager dbManager = new DbManager(this);
-        SQLiteDatabase db = dbManager.getReadableDatabase();
-
-        DbManager.Language[] languages = dbManager.languages;
-        for (DbManager.Language language : languages) {
-            builder.append(language.toString()).append('\n');
-        }
+        SQLiteDatabase db = new DbManager(this).getReadableDatabase();
 
         try {
-            final String whereClause = null;
-            Cursor cursor = db.query("SymbolArrays", new String[] {"id", "str"}, whereClause, null, null, null, null);
+            Cursor cursor = db.rawQuery("SELECT sourceAlphabet, targetAlphabet, S1.str, S2.str FROM " + DbManager.TableNames.conversions + " JOIN " + DbManager.TableNames.symbolArrays + " AS S1 ON source=S1.id JOIN " + DbManager.TableNames.symbolArrays + " AS S2 ON target=S2.id", null);
             if (cursor != null) {
                 try {
                     if (cursor.getCount() > 0 && cursor.moveToFirst()) {
                         do {
-                            builder.append(cursor.getInt(0)).append(": ").append(cursor.getString(1)).append('\n');
+                            builder.append(cursor.getInt(0))
+                                    .append(" -> ").append(cursor.getInt(1))
+                                    .append(": ").append(cursor.getString(2))
+                                    .append(" -> ").append(cursor.getString(3)).append('\n');
                         } while (cursor.moveToNext());
                     }
                 }

@@ -91,7 +91,8 @@ public class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private static final class TableNames {
+    static final class TableNames {
+        static final String conversions = "Conversions";
         static final String symbolArrays = "SymbolArrays";
     }
 
@@ -160,6 +161,11 @@ public class DbManager extends SQLiteOpenHelper {
         return insertSymbolArray(db, str);
     }
 
+    private void insertConversion(SQLiteDatabase db, int sourceAlphabet, int targetAlphabet, int source, int target) {
+        db.execSQL("INSERT INTO " + TableNames.conversions + " (sourceAlphabet, targetAlphabet, source, target) VALUES (" +
+                sourceAlphabet + ',' + targetAlphabet + ',' + source + ',' + target + ')');
+    }
+
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
         final int symbolArraysLength = (int) ibs.readNaturalNumber();
         final HuffmanTable<Long> nat3Table = new NaturalNumberHuffmanTable(3);
@@ -183,6 +189,41 @@ public class DbManager extends SQLiteOpenHelper {
         }
 
         return idMap;
+    }
+
+    private Conversion[] readConversions(SQLiteDatabase db, InputBitStream ibs, int minValidAlphabet, int maxValidAlphabet, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
+        final int conversionsLength = (int) ibs.readNaturalNumber();
+        final Conversion[] conversions = new Conversion[conversionsLength];
+
+        int minSourceAlphabet = minValidAlphabet;
+        int minTargetAlphabet = minValidAlphabet;
+        for (int i = 0; i < conversionsLength; i++) {
+            final int sourceAlphabet = ibs.readRangedNumber(minSourceAlphabet, maxValidAlphabet);
+
+            if (minSourceAlphabet != sourceAlphabet) {
+                minTargetAlphabet = minValidAlphabet;
+                minSourceAlphabet = sourceAlphabet;
+            }
+
+            final int targetAlphabet = ibs.readRangedNumber(minTargetAlphabet, maxValidAlphabet);
+            minTargetAlphabet = targetAlphabet + 1;
+
+            final int pairCount = (int) ibs.readNaturalNumber();
+            final String[] sources = new String[pairCount];
+            final String[] targets = new String[pairCount];
+            for (int j = 0; j < pairCount; j++) {
+                final int source = symbolArraysIdMap[ibs.readRangedNumber(minSymbolArrayIndex, maxSymbolArrayIndex)];
+                final int target = symbolArraysIdMap[ibs.readRangedNumber(minSymbolArrayIndex, maxSymbolArrayIndex)];
+                insertConversion(db, sourceAlphabet, targetAlphabet, source, target);
+
+                sources[j] = getSymbolArray(db, source);
+                targets[j] = getSymbolArray(db, target);
+            }
+
+            conversions[i] = new Conversion(sourceAlphabet, targetAlphabet, sources, targets);
+        }
+
+        return conversions;
     }
 
     private static final class StreamedDatabaseConstants {
@@ -215,11 +256,25 @@ public class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    public Language[] languages;
+    public static final class Conversion {
+
+        private final int _sourceAlphabet;
+        private final int _targetAlphabet;
+        private final String[] _sources;
+        private final String[] _targets;
+
+        Conversion(int sourceAlphabet, int targetAlphabet, String[] sources, String[] targets) {
+            _sourceAlphabet = sourceAlphabet;
+            _targetAlphabet = targetAlphabet;
+            _sources = sources;
+            _targets = targets;
+        }
+    }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TableNames.symbolArrays + " (id INTEGER PRIMARY KEY AUTOINCREMENT, str TEXT)");
+        db.execSQL("CREATE TABLE " + TableNames.conversions + " (id INTEGER PRIMARY KEY AUTOINCREMENT, sourceAlphabet INTEGER, targetAlphabet INTEGER, source INTEGER, target INTEGER)");
 
         final InputStream is = _context.getResources().openRawResource(R.raw.basic);
         try {
@@ -228,17 +283,23 @@ public class DbManager extends SQLiteOpenHelper {
             final int[] symbolArraysIdMap = readSymbolArrays(db, ibs);
             final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
 
+            // Read languages and its alphabets
             final int languageCount = (int) ibs.readNaturalNumber();
-            languages = new Language[languageCount];
-            int minAlphabet = StreamedDatabaseConstants.minValidAlphabet;
+            final Language[] languages = new Language[languageCount];
+            final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
+            int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
             final HuffmanTable<Long> nat2Table = new NaturalNumberHuffmanTable(2);
             for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
                 final int codeSymbolArrayIndex = ibs.readRangedNumber(0, maxSymbolArrayIndex);
                 final int alphabetCount = ibs.readHuffmanSymbol(nat2Table).intValue();
                 final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
-                languages[languageIndex] = new Language(code, minAlphabet, alphabetCount);
-                minAlphabet += alphabetCount;
+                languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
+                nextMinAlphabet += alphabetCount;
             }
+
+            // Read conversions
+            final int maxValidAlphabet = nextMinAlphabet - 1;
+            final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0, maxSymbolArrayIndex, symbolArraysIdMap);
         }
         catch (IOException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
