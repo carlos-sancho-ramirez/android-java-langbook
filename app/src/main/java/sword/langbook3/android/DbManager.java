@@ -92,6 +92,7 @@ public class DbManager extends SQLiteOpenHelper {
     }
 
     static final class TableNames {
+        static final String acceptations = "Acceptations";
         static final String conversions = "Conversions";
         static final String symbolArrays = "SymbolArrays";
     }
@@ -142,6 +143,29 @@ public class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
+    private Integer getAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
+        final String whereClause = "word = ? AND concept = ? AND correlationArray = ?";
+        Cursor cursor = db.query(TableNames.acceptations, new String[] {"id"}, whereClause,
+                new String[] { Integer.toString(word), Integer.toString(concept), Integer.toString(correlationArray) }, null, null, null, null);
+        if (cursor != null) {
+            try {
+                final int count = cursor.getCount();
+                if (count > 1) {
+                    throw new AssertionError("There should not be repeated acceptations");
+                }
+
+                if (count > 0 && cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
     private int insertSymbolArray(SQLiteDatabase db, String str) {
         db.execSQL("INSERT INTO " + TableNames.symbolArrays + " (str) VALUES ('" + str + "')");
         final Integer id = getSymbolArray(db, str);
@@ -164,6 +188,17 @@ public class DbManager extends SQLiteOpenHelper {
     private void insertConversion(SQLiteDatabase db, int sourceAlphabet, int targetAlphabet, int source, int target) {
         db.execSQL("INSERT INTO " + TableNames.conversions + " (sourceAlphabet, targetAlphabet, source, target) VALUES (" +
                 sourceAlphabet + ',' + targetAlphabet + ',' + source + ',' + target + ')');
+    }
+
+    private int insertAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
+        db.execSQL("INSERT INTO " + TableNames.acceptations + " (word, concept, correlationArray) VALUES (" +
+                word + ',' + concept + ',' + correlationArray + ')');
+        final Integer id = getAcceptation(db, word, concept, correlationArray);
+        if (id == null) {
+            throw new AssertionError("A just introduced register should be found");
+        }
+
+        return id;
     }
 
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
@@ -226,8 +261,29 @@ public class DbManager extends SQLiteOpenHelper {
         return conversions;
     }
 
+    private int[] readAcceptations(SQLiteDatabase db, InputBitStream ibs, int minWord, int maxWord, int minConcept, int maxConcept) throws IOException {
+        final int acceptationsLength = (int) ibs.readNaturalNumber();
+        final int[] acceptationsIdMap = new int[acceptationsLength];
+
+        for (int i = 0; i < acceptationsLength; i++) {
+            final int word = ibs.readRangedNumber(minWord, maxWord);
+            final int concept = ibs.readRangedNumber(minConcept, maxConcept);
+            acceptationsIdMap[i] = insertAcceptation(db, word, concept, 0);
+        }
+
+        return acceptationsIdMap;
+    }
+
     private static final class StreamedDatabaseConstants {
+
+        /** First alphabet within the database */
         static final int minValidAlphabet = 3;
+
+        /** First concept within the database that is considered to be a valid concept */
+        static final int minValidConcept = 1;
+
+        /** First word within the database that is considered to be a valid word */
+        static final int minValidWord = 0;
     }
 
     static final class Language {
@@ -273,8 +329,9 @@ public class DbManager extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE " + TableNames.symbolArrays + " (id INTEGER PRIMARY KEY AUTOINCREMENT, str TEXT)");
+        db.execSQL("CREATE TABLE " + TableNames.acceptations + " (id INTEGER PRIMARY KEY AUTOINCREMENT, word INTEGER, concept INTEGER, correlationArray INTEGER)");
         db.execSQL("CREATE TABLE " + TableNames.conversions + " (id INTEGER PRIMARY KEY AUTOINCREMENT, sourceAlphabet INTEGER, targetAlphabet INTEGER, source INTEGER, target INTEGER)");
+        db.execSQL("CREATE TABLE " + TableNames.symbolArrays + " (id INTEGER PRIMARY KEY AUTOINCREMENT, str TEXT)");
 
         final InputStream is = _context.getResources().openRawResource(R.raw.basic);
         try {
@@ -300,6 +357,15 @@ public class DbManager extends SQLiteOpenHelper {
             // Read conversions
             final int maxValidAlphabet = nextMinAlphabet - 1;
             final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0, maxSymbolArrayIndex, symbolArraysIdMap);
+
+            // Export the amount of words and concepts in order to range integers
+            final int maxWord = (int) ibs.readNaturalNumber();
+            final int maxConcept = (int) ibs.readNaturalNumber();
+
+            // Export acceptations
+            final int minValidWord = StreamedDatabaseConstants.minValidWord;
+            final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
+            final int[] acceptationsIdMap = readAcceptations(db, ibs, minValidWord, maxWord, minValidConcept, maxConcept);
         }
         catch (IOException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
@@ -311,7 +377,6 @@ public class DbManager extends SQLiteOpenHelper {
                 // Nothing can be done
             }
         }
-
     }
 
     @Override
