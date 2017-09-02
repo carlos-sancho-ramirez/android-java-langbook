@@ -13,19 +13,24 @@ public class SearchActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.search_activity);
 
-        SQLiteDatabase db = new DbManager(this).getReadableDatabase();
+        final StringBuilder builder = new StringBuilder();
+        final DbManager dbManager = new DbManager(this);
+        SQLiteDatabase db = dbManager.getReadableDatabase();
+
+        DbManager.Language[] languages = dbManager.languages;
+        for (DbManager.Language language : languages) {
+            builder.append(language.toString()).append('\n');
+        }
+
         try {
             final String whereClause = null;
             Cursor cursor = db.query("SymbolArrays", new String[] {"id", "str"}, whereClause, null, null, null, null);
             if (cursor != null) {
                 try {
                     if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-                        StringBuilder builder = new StringBuilder();
                         do {
                             builder.append(cursor.getInt(0)).append(": ").append(cursor.getString(1)).append('\n');
                         } while (cursor.moveToNext());
-                        final TextView textView = (TextView) findViewById(R.id.textView);
-                        textView.setText(builder.toString());
                     }
                 }
                 finally {
@@ -36,5 +41,8 @@ public class SearchActivity extends Activity {
         finally {
             db.close();
         }
+
+        final TextView textView = (TextView) findViewById(R.id.textView);
+        textView.setText(builder.toString());
     }
 }
