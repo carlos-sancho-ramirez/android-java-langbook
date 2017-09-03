@@ -94,6 +94,8 @@ public class DbManager extends SQLiteOpenHelper {
     static final class TableNames {
         static final String acceptations = "Acceptations";
         static final String conversions = "Conversions";
+        static final String correlations = "Correlations";
+        static final String correlationArrays = "CorrelationArrays";
         static final String symbolArrays = "SymbolArrays";
     }
 
@@ -190,6 +192,41 @@ public class DbManager extends SQLiteOpenHelper {
                 sourceAlphabet + ',' + targetAlphabet + ',' + source + ',' + target + ')');
     }
 
+    private int insertCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
+        Cursor cursor = db.rawQuery("SELECT max(correlationId) FROM " + TableNames.correlations, null);
+        if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
+            throw new AssertionError("Unable to retrieve maximum correlationId");
+        }
+
+        final int newCorrelationId = cursor.getInt(0) + 1;
+        final int mapLength = correlation.size();
+        for (int i = 0; i < mapLength; i++) {
+            final int alphabet = correlation.keyAt(i);
+            final int symbolArray = correlation.valueAt(i);
+            db.execSQL("INSERT INTO " + TableNames.correlations + " (correlationId, alphabet, symbolArray) VALUES (" +
+                    newCorrelationId + ',' + alphabet + ',' + symbolArray + ')');
+        }
+
+        return newCorrelationId;
+    }
+
+    private int insertCorrelationArray(SQLiteDatabase db, int... correlation) {
+        Cursor cursor = db.rawQuery("SELECT max(arrayId) FROM " + TableNames.correlationArrays, null);
+        if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
+            throw new AssertionError("Unable to retrieve maximum arrayId");
+        }
+
+        final int newArrayId = cursor.getInt(0) + 1;
+        final int arrayLength = correlation.length;
+        for (int i = 0; i < arrayLength; i++) {
+            final int corr = correlation[i];
+            db.execSQL("INSERT INTO " + TableNames.correlationArrays + " (arrayId, arrayPos, correlation) VALUES (" +
+                    newArrayId + ',' + i + ',' + corr + ')');
+        }
+
+        return newArrayId;
+    }
+
     private int insertAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
         db.execSQL("INSERT INTO " + TableNames.acceptations + " (word, concept, correlationArray) VALUES (" +
                 word + ',' + concept + ',' + correlationArray + ')');
@@ -199,6 +236,10 @@ public class DbManager extends SQLiteOpenHelper {
         }
 
         return id;
+    }
+
+    private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int correlationArrayId) {
+        db.execSQL("UPDATE " + TableNames.acceptations + " SET correlationArray=" + correlationArrayId + " WHERE word=" + word);
     }
 
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
@@ -331,6 +372,8 @@ public class DbManager extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TableNames.acceptations + " (id INTEGER PRIMARY KEY AUTOINCREMENT, word INTEGER, concept INTEGER, correlationArray INTEGER)");
         db.execSQL("CREATE TABLE " + TableNames.conversions + " (id INTEGER PRIMARY KEY AUTOINCREMENT, sourceAlphabet INTEGER, targetAlphabet INTEGER, source INTEGER, target INTEGER)");
+        db.execSQL("CREATE TABLE " + TableNames.correlations + " (id INTEGER PRIMARY KEY AUTOINCREMENT, correlationId INTEGER, alphabet INTEGER, symbolArray INTEGER)");
+        db.execSQL("CREATE TABLE " + TableNames.correlationArrays + " (id INTEGER PRIMARY KEY AUTOINCREMENT, arrayId INTEGER, arrayPos INTEGER, correlation INTEGER)");
         db.execSQL("CREATE TABLE " + TableNames.symbolArrays + " (id INTEGER PRIMARY KEY AUTOINCREMENT, str TEXT)");
 
         final InputStream is = _context.getResources().openRawResource(R.raw.basic);
@@ -359,13 +402,27 @@ public class DbManager extends SQLiteOpenHelper {
             final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0, maxSymbolArrayIndex, symbolArraysIdMap);
 
             // Export the amount of words and concepts in order to range integers
-            final int maxWord = (int) ibs.readNaturalNumber();
-            final int maxConcept = (int) ibs.readNaturalNumber();
+            final int maxWord = (int) ibs.readNaturalNumber() - 1;
+            final int maxConcept = (int) ibs.readNaturalNumber() - 1;
 
             // Export acceptations
             final int minValidWord = StreamedDatabaseConstants.minValidWord;
             final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
             final int[] acceptationsIdMap = readAcceptations(db, ibs, minValidWord, maxWord, minValidConcept, maxConcept);
+
+            // Export word representations
+            final int wordRepresentationLength = (int) ibs.readNaturalNumber();
+            for (int i = 0; i < wordRepresentationLength; i++) {
+                final int word = ibs.readRangedNumber(minValidWord, maxWord);
+                final int alphabet = ibs.readRangedNumber(minValidAlphabet, maxValidAlphabet);
+                final int symbolArray = ibs.readRangedNumber(0, maxSymbolArrayIndex);
+
+                final SparseIntArray correlation = new SparseIntArray();
+                correlation.put(alphabet, symbolArraysIdMap[symbolArray]);
+                final int correlationId = insertCorrelation(db, correlation);
+                final int correlationArrayId = insertCorrelationArray(db, correlationId);
+                assignAcceptationCorrelationArray(db, word, correlationArrayId);
+            }
         }
         catch (IOException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
