@@ -5,12 +5,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.SparseIntArray;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
 
 import sword.bitstream.FunctionWithIOException;
 import sword.bitstream.HuffmanTable;
@@ -44,12 +42,12 @@ public class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private static class CharDiffReader implements FunctionWithIOException<Character, Character> {
+    private static class CharHuffmanSymbolDiffReader implements FunctionWithIOException<Character, Character> {
 
         private final InputBitStream _ibs;
         private final HuffmanTable<Long> _table;
 
-        CharDiffReader(InputBitStream ibs, HuffmanTable<Long> table) {
+        CharHuffmanSymbolDiffReader(InputBitStream ibs, HuffmanTable<Long> table) {
             _ibs = ibs;
             _table = table;
         }
@@ -78,9 +76,23 @@ public class DbManager extends SQLiteOpenHelper {
     private static class IntDiffReader implements FunctionWithIOException<Integer, Integer> {
 
         private final InputBitStream _ibs;
+
+        IntDiffReader(InputBitStream ibs) {
+            _ibs = ibs;
+        }
+
+        @Override
+        public Integer apply(Integer previous) throws IOException {
+            return (int) _ibs.readNaturalNumber() + previous + 1;
+        }
+    }
+
+    private static class IntHuffmanSymbolDiffReader implements FunctionWithIOException<Integer, Integer> {
+
+        private final InputBitStream _ibs;
         private final HuffmanTable<Long> _table;
 
-        IntDiffReader(InputBitStream ibs, HuffmanTable<Long> table) {
+        IntHuffmanSymbolDiffReader(InputBitStream ibs, HuffmanTable<Long> table) {
             _ibs = ibs;
             _table = table;
         }
@@ -168,6 +180,48 @@ public class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
+    private static final class Pair<A,B> {
+
+        private final A _left;
+        private final B _right;
+
+        Pair(A left, B right) {
+            _left = left;
+            _right = right;
+        }
+
+        A getLeft() {
+            return _left;
+        }
+
+        B getRight() {
+            return _right;
+        }
+    }
+
+    private Pair<Integer, Integer> getAcceptation(SQLiteDatabase db, int word, int concept) {
+        final String whereClause = "word = ? AND concept = ?";
+        Cursor cursor = db.query(TableNames.acceptations, new String[] {"id", "correlationArray"}, whereClause,
+                new String[] { Integer.toString(word), Integer.toString(concept) }, null, null, null, null);
+        if (cursor != null) {
+            try {
+                final int count = cursor.getCount();
+                if (count > 1) {
+                    throw new AssertionError("There should not be repeated acceptations");
+                }
+
+                if (count > 0 && cursor.moveToFirst()) {
+                    return new Pair<>(cursor.getInt(0), cursor.getInt(1));
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
     private int insertSymbolArray(SQLiteDatabase db, String str) {
         db.execSQL("INSERT INTO " + TableNames.symbolArrays + " (str) VALUES ('" + str + "')");
         final Integer id = getSymbolArray(db, str);
@@ -242,16 +296,20 @@ public class DbManager extends SQLiteOpenHelper {
         db.execSQL("UPDATE " + TableNames.acceptations + " SET correlationArray=" + correlationArrayId + " WHERE word=" + word);
     }
 
+    private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int concept, int correlationArrayId) {
+        db.execSQL("UPDATE " + TableNames.acceptations + " SET correlationArray=" + correlationArrayId + " WHERE word=" + word + " AND concept=" + concept);
+    }
+
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
         final int symbolArraysLength = (int) ibs.readNaturalNumber();
         final HuffmanTable<Long> nat3Table = new NaturalNumberHuffmanTable(3);
         final HuffmanTable<Long> nat4Table = new NaturalNumberHuffmanTable(4);
 
         final HuffmanTable<Character> charHuffmanTable =
-                ibs.readHuffmanTable(new CharReader(ibs), new CharDiffReader(ibs, nat4Table));
+                ibs.readHuffmanTable(new CharReader(ibs), new CharHuffmanSymbolDiffReader(ibs, nat4Table));
 
         final HuffmanTable<Integer> symbolArraysLengthTable =
-                ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs, nat3Table));
+                ibs.readHuffmanTable(new IntReader(ibs), new IntHuffmanSymbolDiffReader(ibs, nat3Table));
 
         final int[] idMap = new int[symbolArraysLength];
         for (int index = 0; index < symbolArraysLength; index++) {
@@ -302,6 +360,8 @@ public class DbManager extends SQLiteOpenHelper {
         return conversions;
     }
 
+    private static final int nullCorrelationArray = 0;
+
     private int[] readAcceptations(SQLiteDatabase db, InputBitStream ibs, int minWord, int maxWord, int minConcept, int maxConcept) throws IOException {
         final int acceptationsLength = (int) ibs.readNaturalNumber();
         final int[] acceptationsIdMap = new int[acceptationsLength];
@@ -309,7 +369,7 @@ public class DbManager extends SQLiteOpenHelper {
         for (int i = 0; i < acceptationsLength; i++) {
             final int word = ibs.readRangedNumber(minWord, maxWord);
             final int concept = ibs.readRangedNumber(minConcept, maxConcept);
-            acceptationsIdMap[i] = insertAcceptation(db, word, concept, 0);
+            acceptationsIdMap[i] = insertAcceptation(db, word, concept, nullCorrelationArray);
         }
 
         return acceptationsIdMap;
@@ -368,6 +428,25 @@ public class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    private static final class JaWordRepr {
+
+        private final int[] _concepts;
+        private final int[] _correlationArray;
+
+        JaWordRepr(int[] concepts, int[] correlationArray) {
+            _concepts = concepts;
+            _correlationArray = correlationArray;
+        }
+
+        int[] getConcepts() {
+            return _concepts;
+        }
+
+        int[] getCorrelationArray() {
+            return _correlationArray;
+        }
+    }
+
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TableNames.acceptations + " (id INTEGER PRIMARY KEY AUTOINCREMENT, word INTEGER, concept INTEGER, correlationArray INTEGER)");
@@ -389,11 +468,22 @@ public class DbManager extends SQLiteOpenHelper {
             final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
             int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
             final HuffmanTable<Long> nat2Table = new NaturalNumberHuffmanTable(2);
+            int kanjiAlphabet = -1;
+            int kanaAlphabet = -1;
+
             for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
                 final int codeSymbolArrayIndex = ibs.readRangedNumber(0, maxSymbolArrayIndex);
                 final int alphabetCount = ibs.readHuffmanSymbol(nat2Table).intValue();
                 final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
                 languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
+
+                // In order to inflate kanjiKanaCorrelations we assume that the Japanese language
+                // is present and that its first alphabet is the kanji and the second the kana.
+                if ("ja".equals(code)) {
+                    kanjiAlphabet = nextMinAlphabet;
+                    kanaAlphabet = nextMinAlphabet + 1;
+                }
+
                 nextMinAlphabet += alphabetCount;
             }
 
@@ -422,6 +512,117 @@ public class DbManager extends SQLiteOpenHelper {
                 final int correlationId = insertCorrelation(db, correlation);
                 final int correlationArrayId = insertCorrelationArray(db, correlationId);
                 assignAcceptationCorrelationArray(db, word, correlationArrayId);
+            }
+
+            // Export kanji-kana correlations
+            final int kanjiKanaCorrelationsLength = (int) ibs.readNaturalNumber();
+            if (kanjiKanaCorrelationsLength > 0 && (
+                    kanjiAlphabet < minValidAlphabet || kanjiAlphabet > maxValidAlphabet ||
+                    kanaAlphabet < minValidAlphabet || kanaAlphabet > maxValidAlphabet)) {
+                throw new AssertionError("KanjiAlphabet or KanaAlphabet not set properly");
+            }
+
+            final int[] kanjiKanaCorrelationIdMap = new int[kanjiKanaCorrelationsLength];
+            for (int i = 0; i < kanjiKanaCorrelationsLength; i++) {
+                final SparseIntArray correlation = new SparseIntArray();
+                correlation.put(kanjiAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
+                correlation.put(kanaAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
+                kanjiKanaCorrelationIdMap[i] = insertCorrelation(db, correlation);
+            }
+
+            // Export jaWordCorrelations
+            final int jaWordCorrelationsLength = (int) ibs.readNaturalNumber();
+            if (jaWordCorrelationsLength > 0) {
+                final IntReader intReader = new IntReader(ibs);
+                final IntDiffReader intDiffReader = new IntDiffReader(ibs);
+
+                final HuffmanTable<Integer> correlationReprCountHuffmanTable = ibs.readHuffmanTable(intReader, intDiffReader);
+                final HuffmanTable<Integer> correlationConceptCountHuffmanTable = ibs.readHuffmanTable(intReader, intDiffReader);
+                final HuffmanTable<Integer> correlationVectorLengthHuffmanTable = ibs.readHuffmanTable(intReader, intDiffReader);
+
+                for (int i = 0; i < jaWordCorrelationsLength; i++) {
+                    final int wordId = ibs.readRangedNumber(minValidWord, maxWord);
+                    final int reprCount = ibs.readHuffmanSymbol(correlationReprCountHuffmanTable);
+                    final JaWordRepr[] jaWordReprs = new JaWordRepr[reprCount];
+
+                    for (int j = 0; j < reprCount; j++) {
+                        final int conceptSetLength = ibs.readHuffmanSymbol(correlationConceptCountHuffmanTable);
+                        int[] concepts = new int[conceptSetLength];
+                        for (int k = 0; k < conceptSetLength; k++) {
+                            concepts[k] = ibs.readRangedNumber(minValidConcept, maxConcept);
+                        }
+
+                        final int correlationArrayLength = ibs.readHuffmanSymbol(correlationVectorLengthHuffmanTable);
+                        int[] correlationArray = new int[correlationArrayLength];
+                        for (int k = 0; k < correlationArrayLength; k++) {
+                            correlationArray[k] = ibs.readRangedNumber(0, kanjiKanaCorrelationsLength - 1);
+                        }
+
+                        jaWordReprs[j] = new JaWordRepr(concepts, correlationArray);
+                    }
+
+                    for (int j = 0; j < reprCount; j++) {
+                        final JaWordRepr jaWordRepr = jaWordReprs[j];
+                        final int[] concepts = jaWordRepr.getConcepts();
+                        final int conceptCount = concepts.length;
+                        for (int k = 0; k < conceptCount; k++) {
+                            final int concept = concepts[k];
+
+                            final Pair<Integer, Integer> foundAcc = getAcceptation(db, wordId, concept);
+                            if (foundAcc == null) {
+                                throw new AssertionError("Acceptation should be already registered");
+                            }
+
+                            final int[] correlationArray = jaWordRepr.getCorrelationArray();
+                            final int correlationArrayLength = correlationArray.length;
+
+                            /*
+                            if (foundAcc.getRight() == nullCorrelationArray) {
+                                final int[] dbCorrelations = new int[correlationArrayLength];
+                                for (int corrIndex = 0; corrIndex < correlationArrayLength; corrIndex++) {
+                                    dbCorrelations[corrIndex] = kanjiKanaCorrelationIdMap[correlationArray[corrIndex]];
+                                }
+
+                                final int dbCorrelationArray = insertCorrelationArray(db, dbCorrelations);
+                                insertAcceptation(db, wordId, concept, dbCorrelationArray);
+                            }
+                            else if (correlationArrayLength == 1) {
+                                // If reaching this code -> There is a wordRepresentation for this word as well
+                                // Only acceptable if the correlationArray has length 1
+                                final int dbCorrelationArray = foundAcc.getRight();
+                                final int[] dbCorrelations = getCorrelationArray(db, dbCorrelationArray);
+                                if (dbCorrelations.length != 1) {
+                                    throw new AssertionError("Unmergeable correlation array found");
+                                }
+
+                                SparseIntArray dbCorrelation = getCorrelation(db, dbCorrelations[0]);
+                                if (dbCorrelation.size() != 1 && dbCorrelation.keyAt(0) != kanaAlphabet) {
+                                    throw new AssertionError("Previous correlation includes symbolArrays for unexpected alphabets");
+                                }
+
+                                SparseIntArray kanjiKanaCorrelation = getCorrelation(db, kanjiKanaCorrelationIdMap[correlationArray[0]]);
+                                if (dbCorrelation.valueAt(0) != kanjiKanaCorrelation.get(kanaAlphabet)) {
+                                    throw new AssertionError("Kana representation does not match");
+                                }
+
+                                dbCorrelation.put(kanjiAlphabet, correlationArray[0])
+                            }
+                            else {
+                                throw new AssertionError("Acceptation found with unmergeable correlation array");
+                            }
+                            */
+
+                            // Straight forward, not checking inconsistencies in the database
+                            final int[] dbCorrelations = new int[correlationArrayLength];
+                            for (int corrIndex = 0; corrIndex < correlationArrayLength; corrIndex++) {
+                                dbCorrelations[corrIndex] = kanjiKanaCorrelationIdMap[correlationArray[corrIndex]];
+                            }
+
+                            final int dbCorrelationArray = insertCorrelationArray(db, dbCorrelations);
+                            assignAcceptationCorrelationArray(db, wordId, concept, dbCorrelationArray);
+                        }
+                    }
+                }
             }
         }
         catch (IOException e) {
