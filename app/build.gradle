@@ -20,11 +20,11 @@ android {
 
 repositories {
     mavenCentral()
-    mavenLocal()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'sword:bit-streams-library:1.0'
+    compile 'com.github.carlos-sancho-ramirez:lib-java-bitstream:aacc49f5ebc3acb7d195d69255e8d2f4155a106a'
     testCompile 'junit:junit:4.12'
 }
