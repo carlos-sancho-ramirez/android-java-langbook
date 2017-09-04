@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.widget.Toast;
 
@@ -16,14 +17,14 @@ import sword.bitstream.InputBitStream;
 import sword.bitstream.NaturalNumberHuffmanTable;
 import sword.bitstream.SupplierWithIOException;
 
-public class DbManager extends SQLiteOpenHelper {
+class DbManager extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "Langbook";
     private static final int DB_VERSION = 5;
 
     private final Context _context;
 
-    public DbManager(Context context) {
+    DbManager(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
         _context = context;
     }
@@ -103,18 +104,15 @@ public class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    static final class TableNames {
-        static final String acceptations = "Acceptations";
-        static final String conversions = "Conversions";
-        static final String correlations = "Correlations";
-        static final String correlationArrays = "CorrelationArrays";
-        static final String symbolArrays = "SymbolArrays";
-    }
-
     private String getSymbolArray(SQLiteDatabase db, int id) {
-        final String whereClause = "id = ?";
-        Cursor cursor = db.query(TableNames.symbolArrays, new String[] {"str"}, whereClause,
-                new String[] { Integer.toString(id) }, null, null, null, null);
+        final String whereClause = idColumnName + " = ?";
+        final SymbolArraysTable table = Tables.symbolArrays;
+        Cursor cursor = db.query(
+                table.getName(),
+                new String[] {table.getColumnName(table.getStrColumnIndex())},
+                whereClause, new String[] { Integer.toString(id) },
+                null, null, null, null);
+
         if (cursor != null) {
             try {
                 final int count = cursor.getCount();
@@ -135,9 +133,11 @@ public class DbManager extends SQLiteOpenHelper {
     }
 
     private Integer getSymbolArray(SQLiteDatabase db, String str) {
-        final String whereClause = "str = ?";
-        Cursor cursor = db.query(TableNames.symbolArrays, new String[] {"id"}, whereClause,
+        final SymbolArraysTable table = Tables.symbolArrays;
+        final String whereClause = table.getColumnName(table.getStrColumnIndex()) + " = ?";
+        Cursor cursor = db.query(table.getName(), new String[] {idColumnName}, whereClause,
                 new String[] { str }, null, null, null, null);
+
         if (cursor != null) {
             try {
                 final int count = cursor.getCount();
@@ -158,8 +158,18 @@ public class DbManager extends SQLiteOpenHelper {
     }
 
     private Integer getAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
-        final String whereClause = "word = ? AND concept = ? AND correlationArray = ?";
-        Cursor cursor = db.query(TableNames.acceptations, new String[] {"id"}, whereClause,
+        final AcceptationsTable table = Tables.acceptations;
+
+        final String whereClause = new StringBuilder()
+                .append(table.getColumnName(table.getWordColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getConceptColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getCorrelationArrayColumnIndex()))
+                .append("=?")
+                .toString();
+
+        Cursor cursor = db.query(table.getName(), new String[] {idColumnName}, whereClause,
                 new String[] { Integer.toString(word), Integer.toString(concept), Integer.toString(correlationArray) }, null, null, null, null);
         if (cursor != null) {
             try {
@@ -200,9 +210,21 @@ public class DbManager extends SQLiteOpenHelper {
     }
 
     private Pair<Integer, Integer> getAcceptation(SQLiteDatabase db, int word, int concept) {
-        final String whereClause = "word = ? AND concept = ?";
-        Cursor cursor = db.query(TableNames.acceptations, new String[] {"id", "correlationArray"}, whereClause,
-                new String[] { Integer.toString(word), Integer.toString(concept) }, null, null, null, null);
+        final AcceptationsTable table = Tables.acceptations;
+
+        final String whereClause = new StringBuilder()
+                .append(table.getColumnName(table.getWordColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getConceptColumnIndex()))
+                .append("=?")
+                .toString();
+
+        Cursor cursor = db.query(
+                table.getName(),
+                new String[] {idColumnName, table.getColumnName(table.getCorrelationArrayColumnIndex())},
+                whereClause, new String[] { Integer.toString(word), Integer.toString(concept) },
+                null, null, null, null);
+
         if (cursor != null) {
             try {
                 final int count = cursor.getCount();
@@ -223,7 +245,8 @@ public class DbManager extends SQLiteOpenHelper {
     }
 
     private int insertSymbolArray(SQLiteDatabase db, String str) {
-        db.execSQL("INSERT INTO " + TableNames.symbolArrays + " (str) VALUES ('" + str + "')");
+        final SymbolArraysTable table = Tables.symbolArrays;
+        db.execSQL("INSERT INTO " + table.getName() + " (" + table.getColumnName(table.getStrColumnIndex()) + ") VALUES ('" + str + "')");
         final Integer id = getSymbolArray(db, str);
         if (id == null) {
             throw new AssertionError("A just introduced register should be found");
@@ -242,48 +265,85 @@ public class DbManager extends SQLiteOpenHelper {
     }
 
     private void insertConversion(SQLiteDatabase db, int sourceAlphabet, int targetAlphabet, int source, int target) {
-        db.execSQL("INSERT INTO " + TableNames.conversions + " (sourceAlphabet, targetAlphabet, source, target) VALUES (" +
+        final ConversionsTable table = Tables.conversions;
+        db.execSQL("INSERT INTO " + table.getName() + " (" +
+                table.getColumnName(table.getSourceAlphabetColumnIndex()) + ", " +
+                table.getColumnName(table.getTargetAlphabetColumnIndex()) + ", " +
+                table.getColumnName(table.getSourceColumnIndex()) + ", " +
+                table.getColumnName(table.getTargetColumnIndex()) + ") VALUES (" +
                 sourceAlphabet + ',' + targetAlphabet + ',' + source + ',' + target + ')');
     }
 
     private int insertCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
-        Cursor cursor = db.rawQuery("SELECT max(correlationId) FROM " + TableNames.correlations, null);
+        final CorrelationsTable table = Tables.correlations;
+        final String correlationIdColumnName = table.getColumnName(table.getCorrelationIdColumnIndex());
+        final String alphabetColumnName = table.getColumnName(table.getAlphabetColumnIndex());
+        final String symbolArrayColumnName = table.getColumnName(table.getSymbolArrayColumnIndex());
+
+        Cursor cursor = db.rawQuery("SELECT max(" +
+                correlationIdColumnName + ") FROM " +
+                table.getName(), null);
+
         if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
             throw new AssertionError("Unable to retrieve maximum correlationId");
         }
 
-        final int newCorrelationId = cursor.getInt(0) + 1;
-        final int mapLength = correlation.size();
-        for (int i = 0; i < mapLength; i++) {
-            final int alphabet = correlation.keyAt(i);
-            final int symbolArray = correlation.valueAt(i);
-            db.execSQL("INSERT INTO " + TableNames.correlations + " (correlationId, alphabet, symbolArray) VALUES (" +
-                    newCorrelationId + ',' + alphabet + ',' + symbolArray + ')');
-        }
+        try {
+            final int newCorrelationId = cursor.getInt(0) + 1;
+            final int mapLength = correlation.size();
+            for (int i = 0; i < mapLength; i++) {
+                final int alphabet = correlation.keyAt(i);
+                final int symbolArray = correlation.valueAt(i);
+                db.execSQL("INSERT INTO " + table.getName() + " (" +
+                        correlationIdColumnName + ", " +
+                        alphabetColumnName + ", " +
+                        symbolArrayColumnName + ") VALUES (" +
+                        newCorrelationId + ',' + alphabet + ',' + symbolArray + ')');
+            }
 
-        return newCorrelationId;
+            return newCorrelationId;
+        }
+        finally {
+            cursor.close();
+        }
     }
 
     private int insertCorrelationArray(SQLiteDatabase db, int... correlation) {
-        Cursor cursor = db.rawQuery("SELECT max(arrayId) FROM " + TableNames.correlationArrays, null);
+        final CorrelationArraysTable table = Tables.correlationArrays;
+        final String arrayIdColumnName = table.getColumnName(table.getArrayIdColumnIndex());
+        Cursor cursor = db.rawQuery("SELECT max(" + arrayIdColumnName + ") FROM " +
+                table.getName(), null);
+
         if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
             throw new AssertionError("Unable to retrieve maximum arrayId");
         }
 
-        final int newArrayId = cursor.getInt(0) + 1;
-        final int arrayLength = correlation.length;
-        for (int i = 0; i < arrayLength; i++) {
-            final int corr = correlation[i];
-            db.execSQL("INSERT INTO " + TableNames.correlationArrays + " (arrayId, arrayPos, correlation) VALUES (" +
-                    newArrayId + ',' + i + ',' + corr + ')');
-        }
+        try {
+            final int newArrayId = cursor.getInt(0) + 1;
+            final int arrayLength = correlation.length;
+            for (int i = 0; i < arrayLength; i++) {
+                final int corr = correlation[i];
+                db.execSQL("INSERT INTO " + table.getName() + " (" + arrayIdColumnName + ", " +
+                        table.getColumnName(table.getArrayPositionColumnIndex()) + ", " +
+                        table.getColumnName(table.getCorrelationColumnIndex()) + ") VALUES (" +
+                        newArrayId + ',' + i + ',' + corr + ')');
+            }
 
-        return newArrayId;
+            return newArrayId;
+        }
+        finally {
+            cursor.close();
+        }
     }
 
     private int insertAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
-        db.execSQL("INSERT INTO " + TableNames.acceptations + " (word, concept, correlationArray) VALUES (" +
+        final AcceptationsTable table = Tables.acceptations;
+        db.execSQL("INSERT INTO " + table.getName() + " (" +
+                table.getColumnName(table.getWordColumnIndex()) + ", " +
+                table.getColumnName(table.getConceptColumnIndex()) + ", " +
+                table.getColumnName(table.getCorrelationArrayColumnIndex()) + ") VALUES (" +
                 word + ',' + concept + ',' + correlationArray + ')');
+
         final Integer id = getAcceptation(db, word, concept, correlationArray);
         if (id == null) {
             throw new AssertionError("A just introduced register should be found");
@@ -293,11 +353,20 @@ public class DbManager extends SQLiteOpenHelper {
     }
 
     private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int correlationArrayId) {
-        db.execSQL("UPDATE " + TableNames.acceptations + " SET correlationArray=" + correlationArrayId + " WHERE word=" + word);
+        final AcceptationsTable table = Tables.acceptations;
+        db.execSQL("UPDATE " + table.getName() + " SET " +
+                table.getColumnName(table.getCorrelationArrayColumnIndex()) + '=' +
+                correlationArrayId + " WHERE " +
+                table.getColumnName(table.getWordColumnIndex()) + '=' + word);
     }
 
     private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int concept, int correlationArrayId) {
-        db.execSQL("UPDATE " + TableNames.acceptations + " SET correlationArray=" + correlationArrayId + " WHERE word=" + word + " AND concept=" + concept);
+        final AcceptationsTable table = Tables.acceptations;
+        db.execSQL("UPDATE " + table.getName() + " SET " +
+                table.getColumnName(table.getCorrelationArrayColumnIndex()) + '=' +
+                correlationArrayId + " WHERE " +
+                table.getColumnName(table.getWordColumnIndex()) + '=' + word +
+                " AND " + table.getColumnName(table.getConceptColumnIndex()) + '=' + concept);
     }
 
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
@@ -387,7 +456,7 @@ public class DbManager extends SQLiteOpenHelper {
         static final int minValidWord = 0;
     }
 
-    static final class Language {
+    private static final class Language {
 
         private final String _code;
         private final int _minAlphabet;
@@ -413,7 +482,7 @@ public class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    public static final class Conversion {
+    private static final class Conversion {
 
         private final int _sourceAlphabet;
         private final int _targetAlphabet;
@@ -447,13 +516,183 @@ public class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static class DbTable {
+
+        private final String _name;
+        private final String[] _columnNames;
+        private final int _intColumnCount; // This already count the identifier
+
+        DbTable(String name, String[] intColumns, String[] textColumns) {
+            final int intColumnCount = (intColumns != null)? intColumns.length : 0;
+            final int textColumnCount = (textColumns != null)? textColumns.length : 0;
+
+            String[] columnNames = new String[intColumnCount + textColumnCount + 1];
+            columnNames[0] = idColumnName;
+
+            if (intColumnCount > 0) {
+                System.arraycopy(intColumns, 0, columnNames, 1, intColumnCount);
+            }
+
+            if (textColumnCount > 0) {
+                System.arraycopy(textColumns, 0, columnNames, intColumnCount + 1, textColumnCount);
+            }
+
+            _name = name;
+            _columnNames = columnNames;
+            _intColumnCount = intColumnCount + 1;
+        }
+
+        String getName() {
+            return _name;
+        }
+
+        int getColumnCount() {
+            return _columnNames.length;
+        }
+
+        String getColumnName(int index) {
+            return _columnNames[index];
+        }
+
+        boolean isTextColumn(int index) {
+            return index >= _intColumnCount;
+        }
+    }
+
+    static final class SymbolArraysTable extends DbTable {
+
+        SymbolArraysTable() {
+            super("SymbolArrays", null, new String[] {"str"});
+        }
+
+        int getStrColumnIndex() {
+            return 1;
+        }
+    }
+
+    static final class AcceptationsTable extends DbTable {
+
+        AcceptationsTable() {
+            super("Acceptations", new String[] {"word", "concept", "correlationArray"}, null);
+        }
+
+        int getWordColumnIndex() {
+            return 1;
+        }
+
+        int getConceptColumnIndex() {
+            return 2;
+        }
+
+        int getCorrelationArrayColumnIndex() {
+            return 3;
+        }
+    }
+
+    static final class ConversionsTable extends DbTable {
+
+        ConversionsTable() {
+            super("Conversions", new String[] {"sourceAlphabet", "targetAlphabet", "source", "target"}, null);
+        }
+
+        int getSourceAlphabetColumnIndex() {
+            return 1;
+        }
+
+        int getTargetAlphabetColumnIndex() {
+            return 2;
+        }
+
+        int getSourceColumnIndex() {
+            return 3;
+        }
+
+        int getTargetColumnIndex() {
+            return 4;
+        }
+    }
+
+    static final class CorrelationsTable extends DbTable {
+
+        CorrelationsTable() {
+            super("Correlations", new String[] {"correlationId", "alphabet", "symbolArray"}, null);
+        }
+
+        int getCorrelationIdColumnIndex() {
+            return 1;
+        }
+
+        int getAlphabetColumnIndex() {
+            return 2;
+        }
+
+        int getSymbolArrayColumnIndex() {
+            return 3;
+        }
+    }
+
+    static final class CorrelationArraysTable extends DbTable {
+
+        CorrelationArraysTable() {
+            super("CorrelationArrays", new String[] {"arrayId", "arrayPos", "correlation"}, null);
+        }
+
+        int getArrayIdColumnIndex() {
+            return 1;
+        }
+
+        int getArrayPositionColumnIndex() {
+            return 2;
+        }
+
+        int getCorrelationColumnIndex() {
+            return 3;
+        }
+    }
+
+    static final class Tables {
+        static final AcceptationsTable acceptations = new AcceptationsTable();
+        static final ConversionsTable conversions = new ConversionsTable();
+        static final CorrelationsTable correlations = new CorrelationsTable();
+        static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
+        static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
+    }
+
+    private static final String idColumnName = "id";
+
+    private static final DbTable[] dbTables = new DbTable[5];
+    static {
+        dbTables[0] = Tables.acceptations;
+        dbTables[1] = Tables.conversions;
+        dbTables[2] = Tables.correlations;
+        dbTables[3] = Tables.correlationArrays;
+        dbTables[4] = Tables.symbolArrays;
+    }
+
+    private void createTables(SQLiteDatabase db) {
+        for (DbTable table : dbTables) {
+            StringBuilder builder = new StringBuilder();
+            builder.append("CREATE TABLE ")
+                    .append(table.getName())
+                    .append(" (")
+                    .append(idColumnName)
+                    .append(" INTEGER PRIMARY KEY AUTOINCREMENT");
+
+            final int columnCount = table.getColumnCount();
+            for (int i = 1; i < columnCount; i++) {
+                builder.append(", ")
+                        .append(table.getColumnName(i))
+                        .append(table.isTextColumn(i)? " TEXT" : " INTEGER");
+            }
+            builder.append(')');
+
+            db.execSQL(builder.toString());
+        }
+    }
+
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE " + TableNames.acceptations + " (id INTEGER PRIMARY KEY AUTOINCREMENT, word INTEGER, concept INTEGER, correlationArray INTEGER)");
-        db.execSQL("CREATE TABLE " + TableNames.conversions + " (id INTEGER PRIMARY KEY AUTOINCREMENT, sourceAlphabet INTEGER, targetAlphabet INTEGER, source INTEGER, target INTEGER)");
-        db.execSQL("CREATE TABLE " + TableNames.correlations + " (id INTEGER PRIMARY KEY AUTOINCREMENT, correlationId INTEGER, alphabet INTEGER, symbolArray INTEGER)");
-        db.execSQL("CREATE TABLE " + TableNames.correlationArrays + " (id INTEGER PRIMARY KEY AUTOINCREMENT, arrayId INTEGER, arrayPos INTEGER, correlation INTEGER)");
-        db.execSQL("CREATE TABLE " + TableNames.symbolArrays + " (id INTEGER PRIMARY KEY AUTOINCREMENT, str TEXT)");
+        createTables(db);
 
         final InputStream is = _context.getResources().openRawResource(R.raw.basic);
         try {
@@ -575,42 +814,6 @@ public class DbManager extends SQLiteOpenHelper {
 
                             final int[] correlationArray = jaWordRepr.getCorrelationArray();
                             final int correlationArrayLength = correlationArray.length;
-
-                            /*
-                            if (foundAcc.getRight() == nullCorrelationArray) {
-                                final int[] dbCorrelations = new int[correlationArrayLength];
-                                for (int corrIndex = 0; corrIndex < correlationArrayLength; corrIndex++) {
-                                    dbCorrelations[corrIndex] = kanjiKanaCorrelationIdMap[correlationArray[corrIndex]];
-                                }
-
-                                final int dbCorrelationArray = insertCorrelationArray(db, dbCorrelations);
-                                insertAcceptation(db, wordId, concept, dbCorrelationArray);
-                            }
-                            else if (correlationArrayLength == 1) {
-                                // If reaching this code -> There is a wordRepresentation for this word as well
-                                // Only acceptable if the correlationArray has length 1
-                                final int dbCorrelationArray = foundAcc.getRight();
-                                final int[] dbCorrelations = getCorrelationArray(db, dbCorrelationArray);
-                                if (dbCorrelations.length != 1) {
-                                    throw new AssertionError("Unmergeable correlation array found");
-                                }
-
-                                SparseIntArray dbCorrelation = getCorrelation(db, dbCorrelations[0]);
-                                if (dbCorrelation.size() != 1 && dbCorrelation.keyAt(0) != kanaAlphabet) {
-                                    throw new AssertionError("Previous correlation includes symbolArrays for unexpected alphabets");
-                                }
-
-                                SparseIntArray kanjiKanaCorrelation = getCorrelation(db, kanjiKanaCorrelationIdMap[correlationArray[0]]);
-                                if (dbCorrelation.valueAt(0) != kanjiKanaCorrelation.get(kanaAlphabet)) {
-                                    throw new AssertionError("Kana representation does not match");
-                                }
-
-                                dbCorrelation.put(kanjiAlphabet, correlationArray[0])
-                            }
-                            else {
-                                throw new AssertionError("Acceptation found with unmergeable correlation array");
-                            }
-                            */
 
                             // Straight forward, not checking inconsistencies in the database
                             final int[] dbCorrelations = new int[correlationArrayLength];

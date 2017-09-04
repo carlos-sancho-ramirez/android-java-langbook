@@ -37,7 +37,7 @@ public class SearchActivity extends Activity {
             */
 
             //Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, str FROM " + DbManager.TableNames.acceptations + " JOIN " + DbManager.TableNames.correlationArrays + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.TableNames.correlations + " ON ca.correlation=correlationId JOIN " + DbManager.TableNames.symbolArrays + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos", null);
-            Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, group_concat(str,'') FROM (SELECT word, concept, alphabet, str FROM " + DbManager.TableNames.acceptations + " JOIN " + DbManager.TableNames.correlationArrays + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.TableNames.correlations + " ON ca.correlation=correlationId JOIN " + DbManager.TableNames.symbolArrays + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos) GROUP BY word, concept, alphabet", null);
+            Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, group_concat(str,'') FROM (SELECT word, concept, alphabet, str FROM " + DbManager.Tables.acceptations.getName() + " JOIN " + DbManager.Tables.correlationArrays.getName() + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.Tables.correlations.getName() + " ON ca.correlation=correlationId JOIN " + DbManager.Tables.symbolArrays.getName() + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos) GROUP BY word, concept, alphabet", null);
             if (cursor != null) {
                 try {
                     if (cursor.getCount() > 0 && cursor.moveToFirst()) {
