@@ -10,6 +10,7 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
 import sword.bitstream.HuffmanTable;
@@ -352,6 +353,22 @@ class DbManager extends SQLiteOpenHelper {
         return id;
     }
 
+    private void insertBunchAcceptation(SQLiteDatabase db, int bunch, int acceptation) {
+        final BunchAcceptationsTable table = Tables.bunchAcceptations;
+        db.execSQL("INSERT INTO " + table.getName() + " (" +
+                table.getColumnName(table.getBunchColumnIndex()) + ", " +
+                table.getColumnName(table.getAcceptationColumnIndex()) + ") VALUES (" +
+                bunch + ',' + acceptation + ')');
+    }
+
+    private void insertBunchConcept(SQLiteDatabase db, int bunch, int concept) {
+        final BunchConceptsTable table = Tables.bunchConcepts;
+        db.execSQL("INSERT INTO " + table.getName() + " (" +
+                table.getColumnName(table.getBunchColumnIndex()) + ", " +
+                table.getColumnName(table.getConceptColumnIndex()) + ") VALUES (" +
+                bunch + ',' + concept + ')');
+    }
+
     private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int correlationArrayId) {
         final AcceptationsTable table = Tables.acceptations;
         db.execSQL("UPDATE " + table.getName() + " SET " +
@@ -442,6 +459,35 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         return acceptationsIdMap;
+    }
+
+    private void readBunchConcepts(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int maxConcept) throws IOException {
+        final int bunchConceptsLength = (int) ibs.readNaturalNumber();
+        final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
+                ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
+
+        for (int i = 0; i < bunchConceptsLength; i++) {
+            final int bunch = ibs.readRangedNumber(minValidConcept, maxConcept);
+            final Set<Integer> concepts = ibs.readRangedNumberSet(bunchConceptsLengthTable, minValidConcept, maxConcept);
+            for (int concept : concepts) {
+                insertBunchConcept(db, bunch, concept);
+            }
+        }
+    }
+
+    private void readBunchAcceptations(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int maxConcept, int[] acceptationsIdMap) throws IOException {
+        final int bunchAcceptationsLength = (int) ibs.readNaturalNumber();
+        final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
+                ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
+
+        final int maxValidAcceptation = acceptationsIdMap.length - 1;
+        for (int i = 0; i < bunchAcceptationsLength; i++) {
+            final int bunch = ibs.readRangedNumber(minValidConcept, maxConcept);
+            final Set<Integer> acceptations = ibs.readRangedNumberSet(bunchAcceptationsLengthTable, 0, maxValidAcceptation);
+            for (int acceptation : acceptations) {
+                insertBunchAcceptation(db, bunch, acceptationsIdMap[acceptation]);
+            }
+        }
     }
 
     private static final class StreamedDatabaseConstants {
@@ -589,6 +635,36 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class BunchAcceptationsTable extends DbTable {
+
+        BunchAcceptationsTable() {
+            super("BunchAcceptations", new String[] {"bunch", "acceptation"}, null);
+        }
+
+        int getBunchColumnIndex() {
+            return 1;
+        }
+
+        int getAcceptationColumnIndex() {
+            return 2;
+        }
+    }
+
+    static final class BunchConceptsTable extends DbTable {
+
+        BunchConceptsTable() {
+            super("BunchConcepts", new String[] {"bunch", "concept"}, null);
+        }
+
+        int getBunchColumnIndex() {
+            return 1;
+        }
+
+        int getConceptColumnIndex() {
+            return 2;
+        }
+    }
+
     static final class ConversionsTable extends DbTable {
 
         ConversionsTable() {
@@ -652,6 +728,8 @@ class DbManager extends SQLiteOpenHelper {
 
     static final class Tables {
         static final AcceptationsTable acceptations = new AcceptationsTable();
+        static final BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
+        static final BunchConceptsTable bunchConcepts = new BunchConceptsTable();
         static final ConversionsTable conversions = new ConversionsTable();
         static final CorrelationsTable correlations = new CorrelationsTable();
         static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
@@ -660,13 +738,15 @@ class DbManager extends SQLiteOpenHelper {
 
     private static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[5];
+    private static final DbTable[] dbTables = new DbTable[7];
     static {
         dbTables[0] = Tables.acceptations;
-        dbTables[1] = Tables.conversions;
-        dbTables[2] = Tables.correlations;
-        dbTables[3] = Tables.correlationArrays;
-        dbTables[4] = Tables.symbolArrays;
+        dbTables[1] = Tables.bunchAcceptations;
+        dbTables[2] = Tables.bunchConcepts;
+        dbTables[3] = Tables.conversions;
+        dbTables[4] = Tables.correlations;
+        dbTables[5] = Tables.correlationArrays;
+        dbTables[6] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
@@ -738,6 +818,9 @@ class DbManager extends SQLiteOpenHelper {
             final int minValidWord = StreamedDatabaseConstants.minValidWord;
             final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
             final int[] acceptationsIdMap = readAcceptations(db, ibs, minValidWord, maxWord, minValidConcept, maxConcept);
+
+            final int minValidAcceptation = 0;
+            final int maxValidAcceptation = acceptationsIdMap.length - 1;
 
             // Export word representations
             final int wordRepresentationLength = (int) ibs.readNaturalNumber();
@@ -827,6 +910,12 @@ class DbManager extends SQLiteOpenHelper {
                     }
                 }
             }
+
+            // Export bunchConcepts
+            readBunchConcepts(db, ibs, minValidConcept, maxConcept);
+
+            // Export bunchAcceptations
+            readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
         }
         catch (IOException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
