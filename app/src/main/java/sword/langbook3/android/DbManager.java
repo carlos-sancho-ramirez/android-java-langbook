@@ -4,7 +4,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.widget.Toast;
 
@@ -72,6 +71,22 @@ class DbManager extends SQLiteOpenHelper {
         @Override
         public Integer apply() throws IOException {
             return (int) _ibs.readNaturalNumber();
+        }
+    }
+
+    private static class IntHuffmanSymbolReader implements SupplierWithIOException<Integer> {
+
+        private final InputBitStream _ibs;
+        private final HuffmanTable<Long> _table;
+
+        IntHuffmanSymbolReader(InputBitStream ibs, HuffmanTable<Long> table) {
+            _ibs = ibs;
+            _table = table;
+        }
+
+        @Override
+        public Integer apply() throws IOException {
+            return _ibs.readHuffmanSymbol(_table).intValue();
         }
     }
 
@@ -353,6 +368,21 @@ class DbManager extends SQLiteOpenHelper {
         return id;
     }
 
+    private void insertAgent(SQLiteDatabase db, int targetBunch, int sourceBunchSetId,
+                             int diffBunchSetId, int matcherId, int adderId, int rule, int flags) {
+        final AgentsTable table = Tables.agents;
+        db.execSQL("INSERT INTO " + table.getName() + " (" +
+                table.getColumnName(table.getTargetBunchColumnIndex()) + ", " +
+                table.getColumnName(table.getSourceBunchSetColumnIndex()) + ", " +
+                table.getColumnName(table.getDiffBunchSetColumnIndex()) + ", " +
+                table.getColumnName(table.getMatcherColumnIndex()) + ", " +
+                table.getColumnName(table.getAdderColumnIndex()) + ", " +
+                table.getColumnName(table.getRuleColumnIndex()) + ", " +
+                table.getColumnName(table.getFlagsColumnIndex()) + ") VALUES (" +
+                targetBunch + ',' + sourceBunchSetId + ',' + diffBunchSetId + ',' +
+                matcherId + ',' + adderId + ',' + rule + ',' + flags + ')');
+    }
+
     private void insertBunchAcceptation(SQLiteDatabase db, int bunch, int acceptation) {
         final BunchAcceptationsTable table = Tables.bunchAcceptations;
         db.execSQL("INSERT INTO " + table.getName() + " (" +
@@ -367,6 +397,35 @@ class DbManager extends SQLiteOpenHelper {
                 table.getColumnName(table.getBunchColumnIndex()) + ", " +
                 table.getColumnName(table.getConceptColumnIndex()) + ") VALUES (" +
                 bunch + ',' + concept + ')');
+    }
+
+    private int insertBunchSet(SQLiteDatabase db, Set<Integer> bunches) {
+        final BunchSetsTable table = Tables.bunchSets;
+
+        if (bunches.isEmpty()) {
+            return table.nullReference();
+        }
+        else {
+            final String setIdColumnName = table.getColumnName(table.getSetIdColumnIndex());
+            Cursor cursor = db.rawQuery("SELECT max(" + setIdColumnName + ") FROM " +
+                    table.getName(), null);
+
+            if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
+                throw new AssertionError("Unable to retrieve maximum setId");
+            }
+
+            final int setId = cursor.getInt(0) + 1;
+            cursor.close();
+
+            for (int bunch : bunches) {
+                db.execSQL("INSERT INTO " + table.getName() + " (" +
+                        table.getColumnName(table.getSetIdColumnIndex()) + ", " +
+                        table.getColumnName(table.getBunchColumnIndex()) + ") VALUES (" +
+                        setId + ',' + bunch + ')');
+            }
+
+            return setId;
+        }
     }
 
     private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int correlationArrayId) {
@@ -490,7 +549,67 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    private void readAgents(
+            SQLiteDatabase db, InputBitStream ibs, int maxConcept,
+            int minValidAlphabet, int maxValidAlphabet,
+            int minSymbolArrayIndex, int maxSymbolArrayIndex) throws IOException {
+
+        final int agentsLength = (int) ibs.readNaturalNumber();
+        if (agentsLength > 0) {
+            final HuffmanTable<Long> nat3Table = new NaturalNumberHuffmanTable(3);
+            final IntHuffmanSymbolReader intHuffmanSymbolReader = new IntHuffmanSymbolReader(ibs, nat3Table);
+            final HuffmanTable<Integer> sourceSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
+            final HuffmanTable<Integer> matcherSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
+
+            int lastTarget = StreamedDatabaseConstants.nullBunchId;
+            int minSource = StreamedDatabaseConstants.minValidConcept;
+            for (int i = 0; i < agentsLength; i++) {
+                final int targetBunch = ibs.readRangedNumber(lastTarget, maxConcept);
+
+                if (targetBunch != lastTarget) {
+                    minSource = StreamedDatabaseConstants.minValidConcept;
+                }
+
+                final Set<Integer> sourceSet = ibs.readRangedNumberSet(sourceSetLengthTable, minSource, maxConcept);
+
+                if (!sourceSet.isEmpty()) {
+                    int min = Integer.MAX_VALUE;
+                    for (int value : sourceSet) {
+                        if (value < min) {
+                            min = value;
+                        }
+                    }
+                    minSource = min;
+                }
+
+                final SparseIntArray matcher = readCorrelationMap(ibs, matcherSetLengthTable,
+                        minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
+                final SparseIntArray adder = readCorrelationMap(ibs, matcherSetLengthTable,
+                        minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
+
+                final int rule = (adder.size() > 0)?
+                        ibs.readRangedNumber(StreamedDatabaseConstants.minValidConcept, maxConcept) :
+                        StreamedDatabaseConstants.nullBunchId;
+
+                final boolean fromStart = (matcher.size() > 0 || adder.size() > 0) && ibs.readBoolean();
+                final int flags = fromStart? 1 : 0;
+
+                final int sourceBunchSetId = insertBunchSet(db, sourceSet);
+                final int diffBunchSetId = 0;
+
+                final int matcherId = insertCorrelation(db, matcher);
+                final int adderId = insertCorrelation(db, adder);
+                insertAgent(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+
+                lastTarget = targetBunch;
+            }
+        }
+    }
+
     private static final class StreamedDatabaseConstants {
+
+        /** Reserved for agents for null references */
+        static final int nullBunchId = 0;
 
         /** First alphabet within the database */
         static final int minValidAlphabet = 3;
@@ -635,6 +754,41 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class AgentsTable extends DbTable {
+
+        AgentsTable() {
+            super("Agents", new String[] {"target", "sourceSet", "diffSet", "matcher", "adder", "rule", "flags"}, null);
+        }
+
+        int getTargetBunchColumnIndex() {
+            return 1;
+        }
+
+        int getSourceBunchSetColumnIndex() {
+            return 2;
+        }
+
+        int getDiffBunchSetColumnIndex() {
+            return 3;
+        }
+
+        int getMatcherColumnIndex() {
+            return 4;
+        }
+
+        int getAdderColumnIndex() {
+            return 5;
+        }
+
+        int getRuleColumnIndex() {
+            return 6;
+        }
+
+        int getFlagsColumnIndex() {
+            return 7;
+        }
+    }
+
     static final class BunchAcceptationsTable extends DbTable {
 
         BunchAcceptationsTable() {
@@ -662,6 +816,25 @@ class DbManager extends SQLiteOpenHelper {
 
         int getConceptColumnIndex() {
             return 2;
+        }
+    }
+
+    static final class BunchSetsTable extends DbTable {
+
+        BunchSetsTable() {
+            super("BunchSets", new String[] {"setId", "bunch"}, null);
+        }
+
+        int getSetIdColumnIndex() {
+            return 1;
+        }
+
+        int getBunchColumnIndex() {
+            return 2;
+        }
+
+        int nullReference() {
+            return 0;
         }
     }
 
@@ -728,8 +901,10 @@ class DbManager extends SQLiteOpenHelper {
 
     static final class Tables {
         static final AcceptationsTable acceptations = new AcceptationsTable();
+        static final AgentsTable agents = new AgentsTable();
         static final BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
         static final BunchConceptsTable bunchConcepts = new BunchConceptsTable();
+        static final BunchSetsTable bunchSets = new BunchSetsTable();
         static final ConversionsTable conversions = new ConversionsTable();
         static final CorrelationsTable correlations = new CorrelationsTable();
         static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
@@ -738,15 +913,17 @@ class DbManager extends SQLiteOpenHelper {
 
     private static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[7];
+    private static final DbTable[] dbTables = new DbTable[9];
     static {
         dbTables[0] = Tables.acceptations;
-        dbTables[1] = Tables.bunchAcceptations;
-        dbTables[2] = Tables.bunchConcepts;
-        dbTables[3] = Tables.conversions;
-        dbTables[4] = Tables.correlations;
-        dbTables[5] = Tables.correlationArrays;
-        dbTables[6] = Tables.symbolArrays;
+        dbTables[1] = Tables.agents;
+        dbTables[2] = Tables.bunchAcceptations;
+        dbTables[3] = Tables.bunchConcepts;
+        dbTables[4] = Tables.bunchSets;
+        dbTables[5] = Tables.conversions;
+        dbTables[6] = Tables.correlations;
+        dbTables[7] = Tables.correlationArrays;
+        dbTables[8] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
@@ -770,6 +947,23 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    private SparseIntArray readCorrelationMap(
+            InputBitStream ibs, HuffmanTable<Integer> matcherSetLengthTable,
+            int minAlphabet, int maxAlphabet,
+            int minSymbolArray, int maxSymbolArray) throws IOException {
+
+        final int mapLength = ibs.readHuffmanSymbol(matcherSetLengthTable);
+        final SparseIntArray result = new SparseIntArray();
+        for (int i = 0; i < mapLength; i++) {
+            final int alphabet = ibs.readRangedNumber(minAlphabet, maxAlphabet);
+            final int symbolArrayIndex = ibs.readRangedNumber(minSymbolArray, maxSymbolArray);
+            minAlphabet = alphabet + 1;
+            result.put(alphabet, symbolArrayIndex);
+        }
+
+        return result;
+    }
+
     @Override
     public void onCreate(SQLiteDatabase db) {
         createTables(db);
@@ -779,6 +973,7 @@ class DbManager extends SQLiteOpenHelper {
             is.skip(20);
             final InputBitStream ibs = new InputBitStream(is);
             final int[] symbolArraysIdMap = readSymbolArrays(db, ibs);
+            final int minSymbolArrayIndex = 0;
             final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
 
             // Read languages and its alphabets
@@ -916,6 +1111,9 @@ class DbManager extends SQLiteOpenHelper {
 
             // Export bunchAcceptations
             readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
+
+            // Export agents
+            readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
         }
         catch (IOException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
