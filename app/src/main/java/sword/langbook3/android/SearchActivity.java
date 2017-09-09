@@ -2,72 +2,79 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.widget.TextView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
+import android.widget.ListView;
 
-public class SearchActivity extends Activity {
+public class SearchActivity extends Activity implements TextWatcher {
+
+    private DbManager _dbManager;
+    private ListView _listView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.search_activity);
 
-        final StringBuilder builder = new StringBuilder();
-        SQLiteDatabase db = new DbManager(this).getReadableDatabase();
+        _listView = findViewById(R.id.listView);
 
-        try {
-            /*
-            Cursor cursor = db.rawQuery("SELECT sourceAlphabet, targetAlphabet, S1.str, S2.str FROM " + DbManager.TableNames.conversions + " JOIN " + DbManager.TableNames.symbolArrays + " AS S1 ON source=S1.id JOIN " + DbManager.TableNames.symbolArrays + " AS S2 ON target=S2.id", null);
-            if (cursor != null) {
-                try {
-                    if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-                        do {
-                            builder.append(cursor.getInt(0))
-                                    .append(" -> ").append(cursor.getInt(1))
-                                    .append(": ").append(cursor.getString(2))
-                                    .append(" -> ").append(cursor.getString(3)).append('\n');
-                        } while (cursor.moveToNext());
-                    }
-                }
-                finally {
-                    cursor.close();
+        final EditText searchField = findViewById(R.id.searchField);
+        searchField.addTextChangedListener(this);
+
+        _dbManager = new DbManager(this);
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+        // Nothing to be done
+    }
+
+    @Override
+    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+        // Nothing to be done
+    }
+
+    @Override
+    public void afterTextChanged(Editable editable) {
+        querySearchResults(editable.toString());
+    }
+
+    private void querySearchResults(String query) {
+        final DbManager.StringQueriesTable table = DbManager.Tables.stringQueries;
+        Cursor cursor = _dbManager.getReadableDatabase().rawQuery("SELECT " +
+                table.getColumnName(table.getStringColumnIndex()) + ',' +
+                table.getColumnName(table.getMainStringColumnIndex()) + ',' +
+                table.getColumnName(table.getMainAcceptationColumnIndex()) + ',' +
+                table.getColumnName(table.getDynamicAcceptationColumnIndex()) +
+                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getStringColumnIndex()) + " LIKE '" + query + "%'", null);
+
+        SearchResult[] results = new SearchResult[0];
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    results = new SearchResult[cursor.getCount()];
+                    int i = 0;
+                    do {
+                        final String str = cursor.getString(0);
+                        final String mainStr = cursor.getString(1);
+                        final int acc = cursor.getInt(2);
+                        final int dynAcc = cursor.getInt(3);
+
+                        results[i++] = new SearchResult(str, mainStr, acc, dynAcc);
+                    } while (cursor.moveToNext());
                 }
             }
-            */
-
-            //Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, str FROM " + DbManager.TableNames.acceptations + " JOIN " + DbManager.TableNames.correlationArrays + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.TableNames.correlations + " ON ca.correlation=correlationId JOIN " + DbManager.TableNames.symbolArrays + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos", null);
-            //Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, group_concat(str,'') FROM (SELECT word, concept, alphabet, str FROM " + DbManager.Tables.acceptations.getName() + " JOIN " + DbManager.Tables.correlationArrays.getName() + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.Tables.correlations.getName() + " ON ca.correlation=correlationId JOIN " + DbManager.Tables.symbolArrays.getName() + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos) GROUP BY word, concept, alphabet", null);
-            Cursor cursor = db.rawQuery("SELECT * FROM " + DbManager.Tables.stringQueries.getName(), null);
-            if (cursor != null) {
-                try {
-                    if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-                        do {
-                            /*
-                            builder.append('(').append(cursor.getInt(0))
-                                    .append(", ").append(cursor.getInt(1))
-                                    .append(", ").append(cursor.getInt(2))
-                                    .append(") -> ").append(cursor.getString(3)).append('\n');
-                                    */
-
-                            DbManager.StringQueriesTable table = DbManager.Tables.stringQueries;
-                            builder.append(cursor.getString(table.getStringColumnIndex()))
-                                    .append(" (").append(cursor.getInt(table.getStringAlphabetColumnIndex()))
-                                    .append(") -> ").append(cursor.getInt(table.getMainAcceptationColumnIndex()))
-                                    .append('\n');
-                        } while (cursor.moveToNext());
-                    }
-                }
-                finally {
-                    cursor.close();
-                }
+            finally {
+                cursor.close();
             }
         }
-        finally {
-            db.close();
-        }
 
-        final TextView textView = (TextView) findViewById(R.id.textView);
-        textView.setText(builder.toString());
+        updateSearchResults(results);
+    }
+
+    private void updateSearchResults(SearchResult[] results) {
+        _listView.setAdapter(new SearchResultAdapter(results));
     }
 }
