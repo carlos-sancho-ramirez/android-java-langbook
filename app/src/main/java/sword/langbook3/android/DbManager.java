@@ -280,6 +280,18 @@ class DbManager extends SQLiteOpenHelper {
         return insertSymbolArray(db, str);
     }
 
+    private void insertAlphabet(SQLiteDatabase db, int id, int language) {
+        final AlphabetsTable table = Tables.alphabets;
+        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' + table.getColumnName(table.getLanguageColumnIndex()) +
+                ") VALUES (" + id + ',' + language + ')');
+    }
+
+    private void insertLanguage(SQLiteDatabase db, int id, String code, int mainAlphabet) {
+        final LanguagesTable table = Tables.languages;
+        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' + table.getColumnName(table.getCodeColumnIndex()) +
+                ',' + table.getColumnName(table.getMainAlphabetColumnIndex()) + ") VALUES (" + id + ",'" + code + "'," + mainAlphabet + ')');
+    }
+
     private void insertConversion(SQLiteDatabase db, int sourceAlphabet, int targetAlphabet, int source, int target) {
         final ConversionsTable table = Tables.conversions;
         db.execSQL("INSERT INTO " + table.getName() + " (" +
@@ -655,6 +667,19 @@ class DbManager extends SQLiteOpenHelper {
             _maxAlphabet = minAlphabet + alphabetCount - 1;
         }
 
+        boolean containsAlphabet(int alphabet) {
+            return alphabet >= _minAlphabet && alphabet <= _maxAlphabet;
+        }
+
+        String getCode() {
+            return _code;
+        }
+
+        int getMainAlphabet() {
+            // For now, it is considered the main alphabet the first of them.
+            return _minAlphabet;
+        }
+
         @Override
         public String toString() {
             return "(" + _code + ", " + Integer.toString(_maxAlphabet - _minAlphabet + 1) + ')';
@@ -819,6 +844,17 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class AlphabetsTable extends DbTable {
+
+        AlphabetsTable() {
+            super("Alphabets", new String[] {"language"}, null);
+        }
+
+        int getLanguageColumnIndex() {
+            return 1;
+        }
+    }
+
     static final class BunchAcceptationsTable extends DbTable {
 
         BunchAcceptationsTable() {
@@ -929,6 +965,21 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class LanguagesTable extends DbTable {
+
+        LanguagesTable() {
+            super("Languages", new String[] {"mainAlphabet"}, new String[] {"code"});
+        }
+
+        int getMainAlphabetColumnIndex() {
+            return 1;
+        }
+
+        int getCodeColumnIndex() {
+            return 2;
+        }
+    }
+
     static final class StringQueriesTable extends DbTable {
 
         StringQueriesTable() {
@@ -970,30 +1021,34 @@ class DbManager extends SQLiteOpenHelper {
     static final class Tables {
         static final AcceptationsTable acceptations = new AcceptationsTable();
         static final AgentsTable agents = new AgentsTable();
+        static final AlphabetsTable alphabets = new AlphabetsTable();
         static final BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
         static final BunchConceptsTable bunchConcepts = new BunchConceptsTable();
         static final BunchSetsTable bunchSets = new BunchSetsTable();
         static final ConversionsTable conversions = new ConversionsTable();
         static final CorrelationsTable correlations = new CorrelationsTable();
         static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
+        static final LanguagesTable languages = new LanguagesTable();
         static final StringQueriesTable stringQueries = new StringQueriesTable();
         static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
 
     private static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[10];
+    private static final DbTable[] dbTables = new DbTable[12];
     static {
         dbTables[0] = Tables.acceptations;
         dbTables[1] = Tables.agents;
-        dbTables[2] = Tables.bunchAcceptations;
-        dbTables[3] = Tables.bunchConcepts;
-        dbTables[4] = Tables.bunchSets;
-        dbTables[5] = Tables.conversions;
-        dbTables[6] = Tables.correlations;
-        dbTables[7] = Tables.correlationArrays;
-        dbTables[8] = Tables.stringQueries;
-        dbTables[9] = Tables.symbolArrays;
+        dbTables[2] = Tables.alphabets;
+        dbTables[3] = Tables.bunchAcceptations;
+        dbTables[4] = Tables.bunchConcepts;
+        dbTables[5] = Tables.bunchSets;
+        dbTables[6] = Tables.conversions;
+        dbTables[7] = Tables.correlations;
+        dbTables[8] = Tables.correlationArrays;
+        dbTables[9] = Tables.languages;
+        dbTables[10] = Tables.stringQueries;
+        dbTables[11] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
@@ -1056,7 +1111,7 @@ class DbManager extends SQLiteOpenHelper {
             int kanaAlphabet = -1;
 
             for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
-                final int codeSymbolArrayIndex = ibs.readRangedNumber(0, maxSymbolArrayIndex);
+                final int codeSymbolArrayIndex = ibs.readRangedNumber(minSymbolArrayIndex, maxSymbolArrayIndex);
                 final int alphabetCount = ibs.readHuffmanSymbol(nat2Table).intValue();
                 final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
                 languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
@@ -1071,8 +1126,26 @@ class DbManager extends SQLiteOpenHelper {
                 nextMinAlphabet += alphabetCount;
             }
 
-            // Read conversions
             final int maxValidAlphabet = nextMinAlphabet - 1;
+            final int minLanguage = nextMinAlphabet;
+            final int maxLanguage = minLanguage + languages.length - 1;
+
+            for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
+                for (int j = 0; j < languageCount; j++) {
+                    Language lang = languages[j];
+                    if (lang.containsAlphabet(i)) {
+                        insertAlphabet(db, i, minLanguage + j);
+                        break;
+                    }
+                }
+            }
+
+            for (int i = 0; i < languageCount; i++) {
+                final Language lang = languages[i];
+                insertLanguage(db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
+            }
+
+            // Read conversions
             final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0, maxSymbolArrayIndex, symbolArraysIdMap);
 
             // Export the amount of words and concepts in order to range integers
@@ -1205,21 +1278,30 @@ class DbManager extends SQLiteOpenHelper {
         final CorrelationArraysTable correlationArrays = Tables.correlationArrays; // J1
         final CorrelationsTable correlations = Tables.correlations; // J2
         final SymbolArraysTable symbolArrays = Tables.symbolArrays; // J3
+        final AlphabetsTable alphabets = Tables.alphabets;
+        final LanguagesTable languages = Tables.languages;
 
-        final String accIdFieldName = "J0." + idColumnName;
-        final String alphabetFieldName = correlations.getColumnName(correlations.getAlphabetColumnIndex());
-        final String strFieldName = symbolArrays.getColumnName(symbolArrays.getStrColumnIndex());
+        Cursor cursor = db.rawQuery("SELECT accId, alphabetId, group_concat(str1,''), group_concat(str2,'') FROM (" +
+                "SELECT" +
+                    " J0." + idColumnName + " AS accId," +
+                    " J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) + " AS alphabetId," +
+                    " J7." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) + " AS str2," +
+                    " J3." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) + " AS str1" +
+                " FROM " + acceptations.getName() + " AS J0" +
+                " JOIN " + correlationArrays.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) + "=J1." + correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) +
+                " JOIN " + correlations.getName() + " AS J2 ON J1." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J2." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
+                " JOIN " + symbolArrays.getName() + " AS J3 ON J2." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J3." + idColumnName +
+                " JOIN " + alphabets.getName() + " AS J4 ON J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) + "=J4." + idColumnName +
+                " JOIN " + languages.getName() + " AS J5 ON J4." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J5." + idColumnName +
+                " JOIN " + correlations.getName() + " AS J6 ON J1." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J6." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
+                " JOIN " + symbolArrays.getName() + " AS J7 ON J6." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J7." + idColumnName +
+                " WHERE J5." + languages.getColumnName(languages.getMainAlphabetColumnIndex()) + "=J6." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
 
-        Cursor cursor = db.rawQuery("SELECT accId," + alphabetFieldName + ",group_concat(" + strFieldName + ",'') FROM (" +
-                "SELECT " + accIdFieldName + " AS accId," + alphabetFieldName + ',' + strFieldName + " FROM " + acceptations.getName() + " AS J0 JOIN " +
-                correlationArrays.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) + "=J1." +
-                correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) + " JOIN " + correlations.getName() + " AS J2 ON J1." +
-                correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J2." +
-                correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) + " JOIN " + symbolArrays.getName() +
-                " AS J3 ON J2." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J3." +
-                idColumnName + " ORDER BY " + accIdFieldName + ',' + alphabetFieldName +
-                ",J1." + correlationArrays.getColumnName(correlationArrays.getArrayPositionColumnIndex()) +
-                ") GROUP BY accId," + alphabetFieldName, null);
+                " ORDER BY" +
+                    " J0." + idColumnName +
+                    ",J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
+                    ",J1." + correlationArrays.getColumnName(correlationArrays.getArrayPositionColumnIndex()) +
+                ") GROUP BY accId, alphabetId", null);
 
         if (cursor != null) {
             try {
@@ -1228,14 +1310,12 @@ class DbManager extends SQLiteOpenHelper {
                         final int accId = cursor.getInt(0);
                         final int alphabet = cursor.getInt(1);
                         final String str = cursor.getString(2);
-
-                        // TODO: Change this to point to the kanji alphabet in Japanese. More JOINS are required
-                        final String mainStr = str;
+                        final String mainStr = cursor.getString(3);
 
                         // TODO: Change this to point to the dynamic acceptation in Japanese. More JOINS are required whenever agents are applied
                         final int dynAccId = accId;
 
-                        insertStringQuery(db, str, str, accId, dynAccId, alphabet);
+                        insertStringQuery(db, str, mainStr, accId, dynAccId, alphabet);
                     } while(cursor.moveToNext());
                 }
             }
