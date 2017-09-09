@@ -674,6 +674,33 @@ class DbManager extends SQLiteOpenHelper {
             _sources = sources;
             _targets = targets;
         }
+
+        int getSourceAlphabet() {
+            return _sourceAlphabet;
+        }
+
+        int getTargetAlphabet() {
+            return _targetAlphabet;
+        }
+
+        private String convert(String text, int index, String acc) {
+            final int length = _sources.length;
+            if (index == text.length()) {
+                return acc;
+            }
+
+            for (int i = 0; i < length; i++) {
+                if (text.startsWith(_sources[i], index)) {
+                    return convert(text, index + _sources[i].length(), acc + _targets[i]);
+                }
+            }
+
+            return null;
+        }
+
+        String convert(String text) {
+            return (text != null)? convert(text, 0, "") : null;
+        }
     }
 
     private static final class JaWordRepr {
@@ -1159,6 +1186,7 @@ class DbManager extends SQLiteOpenHelper {
             readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
 
             fillSearchQueryTable(db);
+            applyConversions(db, conversions);
         }
         catch (IOException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
@@ -1213,6 +1241,40 @@ class DbManager extends SQLiteOpenHelper {
             }
             finally {
                 cursor.close();
+            }
+        }
+    }
+
+    private void applyConversions(SQLiteDatabase db, Conversion[] conversions) {
+        for (Conversion conversion : conversions) {
+            final int sourceAlphabet = conversion.getSourceAlphabet();
+
+            final DbManager.StringQueriesTable table = DbManager.Tables.stringQueries;
+            Cursor cursor = db.rawQuery("SELECT " +
+                    table.getColumnName(table.getStringColumnIndex()) + ',' +
+                    table.getColumnName(table.getMainStringColumnIndex()) + ',' +
+                    table.getColumnName(table.getMainAcceptationColumnIndex()) + ',' +
+                    table.getColumnName(table.getDynamicAcceptationColumnIndex()) +
+                    " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getStringAlphabetColumnIndex()) + '=' + sourceAlphabet, null);
+
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        do {
+                            final String str = conversion.convert(cursor.getString(0));
+                            if (str != null) {
+                                final String mainStr = cursor.getString(1);
+                                final int mainAcc = cursor.getInt(2);
+                                final int dynAcc = cursor.getInt(3);
+
+                                insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+                            }
+                        } while (cursor.moveToNext());
+                    }
+                }
+                finally {
+                    cursor.close();
+                }
             }
         }
     }
