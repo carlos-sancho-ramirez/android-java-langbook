@@ -383,6 +383,20 @@ class DbManager extends SQLiteOpenHelper {
                 matcherId + ',' + adderId + ',' + rule + ',' + flags + ')');
     }
 
+    private void insertStringQuery(
+            SQLiteDatabase db, String str, String mainStr, int mainAcceptation,
+            int dynAcceptation, int strAlphabet) {
+        final StringQueriesTable table = Tables.stringQueries;
+        db.execSQL("INSERT INTO " + table.getName() + " (" +
+                table.getColumnName(table.getStringColumnIndex()) + ", " +
+                table.getColumnName(table.getMainStringColumnIndex()) + ", " +
+                table.getColumnName(table.getMainAcceptationColumnIndex()) + ", " +
+                table.getColumnName(table.getDynamicAcceptationColumnIndex()) + ", " +
+                table.getColumnName(table.getStringAlphabetColumnIndex()) + ") VALUES ('" +
+                str + "','" + mainStr + "'," + mainAcceptation + ',' +
+                dynAcceptation + ',' + strAlphabet + ')');
+    }
+
     private void insertBunchAcceptation(SQLiteDatabase db, int bunch, int acceptation) {
         final BunchAcceptationsTable table = Tables.bunchAcceptations;
         db.execSQL("INSERT INTO " + table.getName() + " (" +
@@ -724,17 +738,6 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    static final class SymbolArraysTable extends DbTable {
-
-        SymbolArraysTable() {
-            super("SymbolArrays", null, new String[] {"str"});
-        }
-
-        int getStrColumnIndex() {
-            return 1;
-        }
-    }
-
     static final class AcceptationsTable extends DbTable {
 
         AcceptationsTable() {
@@ -899,6 +902,44 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class StringQueriesTable extends DbTable {
+
+        StringQueriesTable() {
+            super("StringQueryTable", new String[] {"mainAcceptation", "dynamicAcceptation", "strAlphabet"}, new String[] {"str", "mainStr"});
+        }
+
+        int getMainAcceptationColumnIndex() {
+            return 1;
+        }
+
+        int getDynamicAcceptationColumnIndex() {
+            return 2;
+        }
+
+        int getStringAlphabetColumnIndex() {
+            return 3;
+        }
+
+        int getStringColumnIndex() {
+            return 4;
+        }
+
+        int getMainStringColumnIndex() {
+            return 5;
+        }
+    }
+
+    static final class SymbolArraysTable extends DbTable {
+
+        SymbolArraysTable() {
+            super("SymbolArrays", null, new String[] {"str"});
+        }
+
+        int getStrColumnIndex() {
+            return 1;
+        }
+    }
+
     static final class Tables {
         static final AcceptationsTable acceptations = new AcceptationsTable();
         static final AgentsTable agents = new AgentsTable();
@@ -908,12 +949,13 @@ class DbManager extends SQLiteOpenHelper {
         static final ConversionsTable conversions = new ConversionsTable();
         static final CorrelationsTable correlations = new CorrelationsTable();
         static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
+        static final StringQueriesTable stringQueries = new StringQueriesTable();
         static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
 
     private static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[9];
+    private static final DbTable[] dbTables = new DbTable[10];
     static {
         dbTables[0] = Tables.acceptations;
         dbTables[1] = Tables.agents;
@@ -923,7 +965,8 @@ class DbManager extends SQLiteOpenHelper {
         dbTables[5] = Tables.conversions;
         dbTables[6] = Tables.correlations;
         dbTables[7] = Tables.correlationArrays;
-        dbTables[8] = Tables.symbolArrays;
+        dbTables[8] = Tables.stringQueries;
+        dbTables[9] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
@@ -1114,6 +1157,8 @@ class DbManager extends SQLiteOpenHelper {
 
             // Export agents
             readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
+
+            fillSearchQueryTable(db);
         }
         catch (IOException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
@@ -1123,6 +1168,51 @@ class DbManager extends SQLiteOpenHelper {
                 is.close();
             } catch (IOException e) {
                 // Nothing can be done
+            }
+        }
+    }
+
+    private void fillSearchQueryTable(SQLiteDatabase db) {
+        final AcceptationsTable acceptations = Tables.acceptations; // J0
+        final CorrelationArraysTable correlationArrays = Tables.correlationArrays; // J1
+        final CorrelationsTable correlations = Tables.correlations; // J2
+        final SymbolArraysTable symbolArrays = Tables.symbolArrays; // J3
+
+        final String accIdFieldName = "J0." + idColumnName;
+        final String alphabetFieldName = correlations.getColumnName(correlations.getAlphabetColumnIndex());
+        final String strFieldName = symbolArrays.getColumnName(symbolArrays.getStrColumnIndex());
+
+        Cursor cursor = db.rawQuery("SELECT accId," + alphabetFieldName + ",group_concat(" + strFieldName + ",'') FROM (" +
+                "SELECT " + accIdFieldName + " AS accId," + alphabetFieldName + ',' + strFieldName + " FROM " + acceptations.getName() + " AS J0 JOIN " +
+                correlationArrays.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) + "=J1." +
+                correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) + " JOIN " + correlations.getName() + " AS J2 ON J1." +
+                correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J2." +
+                correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) + " JOIN " + symbolArrays.getName() +
+                " AS J3 ON J2." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J3." +
+                idColumnName + " ORDER BY " + accIdFieldName + ',' + alphabetFieldName +
+                ",J1." + correlationArrays.getColumnName(correlationArrays.getArrayPositionColumnIndex()) +
+                ") GROUP BY accId," + alphabetFieldName, null);
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        final int accId = cursor.getInt(0);
+                        final int alphabet = cursor.getInt(1);
+                        final String str = cursor.getString(2);
+
+                        // TODO: Change this to point to the kanji alphabet in Japanese. More JOINS are required
+                        final String mainStr = str;
+
+                        // TODO: Change this to point to the dynamic acceptation in Japanese. More JOINS are required whenever agents are applied
+                        final int dynAccId = accId;
+
+                        insertStringQuery(db, str, str, accId, dynAccId, alphabet);
+                    } while(cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
             }
         }
     }

@@ -37,15 +37,24 @@ public class SearchActivity extends Activity {
             */
 
             //Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, str FROM " + DbManager.TableNames.acceptations + " JOIN " + DbManager.TableNames.correlationArrays + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.TableNames.correlations + " ON ca.correlation=correlationId JOIN " + DbManager.TableNames.symbolArrays + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos", null);
-            Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, group_concat(str,'') FROM (SELECT word, concept, alphabet, str FROM " + DbManager.Tables.acceptations.getName() + " JOIN " + DbManager.Tables.correlationArrays.getName() + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.Tables.correlations.getName() + " ON ca.correlation=correlationId JOIN " + DbManager.Tables.symbolArrays.getName() + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos) GROUP BY word, concept, alphabet", null);
+            //Cursor cursor = db.rawQuery("SELECT word, concept, alphabet, group_concat(str,'') FROM (SELECT word, concept, alphabet, str FROM " + DbManager.Tables.acceptations.getName() + " JOIN " + DbManager.Tables.correlationArrays.getName() + " AS ca ON correlationArray=ca.arrayId JOIN " + DbManager.Tables.correlations.getName() + " ON ca.correlation=correlationId JOIN " + DbManager.Tables.symbolArrays.getName() + " AS sa ON symbolArray=sa.id ORDER BY word, concept, alphabet, ca.arrayPos) GROUP BY word, concept, alphabet", null);
+            Cursor cursor = db.rawQuery("SELECT * FROM " + DbManager.Tables.stringQueries.getName(), null);
             if (cursor != null) {
                 try {
                     if (cursor.getCount() > 0 && cursor.moveToFirst()) {
                         do {
+                            /*
                             builder.append('(').append(cursor.getInt(0))
                                     .append(", ").append(cursor.getInt(1))
                                     .append(", ").append(cursor.getInt(2))
                                     .append(") -> ").append(cursor.getString(3)).append('\n');
+                                    */
+
+                            DbManager.StringQueriesTable table = DbManager.Tables.stringQueries;
+                            builder.append(cursor.getString(table.getStringColumnIndex()))
+                                    .append(" (").append(cursor.getInt(table.getStringAlphabetColumnIndex()))
+                                    .append(") -> ").append(cursor.getInt(table.getMainAcceptationColumnIndex()))
+                                    .append('\n');
                         } while (cursor.moveToNext());
                     }
                 }
