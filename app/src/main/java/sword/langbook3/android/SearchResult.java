@@ -19,7 +19,7 @@ class SearchResult {
     }
 
     String getMainStr() {
-        return _str;
+        return _mainStr;
     }
 
     int getAcceptation() {

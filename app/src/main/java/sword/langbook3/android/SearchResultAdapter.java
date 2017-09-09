@@ -49,7 +49,11 @@ class SearchResultAdapter extends BaseAdapter {
         }
 
         final TextView tv = view.findViewById(R.id.searchResultTextView);
-        tv.setText(_items[i].getStr());
+        final String str = _items[i].getStr();
+        final String mainStr = _items[i].getMainStr();
+
+        final String text = str.equals(mainStr)? str : mainStr + " (" + str + ')';
+        tv.setText(text);
 
         return view;
     }
