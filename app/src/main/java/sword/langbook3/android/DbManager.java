@@ -302,6 +302,64 @@ class DbManager extends SQLiteOpenHelper {
                 sourceAlphabet + ',' + targetAlphabet + ',' + source + ',' + target + ')');
     }
 
+    private SparseIntArray getCorrelation(SQLiteDatabase db, int id) {
+        CorrelationsTable table = Tables.correlations;
+        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getAlphabetColumnIndex()) +
+                ',' + table.getColumnName(table.getSymbolArrayColumnIndex()) +
+                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getCorrelationIdColumnIndex()) +
+                "=?", new String[] {Integer.toString(id)});
+
+        SparseIntArray result = new SparseIntArray();
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        result.put(cursor.getInt(0), cursor.getInt(1));
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return result;
+    }
+
+    private Integer findCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
+        if (correlation.size() == 0) {
+            return StreamedDatabaseConstants.nullCorrelationId;
+        }
+
+        final int firstAlphabet = correlation.keyAt(0);
+        final int firstSymbolArray = correlation.valueAt(0);
+
+        CorrelationsTable table = Tables.correlations;
+        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getCorrelationIdColumnIndex()) +
+                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getAlphabetColumnIndex()) +
+                "=? AND " + table.getColumnName(table.getSymbolArrayColumnIndex()) +
+                "=?", new String[] {Integer.toString(firstAlphabet), Integer.toString(firstSymbolArray)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        final int correlationId = cursor.getInt(0);
+                        final SparseIntArray corr = getCorrelation(db, correlationId);
+                        if (EqualUtils.checkEqual(corr, correlation)) {
+                            return correlationId;
+                        }
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
     private int insertCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
@@ -338,6 +396,15 @@ class DbManager extends SQLiteOpenHelper {
         finally {
             cursor.close();
         }
+    }
+
+    private int obtainCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
+        final Integer id = findCorrelation(db, correlation);
+        if (id == null) {
+            return insertCorrelation(db, correlation);
+        }
+
+        return id;
     }
 
     private int insertCorrelationArray(SQLiteDatabase db, int... correlation) {
@@ -626,8 +693,8 @@ class DbManager extends SQLiteOpenHelper {
                 final int sourceBunchSetId = insertBunchSet(db, sourceSet);
                 final int diffBunchSetId = 0;
 
-                final int matcherId = insertCorrelation(db, matcher);
-                final int adderId = insertCorrelation(db, adder);
+                final int matcherId = obtainCorrelation(db, matcher);
+                final int adderId = obtainCorrelation(db, adder);
                 if (rule != StreamedDatabaseConstants.nullRuleId && matcherId == adderId) {
                     throw new AssertionError("When rule is provided, modification is expected, but matcher and adder are the same");
                 }
@@ -1182,7 +1249,7 @@ class DbManager extends SQLiteOpenHelper {
 
                 final SparseIntArray correlation = new SparseIntArray();
                 correlation.put(alphabet, symbolArraysIdMap[symbolArray]);
-                final int correlationId = insertCorrelation(db, correlation);
+                final int correlationId = obtainCorrelation(db, correlation);
                 final int correlationArrayId = insertCorrelationArray(db, correlationId);
                 assignAcceptationCorrelationArray(db, word, correlationArrayId);
             }
@@ -1200,7 +1267,7 @@ class DbManager extends SQLiteOpenHelper {
                 final SparseIntArray correlation = new SparseIntArray();
                 correlation.put(kanjiAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
                 correlation.put(kanaAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
-                kanjiKanaCorrelationIdMap[i] = insertCorrelation(db, correlation);
+                kanjiKanaCorrelationIdMap[i] = obtainCorrelation(db, correlation);
             }
 
             // Export jaWordCorrelations
