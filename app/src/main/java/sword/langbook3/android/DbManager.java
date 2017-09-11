@@ -4,11 +4,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
@@ -173,6 +175,32 @@ class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
+    private Integer findRuledConcept(SQLiteDatabase db, int rule, int concept) {
+        final RuledConceptsTable table = Tables.ruledConcepts;
+        final String whereClause = table.getColumnName(table.getRuleColumnIndex()) + "=? AND " +
+                table.getColumnName(table.getConceptColumnIndex()) + "=?";
+        Cursor cursor = db.query(table.getName(), new String[] {idColumnName}, whereClause,
+                new String[] { Integer.toString(rule), Integer.toString(concept) }, null, null, null, null);
+
+        if (cursor != null) {
+            try {
+                final int count = cursor.getCount();
+                if (count > 1) {
+                    throw new AssertionError("There should not be repeated ruled concepts");
+                }
+
+                if (count > 0 && cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
     private Integer getAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
         final AcceptationsTable table = Tables.acceptations;
 
@@ -280,6 +308,30 @@ class DbManager extends SQLiteOpenHelper {
         return insertSymbolArray(db, str);
     }
 
+    private int insertRuledConcept(SQLiteDatabase db, int rule, int concept) {
+        final int ruledConcept = getMaxConcept(db) + 1;
+        final RuledConceptsTable table = Tables.ruledConcepts;
+        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' +
+                table.getColumnName(table.getRuleColumnIndex()) + ',' +
+                table.getColumnName(table.getConceptColumnIndex()) + ") VALUES (" +
+                ruledConcept + ',' + rule + ',' + concept + ')');
+        final Integer id = findRuledConcept(db, rule, concept);
+        if (id == null) {
+            throw new AssertionError("A just introduced register should be found");
+        }
+
+        return id;
+    }
+
+    private int obtainRuledConcept(SQLiteDatabase db, int rule, int concept) {
+        final Integer id = findRuledConcept(db, rule, concept);
+        if (id != null) {
+            return id;
+        }
+
+        return insertRuledConcept(db, rule, concept);
+    }
+
     private void insertAlphabet(SQLiteDatabase db, int id, int language) {
         final AlphabetsTable table = Tables.alphabets;
         db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' + table.getColumnName(table.getLanguageColumnIndex()) +
@@ -300,6 +352,40 @@ class DbManager extends SQLiteOpenHelper {
                 table.getColumnName(table.getSourceColumnIndex()) + ", " +
                 table.getColumnName(table.getTargetColumnIndex()) + ") VALUES (" +
                 sourceAlphabet + ',' + targetAlphabet + ',' + source + ',' + target + ')');
+    }
+
+    private int getMaxWord(SQLiteDatabase db) {
+        AcceptationsTable table = Tables.acceptations;
+        Cursor cursor = db.rawQuery("SELECT max(" +
+                table.getColumnName(table.getWordColumnIndex()) + ") FROM " +
+                table.getName(), null);
+
+        if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
+            try {
+                return cursor.getInt(0);
+            } finally {
+                cursor.close();
+            }
+        }
+
+        throw new AssertionError("Unable to retrieve maximum wordId");
+    }
+
+    private int getMaxConcept(SQLiteDatabase db) {
+        AcceptationsTable table = Tables.acceptations;
+        Cursor cursor = db.rawQuery("SELECT max(" +
+                table.getColumnName(table.getConceptColumnIndex()) + ") FROM " +
+                table.getName(), null);
+
+        if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
+            try {
+                return cursor.getInt(0);
+            } finally {
+                cursor.close();
+            }
+        }
+
+        throw new AssertionError("Unable to retrieve maximum conceptId");
     }
 
     private SparseIntArray getCorrelation(SQLiteDatabase db, int id) {
@@ -451,7 +537,57 @@ class DbManager extends SQLiteOpenHelper {
         return id;
     }
 
-    private void insertAgent(SQLiteDatabase db, int targetBunch, int sourceBunchSetId,
+    private Integer getAgentId(SQLiteDatabase db, int targetBunch, int sourceBunchSetId,
+                             int diffBunchSetId, int matcherId, int adderId, int rule, int flags) {
+        final AgentsTable table = Tables.agents;
+
+        final String whereClause = new StringBuilder()
+                .append(table.getColumnName(table.getTargetBunchColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getSourceBunchSetColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getDiffBunchSetColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getMatcherColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getAdderColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getRuleColumnIndex()))
+                .append("=? AND ")
+                .append(table.getColumnName(table.getFlagsColumnIndex()))
+                .append("=?")
+                .toString();
+
+        Cursor cursor = db.query(table.getName(), new String[] {idColumnName}, whereClause, new String[] {
+                Integer.toString(targetBunch),
+                Integer.toString(sourceBunchSetId),
+                Integer.toString(diffBunchSetId),
+                Integer.toString(matcherId),
+                Integer.toString(adderId),
+                Integer.toString(rule),
+                Integer.toString(flags)
+        }, null, null, null, null);
+
+        if (cursor != null) {
+            try {
+                final int count = cursor.getCount();
+                if (count > 1) {
+                    throw new AssertionError("There should not be repeated agents");
+                }
+
+                if (count > 0 && cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
+    private int insertAgent(SQLiteDatabase db, int targetBunch, int sourceBunchSetId,
                              int diffBunchSetId, int matcherId, int adderId, int rule, int flags) {
         final AgentsTable table = Tables.agents;
         db.execSQL("INSERT INTO " + table.getName() + " (" +
@@ -464,6 +600,13 @@ class DbManager extends SQLiteOpenHelper {
                 table.getColumnName(table.getFlagsColumnIndex()) + ") VALUES (" +
                 targetBunch + ',' + sourceBunchSetId + ',' + diffBunchSetId + ',' +
                 matcherId + ',' + adderId + ',' + rule + ',' + flags + ')');
+
+        final Integer id = getAgentId(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+        if (id == null) {
+            throw new AssertionError("A just introduced register should be found");
+        }
+
+        return id;
     }
 
     private void insertStringQuery(
@@ -646,11 +789,40 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private void readAgents(
+    private static class Agent {
+
+        private final int _target;
+        private final Set<Integer> _sources;
+        private final Set<Integer> _diff;
+        private final SparseIntArray _matcher;
+        private final SparseIntArray _adder;
+        private final int _rule;
+        private final int _flags;
+
+        Agent(int target, Set<Integer> sources, Set<Integer> diff,
+                SparseIntArray matcher, SparseIntArray adder, int rule, int flags) {
+            _target = target;
+            _sources = sources;
+            _diff = diff;
+            _matcher = matcher;
+            _adder = adder;
+            _rule = rule;
+            _flags = flags;
+        }
+
+        boolean dependsOn(Agent agent) {
+            final int target = agent._target;
+            return _sources.contains(target) || _diff.contains(target);
+        }
+    }
+
+    private SparseArray<Agent> readAgents(
             SQLiteDatabase db, InputBitStream ibs, int maxConcept,
-            int minValidAlphabet, int maxValidAlphabet, int[] symbolArraysIdMap) throws IOException {
+            int minValidAlphabet, int maxValidAlphabet, int[] symbolArrayIdMap) throws IOException {
 
         final int agentsLength = (int) ibs.readNaturalNumber();
+        final SparseArray<Agent> result = new SparseArray<>(agentsLength);
+
         if (agentsLength > 0) {
             final HuffmanTable<Long> nat3Table = new NaturalNumberHuffmanTable(3);
             final IntHuffmanSymbolReader intHuffmanSymbolReader = new IntHuffmanSymbolReader(ibs, nat3Table);
@@ -679,9 +851,9 @@ class DbManager extends SQLiteOpenHelper {
                 }
 
                 final SparseIntArray matcher = readCorrelationMap(ibs, matcherSetLengthTable,
-                        minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
+                        minValidAlphabet, maxValidAlphabet, symbolArrayIdMap);
                 final SparseIntArray adder = readCorrelationMap(ibs, matcherSetLengthTable,
-                        minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
+                        minValidAlphabet, maxValidAlphabet, symbolArrayIdMap);
 
                 final int rule = (adder.size() > 0)?
                         ibs.readRangedNumber(StreamedDatabaseConstants.minValidConcept, maxConcept) :
@@ -699,11 +871,16 @@ class DbManager extends SQLiteOpenHelper {
                     throw new AssertionError("When rule is provided, modification is expected, but matcher and adder are the same");
                 }
 
-                insertAgent(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+                final int agentId = insertAgent(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+
+                final Set<Integer> diffSet = Collections.emptySet();
+                result.put(agentId, new Agent(targetBunch, sourceSet, diffSet, matcher, adder, rule, flags));
 
                 lastTarget = targetBunch;
             }
         }
+
+        return result;
     }
 
     private static final class StreamedDatabaseConstants {
@@ -1060,6 +1237,21 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class RuledConceptsTable extends DbTable {
+
+        RuledConceptsTable() {
+            super("RuledConcepts", new String[] {"rule", "concept"}, null);
+        }
+
+        int getRuleColumnIndex() {
+            return 1;
+        }
+
+        int getConceptColumnIndex() {
+            return 2;
+        }
+    }
+
     static final class StringQueriesTable extends DbTable {
 
         StringQueriesTable() {
@@ -1109,13 +1301,14 @@ class DbManager extends SQLiteOpenHelper {
         static final CorrelationsTable correlations = new CorrelationsTable();
         static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
         static final LanguagesTable languages = new LanguagesTable();
+        static final RuledConceptsTable ruledConcepts = new RuledConceptsTable();
         static final StringQueriesTable stringQueries = new StringQueriesTable();
         static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
 
     private static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[12];
+    private static final DbTable[] dbTables = new DbTable[13];
     static {
         dbTables[0] = Tables.acceptations;
         dbTables[1] = Tables.agents;
@@ -1127,8 +1320,9 @@ class DbManager extends SQLiteOpenHelper {
         dbTables[7] = Tables.correlations;
         dbTables[8] = Tables.correlationArrays;
         dbTables[9] = Tables.languages;
-        dbTables[10] = Tables.stringQueries;
-        dbTables[11] = Tables.symbolArrays;
+        dbTables[10] = Tables.ruledConcepts;
+        dbTables[11] = Tables.stringQueries;
+        dbTables[12] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
@@ -1336,9 +1530,10 @@ class DbManager extends SQLiteOpenHelper {
             readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
 
             // Export agents
-            readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
+            SparseArray<Agent> agents = readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
 
             fillSearchQueryTable(db);
+            runAgents(db, agents);
             applyConversions(db, conversions);
         }
         catch (IOException e) {
@@ -1350,6 +1545,246 @@ class DbManager extends SQLiteOpenHelper {
             } catch (IOException e) {
                 // Nothing can be done
             }
+        }
+    }
+
+    private int[] sortAgents(SparseArray<Agent> agents) {
+        final int agentCount = agents.size();
+        int[] ids = new int[agentCount];
+        if (agentCount == 0) {
+            return ids;
+        }
+
+        Agent[] result = new Agent[agentCount];
+
+        for (int i = 0; i < agentCount; i++) {
+            ids[i] = agents.keyAt(i);
+            result[i] = agents.valueAt(i);
+        }
+
+        int index = agentCount;
+        do {
+            final Agent agent = result[--index];
+
+            int firstDependency = -1;
+            for (int i = 0; i < index; i++) {
+                if (result[i].dependsOn(agent)) {
+                    firstDependency = i;
+                }
+            }
+
+            if (firstDependency >= 0) {
+                int id = ids[firstDependency];
+                ids[firstDependency] = ids[index];
+                ids[index] = id;
+
+                Agent temp = result[firstDependency];
+                result[firstDependency] = result[index];
+                result[index++] = temp;
+            }
+        } while(index > 0);
+
+        return ids;
+    }
+
+    private SparseArray<String> readCorrelation(SQLiteDatabase db, int agentId, int agentColumn) {
+        AgentsTable agents = Tables.agents;
+        CorrelationsTable correlations = Tables.correlations;
+        SymbolArraysTable symbolArrays = Tables.symbolArrays;
+
+        Cursor cursor = db.rawQuery("SELECT J1." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) + ",J2." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
+                " FROM " + agents.getName() + " AS J0" +
+                " JOIN " + correlations.getName() + " AS J1 ON J0." + agents.getColumnName(agentColumn) + "=J1." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
+                " JOIN " + symbolArrays.getName() + " AS J2 ON J1." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J2." + idColumnName +
+                " WHERE J0." + idColumnName + "=?", new String[] { Integer.toString(agentId)});
+
+        if (cursor == null) {
+            throw new AssertionError("Cursor should not be null");
+        }
+
+        final SparseArray<String> matcher = new SparseArray<>(cursor.getCount());
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    final int alphabet = cursor.getInt(0);
+                    final String str = cursor.getString(1);
+                    matcher.put(alphabet, str);
+                } while (cursor.moveToNext());
+            }
+        }
+        finally {
+            cursor.close();
+        }
+
+        return matcher;
+    }
+
+    private boolean agentFromStart(int flags) {
+        return (flags & 1) != 0;
+    }
+
+    /**
+     * @return True if the suggestedNewWordId has been used.
+     */
+    private boolean applyAgent(SQLiteDatabase db, int accId, int concept, int suggestedNewWordId, int targetBunch, SparseArray<String> matcher, SparseArray<String> adder, int rule, SparseArray<String> corr, int flags) {
+        boolean suggestedNewWordUsed = false;
+        boolean matching = true;
+        final int matcherLength = matcher.size();
+        for (int i = 0; i < matcherLength; i++) {
+            final int alphabet = matcher.keyAt(i);
+            final String corrStr = corr.get(alphabet);
+            final String matcherStr = matcher.valueAt(i);
+            matching = corrStr != null && (
+                    agentFromStart(flags) && corrStr.startsWith(matcherStr) ||
+                            !agentFromStart(flags) && corrStr.endsWith(matcherStr)
+            );
+
+            if (!matching) {
+                break;
+            }
+        }
+
+        if (matching) {
+            int targetAccId = accId;
+
+            // TODO: This condition should be changed with just matcher == adder.
+            // But OldDbConverter has to be updated first
+            final boolean modifyWords = rule != StreamedDatabaseConstants.nullRuleId &&
+                    matcher.size() != 0 && adder.size() != 0 && !EqualUtils.checkEqual(matcher, adder);
+
+            if (modifyWords) {
+                SparseArray<String> resultCorr = new SparseArray<>();
+                final int corrLength = corr.size();
+                for (int i = 0; i < corrLength; i++) {
+                    final int alphabet = corr.keyAt(i);
+                    final String matcherStr = matcher.get(alphabet);
+                    final int removeLength = (matcherStr != null) ? matcherStr.length() : 0;
+
+                    final String corrStr = corr.valueAt(i);
+                    final String resultStr = agentFromStart(flags) ?
+                            corrStr.substring(removeLength) :
+                            corrStr.substring(0, corrStr.length() - removeLength);
+
+                    resultCorr.put(alphabet, resultStr);
+                }
+
+                final int adderLength = adder.size();
+                for (int i = 0; i < adderLength; i++) {
+                    final int alphabet = adder.keyAt(i);
+                    final String addition = adder.valueAt(i);
+                    final String currentStr = resultCorr.get(alphabet);
+                    final String resultStr = (currentStr != null) ? currentStr + addition : addition;
+                    resultCorr.put(alphabet, resultStr);
+                }
+
+                final int newConcept = obtainRuledConcept(db, rule, concept);
+                final int resultCorrLength = resultCorr.size();
+                final SparseIntArray resultCorrIds = new SparseIntArray(resultCorrLength);
+                for (int i = 0; i < resultCorrLength; i++) {
+                    final int alphabet = resultCorr.keyAt(i);
+                    resultCorrIds.put(alphabet, insertIfNotExists(db, resultCorr.valueAt(i)));
+                }
+
+                final int corrId = obtainCorrelation(db, resultCorrIds);
+                final int corrArrayId = insertCorrelationArray(db, corrId);
+                suggestedNewWordUsed = true;
+                final int dynAccId = insertAcceptation(db, suggestedNewWordId, newConcept, corrArrayId);
+
+                for (int i = 0; i < resultCorrLength; i++) {
+                    insertStringQuery(db, resultCorr.valueAt(i), resultCorr.valueAt(0), accId, dynAccId, resultCorr.keyAt(i));
+                }
+
+                targetAccId = dynAccId;
+            }
+
+            if (targetBunch != StreamedDatabaseConstants.nullBunchId) {
+                insertBunchAcceptation(db, targetBunch, targetAccId);
+            }
+        }
+
+        return suggestedNewWordUsed;
+    }
+
+    private void runAgent(SQLiteDatabase db, int agentId) {
+        AcceptationsTable acceptations = Tables.acceptations;
+        AgentsTable agents = Tables.agents;
+        BunchSetsTable bunchSets = Tables.bunchSets;
+        BunchAcceptationsTable bunchAccs = Tables.bunchAcceptations;
+        StringQueriesTable strings = Tables.stringQueries;
+
+        int maxWord = getMaxWord(db);
+        final SparseArray<String> matcher = readCorrelation(db, agentId, agents.getMatcherColumnIndex());
+        final SparseArray<String> adder = readCorrelation(db, agentId, agents.getAdderColumnIndex());
+
+        // TODO: This query does not manage the case where sourceSet is null
+        // TODO: This query does not manage the case where diff is different from null
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) +
+                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J0." + agents.getColumnName(agents.getRuleColumnIndex()) +
+                        ",J0." + agents.getColumnName(agents.getFlagsColumnIndex()) +
+                        ",J4." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        ",J0." + agents.getColumnName(agents.getTargetBunchColumnIndex()) +
+                " FROM " + agents.getName() + " AS J0" +
+                " JOIN " + bunchSets.getName() + " AS J1 ON J0." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) + "=J1." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) +
+                " JOIN " + bunchAccs.getName() + " AS J2 ON J1." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) + "=J2." + bunchAccs.getColumnName(bunchAccs.getBunchColumnIndex()) +
+                " JOIN " + strings.getName() + " AS J3 ON J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) + "=J3." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) +
+                " JOIN " + acceptations.getName() + " AS J4 ON J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) + "=J4." + idColumnName +
+                " WHERE J0." + idColumnName + "=?" +
+                " ORDER BY" +
+                        " J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) +
+                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex())
+                , new String[] { Integer.toString(agentId)});
+
+        if (cursor != null) {
+            try {
+                final SparseArray<String> corr = new SparseArray<>();
+                int accId;
+                int rule;
+                int flags;
+                int concept;
+                int targetBunch;
+
+                if (cursor.moveToFirst()) {
+                    accId = cursor.getInt(0);
+                    corr.put(cursor.getInt(1), cursor.getString(2));
+                    rule = cursor.getInt(3);
+                    flags = cursor.getInt(4);
+                    concept = cursor.getInt(5);
+                    targetBunch = cursor.getInt(6);
+
+                    int newAccId;
+                    while (cursor.moveToNext()) {
+                        newAccId = cursor.getInt(0);
+                        if (newAccId != accId) {
+                            if (applyAgent(db, accId, concept, maxWord + 1, targetBunch, matcher, adder, rule, corr, flags)) {
+                                ++maxWord;
+                            }
+
+                            accId = newAccId;
+                            corr.clear();
+                            corr.put(cursor.getInt(1), cursor.getString(2));
+                            rule = cursor.getInt(3);
+                            flags = cursor.getInt(4);
+                            concept = cursor.getInt(5);
+                            targetBunch = cursor.getInt(6);
+                        }
+                    }
+
+                    applyAgent(db, accId, concept, maxWord +1, targetBunch, matcher, adder, rule, corr, flags);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+    }
+
+    private void runAgents(SQLiteDatabase db, SparseArray<Agent> agents) {
+        for (int agentId : sortAgents(agents)) {
+            runAgent(db, agentId);
         }
     }
 
