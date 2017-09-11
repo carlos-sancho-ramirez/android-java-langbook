@@ -303,6 +303,10 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private int insertCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
+        if (correlation.size() == 0) {
+            return StreamedDatabaseConstants.nullCorrelationId;
+        }
+
         final CorrelationsTable table = Tables.correlations;
         final String correlationIdColumnName = table.getColumnName(table.getCorrelationIdColumnIndex());
         final String alphabetColumnName = table.getColumnName(table.getAlphabetColumnIndex());
@@ -615,7 +619,7 @@ class DbManager extends SQLiteOpenHelper {
 
                 final int rule = (adder.size() > 0)?
                         ibs.readRangedNumber(StreamedDatabaseConstants.minValidConcept, maxConcept) :
-                        StreamedDatabaseConstants.nullBunchId;
+                        StreamedDatabaseConstants.nullRuleId;
 
                 final boolean fromStart = (matcher.size() > 0 || adder.size() > 0) && ibs.readBoolean();
                 final int flags = fromStart? 1 : 0;
@@ -625,6 +629,10 @@ class DbManager extends SQLiteOpenHelper {
 
                 final int matcherId = insertCorrelation(db, matcher);
                 final int adderId = insertCorrelation(db, adder);
+                if (rule != StreamedDatabaseConstants.nullRuleId && matcherId == adderId) {
+                    throw new AssertionError("When rule is provided, modification is expected, but matcher and adder are the same");
+                }
+
                 insertAgent(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
 
                 lastTarget = targetBunch;
@@ -634,8 +642,14 @@ class DbManager extends SQLiteOpenHelper {
 
     private static final class StreamedDatabaseConstants {
 
+        /** Reserved for empty correlations */
+        static final int nullCorrelationId = 0;
+
         /** Reserved for agents for null references */
         static final int nullBunchId = 0;
+
+        /** Reserved for agents for null references */
+        static final int nullRuleId = 0;
 
         /** First alphabet within the database */
         static final int minValidAlphabet = 3;
