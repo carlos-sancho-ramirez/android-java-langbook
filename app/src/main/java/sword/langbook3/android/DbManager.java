@@ -581,8 +581,7 @@ class DbManager extends SQLiteOpenHelper {
 
     private void readAgents(
             SQLiteDatabase db, InputBitStream ibs, int maxConcept,
-            int minValidAlphabet, int maxValidAlphabet,
-            int minSymbolArrayIndex, int maxSymbolArrayIndex) throws IOException {
+            int minValidAlphabet, int maxValidAlphabet, int[] symbolArraysIdMap) throws IOException {
 
         final int agentsLength = (int) ibs.readNaturalNumber();
         if (agentsLength > 0) {
@@ -613,9 +612,9 @@ class DbManager extends SQLiteOpenHelper {
                 }
 
                 final SparseIntArray matcher = readCorrelationMap(ibs, matcherSetLengthTable,
-                        minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
+                        minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
                 final SparseIntArray adder = readCorrelationMap(ibs, matcherSetLengthTable,
-                        minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
+                        minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
 
                 final int rule = (adder.size() > 0)?
                         ibs.readRangedNumber(StreamedDatabaseConstants.minValidConcept, maxConcept) :
@@ -1088,16 +1087,16 @@ class DbManager extends SQLiteOpenHelper {
 
     private SparseIntArray readCorrelationMap(
             InputBitStream ibs, HuffmanTable<Integer> matcherSetLengthTable,
-            int minAlphabet, int maxAlphabet,
-            int minSymbolArray, int maxSymbolArray) throws IOException {
+            int minAlphabet, int maxAlphabet, int[] symbolArraysIdMap) throws IOException {
 
+        final int maxSymbolArray = symbolArraysIdMap.length - 1;
         final int mapLength = ibs.readHuffmanSymbol(matcherSetLengthTable);
         final SparseIntArray result = new SparseIntArray();
         for (int i = 0; i < mapLength; i++) {
             final int alphabet = ibs.readRangedNumber(minAlphabet, maxAlphabet);
-            final int symbolArrayIndex = ibs.readRangedNumber(minSymbolArray, maxSymbolArray);
+            final int symbolArrayIndex = ibs.readRangedNumber(0, maxSymbolArray);
             minAlphabet = alphabet + 1;
-            result.put(alphabet, symbolArrayIndex);
+            result.put(alphabet, symbolArraysIdMap[symbolArrayIndex]);
         }
 
         return result;
@@ -1270,7 +1269,7 @@ class DbManager extends SQLiteOpenHelper {
             readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
 
             // Export agents
-            readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, minSymbolArrayIndex, maxSymbolArrayIndex);
+            readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
 
             fillSearchQueryTable(db);
             applyConversions(db, conversions);
