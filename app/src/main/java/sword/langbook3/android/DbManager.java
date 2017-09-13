@@ -1730,7 +1730,7 @@ class DbManager extends SQLiteOpenHelper {
                 " FROM " + agents.getName() + " AS J0" +
                 " JOIN " + bunchSets.getName() + " AS J1 ON J0." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) + "=J1." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) +
                 " JOIN " + bunchAccs.getName() + " AS J2 ON J1." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) + "=J2." + bunchAccs.getColumnName(bunchAccs.getBunchColumnIndex()) +
-                " JOIN " + strings.getName() + " AS J3 ON J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) + "=J3." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) +
+                " JOIN " + strings.getName() + " AS J3 ON J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                 " JOIN " + acceptations.getName() + " AS J4 ON J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) + "=J4." + idColumnName +
                 " WHERE J0." + idColumnName + "=?" +
                 " ORDER BY" +
@@ -1770,6 +1770,9 @@ class DbManager extends SQLiteOpenHelper {
                             flags = cursor.getInt(4);
                             concept = cursor.getInt(5);
                             targetBunch = cursor.getInt(6);
+                        }
+                        else {
+                            corr.put(cursor.getInt(1), cursor.getString(2));
                         }
                     }
 
