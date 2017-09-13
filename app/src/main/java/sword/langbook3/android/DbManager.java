@@ -1306,7 +1306,7 @@ class DbManager extends SQLiteOpenHelper {
         static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
 
-    private static final String idColumnName = "id";
+    static final String idColumnName = "id";
 
     private static final DbTable[] dbTables = new DbTable[13];
     static {
