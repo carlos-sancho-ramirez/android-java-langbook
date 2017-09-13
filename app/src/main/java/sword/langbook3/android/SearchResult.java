@@ -29,4 +29,8 @@ class SearchResult {
     int getDynamicAcceptation() {
         return _dynamicAcceptation;
     }
+
+    boolean isDynamic() {
+        return _acceptation != _dynamicAcceptation;
+    }
 }

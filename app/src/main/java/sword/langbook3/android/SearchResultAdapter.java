@@ -49,6 +49,9 @@ class SearchResultAdapter extends BaseAdapter {
         }
 
         final TextView tv = view.findViewById(R.id.searchResultTextView);
+        final int textColor = _items[i].isDynamic()? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
+        tv.setTextColor(tv.getContext().getResources().getColor(textColor));
+
         final String str = _items[i].getStr();
         final String mainStr = _items[i].getMainStr();
 
