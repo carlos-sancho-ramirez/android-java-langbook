@@ -5,13 +5,17 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 
-public class SearchActivity extends Activity implements TextWatcher {
+public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener {
 
     private DbManager _dbManager;
     private ListView _listView;
+    private SearchResultAdapter _listAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,6 +23,7 @@ public class SearchActivity extends Activity implements TextWatcher {
         setContentView(R.layout.search_activity);
 
         _listView = findViewById(R.id.listView);
+        _listView.setOnItemClickListener(this);
 
         final EditText searchField = findViewById(R.id.searchField);
         searchField.addTextChangedListener(this);
@@ -75,6 +80,13 @@ public class SearchActivity extends Activity implements TextWatcher {
     }
 
     private void updateSearchResults(SearchResult[] results) {
-        _listView.setAdapter(new SearchResultAdapter(results));
+        _listAdapter = new SearchResultAdapter(results);
+        _listView.setAdapter(_listAdapter);
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+        SearchResult item = _listAdapter.getItem(position);
+        AcceptationDetailsActivity.open(this, item.getAcceptation(), item.getDynamicAcceptation());
     }
 }
