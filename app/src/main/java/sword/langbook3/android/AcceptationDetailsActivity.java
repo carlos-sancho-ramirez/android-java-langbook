@@ -21,6 +21,10 @@ public class AcceptationDetailsActivity extends Activity {
         static final String DYNAMIC_ACCEPTATION = "da";
     }
 
+    // Specifies the alphabet the user would like to see if possible.
+    // TODO: This should be a shared preference
+    private static final int preferredAlphabet = 4;
+
     public static void open(Context context, int staticAcceptation, int dynamicAcceptation) {
         Intent intent = new Intent(context, AcceptationDetailsActivity.class);
         intent.putExtra(BundleKeys.STATIC_ACCEPTATION, staticAcceptation);
@@ -87,6 +91,44 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
+    private String readLanguage(SQLiteDatabase db, int alphabet) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
+        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                    " J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                    ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + alphabets.getName() + " AS J0" +
+                    " JOIN " + acceptations.getName() + " AS J1 ON J0." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                    " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                    " WHERE J0." + idColumnName + "=?",
+                new String[] { Integer.toString(alphabet) });
+
+        int firstAlphabet = -1;
+        String text = null;
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    firstAlphabet = cursor.getInt(0);
+                    text = cursor.getString(1);
+                    while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
+                        if (cursor.getInt(0) == preferredAlphabet) {
+                            firstAlphabet = preferredAlphabet;
+                            text = cursor.getString(1);
+                        }
+                    }
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return text;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,7 +145,7 @@ public class AcceptationDetailsActivity extends Activity {
 
         final StringBuilder sb = new StringBuilder("Displaying details for acceptation ")
                 .append(staticAcceptation)
-                .append("\n  * Correlation: (");
+                .append("\n  * Correlation: ");
 
         List<SparseArray<String>> correlationArray = readCorrelationArray(db, staticAcceptation);
         for (int i = 0; i < correlationArray.size(); i++) {
@@ -120,6 +162,8 @@ public class AcceptationDetailsActivity extends Activity {
                 sb.append(correlation.valueAt(j));
             }
         }
+
+        sb.append("\n  * Language: ").append(readLanguage(db, correlationArray.get(0).keyAt(0)));
 
         final TextView tv = findViewById(R.id.textView);
         tv.setText(sb.toString());
