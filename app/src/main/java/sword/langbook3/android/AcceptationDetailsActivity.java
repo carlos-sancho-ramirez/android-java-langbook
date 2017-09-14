@@ -37,8 +37,6 @@ public class AcceptationDetailsActivity extends Activity {
         final DbManager.CorrelationArraysTable correlationArrays = DbManager.Tables.correlationArrays; // J1
         final DbManager.CorrelationsTable correlations = DbManager.Tables.correlations; // J2
         final DbManager.SymbolArraysTable symbolArrays = DbManager.Tables.symbolArrays; // J3
-        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
-        final DbManager.LanguagesTable languages = DbManager.Tables.languages;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -106,12 +104,11 @@ public class AcceptationDetailsActivity extends Activity {
                     " WHERE J0." + idColumnName + "=?",
                 new String[] { Integer.toString(alphabet) });
 
-        int firstAlphabet = -1;
         String text = null;
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    firstAlphabet = cursor.getInt(0);
+                    int firstAlphabet = cursor.getInt(0);
                     text = cursor.getString(1);
                     while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
                         if (cursor.getInt(0) == preferredAlphabet) {
@@ -127,6 +124,60 @@ public class AcceptationDetailsActivity extends Activity {
         }
 
         return text;
+    }
+
+    private static final class AcceptationResult {
+
+        final int acceptation;
+        final String text;
+
+        AcceptationResult(int acceptation, String text) {
+            this.acceptation = acceptation;
+            this.text = text;
+        }
+    }
+
+    private AcceptationResult readDefinition(SQLiteDatabase db, int acceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.BunchConceptsTable bunchConcepts = DbManager.Tables.bunchConcepts;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J2." + idColumnName +
+                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + acceptations.getName() + " AS J0" +
+                    " JOIN " + bunchConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchConcepts.getColumnName(bunchConcepts.getConceptColumnIndex()) +
+                    " JOIN " + acceptations.getName() + " AS J2 ON J1." + bunchConcepts.getColumnName(bunchConcepts.getBunchColumnIndex()) + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                    " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " WHERE J0." + idColumnName + "=?",
+                new String[] { Integer.toString(acceptation) });
+
+        AcceptationResult result = null;
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    int acc = cursor.getInt(0);
+                    int firstAlphabet = cursor.getInt(1);
+                    String text = cursor.getString(2);
+                    while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
+                        if (cursor.getInt(1) == preferredAlphabet) {
+                            acc = cursor.getInt(0);
+                            text = cursor.getString(2);
+                            break;
+                        }
+                    }
+
+                    result = new AcceptationResult(acc, text);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return result;
     }
 
     @Override
@@ -165,6 +216,10 @@ public class AcceptationDetailsActivity extends Activity {
 
         sb.append("\n  * Language: ").append(readLanguage(db, correlationArray.get(0).keyAt(0)));
 
+        final AcceptationResult definition = readDefinition(db, staticAcceptation);
+        if (definition != null) {
+            sb.append("\n  * Type of: ").append(definition.text);
+        }
         final TextView tv = findViewById(R.id.textView);
         tv.setText(sb.toString());
     }
