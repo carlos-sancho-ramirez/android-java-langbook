@@ -89,14 +89,29 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
-    private String readLanguage(SQLiteDatabase db, int alphabet) {
+    private static final class LanguageResult {
+
+        final int acceptation;
+        final int language;
+        final String text;
+
+        LanguageResult(int acceptation, int language, String text) {
+            this.acceptation = acceptation;
+            this.language = language;
+            this.text = text;
+        }
+    }
+
+    private LanguageResult readLanguage(SQLiteDatabase db, int alphabet) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
         final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
-                    " J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                    " J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                    ",J1." + idColumnName +
+                    ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                     ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
                 " FROM " + alphabets.getName() + " AS J0" +
                     " JOIN " + acceptations.getName() + " AS J1 ON J0." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
@@ -104,26 +119,29 @@ public class AcceptationDetailsActivity extends Activity {
                     " WHERE J0." + idColumnName + "=?",
                 new String[] { Integer.toString(alphabet) });
 
+        int lang = -1;
+        int langAcc = -1;
         String text = null;
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int firstAlphabet = cursor.getInt(0);
-                    text = cursor.getString(1);
-                    while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
-                        if (cursor.getInt(0) == preferredAlphabet) {
-                            firstAlphabet = preferredAlphabet;
-                            text = cursor.getString(1);
-                        }
-                    }
+        try {
+            cursor.moveToFirst();
+            lang = cursor.getInt(0);
+            langAcc = cursor.getInt(1);
+            int firstAlphabet = cursor.getInt(2);
+            text = cursor.getString(3);
+            while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
+                if (cursor.getInt(2) == preferredAlphabet) {
+                    lang = cursor.getInt(0);
+                    langAcc = cursor.getInt(1);
+                    firstAlphabet = preferredAlphabet;
+                    text = cursor.getString(3);
                 }
             }
-            finally {
-                cursor.close();
-            }
+        }
+        finally {
+            cursor.close();
         }
 
-        return text;
+        return new LanguageResult(langAcc, lang, text);
     }
 
     private static final class AcceptationResult {
@@ -180,6 +198,63 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
+    private static final class SynonymTranslationResult {
+
+        final int acceptation;
+        final int language;
+        final String text;
+
+        SynonymTranslationResult(int acceptation, int language, String text) {
+            this.acceptation = acceptation;
+            this.language = language;
+            this.text = text;
+        }
+    }
+
+    private SynonymTranslationResult[] readSynonymsAndTranslations(SQLiteDatabase db, int acceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final DbManager.LanguagesTable languages = DbManager.Tables.languages;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J1." + idColumnName +
+                        ",J4." + idColumnName +
+                        ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + alphabets.getName() + " AS J3 ON J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=J3." + idColumnName +
+                        " JOIN " + languages.getName() + " AS J4 ON J3." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J4." + idColumnName +
+                " WHERE J0." + idColumnName + "=?" +
+                        " AND J0." + acceptations.getColumnName(acceptations.getWordColumnIndex()) + "!=J1." + acceptations.getColumnName(acceptations.getWordColumnIndex()) +
+                        " AND J3." + idColumnName + "=J4." + languages.getColumnName(languages.getMainAlphabetColumnIndex()),
+                new String[] { Integer.toString(acceptation) });
+
+        SynonymTranslationResult[] result = null;
+        if (cursor != null) {
+            try {
+                result = new SynonymTranslationResult[cursor.getCount()];
+                if (cursor.moveToFirst()) {
+                    int index = 0;
+                    do {
+                        result[index++] = new SynonymTranslationResult(cursor.getInt(0),
+                                cursor.getInt(1), cursor.getString(2));
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+        else {
+            result = new SynonymTranslationResult[0];
+        }
+
+        return result;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -214,12 +289,42 @@ public class AcceptationDetailsActivity extends Activity {
             }
         }
 
-        sb.append("\n  * Language: ").append(readLanguage(db, correlationArray.get(0).keyAt(0)));
+        final LanguageResult languageResult = readLanguage(db, correlationArray.get(0).keyAt(0));
+        sb.append("\n  * Language: ").append(languageResult.text);
 
         final AcceptationResult definition = readDefinition(db, staticAcceptation);
         if (definition != null) {
             sb.append("\n  * Type of: ").append(definition.text);
         }
+
+        final SynonymTranslationResult[] synonymTranslationResults = readSynonymsAndTranslations(db, staticAcceptation);
+        boolean synonymFound = false;
+        for (SynonymTranslationResult result : synonymTranslationResults) {
+            if (result.language == languageResult.language) {
+                if (!synonymFound) {
+                    sb.append("\n  * Synonyms: ");
+                    synonymFound = true;
+                }
+                else {
+                    sb.append(", ");
+                }
+
+                sb.append(result.text);
+            }
+        }
+
+        boolean translationFound = false;
+        for (SynonymTranslationResult result : synonymTranslationResults) {
+            if (result.language != languageResult.language) {
+                if (!translationFound) {
+                    sb.append("\n  * Translations:");
+                    translationFound = true;
+                }
+
+                sb.append("\n      ").append(result.language).append(" -> ").append(result.text);
+            }
+        }
+
         final TextView tv = findViewById(R.id.textView);
         tv.setText(sb.toString());
     }
