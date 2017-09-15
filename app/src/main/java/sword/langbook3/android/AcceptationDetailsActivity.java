@@ -230,6 +230,61 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
+    private AcceptationResult[] readBunchesWhereIncluded(SQLiteDatabase db, int acceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) +
+                        ",J1." + idColumnName +
+                        ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + bunchAcceptations.getName() + " AS J0" +
+                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=?",
+                new String[] { Integer.toString(acceptation) });
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    ArrayList<AcceptationResult> result = new ArrayList<>();
+
+                    int bunch = cursor.getInt(0);
+                    int acc = cursor.getInt(1);
+                    int firstAlphabet = cursor.getInt(2);
+                    String text = cursor.getString(3);
+                    while (cursor.moveToNext()) {
+                        if (firstAlphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
+                            acc = cursor.getInt(1);
+                            text = cursor.getString(3);
+                            firstAlphabet = preferredAlphabet;
+                        }
+
+                        if (bunch != cursor.getInt(0)) {
+                            result.add(new AcceptationResult(acc, text));
+
+                            bunch = cursor.getInt(0);
+                            acc = cursor.getInt(1);
+                            firstAlphabet = cursor.getInt(2);
+                            text = cursor.getString(3);
+                        }
+                    }
+
+                    result.add(new AcceptationResult(acc, text));
+                    return result.toArray(new AcceptationResult[result.size()]);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new AcceptationResult[0];
+    }
+
     private static final class SynonymTranslationResult {
 
         final int acceptation;
@@ -365,6 +420,16 @@ public class AcceptationDetailsActivity extends Activity {
 
                 sb.append("\n      ").append(langStr).append(" -> ").append(result.text);
             }
+        }
+
+        boolean parentBunchFound = false;
+        for (AcceptationResult result : readBunchesWhereIncluded(db, staticAcceptation)) {
+            if (!parentBunchFound) {
+                sb.append("\n  * Bunches where included:");
+                parentBunchFound = true;
+            }
+
+            sb.append("\n      ").append(result.text);
         }
 
         final TextView tv = findViewById(R.id.textView);
