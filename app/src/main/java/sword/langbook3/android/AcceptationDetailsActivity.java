@@ -230,7 +230,20 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
-    private AcceptationResult[] readBunchesWhereIncluded(SQLiteDatabase db, int acceptation) {
+    private static final class BunchInclusionResult {
+
+        final int acceptation;
+        final boolean dynamic;
+        final String text;
+
+        BunchInclusionResult(int acceptation, boolean dynamic, String text) {
+            this.acceptation = acceptation;
+            this.dynamic = dynamic;
+            this.text = text;
+        }
+    }
+
+    private BunchInclusionResult[] readBunchesWhereIncluded(SQLiteDatabase db, int acceptation) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
@@ -241,6 +254,7 @@ public class AcceptationDetailsActivity extends Activity {
                         ",J1." + idColumnName +
                         ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAgentSetColumnIndex()) +
                 " FROM " + bunchAcceptations.getName() + " AS J0" +
                         " JOIN " + acceptations.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
                         " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
@@ -250,12 +264,14 @@ public class AcceptationDetailsActivity extends Activity {
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    ArrayList<AcceptationResult> result = new ArrayList<>();
+                    final int nullAgentSet = DbManager.Tables.agentSets.nullReference();
+                    ArrayList<BunchInclusionResult> result = new ArrayList<>();
 
                     int bunch = cursor.getInt(0);
                     int acc = cursor.getInt(1);
                     int firstAlphabet = cursor.getInt(2);
                     String text = cursor.getString(3);
+                    int agentSet = cursor.getInt(4);
                     while (cursor.moveToNext()) {
                         if (firstAlphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
                             acc = cursor.getInt(1);
@@ -264,17 +280,18 @@ public class AcceptationDetailsActivity extends Activity {
                         }
 
                         if (bunch != cursor.getInt(0)) {
-                            result.add(new AcceptationResult(acc, text));
+                            result.add(new BunchInclusionResult(acc, agentSet != nullAgentSet, text));
 
                             bunch = cursor.getInt(0);
+                            agentSet = cursor.getInt(4);
                             acc = cursor.getInt(1);
                             firstAlphabet = cursor.getInt(2);
                             text = cursor.getString(3);
                         }
                     }
 
-                    result.add(new AcceptationResult(acc, text));
-                    return result.toArray(new AcceptationResult[result.size()]);
+                    result.add(new BunchInclusionResult(acc, agentSet != nullAgentSet, text));
+                    return result.toArray(new BunchInclusionResult[result.size()]);
                 }
             }
             finally {
@@ -282,7 +299,7 @@ public class AcceptationDetailsActivity extends Activity {
             }
         }
 
-        return new AcceptationResult[0];
+        return new BunchInclusionResult[0];
     }
 
     private static final class SynonymTranslationResult {
@@ -423,13 +440,17 @@ public class AcceptationDetailsActivity extends Activity {
         }
 
         boolean parentBunchFound = false;
-        for (AcceptationResult result : readBunchesWhereIncluded(db, staticAcceptation)) {
+        for (BunchInclusionResult result : readBunchesWhereIncluded(db, staticAcceptation)) {
             if (!parentBunchFound) {
                 sb.append("\n  * Bunches where included:");
                 parentBunchFound = true;
             }
 
             sb.append("\n      ").append(result.text);
+
+            if (result.dynamic) {
+                sb.append(" *");
+            }
         }
 
         final TextView tv = findViewById(R.id.textView);

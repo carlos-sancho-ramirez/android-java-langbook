@@ -11,6 +11,7 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
@@ -623,12 +624,13 @@ class DbManager extends SQLiteOpenHelper {
                 dynAcceptation + ',' + strAlphabet + ')');
     }
 
-    private void insertBunchAcceptation(SQLiteDatabase db, int bunch, int acceptation) {
+    private void insertBunchAcceptation(SQLiteDatabase db, int bunch, int acceptation, int agentSet) {
         final BunchAcceptationsTable table = Tables.bunchAcceptations;
         db.execSQL("INSERT INTO " + table.getName() + " (" +
                 table.getColumnName(table.getBunchColumnIndex()) + ", " +
-                table.getColumnName(table.getAcceptationColumnIndex()) + ") VALUES (" +
-                bunch + ',' + acceptation + ')');
+                table.getColumnName(table.getAcceptationColumnIndex()) + ", " +
+                table.getColumnName(table.getAgentSetColumnIndex()) + ") VALUES (" +
+                bunch + ',' + acceptation + ',' + agentSet + ')');
     }
 
     private void insertBunchConcept(SQLiteDatabase db, int bunch, int concept) {
@@ -637,6 +639,35 @@ class DbManager extends SQLiteOpenHelper {
                 table.getColumnName(table.getBunchColumnIndex()) + ", " +
                 table.getColumnName(table.getConceptColumnIndex()) + ") VALUES (" +
                 bunch + ',' + concept + ')');
+    }
+
+    private int insertAgentSet(SQLiteDatabase db, Set<Integer> agents) {
+        final AgentSetsTable table = Tables.agentSets;
+
+        if (agents.isEmpty()) {
+            return table.nullReference();
+        }
+        else {
+            final String setIdColumnName = table.getColumnName(table.getSetIdColumnIndex());
+            Cursor cursor = db.rawQuery("SELECT max(" + setIdColumnName + ") FROM " +
+                    table.getName(), null);
+
+            if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
+                throw new AssertionError("Unable to retrieve maximum setId");
+            }
+
+            final int setId = cursor.getInt(0) + 1;
+            cursor.close();
+
+            for (int agent : agents) {
+                db.execSQL("INSERT INTO " + table.getName() + " (" +
+                        table.getColumnName(table.getSetIdColumnIndex()) + ", " +
+                        table.getColumnName(table.getAgentColumnIndex()) + ") VALUES (" +
+                        setId + ',' + agent + ')');
+            }
+
+            return setId;
+        }
     }
 
     private int insertBunchSet(SQLiteDatabase db, Set<Integer> bunches) {
@@ -780,11 +811,12 @@ class DbManager extends SQLiteOpenHelper {
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
+        final int nullAgentSet = Tables.agentSets.nullReference();
         for (int i = 0; i < bunchAcceptationsLength; i++) {
             final int bunch = ibs.readRangedNumber(minValidConcept, maxConcept);
             final Set<Integer> acceptations = ibs.readRangedNumberSet(bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
-                insertBunchAcceptation(db, bunch, acceptationsIdMap[acceptation]);
+                insertBunchAcceptation(db, bunch, acceptationsIdMap[acceptation], nullAgentSet);
             }
         }
     }
@@ -1101,6 +1133,25 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class AgentSetsTable extends DbTable {
+
+        AgentSetsTable() {
+            super("AgentSets", new String[] {"setId", "agent"}, null);
+        }
+
+        int getSetIdColumnIndex() {
+            return 1;
+        }
+
+        int getAgentColumnIndex() {
+            return 2;
+        }
+
+        int nullReference() {
+            return 0;
+        }
+    }
+
     static final class AlphabetsTable extends DbTable {
 
         AlphabetsTable() {
@@ -1115,7 +1166,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class BunchAcceptationsTable extends DbTable {
 
         BunchAcceptationsTable() {
-            super("BunchAcceptations", new String[] {"bunch", "acceptation"}, null);
+            super("BunchAcceptations", new String[] {"bunch", "acceptation", "agentSet"}, null);
         }
 
         int getBunchColumnIndex() {
@@ -1124,6 +1175,10 @@ class DbManager extends SQLiteOpenHelper {
 
         int getAcceptationColumnIndex() {
             return 2;
+        }
+
+        int getAgentSetColumnIndex() {
+            return 3;
         }
     }
 
@@ -1293,6 +1348,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class Tables {
         static final AcceptationsTable acceptations = new AcceptationsTable();
         static final AgentsTable agents = new AgentsTable();
+        static final AgentSetsTable agentSets = new AgentSetsTable();
         static final AlphabetsTable alphabets = new AlphabetsTable();
         static final BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
         static final BunchConceptsTable bunchConcepts = new BunchConceptsTable();
@@ -1308,21 +1364,22 @@ class DbManager extends SQLiteOpenHelper {
 
     static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[13];
+    private static final DbTable[] dbTables = new DbTable[14];
     static {
         dbTables[0] = Tables.acceptations;
         dbTables[1] = Tables.agents;
-        dbTables[2] = Tables.alphabets;
-        dbTables[3] = Tables.bunchAcceptations;
-        dbTables[4] = Tables.bunchConcepts;
-        dbTables[5] = Tables.bunchSets;
-        dbTables[6] = Tables.conversions;
-        dbTables[7] = Tables.correlations;
-        dbTables[8] = Tables.correlationArrays;
-        dbTables[9] = Tables.languages;
-        dbTables[10] = Tables.ruledConcepts;
-        dbTables[11] = Tables.stringQueries;
-        dbTables[12] = Tables.symbolArrays;
+        dbTables[2] = Tables.agentSets;
+        dbTables[3] = Tables.alphabets;
+        dbTables[4] = Tables.bunchAcceptations;
+        dbTables[5] = Tables.bunchConcepts;
+        dbTables[6] = Tables.bunchSets;
+        dbTables[7] = Tables.conversions;
+        dbTables[8] = Tables.correlations;
+        dbTables[9] = Tables.correlationArrays;
+        dbTables[10] = Tables.languages;
+        dbTables[11] = Tables.ruledConcepts;
+        dbTables[12] = Tables.stringQueries;
+        dbTables[13] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
@@ -1623,12 +1680,34 @@ class DbManager extends SQLiteOpenHelper {
         return (flags & 1) != 0;
     }
 
+    private class AgentSetSupplier {
+
+        private final int _agentId;
+        private boolean _created;
+        private int _agentSetId;
+
+        AgentSetSupplier(int agentId) {
+            _agentId = agentId;
+        }
+
+        private int get(SQLiteDatabase db) {
+            if (!_created) {
+                final Set<Integer> set = new HashSet<>();
+                set.add(_agentId);
+                _agentSetId = insertAgentSet(db, set);
+            }
+
+            return _agentSetId;
+        }
+    }
+
     /**
      * @return True if the suggestedNewWordId has been used.
      */
-    private boolean applyAgent(SQLiteDatabase db, int accId, int concept, int suggestedNewWordId, int targetBunch, SparseArray<String> matcher, SparseArray<String> adder, int rule, SparseArray<String> corr, int flags) {
+    private boolean applyAgent(SQLiteDatabase db, AgentSetSupplier agentSetSupplier, int accId, int concept, int suggestedNewWordId, int targetBunch, SparseArray<String> matcher, SparseArray<String> adder, int rule, SparseArray<String> corr, int flags) {
         boolean suggestedNewWordUsed = false;
         boolean matching = true;
+
         final int matcherLength = matcher.size();
         for (int i = 0; i < matcherLength; i++) {
             final int alphabet = matcher.keyAt(i);
@@ -1698,7 +1777,7 @@ class DbManager extends SQLiteOpenHelper {
             }
 
             if (targetBunch != StreamedDatabaseConstants.nullBunchId) {
-                insertBunchAcceptation(db, targetBunch, targetAccId);
+                insertBunchAcceptation(db, targetBunch, targetAccId, agentSetSupplier.get(db));
             }
         }
 
@@ -1755,11 +1834,12 @@ class DbManager extends SQLiteOpenHelper {
                     concept = cursor.getInt(5);
                     targetBunch = cursor.getInt(6);
 
+                    final AgentSetSupplier agentSetSupplier = new AgentSetSupplier(agentId);
                     int newAccId;
                     while (cursor.moveToNext()) {
                         newAccId = cursor.getInt(0);
                         if (newAccId != accId) {
-                            if (applyAgent(db, accId, concept, maxWord + 1, targetBunch, matcher, adder, rule, corr, flags)) {
+                            if (applyAgent(db, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder, rule, corr, flags)) {
                                 ++maxWord;
                             }
 
@@ -1776,7 +1856,7 @@ class DbManager extends SQLiteOpenHelper {
                         }
                     }
 
-                    applyAgent(db, accId, concept, maxWord +1, targetBunch, matcher, adder, rule, corr, flags);
+                    applyAgent(db, agentSetSupplier, accId, concept, maxWord +1, targetBunch, matcher, adder, rule, corr, flags);
                 }
             }
             finally {
