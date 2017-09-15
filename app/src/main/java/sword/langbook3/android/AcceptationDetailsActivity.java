@@ -89,6 +89,38 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
+    private String readLanguage(SQLiteDatabase db, int language) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J1." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " WHERE J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=?",
+                new String[] { Integer.toString(language) });
+
+        String text = null;
+        try {
+            cursor.moveToFirst();
+            int firstAlphabet = cursor.getInt(0);
+            text = cursor.getString(1);
+            while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
+                if (cursor.getInt(0) == preferredAlphabet) {
+                    firstAlphabet = preferredAlphabet;
+                    text = cursor.getString(1);
+                }
+            }
+        }
+        finally {
+            cursor.close();
+        }
+
+        return text;
+    }
+
     private static final class LanguageResult {
 
         final int acceptation;
@@ -102,7 +134,7 @@ public class AcceptationDetailsActivity extends Activity {
         }
     }
 
-    private LanguageResult readLanguage(SQLiteDatabase db, int alphabet) {
+    private LanguageResult readLanguageFromAlphabet(SQLiteDatabase db, int alphabet) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
         final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
@@ -289,8 +321,11 @@ public class AcceptationDetailsActivity extends Activity {
             }
         }
 
-        final LanguageResult languageResult = readLanguage(db, correlationArray.get(0).keyAt(0));
+        final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).keyAt(0));
         sb.append("\n  * Language: ").append(languageResult.text);
+
+        final SparseArray<String> languageStrs = new SparseArray<>();
+        languageStrs.put(languageResult.language, languageResult.text);
 
         final AcceptationResult definition = readDefinition(db, staticAcceptation);
         if (definition != null) {
@@ -315,13 +350,20 @@ public class AcceptationDetailsActivity extends Activity {
 
         boolean translationFound = false;
         for (SynonymTranslationResult result : synonymTranslationResults) {
-            if (result.language != languageResult.language) {
+            final int language = result.language;
+            if (language != languageResult.language) {
                 if (!translationFound) {
                     sb.append("\n  * Translations:");
                     translationFound = true;
                 }
 
-                sb.append("\n      ").append(result.language).append(" -> ").append(result.text);
+                String langStr = languageStrs.get(language);
+                if (langStr == null) {
+                    langStr = readLanguage(db, language);
+                    languageStrs.put(language, langStr);
+                }
+
+                sb.append("\n      ").append(langStr).append(" -> ").append(result.text);
             }
         }
 
