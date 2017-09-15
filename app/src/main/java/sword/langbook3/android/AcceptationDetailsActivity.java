@@ -359,6 +359,85 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
+    private static final class MorphologyResult {
+
+        final int dynamicAcceptation;
+        final int rule;
+        final String ruleText;
+        final String text;
+
+        MorphologyResult(int dynamicAcceptation, int rule, String ruleText, String text) {
+            this.dynamicAcceptation = dynamicAcceptation;
+            this.rule = rule;
+            this.ruleText = ruleText;
+            this.text = text;
+        }
+    }
+
+    private MorphologyResult[] readMorphologies(SQLiteDatabase db, int acceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J2." + idColumnName +
+                        ",J4." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J5." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J5." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
+                        " JOIN " + acceptations.getName() + " AS J2 ON J1." + idColumnName + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + acceptations.getName() + " AS J4 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getRuleColumnIndex()) + "=J4." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J5 ON J4." + idColumnName + "=J5." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " WHERE J0." + idColumnName + "=?" +
+                        " AND J3." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) + "=?" +
+                " ORDER BY J2." + idColumnName,
+                new String[] { Integer.toString(acceptation) , Integer.toString(acceptation)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    ArrayList<MorphologyResult> result = new ArrayList<>();
+
+                    int acc = cursor.getInt(0);
+                    int rule = cursor.getInt(1);
+                    String text = cursor.getString(2);
+                    int alphabet = cursor.getInt(3);
+                    String ruleText = cursor.getString(4);
+
+                    while (cursor.moveToNext()) {
+                        if (cursor.getInt(0) == acc) {
+                            if (alphabet != preferredAlphabet && cursor.getInt(3) == preferredAlphabet) {
+                                alphabet = preferredAlphabet;
+                                ruleText = cursor.getString(4);
+                            }
+                        }
+                        else {
+                            result.add(new MorphologyResult(acc, rule, ruleText, text));
+
+                            acc = cursor.getInt(0);
+                            rule = cursor.getInt(1);
+                            text = cursor.getString(2);
+                            alphabet = cursor.getInt(3);
+                            ruleText = cursor.getString(4);
+                        }
+                    }
+
+                    result.add(new MorphologyResult(acc, rule, ruleText, text));
+                    return result.toArray(new MorphologyResult[result.size()]);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new MorphologyResult[0];
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -451,6 +530,16 @@ public class AcceptationDetailsActivity extends Activity {
             if (result.dynamic) {
                 sb.append(" *");
             }
+        }
+
+        boolean morphologyFound = false;
+        for (MorphologyResult result : readMorphologies(db, staticAcceptation)) {
+            if (!morphologyFound) {
+                sb.append("\n  * Morphologies:");
+                morphologyFound = true;
+            }
+
+            sb.append("\n      ").append(result.ruleText).append(" -> ").append(result.text);
         }
 
         final TextView tv = findViewById(R.id.textView);
