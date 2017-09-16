@@ -302,6 +302,76 @@ public class AcceptationDetailsActivity extends Activity {
         return new BunchInclusionResult[0];
     }
 
+    private static final class BunchChildResult {
+
+        final int acceptation;
+        final boolean dynamic;
+        final String text;
+
+        BunchChildResult(int acceptation, boolean dynamic, String text) {
+            this.acceptation = acceptation;
+            this.dynamic = dynamic;
+            this.text = text;
+        }
+    }
+
+    private BunchChildResult[] readBunchChildren(SQLiteDatabase db, int acceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
+                        ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAgentSetColumnIndex()) +
+                " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + bunchAcceptations.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J2 ON J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " WHERE J0." + idColumnName + "=?" +
+                " ORDER BY J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()),
+                new String[] { Integer.toString(acceptation) });
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    final int nullAgentSet = DbManager.Tables.agentSets.nullReference();
+                    ArrayList<BunchChildResult> result = new ArrayList<>();
+
+                    int acc = cursor.getInt(0);
+                    int alphabet = cursor.getInt(1);
+                    String text = cursor.getString(2);
+                    int agentSet = cursor.getInt(3);
+                    while (cursor.moveToNext()) {
+                        if (acc == cursor.getInt(0)) {
+                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
+                                alphabet = preferredAlphabet;
+                                text = cursor.getString(2);
+                            }
+                        }
+                        else {
+                            result.add(new BunchChildResult(acc, agentSet != nullAgentSet, text));
+
+                            acc = cursor.getInt(0);
+                            alphabet = cursor.getInt(1);
+                            text = cursor.getString(2);
+                            agentSet = cursor.getInt(3);
+                        }
+                    }
+
+                    result.add(new BunchChildResult(acc, agentSet != nullAgentSet, text));
+                    return result.toArray(new BunchChildResult[result.size()]);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new BunchChildResult[0];
+    }
+
     private static final class SynonymTranslationResult {
 
         final int acceptation;
@@ -540,6 +610,20 @@ public class AcceptationDetailsActivity extends Activity {
             }
 
             sb.append("\n      ").append(result.ruleText).append(" -> ").append(result.text);
+        }
+
+        boolean bunchChildFound = false;
+        for (BunchChildResult result : readBunchChildren(db, staticAcceptation)) {
+            if (!bunchChildFound) {
+                sb.append("\n  * Acceptations included in this bunch:");
+                bunchChildFound = true;
+            }
+
+            sb.append("\n      ").append(result.text);
+
+            if (result.dynamic) {
+                sb.append(" *");
+            }
         }
 
         final TextView tv = findViewById(R.id.textView);
