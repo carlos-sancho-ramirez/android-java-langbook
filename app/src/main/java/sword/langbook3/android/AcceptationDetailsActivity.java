@@ -230,6 +230,63 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
+    private AcceptationResult[] readSubTypes(SQLiteDatabase db, int acceptation, int language) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
+        final DbManager.BunchConceptsTable bunchConcepts = DbManager.Tables.bunchConcepts;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT" +
+                        " J2." + idColumnName +
+                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + bunchConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchConcepts.getColumnName(bunchConcepts.getBunchColumnIndex()) +
+                        " JOIN " + acceptations.getName() + " AS J2 ON J1." + bunchConcepts.getColumnName(bunchConcepts.getConceptColumnIndex()) + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + alphabets.getName() + " AS J4 ON J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=J4." + idColumnName +
+                " WHERE J0." + idColumnName + "=?" +
+                        " AND J4." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=?" +
+                " ORDER BY J2." + idColumnName,
+                new String[] { Integer.toString(acceptation), Integer.toString(language) });
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    final ArrayList<AcceptationResult> result = new ArrayList<>();
+                    int acc = cursor.getInt(0);
+                    int alphabet = cursor.getInt(1);
+                    String text = cursor.getString(2);
+
+                    while (cursor.moveToNext()) {
+                        if (cursor.getInt(0) == acc) {
+                            if (alphabet != preferredAlphabet && cursor.getInt(1) == preferredAlphabet) {
+                                alphabet = preferredAlphabet;
+                                text = cursor.getString(2);
+                            }
+                        }
+                        else {
+                            result.add(new AcceptationResult(acc, text));
+
+                            acc = cursor.getInt(0);
+                            alphabet = cursor.getInt(1);
+                            text = cursor.getString(2);
+                        }
+                    }
+
+                    result.add(new AcceptationResult(acc, text));
+                    return result.toArray(new AcceptationResult[result.size()]);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new AcceptationResult[0];
+    }
+
     private static final class BunchInclusionResult {
 
         final int acceptation;
@@ -551,6 +608,16 @@ public class AcceptationDetailsActivity extends Activity {
         final AcceptationResult definition = readDefinition(db, staticAcceptation);
         if (definition != null) {
             sb.append("\n  * Type of: ").append(definition.text);
+        }
+
+        boolean subTypeFound = false;
+        for (AcceptationResult subType : readSubTypes(db, staticAcceptation, languageResult.language)) {
+            if (!subTypeFound) {
+                sb.append("\n  * Subtypes:");
+                subTypeFound = true;
+            }
+
+            sb.append("\n      ").append(subType.text);
         }
 
         final SynonymTranslationResult[] synonymTranslationResults = readSynonymsAndTranslations(db, staticAcceptation);
