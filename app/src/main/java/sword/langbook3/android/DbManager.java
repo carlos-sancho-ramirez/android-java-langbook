@@ -1131,6 +1131,10 @@ class DbManager extends SQLiteOpenHelper {
         int getFlagsColumnIndex() {
             return 7;
         }
+
+        int nullReference() {
+            return 0;
+        }
     }
 
     static final class AgentSetsTable extends DbTable {

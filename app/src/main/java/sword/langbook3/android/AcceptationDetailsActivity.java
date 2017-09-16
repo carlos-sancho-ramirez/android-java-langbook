@@ -7,10 +7,13 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static sword.langbook3.android.DbManager.idColumnName;
 
@@ -565,6 +568,188 @@ public class AcceptationDetailsActivity extends Activity {
         return new MorphologyResult[0];
     }
 
+    private static class InvolvedAgentResult {
+
+        interface Flags {
+            int target = 1;
+            int source = 2;
+            int diff = 4;
+            int rule = 8;
+            int processed = 16;
+        }
+
+        final int agentId;
+        final int flags;
+
+        InvolvedAgentResult(int agentId, int flags) {
+            this.agentId = agentId;
+            this.flags = flags;
+        }
+    }
+
+    private int[] readAgentsWhereAccIsTarget(SQLiteDatabase db, int staticAcceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+
+        final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
+                " FROM " + acceptations.getName() + " AS J0" +
+                " JOIN " + agents.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + agents.getColumnName(agents.getTargetBunchColumnIndex()) +
+                " WHERE J0." + idColumnName + "=?",
+        new String[] { Integer.toString(staticAcceptation)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    int[] result = new int[cursor.getCount()];
+                    int index = 0;
+                    do {
+                        result[index++] = cursor.getInt(0);
+                    } while (cursor.moveToNext());
+
+                    return result;
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new int[0];
+    }
+
+    private int[] readAgentsWhereAccIsSource(SQLiteDatabase db, int staticAcceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+        final DbManager.BunchSetsTable bunchSets = DbManager.Tables.bunchSets;
+
+        final Cursor cursor = db.rawQuery(" SELECT J2." + idColumnName +
+                " FROM " + acceptations.getName() + " AS J0" +
+                " JOIN " + bunchSets.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) +
+                " JOIN " + agents.getName() + " AS J2 ON J1." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) + "=J2." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
+                " WHERE J0." + idColumnName + "=?",
+                new String[] { Integer.toString(staticAcceptation)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    int[] result = new int[cursor.getCount()];
+                    int index = 0;
+                    do {
+                        result[index++] = cursor.getInt(0);
+                    } while (cursor.moveToNext());
+
+                    return result;
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new int[0];
+    }
+
+    private int[] readAgentsWhereAccIsRule(SQLiteDatabase db, int staticAcceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+
+        final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
+                        " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + agents.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + agents.getColumnName(agents.getRuleColumnIndex()) +
+                        " WHERE J0." + idColumnName + "=?",
+                new String[] { Integer.toString(staticAcceptation)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    int[] result = new int[cursor.getCount()];
+                    int index = 0;
+                    do {
+                        result[index++] = cursor.getInt(0);
+                    } while (cursor.moveToNext());
+
+                    return result;
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new int[0];
+    }
+
+    private int[] readAgentsWhereAccIsProcessed(SQLiteDatabase db, int staticAcceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+        final DbManager.BunchSetsTable bunchSets = DbManager.Tables.bunchSets;
+        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+        final DbManager.AgentSetsTable agentSets = DbManager.Tables.agentSets;
+
+        final Cursor cursor = db.rawQuery(" SELECT J1." + agentSets.getColumnName(agentSets.getAgentColumnIndex()) +
+                        " FROM " + bunchAcceptations.getName() + " AS J0" +
+                        " JOIN " + agentSets.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAgentSetColumnIndex()) + "=J1." + agentSets.getColumnName(agentSets.getSetIdColumnIndex()) +
+                        " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=?",
+                new String[] { Integer.toString(staticAcceptation)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    ArrayList<Integer> result = new ArrayList<>();
+                    do {
+                        final int id = cursor.getInt(0);
+                        if (id != agents.nullReference()) {
+                            result.add(id);
+                        }
+                    } while (cursor.moveToNext());
+
+                    int[] intResult = new int[result.size()];
+                    int index = 0;
+                    for (int value : result) {
+                        intResult[index++] = value;
+                    }
+
+                    return intResult;
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new int[0];
+    }
+
+    private InvolvedAgentResult[] readInvolvedAgents(SQLiteDatabase db, int staticAcceptation) {
+        final SparseIntArray flags = new SparseIntArray();
+
+        for (int agentId : readAgentsWhereAccIsTarget(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.target);
+        }
+
+        for (int agentId : readAgentsWhereAccIsSource(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.source);
+        }
+
+        // TODO: Diff not implemented as right now it is impossible
+
+        for (int agentId : readAgentsWhereAccIsRule(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.rule);
+        }
+
+        for (int agentId : readAgentsWhereAccIsProcessed(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.processed);
+        }
+
+        final int count = flags.size();
+        final InvolvedAgentResult[] result = new InvolvedAgentResult[count];
+        for (int i = 0; i < count; i++) {
+            result[i] = new InvolvedAgentResult(flags.keyAt(i), flags.valueAt(i));
+        }
+
+        return result;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -691,6 +876,22 @@ public class AcceptationDetailsActivity extends Activity {
             if (result.dynamic) {
                 sb.append(" *");
             }
+        }
+
+        boolean agentFound = false;
+        for (InvolvedAgentResult result : readInvolvedAgents(db, staticAcceptation)) {
+            if (!agentFound) {
+                sb.append("\n  * Involved agents:");
+                agentFound = true;
+            }
+
+            sb.append("\n      Agent #").append(result.agentId).append(" (");
+            sb.append(((result.flags & InvolvedAgentResult.Flags.target) != 0)? 'T' : '-');
+            sb.append(((result.flags & InvolvedAgentResult.Flags.source) != 0)? 'S' : '-');
+            sb.append(((result.flags & InvolvedAgentResult.Flags.diff) != 0)? 'D' : '-');
+            sb.append(((result.flags & InvolvedAgentResult.Flags.rule) != 0)? 'R' : '-');
+            sb.append(((result.flags & InvolvedAgentResult.Flags.processed) != 0)? 'P' : '-');
+            sb.append(')');
         }
 
         final TextView tv = findViewById(R.id.textView);
