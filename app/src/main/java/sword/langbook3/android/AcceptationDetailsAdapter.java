@@ -7,6 +7,9 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class AcceptationDetailsAdapter extends BaseAdapter {
 
     public static abstract class Item {
@@ -30,6 +33,10 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         boolean isEnabled() {
             return false;
         }
+
+        int getLayout() {
+            return R.layout.acceptation_details_item;
+        }
     }
 
     /**
@@ -45,6 +52,10 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         @Override
         void navigate(Context context) {
             // This item does not navigate
+        }
+
+        int getLayout() {
+            return R.layout.acceptation_details_header;
         }
     }
 
@@ -90,19 +101,26 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
 
     private final Item[] _items;
     private final boolean _allItemsEnabled;
+    private final int[] _viewTypes;
     private LayoutInflater _inflater;
 
     AcceptationDetailsAdapter(Item[] items) {
+        final Set<Integer> viewTypeSet = new HashSet<>();
         boolean allEnabled = true;
         for (Item item : items) {
-            allEnabled = item.isEnabled();
-            if (!allEnabled) {
-                break;
-            }
+            viewTypeSet.add(item.getLayout());
+            allEnabled &= item.isEnabled();
+        }
+
+        final int[] viewTypes = new int[viewTypeSet.size()];
+        int index = 0;
+        for (int layout : viewTypeSet) {
+            viewTypes[index++] = layout;
         }
 
         _items = items;
         _allItemsEnabled = allEnabled;
+        _viewTypes = viewTypes;
     }
 
     @Override
@@ -131,14 +149,34 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     }
 
     @Override
+    public int getViewTypeCount() {
+        return _viewTypes.length;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        final int layout = _items[position].getLayout();
+        final int viewTypeCount = _viewTypes.length;
+
+        for (int i = 0; i < viewTypeCount; i++) {
+            if (layout == _viewTypes[i]) {
+                return i;
+            }
+        }
+
+        throw new AssertionError("Layout not found in view types");
+    }
+
+    @Override
     public View getView(int position, View convertView, ViewGroup viewGroup) {
         if (_inflater == null) {
             _inflater = LayoutInflater.from(viewGroup.getContext());
         }
 
+        final Item item = _items[position];
         final View view;
         if (convertView == null) {
-            view = _inflater.inflate(R.layout.acceptation_details_item, viewGroup, false);
+            view = _inflater.inflate(item.getLayout(), viewGroup, false);
         }
         else {
             view = convertView;
