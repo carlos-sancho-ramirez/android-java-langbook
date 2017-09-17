@@ -26,6 +26,10 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         abstract void navigate(Context context);
+
+        boolean isEnabled() {
+            return false;
+        }
     }
 
     /**
@@ -61,6 +65,11 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         void navigate(Context context) {
             AcceptationDetailsActivity.open(context, _id, _id);
         }
+
+        @Override
+        boolean isEnabled() {
+            return true;
+        }
     }
 
     /**
@@ -80,10 +89,20 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     }
 
     private final Item[] _items;
+    private final boolean _allItemsEnabled;
     private LayoutInflater _inflater;
 
     AcceptationDetailsAdapter(Item[] items) {
+        boolean allEnabled = true;
+        for (Item item : items) {
+            allEnabled = item.isEnabled();
+            if (!allEnabled) {
+                break;
+            }
+        }
+
         _items = items;
+        _allItemsEnabled = allEnabled;
     }
 
     @Override
@@ -97,8 +116,18 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     }
 
     @Override
-    public long getItemId(int i) {
-        return i;
+    public long getItemId(int position) {
+        return position;
+    }
+
+    @Override
+    public boolean areAllItemsEnabled() {
+        return _allItemsEnabled;
+    }
+
+    @Override
+    public boolean isEnabled(int position) {
+        return _items[position].isEnabled();
     }
 
     @Override
