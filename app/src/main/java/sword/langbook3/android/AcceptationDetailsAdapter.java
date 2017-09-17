@@ -37,6 +37,10 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         int getLayout() {
             return R.layout.acceptation_details_item;
         }
+
+        int getTextColorRes() {
+            return R.color.agentStaticTextColor;
+        }
     }
 
     /**
@@ -66,10 +70,12 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     static final class AcceptationNavigableItem extends Item {
 
         private final int _id;
+        private final int _textColor;
 
-        AcceptationNavigableItem(int id, String text) {
+        AcceptationNavigableItem(int id, String text, boolean dynamic) {
             super(text);
             _id = id;
+            _textColor = dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
         }
 
         @Override
@@ -80,6 +86,11 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         @Override
         boolean isEnabled() {
             return true;
+        }
+
+        @Override
+        int getTextColorRes() {
+            return _textColor;
         }
     }
 
@@ -183,7 +194,8 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         final TextView tv = view.findViewById(R.id.itemTextView);
-        tv.setText(_items[position].getText());
+        tv.setText(item.getText());
+        tv.setTextColor(tv.getContext().getResources().getColor(item.getTextColorRes()));
 
         return view;
     }

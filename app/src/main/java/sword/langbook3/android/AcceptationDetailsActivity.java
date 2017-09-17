@@ -787,7 +787,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
         final AcceptationResult definition = readDefinition(db, staticAcceptation);
         if (definition != null) {
-            result.add(new AcceptationNavigableItem(definition.acceptation, "Type of: " + definition.text));
+            result.add(new AcceptationNavigableItem(definition.acceptation, "Type of: " + definition.text, false));
         }
 
         boolean subTypeFound = false;
@@ -797,7 +797,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                 subTypeFound = true;
             }
 
-            result.add(new AcceptationNavigableItem(subType.acceptation, subType.text));
+            result.add(new AcceptationNavigableItem(subType.acceptation, subType.text, false));
         }
 
         final SynonymTranslationResult[] synonymTranslationResults = readSynonymsAndTranslations(db, staticAcceptation);
@@ -809,7 +809,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                     synonymFound = true;
                 }
 
-                result.add(new AcceptationNavigableItem(r.acceptation, r.text));
+                result.add(new AcceptationNavigableItem(r.acceptation, r.text, false));
             }
         }
 
@@ -828,7 +828,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                     languageStrs.put(language, langStr);
                 }
 
-                result.add(new AcceptationNavigableItem(r.acceptation, "" + langStr + " -> " + r.text));
+                result.add(new AcceptationNavigableItem(r.acceptation, "" + langStr + " -> " + r.text, false));
             }
         }
 
@@ -839,7 +839,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                 parentBunchFound = true;
             }
 
-            result.add(new AcceptationNavigableItem(r.acceptation, (r.dynamic)? r.text + " *" : r.text));
+            result.add(new AcceptationNavigableItem(r.acceptation, r.text, r.dynamic));
         }
 
         boolean morphologyFound = false;
@@ -859,7 +859,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                 bunchChildFound = true;
             }
 
-            result.add(new AcceptationNavigableItem(r.acceptation, (r.dynamic)? r.text + " *" : r.text));
+            result.add(new AcceptationNavigableItem(r.acceptation, r.text, r.dynamic));
         }
 
         boolean agentFound = false;
