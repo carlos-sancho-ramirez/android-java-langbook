@@ -8,16 +8,20 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
-import android.widget.TextView;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+
+import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
+import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
+import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 
 import static sword.langbook3.android.DbManager.idColumnName;
 
-public class AcceptationDetailsActivity extends Activity {
+public class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
     private static final class BundleKeys {
         static final String STATIC_ACCEPTATION = "sa";
@@ -27,6 +31,8 @@ public class AcceptationDetailsActivity extends Activity {
     // Specifies the alphabet the user would like to see if possible.
     // TODO: This should be a shared preference
     private static final int preferredAlphabet = 4;
+
+    private AcceptationDetailsAdapter _listAdapter;
 
     public static void open(Context context, int staticAcceptation, int dynamicAcceptation) {
         Intent intent = new Intent(context, AcceptationDetailsActivity.class);
@@ -680,9 +686,7 @@ public class AcceptationDetailsActivity extends Activity {
     }
 
     private int[] readAgentsWhereAccIsProcessed(SQLiteDatabase db, int staticAcceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.AgentsTable agents = DbManager.Tables.agents;
-        final DbManager.BunchSetsTable bunchSets = DbManager.Tables.bunchSets;
         final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
         final DbManager.AgentSetsTable agentSets = DbManager.Tables.agentSets;
 
@@ -750,24 +754,14 @@ public class AcceptationDetailsActivity extends Activity {
         return result;
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.acceptation_details_activity);
-
-        if (!getIntent().hasExtra(BundleKeys.STATIC_ACCEPTATION)) {
-            throw new IllegalArgumentException("staticAcceptation not provided");
-        }
-
-        final int staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
-
+    private AcceptationDetailsAdapter.Item[] getAdapterItems(int staticAcceptation) {
         DbManager dbManager = new DbManager(this);
         SQLiteDatabase db = dbManager.getReadableDatabase();
 
-        final StringBuilder sb = new StringBuilder("Displaying details for acceptation ")
-                .append(staticAcceptation)
-                .append("\n  * Correlation: ");
+        final ArrayList<AcceptationDetailsAdapter.Item> result = new ArrayList<>();
+        result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
 
+        final StringBuilder sb = new StringBuilder("Correlation: ");
         List<SparseArray<String>> correlationArray = readCorrelationArray(db, staticAcceptation);
         for (int i = 0; i < correlationArray.size(); i++) {
             if (i != 0) {
@@ -783,50 +777,48 @@ public class AcceptationDetailsActivity extends Activity {
                 sb.append(correlation.valueAt(j));
             }
         }
+        result.add(new NonNavigableItem(sb.toString()));
 
         final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).keyAt(0));
-        sb.append("\n  * Language: ").append(languageResult.text);
+        result.add(new NonNavigableItem("Language: " + languageResult.text));
 
         final SparseArray<String> languageStrs = new SparseArray<>();
         languageStrs.put(languageResult.language, languageResult.text);
 
         final AcceptationResult definition = readDefinition(db, staticAcceptation);
         if (definition != null) {
-            sb.append("\n  * Type of: ").append(definition.text);
+            result.add(new AcceptationNavigableItem(definition.acceptation, "Type of: " + definition.text));
         }
 
         boolean subTypeFound = false;
         for (AcceptationResult subType : readSubTypes(db, staticAcceptation, languageResult.language)) {
             if (!subTypeFound) {
-                sb.append("\n  * Subtypes:");
+                result.add(new HeaderItem("Subtypes"));
                 subTypeFound = true;
             }
 
-            sb.append("\n      ").append(subType.text);
+            result.add(new AcceptationNavigableItem(subType.acceptation, subType.text));
         }
 
         final SynonymTranslationResult[] synonymTranslationResults = readSynonymsAndTranslations(db, staticAcceptation);
         boolean synonymFound = false;
-        for (SynonymTranslationResult result : synonymTranslationResults) {
-            if (result.language == languageResult.language) {
+        for (SynonymTranslationResult r : synonymTranslationResults) {
+            if (r.language == languageResult.language) {
                 if (!synonymFound) {
-                    sb.append("\n  * Synonyms: ");
+                    result.add(new HeaderItem("Synonyms"));
                     synonymFound = true;
                 }
-                else {
-                    sb.append(", ");
-                }
 
-                sb.append(result.text);
+                result.add(new AcceptationNavigableItem(r.acceptation, r.text));
             }
         }
 
         boolean translationFound = false;
-        for (SynonymTranslationResult result : synonymTranslationResults) {
-            final int language = result.language;
+        for (SynonymTranslationResult r : synonymTranslationResults) {
+            final int language = r.language;
             if (language != languageResult.language) {
                 if (!translationFound) {
-                    sb.append("\n  * Translations:");
+                    result.add(new HeaderItem("Translations"));
                     translationFound = true;
                 }
 
@@ -836,65 +828,81 @@ public class AcceptationDetailsActivity extends Activity {
                     languageStrs.put(language, langStr);
                 }
 
-                sb.append("\n      ").append(langStr).append(" -> ").append(result.text);
+                result.add(new AcceptationNavigableItem(r.acceptation, "" + langStr + " -> " + r.text));
             }
         }
 
         boolean parentBunchFound = false;
-        for (BunchInclusionResult result : readBunchesWhereIncluded(db, staticAcceptation)) {
+        for (BunchInclusionResult r : readBunchesWhereIncluded(db, staticAcceptation)) {
             if (!parentBunchFound) {
-                sb.append("\n  * Bunches where included:");
+                result.add(new HeaderItem("Bunches where included"));
                 parentBunchFound = true;
             }
 
-            sb.append("\n      ").append(result.text);
-
-            if (result.dynamic) {
-                sb.append(" *");
-            }
+            result.add(new AcceptationNavigableItem(r.acceptation, (r.dynamic)? r.text + " *" : r.text));
         }
 
         boolean morphologyFound = false;
-        for (MorphologyResult result : readMorphologies(db, staticAcceptation)) {
+        for (MorphologyResult r : readMorphologies(db, staticAcceptation)) {
             if (!morphologyFound) {
-                sb.append("\n  * Morphologies:");
+                result.add(new HeaderItem("Morphologies"));
                 morphologyFound = true;
             }
 
-            sb.append("\n      ").append(result.ruleText).append(" -> ").append(result.text);
+            result.add(new NonNavigableItem(r.ruleText + " -> " + r.text));
         }
 
         boolean bunchChildFound = false;
-        for (BunchChildResult result : readBunchChildren(db, staticAcceptation)) {
+        for (BunchChildResult r : readBunchChildren(db, staticAcceptation)) {
             if (!bunchChildFound) {
-                sb.append("\n  * Acceptations included in this bunch:");
+                result.add(new HeaderItem("Acceptations included in this bunch"));
                 bunchChildFound = true;
             }
 
-            sb.append("\n      ").append(result.text);
-
-            if (result.dynamic) {
-                sb.append(" *");
-            }
+            result.add(new AcceptationNavigableItem(r.acceptation, (r.dynamic)? r.text + " *" : r.text));
         }
 
         boolean agentFound = false;
-        for (InvolvedAgentResult result : readInvolvedAgents(db, staticAcceptation)) {
+        for (InvolvedAgentResult r : readInvolvedAgents(db, staticAcceptation)) {
             if (!agentFound) {
-                sb.append("\n  * Involved agents:");
+                result.add(new HeaderItem("Involved agents"));
                 agentFound = true;
             }
 
-            sb.append("\n      Agent #").append(result.agentId).append(" (");
-            sb.append(((result.flags & InvolvedAgentResult.Flags.target) != 0)? 'T' : '-');
-            sb.append(((result.flags & InvolvedAgentResult.Flags.source) != 0)? 'S' : '-');
-            sb.append(((result.flags & InvolvedAgentResult.Flags.diff) != 0)? 'D' : '-');
-            sb.append(((result.flags & InvolvedAgentResult.Flags.rule) != 0)? 'R' : '-');
-            sb.append(((result.flags & InvolvedAgentResult.Flags.processed) != 0)? 'P' : '-');
-            sb.append(')');
+            final StringBuilder s = new StringBuilder("Agent #");
+            s.append(r.agentId).append(" (");
+            s.append(((r.flags & InvolvedAgentResult.Flags.target) != 0)? 'T' : '-');
+            s.append(((r.flags & InvolvedAgentResult.Flags.source) != 0)? 'S' : '-');
+            s.append(((r.flags & InvolvedAgentResult.Flags.diff) != 0)? 'D' : '-');
+            s.append(((r.flags & InvolvedAgentResult.Flags.rule) != 0)? 'R' : '-');
+            s.append(((r.flags & InvolvedAgentResult.Flags.processed) != 0)? 'P' : '-');
+            s.append(')');
+
+            result.add(new NonNavigableItem(s.toString()));
         }
 
-        final TextView tv = findViewById(R.id.textView);
-        tv.setText(sb.toString());
+        return result.toArray(new AcceptationDetailsAdapter.Item[result.size()]);
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.acceptation_details_activity);
+
+        if (!getIntent().hasExtra(BundleKeys.STATIC_ACCEPTATION)) {
+            throw new IllegalArgumentException("staticAcceptation not provided");
+        }
+
+        final int staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
+        _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(staticAcceptation));
+
+        ListView listView = findViewById(R.id.listView);
+        listView.setAdapter(_listAdapter);
+        listView.setOnItemClickListener(this);
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+        _listAdapter.getItem(position).navigate(this);
     }
 }
