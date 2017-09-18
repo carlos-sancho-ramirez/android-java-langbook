@@ -5,10 +5,12 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 
 public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener {
@@ -88,5 +90,22 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         SearchResult item = _listAdapter.getItem(position);
         AcceptationDetailsActivity.open(this, item.getAcceptation(), item.getDynamicAcceptation());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        new MenuInflater(this).inflate(R.menu.search_activity, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menuItemSettings:
+                SettingsActivity.open(this);
+                return true;
+        }
+
+        return false;
     }
 }

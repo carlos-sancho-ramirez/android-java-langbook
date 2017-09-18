@@ -1,3 +1,5 @@
 <resources>
     <string name="appName">Langbook</string>
+    <string name="menuItemSettings">Preferences</string>
+    <string name="importDatabaseButton">Import database</string>
 </resources>
