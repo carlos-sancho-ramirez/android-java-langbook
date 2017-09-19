@@ -1478,13 +1478,14 @@ class DbManager extends SQLiteOpenHelper {
                 try {
                     is.skip(20);
 
-                    setProgress(0, "Reading file entries");
+                    setProgress(0, "Reading symbolArrays");
                     final InputBitStream ibs = new InputBitStream(is);
                     final int[] symbolArraysIdMap = readSymbolArrays(db, ibs);
                     final int minSymbolArrayIndex = 0;
                     final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
 
                     // Read languages and its alphabets
+                    setProgress(0.03f, "Reading languages and its alphabets");
                     final int languageCount = (int) ibs.readNaturalNumber();
                     final Language[] languages = new Language[languageCount];
                     final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
@@ -1529,6 +1530,7 @@ class DbManager extends SQLiteOpenHelper {
                     }
 
                     // Read conversions
+                    setProgress(0.06f, "Reading conversions");
                     final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0,
                             maxSymbolArrayIndex, symbolArraysIdMap);
 
@@ -1537,6 +1539,7 @@ class DbManager extends SQLiteOpenHelper {
                     final int maxConcept = (int) ibs.readNaturalNumber() - 1;
 
                     // Export acceptations
+                    setProgress(0.09f, "Reading acceptations");
                     final int minValidWord = StreamedDatabaseConstants.minValidWord;
                     final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
                     final int[] acceptationsIdMap = readAcceptations(db, ibs, minValidWord, maxWord, minValidConcept,
@@ -1546,6 +1549,7 @@ class DbManager extends SQLiteOpenHelper {
                     final int maxValidAcceptation = acceptationsIdMap.length - 1;
 
                     // Export word representations
+                    setProgress(0.12f, "Reading representations");
                     final int wordRepresentationLength = (int) ibs.readNaturalNumber();
                     for (int i = 0; i < wordRepresentationLength; i++) {
                         final int word = ibs.readRangedNumber(minValidWord, maxWord);
@@ -1560,6 +1564,7 @@ class DbManager extends SQLiteOpenHelper {
                     }
 
                     // Export kanji-kana correlations
+                    setProgress(0.15f, "Reading kanji-kana correlations");
                     final int kanjiKanaCorrelationsLength = (int) ibs.readNaturalNumber();
                     if (kanjiKanaCorrelationsLength > 0 && (
                             kanjiAlphabet < minValidAlphabet || kanjiAlphabet > maxValidAlphabet ||
@@ -1576,6 +1581,7 @@ class DbManager extends SQLiteOpenHelper {
                     }
 
                     // Export jaWordCorrelations
+                    setProgress(0.18f, "Reading Japanese word correlations");
                     final int jaWordCorrelationsLength = (int) ibs.readNaturalNumber();
                     if (jaWordCorrelationsLength > 0) {
                         final IntReader intReader = new IntReader(ibs);
@@ -1639,12 +1645,15 @@ class DbManager extends SQLiteOpenHelper {
                     }
 
                     // Export bunchConcepts
+                    setProgress(0.21f, "Reading bunch concepts");
                     readBunchConcepts(db, ibs, minValidConcept, maxConcept);
 
                     // Export bunchAcceptations
+                    setProgress(0.24f, "Reading bunch acceptations");
                     readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
 
                     // Export agents
+                    setProgress(0.27f, "Reading agents");
                     SparseArray<Agent> agents = readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet,
                             symbolArraysIdMap);
 
@@ -1938,7 +1947,10 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private void runAgents(SQLiteDatabase db, SparseArray<Agent> agents) {
+        final int agentCount = agents.size();
+        int index = 0;
         for (int agentId : sortAgents(agents)) {
+            setProgress(0.4f + ((0.8f - 0.4f) / agentCount) * index, "Running agent " + (++index) + " out of " + agentCount);
             runAgent(db, agentId);
         }
     }
@@ -2065,7 +2077,10 @@ class DbManager extends SQLiteOpenHelper {
         public void onProgressUpdate(DatabaseImportProgress... progresses) {
             final DatabaseImportProgress progress = progresses[0];
             final DatabaseImportProgressListener listener = _externalProgressListener;
-            listener.setProgress(progress.progress, progress.message);
+            if (listener != null) {
+                listener.setProgress(progress.progress, progress.message);
+            }
+
             _lastProgress = progress;
         }
 
