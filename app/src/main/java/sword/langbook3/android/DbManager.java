@@ -1,13 +1,17 @@
 package sword.langbook3.android;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.widget.Toast;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -22,12 +26,37 @@ import sword.bitstream.SupplierWithIOException;
 
 class DbManager extends SQLiteOpenHelper {
 
-    private static final String DB_NAME = "Langbook";
+    static final String DB_NAME = "Langbook";
     private static final int DB_VERSION = 5;
 
-    private final Context _context;
+    private static DbManager _instance;
 
-    DbManager(Context context) {
+    private final Context _context;
+    private Uri _uri;
+    private DatabaseImportProgressListener _progressListener;
+    private DatabaseImportTask _databaseImportTask;
+    private DatabaseImportProgressListener _externalProgressListener;
+    private DatabaseImportProgress _lastProgress;
+
+    interface DatabaseImportProgressListener {
+
+        /**
+         * Notify the progress of a task
+         * @param progress float value expected to be between 0 and 1.
+         * @param message Text message describing the current subTask.
+         */
+        void setProgress(float progress, String message);
+    }
+
+    static DbManager getInstance() {
+        return _instance;
+    }
+
+    static void createInstance(Context context) {
+        _instance = new DbManager(context);
+    }
+
+    private DbManager(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
         _context = context;
     }
@@ -1426,187 +1455,226 @@ class DbManager extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        final Uri uri = (_uri != null)? _uri : Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + _context.getPackageName() + '/' + R.raw.basic);
+
+        _uri = null;
+
+        importDatabase(db, uri);
+    }
+
+    private void setProgress(float progress, String message) {
+        final DatabaseImportProgressListener listener = _progressListener;
+        if (listener != null) {
+            listener.setProgress(progress, message);
+        }
+    }
+
+    private boolean importDatabase(SQLiteDatabase db, Uri uri) {
         createTables(db);
 
-        final InputStream is = _context.getResources().openRawResource(R.raw.basic);
         try {
-            is.skip(20);
-            final InputBitStream ibs = new InputBitStream(is);
-            final int[] symbolArraysIdMap = readSymbolArrays(db, ibs);
-            final int minSymbolArrayIndex = 0;
-            final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
+            final InputStream is = _context.getContentResolver().openInputStream(uri);
+            if (is != null) {
+                try {
+                    is.skip(20);
 
-            // Read languages and its alphabets
-            final int languageCount = (int) ibs.readNaturalNumber();
-            final Language[] languages = new Language[languageCount];
-            final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
-            int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
-            final HuffmanTable<Long> nat2Table = new NaturalNumberHuffmanTable(2);
-            int kanjiAlphabet = -1;
-            int kanaAlphabet = -1;
+                    setProgress(0, "Reading file entries");
+                    final InputBitStream ibs = new InputBitStream(is);
+                    final int[] symbolArraysIdMap = readSymbolArrays(db, ibs);
+                    final int minSymbolArrayIndex = 0;
+                    final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
 
-            for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
-                final int codeSymbolArrayIndex = ibs.readRangedNumber(minSymbolArrayIndex, maxSymbolArrayIndex);
-                final int alphabetCount = ibs.readHuffmanSymbol(nat2Table).intValue();
-                final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
-                languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
+                    // Read languages and its alphabets
+                    final int languageCount = (int) ibs.readNaturalNumber();
+                    final Language[] languages = new Language[languageCount];
+                    final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
+                    int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
+                    final HuffmanTable<Long> nat2Table = new NaturalNumberHuffmanTable(2);
+                    int kanjiAlphabet = -1;
+                    int kanaAlphabet = -1;
 
-                // In order to inflate kanjiKanaCorrelations we assume that the Japanese language
-                // is present and that its first alphabet is the kanji and the second the kana.
-                if ("ja".equals(code)) {
-                    kanjiAlphabet = nextMinAlphabet;
-                    kanaAlphabet = nextMinAlphabet + 1;
-                }
+                    for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
+                        final int codeSymbolArrayIndex = ibs.readRangedNumber(minSymbolArrayIndex, maxSymbolArrayIndex);
+                        final int alphabetCount = ibs.readHuffmanSymbol(nat2Table).intValue();
+                        final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
+                        languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
 
-                nextMinAlphabet += alphabetCount;
-            }
-
-            final int maxValidAlphabet = nextMinAlphabet - 1;
-            final int minLanguage = nextMinAlphabet;
-            final int maxLanguage = minLanguage + languages.length - 1;
-
-            for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
-                for (int j = 0; j < languageCount; j++) {
-                    Language lang = languages[j];
-                    if (lang.containsAlphabet(i)) {
-                        insertAlphabet(db, i, minLanguage + j);
-                        break;
-                    }
-                }
-            }
-
-            for (int i = 0; i < languageCount; i++) {
-                final Language lang = languages[i];
-                insertLanguage(db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
-            }
-
-            // Read conversions
-            final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0, maxSymbolArrayIndex, symbolArraysIdMap);
-
-            // Export the amount of words and concepts in order to range integers
-            final int maxWord = (int) ibs.readNaturalNumber() - 1;
-            final int maxConcept = (int) ibs.readNaturalNumber() - 1;
-
-            // Export acceptations
-            final int minValidWord = StreamedDatabaseConstants.minValidWord;
-            final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
-            final int[] acceptationsIdMap = readAcceptations(db, ibs, minValidWord, maxWord, minValidConcept, maxConcept);
-
-            final int minValidAcceptation = 0;
-            final int maxValidAcceptation = acceptationsIdMap.length - 1;
-
-            // Export word representations
-            final int wordRepresentationLength = (int) ibs.readNaturalNumber();
-            for (int i = 0; i < wordRepresentationLength; i++) {
-                final int word = ibs.readRangedNumber(minValidWord, maxWord);
-                final int alphabet = ibs.readRangedNumber(minValidAlphabet, maxValidAlphabet);
-                final int symbolArray = ibs.readRangedNumber(0, maxSymbolArrayIndex);
-
-                final SparseIntArray correlation = new SparseIntArray();
-                correlation.put(alphabet, symbolArraysIdMap[symbolArray]);
-                final int correlationId = obtainCorrelation(db, correlation);
-                final int correlationArrayId = insertCorrelationArray(db, correlationId);
-                assignAcceptationCorrelationArray(db, word, correlationArrayId);
-            }
-
-            // Export kanji-kana correlations
-            final int kanjiKanaCorrelationsLength = (int) ibs.readNaturalNumber();
-            if (kanjiKanaCorrelationsLength > 0 && (
-                    kanjiAlphabet < minValidAlphabet || kanjiAlphabet > maxValidAlphabet ||
-                    kanaAlphabet < minValidAlphabet || kanaAlphabet > maxValidAlphabet)) {
-                throw new AssertionError("KanjiAlphabet or KanaAlphabet not set properly");
-            }
-
-            final int[] kanjiKanaCorrelationIdMap = new int[kanjiKanaCorrelationsLength];
-            for (int i = 0; i < kanjiKanaCorrelationsLength; i++) {
-                final SparseIntArray correlation = new SparseIntArray();
-                correlation.put(kanjiAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
-                correlation.put(kanaAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
-                kanjiKanaCorrelationIdMap[i] = obtainCorrelation(db, correlation);
-            }
-
-            // Export jaWordCorrelations
-            final int jaWordCorrelationsLength = (int) ibs.readNaturalNumber();
-            if (jaWordCorrelationsLength > 0) {
-                final IntReader intReader = new IntReader(ibs);
-                final IntDiffReader intDiffReader = new IntDiffReader(ibs);
-
-                final HuffmanTable<Integer> correlationReprCountHuffmanTable = ibs.readHuffmanTable(intReader, intDiffReader);
-                final HuffmanTable<Integer> correlationConceptCountHuffmanTable = ibs.readHuffmanTable(intReader, intDiffReader);
-                final HuffmanTable<Integer> correlationVectorLengthHuffmanTable = ibs.readHuffmanTable(intReader, intDiffReader);
-
-                for (int i = 0; i < jaWordCorrelationsLength; i++) {
-                    final int wordId = ibs.readRangedNumber(minValidWord, maxWord);
-                    final int reprCount = ibs.readHuffmanSymbol(correlationReprCountHuffmanTable);
-                    final JaWordRepr[] jaWordReprs = new JaWordRepr[reprCount];
-
-                    for (int j = 0; j < reprCount; j++) {
-                        final int conceptSetLength = ibs.readHuffmanSymbol(correlationConceptCountHuffmanTable);
-                        int[] concepts = new int[conceptSetLength];
-                        for (int k = 0; k < conceptSetLength; k++) {
-                            concepts[k] = ibs.readRangedNumber(minValidConcept, maxConcept);
+                        // In order to inflate kanjiKanaCorrelations we assume that the Japanese language
+                        // is present and that its first alphabet is the kanji and the second the kana.
+                        if ("ja".equals(code)) {
+                            kanjiAlphabet = nextMinAlphabet;
+                            kanaAlphabet = nextMinAlphabet + 1;
                         }
 
-                        final int correlationArrayLength = ibs.readHuffmanSymbol(correlationVectorLengthHuffmanTable);
-                        int[] correlationArray = new int[correlationArrayLength];
-                        for (int k = 0; k < correlationArrayLength; k++) {
-                            correlationArray[k] = ibs.readRangedNumber(0, kanjiKanaCorrelationsLength - 1);
-                        }
-
-                        jaWordReprs[j] = new JaWordRepr(concepts, correlationArray);
+                        nextMinAlphabet += alphabetCount;
                     }
 
-                    for (int j = 0; j < reprCount; j++) {
-                        final JaWordRepr jaWordRepr = jaWordReprs[j];
-                        final int[] concepts = jaWordRepr.getConcepts();
-                        final int conceptCount = concepts.length;
-                        for (int k = 0; k < conceptCount; k++) {
-                            final int concept = concepts[k];
+                    final int maxValidAlphabet = nextMinAlphabet - 1;
+                    final int minLanguage = nextMinAlphabet;
+                    final int maxLanguage = minLanguage + languages.length - 1;
 
-                            final Pair<Integer, Integer> foundAcc = getAcceptation(db, wordId, concept);
-                            if (foundAcc == null) {
-                                throw new AssertionError("Acceptation should be already registered");
+                    for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
+                        for (int j = 0; j < languageCount; j++) {
+                            Language lang = languages[j];
+                            if (lang.containsAlphabet(i)) {
+                                insertAlphabet(db, i, minLanguage + j);
+                                break;
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < languageCount; i++) {
+                        final Language lang = languages[i];
+                        insertLanguage(db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
+                    }
+
+                    // Read conversions
+                    final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0,
+                            maxSymbolArrayIndex, symbolArraysIdMap);
+
+                    // Export the amount of words and concepts in order to range integers
+                    final int maxWord = (int) ibs.readNaturalNumber() - 1;
+                    final int maxConcept = (int) ibs.readNaturalNumber() - 1;
+
+                    // Export acceptations
+                    final int minValidWord = StreamedDatabaseConstants.minValidWord;
+                    final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
+                    final int[] acceptationsIdMap = readAcceptations(db, ibs, minValidWord, maxWord, minValidConcept,
+                            maxConcept);
+
+                    final int minValidAcceptation = 0;
+                    final int maxValidAcceptation = acceptationsIdMap.length - 1;
+
+                    // Export word representations
+                    final int wordRepresentationLength = (int) ibs.readNaturalNumber();
+                    for (int i = 0; i < wordRepresentationLength; i++) {
+                        final int word = ibs.readRangedNumber(minValidWord, maxWord);
+                        final int alphabet = ibs.readRangedNumber(minValidAlphabet, maxValidAlphabet);
+                        final int symbolArray = ibs.readRangedNumber(0, maxSymbolArrayIndex);
+
+                        final SparseIntArray correlation = new SparseIntArray();
+                        correlation.put(alphabet, symbolArraysIdMap[symbolArray]);
+                        final int correlationId = obtainCorrelation(db, correlation);
+                        final int correlationArrayId = insertCorrelationArray(db, correlationId);
+                        assignAcceptationCorrelationArray(db, word, correlationArrayId);
+                    }
+
+                    // Export kanji-kana correlations
+                    final int kanjiKanaCorrelationsLength = (int) ibs.readNaturalNumber();
+                    if (kanjiKanaCorrelationsLength > 0 && (
+                            kanjiAlphabet < minValidAlphabet || kanjiAlphabet > maxValidAlphabet ||
+                                    kanaAlphabet < minValidAlphabet || kanaAlphabet > maxValidAlphabet)) {
+                        throw new AssertionError("KanjiAlphabet or KanaAlphabet not set properly");
+                    }
+
+                    final int[] kanjiKanaCorrelationIdMap = new int[kanjiKanaCorrelationsLength];
+                    for (int i = 0; i < kanjiKanaCorrelationsLength; i++) {
+                        final SparseIntArray correlation = new SparseIntArray();
+                        correlation.put(kanjiAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
+                        correlation.put(kanaAlphabet, symbolArraysIdMap[ibs.readRangedNumber(0, maxSymbolArrayIndex)]);
+                        kanjiKanaCorrelationIdMap[i] = obtainCorrelation(db, correlation);
+                    }
+
+                    // Export jaWordCorrelations
+                    final int jaWordCorrelationsLength = (int) ibs.readNaturalNumber();
+                    if (jaWordCorrelationsLength > 0) {
+                        final IntReader intReader = new IntReader(ibs);
+                        final IntDiffReader intDiffReader = new IntDiffReader(ibs);
+
+                        final HuffmanTable<Integer> correlationReprCountHuffmanTable = ibs
+                                .readHuffmanTable(intReader, intDiffReader);
+                        final HuffmanTable<Integer> correlationConceptCountHuffmanTable = ibs
+                                .readHuffmanTable(intReader, intDiffReader);
+                        final HuffmanTable<Integer> correlationVectorLengthHuffmanTable = ibs
+                                .readHuffmanTable(intReader, intDiffReader);
+
+                        for (int i = 0; i < jaWordCorrelationsLength; i++) {
+                            final int wordId = ibs.readRangedNumber(minValidWord, maxWord);
+                            final int reprCount = ibs.readHuffmanSymbol(correlationReprCountHuffmanTable);
+                            final JaWordRepr[] jaWordReprs = new JaWordRepr[reprCount];
+
+                            for (int j = 0; j < reprCount; j++) {
+                                final int conceptSetLength = ibs.readHuffmanSymbol(correlationConceptCountHuffmanTable);
+                                int[] concepts = new int[conceptSetLength];
+                                for (int k = 0; k < conceptSetLength; k++) {
+                                    concepts[k] = ibs.readRangedNumber(minValidConcept, maxConcept);
+                                }
+
+                                final int correlationArrayLength = ibs
+                                        .readHuffmanSymbol(correlationVectorLengthHuffmanTable);
+                                int[] correlationArray = new int[correlationArrayLength];
+                                for (int k = 0; k < correlationArrayLength; k++) {
+                                    correlationArray[k] = ibs.readRangedNumber(0, kanjiKanaCorrelationsLength - 1);
+                                }
+
+                                jaWordReprs[j] = new JaWordRepr(concepts, correlationArray);
                             }
 
-                            final int[] correlationArray = jaWordRepr.getCorrelationArray();
-                            final int correlationArrayLength = correlationArray.length;
+                            for (int j = 0; j < reprCount; j++) {
+                                final JaWordRepr jaWordRepr = jaWordReprs[j];
+                                final int[] concepts = jaWordRepr.getConcepts();
+                                final int conceptCount = concepts.length;
+                                for (int k = 0; k < conceptCount; k++) {
+                                    final int concept = concepts[k];
 
-                            // Straight forward, not checking inconsistencies in the database
-                            final int[] dbCorrelations = new int[correlationArrayLength];
-                            for (int corrIndex = 0; corrIndex < correlationArrayLength; corrIndex++) {
-                                dbCorrelations[corrIndex] = kanjiKanaCorrelationIdMap[correlationArray[corrIndex]];
+                                    final Pair<Integer, Integer> foundAcc = getAcceptation(db, wordId, concept);
+                                    if (foundAcc == null) {
+                                        throw new AssertionError("Acceptation should be already registered");
+                                    }
+
+                                    final int[] correlationArray = jaWordRepr.getCorrelationArray();
+                                    final int correlationArrayLength = correlationArray.length;
+
+                                    // Straight forward, not checking inconsistencies in the database
+                                    final int[] dbCorrelations = new int[correlationArrayLength];
+                                    for (int corrIndex = 0; corrIndex < correlationArrayLength; corrIndex++) {
+                                        dbCorrelations[corrIndex] = kanjiKanaCorrelationIdMap[correlationArray[corrIndex]];
+                                    }
+
+                                    final int dbCorrelationArray = insertCorrelationArray(db, dbCorrelations);
+                                    assignAcceptationCorrelationArray(db, wordId, concept, dbCorrelationArray);
+                                }
                             }
-
-                            final int dbCorrelationArray = insertCorrelationArray(db, dbCorrelations);
-                            assignAcceptationCorrelationArray(db, wordId, concept, dbCorrelationArray);
                         }
+                    }
+
+                    // Export bunchConcepts
+                    readBunchConcepts(db, ibs, minValidConcept, maxConcept);
+
+                    // Export bunchAcceptations
+                    readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
+
+                    // Export agents
+                    SparseArray<Agent> agents = readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet,
+                            symbolArraysIdMap);
+
+                    setProgress(0.3f, "Indexing strings");
+                    fillSearchQueryTable(db);
+
+                    setProgress(0.4f, "Running agents");
+                    runAgents(db, agents);
+
+                    setProgress(0.8f, "Applying conversions");
+                    applyConversions(db, conversions);
+                    return true;
+                }
+                catch (IOException e) {
+                    Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
+                }
+                finally {
+                    try {
+                        is.close();
+                    } catch (IOException e) {
+                        // Nothing can be done
                     }
                 }
             }
-
-            // Export bunchConcepts
-            readBunchConcepts(db, ibs, minValidConcept, maxConcept);
-
-            // Export bunchAcceptations
-            readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
-
-            // Export agents
-            SparseArray<Agent> agents = readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
-
-            fillSearchQueryTable(db);
-            runAgents(db, agents);
-            applyConversions(db, conversions);
         }
-        catch (IOException e) {
-            Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
+        catch (FileNotFoundException e) {
+            // Nothing can be done
         }
-        finally {
-            try {
-                is.close();
-            } catch (IOException e) {
-                // Nothing can be done
-            }
-        }
+
+        return false;
     }
 
     private int[] sortAgents(SparseArray<Agent> agents) {
@@ -1964,5 +2032,72 @@ class DbManager extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
         // So far, version 5 is the only one expected. So this method should never be called
+    }
+
+    private static class DatabaseImportProgress {
+
+        final float progress;
+        final String message;
+
+        DatabaseImportProgress(float progress, String message) {
+            this.progress = progress;
+            this.message = message;
+        }
+    }
+
+    private class DatabaseImportTask extends AsyncTask<Uri, DatabaseImportProgress, Boolean> implements DbManager.DatabaseImportProgressListener {
+
+        @Override
+        protected Boolean doInBackground(Uri... uris) {
+            getWritableDatabase().close();
+            _context.deleteDatabase(DB_NAME);
+            _uri = uris[0];
+            getWritableDatabase().close();
+            return true;
+        }
+
+        @Override
+        public void setProgress(float progress, String message) {
+            publishProgress(new DatabaseImportProgress(progress, message));
+        }
+
+        @Override
+        public void onProgressUpdate(DatabaseImportProgress... progresses) {
+            final DatabaseImportProgress progress = progresses[0];
+            final DatabaseImportProgressListener listener = _externalProgressListener;
+            listener.setProgress(progress.progress, progress.message);
+            _lastProgress = progress;
+        }
+
+        @Override
+        public void onPostExecute(Boolean result) {
+            _progressListener = null;
+            _databaseImportTask = null;
+
+            final DatabaseImportProgressListener listener = _externalProgressListener;
+            final DatabaseImportProgress lastProgress = new DatabaseImportProgress(1f, "Completed");
+            if (listener != null) {
+                listener.setProgress(lastProgress.progress, lastProgress.message);
+            }
+            _lastProgress = lastProgress;
+        }
+    }
+
+    public void importDatabase(Uri uri) {
+        _databaseImportTask = new DatabaseImportTask();
+        _progressListener = _databaseImportTask;
+        _databaseImportTask.execute(uri);
+    }
+
+    public boolean isImportingDatabase() {
+        return _databaseImportTask != null;
+    }
+
+    public void setProgressListener(DatabaseImportProgressListener listener) {
+        _externalProgressListener = listener;
+        final DatabaseImportProgress lastProgress = _lastProgress;
+        if (listener != null && lastProgress != null) {
+            listener.setProgress(lastProgress.progress, lastProgress.message);
+        }
     }
 }

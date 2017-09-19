@@ -15,7 +15,6 @@ import android.widget.ListView;
 
 public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener {
 
-    private DbManager _dbManager;
     private ListView _listView;
     private SearchResultAdapter _listAdapter;
 
@@ -29,8 +28,6 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
 
         final EditText searchField = findViewById(R.id.searchField);
         searchField.addTextChangedListener(this);
-
-        _dbManager = new DbManager(this);
     }
 
     @Override
@@ -50,7 +47,7 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
 
     private void querySearchResults(String query) {
         final DbManager.StringQueriesTable table = DbManager.Tables.stringQueries;
-        Cursor cursor = _dbManager.getReadableDatabase().rawQuery("SELECT " +
+        Cursor cursor = DbManager.getInstance().getReadableDatabase().rawQuery("SELECT " +
                 table.getColumnName(table.getStringColumnIndex()) + ',' +
                 table.getColumnName(table.getMainStringColumnIndex()) + ',' +
                 table.getColumnName(table.getMainAcceptationColumnIndex()) + ',' +

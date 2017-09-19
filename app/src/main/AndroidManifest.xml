@@ -4,6 +4,7 @@
     package="sword.langbook3.android">
 
     <application
+        android:name=".LangbookApplication"
         android:allowBackup="true"
         android:label="@string/appName"
         android:supportsRtl="true"

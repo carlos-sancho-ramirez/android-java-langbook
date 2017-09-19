@@ -7,15 +7,15 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class SettingsActivity extends Activity implements View.OnClickListener {
+public class SettingsActivity extends Activity implements View.OnClickListener, DbManager.DatabaseImportProgressListener {
 
     private static final int REQUEST_CODE_PICK_FILE = 1;
+
+    private boolean _resumed;
 
     public static void open(Context context) {
         Intent intent = new Intent(context, SettingsActivity.class);
@@ -34,32 +34,12 @@ public class SettingsActivity extends Activity implements View.OnClickListener {
     }
 
     private void importDatabase(Uri uri) {
-        boolean allOk = false;
         if (uri != null) {
-            try {
-                final InputStream inStream = getContentResolver().openInputStream(uri);
-                if (inStream != null) {
-                    try {
-                        // TODO To be implemented
-                        allOk = true;
-                    }
-                    finally {
-                        try {
-                            inStream.close();
-                        }
-                        catch (IOException e) {
-                            // Already closed? That's fine then
-                        }
-                    }
-                }
+            final DbManager dbManager = DbManager.getInstance();
+            dbManager.importDatabase(uri);
+            if (_resumed) {
+                dbManager.setProgressListener(this);
             }
-            catch (FileNotFoundException e) {
-                // Nothing to be done
-            }
-        }
-
-        if (!allOk) {
-            Toast.makeText(this, "Unable to import file " + ((uri != null)? uri.toString() : "<null>"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -67,6 +47,9 @@ public class SettingsActivity extends Activity implements View.OnClickListener {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.settings_activity);
+
+        final View progressPanel = findViewById(R.id.progressPanel);
+        progressPanel.setOnClickListener(this);
 
         final Button importDatabaseButton = findViewById(R.id.importDatabaseButton);
         importDatabaseButton.setOnClickListener(this);
@@ -83,10 +66,54 @@ public class SettingsActivity extends Activity implements View.OnClickListener {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+
+        _resumed = true;
+        final DbManager dbManager = DbManager.getInstance();
+        if (dbManager.isImportingDatabase()) {
+            dbManager.setProgressListener(this);
+        }
+    }
+
+    @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.importDatabaseButton:
                 pickFile();
+                break;
+
+            case R.id.progressPanel:
+                // Just consuming the event
+                break;
         }
+    }
+
+    @Override
+    public void setProgress(float progress, String message) {
+        final View progressPanel = findViewById(R.id.progressPanel);
+
+        final DbManager dbManager = DbManager.getInstance();
+        final boolean inProgress = dbManager.isImportingDatabase();
+        if (inProgress) {
+            final ProgressBar progressBar = findViewById(R.id.progressBar);
+            final TextView progressMessage = findViewById(R.id.progressMessage);
+
+            progressBar.setProgress((int) (progress * 100));
+            progressMessage.setText(message);
+        }
+        else {
+            dbManager.setProgressListener(null);
+        }
+
+        progressPanel.setVisibility(inProgress? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void onPause() {
+        DbManager.getInstance().setProgressListener(null);
+        _resumed = false;
+
+        super.onPause();
     }
 }

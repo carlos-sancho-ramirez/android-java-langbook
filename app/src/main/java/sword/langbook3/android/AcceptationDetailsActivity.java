@@ -755,8 +755,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int staticAcceptation) {
-        DbManager dbManager = new DbManager(this);
-        SQLiteDatabase db = dbManager.getReadableDatabase();
+        SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
         final ArrayList<AcceptationDetailsAdapter.Item> result = new ArrayList<>();
         result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
