@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -318,24 +319,26 @@ class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
-    private int insertSymbolArray(SQLiteDatabase db, String str) {
+    private Integer insertSymbolArray(SQLiteDatabase db, String str) {
         final SymbolArraysTable table = Tables.symbolArrays;
-        db.execSQL("INSERT INTO " + table.getName() + " (" + table.getColumnName(table.getStrColumnIndex()) + ") VALUES ('" + str + "')");
-        final Integer id = getSymbolArray(db, str);
-        if (id == null) {
-            throw new AssertionError("A just introduced register should be found");
-        }
-
-        return id;
+        ContentValues cv = new ContentValues();
+        cv.put(table.getColumnName(table.getStrColumnIndex()), str);
+        final long returnId = db.insert(table.getName(), null, cv);
+        return (returnId >= 0)? (int) returnId : null;
     }
 
-    private int insertIfNotExists(SQLiteDatabase db, String str) {
-        final Integer id = getSymbolArray(db, str);
+    private int obtainSymbolArray(SQLiteDatabase db, String str) {
+        Integer id = insertSymbolArray(db, str);
         if (id != null) {
             return id;
         }
 
-        return insertSymbolArray(db, str);
+        id = getSymbolArray(db, str);
+        if (id == null) {
+            throw new AssertionError("Unable to insert, and not present");
+        }
+
+        return id;
     }
 
     private int insertRuledConcept(SQLiteDatabase db, int rule, int concept) {
@@ -553,18 +556,15 @@ class DbManager extends SQLiteOpenHelper {
 
     private int insertAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
         final AcceptationsTable table = Tables.acceptations;
-        db.execSQL("INSERT INTO " + table.getName() + " (" +
-                table.getColumnName(table.getWordColumnIndex()) + ", " +
-                table.getColumnName(table.getConceptColumnIndex()) + ", " +
-                table.getColumnName(table.getCorrelationArrayColumnIndex()) + ") VALUES (" +
-                word + ',' + concept + ',' + correlationArray + ')');
-
-        final Integer id = getAcceptation(db, word, concept, correlationArray);
-        if (id == null) {
-            throw new AssertionError("A just introduced register should be found");
+        ContentValues cv = new ContentValues();
+        cv.put(table.getColumnName(table.getWordColumnIndex()), word);
+        cv.put(table.getColumnName(table.getConceptColumnIndex()), concept);
+        cv.put(table.getColumnName(table.getCorrelationArrayColumnIndex()), correlationArray);
+        final long returnId = db.insert(table.getName(), null, cv);
+        if (returnId < 0) {
+            throw new AssertionError("insert returned a negative id");
         }
-
-        return id;
+        return (int) returnId;
     }
 
     private Integer getAgentId(SQLiteDatabase db, int targetBunch, int sourceBunchSetId,
@@ -764,7 +764,7 @@ class DbManager extends SQLiteOpenHelper {
                 builder.append(ibs.readHuffmanSymbol(charHuffmanTable));
             }
 
-            idMap[index] = insertIfNotExists(db, builder.toString());
+            idMap[index] = obtainSymbolArray(db, builder.toString());
         }
 
         return idMap;
@@ -1065,30 +1065,80 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static abstract class DbColumn {
+
+        private final String _name;
+
+        DbColumn(String name) {
+            _name = name;
+        }
+
+        final String getName() {
+            return _name;
+        }
+
+        abstract String getType();
+    }
+
+    static final class DbIdColumn extends DbColumn {
+
+        DbIdColumn() {
+            super(idColumnName);
+        }
+
+        @Override
+        String getType() {
+            return "INTEGER PRIMARY KEY AUTOINCREMENT";
+        }
+    }
+
+    static final class DbIntColumn extends DbColumn {
+
+        DbIntColumn(String name) {
+            super(name);
+        }
+
+        @Override
+        String getType() {
+            return "INTEGER";
+        }
+    }
+
+    static final class DbTextColumn extends DbColumn {
+
+        DbTextColumn(String name) {
+            super(name);
+        }
+
+        @Override
+        String getType() {
+            return "TEXT";
+        }
+    }
+
+    static final class DbUniqueTextColumn extends DbColumn {
+
+        DbUniqueTextColumn(String name) {
+            super(name);
+        }
+
+        @Override
+        String getType() {
+            return "TEXT UNIQUE ON CONFLICT IGNORE";
+        }
+    }
+
     static class DbTable {
 
         private final String _name;
-        private final String[] _columnNames;
-        private final int _intColumnCount; // This already count the identifier
+        private final DbColumn[] _columns;
 
-        DbTable(String name, String[] intColumns, String[] textColumns) {
-            final int intColumnCount = (intColumns != null)? intColumns.length : 0;
-            final int textColumnCount = (textColumns != null)? textColumns.length : 0;
-
-            String[] columnNames = new String[intColumnCount + textColumnCount + 1];
-            columnNames[0] = idColumnName;
-
-            if (intColumnCount > 0) {
-                System.arraycopy(intColumns, 0, columnNames, 1, intColumnCount);
-            }
-
-            if (textColumnCount > 0) {
-                System.arraycopy(textColumns, 0, columnNames, intColumnCount + 1, textColumnCount);
-            }
-
+        DbTable(String name, DbColumn... columns) {
             _name = name;
-            _columnNames = columnNames;
-            _intColumnCount = intColumnCount + 1;
+            _columns = new DbColumn[columns.length + 1];
+
+            System.arraycopy(columns, 0, _columns, 1, columns.length);
+            _columns[0] = new DbIdColumn();
         }
 
         String getName() {
@@ -1096,22 +1146,22 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         int getColumnCount() {
-            return _columnNames.length;
+            return _columns.length;
         }
 
         String getColumnName(int index) {
-            return _columnNames[index];
+            return _columns[index].getName();
         }
 
-        boolean isTextColumn(int index) {
-            return index >= _intColumnCount;
+        String getColumnType(int index) {
+            return _columns[index].getType();
         }
     }
 
     static final class AcceptationsTable extends DbTable {
 
         AcceptationsTable() {
-            super("Acceptations", new String[] {"word", "concept", "correlationArray"}, null);
+            super("Acceptations", new DbIntColumn("word"), new DbIntColumn("concept"), new DbIntColumn("correlationArray"));
         }
 
         int getWordColumnIndex() {
@@ -1130,7 +1180,8 @@ class DbManager extends SQLiteOpenHelper {
     static final class AgentsTable extends DbTable {
 
         AgentsTable() {
-            super("Agents", new String[] {"target", "sourceSet", "diffSet", "matcher", "adder", "rule", "flags"}, null);
+            super("Agents", new DbIntColumn("target"), new DbIntColumn("sourceSet"), new DbIntColumn("diffSet"),
+                    new DbIntColumn("matcher"), new DbIntColumn("adder"), new DbIntColumn("rule"), new DbIntColumn("flags"));
         }
 
         int getTargetBunchColumnIndex() {
@@ -1169,7 +1220,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class AgentSetsTable extends DbTable {
 
         AgentSetsTable() {
-            super("AgentSets", new String[] {"setId", "agent"}, null);
+            super("AgentSets", new DbIntColumn("setId"), new DbIntColumn("agent"));
         }
 
         int getSetIdColumnIndex() {
@@ -1188,7 +1239,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class AlphabetsTable extends DbTable {
 
         AlphabetsTable() {
-            super("Alphabets", new String[] {"language"}, null);
+            super("Alphabets", new DbIntColumn("language"));
         }
 
         int getLanguageColumnIndex() {
@@ -1199,7 +1250,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class BunchAcceptationsTable extends DbTable {
 
         BunchAcceptationsTable() {
-            super("BunchAcceptations", new String[] {"bunch", "acceptation", "agentSet"}, null);
+            super("BunchAcceptations", new DbIntColumn("bunch"), new DbIntColumn("acceptation"), new DbIntColumn("agentSet"));
         }
 
         int getBunchColumnIndex() {
@@ -1218,7 +1269,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class BunchConceptsTable extends DbTable {
 
         BunchConceptsTable() {
-            super("BunchConcepts", new String[] {"bunch", "concept"}, null);
+            super("BunchConcepts", new DbIntColumn("bunch"), new DbIntColumn("concept"));
         }
 
         int getBunchColumnIndex() {
@@ -1233,7 +1284,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class BunchSetsTable extends DbTable {
 
         BunchSetsTable() {
-            super("BunchSets", new String[] {"setId", "bunch"}, null);
+            super("BunchSets", new DbIntColumn("setId"), new DbIntColumn("bunch"));
         }
 
         int getSetIdColumnIndex() {
@@ -1252,7 +1303,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class ConversionsTable extends DbTable {
 
         ConversionsTable() {
-            super("Conversions", new String[] {"sourceAlphabet", "targetAlphabet", "source", "target"}, null);
+            super("Conversions", new DbIntColumn("sourceAlphabet"), new DbIntColumn("targetAlphabet"), new DbIntColumn("source"), new DbIntColumn("target"));
         }
 
         int getSourceAlphabetColumnIndex() {
@@ -1275,7 +1326,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class CorrelationsTable extends DbTable {
 
         CorrelationsTable() {
-            super("Correlations", new String[] {"correlationId", "alphabet", "symbolArray"}, null);
+            super("Correlations", new DbIntColumn("correlationId"), new DbIntColumn("alphabet"), new DbIntColumn("symbolArray"));
         }
 
         int getCorrelationIdColumnIndex() {
@@ -1294,7 +1345,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class CorrelationArraysTable extends DbTable {
 
         CorrelationArraysTable() {
-            super("CorrelationArrays", new String[] {"arrayId", "arrayPos", "correlation"}, null);
+            super("CorrelationArrays", new DbIntColumn("arrayId"), new DbIntColumn("arrayPos"), new DbIntColumn("correlation"));
         }
 
         int getArrayIdColumnIndex() {
@@ -1313,7 +1364,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class LanguagesTable extends DbTable {
 
         LanguagesTable() {
-            super("Languages", new String[] {"mainAlphabet"}, new String[] {"code"});
+            super("Languages", new DbIntColumn("mainAlphabet"), new DbUniqueTextColumn("code"));
         }
 
         int getMainAlphabetColumnIndex() {
@@ -1328,7 +1379,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class RuledConceptsTable extends DbTable {
 
         RuledConceptsTable() {
-            super("RuledConcepts", new String[] {"rule", "concept"}, null);
+            super("RuledConcepts", new DbIntColumn("rule"), new DbIntColumn("concept"));
         }
 
         int getRuleColumnIndex() {
@@ -1343,7 +1394,8 @@ class DbManager extends SQLiteOpenHelper {
     static final class StringQueriesTable extends DbTable {
 
         StringQueriesTable() {
-            super("StringQueryTable", new String[] {"mainAcceptation", "dynamicAcceptation", "strAlphabet"}, new String[] {"str", "mainStr"});
+            super("StringQueryTable", new DbIntColumn("mainAcceptation"), new DbIntColumn("dynamicAcceptation"),
+                    new DbIntColumn("strAlphabet"), new DbTextColumn("str"), new DbTextColumn("mainStr"));
         }
 
         int getMainAcceptationColumnIndex() {
@@ -1370,7 +1422,7 @@ class DbManager extends SQLiteOpenHelper {
     static final class SymbolArraysTable extends DbTable {
 
         SymbolArraysTable() {
-            super("SymbolArrays", null, new String[] {"str"});
+            super("SymbolArrays", new DbUniqueTextColumn("str"));
         }
 
         int getStrColumnIndex() {
@@ -1420,15 +1472,17 @@ class DbManager extends SQLiteOpenHelper {
             StringBuilder builder = new StringBuilder();
             builder.append("CREATE TABLE ")
                     .append(table.getName())
-                    .append(" (")
-                    .append(idColumnName)
-                    .append(" INTEGER PRIMARY KEY AUTOINCREMENT");
+                    .append(" (");
 
             final int columnCount = table.getColumnCount();
-            for (int i = 1; i < columnCount; i++) {
-                builder.append(", ")
-                        .append(table.getColumnName(i))
-                        .append(table.isTextColumn(i)? " TEXT" : " INTEGER");
+            for (int i = 0; i < columnCount; i++) {
+                final String columnName = table.getColumnName(i);
+                if (i != 0) {
+                    builder.append(", ");
+                }
+
+                builder.append(columnName).append(' ')
+                        .append(table.getColumnType(i));
             }
             builder.append(')');
 
@@ -1842,7 +1896,7 @@ class DbManager extends SQLiteOpenHelper {
                 final SparseIntArray resultCorrIds = new SparseIntArray(resultCorrLength);
                 for (int i = 0; i < resultCorrLength; i++) {
                     final int alphabet = resultCorr.keyAt(i);
-                    resultCorrIds.put(alphabet, insertIfNotExists(db, resultCorr.valueAt(i)));
+                    resultCorrIds.put(alphabet, obtainSymbolArray(db, resultCorr.valueAt(i)));
                 }
 
                 final int corrId = obtainCorrelation(db, resultCorrIds);
