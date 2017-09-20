@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.SparseArray;
@@ -500,14 +501,17 @@ class DbManager extends SQLiteOpenHelper {
         try {
             final int newCorrelationId = cursor.getInt(0) + 1;
             final int mapLength = correlation.size();
+
+            SQLiteStatement statement = db.compileStatement("INSERT INTO " + table.getName() + " (" +
+                    correlationIdColumnName + ", " +
+                    alphabetColumnName + ", " +
+                    symbolArrayColumnName + ") VALUES (" +
+                    newCorrelationId + ",?,?)");
+
             for (int i = 0; i < mapLength; i++) {
-                final int alphabet = correlation.keyAt(i);
-                final int symbolArray = correlation.valueAt(i);
-                db.execSQL("INSERT INTO " + table.getName() + " (" +
-                        correlationIdColumnName + ", " +
-                        alphabetColumnName + ", " +
-                        symbolArrayColumnName + ") VALUES (" +
-                        newCorrelationId + ',' + alphabet + ',' + symbolArray + ')');
+                statement.bindLong(1, correlation.keyAt(i));
+                statement.bindLong(2, correlation.valueAt(i));
+                statement.executeInsert();
             }
 
             return newCorrelationId;
