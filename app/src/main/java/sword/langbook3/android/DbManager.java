@@ -207,12 +207,12 @@ class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
-    private Integer findRuledConcept(SQLiteDatabase db, int rule, int concept) {
+    private Integer findRuledConcept(SQLiteDatabase db, int agent, int concept) {
         final RuledConceptsTable table = Tables.ruledConcepts;
-        final String whereClause = table.getColumnName(table.getRuleColumnIndex()) + "=? AND " +
+        final String whereClause = table.getColumnName(table.getAgentColumnIndex()) + "=? AND " +
                 table.getColumnName(table.getConceptColumnIndex()) + "=?";
         Cursor cursor = db.query(table.getName(), new String[] {idColumnName}, whereClause,
-                new String[] { Integer.toString(rule), Integer.toString(concept) }, null, null, null, null);
+                new String[] { Integer.toString(agent), Integer.toString(concept) }, null, null, null, null);
 
         if (cursor != null) {
             try {
@@ -342,14 +342,14 @@ class DbManager extends SQLiteOpenHelper {
         return id;
     }
 
-    private int insertRuledConcept(SQLiteDatabase db, int rule, int concept) {
+    private int insertRuledConcept(SQLiteDatabase db, int agent, int concept) {
         final int ruledConcept = getMaxConcept(db) + 1;
         final RuledConceptsTable table = Tables.ruledConcepts;
         db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' +
-                table.getColumnName(table.getRuleColumnIndex()) + ',' +
+                table.getColumnName(table.getAgentColumnIndex()) + ',' +
                 table.getColumnName(table.getConceptColumnIndex()) + ") VALUES (" +
-                ruledConcept + ',' + rule + ',' + concept + ')');
-        final Integer id = findRuledConcept(db, rule, concept);
+                ruledConcept + ',' + agent + ',' + concept + ')');
+        final Integer id = findRuledConcept(db, agent, concept);
         if (id == null) {
             throw new AssertionError("A just introduced register should be found");
         }
@@ -357,13 +357,13 @@ class DbManager extends SQLiteOpenHelper {
         return id;
     }
 
-    private int obtainRuledConcept(SQLiteDatabase db, int rule, int concept) {
-        final Integer id = findRuledConcept(db, rule, concept);
+    private int obtainRuledConcept(SQLiteDatabase db, int agent, int concept) {
+        final Integer id = findRuledConcept(db, agent, concept);
         if (id != null) {
             return id;
         }
 
-        return insertRuledConcept(db, rule, concept);
+        return insertRuledConcept(db, agent, concept);
     }
 
     private void insertAlphabet(SQLiteDatabase db, int id, int language) {
@@ -1383,10 +1383,10 @@ class DbManager extends SQLiteOpenHelper {
     static final class RuledConceptsTable extends DbTable {
 
         RuledConceptsTable() {
-            super("RuledConcepts", new DbIntColumn("rule"), new DbIntColumn("concept"));
+            super("RuledConcepts", new DbIntColumn("agent"), new DbIntColumn("concept"));
         }
 
-        int getRuleColumnIndex() {
+        int getAgentColumnIndex() {
             return 1;
         }
 
@@ -1843,7 +1843,7 @@ class DbManager extends SQLiteOpenHelper {
     /**
      * @return True if the suggestedNewWordId has been used.
      */
-    private boolean applyAgent(SQLiteDatabase db, AgentSetSupplier agentSetSupplier, int accId, int concept, int suggestedNewWordId, int targetBunch, SparseArray<String> matcher, SparseArray<String> adder, int rule, SparseArray<String> corr, int flags) {
+    private boolean applyAgent(SQLiteDatabase db, int agentId, AgentSetSupplier agentSetSupplier, int accId, int concept, int suggestedNewWordId, int targetBunch, SparseArray<String> matcher, SparseArray<String> adder, int rule, SparseArray<String> corr, int flags) {
         boolean suggestedNewWordUsed = false;
         boolean matching = true;
 
@@ -1895,7 +1895,7 @@ class DbManager extends SQLiteOpenHelper {
                     resultCorr.put(alphabet, resultStr);
                 }
 
-                final int newConcept = obtainRuledConcept(db, rule, concept);
+                final int newConcept = obtainRuledConcept(db, agentId, concept);
                 final int resultCorrLength = resultCorr.size();
                 final SparseIntArray resultCorrIds = new SparseIntArray(resultCorrLength);
                 for (int i = 0; i < resultCorrLength; i++) {
@@ -1978,7 +1978,7 @@ class DbManager extends SQLiteOpenHelper {
                     while (cursor.moveToNext()) {
                         newAccId = cursor.getInt(0);
                         if (newAccId != accId) {
-                            if (applyAgent(db, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder, rule, corr, flags)) {
+                            if (applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder, rule, corr, flags)) {
                                 ++maxWord;
                             }
 
@@ -1995,7 +1995,7 @@ class DbManager extends SQLiteOpenHelper {
                         }
                     }
 
-                    applyAgent(db, agentSetSupplier, accId, concept, maxWord +1, targetBunch, matcher, adder, rule, corr, flags);
+                    applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord +1, targetBunch, matcher, adder, rule, corr, flags);
                 }
             }
             finally {

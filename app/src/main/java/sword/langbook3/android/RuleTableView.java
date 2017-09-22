@@ -34,12 +34,6 @@ public class RuleTableView extends View {
         init();
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public RuleTableView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-        init();
-    }
-
     private void init() {
         Paint paint = new Paint();
         paint.setStyle(Paint.Style.FILL);
@@ -83,11 +77,16 @@ public class RuleTableView extends View {
         int column = 0;
 
         for (int i = 0; i < length; i++) {
-            canvas.drawText(_texts[i], xPos, yPos, _textPaint);
-            if (++column >= _columnCount) {
+            String text = _texts[i];
+            if (text != null) {
+                canvas.drawText(text, xPos, yPos, _textPaint);
+            }
+
+            if (++column >= _visibleColumns) {
                 column = 0;
                 xPos = startXPos;
                 yPos += yStep;
+                i += _columnCount - _visibleColumns;
 
                 if (yPos > height + yStep) {
                     break;

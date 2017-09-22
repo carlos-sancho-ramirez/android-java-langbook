@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import java.util.HashMap;
@@ -23,6 +24,9 @@ public class RuleTableActivity extends Activity {
     // TODO: This should be a shared preference
     static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
 
+    private int _columnCount;
+    private TableCellValue[] _tableCellValues;
+
     public static void open(Context context, int dynamicAcceptation) {
         Intent intent = new Intent(context, RuleTableActivity.class);
         intent.putExtra(BundleKeys.ACCEPTATION, dynamicAcceptation);
@@ -31,17 +35,17 @@ public class RuleTableActivity extends Activity {
 
     private static final class TableCellRef {
 
-        final int acceptation;
+        final int agent;
         final int rule;
 
-        TableCellRef(int acceptation, int rule) {
-            this.acceptation = acceptation;
+        TableCellRef(int agent, int rule) {
+            this.agent = agent;
             this.rule = rule;
         }
 
         @Override
         public int hashCode() {
-            return acceptation * 31 + rule;
+            return agent * 31 + rule;
         }
 
         @Override
@@ -51,71 +55,103 @@ public class RuleTableActivity extends Activity {
             }
 
             final TableCellRef that = (TableCellRef) other;
-            return acceptation == that.acceptation && rule == that.rule;
+            return agent == that.agent && rule == that.rule;
         }
     }
 
-    private Map<TableCellRef, String> readTableContent(int dynamicAcceptation) {
+    private static final class TableCellValue {
+
+        final int staticAcceptation;
+        final int dynamicAcceptation;
+        final String text;
+
+        TableCellValue(int staticAcceptation, int dynamicAcceptation, String text) {
+            this.staticAcceptation = staticAcceptation;
+            this.dynamicAcceptation = dynamicAcceptation;
+            this.text = text;
+        }
+    }
+
+    private String readAcceptationText(int acceptation) {
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
+                        " FROM " + strings.getName() + " WHERE " +
+                        strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) + "=?",
+                new String[]{Integer.toString(acceptation)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return cursor.getString(0);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+
+        throw new AssertionError();
+    }
+
+    private Map<TableCellRef, TableCellValue> readTableContent(int dynamicAcceptation) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
         final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
 
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
         final Cursor cursor = db.rawQuery("SELECT" +
-                        " J4." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) +
-                        ",J2." + ruledConcepts.getColumnName(ruledConcepts.getRuleColumnIndex()) +
-                        ",J4." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J4." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        ",J4." + strings.getColumnName(strings.getMainStringColumnIndex()) +
-                        " FROM " + acceptations.getName() + " AS J0" +
+                        " J4." + agents.getColumnName(agents.getMatcherColumnIndex()) +
+                        ",J3." + agents.getColumnName(agents.getRuleColumnIndex()) +
+                        ",J6." + idColumnName +
+                        ",J7." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J7." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J7." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) +
+                    " FROM " + acceptations.getName() + " AS J0" +
                         " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + idColumnName +
                         " JOIN " + ruledConcepts.getName() + " AS J2 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) + "=J2." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
-                        " JOIN " + acceptations.getName() + " AS J3 ON J2." + idColumnName + "=J3." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J4 ON J3." + idColumnName + "=J4." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " WHERE J0." + idColumnName + "=?" +
-                        " ORDER BY J4." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) +
-                        ",J2." + ruledConcepts.getColumnName(ruledConcepts.getRuleColumnIndex()) +
-                        ",J4." + strings.getColumnName(strings.getStringAlphabetColumnIndex()),
+                        " JOIN " + agents.getName() + " AS J3 ON J2." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J3." + idColumnName +
+                        " JOIN " + agents.getName() + " AS J4 ON J3." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J4." + agents.getColumnName(agents.getRuleColumnIndex()) +
+                        " JOIN " + ruledConcepts.getName() + " AS J5 ON J4." + idColumnName + "=J5." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) +
+                        " JOIN " + acceptations.getName() + " AS J6 ON J5." + idColumnName + "=J6." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J7 ON J6." + idColumnName + "=J7." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                    " WHERE J0." + idColumnName + "=?" +
+                        " ORDER BY J4." + agents.getColumnName(agents.getMatcherColumnIndex()) +
+                        ",J6." + idColumnName +
+                        ",J3." + agents.getColumnName(agents.getRuleColumnIndex()) +
+                        ",J7." + strings.getColumnName(strings.getStringAlphabetColumnIndex()),
                 new String[] { Integer.toString(dynamicAcceptation) });
 
-        final HashMap<TableCellRef, String> tableMap = new HashMap<>();
+        final HashMap<TableCellRef, TableCellValue> tableMap = new HashMap<>();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
                     TableCellRef cellRef = new TableCellRef(cursor.getInt(0), cursor.getInt(1));
-                    int alphabet = cursor.getInt(2);
-                    String text = cursor.getString(3);
-                    String mainText = cursor.getString(4);
+                    int dynAcc = cursor.getInt(2);
+                    int alphabet = cursor.getInt(3);
+                    String text = cursor.getString(4);
+                    int staAcc = cursor.getInt(5);
 
                     while (cursor.moveToNext()) {
-                        if (cursor.getInt(0) == cellRef.acceptation && cursor.getInt(1) == cellRef.rule) {
+                        if (cursor.getInt(0) == cellRef.agent && cursor.getInt(1) == cellRef.rule) {
                             if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
                                 alphabet = preferredAlphabet;
                                 text = cursor.getString(3);
                             }
                         }
                         else {
-                            TableCellRef rawRef = new TableCellRef(cellRef.acceptation, 0);
-                            if (!tableMap.containsKey(rawRef)) {
-                                tableMap.put(rawRef, mainText);
-                            }
-
-                            tableMap.put(cellRef, text);
+                            tableMap.put(cellRef, new TableCellValue(staAcc, dynAcc, text));
 
                             cellRef = new TableCellRef(cursor.getInt(0), cursor.getInt(1));
-                            alphabet = cursor.getInt(2);
-                            text = cursor.getString(3);
-                            mainText = cursor.getString(4);
+                            dynAcc = cursor.getInt(2);
+                            alphabet = cursor.getInt(3);
+                            text = cursor.getString(4);
+                            staAcc = cursor.getInt(5);
                         }
                     }
 
-                    TableCellRef rawRef = new TableCellRef(cellRef.acceptation, 0);
-                    if (!tableMap.containsKey(rawRef)) {
-                        tableMap.put(rawRef, mainText);
-                    }
-
-                    tableMap.put(cellRef, text);
+                    tableMap.put(cellRef, new TableCellValue(staAcc, dynAcc, text));
                 }
             }
             finally {
@@ -132,14 +168,21 @@ public class RuleTableActivity extends Activity {
         setContentView(R.layout.rule_table_activity);
 
         final int dynAcc = getIntent().getIntExtra(BundleKeys.ACCEPTATION, 0);
-        Map<TableCellRef, String> tableContent = readTableContent(dynAcc);
+        Map<TableCellRef, TableCellValue> tableContent = readTableContent(dynAcc);
 
-        SparseIntArray acceptationSet = new SparseIntArray();
-        SparseIntArray ruleSet = new SparseIntArray();
+        SparseArray<String> acceptationSet = new SparseArray<>();
+        SparseArray<String> ruleSet = new SparseArray<>();
 
-        for (TableCellRef ref : tableContent.keySet()) {
-            acceptationSet.put(ref.acceptation, 0);
-            ruleSet.put(ref.rule, 0);
+        SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        for (Map.Entry<TableCellRef, TableCellValue> entry : tableContent.entrySet()) {
+            final TableCellRef ref = entry.getKey();
+            if (acceptationSet.get(ref.agent) == null) {
+                acceptationSet.put(ref.agent, readAcceptationText(entry.getValue().staticAcceptation));
+            }
+
+            if (ruleSet.get(ref.rule) == null) {
+                ruleSet.put(ref.rule, AcceptationDetailsActivity.readConceptText(db, ref.rule));
+            }
         }
 
         final int acceptationCount = acceptationSet.size();
@@ -154,14 +197,28 @@ public class RuleTableActivity extends Activity {
             rules[i] = ruleSet.keyAt(i);
         }
 
-        String[] content = new String[acceptationCount * ruleCount];
+        final int columnCount = ruleCount + 1;
+        String[] texts = new String[(acceptationCount + 1) * columnCount];
+        TableCellValue[] content = new TableCellValue[(acceptationCount + 1) * (ruleCount + 1)];
+        for (int i = 0; i < ruleCount; i++) {
+            texts[i + 1] = ruleSet.get(rules[i]);
+        }
+
         for (int i = 0; i < acceptationCount; i++) {
+            texts[(i + 1) * columnCount] = acceptationSet.get(acceptations[i]);
             for (int j = 0; j < ruleCount; j++) {
-                content[i * ruleCount + j] = tableContent.get(new TableCellRef(acceptations[i], rules[j]));
+                final int index = (i + 1) * columnCount + j + 1;
+                final TableCellRef ref = new TableCellRef(acceptations[i], rules[j]);
+                final TableCellValue value = tableContent.get(ref);
+                texts[index] = (value != null)? value.text : null;
+                content[index] = value;
             }
         }
 
+        _columnCount = columnCount;
+        _tableCellValues = content;
+
         final RuleTableView view = findViewById(R.id.ruleTable);
-        view.setValues(ruleCount, content);
+        view.setValues(columnCount, texts);
     }
 }

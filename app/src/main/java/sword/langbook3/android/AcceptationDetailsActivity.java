@@ -99,7 +99,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         return result;
     }
 
-    private String readLanguage(SQLiteDatabase db, int language) {
+    static String readConceptText(SQLiteDatabase db, int concept) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
 
@@ -110,7 +110,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                 " FROM " + acceptations.getName() + " AS J0" +
                         " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                 " WHERE J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=?",
-                new String[] { Integer.toString(language) });
+                new String[] { Integer.toString(concept) });
 
         String text = null;
         try {
@@ -513,22 +513,24 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
     private MorphologyResult[] readMorphologies(SQLiteDatabase db, int acceptation) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
         final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
                         " J2." + idColumnName +
-                        ",J4." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        ",J5." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
                         ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        ",J5." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J5." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J6." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J6." + strings.getColumnName(strings.getStringColumnIndex()) +
                 " FROM " + acceptations.getName() + " AS J0" +
                         " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
                         " JOIN " + acceptations.getName() + " AS J2 ON J1." + idColumnName + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
                         " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " JOIN " + acceptations.getName() + " AS J4 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getRuleColumnIndex()) + "=J4." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J5 ON J4." + idColumnName + "=J5." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + agents.getName() + " AS J4 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J4." + idColumnName +
+                        " JOIN " + acceptations.getName() + " AS J5 ON J4." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J5." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J6 ON J5." + idColumnName + "=J6." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                 " WHERE J0." + idColumnName + "=?" +
                         " AND J3." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) + "=?" +
                 " ORDER BY J2." + idColumnName,
@@ -824,7 +826,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
                 String langStr = languageStrs.get(language);
                 if (langStr == null) {
-                    langStr = readLanguage(db, language);
+                    langStr = readConceptText(db, language);
                     languageStrs.put(language, langStr);
                 }
 
