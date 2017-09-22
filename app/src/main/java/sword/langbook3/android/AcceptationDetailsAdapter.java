@@ -95,6 +95,35 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     }
 
     /**
+     * Item including a dynamic acceptation and its text representation.
+     * This will open a new {@link RuleTableActivity} on clicking the item.
+     */
+    static final class RuleNavigableItem extends Item {
+
+        private final int _id;
+
+        RuleNavigableItem(int id, String text) {
+            super(text);
+            _id = id;
+        }
+
+        @Override
+        void navigate(Context context) {
+            RuleTableActivity.open(context, _id);
+        }
+
+        @Override
+        boolean isEnabled() {
+            return true;
+        }
+
+        @Override
+        int getTextColorRes() {
+            return R.color.agentDynamicTextColor;
+        }
+    }
+
+    /**
      * Item that is displayed as a navigable item but that does not implement the navigate method,
      * preventing any navigation.
      */

@@ -18,6 +18,7 @@ import java.util.List;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
+import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
 
 import static sword.langbook3.android.DbManager.idColumnName;
 
@@ -30,7 +31,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
     // Specifies the alphabet the user would like to see if possible.
     // TODO: This should be a shared preference
-    private static final int preferredAlphabet = 4;
+    static final int preferredAlphabet = 4;
 
     private AcceptationDetailsAdapter _listAdapter;
 
@@ -848,7 +849,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                 morphologyFound = true;
             }
 
-            result.add(new NonNavigableItem(r.ruleText + " -> " + r.text));
+            result.add(new RuleNavigableItem(r.dynamicAcceptation, r.ruleText + " -> " + r.text));
         }
 
         boolean bunchChildFound = false;
