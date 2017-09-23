@@ -17,7 +17,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
@@ -703,24 +705,36 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private int insertBunchSet(SQLiteDatabase db, Set<Integer> bunches) {
+    private int findLastBunchSet(SQLiteDatabase db) {
+        final BunchSetsTable table = Tables.bunchSets;
+        final String setIdColumnName = table.getColumnName(table.getSetIdColumnIndex());
+        final Cursor cursor = db.rawQuery("SELECT max(" + setIdColumnName + ") FROM " +
+                table.getName(), null);
+
+        if (cursor != null) {
+            try {
+                if (cursor.getCount() == 1 && cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                }
+                else if (cursor.getCount() == 0) {
+                    return table.nullReference();
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        throw new AssertionError("Unable to retrieve maximum setId");
+    }
+
+    private int insertBunchSet(SQLiteDatabase db, int setId, Set<Integer> bunches) {
         final BunchSetsTable table = Tables.bunchSets;
 
         if (bunches.isEmpty()) {
             return table.nullReference();
         }
         else {
-            final String setIdColumnName = table.getColumnName(table.getSetIdColumnIndex());
-            Cursor cursor = db.rawQuery("SELECT max(" + setIdColumnName + ") FROM " +
-                    table.getName(), null);
-
-            if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
-                throw new AssertionError("Unable to retrieve maximum setId");
-            }
-
-            final int setId = cursor.getInt(0) + 1;
-            cursor.close();
-
             for (int bunch : bunches) {
                 db.execSQL("INSERT INTO " + table.getName() + " (" +
                         table.getColumnName(table.getSetIdColumnIndex()) + ", " +
@@ -730,6 +744,57 @@ class DbManager extends SQLiteOpenHelper {
 
             return setId;
         }
+    }
+
+    private Integer findBunchSet(SQLiteDatabase db, Set<Integer> bunches) {
+        final BunchSetsTable table = Tables.bunchSets;
+        if (bunches.isEmpty()) {
+            return table.nullReference();
+        }
+
+        final String setIdField = table.getColumnName(table.getSetIdColumnIndex());
+        Cursor cursor = db.rawQuery("SELECT " +
+                setIdField + ',' + table.getColumnName(table.getBunchColumnIndex()) +
+                " FROM " + table.getName() + " ORDER BY " + setIdField, null);
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    int setId = cursor.getInt(0);
+                    final Set<Integer> set = new HashSet<>();
+                    set.add(cursor.getInt(1));
+
+                    while (cursor.moveToNext()) {
+                        if (setId == cursor.getInt(0)) {
+                            set.add(cursor.getInt(1));
+                        }
+                        else {
+                            if (set.equals(bunches)) {
+                                return setId;
+                            }
+
+                            setId = cursor.getInt(0);
+                            set.clear();
+                            set.add(cursor.getInt(1));
+                        }
+                    }
+
+                    if (set.equals(bunches)) {
+                        return setId;
+                    }
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
+    private int obtainBunchSet(SQLiteDatabase db, int setId, Set<Integer> bunches) {
+        final Integer foundId = findBunchSet(db, bunches);
+        return (foundId != null)? foundId : insertBunchSet(db, setId, bunches);
     }
 
     private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int correlationArrayId) {
@@ -896,6 +961,8 @@ class DbManager extends SQLiteOpenHelper {
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = StreamedDatabaseConstants.minValidConcept;
+            int desiredSetId = findLastBunchSet(db) + 1;
+            final Map<Set<Integer>, Integer> insertedBunchSets = new HashMap<>();
             for (int i = 0; i < agentsLength; i++) {
                 final int targetBunch = ibs.readRangedNumber(lastTarget, maxConcept);
 
@@ -927,7 +994,19 @@ class DbManager extends SQLiteOpenHelper {
                 final boolean fromStart = (matcher.size() > 0 || adder.size() > 0) && ibs.readBoolean();
                 final int flags = fromStart? 1 : 0;
 
-                final int sourceBunchSetId = insertBunchSet(db, sourceSet);
+                final Integer reusedBunchSetId = insertedBunchSets.get(sourceSet);
+                final int sourceBunchSetId;
+                if (reusedBunchSetId != null) {
+                    sourceBunchSetId = reusedBunchSetId;
+                }
+                else {
+                    sourceBunchSetId = obtainBunchSet(db, desiredSetId, sourceSet);
+                    if (sourceBunchSetId == desiredSetId) {
+                        ++desiredSetId;
+                    }
+                    insertedBunchSets.put(sourceSet, sourceBunchSetId);
+                }
+
                 final int diffBunchSetId = 0;
 
                 final int matcherId = obtainCorrelation(db, matcher);
