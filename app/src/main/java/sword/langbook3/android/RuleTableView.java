@@ -1,23 +1,21 @@
 package sword.langbook3.android;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 
 public class RuleTableView extends View {
 
+    private int _horizontalSpacing = 40;
     private int _textSize = 30;
     private Paint _textPaint;
 
     private int _columnCount;
     private String[] _texts;
 
-    private float _maxTextWidth;
-    private int _visibleColumns;
+    private float[] _columnWidths;
 
     public RuleTableView(Context context) {
         super(context);
@@ -43,31 +41,9 @@ public class RuleTableView extends View {
     }
 
     @Override
-    public void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        if (_maxTextWidth > 0.01f) {
-            final int width = right - left;
-            int visibleColumns = (int) (width / _maxTextWidth);
-
-            if (visibleColumns == 0) {
-                visibleColumns = 1;
-            }
-
-            if (visibleColumns > _columnCount) {
-                visibleColumns = _columnCount;
-            }
-
-            _visibleColumns = visibleColumns;
-        }
-        else {
-            _visibleColumns = (_columnCount == 0)? 0 : 1;
-        }
-    }
-
-    @Override
     public void onDraw(Canvas canvas) {
         final int width = canvas.getWidth();
         final int height = canvas.getHeight();
-        final int columnWidth = width / _visibleColumns;
 
         final int length = _texts.length;
         final int yStep = _textSize;
@@ -82,18 +58,16 @@ public class RuleTableView extends View {
                 canvas.drawText(text, xPos, yPos, _textPaint);
             }
 
-            if (++column >= _visibleColumns) {
-                column = 0;
+            xPos += _columnWidths[column++] + _horizontalSpacing;
+            if (column >= _columnCount && xPos > width) {
+                i += _columnCount - column;
                 xPos = startXPos;
                 yPos += yStep;
-                i += _columnCount - _visibleColumns;
+                column = 0;
 
                 if (yPos > height + yStep) {
                     break;
                 }
-            }
-            else {
-                xPos += columnWidth;
             }
         }
     }
@@ -102,18 +76,20 @@ public class RuleTableView extends View {
         _columnCount = columnCount;
         _texts = texts;
 
-        float maxTextWidth = 0;
+        final float[] columnWidths = new float[columnCount];
         final int length = texts.length;
         for (int i = 0; i < length; i++) {
             String text = texts[i];
             if (text != null) {
                 float width = _textPaint.measureText(text);
-                if (width > maxTextWidth) {
-                    maxTextWidth = width;
+                final int column = i % columnCount;
+                if (width > columnWidths[column]) {
+                    columnWidths[column] = width;
                 }
             }
         }
-        _maxTextWidth = maxTextWidth;
+
+        _columnWidths = columnWidths;
 
         invalidate();
     }
