@@ -7,7 +7,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseArray;
-import android.util.SparseIntArray;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,17 +34,17 @@ public class RuleTableActivity extends Activity {
 
     private static final class TableCellRef {
 
-        final int agent;
+        final int bunchSet;
         final int rule;
 
         TableCellRef(int agent, int rule) {
-            this.agent = agent;
+            this.bunchSet = agent;
             this.rule = rule;
         }
 
         @Override
         public int hashCode() {
-            return agent * 31 + rule;
+            return bunchSet * 31 + rule;
         }
 
         @Override
@@ -55,7 +54,7 @@ public class RuleTableActivity extends Activity {
             }
 
             final TableCellRef that = (TableCellRef) other;
-            return agent == that.agent && rule == that.rule;
+            return bunchSet == that.bunchSet && rule == that.rule;
         }
     }
 
@@ -102,7 +101,7 @@ public class RuleTableActivity extends Activity {
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
         final Cursor cursor = db.rawQuery("SELECT" +
-                        " J4." + agents.getColumnName(agents.getMatcherColumnIndex()) +
+                        " J4." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
                         ",J3." + agents.getColumnName(agents.getRuleColumnIndex()) +
                         ",J6." + idColumnName +
                         ",J7." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
@@ -117,7 +116,7 @@ public class RuleTableActivity extends Activity {
                         " JOIN " + acceptations.getName() + " AS J6 ON J5." + idColumnName + "=J6." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
                         " JOIN " + strings.getName() + " AS J7 ON J6." + idColumnName + "=J7." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                     " WHERE J0." + idColumnName + "=?" +
-                        " ORDER BY J4." + agents.getColumnName(agents.getMatcherColumnIndex()) +
+                        " ORDER BY J4." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
                         ",J6." + idColumnName +
                         ",J3." + agents.getColumnName(agents.getRuleColumnIndex()) +
                         ",J7." + strings.getColumnName(strings.getStringAlphabetColumnIndex()),
@@ -134,7 +133,7 @@ public class RuleTableActivity extends Activity {
                     int staAcc = cursor.getInt(5);
 
                     while (cursor.moveToNext()) {
-                        if (cursor.getInt(0) == cellRef.agent && cursor.getInt(1) == cellRef.rule) {
+                        if (cursor.getInt(0) == cellRef.bunchSet && cursor.getInt(1) == cellRef.rule) {
                             if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
                                 alphabet = preferredAlphabet;
                                 text = cursor.getString(3);
@@ -176,8 +175,8 @@ public class RuleTableActivity extends Activity {
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
         for (Map.Entry<TableCellRef, TableCellValue> entry : tableContent.entrySet()) {
             final TableCellRef ref = entry.getKey();
-            if (acceptationSet.get(ref.agent) == null) {
-                acceptationSet.put(ref.agent, readAcceptationText(entry.getValue().staticAcceptation));
+            if (acceptationSet.get(ref.bunchSet) == null) {
+                acceptationSet.put(ref.bunchSet, readAcceptationText(entry.getValue().staticAcceptation));
             }
 
             if (ruleSet.get(ref.rule) == null) {
