@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -42,7 +43,13 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
 
     @Override
     public void afterTextChanged(Editable editable) {
-        querySearchResults(editable.toString());
+        final String query = editable.toString();
+        if (TextUtils.isEmpty(query)) {
+            updateSearchResults(new SearchResult[0]);
+        }
+        else {
+            querySearchResults(editable.toString());
+        }
     }
 
     private void querySearchResults(String query) {
