@@ -8,6 +8,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -33,6 +36,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     // TODO: This should be a shared preference
     static final int preferredAlphabet = 4;
 
+    private int _concept;
+    private boolean _shouldShowBunchChildrenQuizMenuOption;
     private AcceptationDetailsAdapter _listAdapter;
 
     public static void open(Context context, int staticAcceptation, int dynamicAcceptation) {
@@ -97,6 +102,29 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         }
 
         return result;
+    }
+
+    static int readConcept(SQLiteDatabase db, int acceptation) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
+        Cursor cursor = db.rawQuery(
+                "SELECT " + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " FROM " + acceptations.getName() +
+                        " WHERE " + idColumnName + "=?",
+                new String[] { Integer.toString(acceptation) });
+
+        int concept = 0;
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    concept = cursor.getInt(0);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return concept;
     }
 
     static String readConceptText(SQLiteDatabase db, int concept) {
@@ -859,6 +887,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
             if (!bunchChildFound) {
                 result.add(new HeaderItem("Acceptations included in this bunch"));
                 bunchChildFound = true;
+                _shouldShowBunchChildrenQuizMenuOption = true;
             }
 
             result.add(new AcceptationNavigableItem(r.acceptation, r.text, r.dynamic));
@@ -896,15 +925,42 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         }
 
         final int staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
-        _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(staticAcceptation));
+        _concept = readConcept(DbManager.getInstance().getReadableDatabase(), staticAcceptation);
+        if (_concept != 0) {
+            _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(staticAcceptation));
 
-        ListView listView = findViewById(R.id.listView);
-        listView.setAdapter(_listAdapter);
-        listView.setOnItemClickListener(this);
+            ListView listView = findViewById(R.id.listView);
+            listView.setAdapter(_listAdapter);
+            listView.setOnItemClickListener(this);
+        }
+        else {
+            finish();
+        }
     }
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         _listAdapter.getItem(position).navigate(this);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        if (_shouldShowBunchChildrenQuizMenuOption) {
+            new MenuInflater(this).inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menuItemBunchChildrenQuiz:
+                QuizSelectionActivity.open(this, _concept);
+                return true;
+        }
+
+        return false;
     }
 }

@@ -1,5 +1,7 @@
 <resources>
     <string name="appName">Langbook</string>
     <string name="menuItemSettings">Preferences</string>
+    <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="importDatabaseButton">Import database</string>
+    <string name="startQuizButton">Start quiz</string>
 </resources>

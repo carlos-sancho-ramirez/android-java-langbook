@@ -1444,6 +1444,25 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class KnowledgeTable extends DbTable {
+
+        KnowledgeTable() {
+            super("Knowledge", new DbIntColumn("quizDefinition"), new DbIntColumn("acceptation"), new DbIntColumn("score"));
+        }
+
+        int getQuizDefinitionColumnIndex() {
+            return 1;
+        }
+
+        int getAcceptationColumnIndex() {
+            return 2;
+        }
+
+        int getScoreColumnIndex() {
+            return 3;
+        }
+    }
+
     static final class LanguagesTable extends DbTable {
 
         LanguagesTable() {
@@ -1456,6 +1475,39 @@ class DbManager extends SQLiteOpenHelper {
 
         int getCodeColumnIndex() {
             return 2;
+        }
+    }
+
+    static final class QuizDefinitionsTable extends DbTable {
+
+        QuizDefinitionsTable() {
+            super("QuizDefinitions", new DbIntColumn("sourceBunch"), new DbIntColumn("sourceAlphabet"), new DbIntColumn("quizType"), new DbIntColumn("aux"));
+        }
+
+        int getSourceBunchColumnIndex() {
+            return 1;
+        }
+
+        int getSourceAlphabetColumnIndex() {
+            return 2;
+        }
+
+        /**
+         * One of the following types
+         * <li>1: Inter-alphabet (e.g. written in kanji... what its kana?). Here aux is the targetAlphabet
+         * <li>2: Translation (e.g. a Japanese word... its Spanish, English,...?). Here aux is the targetAlphabet
+         * <li>3: Synonym. No aux required. Target alphabet is assumed to be the same as sourceAlphabet.
+         * <li>4: Applied rule. Here aux is the target rule. Target alphabet is assumed to be the same as sourceAlphabet.
+         */
+        int getQuizTypeColumnIndex() {
+            return 3;
+        }
+
+        /**
+         * This can hold a targetAlphabet or a rule. Depending on the quiz type.
+         */
+        int getAuxiliarColumnIndex() {
+            return 4;
         }
     }
 
@@ -1524,7 +1576,9 @@ class DbManager extends SQLiteOpenHelper {
         static final ConversionsTable conversions = new ConversionsTable();
         static final CorrelationsTable correlations = new CorrelationsTable();
         static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
+        static final KnowledgeTable knowledge = new KnowledgeTable();
         static final LanguagesTable languages = new LanguagesTable();
+        static final QuizDefinitionsTable quizDefinitions = new QuizDefinitionsTable();
         static final RuledConceptsTable ruledConcepts = new RuledConceptsTable();
         static final StringQueriesTable stringQueries = new StringQueriesTable();
         static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
@@ -1532,7 +1586,7 @@ class DbManager extends SQLiteOpenHelper {
 
     static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[14];
+    private static final DbTable[] dbTables = new DbTable[16];
     static {
         dbTables[0] = Tables.acceptations;
         dbTables[1] = Tables.agents;
@@ -1544,10 +1598,12 @@ class DbManager extends SQLiteOpenHelper {
         dbTables[7] = Tables.conversions;
         dbTables[8] = Tables.correlations;
         dbTables[9] = Tables.correlationArrays;
-        dbTables[10] = Tables.languages;
-        dbTables[11] = Tables.ruledConcepts;
-        dbTables[12] = Tables.stringQueries;
-        dbTables[13] = Tables.symbolArrays;
+        dbTables[10] = Tables.knowledge;
+        dbTables[11] = Tables.languages;
+        dbTables[12] = Tables.quizDefinitions;
+        dbTables[13] = Tables.ruledConcepts;
+        dbTables[14] = Tables.stringQueries;
+        dbTables[15] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
