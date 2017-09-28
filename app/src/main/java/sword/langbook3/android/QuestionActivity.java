@@ -6,13 +6,17 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import sword.langbook3.android.QuizSelectionActivity.QuizTypes;
 import sword.langbook3.android.QuizSelectionActivity.StringPair;
 
-public class QuestionActivity extends Activity {
+public class QuestionActivity extends Activity implements View.OnClickListener {
 
+    private static final long CLICK_MILLIS_TIME_INTERVAL = 800;
     private static final class BundleKeys {
         static final String QUIZ_TYPE = "qt";
         static final String BUNCH = "b";
@@ -38,6 +42,12 @@ public class QuestionActivity extends Activity {
     }
 
     private int _acceptation;
+    private StringPair _texts;
+    private boolean _isAnswerVisible;
+
+    private TextView _questionTextView;
+    private TextView _answerTextView;
+    private long _lastClickTime;
 
     private int[] readAllPossibleInterAlphabetAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet) {
         int[] result = new int[0];
@@ -169,12 +179,55 @@ public class QuestionActivity extends Activity {
             _acceptation = selectAcceptation(acceptations);
         }
 
-        final StringPair texts = readQuestionTexts(db, quizType, _acceptation, sourceAlphabet, aux);
+        _texts = readQuestionTexts(db, quizType, _acceptation, sourceAlphabet, aux);
 
-        final TextView questionTextView = findViewById(R.id.questionText);
-        questionTextView.setText(texts.source);
+        _questionTextView = findViewById(R.id.questionText);
+        _questionTextView.setText(_texts.source);
 
-        final TextView answerTextView = findViewById(R.id.answerText);
-        answerTextView.setText(texts.target);
+        _answerTextView = findViewById(R.id.answerText);
+        _answerTextView.setText("?");
+
+        findViewById(R.id.revealAnswerButton).setOnClickListener(this);
+        findViewById(R.id.goodAnswerButton).setOnClickListener(this);
+        findViewById(R.id.badAnswerButton).setOnClickListener(this);
+    }
+
+    private void toggleAnswerVisibility() {
+        final Button revealAnswerButton = findViewById(R.id.revealAnswerButton);
+        final LinearLayout rateButtonBar = findViewById(R.id.rateButtonBar);
+
+        if (!_isAnswerVisible) {
+            _answerTextView.setText(_texts.target);
+            revealAnswerButton.setVisibility(View.GONE);
+            rateButtonBar.setVisibility(View.VISIBLE);
+            _isAnswerVisible = true;
+        }
+        else {
+            _answerTextView.setText("?");
+            revealAnswerButton.setVisibility(View.VISIBLE);
+            rateButtonBar.setVisibility(View.GONE);
+            _isAnswerVisible = false;
+        }
+    }
+
+    @Override
+    public void onClick(View view) {
+        final long currentTime = System.currentTimeMillis();
+        if (currentTime - _lastClickTime > CLICK_MILLIS_TIME_INTERVAL) {
+            _lastClickTime = currentTime;
+            switch (view.getId()) {
+                case R.id.revealAnswerButton:
+                    toggleAnswerVisibility();
+                    break;
+
+                case R.id.goodAnswerButton:
+                    toggleAnswerVisibility();
+                    break;
+
+                case R.id.badAnswerButton:
+                    toggleAnswerVisibility();
+                    break;
+            }
+        }
     }
 }

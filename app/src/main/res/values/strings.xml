@@ -4,4 +4,8 @@
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="importDatabaseButton">Import database</string>
     <string name="startQuizButton">Start quiz</string>
+
+    <string name="revealAnswerButton">Reveal answer</string>
+    <string name="badAnswerButton">Bad</string>
+    <string name="goodAnswerButton">Good</string>
 </resources>
