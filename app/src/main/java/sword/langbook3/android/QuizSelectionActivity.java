@@ -22,7 +22,7 @@ import java.util.Set;
 
 import static sword.langbook3.android.DbManager.idColumnName;
 
-public class QuizSelectionActivity extends Activity implements AdapterView.OnItemSelectedListener {
+public class QuizSelectionActivity extends Activity implements AdapterView.OnItemSelectedListener, View.OnClickListener {
 
     private static final class BundleKeys {
         static final String BUNCH = "b";
@@ -184,7 +184,7 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         }
     }
 
-    private static final class StringPair {
+    static final class StringPair {
 
         final String source;
         final String target;
@@ -367,17 +367,23 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         return result;
     }
 
-    private int _bunch;
+    private Spinner _sourceAlphabetSpinner;
+    private Spinner _auxSpinner;
     private QuizTypeAdapter _quizTypeAdapter;
     private SparseArray<String> _allAlphabets;
     private SparseArray<String> _allRules;
 
-    private static final class QuizTypes {
+    static final class QuizTypes {
         static final int interAlphabet = 1;
         static final int translation = 2;
         static final int synonym = 3;
         static final int appliedRule = 4;
     }
+
+    private int _quizType;
+    private int _bunch;
+    private int _sourceAlphabet;
+    private int _aux;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -404,6 +410,14 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         final Spinner quizTypeSpinner = findViewById(R.id.quizType);
         quizTypeSpinner.setAdapter(_quizTypeAdapter);
         quizTypeSpinner.setOnItemSelectedListener(this);
+
+        _sourceAlphabetSpinner = findViewById(R.id.sourceAlphabet);
+        _sourceAlphabetSpinner.setOnItemSelectedListener(this);
+
+        _auxSpinner = findViewById(R.id.aux);
+        _auxSpinner.setOnItemSelectedListener(this);
+
+        findViewById(R.id.startButton).setOnClickListener(this);
     }
 
     @Override
@@ -411,6 +425,14 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         switch (adapterView.getId()) {
             case R.id.quizType:
                 updateQuizType(position);
+                break;
+
+            case R.id.sourceAlphabet:
+                _sourceAlphabet = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
+                break;
+
+            case R.id.aux:
+                _aux = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
                 break;
         }
     }
@@ -421,8 +443,7 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
     }
 
     private void updateQuizType(int quizType) {
-        final Spinner sourceAlphabetSpinner = findViewById(R.id.sourceAlphabet);
-        final Spinner auxSpinner = findViewById(R.id.aux);
+        _quizType = quizType;
 
         switch (quizType) {
             case QuizTypes.interAlphabet:
@@ -441,9 +462,9 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                         items[i++] = item;
                     }
 
-                    sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
-                    auxSpinner.setAdapter(new AlphabetAdapter(items));
-                    auxSpinner.setVisibility(View.VISIBLE);
+                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
+                    _auxSpinner.setAdapter(new AlphabetAdapter(items));
+                    _auxSpinner.setVisibility(View.VISIBLE);
                 } while(false);
                 break;
 
@@ -459,9 +480,9 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                         items[i] = new AdapterItem(_allAlphabets.keyAt(i), _allAlphabets.valueAt(i));
                     }
 
-                    sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
-                    auxSpinner.setAdapter(new AlphabetAdapter(items));
-                    auxSpinner.setVisibility(View.VISIBLE);
+                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
+                    _auxSpinner.setAdapter(new AlphabetAdapter(items));
+                    _auxSpinner.setVisibility(View.VISIBLE);
                 } while(false);
                 break;
 
@@ -477,8 +498,8 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                         items[i] = new AdapterItem(_allAlphabets.keyAt(i), _allAlphabets.valueAt(i));
                     }
 
-                    sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
-                    auxSpinner.setVisibility(View.GONE);
+                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
+                    _auxSpinner.setVisibility(View.GONE);
                 } while(false);
                 break;
 
@@ -498,7 +519,7 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                         alphabets[i] = new AdapterItem(_allAlphabets.keyAt(i), _allAlphabets.valueAt(i));
                     }
 
-                    sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(alphabets));
+                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(alphabets));
 
                     final int ruleCount = _allRules.size();
                     final AdapterItem[] rules = new AdapterItem[ruleCount];
@@ -506,14 +527,19 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                         rules[i] = new AdapterItem(_allRules.keyAt(i), _allRules.valueAt(i));
                     }
 
-                    auxSpinner.setAdapter(new AlphabetAdapter(rules));
-                    auxSpinner.setVisibility(View.VISIBLE);
+                    _auxSpinner.setAdapter(new AlphabetAdapter(rules));
+                    _auxSpinner.setVisibility(View.VISIBLE);
                 } while(false);
                 break;
 
             default:
-                sourceAlphabetSpinner.setAdapter(null);
-                auxSpinner.setVisibility(View.GONE);
+                _sourceAlphabetSpinner.setAdapter(null);
+                _auxSpinner.setVisibility(View.GONE);
         }
+    }
+
+    @Override
+    public void onClick(View view) {
+        QuestionActivity.open(this, _quizType, _bunch, _sourceAlphabet, _aux);
     }
 }

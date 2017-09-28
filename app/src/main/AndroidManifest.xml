@@ -18,6 +18,7 @@
         </activity>
 
         <activity android:name=".AcceptationDetailsActivity"/>
+        <activity android:name=".QuestionActivity"/>
         <activity android:name=".QuizSelectionActivity"/>
         <activity android:name=".RuleTableActivity"/>
         <activity android:name=".SettingsActivity"/>
