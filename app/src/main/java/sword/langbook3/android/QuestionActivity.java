@@ -26,6 +26,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
 
     private static final class SavedKeys {
         static final String ACCEPTATION = "acc";
+        static final String IS_ANSWER_VISIBLE = "av";
+        static final String GOOD_ANSWER_COUNT = "ga";
+        static final String BAD_ANSWER_COUNT = "ba";
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -41,13 +44,22 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         context.startActivity(intent);
     }
 
+    private int _quizType;
+    private int _bunch;
+    private int _sourceAlphabet;
+    private int _aux;
+
+    private int _goodAnswerCount;
+    private int _badAnswerCount;
     private int _acceptation;
     private StringPair _texts;
     private boolean _isAnswerVisible;
 
+    private TextView _scoreTextView;
     private TextView _questionTextView;
     private TextView _answerTextView;
     private long _lastClickTime;
+    private int[] _possibleAcceptations;
 
     private int[] readAllPossibleInterAlphabetAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet) {
         int[] result = new int[0];
@@ -159,37 +171,22 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         return acceptations[index];
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.question_activity);
-
-        if (savedInstanceState != null) {
-            _acceptation = savedInstanceState.getInt(SavedKeys.ACCEPTATION, 0);
+    private int selectNewAcceptation() {
+        if (_possibleAcceptations == null) {
+            final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+            _possibleAcceptations = readAllPossibleAcceptations(db, _quizType, _bunch, _sourceAlphabet, _aux);
         }
 
-        final int quizType = getIntent().getIntExtra(BundleKeys.QUIZ_TYPE, 0);
-        final int bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
-        final int sourceAlphabet = getIntent().getIntExtra(BundleKeys.SOURCE_ALPHABET, 0);
-        final int aux = getIntent().getIntExtra(BundleKeys.AUX, 0);
+        return selectAcceptation(_possibleAcceptations);
+    }
 
+    private void updateTextFields() {
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-        if (_acceptation == 0) {
-            final int[] acceptations = readAllPossibleAcceptations(db, quizType, bunch, sourceAlphabet, aux);
-            _acceptation = selectAcceptation(acceptations);
-        }
-
-        _texts = readQuestionTexts(db, quizType, _acceptation, sourceAlphabet, aux);
-
-        _questionTextView = findViewById(R.id.questionText);
+        _texts = readQuestionTexts(db, _quizType, _acceptation, _sourceAlphabet, _aux);
         _questionTextView.setText(_texts.source);
-
-        _answerTextView = findViewById(R.id.answerText);
         _answerTextView.setText("?");
 
-        findViewById(R.id.revealAnswerButton).setOnClickListener(this);
-        findViewById(R.id.goodAnswerButton).setOnClickListener(this);
-        findViewById(R.id.badAnswerButton).setOnClickListener(this);
+        _scoreTextView.setText("" + _goodAnswerCount + " - " + _badAnswerCount);
     }
 
     private void toggleAnswerVisibility() {
@@ -211,6 +208,42 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.question_activity);
+
+        _quizType = getIntent().getIntExtra(BundleKeys.QUIZ_TYPE, 0);
+        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
+        _sourceAlphabet = getIntent().getIntExtra(BundleKeys.SOURCE_ALPHABET, 0);
+        _aux = getIntent().getIntExtra(BundleKeys.AUX, 0);
+
+        boolean shouldRevealAnswer = false;
+        if (savedInstanceState != null) {
+            _acceptation = savedInstanceState.getInt(SavedKeys.ACCEPTATION, 0);
+            _goodAnswerCount = savedInstanceState.getInt(SavedKeys.GOOD_ANSWER_COUNT);
+            _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_COUNT);
+            shouldRevealAnswer = savedInstanceState.getBoolean(SavedKeys.IS_ANSWER_VISIBLE);
+        }
+
+        if (_acceptation == 0) {
+            _acceptation = selectNewAcceptation();
+        }
+
+        _questionTextView = findViewById(R.id.questionText);
+        _answerTextView = findViewById(R.id.answerText);
+        _scoreTextView = findViewById(R.id.scoreTextView);
+        updateTextFields();
+
+        findViewById(R.id.revealAnswerButton).setOnClickListener(this);
+        findViewById(R.id.goodAnswerButton).setOnClickListener(this);
+        findViewById(R.id.badAnswerButton).setOnClickListener(this);
+
+        if (shouldRevealAnswer) {
+            toggleAnswerVisibility();
+        }
+    }
+
+    @Override
     public void onClick(View view) {
         final long currentTime = System.currentTimeMillis();
         if (currentTime - _lastClickTime > CLICK_MILLIS_TIME_INTERVAL) {
@@ -221,13 +254,28 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
                     break;
 
                 case R.id.goodAnswerButton:
+                    _goodAnswerCount++;
+                    _acceptation = selectNewAcceptation();
+                    updateTextFields();
                     toggleAnswerVisibility();
                     break;
 
                 case R.id.badAnswerButton:
+                    _badAnswerCount++;
+                    _acceptation = selectNewAcceptation();
+                    updateTextFields();
                     toggleAnswerVisibility();
                     break;
             }
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putInt(SavedKeys.ACCEPTATION, _acceptation);
+        out.putBoolean(SavedKeys.IS_ANSWER_VISIBLE, _isAnswerVisible);
+        out.putInt(SavedKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
+        out.putInt(SavedKeys.BAD_ANSWER_COUNT, _badAnswerCount);
     }
 }
