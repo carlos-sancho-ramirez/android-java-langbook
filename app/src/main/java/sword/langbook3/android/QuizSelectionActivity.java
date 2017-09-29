@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -538,8 +539,54 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         }
     }
 
+    private Integer findQuizDefinition(SQLiteDatabase db) {
+        final DbManager.QuizDefinitionsTable quizDefinitions = DbManager.Tables.quizDefinitions;
+        final Cursor cursor = db.rawQuery("SELECT " + idColumnName + " FROM " + quizDefinitions.getName() + " WHERE " +
+                        quizDefinitions.getColumnName(quizDefinitions.getQuizTypeColumnIndex()) + "=? AND " +
+                        quizDefinitions.getColumnName(quizDefinitions.getSourceBunchColumnIndex()) + "=? AND " +
+                        quizDefinitions.getColumnName(quizDefinitions.getSourceAlphabetColumnIndex()) + "=? AND " +
+                        quizDefinitions.getColumnName(quizDefinitions.getAuxiliarColumnIndex()) + "=?",
+                new String[] {Integer.toString(_quizType), Integer.toString(_bunch),
+                        Integer.toString(_sourceAlphabet), Integer.toString(_aux)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    if (cursor.getCount() != 1) {
+                        throw new AssertionError("Duplicated quiz definition found");
+                    }
+
+                    return cursor.getInt(0);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
+    private int insertQuizDefinition(SQLiteDatabase db) {
+        final DbManager.QuizDefinitionsTable table = DbManager.Tables.quizDefinitions;
+        ContentValues cv = new ContentValues();
+        cv.put(table.getColumnName(table.getQuizTypeColumnIndex()), _quizType);
+        cv.put(table.getColumnName(table.getSourceBunchColumnIndex()), _bunch);
+        cv.put(table.getColumnName(table.getSourceAlphabetColumnIndex()), _sourceAlphabet);
+        cv.put(table.getColumnName(table.getAuxiliarColumnIndex()), _aux);
+
+        return (int) db.insert(table.getName(), null, cv);
+    }
+
+    private int obtainQuizDefinition() {
+        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
+        final Integer found = findQuizDefinition(db);
+        return (found != null)? found : insertQuizDefinition(db);
+    }
+
     @Override
     public void onClick(View view) {
-        QuestionActivity.open(this, _quizType, _bunch, _sourceAlphabet, _aux);
+        final int quizId = obtainQuizDefinition();
+        QuestionActivity.open(this, quizId);
     }
 }

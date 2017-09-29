@@ -14,14 +14,13 @@ import android.widget.TextView;
 import sword.langbook3.android.QuizSelectionActivity.QuizTypes;
 import sword.langbook3.android.QuizSelectionActivity.StringPair;
 
+import static sword.langbook3.android.DbManager.idColumnName;
+
 public class QuestionActivity extends Activity implements View.OnClickListener {
 
     private static final long CLICK_MILLIS_TIME_INTERVAL = 800;
     private static final class BundleKeys {
-        static final String QUIZ_TYPE = "qt";
-        static final String BUNCH = "b";
-        static final String SOURCE_ALPHABET = "sa";
-        static final String AUX = "aux";
+        static final String QUIZ = "quiz";
     }
 
     private static final class SavedKeys {
@@ -35,15 +34,13 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
     // TODO: This should be a shared preference
     static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
 
-    public static void open(Context context, int quizType, int bunch, int sourceAlphabet, int aux) {
+    public static void open(Context context, int quizId) {
         Intent intent = new Intent(context, QuestionActivity.class);
-        intent.putExtra(BundleKeys.QUIZ_TYPE, quizType);
-        intent.putExtra(BundleKeys.BUNCH, bunch);
-        intent.putExtra(BundleKeys.SOURCE_ALPHABET, sourceAlphabet);
-        intent.putExtra(BundleKeys.AUX, aux);
+        intent.putExtra(BundleKeys.QUIZ, quizId);
         context.startActivity(intent);
     }
 
+    private int _quizId;
     private int _quizType;
     private int _bunch;
     private int _sourceAlphabet;
@@ -60,6 +57,32 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
     private TextView _answerTextView;
     private long _lastClickTime;
     private int[] _possibleAcceptations;
+
+    private void readQuizDefinition() {
+        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        final DbManager.QuizDefinitionsTable table = DbManager.Tables.quizDefinitions;
+        final Cursor cursor = db.rawQuery("SELECT " +
+                        table.getColumnName(table.getQuizTypeColumnIndex()) + ',' +
+                        table.getColumnName(table.getSourceBunchColumnIndex()) + ',' +
+                        table.getColumnName(table.getSourceAlphabetColumnIndex()) + ',' +
+                        table.getColumnName(table.getAuxiliarColumnIndex()) +
+                        " FROM " + table.getName() + " WHERE " + idColumnName + "=?",
+                new String[] {Integer.toString(_quizId)});
+
+        if (!cursor.moveToFirst() || cursor.getCount() != 1) {
+            throw new AssertionError();
+        }
+
+        try {
+            _quizType = cursor.getInt(0);
+            _bunch = cursor.getInt(1);
+            _sourceAlphabet = cursor.getInt(2);
+            _aux = cursor.getInt(3);
+        }
+        finally {
+            cursor.close();
+        }
+    }
 
     private int[] readAllPossibleInterAlphabetAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet) {
         int[] result = new int[0];
@@ -212,10 +235,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.question_activity);
 
-        _quizType = getIntent().getIntExtra(BundleKeys.QUIZ_TYPE, 0);
-        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
-        _sourceAlphabet = getIntent().getIntExtra(BundleKeys.SOURCE_ALPHABET, 0);
-        _aux = getIntent().getIntExtra(BundleKeys.AUX, 0);
+        _quizId = getIntent().getIntExtra(BundleKeys.QUIZ, 0);
+        readQuizDefinition();
 
         boolean shouldRevealAnswer = false;
         if (savedInstanceState != null) {
