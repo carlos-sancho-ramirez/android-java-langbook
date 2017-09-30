@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.util.SparseIntArray;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -18,6 +19,12 @@ import sword.langbook3.android.QuizSelectionActivity.StringPair;
 import static sword.langbook3.android.DbManager.idColumnName;
 
 public class QuestionActivity extends Activity implements View.OnClickListener {
+
+    private static final int MIN_ALLOWED_SCORE = 0;
+    private static final int MAX_ALLOWED_SCORE = 20;
+    private static final int INITIAL_SCORE = 10;
+    private static final int SCORE_INCREMENT = 1;
+    private static final int SCORE_DECREMENT = 2;
 
     private static final long CLICK_MILLIS_TIME_INTERVAL = 800;
     private static final class BundleKeys {
@@ -41,6 +48,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         context.startActivity(intent);
     }
 
+    private final SparseIntArray _knowledge = new SparseIntArray();
+
     private int _quizId;
     private int _quizType;
     private int _bunch;
@@ -59,8 +68,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
     private long _lastClickTime;
     private int[] _possibleAcceptations;
 
-    private void readQuizDefinition() {
-        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+    private void readQuizDefinition(SQLiteDatabase db) {
         final DbManager.QuizDefinitionsTable table = DbManager.Tables.quizDefinitions;
         final Cursor cursor = db.rawQuery("SELECT " +
                         table.getColumnName(table.getQuizTypeColumnIndex()) + ',' +
@@ -189,10 +197,31 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
     }
 
     private int selectAcceptation(int[] acceptations) {
-        final long currentTimeMillis = System.currentTimeMillis();
         final int size = acceptations.length;
-        final int index = (int) (currentTimeMillis % size);
-        return acceptations[index];
+        final int[] ponders = new int[size];
+        int ponderationCount = 0;
+        for (int i = 0; i < size; i++) {
+            ponders[i] = ponderationCount;
+            final int score = _knowledge.get(acceptations[i], INITIAL_SCORE);
+            ponderationCount += MAX_ALLOWED_SCORE + 1 - score;
+        }
+
+        final long currentTimeMillis = System.currentTimeMillis();
+        final int randomIndex = (int) (currentTimeMillis % ponderationCount);
+
+        int min = 0;
+        int max = size;
+        do {
+            int middle = min + (max - min) / 2;
+            if (ponders[middle] < randomIndex) {
+                min = middle;
+            }
+            else {
+                max = middle;
+            }
+        } while(max - min > 1);
+
+        return acceptations[min];
     }
 
     private int selectNewAcceptation() {
@@ -237,7 +266,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.question_activity);
 
         _quizId = getIntent().getIntExtra(BundleKeys.QUIZ, 0);
-        readQuizDefinition();
+        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        readQuizDefinition(db);
+        readCurrentKnowledge(db);
 
         boolean shouldRevealAnswer = false;
         if (savedInstanceState != null) {
@@ -265,41 +296,25 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         }
     }
 
-    private static final class IdentifiedKnowledge {
-
-        final int id;
-        final int score;
-
-        IdentifiedKnowledge(int id, int score) {
-            this.id = id;
-            this.score = score;
-        }
-    }
-
-    private IdentifiedKnowledge findCurrentKnowledge(SQLiteDatabase db) {
+    private void readCurrentKnowledge(SQLiteDatabase db) {
         final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
-        final Cursor cursor = db.rawQuery("SELECT " + idColumnName + ',' +
-                        table.getColumnName(table.getScoreColumnIndex()) + " FROM " + table.getName() + " WHERE " +
-                        table.getColumnName(table.getQuizDefinitionColumnIndex()) + "=? AND " +
-                        table.getColumnName(table.getAcceptationColumnIndex()) + "=?",
-                new String[] {Integer.toString(_quizId), Integer.toString(_acceptation)});
+        final Cursor cursor = db.rawQuery("SELECT " +
+                        table.getColumnName(table.getAcceptationColumnIndex()) + ',' +
+                        table.getColumnName(table.getScoreColumnIndex()) +
+                        " FROM " + table.getName() + " WHERE " +
+                        table.getColumnName(table.getQuizDefinitionColumnIndex()) + "=?",
+                new String[] {Integer.toString(_quizId)});
 
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    if (cursor.getCount() != 1) {
-                        throw new AssertionError("Duplicated quiz definition found");
-                    }
-
-                    return new IdentifiedKnowledge(cursor.getInt(0), cursor.getInt(1));
+                    _knowledge.put(cursor.getInt(0), cursor.getInt(1));
                 }
             }
             finally {
                 cursor.close();
             }
         }
-
-        return null;
     }
 
     private void insertKnowledge(SQLiteDatabase db, int score) {
@@ -312,29 +327,29 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         db.insert(table.getName(), null, cv);
     }
 
-    private void updateKnowledge(SQLiteDatabase db, int id, int score) {
+    private void updateKnowledge(SQLiteDatabase db, int score) {
         final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
         ContentValues cv = new ContentValues();
         cv.put(table.getColumnName(table.getScoreColumnIndex()), score);
-        db.update(table.getName(), cv, idColumnName + "=?", new String[] { Integer.toString(id)});
+        final String whereClause = table.getColumnName(table.getQuizDefinitionColumnIndex()) +
+                "=? AND " + table.getColumnName(table.getAcceptationColumnIndex()) + "=?";
+        db.update(table.getName(), cv, whereClause,
+                new String[] { Integer.toString(_quizId), Integer.toString(_acceptation)});
     }
-
-    private static final int MIN_ALLOWED_SCORE = 0;
-    private static final int MAX_ALLOWED_SCORE = 20;
-    private static final int INITIAL_SCORE = 10;
-    private static final int SCORE_INCREMENT = 1;
-    private static final int SCORE_DECREMENT = 2;
 
     private void registerGoodAnswer() {
         final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
-        final IdentifiedKnowledge knowledge = findCurrentKnowledge(db);
-        if (knowledge == null) {
-            insertKnowledge(db, INITIAL_SCORE + SCORE_INCREMENT);
+        final int foundScore = _knowledge.get(_acceptation, MIN_ALLOWED_SCORE - 1);
+        if (foundScore < MIN_ALLOWED_SCORE) {
+            final int newScore = INITIAL_SCORE + SCORE_INCREMENT;
+            _knowledge.put(_acceptation, newScore);
+            insertKnowledge(db, newScore);
         }
-        else if (knowledge.score < MAX_ALLOWED_SCORE) {
-            final int newProposedScore = knowledge.score + SCORE_INCREMENT;
+        else if (foundScore < MAX_ALLOWED_SCORE) {
+            final int newProposedScore = foundScore + SCORE_INCREMENT;
             final int newScore = (newProposedScore > MAX_ALLOWED_SCORE)? MAX_ALLOWED_SCORE : newProposedScore;
-            updateKnowledge(db, knowledge.id, newScore);
+            _knowledge.put(_acceptation, newScore);
+            updateKnowledge(db, newScore);
         }
 
         _goodAnswerCount++;
@@ -342,14 +357,17 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
 
     private void registerBadAnswer() {
         final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
-        final IdentifiedKnowledge knowledge = findCurrentKnowledge(db);
-        if (knowledge == null) {
-            insertKnowledge(db, INITIAL_SCORE - SCORE_DECREMENT);
+        final int foundScore = _knowledge.get(_acceptation, MIN_ALLOWED_SCORE - 1);
+        if (foundScore < MIN_ALLOWED_SCORE) {
+            final int newScore = INITIAL_SCORE - SCORE_DECREMENT;
+            _knowledge.put(_acceptation, newScore);
+            insertKnowledge(db, newScore);
         }
-        else if (knowledge.score > MIN_ALLOWED_SCORE) {
-            final int newProposedScore = knowledge.score - SCORE_DECREMENT;
+        else if (foundScore > MIN_ALLOWED_SCORE) {
+            final int newProposedScore = foundScore - SCORE_DECREMENT;
             final int newScore = (newProposedScore >= MIN_ALLOWED_SCORE)? newProposedScore : MIN_ALLOWED_SCORE;
-            updateKnowledge(db, knowledge.id, newScore);
+            _knowledge.put(_acceptation, newScore);
+            updateKnowledge(db, newScore);
         }
 
         _badAnswerCount++;
