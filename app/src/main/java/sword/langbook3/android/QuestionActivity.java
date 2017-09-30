@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -264,6 +265,96 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         }
     }
 
+    private static final class IdentifiedKnowledge {
+
+        final int id;
+        final int score;
+
+        IdentifiedKnowledge(int id, int score) {
+            this.id = id;
+            this.score = score;
+        }
+    }
+
+    private IdentifiedKnowledge findCurrentKnowledge(SQLiteDatabase db) {
+        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        final Cursor cursor = db.rawQuery("SELECT " + idColumnName + ',' +
+                        table.getColumnName(table.getScoreColumnIndex()) + " FROM " + table.getName() + " WHERE " +
+                        table.getColumnName(table.getQuizDefinitionColumnIndex()) + "=? AND " +
+                        table.getColumnName(table.getAcceptationColumnIndex()) + "=?",
+                new String[] {Integer.toString(_quizId), Integer.toString(_acceptation)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    if (cursor.getCount() != 1) {
+                        throw new AssertionError("Duplicated quiz definition found");
+                    }
+
+                    return new IdentifiedKnowledge(cursor.getInt(0), cursor.getInt(1));
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
+    private void insertKnowledge(SQLiteDatabase db, int score) {
+        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        ContentValues cv = new ContentValues();
+        cv.put(table.getColumnName(table.getQuizDefinitionColumnIndex()), _quizId);
+        cv.put(table.getColumnName(table.getAcceptationColumnIndex()), _acceptation);
+        cv.put(table.getColumnName(table.getScoreColumnIndex()), score);
+
+        db.insert(table.getName(), null, cv);
+    }
+
+    private void updateKnowledge(SQLiteDatabase db, int id, int score) {
+        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        ContentValues cv = new ContentValues();
+        cv.put(table.getColumnName(table.getScoreColumnIndex()), score);
+        db.update(table.getName(), cv, idColumnName + "=?", new String[] { Integer.toString(id)});
+    }
+
+    private static final int MIN_ALLOWED_SCORE = 0;
+    private static final int MAX_ALLOWED_SCORE = 20;
+    private static final int INITIAL_SCORE = 10;
+    private static final int SCORE_INCREMENT = 1;
+    private static final int SCORE_DECREMENT = 2;
+
+    private void registerGoodAnswer() {
+        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
+        final IdentifiedKnowledge knowledge = findCurrentKnowledge(db);
+        if (knowledge == null) {
+            insertKnowledge(db, INITIAL_SCORE + SCORE_INCREMENT);
+        }
+        else if (knowledge.score < MAX_ALLOWED_SCORE) {
+            final int newProposedScore = knowledge.score + SCORE_INCREMENT;
+            final int newScore = (newProposedScore > MAX_ALLOWED_SCORE)? MAX_ALLOWED_SCORE : newProposedScore;
+            updateKnowledge(db, knowledge.id, newScore);
+        }
+
+        _goodAnswerCount++;
+    }
+
+    private void registerBadAnswer() {
+        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
+        final IdentifiedKnowledge knowledge = findCurrentKnowledge(db);
+        if (knowledge == null) {
+            insertKnowledge(db, INITIAL_SCORE - SCORE_DECREMENT);
+        }
+        else if (knowledge.score > MIN_ALLOWED_SCORE) {
+            final int newProposedScore = knowledge.score - SCORE_DECREMENT;
+            final int newScore = (newProposedScore >= MIN_ALLOWED_SCORE)? newProposedScore : MIN_ALLOWED_SCORE;
+            updateKnowledge(db, knowledge.id, newScore);
+        }
+
+        _badAnswerCount++;
+    }
+
     @Override
     public void onClick(View view) {
         final long currentTime = System.currentTimeMillis();
@@ -275,14 +366,14 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
                     break;
 
                 case R.id.goodAnswerButton:
-                    _goodAnswerCount++;
+                    registerGoodAnswer();
                     _acceptation = selectNewAcceptation();
                     updateTextFields();
                     toggleAnswerVisibility();
                     break;
 
                 case R.id.badAnswerButton:
-                    _badAnswerCount++;
+                    registerBadAnswer();
                     _acceptation = selectNewAcceptation();
                     updateTextFields();
                     toggleAnswerVisibility();
