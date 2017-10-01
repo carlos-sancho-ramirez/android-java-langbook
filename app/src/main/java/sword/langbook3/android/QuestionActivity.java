@@ -203,7 +203,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         for (int i = 0; i < size; i++) {
             ponders[i] = ponderationCount;
             final int score = _knowledge.get(acceptations[i], INITIAL_SCORE);
-            ponderationCount += MAX_ALLOWED_SCORE + 1 - score;
+            final int ponderationThreshold = MIN_ALLOWED_SCORE + (MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE) * 3 / 4;
+            final int diff = ponderationThreshold - score;
+            ponderationCount += (diff > 0)? diff * diff : 1;
         }
 
         final long currentTimeMillis = System.currentTimeMillis();
