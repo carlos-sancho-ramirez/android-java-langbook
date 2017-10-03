@@ -3,7 +3,6 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -46,14 +45,19 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         static final String LEAVE_DIALOG_PRESENT = "ldp";
     }
 
+    public static final class ReturnKeys {
+        static final String GOOD_ANSWER_COUNT = "g";
+        static final String BAD_ANSWER_COUNT = "b";
+    }
+
     // Specifies the alphabet the user would like to see if possible.
     // TODO: This should be a shared preference
     static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
 
-    public static void open(Context context, int quizId) {
-        Intent intent = new Intent(context, QuestionActivity.class);
+    public static void open(Activity activity, int requestCode, int quizId) {
+        Intent intent = new Intent(activity, QuestionActivity.class);
         intent.putExtra(BundleKeys.QUIZ, quizId);
-        context.startActivity(intent);
+        activity.startActivityForResult(intent, requestCode);
     }
 
     private final SparseIntArray _knowledge = new SparseIntArray();
@@ -677,7 +681,11 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     public void onClick(DialogInterface dialogInterface, int which) {
         switch (which) {
             case DialogInterface.BUTTON_POSITIVE:
-                QuestionActivity.super.onBackPressed();
+                final Intent intent = new Intent();
+                intent.putExtra(ReturnKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
+                intent.putExtra(ReturnKeys.BAD_ANSWER_COUNT, _badAnswerCount);
+                setResult(Activity.RESULT_CANCELED, intent);
+                finish();
                 break;
         }
     }

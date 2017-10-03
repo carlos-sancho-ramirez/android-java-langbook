@@ -587,6 +587,6 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
     @Override
     public void onClick(View view) {
         final int quizId = obtainQuizDefinition();
-        QuestionActivity.open(this, quizId);
+        QuizResultActivity.open(this, quizId);
     }
 }

@@ -22,6 +22,7 @@
         <activity android:name=".QuizSelectionActivity"/>
         <activity android:name=".RuleTableActivity"/>
         <activity android:name=".SettingsActivity"/>
+        <activity android:name=".QuizResultActivity"/>
     </application>
 
 </manifest>
