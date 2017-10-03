@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.view.View;
 import android.widget.Button;
@@ -179,6 +180,57 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         return result;
     }
 
+    private int[] readAllRulableAcceptations(SQLiteDatabase db, int bunch, int alphabet, int rule) {
+        int[] result = new int[0];
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+
+        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
+        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
+        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+        final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
+        final Cursor cursor = db.rawQuery("SELECT J1." + idColumnName +
+                " FROM " + bunchAcceptations.getName() + " AS J0" +
+                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + idColumnName +
+                        " JOIN " + ruledConcepts.getName() + " AS J2 ON J1." + conceptField + "=J2." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
+                        " JOIN " + agents.getName() + " AS J3 ON J2." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J3." + idColumnName +
+                        " JOIN " + strings.getName() + " AS J4 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J4." + staAccField +
+                        " JOIN " + acceptations.getName() + " AS J5 ON J4." + dynAccField + "=J5." + idColumnName +
+                " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
+                        " AND J4." + alphabetField + "=?" +
+                        " AND J3." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?" +
+                        " AND J4." + staAccField + "!=J4." + dynAccField +
+                        " AND J2." + idColumnName + "=J5." + acceptations.getColumnName(acceptations.getConceptColumnIndex()),
+                new String[]{Integer.toString(bunch), Integer.toString(alphabet), Integer.toString(rule)}
+        );
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    SparseArray<Object> ids = new SparseArray<>();
+                    Object dummy = new Object();
+                    do {
+                        ids.put(cursor.getInt(0), dummy);
+                    } while (cursor.moveToNext());
+
+                    final int idCount = ids.size();
+                    result = new int[idCount];
+                    for (int i = 0; i < idCount; i++) {
+                        result[i] = ids.keyAt(i);
+                    }
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return result;
+    }
+
     private StringPair readInterAlphabetQuestionTexts(SQLiteDatabase db, int acceptation, int sourceAlphabet, int targetAlphabet) {
         StringPair result = null;
         if (sourceAlphabet != targetAlphabet) {
@@ -282,6 +334,82 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         return result;
     }
 
+    private StringPair readRuleQuestionTexts(SQLiteDatabase db, int acceptation, int alphabet, int rule) {
+        StringPair result = null;
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+
+        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
+        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
+        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+        final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
+        final Cursor cursor = db.rawQuery("SELECT J4." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + acceptations.getName() + " AS J0" +
+                    " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + conceptField + "=J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
+                    " JOIN " + agents.getName() + " AS J2 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J2." + idColumnName +
+                    " JOIN " + acceptations.getName() + " AS J3 ON J1." + idColumnName + "=J3." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                    " JOIN " + strings.getName() + " AS J4 ON J3." + idColumnName + "=J4." + dynAccField +
+                " WHERE J0." + idColumnName + "=?" +
+                    " AND J4." + alphabetField + "=?" +
+                    " AND J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?" +
+                    " AND J4." + staAccField + "=J0." + idColumnName,
+                new String[]{Integer.toString(acceptation), Integer.toString(alphabet), Integer.toString(rule)}
+        );
+
+        String answerText = null;
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    Set<String> answers = new HashSet<>();
+                    do {
+                        answers.add(cursor.getString(0));
+                    } while (cursor.moveToNext());
+
+                    if (!answers.isEmpty()) {
+                        boolean addComma = false;
+                        for (String answer : answers) {
+                            if (addComma) {
+                                answerText += ", " + answer;
+                            }
+                            else {
+                                answerText = answer;
+                                addComma = true;
+                            }
+                        }
+                    }
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        if (answerText == null) {
+            throw new IllegalArgumentException("Unable to find answer text for acceptation " + acceptation + " (" + alphabet + " with rule " + rule + ")");
+        }
+
+        final Cursor cursor2 = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) + " FROM " + strings.getName() + " WHERE " + dynAccField + "=? AND " + alphabetField + "=?", new String[] { Integer.toString(acceptation), Integer.toString(alphabet) });
+
+        if (cursor2 != null) {
+            try {
+                if (cursor2.moveToFirst()) {
+                    result = new StringPair(cursor2.getString(0), answerText);
+                }
+            }
+            finally {
+                cursor2.close();
+            }
+        }
+
+        if (result == null) {
+            throw new IllegalArgumentException("Unable to find question text for acceptation " + acceptation + " (" + alphabet + " with rule " + rule + ")");
+        }
+
+        return result;
+    }
+
     private int[] readAllPossibleAcceptations(SQLiteDatabase db, int quizType, int bunch, int sourceAlphabet, int aux) {
         switch (quizType) {
             case QuizTypes.interAlphabet:
@@ -292,6 +420,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
 
             case QuizTypes.translation:
                 return readAllPossibleSynonymOrTranslationAcceptations(db, bunch, sourceAlphabet, aux);
+
+            case QuizTypes.appliedRule:
+                return readAllRulableAcceptations(db, bunch, sourceAlphabet, aux);
         }
 
         return new int[0];
@@ -307,6 +438,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
 
             case QuizTypes.translation:
                 return readSynonymOrTranslationQuestionTexts(db, acceptation, sourceAlphabet, aux);
+
+            case QuizTypes.appliedRule:
+                return readRuleQuestionTexts(db, acceptation, sourceAlphabet, aux);
         }
 
         throw new UnsupportedOperationException("Unsupported quiz type");
