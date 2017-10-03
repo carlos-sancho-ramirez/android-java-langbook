@@ -8,4 +8,8 @@
     <string name="revealAnswerButton">Reveal answer</string>
     <string name="badAnswerButton">Bad</string>
     <string name="goodAnswerButton">Good</string>
+
+    <string name="questionLeaveConfirmation">Would you like to leave this quiz?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>

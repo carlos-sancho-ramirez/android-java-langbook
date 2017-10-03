@@ -1,8 +1,10 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -22,7 +24,7 @@ import sword.langbook3.android.QuizSelectionActivity.StringPair;
 
 import static sword.langbook3.android.DbManager.idColumnName;
 
-public class QuestionActivity extends Activity implements View.OnClickListener {
+public class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 
     private static final int MIN_ALLOWED_SCORE = 0;
     private static final int MAX_ALLOWED_SCORE = 20;
@@ -31,6 +33,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
     private static final int SCORE_DECREMENT = 2;
 
     private static final long CLICK_MILLIS_TIME_INTERVAL = 800;
+
     private static final class BundleKeys {
         static final String QUIZ = "quiz";
     }
@@ -40,6 +43,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         static final String IS_ANSWER_VISIBLE = "av";
         static final String GOOD_ANSWER_COUNT = "ga";
         static final String BAD_ANSWER_COUNT = "ba";
+        static final String LEAVE_DIALOG_PRESENT = "ldp";
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -66,6 +70,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
     private StringPair _texts;
     private boolean _isAnswerVisible;
 
+    private AlertDialog _dialog;
     private TextView _scoreTextView;
     private TextView _questionTextView;
     private TextView _answerTextView;
@@ -523,11 +528,13 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         readCurrentKnowledge(db);
 
         boolean shouldRevealAnswer = false;
+        boolean leaveDialogPresent = false;
         if (savedInstanceState != null) {
             _acceptation = savedInstanceState.getInt(SavedKeys.ACCEPTATION, 0);
             _goodAnswerCount = savedInstanceState.getInt(SavedKeys.GOOD_ANSWER_COUNT);
             _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_COUNT);
             shouldRevealAnswer = savedInstanceState.getBoolean(SavedKeys.IS_ANSWER_VISIBLE);
+            leaveDialogPresent = savedInstanceState.getBoolean(SavedKeys.LEAVE_DIALOG_PRESENT);
         }
 
         if (_acceptation == 0) {
@@ -545,6 +552,10 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
 
         if (shouldRevealAnswer) {
             toggleAnswerVisibility();
+        }
+
+        if (leaveDialogPresent) {
+            showLeaveConfirmation();
         }
     }
 
@@ -659,5 +670,35 @@ public class QuestionActivity extends Activity implements View.OnClickListener {
         out.putBoolean(SavedKeys.IS_ANSWER_VISIBLE, _isAnswerVisible);
         out.putInt(SavedKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
         out.putInt(SavedKeys.BAD_ANSWER_COUNT, _badAnswerCount);
+        out.putBoolean(SavedKeys.LEAVE_DIALOG_PRESENT, _dialog != null);
+    }
+
+    @Override
+    public void onClick(DialogInterface dialogInterface, int which) {
+        switch (which) {
+            case DialogInterface.BUTTON_POSITIVE:
+                QuestionActivity.super.onBackPressed();
+                break;
+        }
+    }
+
+    @Override
+    public void onDismiss(DialogInterface dialogInterface) {
+        _dialog = null;
+    }
+
+    private void showLeaveConfirmation() {
+        _dialog = new AlertDialog.Builder(this)
+                .setMessage(R.string.questionLeaveConfirmation)
+                .setPositiveButton(R.string.yes, this)
+                .setNegativeButton(R.string.no, this)
+                .setOnDismissListener(this)
+                .create();
+        _dialog.show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        showLeaveConfirmation();
     }
 }
