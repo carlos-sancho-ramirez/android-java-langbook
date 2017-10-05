@@ -3,6 +3,8 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.widget.TextView;
 
@@ -32,6 +34,8 @@ public class QuizResultActivity extends Activity {
 
     private int _quizId;
     private TextView _textView;
+    private int[] _progress;
+    private int _totalScoredAnswers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,10 +55,24 @@ public class QuizResultActivity extends Activity {
     private void refreshUi() {
         final int totalAnswerCount = _goodAnswerCount + _badAnswerCount;
 
+        if (_progress == null) {
+            _progress = readProgress();
+            _totalScoredAnswers = 0;
+            for (int value : _progress) {
+                _totalScoredAnswers += value;
+            }
+        }
+
         final StringBuilder sb = new StringBuilder();
-        sb.append("Total given answers: ").append(totalAnswerCount)
+        sb.append("Total current answers: ").append(totalAnswerCount)
                 .append("\nGood answers: ").append(_goodAnswerCount)
                 .append("\nBad answers: ").append(_badAnswerCount);
+
+        sb.append("\nTotal answers given for this quiz: ").append(_totalScoredAnswers);
+        for (int i = 0; i < _progress.length; i++) {
+            sb.append("\n  With score " + (QuestionActivity.MIN_ALLOWED_SCORE + i) + ": " + _progress[i]);
+        }
+
         _textView.setText(sb.toString());
     }
 
@@ -68,9 +86,33 @@ public class QuizResultActivity extends Activity {
             else {
                 _goodAnswerCount = data.getIntExtra(QuestionActivity.ReturnKeys.GOOD_ANSWER_COUNT, 0);
                 _badAnswerCount = data.getIntExtra(QuestionActivity.ReturnKeys.BAD_ANSWER_COUNT, 0);
-                refreshUi();
             }
         }
+    }
+
+    private int[] readProgress() {
+        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        final DbManager.KnowledgeTable knowledge = DbManager.Tables.knowledge;
+
+        final Cursor cursor = db.rawQuery("SELECT " + knowledge.getColumnName(knowledge.getScoreColumnIndex()) + " FROM " + knowledge.getName() + " WHERE " + knowledge.getColumnName(knowledge.getQuizDefinitionColumnIndex()) + "=?",
+                new String[] { Integer.toString(_quizId)});
+
+        final int[] progress = new int[QuestionActivity.MAX_ALLOWED_SCORE - QuestionActivity.MIN_ALLOWED_SCORE + 1];
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        final int index = cursor.getInt(0) - QuestionActivity.MIN_ALLOWED_SCORE;
+                        progress[index] = progress[index] + 1;
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return progress;
     }
 
     @Override

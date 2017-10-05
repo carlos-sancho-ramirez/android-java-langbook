@@ -25,8 +25,8 @@ import static sword.langbook3.android.DbManager.idColumnName;
 
 public class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 
-    private static final int MIN_ALLOWED_SCORE = 0;
-    private static final int MAX_ALLOWED_SCORE = 20;
+    static final int MIN_ALLOWED_SCORE = 0;
+    static final int MAX_ALLOWED_SCORE = 20;
     private static final int INITIAL_SCORE = 10;
     private static final int SCORE_INCREMENT = 1;
     private static final int SCORE_DECREMENT = 2;
