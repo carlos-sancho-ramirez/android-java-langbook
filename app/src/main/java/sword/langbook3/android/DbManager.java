@@ -344,6 +344,14 @@ class DbManager extends SQLiteOpenHelper {
         return id;
     }
 
+    private void insertRuledAcceptation(SQLiteDatabase db, int ruledAcceptation, int agent, int acceptation) {
+        final RuledAcceptationsTable table = Tables.ruledAcceptations;
+        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' +
+                table.getColumnName(table.getAgentColumnIndex()) + ',' +
+                table.getColumnName(table.getAcceptationColumnIndex()) + ") VALUES (" +
+                ruledAcceptation + ',' + agent + ',' + acceptation + ')');
+    }
+
     private int insertRuledConcept(SQLiteDatabase db, int agent, int concept) {
         final int ruledConcept = getMaxConcept(db) + 1;
         final RuledConceptsTable table = Tables.ruledConcepts;
@@ -1511,6 +1519,21 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    static final class RuledAcceptationsTable extends DbTable {
+
+        RuledAcceptationsTable() {
+            super("RuledAcceptations", new DbIntColumn("agent"), new DbIntColumn("acceptation"));
+        }
+
+        int getAgentColumnIndex() {
+            return 1;
+        }
+
+        int getAcceptationColumnIndex() {
+            return 2;
+        }
+    }
+
     static final class RuledConceptsTable extends DbTable {
 
         RuledConceptsTable() {
@@ -1579,6 +1602,7 @@ class DbManager extends SQLiteOpenHelper {
         static final KnowledgeTable knowledge = new KnowledgeTable();
         static final LanguagesTable languages = new LanguagesTable();
         static final QuizDefinitionsTable quizDefinitions = new QuizDefinitionsTable();
+        static final RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
         static final RuledConceptsTable ruledConcepts = new RuledConceptsTable();
         static final StringQueriesTable stringQueries = new StringQueriesTable();
         static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
@@ -1586,7 +1610,7 @@ class DbManager extends SQLiteOpenHelper {
 
     static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[16];
+    private static final DbTable[] dbTables = new DbTable[17];
     static {
         dbTables[0] = Tables.acceptations;
         dbTables[1] = Tables.agents;
@@ -1601,9 +1625,10 @@ class DbManager extends SQLiteOpenHelper {
         dbTables[10] = Tables.knowledge;
         dbTables[11] = Tables.languages;
         dbTables[12] = Tables.quizDefinitions;
-        dbTables[13] = Tables.ruledConcepts;
-        dbTables[14] = Tables.stringQueries;
-        dbTables[15] = Tables.symbolArrays;
+        dbTables[13] = Tables.ruledAcceptations;
+        dbTables[14] = Tables.ruledConcepts;
+        dbTables[15] = Tables.stringQueries;
+        dbTables[16] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {
@@ -2042,6 +2067,7 @@ class DbManager extends SQLiteOpenHelper {
                 final int corrArrayId = insertCorrelationArray(db, corrId);
                 suggestedNewWordUsed = true;
                 final int dynAccId = insertAcceptation(db, suggestedNewWordId, newConcept, corrArrayId);
+                insertRuledAcceptation(db, dynAccId, agentId, accId);
 
                 for (int i = 0; i < resultCorrLength; i++) {
                     insertStringQuery(db, resultCorr.valueAt(i), resultCorr.valueAt(0), accId, dynAccId, resultCorr.keyAt(i));
