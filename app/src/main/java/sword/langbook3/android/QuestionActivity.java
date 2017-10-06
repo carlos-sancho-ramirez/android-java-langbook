@@ -31,7 +31,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private static final int SCORE_INCREMENT = 1;
     private static final int SCORE_DECREMENT = 2;
 
-    private static final long CLICK_MILLIS_TIME_INTERVAL = 800;
+    private static final long CLICK_MILLIS_TIME_INTERVAL = 600;
 
     private static final class BundleKeys {
         static final String QUIZ = "quiz";
@@ -544,6 +544,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         _scoreTextView = findViewById(R.id.scoreTextView);
         updateTextFields();
 
+        _questionTextView.setOnClickListener(this);
         findViewById(R.id.revealAnswerButton).setOnClickListener(this);
         findViewById(R.id.goodAnswerButton).setOnClickListener(this);
         findViewById(R.id.badAnswerButton).setOnClickListener(this);
@@ -656,6 +657,12 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                     _acceptation = selectNewAcceptation();
                     updateTextFields();
                     toggleAnswerVisibility();
+                    break;
+
+                case R.id.questionText:
+                    if (_isAnswerVisible) {
+                        AcceptationDetailsActivity.open(this, _acceptation, _acceptation);
+                    }
                     break;
             }
         }
