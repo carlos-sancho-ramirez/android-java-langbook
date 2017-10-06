@@ -192,28 +192,21 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private int[] readAllRulableAcceptations(SQLiteDatabase db, int bunch, int alphabet, int rule) {
         int[] result = new int[0];
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
+        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
         final DbManager.AgentsTable agents = DbManager.Tables.agents;
 
         final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
         final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-        final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT J1." + idColumnName +
+        final Cursor cursor = db.rawQuery("SELECT J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
                 " FROM " + bunchAcceptations.getName() + " AS J0" +
-                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + idColumnName +
-                        " JOIN " + ruledConcepts.getName() + " AS J2 ON J1." + conceptField + "=J2." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
-                        " JOIN " + agents.getName() + " AS J3 ON J2." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J3." + idColumnName +
-                        " JOIN " + strings.getName() + " AS J4 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J4." + staAccField +
-                        " JOIN " + acceptations.getName() + " AS J5 ON J4." + dynAccField + "=J5." + idColumnName +
+                        " JOIN " + ruledAcceptations.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) +
+                        " JOIN " + agents.getName() + " AS J2 ON J1." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
+                        " JOIN " + strings.getName() + " AS J3 ON J1." + idColumnName + "=J3." + dynAccField +
                 " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
-                        " AND J4." + alphabetField + "=?" +
-                        " AND J3." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?" +
-                        " AND J4." + staAccField + "!=J4." + dynAccField +
-                        " AND J2." + idColumnName + "=J5." + acceptations.getColumnName(acceptations.getConceptColumnIndex()),
+                        " AND J3." + alphabetField + "=?" +
+                        " AND J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
                 new String[]{Integer.toString(bunch), Integer.toString(alphabet), Integer.toString(rule)}
         );
 
