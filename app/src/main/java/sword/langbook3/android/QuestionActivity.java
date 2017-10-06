@@ -43,6 +43,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         static final String GOOD_ANSWER_COUNT = "ga";
         static final String BAD_ANSWER_COUNT = "ba";
         static final String LEAVE_DIALOG_PRESENT = "ldp";
+        static final String POSSIBLE_QUESTION_COUNT = "pqc";
     }
 
     public static final class ReturnKeys {
@@ -72,6 +73,13 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private int _goodAnswerCount;
     private int _badAnswerCount;
     private int _acceptation;
+
+    // This is redundant as it matches _possibleAcceptations.length. However, as
+    // _possibleAcceptations may be large it is not stored in the Bundle on any configuration
+    // change and it is queried just when required. Whenever the query is fast enough, this int
+    // should be removed and _possibleAcceptations should be recalculated on each configuration
+    // change instead.
+    private int _possibleQuestionCount;
     private StringPair _texts;
     private boolean _isAnswerVisible;
 
@@ -483,6 +491,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         if (_possibleAcceptations == null) {
             final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
             _possibleAcceptations = readAllPossibleAcceptations(db, _quizType, _bunch, _sourceAlphabet, _aux);
+            _possibleQuestionCount = _possibleAcceptations.length;
         }
 
         return selectAcceptation(_possibleAcceptations);
@@ -531,6 +540,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
             _acceptation = savedInstanceState.getInt(SavedKeys.ACCEPTATION, 0);
             _goodAnswerCount = savedInstanceState.getInt(SavedKeys.GOOD_ANSWER_COUNT);
             _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_COUNT);
+            _possibleQuestionCount = savedInstanceState.getInt(SavedKeys.POSSIBLE_QUESTION_COUNT);
             shouldRevealAnswer = savedInstanceState.getBoolean(SavedKeys.IS_ANSWER_VISIBLE);
             leaveDialogPresent = savedInstanceState.getBoolean(SavedKeys.LEAVE_DIALOG_PRESENT);
         }
@@ -675,6 +685,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         out.putBoolean(SavedKeys.IS_ANSWER_VISIBLE, _isAnswerVisible);
         out.putInt(SavedKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
         out.putInt(SavedKeys.BAD_ANSWER_COUNT, _badAnswerCount);
+        out.putInt(SavedKeys.POSSIBLE_QUESTION_COUNT, _possibleQuestionCount);
         out.putBoolean(SavedKeys.LEAVE_DIALOG_PRESENT, _dialog != null);
     }
 
@@ -685,7 +696,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                 final Intent intent = new Intent();
                 intent.putExtra(ReturnKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
                 intent.putExtra(ReturnKeys.BAD_ANSWER_COUNT, _badAnswerCount);
-                intent.putExtra(ReturnKeys.POSSIBLE_QUESTION_COUNT, _possibleAcceptations.length);
+                intent.putExtra(ReturnKeys.POSSIBLE_QUESTION_COUNT, _possibleQuestionCount);
                 setResult(Activity.RESULT_CANCELED, intent);
                 finish();
                 break;
