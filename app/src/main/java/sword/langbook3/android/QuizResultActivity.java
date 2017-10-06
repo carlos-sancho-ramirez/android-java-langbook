@@ -20,6 +20,7 @@ public class QuizResultActivity extends Activity {
         static final String QUIZ_FINISHED = "finished";
         static final String GOOD_ANSWER_AMOUNT = "gA";
         static final String BAD_ANSWER_AMOUNT = "bA";
+        static final String POSSIBLE_QUESTION_COUNT = "pqc";
     }
 
     public static void open(Context context, int quizId) {
@@ -31,6 +32,7 @@ public class QuizResultActivity extends Activity {
     private boolean _quizFinished;
     private int _goodAnswerCount;
     private int _badAnswerCount;
+    private int _possibleQuestionCount;
 
     private int _quizId;
     private TextView _textView;
@@ -46,6 +48,7 @@ public class QuizResultActivity extends Activity {
             _quizFinished = savedInstanceState.getBoolean(SavedKeys.QUIZ_FINISHED);
             _goodAnswerCount = savedInstanceState.getInt(SavedKeys.GOOD_ANSWER_AMOUNT);
             _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_AMOUNT);
+            _possibleQuestionCount = savedInstanceState.getInt(SavedKeys.POSSIBLE_QUESTION_COUNT);
         }
 
         _quizId = getIntent().getIntExtra(BundleKeys.QUIZ, 0);
@@ -73,6 +76,11 @@ public class QuizResultActivity extends Activity {
             sb.append("\n  With score " + (QuestionActivity.MIN_ALLOWED_SCORE + i) + ": " + _progress[i]);
         }
 
+        final float queriedPercentage = (_possibleQuestionCount > 0)? (float) _totalScoredAnswers / _possibleQuestionCount * 100 : 100;
+        sb.append("\n\nTotal possible questions: ").append(_possibleQuestionCount)
+                .append("\nQueried so far: ").append(_totalScoredAnswers)
+                .append(" out of ").append(_possibleQuestionCount)
+                .append(" (").append(queriedPercentage).append("%)");
         _textView.setText(sb.toString());
     }
 
@@ -86,6 +94,7 @@ public class QuizResultActivity extends Activity {
             else {
                 _goodAnswerCount = data.getIntExtra(QuestionActivity.ReturnKeys.GOOD_ANSWER_COUNT, 0);
                 _badAnswerCount = data.getIntExtra(QuestionActivity.ReturnKeys.BAD_ANSWER_COUNT, 0);
+                _possibleQuestionCount = data.getIntExtra(QuestionActivity.ReturnKeys.POSSIBLE_QUESTION_COUNT, 0);
             }
         }
     }
@@ -132,5 +141,6 @@ public class QuizResultActivity extends Activity {
         out.putBoolean(SavedKeys.QUIZ_FINISHED, _quizFinished);
         out.putInt(SavedKeys.GOOD_ANSWER_AMOUNT, _goodAnswerCount);
         out.putInt(SavedKeys.BAD_ANSWER_AMOUNT, _badAnswerCount);
+        out.putInt(SavedKeys.POSSIBLE_QUESTION_COUNT, _possibleQuestionCount);
     }
 }

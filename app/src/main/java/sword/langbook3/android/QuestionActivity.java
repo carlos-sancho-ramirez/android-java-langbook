@@ -48,6 +48,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     public static final class ReturnKeys {
         static final String GOOD_ANSWER_COUNT = "g";
         static final String BAD_ANSWER_COUNT = "b";
+        static final String POSSIBLE_QUESTION_COUNT = "pqc";
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -684,6 +685,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                 final Intent intent = new Intent();
                 intent.putExtra(ReturnKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
                 intent.putExtra(ReturnKeys.BAD_ANSWER_COUNT, _badAnswerCount);
+                intent.putExtra(ReturnKeys.POSSIBLE_QUESTION_COUNT, _possibleAcceptations.length);
                 setResult(Activity.RESULT_CANCELED, intent);
                 finish();
                 break;
