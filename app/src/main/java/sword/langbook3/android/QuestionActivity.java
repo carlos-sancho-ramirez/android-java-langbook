@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -459,6 +460,10 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private int selectAcceptation(int[] acceptations) {
         final int size = acceptations.length;
+        if (size == 0) {
+            return 0;
+        }
+
         final int[] ponders = new int[size];
         int ponderationCount = 0;
         for (int i = 0; i < size; i++) {
@@ -552,19 +557,29 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         _questionTextView = findViewById(R.id.questionText);
         _answerTextView = findViewById(R.id.answerText);
         _scoreTextView = findViewById(R.id.scoreTextView);
-        updateTextFields();
 
-        _questionTextView.setOnClickListener(this);
-        findViewById(R.id.revealAnswerButton).setOnClickListener(this);
-        findViewById(R.id.goodAnswerButton).setOnClickListener(this);
-        findViewById(R.id.badAnswerButton).setOnClickListener(this);
+        if (_acceptation != 0) {
+            updateTextFields();
 
-        if (shouldRevealAnswer) {
-            toggleAnswerVisibility();
+            _questionTextView.setOnClickListener(this);
+            findViewById(R.id.revealAnswerButton).setOnClickListener(this);
+            findViewById(R.id.goodAnswerButton).setOnClickListener(this);
+            findViewById(R.id.badAnswerButton).setOnClickListener(this);
+
+            if (shouldRevealAnswer) {
+                toggleAnswerVisibility();
+            }
+
+            if (leaveDialogPresent) {
+                showLeaveConfirmation();
+            }
         }
-
-        if (leaveDialogPresent) {
-            showLeaveConfirmation();
+        else {
+            // This should not happen!
+            // This activity should not be started if no possible questions are available.
+            // TODO: Logic in QuizSelectorActivity has to be reviewed
+            Toast.makeText(this, "No valid questions found for this quiz", Toast.LENGTH_SHORT).show();
+            finish();
         }
     }
 
