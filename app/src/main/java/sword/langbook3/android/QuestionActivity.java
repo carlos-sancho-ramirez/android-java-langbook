@@ -166,17 +166,18 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
         final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
         final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT J0." + dynAccField +
-                " FROM " + strings.getName() + " AS J0" +
-                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + dynAccField + "=J1." + idColumnName +
+        final String accField = bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex());
+        final Cursor cursor = db.rawQuery("SELECT J0." + accField +
+                " FROM " + bunchAcceptations.getName() + " AS J0" +
+                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + accField + "=J1." + idColumnName +
                         " JOIN " + acceptations.getName() + " AS J2 ON J1." + conceptField + "=J2." + conceptField +
                         " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + dynAccField +
-                        " JOIN " + bunchAcceptations.getName() + " AS J4 ON J0." + dynAccField + "=J4." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
-                " WHERE J0." + dynAccField + "=J0." + staAccField +
+                        " JOIN " + strings.getName() + " AS J4 ON J0." + accField + "=J4." + dynAccField +
+                " WHERE J4." + dynAccField + "=J4." + staAccField +
                         " AND J1." + idColumnName + "!=J2." + idColumnName +
-                        " AND J0." + alphabetField + "=?" +
+                        " AND J4." + alphabetField + "=?" +
                         " AND J3." + alphabetField + "=?" +
-                        " AND J4." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?",
+                        " AND J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?",
                 new String[]{Integer.toString(sourceAlphabet), Integer.toString(
                             targetAlphabet), Integer.toString(bunch)}
         );
