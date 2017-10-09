@@ -67,7 +67,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private int _quizId;
     private int _quizType;
-    private int _bunch;
+    private int _sourceBunch;
+    private int _targetBunch;
     private int _sourceAlphabet;
     private int _aux;
 
@@ -96,6 +97,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final Cursor cursor = db.rawQuery("SELECT " +
                         table.getColumnName(table.getQuizTypeColumnIndex()) + ',' +
                         table.getColumnName(table.getSourceBunchColumnIndex()) + ',' +
+                        table.getColumnName(table.getTargetBunchColumnIndex()) + ',' +
                         table.getColumnName(table.getSourceAlphabetColumnIndex()) + ',' +
                         table.getColumnName(table.getAuxiliarColumnIndex()) +
                         " FROM " + table.getName() + " WHERE " + idColumnName + "=?",
@@ -107,9 +109,10 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
         try {
             _quizType = cursor.getInt(0);
-            _bunch = cursor.getInt(1);
-            _sourceAlphabet = cursor.getInt(2);
-            _aux = cursor.getInt(3);
+            _sourceBunch = cursor.getInt(1);
+            _targetBunch = cursor.getInt(2);
+            _sourceAlphabet = cursor.getInt(3);
+            _aux = cursor.getInt(4);
         }
         finally {
             cursor.close();
@@ -156,7 +159,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         return result;
     }
 
-    private int[] readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet) {
+    private int[] readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet, boolean selectTarget) {
         int[] result = new int[0];
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
@@ -167,7 +170,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
         final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
         final String accField = bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT J0." + accField +
+
+        final String tableSelection = selectTarget? "J2." : "J1.";
+        final Cursor cursor = db.rawQuery("SELECT " + tableSelection + idColumnName +
                 " FROM " + bunchAcceptations.getName() + " AS J0" +
                         " JOIN " + acceptations.getName() + " AS J1 ON J0." + accField + "=J1." + idColumnName +
                         " JOIN " + acceptations.getName() + " AS J2 ON J1." + conceptField + "=J2." + conceptField +
@@ -423,19 +428,24 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         return result;
     }
 
-    private int[] readAllPossibleAcceptations(SQLiteDatabase db, int quizType, int bunch, int sourceAlphabet, int aux) {
+    private int[] readAllPossibleAcceptations(SQLiteDatabase db, int quizType, int sourceAlphabet, int aux) {
         switch (quizType) {
             case QuizTypes.interAlphabet:
-                return readAllPossibleInterAlphabetAcceptations(db, bunch, sourceAlphabet, aux);
+                return readAllPossibleInterAlphabetAcceptations(db, _sourceBunch, sourceAlphabet, aux);
 
             case QuizTypes.synonym:
-                return readAllPossibleSynonymOrTranslationAcceptations(db, bunch, sourceAlphabet, sourceAlphabet);
+                return readAllPossibleSynonymOrTranslationAcceptations(db, (_sourceBunch != 0)? _sourceBunch : _targetBunch, sourceAlphabet, sourceAlphabet, false);
 
             case QuizTypes.translation:
-                return readAllPossibleSynonymOrTranslationAcceptations(db, bunch, sourceAlphabet, aux);
+                if (_sourceBunch != 0) {
+                    return readAllPossibleSynonymOrTranslationAcceptations(db, _sourceBunch, sourceAlphabet, aux, false);
+                }
+                else {
+                    return readAllPossibleSynonymOrTranslationAcceptations(db, _targetBunch, aux, sourceAlphabet, true);
+                }
 
             case QuizTypes.appliedRule:
-                return readAllRulableAcceptations(db, bunch, sourceAlphabet, aux);
+                return readAllRulableAcceptations(db, _sourceBunch, sourceAlphabet, aux);
         }
 
         return new int[0];
@@ -496,7 +506,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private int selectNewAcceptation() {
         if (_possibleAcceptations == null) {
             final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-            _possibleAcceptations = readAllPossibleAcceptations(db, _quizType, _bunch, _sourceAlphabet, _aux);
+            _possibleAcceptations = readAllPossibleAcceptations(db, _quizType, _sourceAlphabet, _aux);
             _possibleQuestionCount = _possibleAcceptations.length;
         }
 

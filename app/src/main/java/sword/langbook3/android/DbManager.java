@@ -1489,15 +1489,19 @@ class DbManager extends SQLiteOpenHelper {
     static final class QuizDefinitionsTable extends DbTable {
 
         QuizDefinitionsTable() {
-            super("QuizDefinitions", new DbIntColumn("sourceBunch"), new DbIntColumn("sourceAlphabet"), new DbIntColumn("quizType"), new DbIntColumn("aux"));
+            super("QuizDefinitions", new DbIntColumn("sourceBunch"), new DbIntColumn("targetBunch"), new DbIntColumn("sourceAlphabet"), new DbIntColumn("quizType"), new DbIntColumn("aux"));
         }
 
         int getSourceBunchColumnIndex() {
             return 1;
         }
 
-        int getSourceAlphabetColumnIndex() {
+        int getTargetBunchColumnIndex() {
             return 2;
+        }
+
+        int getSourceAlphabetColumnIndex() {
+            return 3;
         }
 
         /**
@@ -1508,14 +1512,14 @@ class DbManager extends SQLiteOpenHelper {
          * <li>4: Applied rule. Here aux is the target rule. Target alphabet is assumed to be the same as sourceAlphabet.
          */
         int getQuizTypeColumnIndex() {
-            return 3;
+            return 4;
         }
 
         /**
          * This can hold a targetAlphabet or a rule. Depending on the quiz type.
          */
         int getAuxiliarColumnIndex() {
-            return 4;
+            return 5;
         }
     }
 

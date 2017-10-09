@@ -370,6 +370,7 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
 
     private Spinner _sourceAlphabetSpinner;
     private Spinner _auxSpinner;
+    private Spinner _bunchApplianceToggle;
     private QuizTypeAdapter _quizTypeAdapter;
     private SparseArray<String> _allAlphabets;
     private SparseArray<String> _allRules;
@@ -382,7 +383,8 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
     }
 
     private int _quizType;
-    private int _bunch;
+    private int _sourceBunch;
+    private int _targetBunch;
     private int _sourceAlphabet;
     private int _aux;
 
@@ -399,11 +401,11 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                 "applied rule"
         });
 
-        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
+        _sourceBunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
-        if (_bunch != 0) {
-            final String bunchText = AcceptationDetailsActivity.readConceptText(db, _bunch);
+        if (_sourceBunch != 0) {
+            final String bunchText = AcceptationDetailsActivity.readConceptText(db, _sourceBunch);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
         }
@@ -417,6 +419,9 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
 
         _auxSpinner = findViewById(R.id.aux);
         _auxSpinner.setOnItemSelectedListener(this);
+
+        _bunchApplianceToggle = findViewById(R.id.bunchApplianceToggle);
+        _bunchApplianceToggle.setOnItemSelectedListener(this);
 
         findViewById(R.id.startButton).setOnClickListener(this);
     }
@@ -435,6 +440,16 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
             case R.id.aux:
                 _aux = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
                 break;
+
+            case R.id.bunchApplianceToggle:
+                if (position == 0 && _targetBunch != 0) {
+                    _sourceBunch = _targetBunch;
+                    _targetBunch = 0;
+                }
+                else if (position == 1 && _sourceBunch != 0) {
+                    _targetBunch = _sourceBunch;
+                    _sourceBunch = 0;
+                }
         }
     }
 
@@ -466,6 +481,8 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                     _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
                     _auxSpinner.setAdapter(new AlphabetAdapter(items));
                     _auxSpinner.setVisibility(View.VISIBLE);
+
+                    _bunchApplianceToggle.setVisibility(View.GONE);
                 } while(false);
                 break;
 
@@ -484,6 +501,12 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                     _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
                     _auxSpinner.setAdapter(new AlphabetAdapter(items));
                     _auxSpinner.setVisibility(View.VISIBLE);
+
+                    final AdapterItem[] bunchAppliances = new AdapterItem[2];
+                    bunchAppliances[0] = new AdapterItem(0, "bunch in source");
+                    bunchAppliances[1] = new AdapterItem(1, "bunch in target");
+                    _bunchApplianceToggle.setAdapter(new AlphabetAdapter(bunchAppliances));
+                    _bunchApplianceToggle.setVisibility(View.VISIBLE);
                 } while(false);
                 break;
 
@@ -501,6 +524,12 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
 
                     _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
                     _auxSpinner.setVisibility(View.GONE);
+
+                    final AdapterItem[] bunchAppliances = new AdapterItem[2];
+                    bunchAppliances[0] = new AdapterItem(0, "bunch in source");
+                    bunchAppliances[1] = new AdapterItem(1, "bunch in target");
+                    _bunchApplianceToggle.setAdapter(new AlphabetAdapter(bunchAppliances));
+                    _bunchApplianceToggle.setVisibility(View.VISIBLE);
                 } while(false);
                 break;
 
@@ -530,6 +559,8 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
 
                     _auxSpinner.setAdapter(new AlphabetAdapter(rules));
                     _auxSpinner.setVisibility(View.VISIBLE);
+
+                    _bunchApplianceToggle.setVisibility(View.GONE);
                 } while(false);
                 break;
 
@@ -544,9 +575,10 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         final Cursor cursor = db.rawQuery("SELECT " + idColumnName + " FROM " + quizDefinitions.getName() + " WHERE " +
                         quizDefinitions.getColumnName(quizDefinitions.getQuizTypeColumnIndex()) + "=? AND " +
                         quizDefinitions.getColumnName(quizDefinitions.getSourceBunchColumnIndex()) + "=? AND " +
+                        quizDefinitions.getColumnName(quizDefinitions.getTargetBunchColumnIndex()) + "=? AND " +
                         quizDefinitions.getColumnName(quizDefinitions.getSourceAlphabetColumnIndex()) + "=? AND " +
                         quizDefinitions.getColumnName(quizDefinitions.getAuxiliarColumnIndex()) + "=?",
-                new String[] {Integer.toString(_quizType), Integer.toString(_bunch),
+                new String[] {Integer.toString(_quizType), Integer.toString(_sourceBunch), Integer.toString(_targetBunch),
                         Integer.toString(_sourceAlphabet), Integer.toString(_aux)});
 
         if (cursor != null) {
@@ -571,7 +603,8 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         final DbManager.QuizDefinitionsTable table = DbManager.Tables.quizDefinitions;
         ContentValues cv = new ContentValues();
         cv.put(table.getColumnName(table.getQuizTypeColumnIndex()), _quizType);
-        cv.put(table.getColumnName(table.getSourceBunchColumnIndex()), _bunch);
+        cv.put(table.getColumnName(table.getSourceBunchColumnIndex()), _sourceBunch);
+        cv.put(table.getColumnName(table.getTargetBunchColumnIndex()), _targetBunch);
         cv.put(table.getColumnName(table.getSourceAlphabetColumnIndex()), _sourceAlphabet);
         cv.put(table.getColumnName(table.getAuxiliarColumnIndex()), _aux);
 
