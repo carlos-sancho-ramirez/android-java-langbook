@@ -1,6 +1,8 @@
 package sword.langbook3.android;
 
 import android.content.Context;
+import android.text.SpannableString;
+import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,9 +16,9 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
 
     public static abstract class Item {
 
-        private String _text;
+        private CharSequence _text;
 
-        Item(String text) {
+        Item(CharSequence text) {
             if (text == null) {
                 throw new IllegalArgumentException();
             }
@@ -24,7 +26,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
             _text = text;
         }
 
-        String getText() {
+        CharSequence getText() {
             return _text;
         }
 
@@ -49,7 +51,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
      */
     static final class HeaderItem extends Item {
 
-        HeaderItem(String text) {
+        HeaderItem(CharSequence text) {
             super(text);
         }
 
@@ -72,7 +74,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         private final int _id;
         private final int _textColor;
 
-        AcceptationNavigableItem(int id, String text, boolean dynamic) {
+        AcceptationNavigableItem(int id, CharSequence text, boolean dynamic) {
             super(text);
             _id = id;
             _textColor = dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
@@ -102,7 +104,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
 
         private final int _id;
 
-        RuleNavigableItem(int id, String text) {
+        RuleNavigableItem(int id, CharSequence text) {
             super(text);
             _id = id;
         }
@@ -129,7 +131,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
      */
     static final class NonNavigableItem extends Item {
 
-        NonNavigableItem(String text) {
+        NonNavigableItem(CharSequence text) {
             super(text);
         }
 
@@ -223,7 +225,12 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         final TextView tv = view.findViewById(R.id.itemTextView);
-        tv.setText(item.getText());
+        final CharSequence text = item.getText();
+        tv.setText(text);
+        if (text instanceof SpannableString) {
+            // Required to make the textView clickable on its spans
+            tv.setMovementMethod(LinkMovementMethod.getInstance());
+        }
         tv.setTextColor(tv.getContext().getResources().getColor(item.getTextColorRes()));
 
         return view;

@@ -18,11 +18,12 @@
         </activity>
 
         <activity android:name=".AcceptationDetailsActivity"/>
+        <activity android:name=".CorrelationDetailsActivity"/>
         <activity android:name=".QuestionActivity"/>
+        <activity android:name=".QuizResultActivity"/>
         <activity android:name=".QuizSelectionActivity"/>
         <activity android:name=".RuleTableActivity"/>
         <activity android:name=".SettingsActivity"/>
-        <activity android:name=".QuizResultActivity"/>
     </application>
 
 </manifest>

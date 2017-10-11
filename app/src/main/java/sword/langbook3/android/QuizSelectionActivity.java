@@ -196,7 +196,7 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         }
     }
 
-    private SparseArray<String> readAllAlphabets(SQLiteDatabase db) {
+    static SparseArray<String> readAllAlphabets(SQLiteDatabase db) {
         final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;

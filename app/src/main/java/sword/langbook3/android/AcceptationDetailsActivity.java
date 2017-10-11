@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ClickableSpan;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.view.Menu;
@@ -47,7 +50,17 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         context.startActivity(intent);
     }
 
-    private List<SparseArray<String>> readCorrelationArray(SQLiteDatabase db, int acceptation) {
+    private static final class CorrelationHolder {
+        final int id;
+        final SparseArray<String> texts;
+
+        CorrelationHolder(int id, SparseArray<String> texts) {
+            this.id = id;
+            this.texts = texts;
+        }
+    }
+
+    private List<CorrelationHolder> readCorrelationArray(SQLiteDatabase db, int acceptation) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
         final DbManager.CorrelationArraysTable correlationArrays = DbManager.Tables.correlationArrays; // J1
         final DbManager.CorrelationsTable correlations = DbManager.Tables.correlations; // J2
@@ -56,6 +69,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         Cursor cursor = db.rawQuery(
                 "SELECT" +
                     " J1." + correlationArrays.getColumnName(correlationArrays.getArrayPositionColumnIndex()) +
+                    ",J2." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
                     ",J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
                     ",J3." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
                 " FROM " + acceptations.getName() + " AS J0" +
@@ -68,22 +82,24 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                     ",J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex())
                 , new String[] { Integer.toString(acceptation) });
 
-        final ArrayList<SparseArray<String>> result = new ArrayList<>();
+        final ArrayList<CorrelationHolder> result = new ArrayList<>();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
                     SparseArray<String> corr = new SparseArray<>();
                     int pos = cursor.getInt(0);
+                    int correlationId = cursor.getInt(1);
                     if (pos != result.size()) {
                         throw new AssertionError("Expected position " + result.size() + ", but it was " + pos);
                     }
 
-                    corr.put(cursor.getInt(1), cursor.getString(2));
+                    corr.put(cursor.getInt(2), cursor.getString(3));
 
                     while(cursor.moveToNext()) {
                         int newPos = cursor.getInt(0);
                         if (newPos != pos) {
-                            result.add(corr);
+                            result.add(new CorrelationHolder(correlationId, corr));
+                            correlationId = cursor.getInt(1);
                             corr = new SparseArray<>();
                         }
                         pos = newPos;
@@ -91,9 +107,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         if (newPos != result.size()) {
                             throw new AssertionError("Expected position " + result.size() + ", but it was " + pos);
                         }
-                        corr.put(cursor.getInt(1), cursor.getString(2));
+                        corr.put(cursor.getInt(2), cursor.getString(3));
                     }
-                    result.add(corr);
+                    result.add(new CorrelationHolder(correlationId, corr));
                 }
             }
             finally {
@@ -785,6 +801,28 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         return result;
     }
 
+    private class CorrelationSpan extends ClickableSpan {
+
+        final int id;
+        final int start;
+        final int end;
+
+        CorrelationSpan(int id, int start, int end) {
+            if (start < 0 || end < start) {
+                throw new IllegalArgumentException();
+            }
+
+            this.id = id;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public void onClick(View view) {
+            CorrelationDetailsActivity.open(AcceptationDetailsActivity.this, id);
+        }
+    }
+
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int staticAcceptation) {
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
@@ -792,24 +830,42 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
 
         final StringBuilder sb = new StringBuilder("Correlation: ");
-        List<SparseArray<String>> correlationArray = readCorrelationArray(db, staticAcceptation);
+        List<CorrelationHolder> correlationArray = readCorrelationArray(db, staticAcceptation);
+        List<CorrelationSpan> correlationSpans = new ArrayList<>();
         for (int i = 0; i < correlationArray.size(); i++) {
             if (i != 0) {
                 sb.append(" - ");
             }
 
-            final SparseArray<String> correlation = correlationArray.get(i);
-            for (int j = 0; j < correlation.size(); j++) {
+            final CorrelationHolder holder = correlationArray.get(i);
+            final SparseArray<String> correlation = holder.texts;
+            final int correlationSize = correlation.size();
+            int startIndex = -1;
+            if (correlationSize > 1) {
+                startIndex = sb.length();
+            }
+
+            for (int j = 0; j < correlationSize; j++) {
                 if (j != 0) {
                     sb.append('/');
                 }
 
                 sb.append(correlation.valueAt(j));
             }
-        }
-        result.add(new NonNavigableItem(sb.toString()));
 
-        final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).keyAt(0));
+            if (startIndex >= 0) {
+                correlationSpans.add(new CorrelationSpan(holder.id, startIndex, sb.length()));
+            }
+        }
+
+        SpannableString spannableCorrelations = new SpannableString(sb.toString());
+        for (CorrelationSpan span : correlationSpans) {
+            spannableCorrelations.setSpan(span, span.start, span.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+
+        result.add(new NonNavigableItem(spannableCorrelations));
+
+        final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).texts.keyAt(0));
         result.add(new NonNavigableItem("Language: " + languageResult.text));
 
         final SparseArray<String> languageStrs = new SparseArray<>();
