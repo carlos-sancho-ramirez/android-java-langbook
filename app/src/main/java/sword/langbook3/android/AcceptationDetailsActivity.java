@@ -50,7 +50,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         context.startActivity(intent);
     }
 
-    private static final class CorrelationHolder {
+    static final class CorrelationHolder {
         final int id;
         final SparseArray<String> texts;
 
@@ -823,6 +823,17 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         }
     }
 
+    static void composeCorrelation(SparseArray<String> correlation, StringBuilder sb) {
+        final int correlationSize = correlation.size();
+        for (int i = 0; i < correlationSize; i++) {
+            if (i != 0) {
+                sb.append('/');
+            }
+
+            sb.append(correlation.valueAt(i));
+        }
+    }
+
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int staticAcceptation) {
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
@@ -845,13 +856,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                 startIndex = sb.length();
             }
 
-            for (int j = 0; j < correlationSize; j++) {
-                if (j != 0) {
-                    sb.append('/');
-                }
-
-                sb.append(correlation.valueAt(j));
-            }
+            composeCorrelation(correlation, sb);
 
             if (startIndex >= 0) {
                 correlationSpans.add(new CorrelationSpan(holder.id, startIndex, sb.length()));

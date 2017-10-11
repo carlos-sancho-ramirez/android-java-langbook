@@ -97,6 +97,30 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     }
 
     /**
+     * Item including an staticAcceptation and a text to be displayed.
+     * This will open a new {@link AcceptationDetailsActivity} on clicking on the item.
+     */
+    static final class CorrelationNavigableItem extends Item {
+
+        private final int _id;
+
+        CorrelationNavigableItem(int id, CharSequence text) {
+            super(text);
+            _id = id;
+        }
+
+        @Override
+        void navigate(Context context) {
+            CorrelationDetailsActivity.open(context, _id);
+        }
+
+        @Override
+        boolean isEnabled() {
+            return true;
+        }
+    }
+
+    /**
      * Item including a dynamic acceptation and its text representation.
      * This will open a new {@link RuleTableActivity} on clicking the item.
      */
