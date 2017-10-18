@@ -94,7 +94,6 @@ public class QuizResultActivity extends Activity {
             else {
                 _goodAnswerCount = data.getIntExtra(QuestionActivity.ReturnKeys.GOOD_ANSWER_COUNT, 0);
                 _badAnswerCount = data.getIntExtra(QuestionActivity.ReturnKeys.BAD_ANSWER_COUNT, 0);
-                _possibleQuestionCount = data.getIntExtra(QuestionActivity.ReturnKeys.POSSIBLE_QUESTION_COUNT, 0);
             }
         }
     }
@@ -110,9 +109,12 @@ public class QuizResultActivity extends Activity {
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
+                    _possibleQuestionCount = cursor.getCount();
                     do {
-                        final int index = cursor.getInt(0) - QuestionActivity.MIN_ALLOWED_SCORE;
-                        progress[index] = progress[index] + 1;
+                        final int score = cursor.getInt(0);
+                        if (score != QuestionActivity.NO_SCORE) {
+                            progress[score - QuestionActivity.MIN_ALLOWED_SCORE]++;
+                        }
                     } while (cursor.moveToNext());
                 }
             }

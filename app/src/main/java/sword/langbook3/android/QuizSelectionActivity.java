@@ -611,15 +611,189 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         return (int) db.insert(table.getName(), null, cv);
     }
 
-    private int obtainQuizDefinition() {
-        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
-        final Integer found = findQuizDefinition(db);
-        return (found != null)? found : insertQuizDefinition(db);
+    private int[] readAllPossibleInterAlphabetAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet) {
+        int[] result = new int[0];
+        if (sourceAlphabet != targetAlphabet) {
+            final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+            final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+            final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
+            final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+            final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
+            final Cursor cursor = db.rawQuery("SELECT J0." + dynAccField +
+                            " FROM " + strings.getName() + " AS J0" +
+                            " JOIN " + strings.getName() + " AS J1 ON J0." + dynAccField + "=J1." + dynAccField +
+                            " JOIN " + bunchAcceptations.getName() + " AS J2 ON J0." + dynAccField + "=J2." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
+                            " WHERE J0." + dynAccField + "=J0." + staAccField +
+                            " AND J0." + alphabetField + "=?" +
+                            " AND J1." + alphabetField + "=?" +
+                            " AND J2." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?",
+                    new String[]{Integer.toString(sourceAlphabet), Integer.toString(
+                            targetAlphabet), Integer.toString(bunch)}
+            );
+
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        result = new int[cursor.getCount()];
+                        int index = 0;
+                        do {
+                            result[index++] = cursor.getInt(0);
+                        } while (cursor.moveToNext());
+                    }
+                }
+                finally {
+                    cursor.close();
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private int[] readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet, boolean selectTarget) {
+        int[] result = new int[0];
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
+        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
+        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+        final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
+        final String accField = bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex());
+
+        final String tableSelection = selectTarget? "J2." : "J1.";
+        final Cursor cursor = db.rawQuery("SELECT " + tableSelection + idColumnName +
+                        " FROM " + bunchAcceptations.getName() + " AS J0" +
+                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + accField + "=J1." + idColumnName +
+                        " JOIN " + acceptations.getName() + " AS J2 ON J1." + conceptField + "=J2." + conceptField +
+                        " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + dynAccField +
+                        " JOIN " + strings.getName() + " AS J4 ON J0." + accField + "=J4." + dynAccField +
+                        " WHERE J4." + dynAccField + "=J4." + staAccField +
+                        " AND J1." + idColumnName + "!=J2." + idColumnName +
+                        " AND J4." + alphabetField + "=?" +
+                        " AND J3." + alphabetField + "=?" +
+                        " AND J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?",
+                new String[]{Integer.toString(sourceAlphabet), Integer.toString(
+                        targetAlphabet), Integer.toString(bunch)}
+        );
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    result = new int[cursor.getCount()];
+                    int index = 0;
+                    do {
+                        result[index++] = cursor.getInt(0);
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return result;
+    }
+
+    private int[] readAllRulableAcceptations(SQLiteDatabase db, int bunch, int alphabet, int rule) {
+        int[] result = new int[0];
+        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+
+        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
+        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+        final Cursor cursor = db.rawQuery("SELECT J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
+                        " FROM " + bunchAcceptations.getName() + " AS J0" +
+                        " JOIN " + ruledAcceptations.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) +
+                        " JOIN " + agents.getName() + " AS J2 ON J1." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
+                        " JOIN " + strings.getName() + " AS J3 ON J1." + idColumnName + "=J3." + dynAccField +
+                        " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
+                        " AND J3." + alphabetField + "=?" +
+                        " AND J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
+                new String[]{Integer.toString(bunch), Integer.toString(alphabet), Integer.toString(rule)}
+        );
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    SparseArray<Object> ids = new SparseArray<>();
+                    Object dummy = new Object();
+                    do {
+                        ids.put(cursor.getInt(0), dummy);
+                    } while (cursor.moveToNext());
+
+                    final int idCount = ids.size();
+                    result = new int[idCount];
+                    for (int i = 0; i < idCount; i++) {
+                        result[i] = ids.keyAt(i);
+                    }
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return result;
+    }
+
+    private int[] readAllPossibleAcceptations(SQLiteDatabase db) {
+        switch (_quizType) {
+            case QuizTypes.interAlphabet:
+                return readAllPossibleInterAlphabetAcceptations(db, _sourceBunch, _sourceAlphabet, _aux);
+
+            case QuizTypes.synonym:
+                return readAllPossibleSynonymOrTranslationAcceptations(db, (_sourceBunch != 0)? _sourceBunch : _targetBunch, _sourceAlphabet, _sourceAlphabet, false);
+
+            case QuizTypes.translation:
+                if (_sourceBunch != 0) {
+                    return readAllPossibleSynonymOrTranslationAcceptations(db, _sourceBunch, _sourceAlphabet, _aux, false);
+                }
+                else {
+                    return readAllPossibleSynonymOrTranslationAcceptations(db, _targetBunch, _aux, _sourceAlphabet, true);
+                }
+
+            case QuizTypes.appliedRule:
+                return readAllRulableAcceptations(db, _sourceBunch, _sourceAlphabet, _aux);
+        }
+
+        return new int[0];
+    }
+
+    private void insertAllPossibilities(SQLiteDatabase db, int quizId) {
+        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        final String quizDefField = table.getColumnName(table.getQuizDefinitionColumnIndex());
+        final String accField = table.getColumnName(table.getAcceptationColumnIndex());
+        final String scoreField = table.getColumnName(table.getScoreColumnIndex());
+
+        final ContentValues cv = new ContentValues();
+        for (int acceptation : readAllPossibleAcceptations(db)) {
+            cv.clear();
+            cv.put(quizDefField, quizId);
+            cv.put(accField, acceptation);
+            cv.put(scoreField, QuestionActivity.NO_SCORE);
+
+            db.insert(table.getName(), null, cv);
+        }
     }
 
     @Override
     public void onClick(View view) {
-        final int quizId = obtainQuizDefinition();
+        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
+        final Integer quizIdFound = findQuizDefinition(db);
+        final int quizId;
+        if (quizIdFound == null) {
+            quizId = insertQuizDefinition(db);
+            insertAllPossibilities(db, quizId);
+        }
+        else {
+            quizId = quizIdFound;
+        }
+
         QuizResultActivity.open(this, quizId);
     }
 }
