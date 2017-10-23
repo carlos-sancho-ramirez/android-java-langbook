@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
 
 public class QuizResultActivity extends Activity {
@@ -36,6 +37,7 @@ public class QuizResultActivity extends Activity {
 
     private int _quizId;
     private TextView _textView;
+    private View _knowledgeBarView;
     private int[] _progress;
     private int _totalScoredAnswers;
 
@@ -53,6 +55,7 @@ public class QuizResultActivity extends Activity {
 
         _quizId = getIntent().getIntExtra(BundleKeys.QUIZ, 0);
         _textView = findViewById(R.id.textView);
+        _knowledgeBarView = findViewById(R.id.knowledgeBarView);
     }
 
     private void refreshUi() {
@@ -82,6 +85,8 @@ public class QuizResultActivity extends Activity {
                 .append(" out of ").append(_possibleQuestionCount)
                 .append(" (").append(queriedPercentage).append("%)");
         _textView.setText(sb.toString());
+
+        _knowledgeBarView.setBackground((_totalScoredAnswers > 0)? new KnowledgeDrawable(_progress) : null);
     }
 
     @Override
