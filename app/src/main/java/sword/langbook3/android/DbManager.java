@@ -82,16 +82,16 @@ class DbManager extends SQLiteOpenHelper {
     private static class CharHuffmanSymbolDiffReader implements FunctionWithIOException<Character, Character> {
 
         private final InputBitStream _ibs;
-        private final HuffmanTable<Long> _table;
+        private final NaturalNumberHuffmanTable _table;
 
-        CharHuffmanSymbolDiffReader(InputBitStream ibs, HuffmanTable<Long> table) {
+        CharHuffmanSymbolDiffReader(InputBitStream ibs, NaturalNumberHuffmanTable table) {
             _ibs = ibs;
             _table = table;
         }
 
         @Override
         public Character apply(Character previous) throws IOException {
-            long value = _ibs.readHuffmanSymbol(_table);
+            int value = _ibs.readHuffmanSymbol(_table);
             return (char) (value + previous + 1);
         }
     }
@@ -106,23 +106,23 @@ class DbManager extends SQLiteOpenHelper {
 
         @Override
         public Integer apply() throws IOException {
-            return (int) _ibs.readNaturalNumber();
+            return _ibs.readNaturalNumber();
         }
     }
 
     private static class IntHuffmanSymbolReader implements SupplierWithIOException<Integer> {
 
         private final InputBitStream _ibs;
-        private final HuffmanTable<Long> _table;
+        private final NaturalNumberHuffmanTable _table;
 
-        IntHuffmanSymbolReader(InputBitStream ibs, HuffmanTable<Long> table) {
+        IntHuffmanSymbolReader(InputBitStream ibs, NaturalNumberHuffmanTable table) {
             _ibs = ibs;
             _table = table;
         }
 
         @Override
         public Integer apply() throws IOException {
-            return _ibs.readHuffmanSymbol(_table).intValue();
+            return _ibs.readHuffmanSymbol(_table);
         }
     }
 
@@ -136,23 +136,23 @@ class DbManager extends SQLiteOpenHelper {
 
         @Override
         public Integer apply(Integer previous) throws IOException {
-            return (int) _ibs.readNaturalNumber() + previous + 1;
+            return _ibs.readNaturalNumber() + previous + 1;
         }
     }
 
     private static class IntHuffmanSymbolDiffReader implements FunctionWithIOException<Integer, Integer> {
 
         private final InputBitStream _ibs;
-        private final HuffmanTable<Long> _table;
+        private final NaturalNumberHuffmanTable _table;
 
-        IntHuffmanSymbolDiffReader(InputBitStream ibs, HuffmanTable<Long> table) {
+        IntHuffmanSymbolDiffReader(InputBitStream ibs, NaturalNumberHuffmanTable table) {
             _ibs = ibs;
             _table = table;
         }
 
         @Override
         public Integer apply(Integer previous) throws IOException {
-            return _ibs.readHuffmanSymbol(_table).intValue() + previous + 1;
+            return _ibs.readHuffmanSymbol(_table) + previous + 1;
         }
     }
 
@@ -823,9 +823,9 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
-        final int symbolArraysLength = (int) ibs.readNaturalNumber();
-        final HuffmanTable<Long> nat3Table = new NaturalNumberHuffmanTable(3);
-        final HuffmanTable<Long> nat4Table = new NaturalNumberHuffmanTable(4);
+        final int symbolArraysLength = ibs.readNaturalNumber();
+        final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
+        final NaturalNumberHuffmanTable nat4Table = new NaturalNumberHuffmanTable(4);
 
         final HuffmanTable<Character> charHuffmanTable =
                 ibs.readHuffmanTable(new CharReader(ibs), new CharHuffmanSymbolDiffReader(ibs, nat4Table));
@@ -848,7 +848,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private Conversion[] readConversions(SQLiteDatabase db, InputBitStream ibs, int minValidAlphabet, int maxValidAlphabet, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
-        final int conversionsLength = (int) ibs.readNaturalNumber();
+        final int conversionsLength = ibs.readNaturalNumber();
         final Conversion[] conversions = new Conversion[conversionsLength];
 
         int minSourceAlphabet = minValidAlphabet;
@@ -864,7 +864,7 @@ class DbManager extends SQLiteOpenHelper {
             final int targetAlphabet = ibs.readRangedNumber(minTargetAlphabet, maxValidAlphabet);
             minTargetAlphabet = targetAlphabet + 1;
 
-            final int pairCount = (int) ibs.readNaturalNumber();
+            final int pairCount = ibs.readNaturalNumber();
             final String[] sources = new String[pairCount];
             final String[] targets = new String[pairCount];
             for (int j = 0; j < pairCount; j++) {
@@ -885,7 +885,7 @@ class DbManager extends SQLiteOpenHelper {
     private static final int nullCorrelationArray = 0;
 
     private int[] readAcceptations(SQLiteDatabase db, InputBitStream ibs, int minWord, int maxWord, int minConcept, int maxConcept) throws IOException {
-        final int acceptationsLength = (int) ibs.readNaturalNumber();
+        final int acceptationsLength = ibs.readNaturalNumber();
         final int[] acceptationsIdMap = new int[acceptationsLength];
 
         for (int i = 0; i < acceptationsLength; i++) {
@@ -898,7 +898,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private void readBunchConcepts(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int maxConcept) throws IOException {
-        final int bunchConceptsLength = (int) ibs.readNaturalNumber();
+        final int bunchConceptsLength = ibs.readNaturalNumber();
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
@@ -912,7 +912,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private void readBunchAcceptations(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int maxConcept, int[] acceptationsIdMap) throws IOException {
-        final int bunchAcceptationsLength = (int) ibs.readNaturalNumber();
+        final int bunchAcceptationsLength = ibs.readNaturalNumber();
         final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
@@ -958,11 +958,11 @@ class DbManager extends SQLiteOpenHelper {
             SQLiteDatabase db, InputBitStream ibs, int maxConcept,
             int minValidAlphabet, int maxValidAlphabet, int[] symbolArrayIdMap) throws IOException {
 
-        final int agentsLength = (int) ibs.readNaturalNumber();
+        final int agentsLength = ibs.readNaturalNumber();
         final SparseArray<Agent> result = new SparseArray<>(agentsLength);
 
         if (agentsLength > 0) {
-            final HuffmanTable<Long> nat3Table = new NaturalNumberHuffmanTable(3);
+            final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntHuffmanSymbolReader intHuffmanSymbolReader = new IntHuffmanSymbolReader(ibs, nat3Table);
             final HuffmanTable<Integer> sourceSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
             final HuffmanTable<Integer> matcherSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
@@ -1708,17 +1708,17 @@ class DbManager extends SQLiteOpenHelper {
 
                     // Read languages and its alphabets
                     setProgress(0.03f, "Reading languages and its alphabets");
-                    final int languageCount = (int) ibs.readNaturalNumber();
+                    final int languageCount = ibs.readNaturalNumber();
                     final Language[] languages = new Language[languageCount];
                     final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
                     int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
-                    final HuffmanTable<Long> nat2Table = new NaturalNumberHuffmanTable(2);
+                    final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
                     int kanjiAlphabet = -1;
                     int kanaAlphabet = -1;
 
                     for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
                         final int codeSymbolArrayIndex = ibs.readRangedNumber(minSymbolArrayIndex, maxSymbolArrayIndex);
-                        final int alphabetCount = ibs.readHuffmanSymbol(nat2Table).intValue();
+                        final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
                         final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
                         languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
 
@@ -1757,8 +1757,8 @@ class DbManager extends SQLiteOpenHelper {
                             maxSymbolArrayIndex, symbolArraysIdMap);
 
                     // Export the amount of words and concepts in order to range integers
-                    final int maxWord = (int) ibs.readNaturalNumber() - 1;
-                    final int maxConcept = (int) ibs.readNaturalNumber() - 1;
+                    final int maxWord = ibs.readNaturalNumber() - 1;
+                    final int maxConcept = ibs.readNaturalNumber() - 1;
 
                     // Export acceptations
                     setProgress(0.09f, "Reading acceptations");
@@ -1772,7 +1772,7 @@ class DbManager extends SQLiteOpenHelper {
 
                     // Export word representations
                     setProgress(0.12f, "Reading representations");
-                    final int wordRepresentationLength = (int) ibs.readNaturalNumber();
+                    final int wordRepresentationLength = ibs.readNaturalNumber();
                     for (int i = 0; i < wordRepresentationLength; i++) {
                         final int word = ibs.readRangedNumber(minValidWord, maxWord);
                         final int alphabet = ibs.readRangedNumber(minValidAlphabet, maxValidAlphabet);
@@ -1787,7 +1787,7 @@ class DbManager extends SQLiteOpenHelper {
 
                     // Export kanji-kana correlations
                     setProgress(0.15f, "Reading kanji-kana correlations");
-                    final int kanjiKanaCorrelationsLength = (int) ibs.readNaturalNumber();
+                    final int kanjiKanaCorrelationsLength = ibs.readNaturalNumber();
                     if (kanjiKanaCorrelationsLength > 0 && (
                             kanjiAlphabet < minValidAlphabet || kanjiAlphabet > maxValidAlphabet ||
                                     kanaAlphabet < minValidAlphabet || kanaAlphabet > maxValidAlphabet)) {
@@ -1804,7 +1804,7 @@ class DbManager extends SQLiteOpenHelper {
 
                     // Export jaWordCorrelations
                     setProgress(0.18f, "Reading Japanese word correlations");
-                    final int jaWordCorrelationsLength = (int) ibs.readNaturalNumber();
+                    final int jaWordCorrelationsLength = ibs.readNaturalNumber();
                     if (jaWordCorrelationsLength > 0) {
                         final IntReader intReader = new IntReader(ibs);
                         final IntDiffReader intDiffReader = new IntDiffReader(ibs);
