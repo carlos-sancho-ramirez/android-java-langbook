@@ -897,6 +897,23 @@ class DbManager extends SQLiteOpenHelper {
         return acceptationsIdMap;
     }
 
+    private Set<Integer> readRangedNumberSet(InputBitStream ibs, HuffmanTable<Integer> lengthTable, int min, int max) throws IOException {
+        if (max < min) {
+            throw new IllegalArgumentException("minimum should be lower or equal than maximum");
+        }
+
+        final int length = ibs.readHuffmanSymbol(lengthTable);
+        HashSet<Integer> valueSet = new HashSet<>(length);
+        int nextMin = min;
+        for (int i = 0; i < length; i++) {
+            int value = ibs.readRangedNumber(nextMin, max - (length - i - 1));
+            valueSet.add(value);
+            nextMin = value + 1;
+        }
+
+        return valueSet;
+    }
+
     private void readBunchConcepts(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int maxConcept) throws IOException {
         final int bunchConceptsLength = ibs.readNaturalNumber();
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
@@ -904,7 +921,7 @@ class DbManager extends SQLiteOpenHelper {
 
         for (int i = 0; i < bunchConceptsLength; i++) {
             final int bunch = ibs.readRangedNumber(minValidConcept, maxConcept);
-            final Set<Integer> concepts = ibs.readRangedNumberSet(bunchConceptsLengthTable, minValidConcept, maxConcept);
+            final Set<Integer> concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, minValidConcept, maxConcept);
             for (int concept : concepts) {
                 insertBunchConcept(db, bunch, concept);
             }
@@ -920,7 +937,7 @@ class DbManager extends SQLiteOpenHelper {
         final int nullAgentSet = Tables.agentSets.nullReference();
         for (int i = 0; i < bunchAcceptationsLength; i++) {
             final int bunch = ibs.readRangedNumber(minValidConcept, maxConcept);
-            final Set<Integer> acceptations = ibs.readRangedNumberSet(bunchAcceptationsLengthTable, 0, maxValidAcceptation);
+            final Set<Integer> acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
                 insertBunchAcceptation(db, bunch, acceptationsIdMap[acceptation], nullAgentSet);
             }
@@ -978,7 +995,7 @@ class DbManager extends SQLiteOpenHelper {
                     minSource = StreamedDatabaseConstants.minValidConcept;
                 }
 
-                final Set<Integer> sourceSet = ibs.readRangedNumberSet(sourceSetLengthTable, minSource, maxConcept);
+                final Set<Integer> sourceSet = readRangedNumberSet(ibs, sourceSetLengthTable, minSource, maxConcept);
 
                 if (!sourceSet.isEmpty()) {
                     int min = Integer.MAX_VALUE;
