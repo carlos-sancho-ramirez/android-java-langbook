@@ -25,6 +25,6 @@ repositories {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.github.carlos-sancho-ramirez:lib-java-bitstream:ba31dcc2c9d6840e9a29d33a74adbb64541eb52e'
+    compile 'com.github.carlos-sancho-ramirez:lib-java-bitstream:8076c43a5e8b7f97c3e42ad3940f15ab87183e9b'
     testCompile 'junit:junit:4.12'
 }
