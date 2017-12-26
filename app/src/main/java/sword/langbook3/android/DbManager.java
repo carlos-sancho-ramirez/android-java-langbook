@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
+import sword.bitstream.RangedIntegerSetDecoder;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.InputBitStream;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
@@ -907,21 +908,8 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private Set<Integer> readRangedNumberSet(InputBitStream ibs, HuffmanTable<Integer> lengthTable, int min, int max) throws IOException {
-        if (max < min) {
-            throw new IllegalArgumentException("minimum should be lower or equal than maximum");
-        }
-
-        final int length = ibs.readHuffmanSymbol(lengthTable);
-        HashSet<Integer> valueSet = new HashSet<>(length);
-        int nextMin = min;
-        for (int i = 0; i < length; i++) {
-            final RangedIntegerHuffmanTable table = new RangedIntegerHuffmanTable(nextMin, max - (length - i - 1));
-            int value = ibs.readHuffmanSymbol(table);
-            valueSet.add(value);
-            nextMin = value + 1;
-        }
-
-        return valueSet;
+        final RangedIntegerSetDecoder decoder = new RangedIntegerSetDecoder(ibs, lengthTable, min, max);
+        return ibs.readSet(decoder, decoder, decoder);
     }
 
     private void readBunchConcepts(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int maxConcept) throws IOException {
