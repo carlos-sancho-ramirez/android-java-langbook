@@ -16,6 +16,8 @@ import android.widget.Toast;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
+import sword.bitstream.HuffmanTableLengthDecoder;
+import sword.bitstream.IntegerDecoder;
 import sword.bitstream.RangedIntegerSetDecoder;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.InputBitStream;
@@ -545,6 +549,74 @@ class DbManager extends SQLiteOpenHelper {
         return id;
     }
 
+    private int[] getCorrelationArray(SQLiteDatabase db, int id) {
+        if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
+            return new int[0];
+        }
+
+        CorrelationArraysTable table = Tables.correlationArrays;
+        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getArrayPositionColumnIndex()) +
+                ',' + table.getColumnName(table.getCorrelationColumnIndex()) +
+                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getArrayIdColumnIndex()) +
+                "=?", new String[] {Integer.toString(id)});
+
+        int[] result = null;
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    result = new int[cursor.getCount()];
+                    final BitSet set = new BitSet();
+                    do {
+                        final int pos = cursor.getInt(0);
+                        final int corr = cursor.getInt(1);
+                        if (set.get(pos)) {
+                            throw new AssertionError("Malformed correlation array with id " + id);
+                        }
+
+                        set.set(pos);
+                        result[pos] = corr;
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return result;
+    }
+
+    private Integer findCorrelationArray(SQLiteDatabase db, int... correlations) {
+        if (correlations.length == 0) {
+            return StreamedDatabaseConstants.nullCorrelationArrayId;
+        }
+
+        CorrelationArraysTable table = Tables.correlationArrays;
+        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getArrayIdColumnIndex()) +
+                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getArrayPositionColumnIndex()) +
+                "=0 AND " + table.getColumnName(table.getCorrelationColumnIndex()) +
+                "=?", new String[] {Integer.toString(correlations[0])});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    do {
+                        final int arrayId = cursor.getInt(0);
+                        final int[] array = getCorrelationArray(db, arrayId);
+                        if (Arrays.equals(correlations, array)) {
+                            return arrayId;
+                        }
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
     private int insertCorrelationArray(SQLiteDatabase db, int... correlation) {
         final CorrelationArraysTable table = Tables.correlationArrays;
         final String arrayIdColumnName = table.getColumnName(table.getArrayIdColumnIndex());
@@ -556,7 +628,8 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         try {
-            final int newArrayId = cursor.getInt(0) + 1;
+            final int maxArrayId = cursor.getInt(0);
+            final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
             final int arrayLength = correlation.length;
             for (int i = 0; i < arrayLength; i++) {
                 final int corr = correlation[i];
@@ -571,6 +644,11 @@ class DbManager extends SQLiteOpenHelper {
         finally {
             cursor.close();
         }
+    }
+
+    private int obtainCorrelationArray(SQLiteDatabase db, int... array) {
+        final Integer id = findCorrelationArray(db, array);
+        return (id == null)? insertCorrelationArray(db, array) : id;
     }
 
     private int insertAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
@@ -890,18 +968,83 @@ class DbManager extends SQLiteOpenHelper {
         return conversions;
     }
 
-    private static final int nullCorrelationArray = 0;
+    private static class ValueDecoder<E> implements SupplierWithIOException<E> {
 
-    private int[] readAcceptations(SQLiteDatabase db, InputBitStream ibs, int minWord, int maxWord, int minConcept, int maxConcept) throws IOException {
+        private final InputBitStream _ibs;
+        private final HuffmanTable<E> _table;
+
+        ValueDecoder(InputBitStream ibs, HuffmanTable<E> table) {
+            if (ibs == null || table == null) {
+                throw new IllegalArgumentException();
+            }
+
+            _ibs = ibs;
+            _table = table;
+        }
+
+        @Override
+        public E apply() throws IOException {
+            return _ibs.readHuffmanSymbol(_table);
+        }
+    }
+
+    private int[] readCorrelations(SQLiteDatabase db, InputBitStream ibs, int minAlphabet, int maxAlphabet, int[] symbolArraysIdMap) throws IOException {
+        final int correlationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
+        final int[] result = new int[correlationsLength];
+        if (correlationsLength > 0) {
+            final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(0, symbolArraysIdMap.length - 1);
+            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
+            final HuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
+            final RangedIntegerSetDecoder keyDecoder = new RangedIntegerSetDecoder(ibs, lengthTable, minAlphabet, maxAlphabet);
+            final ValueDecoder<Integer> valueDecoder = new ValueDecoder<>(ibs, symbolArrayTable);
+
+            for (int i = 0; i < correlationsLength; i++) {
+                Map<Integer, Integer> corrMap = ibs.readMap(keyDecoder, keyDecoder, keyDecoder, valueDecoder);
+                SparseIntArray corr = new SparseIntArray();
+                for (Map.Entry<Integer, Integer> entry : corrMap.entrySet()) {
+                    corr.put(entry.getKey(), symbolArraysIdMap[entry.getValue()]);
+                }
+                result[i] = obtainCorrelation(db, corr);
+            }
+        }
+
+        return result;
+    }
+
+    private int[] readCorrelationArrays(SQLiteDatabase db, InputBitStream ibs, int[] correlationIdMap) throws IOException {
+        final int arraysLength = ibs.readHuffmanSymbol(_naturalNumberTable);
+        final int[] result = new int[arraysLength];
+        if (arraysLength > 0) {
+            final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
+            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
+            final HuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
+
+            for (int i = 0; i < arraysLength; i++) {
+                final int arrayLength = ibs.readHuffmanSymbol(lengthTable);
+
+                int[] corrArray = new int[arrayLength];
+                for (int j = 0; j < arrayLength; j++) {
+                    corrArray[j] = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                }
+                result[i] = obtainCorrelationArray(db, corrArray);
+            }
+        }
+
+        return result;
+    }
+
+    private int[] readAcceptations(SQLiteDatabase db, InputBitStream ibs, int[] wordIdMap, int[] conceptIdMap, int[] correlationArrayIdMap) throws IOException {
         final int acceptationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final int[] acceptationsIdMap = new int[acceptationsLength];
 
-        final RangedIntegerHuffmanTable wordTable = new RangedIntegerHuffmanTable(minWord, maxWord);
-        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minConcept, maxConcept);
+        final RangedIntegerHuffmanTable wordTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidWord, wordIdMap.length - 1);
+        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, conceptIdMap.length - 1);
+        final RangedIntegerHuffmanTable correlationArrayTable = new RangedIntegerHuffmanTable(0, correlationArrayIdMap.length - 1);
         for (int i = 0; i < acceptationsLength; i++) {
-            final int word = ibs.readHuffmanSymbol(wordTable);
-            final int concept = ibs.readHuffmanSymbol(conceptTable);
-            acceptationsIdMap[i] = insertAcceptation(db, word, concept, nullCorrelationArray);
+            final int word = wordIdMap[ibs.readHuffmanSymbol(wordTable)];
+            final int concept = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
+            final int correlationArray = correlationArrayIdMap[ibs.readHuffmanSymbol(correlationArrayTable)];
+            acceptationsIdMap[i] = insertAcceptation(db, word, concept, correlationArray);
         }
 
         return acceptationsIdMap;
@@ -927,16 +1070,17 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private void readBunchAcceptations(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int maxConcept, int[] acceptationsIdMap) throws IOException {
+    private void readBunchAcceptations(SQLiteDatabase db, InputBitStream ibs, int[] conceptIdMap, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
         final int nullAgentSet = Tables.agentSets.nullReference();
-        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minValidConcept, maxConcept);
+        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(0, conceptIdMap.length - 1);
+
         for (int i = 0; i < bunchAcceptationsLength; i++) {
-            final int bunch = ibs.readHuffmanSymbol(conceptTable);
+            final int bunch = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
             final Set<Integer> acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
                 insertBunchAcceptation(db, bunch, acceptationsIdMap[acceptation], nullAgentSet);
@@ -972,8 +1116,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private SparseArray<Agent> readAgents(
-            SQLiteDatabase db, InputBitStream ibs, int maxConcept,
-            int minValidAlphabet, int maxValidAlphabet, int[] symbolArrayIdMap) throws IOException {
+            SQLiteDatabase db, InputBitStream ibs, int maxConcept, int[] correlationIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final SparseArray<Agent> result = new SparseArray<>(agentsLength);
@@ -982,13 +1125,14 @@ class DbManager extends SQLiteOpenHelper {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntHuffmanSymbolReader intHuffmanSymbolReader = new IntHuffmanSymbolReader(ibs, nat3Table);
             final HuffmanTable<Integer> sourceSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
-            final HuffmanTable<Integer> matcherSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = StreamedDatabaseConstants.minValidConcept;
             int desiredSetId = findLastBunchSet(db) + 1;
             final Map<Set<Integer>, Integer> insertedBunchSets = new HashMap<>();
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, maxConcept);
+            final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
+
             for (int i = 0; i < agentsLength; i++) {
                 final RangedIntegerHuffmanTable thisConceptTable = new RangedIntegerHuffmanTable(lastTarget, maxConcept);
                 final int targetBunch = ibs.readHuffmanSymbol(thisConceptTable);
@@ -1009,16 +1153,17 @@ class DbManager extends SQLiteOpenHelper {
                     minSource = min;
                 }
 
-                final SparseIntArray matcher = readCorrelationMap(ibs, matcherSetLengthTable,
-                        minValidAlphabet, maxValidAlphabet, symbolArrayIdMap);
-                final SparseIntArray adder = readCorrelationMap(ibs, matcherSetLengthTable,
-                        minValidAlphabet, maxValidAlphabet, symbolArrayIdMap);
+                final int matcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                final int adderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                final SparseIntArray matcher = getCorrelation(db, matcherId);
+                final SparseIntArray adder = getCorrelation(db, adderId);
 
-                final int rule = (adder.size() > 0)?
+                final boolean adderNonEmpty = adder.size() > 0;
+                final int rule = adderNonEmpty?
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final boolean fromStart = (matcher.size() > 0 || adder.size() > 0) && ibs.readBoolean();
+                final boolean fromStart = (adderNonEmpty || getCorrelation(db, matcherId).size() > 0) && ibs.readBoolean();
                 final int flags = fromStart? 1 : 0;
 
                 final Integer reusedBunchSetId = insertedBunchSets.get(sourceSet);
@@ -1036,8 +1181,6 @@ class DbManager extends SQLiteOpenHelper {
 
                 final int diffBunchSetId = 0;
 
-                final int matcherId = obtainCorrelation(db, matcher);
-                final int adderId = obtainCorrelation(db, adder);
                 if (rule != StreamedDatabaseConstants.nullRuleId && matcherId == adderId) {
                     throw new AssertionError("When rule is provided, modification is expected, but matcher and adder are the same");
                 }
@@ -1058,6 +1201,9 @@ class DbManager extends SQLiteOpenHelper {
 
         /** Reserved for empty correlations */
         static final int nullCorrelationId = 0;
+
+        /** Reserved for empty correlations */
+        static final int nullCorrelationArrayId = 0;
 
         /** Reserved for agents for null references */
         static final int nullBunchId = 0;
@@ -1779,122 +1925,32 @@ class DbManager extends SQLiteOpenHelper {
                             maxSymbolArrayIndex, symbolArraysIdMap);
 
                     // Export the amount of words and concepts in order to range integers
+                    final int minValidWord = StreamedDatabaseConstants.minValidWord;
+                    final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
                     final int maxWord = ibs.readHuffmanSymbol(_naturalNumberTable) - 1;
                     final int maxConcept = ibs.readHuffmanSymbol(_naturalNumberTable) - 1;
 
-                    // Export acceptations
-                    setProgress(0.09f, "Reading acceptations");
-                    final int minValidWord = StreamedDatabaseConstants.minValidWord;
-                    final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
-
-                    final RangedIntegerHuffmanTable wordTable = (maxWord >= minValidWord)?
-                            new RangedIntegerHuffmanTable(minValidWord, maxWord) : null;
-                    final RangedIntegerHuffmanTable conceptTable = (maxConcept >= minValidConcept)?
-                            new RangedIntegerHuffmanTable(minValidConcept, maxConcept) : null;
-                    final RangedIntegerHuffmanTable alphabetTable = new RangedIntegerHuffmanTable(minValidAlphabet, maxValidAlphabet);
-
-                    final int[] acceptationsIdMap = readAcceptations(db, ibs, minValidWord, maxWord, minValidConcept,
-                            maxConcept);
-
-                    final int minValidAcceptation = 0;
-                    final int maxValidAcceptation = acceptationsIdMap.length - 1;
-
-                    // Export word representations
-                    setProgress(0.12f, "Reading representations");
-                    final int wordRepresentationLength = ibs.readHuffmanSymbol(_naturalNumberTable);
-                    for (int i = 0; i < wordRepresentationLength; i++) {
-                        final int word = ibs.readHuffmanSymbol(wordTable);
-                        final int alphabet = ibs.readHuffmanSymbol(alphabetTable);
-                        final int symbolArray = ibs.readHuffmanSymbol(symbolArrayTable);
-
-                        final SparseIntArray correlation = new SparseIntArray();
-                        correlation.put(alphabet, symbolArraysIdMap[symbolArray]);
-                        final int correlationId = obtainCorrelation(db, correlation);
-                        final int correlationArrayId = insertCorrelationArray(db, correlationId);
-                        assignAcceptationCorrelationArray(db, word, correlationArrayId);
+                    int[] wordIdMap = new int[maxWord + 1];
+                    for (int i = 0; i <= maxWord; i++) {
+                        wordIdMap[i] = i;
                     }
 
-                    // Export kanji-kana correlations
-                    setProgress(0.15f, "Reading kanji-kana correlations");
-                    final int kanjiKanaCorrelationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
-                    if (kanjiKanaCorrelationsLength > 0 && (
-                            kanjiAlphabet < minValidAlphabet || kanjiAlphabet > maxValidAlphabet ||
-                                    kanaAlphabet < minValidAlphabet || kanaAlphabet > maxValidAlphabet)) {
-                        throw new AssertionError("KanjiAlphabet or KanaAlphabet not set properly");
-                    }
-                    final RangedIntegerHuffmanTable kanjiKanaCorrelationTable = new RangedIntegerHuffmanTable(0, kanjiKanaCorrelationsLength - 1);
-
-                    final int[] kanjiKanaCorrelationIdMap = new int[kanjiKanaCorrelationsLength];
-                    for (int i = 0; i < kanjiKanaCorrelationsLength; i++) {
-                        final SparseIntArray correlation = new SparseIntArray();
-                        correlation.put(kanjiAlphabet, symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)]);
-                        correlation.put(kanaAlphabet, symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)]);
-                        kanjiKanaCorrelationIdMap[i] = obtainCorrelation(db, correlation);
+                    int[] conceptIdMap = new int[maxConcept + 1];
+                    for (int i = 0; i <= maxConcept; i++) {
+                        conceptIdMap[i] = i;
                     }
 
-                    // Export jaWordCorrelations
-                    setProgress(0.18f, "Reading Japanese word correlations");
-                    final int jaWordCorrelationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
-                    if (jaWordCorrelationsLength > 0) {
-                        final IntReader intReader = new IntReader(ibs);
-                        final IntDiffReader intDiffReader = new IntDiffReader(ibs);
+                    // Import correlations
+                    setProgress(0.09f, "Reading correlations");
+                    int[] correlationIdMap = readCorrelations(db, ibs, StreamedDatabaseConstants.minValidAlphabet, maxValidAlphabet, symbolArraysIdMap);
 
-                        final HuffmanTable<Integer> correlationReprCountHuffmanTable = ibs
-                                .readHuffmanTable(intReader, intDiffReader);
-                        final HuffmanTable<Integer> correlationConceptCountHuffmanTable = ibs
-                                .readHuffmanTable(intReader, intDiffReader);
-                        final HuffmanTable<Integer> correlationVectorLengthHuffmanTable = ibs
-                                .readHuffmanTable(intReader, intDiffReader);
+                    // Import correlation arrays
+                    setProgress(0.13f, "Reading correlation arrays");
+                    int[] correlationArrayIdMap = readCorrelationArrays(db, ibs, correlationIdMap);
 
-                        for (int i = 0; i < jaWordCorrelationsLength; i++) {
-                            final int wordId = ibs.readHuffmanSymbol(wordTable);
-                            final int reprCount = ibs.readHuffmanSymbol(correlationReprCountHuffmanTable);
-                            final JaWordRepr[] jaWordReprs = new JaWordRepr[reprCount];
-
-                            for (int j = 0; j < reprCount; j++) {
-                                final int conceptSetLength = ibs.readHuffmanSymbol(correlationConceptCountHuffmanTable);
-                                int[] concepts = new int[conceptSetLength];
-                                for (int k = 0; k < conceptSetLength; k++) {
-                                    concepts[k] = ibs.readHuffmanSymbol(conceptTable);
-                                }
-
-                                final int correlationArrayLength = ibs
-                                        .readHuffmanSymbol(correlationVectorLengthHuffmanTable);
-                                int[] correlationArray = new int[correlationArrayLength];
-                                for (int k = 0; k < correlationArrayLength; k++) {
-                                    correlationArray[k] = ibs.readHuffmanSymbol(kanjiKanaCorrelationTable);
-                                }
-
-                                jaWordReprs[j] = new JaWordRepr(concepts, correlationArray);
-                            }
-
-                            for (int j = 0; j < reprCount; j++) {
-                                final JaWordRepr jaWordRepr = jaWordReprs[j];
-                                final int[] concepts = jaWordRepr.getConcepts();
-                                final int conceptCount = concepts.length;
-                                for (int k = 0; k < conceptCount; k++) {
-                                    final int concept = concepts[k];
-
-                                    final Pair<Integer, Integer> foundAcc = getAcceptation(db, wordId, concept);
-                                    if (foundAcc == null) {
-                                        throw new AssertionError("Acceptation should be already registered");
-                                    }
-
-                                    final int[] correlationArray = jaWordRepr.getCorrelationArray();
-                                    final int correlationArrayLength = correlationArray.length;
-
-                                    // Straight forward, not checking inconsistencies in the database
-                                    final int[] dbCorrelations = new int[correlationArrayLength];
-                                    for (int corrIndex = 0; corrIndex < correlationArrayLength; corrIndex++) {
-                                        dbCorrelations[corrIndex] = kanjiKanaCorrelationIdMap[correlationArray[corrIndex]];
-                                    }
-
-                                    final int dbCorrelationArray = insertCorrelationArray(db, dbCorrelations);
-                                    assignAcceptationCorrelationArray(db, wordId, concept, dbCorrelationArray);
-                                }
-                            }
-                        }
-                    }
+                    // Import correlation arrays
+                    setProgress(0.17f, "Reading acceptations");
+                    int[] acceptationIdMap = readAcceptations(db, ibs, wordIdMap, conceptIdMap, correlationArrayIdMap);
 
                     // Export bunchConcepts
                     setProgress(0.21f, "Reading bunch concepts");
@@ -1902,12 +1958,11 @@ class DbManager extends SQLiteOpenHelper {
 
                     // Export bunchAcceptations
                     setProgress(0.24f, "Reading bunch acceptations");
-                    readBunchAcceptations(db, ibs, minValidConcept, maxConcept, acceptationsIdMap);
+                    readBunchAcceptations(db, ibs, conceptIdMap, acceptationIdMap);
 
                     // Export agents
                     setProgress(0.27f, "Reading agents");
-                    SparseArray<Agent> agents = readAgents(db, ibs, maxConcept, minValidAlphabet, maxValidAlphabet,
-                            symbolArraysIdMap);
+                    SparseArray<Agent> agents = readAgents(db, ibs, maxConcept, correlationIdMap);
 
                     setProgress(0.3f, "Indexing strings");
                     fillSearchQueryTable(db);
