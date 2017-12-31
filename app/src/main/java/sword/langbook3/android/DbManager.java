@@ -16,6 +16,7 @@ import android.widget.Toast;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
@@ -1035,16 +1036,22 @@ class DbManager extends SQLiteOpenHelper {
 
     private int[] readAcceptations(SQLiteDatabase db, InputBitStream ibs, int[] wordIdMap, int[] conceptIdMap, int[] correlationArrayIdMap) throws IOException {
         final int acceptationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
-        final int[] acceptationsIdMap = new int[acceptationsLength];
 
-        final RangedIntegerHuffmanTable wordTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidWord, wordIdMap.length - 1);
-        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, conceptIdMap.length - 1);
-        final RangedIntegerHuffmanTable correlationArrayTable = new RangedIntegerHuffmanTable(0, correlationArrayIdMap.length - 1);
-        for (int i = 0; i < acceptationsLength; i++) {
-            final int word = wordIdMap[ibs.readHuffmanSymbol(wordTable)];
-            final int concept = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
-            final int correlationArray = correlationArrayIdMap[ibs.readHuffmanSymbol(correlationArrayTable)];
-            acceptationsIdMap[i] = insertAcceptation(db, word, concept, correlationArray);
+        final int[] acceptationsIdMap = new int[acceptationsLength];
+        if (acceptationsLength >= 0) {
+            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
+            final HuffmanTable<Integer> corrArraySetLengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
+            final RangedIntegerHuffmanTable wordTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidWord, wordIdMap.length - 1);
+            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, conceptIdMap.length - 1);
+            for (int i = 0; i < acceptationsLength; i++) {
+                final int word = wordIdMap[ibs.readHuffmanSymbol(wordTable)];
+                final int concept = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
+                final Set<Integer> corrArraySet = readRangedNumberSet(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
+                for (int corrArray : corrArraySet) {
+                    // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
+                    acceptationsIdMap[i] = insertAcceptation(db, word, concept, correlationArrayIdMap[corrArray]);
+                }
+            }
         }
 
         return acceptationsIdMap;
