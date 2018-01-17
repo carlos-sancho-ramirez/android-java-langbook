@@ -16,7 +16,6 @@ import android.widget.Toast;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
@@ -26,14 +25,13 @@ import java.util.Map;
 import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
-import sword.bitstream.HuffmanTableLengthDecoder;
+import sword.bitstream.InputBitStream;
 import sword.bitstream.IntegerDecoder;
 import sword.bitstream.RangedIntegerSetDecoder;
-import sword.bitstream.huffman.HuffmanTable;
-import sword.bitstream.InputBitStream;
-import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.SupplierWithIOException;
 import sword.bitstream.huffman.CharHuffmanTable;
+import sword.bitstream.huffman.HuffmanTable;
+import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 
 class DbManager extends SQLiteOpenHelper {
@@ -235,93 +233,6 @@ class DbManager extends SQLiteOpenHelper {
 
                 if (count > 0 && cursor.moveToFirst()) {
                     return cursor.getInt(0);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return null;
-    }
-
-    private Integer getAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
-        final AcceptationsTable table = Tables.acceptations;
-
-        final String whereClause = new StringBuilder()
-                .append(table.getColumnName(table.getWordColumnIndex()))
-                .append("=? AND ")
-                .append(table.getColumnName(table.getConceptColumnIndex()))
-                .append("=? AND ")
-                .append(table.getColumnName(table.getCorrelationArrayColumnIndex()))
-                .append("=?")
-                .toString();
-
-        Cursor cursor = db.query(table.getName(), new String[] {idColumnName}, whereClause,
-                new String[] { Integer.toString(word), Integer.toString(concept), Integer.toString(correlationArray) }, null, null, null, null);
-        if (cursor != null) {
-            try {
-                final int count = cursor.getCount();
-                if (count > 1) {
-                    throw new AssertionError("There should not be repeated acceptations");
-                }
-
-                if (count > 0 && cursor.moveToFirst()) {
-                    return cursor.getInt(0);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return null;
-    }
-
-    private static final class Pair<A,B> {
-
-        private final A _left;
-        private final B _right;
-
-        Pair(A left, B right) {
-            _left = left;
-            _right = right;
-        }
-
-        A getLeft() {
-            return _left;
-        }
-
-        B getRight() {
-            return _right;
-        }
-    }
-
-    private Pair<Integer, Integer> getAcceptation(SQLiteDatabase db, int word, int concept) {
-        final AcceptationsTable table = Tables.acceptations;
-
-        final String whereClause = new StringBuilder()
-                .append(table.getColumnName(table.getWordColumnIndex()))
-                .append("=? AND ")
-                .append(table.getColumnName(table.getConceptColumnIndex()))
-                .append("=?")
-                .toString();
-
-        Cursor cursor = db.query(
-                table.getName(),
-                new String[] {idColumnName, table.getColumnName(table.getCorrelationArrayColumnIndex())},
-                whereClause, new String[] { Integer.toString(word), Integer.toString(concept) },
-                null, null, null, null);
-
-        if (cursor != null) {
-            try {
-                final int count = cursor.getCount();
-                if (count > 1) {
-                    throw new AssertionError("There should not be repeated acceptations");
-                }
-
-                if (count > 0 && cursor.moveToFirst()) {
-                    return new Pair<>(cursor.getInt(0), cursor.getInt(1));
                 }
             }
             finally {
@@ -887,23 +798,6 @@ class DbManager extends SQLiteOpenHelper {
     private int obtainBunchSet(SQLiteDatabase db, int setId, Set<Integer> bunches) {
         final Integer foundId = findBunchSet(db, bunches);
         return (foundId != null)? foundId : insertBunchSet(db, setId, bunches);
-    }
-
-    private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int correlationArrayId) {
-        final AcceptationsTable table = Tables.acceptations;
-        db.execSQL("UPDATE " + table.getName() + " SET " +
-                table.getColumnName(table.getCorrelationArrayColumnIndex()) + '=' +
-                correlationArrayId + " WHERE " +
-                table.getColumnName(table.getWordColumnIndex()) + '=' + word);
-    }
-
-    private void assignAcceptationCorrelationArray(SQLiteDatabase db, int word, int concept, int correlationArrayId) {
-        final AcceptationsTable table = Tables.acceptations;
-        db.execSQL("UPDATE " + table.getName() + " SET " +
-                table.getColumnName(table.getCorrelationArrayColumnIndex()) + '=' +
-                correlationArrayId + " WHERE " +
-                table.getColumnName(table.getWordColumnIndex()) + '=' + word +
-                " AND " + table.getColumnName(table.getConceptColumnIndex()) + '=' + concept);
     }
 
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
