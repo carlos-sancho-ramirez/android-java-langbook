@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
+import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
@@ -970,7 +971,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
             s.append(((r.flags & InvolvedAgentResult.Flags.processed) != 0)? 'P' : '-');
             s.append(')');
 
-            result.add(new NonNavigableItem(s.toString()));
+            result.add(new AgentNavigableItem(r.agentId, s.toString()));
         }
 
         return result.toArray(new AcceptationDetailsAdapter.Item[result.size()]);

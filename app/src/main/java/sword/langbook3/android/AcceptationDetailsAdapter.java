@@ -149,6 +149,26 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
+    static final class AgentNavigableItem extends Item {
+
+        private final int _id;
+
+        AgentNavigableItem(int id, CharSequence text) {
+            super(text);
+            _id = id;
+        }
+
+        @Override
+        void navigate(Context context) {
+            AgentDetailsActivity.open(context, _id);
+        }
+
+        @Override
+        boolean isEnabled() {
+            return true;
+        }
+    }
+
     /**
      * Item that is displayed as a navigable item but that does not implement the navigate method,
      * preventing any navigation.
