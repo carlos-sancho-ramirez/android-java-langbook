@@ -4,14 +4,18 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 
 public class RuleTableView extends View implements Runnable {
 
+    private static final int TEXT_SIZE_SP = 24;
+
     private int _horizontalSpacing = 40;
     private int _verticalSpacing = 10;
-    private int _textSize = 30;
+    private int _textSize;
     private Paint _textPaint;
 
     private int _columnCount;
@@ -23,20 +27,23 @@ public class RuleTableView extends View implements Runnable {
 
     public RuleTableView(Context context) {
         super(context);
-        init();
+        init(context);
     }
 
     public RuleTableView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        init(context);
     }
 
     public RuleTableView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
+        init(context);
     }
 
-    private void init() {
+    private void init(Context context) {
+        final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        _textSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, TEXT_SIZE_SP, metrics);
+
         Paint paint = new Paint();
         paint.setStyle(Paint.Style.FILL);
         paint.setTextSize(_textSize);
