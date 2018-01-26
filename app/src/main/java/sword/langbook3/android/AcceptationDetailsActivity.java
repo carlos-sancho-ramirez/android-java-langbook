@@ -543,12 +543,14 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
     private static final class MorphologyResult {
 
+        final int agent;
         final int dynamicAcceptation;
         final int rule;
         final String ruleText;
         final String text;
 
-        MorphologyResult(int dynamicAcceptation, int rule, String ruleText, String text) {
+        MorphologyResult(int agent, int dynamicAcceptation, int rule, String ruleText, String text) {
+            this.agent = agent;
             this.dynamicAcceptation = dynamicAcceptation;
             this.rule = rule;
             this.ruleText = ruleText;
@@ -569,6 +571,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
                         ",J6." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J6." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J4." + idColumnName +
                 " FROM " + acceptations.getName() + " AS J0" +
                         " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
                         " JOIN " + acceptations.getName() + " AS J2 ON J1." + idColumnName + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
@@ -591,6 +594,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                     String text = cursor.getString(2);
                     int alphabet = cursor.getInt(3);
                     String ruleText = cursor.getString(4);
+                    int agent = cursor.getInt(5);
 
                     while (cursor.moveToNext()) {
                         if (cursor.getInt(0) == acc) {
@@ -600,17 +604,18 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                             }
                         }
                         else {
-                            result.add(new MorphologyResult(acc, rule, ruleText, text));
+                            result.add(new MorphologyResult(agent, acc, rule, ruleText, text));
 
                             acc = cursor.getInt(0);
                             rule = cursor.getInt(1);
                             text = cursor.getString(2);
                             alphabet = cursor.getInt(3);
                             ruleText = cursor.getString(4);
+                            agent = cursor.getInt(5);
                         }
                     }
 
-                    result.add(new MorphologyResult(acc, rule, ruleText, text));
+                    result.add(new MorphologyResult(agent, acc, rule, ruleText, text));
                     return result.toArray(new MorphologyResult[result.size()]);
                 }
             }
@@ -935,7 +940,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         }
 
         boolean morphologyFound = false;
-        for (MorphologyResult r : readMorphologies(db, staticAcceptation)) {
+        MorphologyResult[] morphologyResults = readMorphologies(db, staticAcceptation);
+        for (MorphologyResult r : morphologyResults) {
             if (!morphologyFound) {
                 result.add(new HeaderItem("Morphologies"));
                 morphologyFound = true;
@@ -972,6 +978,17 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
             s.append(')');
 
             result.add(new AgentNavigableItem(r.agentId, s.toString()));
+        }
+
+        for (MorphologyResult r : morphologyResults) {
+            if (!agentFound) {
+                result.add(new HeaderItem("Involved agents"));
+                agentFound = true;
+            }
+
+            final StringBuilder s = new StringBuilder("Agent #");
+            s.append(r.agent).append(" (").append(r.ruleText).append(')');
+            result.add(new AgentNavigableItem(r.agent, s.toString()));
         }
 
         return result.toArray(new AcceptationDetailsAdapter.Item[result.size()]);
