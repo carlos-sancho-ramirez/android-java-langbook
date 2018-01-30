@@ -971,14 +971,14 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private void readBunchAcceptations(SQLiteDatabase db, InputBitStream ibs, int[] conceptIdMap, int[] acceptationsIdMap) throws IOException {
+    private void readBunchAcceptations(SQLiteDatabase db, InputBitStream ibs, int minValidConcept, int[] conceptIdMap, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
         final int nullAgentSet = Tables.agentSets.nullReference();
-        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(0, conceptIdMap.length - 1);
+        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minValidConcept, conceptIdMap.length - 1);
 
         for (int i = 0; i < bunchAcceptationsLength; i++) {
             final int bunch = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
@@ -1859,7 +1859,7 @@ class DbManager extends SQLiteOpenHelper {
 
                     // Export bunchAcceptations
                     setProgress(0.24f, "Reading bunch acceptations");
-                    readBunchAcceptations(db, ibs, conceptIdMap, acceptationIdMap);
+                    readBunchAcceptations(db, ibs, minValidConcept, conceptIdMap, acceptationIdMap);
 
                     // Export agents
                     setProgress(0.27f, "Reading agents");
