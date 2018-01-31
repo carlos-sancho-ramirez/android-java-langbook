@@ -562,26 +562,25 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.AgentsTable agents = DbManager.Tables.agents;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
+        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
-                        " J2." + idColumnName +
-                        ",J5." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        ",J6." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J6." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        ",J4." + idColumnName +
-                " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
-                        " JOIN " + acceptations.getName() + " AS J2 ON J1." + idColumnName + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " JOIN " + agents.getName() + " AS J4 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J4." + idColumnName +
-                        " JOIN " + acceptations.getName() + " AS J5 ON J4." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J5." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J6 ON J5." + idColumnName + "=J6." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                " WHERE J0." + idColumnName + "=?" +
-                        " AND J3." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) + "=?" +
-                " ORDER BY J2." + idColumnName,
+                        " J0." + idColumnName +
+                        ",J3." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        ",J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J1." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J4." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
+                        ",J4." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J2." + idColumnName +
+                " FROM " + ruledAcceptations.getName() + " AS J0" +
+                        " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + agents.getName() + " AS J2 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
+                        " JOIN " + acceptations.getName() + " AS J3 ON J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J3." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J4 ON J3." + idColumnName + "=J4." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " WHERE J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) + "=?" +
+                        " AND J1." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) + "=?" +
+                " ORDER BY J0." + idColumnName,
                 new String[] { Integer.toString(acceptation) , Integer.toString(acceptation)});
 
         if (cursor != null) {
@@ -591,16 +590,22 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
                     int acc = cursor.getInt(0);
                     int rule = cursor.getInt(1);
-                    String text = cursor.getString(2);
-                    int alphabet = cursor.getInt(3);
-                    String ruleText = cursor.getString(4);
-                    int agent = cursor.getInt(5);
+                    int alphabet = cursor.getInt(2);
+                    String text = cursor.getString(3);
+                    int ruleAlphabet = cursor.getInt(4);
+                    String ruleText = cursor.getString(5);
+                    int agent = cursor.getInt(6);
 
                     while (cursor.moveToNext()) {
                         if (cursor.getInt(0) == acc) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(3) == preferredAlphabet) {
+                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
                                 alphabet = preferredAlphabet;
-                                ruleText = cursor.getString(4);
+                                text = cursor.getString(3);
+                            }
+
+                            if (ruleAlphabet != preferredAlphabet && cursor.getInt(4) == preferredAlphabet) {
+                                ruleAlphabet = preferredAlphabet;
+                                ruleText = cursor.getString(5);
                             }
                         }
                         else {
@@ -608,10 +613,11 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
                             acc = cursor.getInt(0);
                             rule = cursor.getInt(1);
-                            text = cursor.getString(2);
-                            alphabet = cursor.getInt(3);
-                            ruleText = cursor.getString(4);
-                            agent = cursor.getInt(5);
+                            alphabet = cursor.getInt(2);
+                            text = cursor.getString(3);
+                            ruleAlphabet = cursor.getInt(4);
+                            ruleText = cursor.getString(5);
+                            agent = cursor.getInt(6);
                         }
                     }
 
