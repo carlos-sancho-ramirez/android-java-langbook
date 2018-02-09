@@ -1726,6 +1726,9 @@ class DbManager extends SQLiteOpenHelper {
         // Temporal solution to speed up queries in the database
         final StringQueriesTable table = Tables.stringQueries;
         db.execSQL("CREATE INDEX StrDynAcc ON " + table.getName() + " (" + table.getColumnName(table.getDynamicAcceptationColumnIndex()) + ")");
+
+        final AcceptationsTable accTable = Tables.acceptations;
+        db.execSQL("CREATE INDEX AccConcept ON " + accTable.getName() + " (" + accTable.getColumnName(accTable.getConceptColumnIndex()) + ")");
     }
 
     private SparseIntArray readCorrelationMap(
