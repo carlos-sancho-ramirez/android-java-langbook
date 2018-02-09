@@ -206,25 +206,19 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private StringPair readRuleQuestionTexts(SQLiteDatabase db, int acceptation, int alphabet, int rule) {
         StringPair result = null;
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
+        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
         final DbManager.AgentsTable agents = DbManager.Tables.agents;
 
         final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
         final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-        final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT J4." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + acceptations.getName() + " AS J0" +
-                    " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + conceptField + "=J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
-                    " JOIN " + agents.getName() + " AS J2 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J2." + idColumnName +
-                    " JOIN " + acceptations.getName() + " AS J3 ON J1." + idColumnName + "=J3." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                    " JOIN " + strings.getName() + " AS J4 ON J3." + idColumnName + "=J4." + dynAccField +
-                " WHERE J0." + idColumnName + "=?" +
-                    " AND J4." + alphabetField + "=?" +
-                    " AND J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?" +
-                    " AND J4." + staAccField + "=J0." + idColumnName,
+        final Cursor cursor = db.rawQuery("SELECT J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                " FROM " + ruledAcceptations.getName() + " AS J0" +
+                    " JOIN " + agents.getName() + " AS J1 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J1." + idColumnName +
+                    " JOIN " + strings.getName() + " AS J2 ON J0." + idColumnName + "=J2." + dynAccField +
+                " WHERE J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) + "=?" +
+                    " AND J2." + alphabetField + "=?" +
+                    " AND J1." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
                 new String[]{Integer.toString(acceptation), Integer.toString(alphabet), Integer.toString(rule)}
         );
 
@@ -232,23 +226,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    Set<String> answers = new HashSet<>();
-                    do {
-                        answers.add(cursor.getString(0));
-                    } while (cursor.moveToNext());
-
-                    if (!answers.isEmpty()) {
-                        boolean addComma = false;
-                        for (String answer : answers) {
-                            if (addComma) {
-                                answerText += ", " + answer;
-                            }
-                            else {
-                                answerText = answer;
-                                addComma = true;
-                            }
-                        }
-                    }
+                    answerText = cursor.getString(0);
                 }
             }
             finally {
