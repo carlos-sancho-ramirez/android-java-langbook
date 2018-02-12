@@ -9,17 +9,13 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseIntArray;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import sword.langbook3.android.QuizSelectionActivity.QuizTypes;
-import sword.langbook3.android.QuizSelectionActivity.StringPair;
+import sword.langbook3.android.DbManager.QuestionField;
 
 import static sword.langbook3.android.DbManager.idColumnName;
 
@@ -60,227 +56,149 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private final SparseIntArray _knowledge = new SparseIntArray();
 
     private int _quizId;
-    private int _quizType;
-    private int _sourceAlphabet;
-    private int _aux;
+    private int _bunch;
+    private QuestionField[] _fields;
+    private TextView[] _fieldTextViews;
 
     private int _goodAnswerCount;
     private int _badAnswerCount;
     private int _acceptation;
 
-    private StringPair _texts;
     private boolean _isAnswerVisible;
 
     private AlertDialog _dialog;
     private TextView _scoreTextView;
-    private TextView _questionTextView;
-    private TextView _answerTextView;
     private long _lastClickTime;
     private int[] _possibleAcceptations;
 
     private void readQuizDefinition(SQLiteDatabase db) {
-        final DbManager.QuizDefinitionsTable table = DbManager.Tables.quizDefinitions;
+        final DbManager.QuizDefinitionsTable quizTable = DbManager.Tables.quizDefinitions;
+        final DbManager.QuestionFieldSets fieldTable = DbManager.Tables.questionFieldSets;
         final Cursor cursor = db.rawQuery("SELECT " +
-                        table.getColumnName(table.getQuizTypeColumnIndex()) + ',' +
-                        table.getColumnName(table.getSourceAlphabetColumnIndex()) + ',' +
-                        table.getColumnName(table.getAuxiliarColumnIndex()) +
-                        " FROM " + table.getName() + " WHERE " + idColumnName + "=?",
+                        quizTable.getColumnName(quizTable.getBunchColumnIndex()) + ',' +
+                        fieldTable.getColumnName(fieldTable.getAlphabetColumnIndex()) + ',' +
+                        fieldTable.getColumnName(fieldTable.getRuleColumnIndex()) + ',' +
+                        fieldTable.getColumnName(fieldTable.getFlagsColumnIndex()) +
+                        " FROM " + quizTable.getName() + " AS J0" +
+                        " JOIN " + fieldTable.getName() + " AS J1 ON J0." + quizTable.getColumnName(quizTable.getQuestionFieldsColumnIndex()) + "=J1." + fieldTable.getColumnName(fieldTable.getSetIdColumnIndex()) +
+                        " WHERE J0." + idColumnName + "=?",
                 new String[] {Integer.toString(_quizId)});
 
-        if (!cursor.moveToFirst() || cursor.getCount() != 1) {
-            throw new AssertionError();
-        }
-
         try {
-            _quizType = cursor.getInt(0);
-            _sourceAlphabet = cursor.getInt(1);
-            _aux = cursor.getInt(2);
+            if (cursor.getCount() > 0 && cursor.moveToFirst()) {
+                _bunch = cursor.getInt(0);
+                _fields = new QuestionField[cursor.getCount()];
+                _fieldTextViews = new TextView[cursor.getCount()];
+                int i = 0;
+                do {
+                    _fields[i++] = new QuestionField(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3));
+                } while (cursor.moveToNext());
+
+                if (i != _fields.length) {
+                    throw new AssertionError();
+                }
+            }
         }
         finally {
             cursor.close();
         }
     }
 
-    private StringPair readInterAlphabetQuestionTexts(SQLiteDatabase db, int acceptation, int sourceAlphabet, int targetAlphabet) {
-        StringPair result = null;
-        if (sourceAlphabet != targetAlphabet) {
-            final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-
-            final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-            final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-            final Cursor cursor = db.rawQuery("SELECT " + alphabetField + ',' + strings.getColumnName(strings.getStringColumnIndex()) +
+    private String readSameAcceptationQuestionText(SQLiteDatabase db, int index) {
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
                             " FROM " + strings.getName() +
-                            " WHERE " + dynAccField + "=?",
-                    new String[]{Integer.toString(acceptation)});
+                            " WHERE " + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) + "=?" +
+                            " AND " + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?",
+                    new String[]{Integer.toString(_acceptation), Integer.toString(_fields[index].alphabet)});
 
-            if (cursor != null) {
-                try {
-                    if (cursor.moveToFirst()) {
-                        String question = null;
-                        String answer = null;
-                        do {
-                            final int alphabet = cursor.getInt(0);
-                            if (alphabet == sourceAlphabet) {
-                                question = cursor.getString(1);
-                            }
-                            else if (alphabet == targetAlphabet) {
-                                answer = cursor.getString(1);
-                            }
 
-                            if (question != null && answer != null) {
-                                result = new StringPair(question, answer);
-                            }
-                        } while (result == null && cursor.moveToNext());
-                    }
-                }
-                finally {
-                    cursor.close();
-                }
+        try {
+            if (!cursor.moveToFirst()) {
+                throw new AssertionError();
             }
-        }
 
-        if (result == null) {
-            throw new IllegalArgumentException("Unable to find texts for acceptation " + acceptation + " (" + sourceAlphabet + " -> " + targetAlphabet + ")");
+            return cursor.getString(0);
         }
-
-        return result;
+        finally {
+            cursor.close();
+        }
     }
 
-    private StringPair readSynonymOrTranslationQuestionTexts(SQLiteDatabase db, int acceptation, int sourceAlphabet, int targetAlphabet) {
-        StringPair result = null;
+    private String readSameConceptQuestionText(SQLiteDatabase db, int index) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-
-        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
-        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT " + alphabetField + ',' + strings.getColumnName(strings.getStringColumnIndex()) + ",J1." + idColumnName +
-                " FROM " + acceptations.getName() + " AS J0" +
-                    " JOIN " + acceptations.getName() + " AS J1 ON J0." + conceptField + "=J1." + conceptField +
-                    " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + dynAccField +
-                " WHERE J0." + idColumnName + "=?",
-                new String[]{Integer.toString(acceptation)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    String question = null;
-                    Set<String> answers = new HashSet<>();
-                    do {
-                        if (cursor.getInt(2) == acceptation && cursor.getInt(0) == sourceAlphabet) {
-                            question = cursor.getString(1);
-                        }
-                        else if (cursor.getInt(2) != acceptation && cursor.getInt(0) == targetAlphabet) {
-                            answers.add(cursor.getString(1));
-                        }
-                    } while (cursor.moveToNext());
-
-                    if (question != null && !answers.isEmpty()) {
-                        boolean addComma = false;
-                        String answerText = null;
-                        for (String answer : answers) {
-                            if (addComma) {
-                                answerText += ", " + answer;
-                            }
-                            else {
-                                answerText = answer;
-                                addComma = true;
-                            }
-                        }
-
-                        result = new StringPair(question, answerText);
-                    }
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        if (result == null) {
-            throw new IllegalArgumentException("Unable to find texts for acceptation " + acceptation + " (" + sourceAlphabet + " -> " + targetAlphabet + ")");
-        }
-
-        return result;
-    }
-
-    private StringPair readRuleQuestionTexts(SQLiteDatabase db, int acceptation, int alphabet, int rule) {
-        StringPair result = null;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
-
-        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
         final Cursor cursor = db.rawQuery("SELECT J2." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + ruledAcceptations.getName() + " AS J0" +
-                    " JOIN " + agents.getName() + " AS J1 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J1." + idColumnName +
-                    " JOIN " + strings.getName() + " AS J2 ON J0." + idColumnName + "=J2." + dynAccField +
-                " WHERE J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) + "=?" +
-                    " AND J2." + alphabetField + "=?" +
-                    " AND J1." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
-                new String[]{Integer.toString(acceptation), Integer.toString(alphabet), Integer.toString(rule)}
-        );
+                        " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " WHERE J0." + idColumnName + "=?" +
+                        " AND J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?" +
+                        " AND J1." + idColumnName + "!=J0." + idColumnName,
+                        new String[]{Integer.toString(_acceptation), Integer.toString(_fields[index].alphabet)});
 
-        String answerText = null;
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    answerText = cursor.getString(0);
-                }
+        try {
+            if (!cursor.moveToFirst()) {
+                throw new AssertionError();
             }
-            finally {
-                cursor.close();
+
+            final StringBuilder sb = new StringBuilder(cursor.getString(0));
+            while (cursor.moveToNext()) {
+                sb.append(", ").append(cursor.getString(0));
             }
+
+            return sb.toString();
         }
-
-        if (answerText == null) {
-            throw new IllegalArgumentException("Unable to find answer text for acceptation " + acceptation + " (" + alphabet + " with rule " + rule + ")");
+        finally {
+            cursor.close();
         }
-
-        final Cursor cursor2 = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) + " FROM " + strings.getName() + " WHERE " + dynAccField + "=? AND " + alphabetField + "=?", new String[] { Integer.toString(acceptation), Integer.toString(alphabet) });
-
-        if (cursor2 != null) {
-            try {
-                if (cursor2.moveToFirst()) {
-                    result = new StringPair(cursor2.getString(0), answerText);
-                }
-            }
-            finally {
-                cursor2.close();
-            }
-        }
-
-        if (result == null) {
-            throw new IllegalArgumentException("Unable to find question text for acceptation " + acceptation + " (" + alphabet + " with rule " + rule + ")");
-        }
-
-        return result;
     }
 
-    private StringPair readQuestionTexts(SQLiteDatabase db, int quizType, int acceptation, int sourceAlphabet, int aux) {
-        switch (quizType) {
-            case QuizTypes.interAlphabet:
-                return readInterAlphabetQuestionTexts(db, acceptation, sourceAlphabet, aux);
+    private String readApplyRuleQuestionText(SQLiteDatabase db, int index) {
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
+                        " FROM " + ruledAcceptations.getName() + " AS J0" +
+                        " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + agents.getName() + " AS J2 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
+                        " WHERE " + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) + "=?" +
+                        " AND " + agents.getColumnName(agents.getRuleColumnIndex()) + "=?" +
+                        " AND " + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?",
+                new String[]{
+                        Integer.toString(_acceptation),
+                        Integer.toString(_fields[index].rule),
+                        Integer.toString(_fields[index].alphabet)});
 
-            case QuizTypes.synonym:
-                return readSynonymOrTranslationQuestionTexts(db, acceptation, sourceAlphabet, sourceAlphabet);
+        try {
+            if (!cursor.moveToFirst()) {
+                throw new AssertionError();
+            }
 
-            case QuizTypes.translation:
-                return readSynonymOrTranslationQuestionTexts(db, acceptation, sourceAlphabet, aux);
+            return cursor.getString(0);
+        }
+        finally {
+            cursor.close();
+        }
+    }
 
-            case QuizTypes.appliedRule:
-                return readRuleQuestionTexts(db, acceptation, sourceAlphabet, aux);
+    private String readFieldText(SQLiteDatabase db, int index) {
+        switch (_fields[index].getType()) {
+            case DbManager.QuestionFieldFlags.TYPE_SAME_ACC:
+                return readSameAcceptationQuestionText(db, index);
+
+            case DbManager.QuestionFieldFlags.TYPE_SAME_CONCEPT:
+                return readSameConceptQuestionText(db, index);
+
+            case DbManager.QuestionFieldFlags.TYPE_APPLY_RULE:
+                return readApplyRuleQuestionText(db, index);
         }
 
-        throw new UnsupportedOperationException("Unsupported quiz type");
+        throw new UnsupportedOperationException("Unsupported question field type");
     }
 
     private void selectAcceptation() {
         final int size = _possibleAcceptations.length;
-        if (size == 0) {
-            return;
-        }
 
         final int[] ponders = new int[size];
         int ponderationCount = 0;
@@ -312,9 +230,12 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private void updateTextFields() {
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-        _texts = readQuestionTexts(db, _quizType, _acceptation, _sourceAlphabet, _aux);
-        _questionTextView.setText(_texts.source);
-        _answerTextView.setText("?");
+
+        final int fieldCount = _fields.length;
+        for (int i = 0; i < fieldCount; i++) {
+            final String text = !_fields[i].isAnswer()? readFieldText(db, i) : "?";
+            _fieldTextViews[i].setText(text);
+        }
 
         _scoreTextView.setText("" + _goodAnswerCount + " - " + _badAnswerCount);
     }
@@ -324,18 +245,43 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final LinearLayout rateButtonBar = findViewById(R.id.rateButtonBar);
 
         if (!_isAnswerVisible) {
-            _answerTextView.setText(_texts.target);
+            SQLiteDatabase db = null;
+            for (int i = 0; i < _fields.length; i++) {
+                if (_fields[i].isAnswer()) {
+                    if (db == null) {
+                        db = DbManager.getInstance().getReadableDatabase();
+                    }
+
+                    _fieldTextViews[i].setText(readFieldText(db, i));
+                }
+            }
+
             revealAnswerButton.setVisibility(View.GONE);
             rateButtonBar.setVisibility(View.VISIBLE);
             _isAnswerVisible = true;
         }
         else {
-            _answerTextView.setText("?");
+            for (int i = 0; i < _fields.length; i++) {
+                if (_fields[i].isAnswer()) {
+                    _fieldTextViews[i].setText("?");
+                }
+            }
+
             revealAnswerButton.setVisibility(View.VISIBLE);
             rateButtonBar.setVisibility(View.GONE);
             _isAnswerVisible = false;
         }
     }
+
+    private final View.OnClickListener mFieldClickListener = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View view) {
+            if (_isAnswerVisible) {
+                AcceptationDetailsActivity.open(QuestionActivity.this, _acceptation, _acceptation);
+            }
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -361,32 +307,30 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
             selectAcceptation();
         }
 
-        _questionTextView = findViewById(R.id.questionText);
-        _answerTextView = findViewById(R.id.answerText);
-        _scoreTextView = findViewById(R.id.scoreTextView);
+        final LinearLayout fieldsPanel = findViewById(R.id.fieldsPanel);
+        final LayoutInflater inflater = getLayoutInflater();
 
-        if (_acceptation != 0) {
-            updateTextFields();
-
-            _questionTextView.setOnClickListener(this);
-            findViewById(R.id.revealAnswerButton).setOnClickListener(this);
-            findViewById(R.id.goodAnswerButton).setOnClickListener(this);
-            findViewById(R.id.badAnswerButton).setOnClickListener(this);
-
-            if (shouldRevealAnswer) {
-                toggleAnswerVisibility();
-            }
-
-            if (leaveDialogPresent) {
-                showLeaveConfirmation();
+        for (int i = 0; i < _fields.length; i++) {
+            inflater.inflate(R.layout.question_field, fieldsPanel, true);
+            _fieldTextViews[i] = (TextView) fieldsPanel.getChildAt(fieldsPanel.getChildCount() - 1);
+            if (!_fields[i].isAnswer()) {
+                _fieldTextViews[i].setOnClickListener(mFieldClickListener);
             }
         }
-        else {
-            // This should not happen!
-            // This activity should not be started if no possible questions are available.
-            // TODO: Logic in QuizSelectorActivity has to be reviewed
-            Toast.makeText(this, "No valid questions found for this quiz", Toast.LENGTH_SHORT).show();
-            finish();
+        _scoreTextView = findViewById(R.id.scoreTextView);
+
+        updateTextFields();
+
+        findViewById(R.id.revealAnswerButton).setOnClickListener(this);
+        findViewById(R.id.goodAnswerButton).setOnClickListener(this);
+        findViewById(R.id.badAnswerButton).setOnClickListener(this);
+
+        if (shouldRevealAnswer) {
+            toggleAnswerVisibility();
+        }
+
+        if (leaveDialogPresent) {
+            showLeaveConfirmation();
         }
     }
 
@@ -422,6 +366,10 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
             finally {
                 cursor.close();
             }
+        }
+
+        if (_possibleAcceptations == null) {
+            throw new AssertionError();
         }
     }
 
@@ -503,12 +451,6 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                     selectAcceptation();
                     updateTextFields();
                     toggleAnswerVisibility();
-                    break;
-
-                case R.id.questionText:
-                    if (_isAnswerVisible) {
-                        AcceptationDetailsActivity.open(this, _acceptation, _acceptation);
-                    }
                     break;
             }
         }

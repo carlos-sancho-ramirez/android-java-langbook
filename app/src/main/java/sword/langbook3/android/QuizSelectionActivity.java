@@ -15,15 +15,23 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
-import static sword.langbook3.android.DbManager.idColumnName;
+import sword.langbook3.android.DbManager.QuestionField;
 
-public class QuizSelectionActivity extends Activity implements AdapterView.OnItemSelectedListener, View.OnClickListener {
+import static sword.langbook3.android.DbManager.findQuestionFieldSet;
+import static sword.langbook3.android.DbManager.findQuizDefinition;
+import static sword.langbook3.android.DbManager.idColumnName;
+import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
+import static sword.langbook3.android.DbManager.insertQuizDefinition;
+
+public class QuizSelectionActivity extends Activity implements View.OnClickListener {
 
     private static final class BundleKeys {
         static final String BUNCH = "b";
@@ -39,12 +47,12 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         context.startActivity(intent);
     }
 
-    private static class QuizTypeAdapter extends BaseAdapter {
+    private static class FieldTypeAdapter extends BaseAdapter {
 
         private final String[] _entries;
         private LayoutInflater _inflater;
 
-        QuizTypeAdapter(String[] entries) {
+        FieldTypeAdapter(String[] entries) {
             _entries = entries;
         }
 
@@ -159,43 +167,6 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         }
     }
 
-    private static final class AlphabetPair {
-
-        final int source;
-        final int target;
-
-        AlphabetPair(int source, int target) {
-            this.source = source;
-            this.target = target;
-        }
-
-        @Override
-        public int hashCode() {
-            return source * 31 + target;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == null || !(other instanceof AlphabetPair)) {
-                return false;
-            }
-
-            AlphabetPair that = (AlphabetPair) other;
-            return source == that.source && target == that.target;
-        }
-    }
-
-    static final class StringPair {
-
-        final String source;
-        final String target;
-
-        StringPair(String source, String target) {
-            this.source = source;
-            this.target = target;
-        }
-    }
-
     static SparseArray<String> readAllAlphabets(SQLiteDatabase db) {
         final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
@@ -236,76 +207,6 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                     }
 
                     result.put(alphabet, text);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return result;
-    }
-
-    private Map<AlphabetPair, StringPair> readInterAlphabetPossibleSourceAlphabets(SQLiteDatabase db) {
-        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J0." + idColumnName +
-                        ",J1." + idColumnName +
-                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        ",J5." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J5." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + alphabets.getName() + " AS J0" +
-                        " JOIN " + alphabets.getName() + " AS J1 ON J0." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J1." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) +
-                        " JOIN " + acceptations.getName() + " AS J2 ON J0." + idColumnName + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " JOIN " + acceptations.getName() + " AS J4 ON J1." + idColumnName + "=J4." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J5 ON J4." + idColumnName + "=J5." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                " WHERE J0." + idColumnName + "!=J1." + idColumnName +
-                " ORDER BY J0." + idColumnName + ",J1." + idColumnName, null);
-
-        final HashMap<AlphabetPair, StringPair> result = new HashMap<>();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int sourceAlphabet = cursor.getInt(0);
-                    int targetAlphabet = cursor.getInt(1);
-                    int sourceTextAlphabet = cursor.getInt(2);
-                    String sourceText = cursor.getString(3);
-                    int targetTextAlphabet = cursor.getInt(4);
-                    String targetText = cursor.getString(5);
-
-                    while (cursor.moveToNext()) {
-                        if (sourceAlphabet == cursor.getInt(0) && targetAlphabet == cursor.getInt(1)) {
-                            if (sourceTextAlphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
-                                sourceTextAlphabet = preferredAlphabet;
-                                sourceText = cursor.getString(3);
-                            }
-
-                            if (targetTextAlphabet != preferredAlphabet && cursor.getInt(4) == preferredAlphabet) {
-                                targetTextAlphabet = preferredAlphabet;
-                                targetText = cursor.getString(5);
-                            }
-                        }
-                        else {
-                            final AlphabetPair key = new AlphabetPair(sourceAlphabet, targetAlphabet);
-                            result.put(key, new StringPair(sourceText, targetText));
-
-                            sourceAlphabet = cursor.getInt(0);
-                            targetAlphabet = cursor.getInt(1);
-                            sourceTextAlphabet = cursor.getInt(2);
-                            sourceText = cursor.getString(3);
-                            targetTextAlphabet = cursor.getInt(4);
-                            targetText = cursor.getString(5);
-                        }
-                    }
-
-                    final AlphabetPair key = new AlphabetPair(sourceAlphabet, targetAlphabet);
-                    result.put(key, new StringPair(sourceText, targetText));
                 }
             }
             finally {
@@ -368,227 +269,166 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         return result;
     }
 
-    private Spinner _sourceAlphabetSpinner;
-    private Spinner _auxSpinner;
-    private Spinner _bunchApplianceToggle;
-    private QuizTypeAdapter _quizTypeAdapter;
-    private SparseArray<String> _allAlphabets;
-    private SparseArray<String> _allRules;
-
-    static final class QuizTypes {
-        static final int interAlphabet = 1;
-        static final int translation = 2;
-        static final int synonym = 3;
-        static final int appliedRule = 4;
+    static final class FieldTypes {
+        static final int sameAcceptation = 1;
+        static final int sameConcept = 2;
+        static final int appliedRule = 3;
     }
 
-    private int _quizType;
-    private int _sourceBunch;
-    private int _targetBunch;
-    private int _sourceAlphabet;
-    private int _aux;
+    private static final class FieldState {
+        int type;
+        int alphabet;
+        int rule;
+    }
+
+    private final ArrayList<FieldState> _questionFields = new ArrayList<>(1);
+    private final ArrayList<FieldState> _answerFields = new ArrayList<>(1);
+    private int _bunch;
+
+    private static final String[] typeEntries = new String[] {
+            " -- Select type --",
+            "same acceptation",
+            "same concept",
+            "applied rule"
+    };
+
+    private AdapterItem[] _alphabetItems;
+    private AdapterItem[] _ruleItems;
+
+    private final class FieldSpinnerListener implements Spinner.OnItemSelectedListener {
+
+        final FieldState fieldState;
+        final Spinner ruleSpinner;
+
+        FieldSpinnerListener(FieldState fieldState, Spinner ruleSpinner) {
+            this.fieldState = fieldState;
+            this.ruleSpinner = ruleSpinner;
+        }
+
+        @Override
+        public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+            switch (adapterView.getId()) {
+                case R.id.fieldType:
+                    fieldState.type = position;
+                    final int visibility;
+                    if (position == FieldTypes.appliedRule) {
+                        if (fieldState.rule == 0) {
+                            final int pos = ruleSpinner.getSelectedItemPosition();
+                            if (_ruleItems != null && pos >= 0 && pos < _ruleItems.length) {
+                                fieldState.rule = _ruleItems[pos].id;
+                            }
+                        }
+                        visibility = View.VISIBLE;
+                    }
+                    else {
+                        visibility = View.GONE;
+                    }
+                    ruleSpinner.setVisibility(visibility);
+                    break;
+
+                case R.id.fieldAlphabet:
+                    fieldState.alphabet = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
+                    break;
+
+                case R.id.fieldRule:
+                    fieldState.rule = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
+                    break;
+            }
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {
+            // Nothing to be done
+        }
+    }
+
+    private void setUpFieldSpinners(View fieldViewGroup, FieldState fieldState) {
+        final Spinner ruleSpinner = fieldViewGroup.findViewById(R.id.fieldRule);
+        final FieldSpinnerListener listener = new FieldSpinnerListener(fieldState, ruleSpinner);
+
+        final Spinner typeSpinner = fieldViewGroup.findViewById(R.id.fieldType);
+        typeSpinner.setAdapter(new FieldTypeAdapter(typeEntries));
+        typeSpinner.setOnItemSelectedListener(listener);
+
+        final Spinner alphabetSpinner = fieldViewGroup.findViewById(R.id.fieldAlphabet);
+        alphabetSpinner.setAdapter(new AlphabetAdapter(_alphabetItems));
+        alphabetSpinner.setOnItemSelectedListener(listener);
+
+        ruleSpinner.setAdapter(new AlphabetAdapter(_ruleItems));
+        ruleSpinner.setOnItemSelectedListener(listener);
+    }
+
+    private void addField(ArrayList<FieldState> list, int viewList) {
+        final FieldState fieldState = new FieldState();
+        list.add(fieldState);
+
+        final ViewGroup viewGroup = findViewById(viewList);
+        getLayoutInflater().inflate(R.layout.quiz_selector_field_entry, viewGroup, true);
+
+        final View fieldViewGroup = viewGroup.getChildAt(viewGroup.getChildCount() - 1);
+        setUpFieldSpinners(fieldViewGroup, fieldState);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.quiz_selector_activity);
 
-        _quizTypeAdapter = new QuizTypeAdapter(new String[] {
-                " -- Select type --",
-                "inter-alphabet",
-                "translation",
-                "synonym",
-                "applied rule"
-        });
-
-        _sourceBunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
+        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
-        if (_sourceBunch != 0) {
-            final String bunchText = AcceptationDetailsActivity.readConceptText(db, _sourceBunch);
+        if (_bunch != 0) {
+            final String bunchText = AcceptationDetailsActivity.readConceptText(db, _bunch);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
         }
 
-        final Spinner quizTypeSpinner = findViewById(R.id.quizType);
-        quizTypeSpinner.setAdapter(_quizTypeAdapter);
-        quizTypeSpinner.setOnItemSelectedListener(this);
+        SparseArray<String> allAlphabets = readAllAlphabets(db);
+        final int alphabetCount = allAlphabets.size();
+        _alphabetItems = new AdapterItem[alphabetCount];
+        for (int i = 0; i < alphabetCount; i++) {
+            _alphabetItems[i] = new AdapterItem(allAlphabets.keyAt(i), allAlphabets.valueAt(i));
+        }
 
-        _sourceAlphabetSpinner = findViewById(R.id.sourceAlphabet);
-        _sourceAlphabetSpinner.setOnItemSelectedListener(this);
+        SparseArray<String> allRules = readAllRules(db);
+        final int ruleCount = allRules.size();
+        _ruleItems = new AdapterItem[ruleCount];
+        for (int i = 0; i < ruleCount; i++) {
+            _ruleItems[i] = new AdapterItem(allRules.keyAt(i), allRules.valueAt(i));
+        }
 
-        _auxSpinner = findViewById(R.id.aux);
-        _auxSpinner.setOnItemSelectedListener(this);
+        _questionFields.add(new FieldState());
+        _answerFields.add(new FieldState());
 
-        _bunchApplianceToggle = findViewById(R.id.bunchApplianceToggle);
-        _bunchApplianceToggle.setOnItemSelectedListener(this);
+        final ViewGroup questionViewGroup = findViewById(R.id.questionList);
+        setUpFieldSpinners(questionViewGroup.getChildAt(0), _questionFields.get(0));
 
+        final ViewGroup answerViewGroup = findViewById(R.id.answerList);
+        setUpFieldSpinners(answerViewGroup.getChildAt(0), _answerFields.get(0));
+
+        findViewById(R.id.addQuestionButton).setOnClickListener(this);
+        findViewById(R.id.addAnswerButton).setOnClickListener(this);
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
-    @Override
-    public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
-        switch (adapterView.getId()) {
-            case R.id.quizType:
-                updateQuizType(position);
-                break;
-
-            case R.id.sourceAlphabet:
-                _sourceAlphabet = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
-                break;
-
-            case R.id.aux:
-                _aux = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
-                break;
-
-            case R.id.bunchApplianceToggle:
-                if (position == 0 && _targetBunch != 0) {
-                    _sourceBunch = _targetBunch;
-                    _targetBunch = 0;
-                }
-                else if (position == 1 && _sourceBunch != 0) {
-                    _targetBunch = _sourceBunch;
-                    _sourceBunch = 0;
-                }
-        }
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> adapterView) {
-        // Nothing to be done
-    }
-
-    private void updateQuizType(int quizType) {
-        _quizType = quizType;
-
-        switch (quizType) {
-            case QuizTypes.interAlphabet:
-                do {
-                    Map<AlphabetPair, StringPair> pairs = readInterAlphabetPossibleSourceAlphabets(
-                            DbManager.getInstance().getReadableDatabase());
-                    final Set<AdapterItem> set = new HashSet<>();
-                    for (Map.Entry<AlphabetPair, StringPair> entry : pairs.entrySet()) {
-                        set.add(new AdapterItem(entry.getKey().source, entry.getValue().source));
-                    }
-
-                    final int itemCount = set.size();
-                    final AdapterItem[] items = new AdapterItem[itemCount];
-                    int i = 0;
-                    for (AdapterItem item : set) {
-                        items[i++] = item;
-                    }
-
-                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
-                    _auxSpinner.setAdapter(new AlphabetAdapter(items));
-                    _auxSpinner.setVisibility(View.VISIBLE);
-
-                    _bunchApplianceToggle.setVisibility(View.GONE);
-                } while(false);
-                break;
-
-            case QuizTypes.translation:
-                do {
-                    if (_allAlphabets == null) {
-                        _allAlphabets = readAllAlphabets(DbManager.getInstance().getReadableDatabase());
-                    }
-
-                    final int itemCount = _allAlphabets.size();
-                    final AdapterItem[] items = new AdapterItem[itemCount];
-                    for (int i = 0; i < itemCount; i++) {
-                        items[i] = new AdapterItem(_allAlphabets.keyAt(i), _allAlphabets.valueAt(i));
-                    }
-
-                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
-                    _auxSpinner.setAdapter(new AlphabetAdapter(items));
-                    _auxSpinner.setVisibility(View.VISIBLE);
-
-                    final AdapterItem[] bunchAppliances = new AdapterItem[2];
-                    bunchAppliances[0] = new AdapterItem(0, "bunch in source");
-                    bunchAppliances[1] = new AdapterItem(1, "bunch in target");
-                    _bunchApplianceToggle.setAdapter(new AlphabetAdapter(bunchAppliances));
-                    _bunchApplianceToggle.setVisibility(View.VISIBLE);
-                } while(false);
-                break;
-
-            case QuizTypes.synonym:
-                do {
-                    if (_allAlphabets == null) {
-                        _allAlphabets = readAllAlphabets(DbManager.getInstance().getReadableDatabase());
-                    }
-
-                    final int itemCount = _allAlphabets.size();
-                    final AdapterItem[] items = new AdapterItem[itemCount];
-                    for (int i = 0; i < itemCount; i++) {
-                        items[i] = new AdapterItem(_allAlphabets.keyAt(i), _allAlphabets.valueAt(i));
-                    }
-
-                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(items));
-                    _auxSpinner.setVisibility(View.GONE);
-
-                    final AdapterItem[] bunchAppliances = new AdapterItem[2];
-                    bunchAppliances[0] = new AdapterItem(0, "bunch in source");
-                    bunchAppliances[1] = new AdapterItem(1, "bunch in target");
-                    _bunchApplianceToggle.setAdapter(new AlphabetAdapter(bunchAppliances));
-                    _bunchApplianceToggle.setVisibility(View.VISIBLE);
-                } while(false);
-                break;
-
-            case QuizTypes.appliedRule:
-                do {
-                    if (_allAlphabets == null) {
-                        _allAlphabets = readAllAlphabets(DbManager.getInstance().getReadableDatabase());
-                    }
-
-                    if (_allRules == null) {
-                        _allRules = readAllRules(DbManager.getInstance().getReadableDatabase());
-                    }
-
-                    final int alphabetCount = _allAlphabets.size();
-                    final AdapterItem[] alphabets = new AdapterItem[alphabetCount];
-                    for (int i = 0; i < alphabetCount; i++) {
-                        alphabets[i] = new AdapterItem(_allAlphabets.keyAt(i), _allAlphabets.valueAt(i));
-                    }
-
-                    _sourceAlphabetSpinner.setAdapter(new AlphabetAdapter(alphabets));
-
-                    final int ruleCount = _allRules.size();
-                    final AdapterItem[] rules = new AdapterItem[ruleCount];
-                    for (int i = 0; i < ruleCount; i++) {
-                        rules[i] = new AdapterItem(_allRules.keyAt(i), _allRules.valueAt(i));
-                    }
-
-                    _auxSpinner.setAdapter(new AlphabetAdapter(rules));
-                    _auxSpinner.setVisibility(View.VISIBLE);
-
-                    _bunchApplianceToggle.setVisibility(View.GONE);
-                } while(false);
-                break;
-
-            default:
-                _sourceAlphabetSpinner.setAdapter(null);
-                _auxSpinner.setVisibility(View.GONE);
-        }
-    }
-
-    private Integer findQuizDefinition(SQLiteDatabase db) {
-        final DbManager.QuizDefinitionsTable quizDefinitions = DbManager.Tables.quizDefinitions;
-        final Cursor cursor = db.rawQuery("SELECT " + idColumnName + " FROM " + quizDefinitions.getName() + " WHERE " +
-                        quizDefinitions.getColumnName(quizDefinitions.getQuizTypeColumnIndex()) + "=? AND " +
-                        quizDefinitions.getColumnName(quizDefinitions.getSourceBunchColumnIndex()) + "=? AND " +
-                        quizDefinitions.getColumnName(quizDefinitions.getTargetBunchColumnIndex()) + "=? AND " +
-                        quizDefinitions.getColumnName(quizDefinitions.getSourceAlphabetColumnIndex()) + "=? AND " +
-                        quizDefinitions.getColumnName(quizDefinitions.getAuxiliarColumnIndex()) + "=?",
-                new String[] {Integer.toString(_quizType), Integer.toString(_sourceBunch), Integer.toString(_targetBunch),
-                        Integer.toString(_sourceAlphabet), Integer.toString(_aux)});
+    private Set<Integer> readAllAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
+        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final Cursor cursor = db.rawQuery("SELECT " + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
+                " FROM " + bunchAcceptations.getName() + " AS J0" +
+                " JOIN " + strings.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
+                " AND J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?",
+                new String[]{Integer.toString(_bunch), Integer.toString(alphabet)});
 
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    if (cursor.getCount() != 1) {
-                        throw new AssertionError("Duplicated quiz definition found");
-                    }
-
-                    return cursor.getInt(0);
+                    Set<Integer> result = new HashSet<>();
+                    do {
+                        result.add(cursor.getInt(0));
+                    } while (cursor.moveToNext());
+                    return result;
                 }
             }
             finally {
@@ -596,63 +436,10 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
             }
         }
 
-        return null;
+        return new HashSet<>();
     }
 
-    private int insertQuizDefinition(SQLiteDatabase db) {
-        final DbManager.QuizDefinitionsTable table = DbManager.Tables.quizDefinitions;
-        ContentValues cv = new ContentValues();
-        cv.put(table.getColumnName(table.getQuizTypeColumnIndex()), _quizType);
-        cv.put(table.getColumnName(table.getSourceBunchColumnIndex()), _sourceBunch);
-        cv.put(table.getColumnName(table.getTargetBunchColumnIndex()), _targetBunch);
-        cv.put(table.getColumnName(table.getSourceAlphabetColumnIndex()), _sourceAlphabet);
-        cv.put(table.getColumnName(table.getAuxiliarColumnIndex()), _aux);
-
-        return (int) db.insert(table.getName(), null, cv);
-    }
-
-    private int[] readAllPossibleInterAlphabetAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet) {
-        int[] result = new int[0];
-        if (sourceAlphabet != targetAlphabet) {
-            final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
-            final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-
-            final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-            final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-            final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
-            final Cursor cursor = db.rawQuery("SELECT J0." + dynAccField +
-                            " FROM " + strings.getName() + " AS J0" +
-                            " JOIN " + strings.getName() + " AS J1 ON J0." + dynAccField + "=J1." + dynAccField +
-                            " JOIN " + bunchAcceptations.getName() + " AS J2 ON J0." + dynAccField + "=J2." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
-                            " WHERE J0." + dynAccField + "=J0." + staAccField +
-                            " AND J0." + alphabetField + "=?" +
-                            " AND J1." + alphabetField + "=?" +
-                            " AND J2." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?",
-                    new String[]{Integer.toString(sourceAlphabet), Integer.toString(
-                            targetAlphabet), Integer.toString(bunch)}
-            );
-
-            if (cursor != null) {
-                try {
-                    if (cursor.moveToFirst()) {
-                        result = new int[cursor.getCount()];
-                        int index = 0;
-                        do {
-                            result[index++] = cursor.getInt(0);
-                        } while (cursor.moveToNext());
-                    }
-                }
-                finally {
-                    cursor.close();
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private int[] readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int bunch, int sourceAlphabet, int targetAlphabet, boolean selectTarget) {
-        int[] result = new int[0];
+    private Set<Integer> readAllPossibleSynonymOrTranslationAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
@@ -660,33 +447,27 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
         final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
         final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-        final String staAccField = strings.getColumnName(strings.getMainAcceptationColumnIndex());
         final String accField = bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex());
 
-        final String tableSelection = selectTarget? "J2." : "J1.";
-        final Cursor cursor = db.rawQuery("SELECT " + tableSelection + idColumnName +
+        final Cursor cursor = db.rawQuery("SELECT J1." + idColumnName +
                         " FROM " + bunchAcceptations.getName() + " AS J0" +
                         " JOIN " + acceptations.getName() + " AS J1 ON J0." + accField + "=J1." + idColumnName +
                         " JOIN " + acceptations.getName() + " AS J2 ON J1." + conceptField + "=J2." + conceptField +
                         " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + dynAccField +
-                        " JOIN " + strings.getName() + " AS J4 ON J0." + accField + "=J4." + dynAccField +
-                        " WHERE J4." + dynAccField + "=J4." + staAccField +
-                        " AND J1." + idColumnName + "!=J2." + idColumnName +
-                        " AND J4." + alphabetField + "=?" +
+                        " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
                         " AND J3." + alphabetField + "=?" +
-                        " AND J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?",
-                new String[]{Integer.toString(sourceAlphabet), Integer.toString(
-                        targetAlphabet), Integer.toString(bunch)}
+                        " AND J1." + idColumnName + "!=J2." + idColumnName,
+                new String[]{Integer.toString(_bunch), Integer.toString(alphabet)}
         );
 
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    result = new int[cursor.getCount()];
-                    int index = 0;
+                    Set<Integer> result = new HashSet<>();
                     do {
-                        result[index++] = cursor.getInt(0);
+                        result.add(cursor.getInt(0));
                     } while (cursor.moveToNext());
+                    return result;
                 }
             }
             finally {
@@ -694,11 +475,10 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
             }
         }
 
-        return result;
+        return new HashSet<>();
     }
 
-    private int[] readAllRulableAcceptations(SQLiteDatabase db, int bunch, int alphabet, int rule) {
-        int[] result = new int[0];
+    private Set<Integer> readAllRulableAcceptationsInBunch(SQLiteDatabase db, int alphabet, int rule) {
         final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
         final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
@@ -714,7 +494,7 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                         " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
                         " AND J3." + alphabetField + "=?" +
                         " AND J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
-                new String[]{Integer.toString(bunch), Integer.toString(alphabet), Integer.toString(rule)}
+                new String[]{Integer.toString(_bunch), Integer.toString(alphabet), Integer.toString(rule)}
         );
 
         if (cursor != null) {
@@ -727,10 +507,12 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
                     } while (cursor.moveToNext());
 
                     final int idCount = ids.size();
-                    result = new int[idCount];
+                    Set<Integer> result = new HashSet<>(idCount);
                     for (int i = 0; i < idCount; i++) {
-                        result[i] = ids.keyAt(i);
+                        result.add(ids.keyAt(i));
                     }
+
+                    return result;
                 }
             }
             finally {
@@ -738,40 +520,48 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
             }
         }
 
+        return new HashSet<>();
+    }
+
+    private Set<Integer> readAllPossibleAcceptationForField(SQLiteDatabase db, FieldState field) {
+        switch (field.type) {
+            case FieldTypes.sameAcceptation:
+                return readAllAcceptationsInBunch(db, field.alphabet);
+
+            case FieldTypes.sameConcept:
+                return readAllPossibleSynonymOrTranslationAcceptationsInBunch(db, field.alphabet);
+
+            case FieldTypes.appliedRule:
+                return readAllRulableAcceptationsInBunch(db, field.alphabet, field.rule);
+
+            default:
+                throw new AssertionError();
+        }
+    }
+
+    private Set<Integer> readAllPossibleAcceptations(SQLiteDatabase db) {
+        final Iterator<FieldState> it = _questionFields.iterator();
+        final Set<Integer> result = readAllPossibleAcceptationForField(db, it.next());
+
+        while (it.hasNext()) {
+            result.retainAll(readAllPossibleAcceptationForField(db, it.next()));
+        }
+
+        for (FieldState field : _answerFields) {
+            result.retainAll(readAllPossibleAcceptationForField(db, field));
+        }
+
         return result;
     }
 
-    private int[] readAllPossibleAcceptations(SQLiteDatabase db) {
-        switch (_quizType) {
-            case QuizTypes.interAlphabet:
-                return readAllPossibleInterAlphabetAcceptations(db, _sourceBunch, _sourceAlphabet, _aux);
-
-            case QuizTypes.synonym:
-                return readAllPossibleSynonymOrTranslationAcceptations(db, (_sourceBunch != 0)? _sourceBunch : _targetBunch, _sourceAlphabet, _sourceAlphabet, false);
-
-            case QuizTypes.translation:
-                if (_sourceBunch != 0) {
-                    return readAllPossibleSynonymOrTranslationAcceptations(db, _sourceBunch, _sourceAlphabet, _aux, false);
-                }
-                else {
-                    return readAllPossibleSynonymOrTranslationAcceptations(db, _targetBunch, _aux, _sourceAlphabet, true);
-                }
-
-            case QuizTypes.appliedRule:
-                return readAllRulableAcceptations(db, _sourceBunch, _sourceAlphabet, _aux);
-        }
-
-        return new int[0];
-    }
-
-    private void insertAllPossibilities(SQLiteDatabase db, int quizId) {
+    private void insertAllPossibilities(SQLiteDatabase db, int quizId, Set<Integer> acceptations) {
         final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
         final String quizDefField = table.getColumnName(table.getQuizDefinitionColumnIndex());
         final String accField = table.getColumnName(table.getAcceptationColumnIndex());
         final String scoreField = table.getColumnName(table.getScoreColumnIndex());
 
         final ContentValues cv = new ContentValues();
-        for (int acceptation : readAllPossibleAcceptations(db)) {
+        for (int acceptation : acceptations) {
             cv.clear();
             cv.put(quizDefField, quizId);
             cv.put(accField, acceptation);
@@ -781,19 +571,55 @@ public class QuizSelectionActivity extends Activity implements AdapterView.OnIte
         }
     }
 
-    @Override
-    public void onClick(View view) {
+    private void startQuiz() {
         final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
-        final Integer quizIdFound = findQuizDefinition(db);
-        final int quizId;
-        if (quizIdFound == null) {
-            quizId = insertQuizDefinition(db);
-            insertAllPossibilities(db, quizId);
-        }
-        else {
-            quizId = quizIdFound;
+
+        final List<QuestionField> fields = new ArrayList<>();
+        for (FieldState state : _questionFields) {
+            fields.add(new QuestionField(state.alphabet, state.rule, state.type - 1));
         }
 
-        QuizResultActivity.open(this, quizId);
+        for (FieldState state : _answerFields) {
+            fields.add(new QuestionField(state.alphabet, state.rule, DbManager.QuestionFieldFlags.IS_ANSWER | (state.type - 1)));
+        }
+
+        final Integer existingSetId = findQuestionFieldSet(db, fields);
+        final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, _bunch, existingSetId) : null;
+        Integer quizId = null;
+        if (existingQuizId == null) {
+            final Set<Integer> acceptations = readAllPossibleAcceptations(db);
+            if (acceptations.size() == 0) {
+                Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
+            }
+            else {
+                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
+                quizId = insertQuizDefinition(db, _bunch, setId);
+                insertAllPossibilities(db, quizId, acceptations);
+            }
+        }
+        else {
+            quizId = existingQuizId;
+        }
+
+        if (quizId != null) {
+            QuizResultActivity.open(this, quizId);
+        }
+    }
+
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.startButton:
+                startQuiz();
+                break;
+
+            case R.id.addQuestionButton:
+                addField(_questionFields, R.id.questionList);
+                break;
+
+            case R.id.addAnswerButton:
+                addField(_answerFields, R.id.answerList);
+                break;
+        }
     }
 }

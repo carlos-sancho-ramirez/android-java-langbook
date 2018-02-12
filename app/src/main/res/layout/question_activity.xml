@@ -10,21 +10,12 @@
         android:layout_height="wrap_content"
         android:gravity="right"/>
 
-    <TextView
-        android:id="@+id/questionText"
+    <LinearLayout
+        android:id="@+id/fieldsPanel"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:textSize="36sp"/>
-
-    <TextView
-        android:id="@+id/answerText"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:textSize="36sp"/>
+        android:orientation="vertical"/>
 
     <Button
         android:id="@+id/revealAnswerButton"

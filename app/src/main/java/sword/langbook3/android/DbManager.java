@@ -18,9 +18,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -800,6 +802,175 @@ class DbManager extends SQLiteOpenHelper {
         return (foundId != null)? foundId : insertBunchSet(db, setId, bunches);
     }
 
+    static final class QuestionField {
+
+        final int alphabet;
+        final int rule;
+        final int flags;
+
+        QuestionField(int alphabet, int rule, int flags) {
+            this.alphabet = alphabet;
+            this.rule = rule;
+            this.flags = flags;
+        }
+
+        int getType() {
+            return flags & DbManager.QuestionFieldFlags.TYPE_MASK;
+        }
+
+        boolean isAnswer() {
+            return (flags & DbManager.QuestionFieldFlags.IS_ANSWER) != 0;
+        }
+
+        @Override
+        public int hashCode() {
+            return (alphabet * 31 + rule) * 31 + flags;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == null || !(other instanceof QuestionField)) {
+                return false;
+            }
+
+            QuestionField that = (QuestionField) other;
+            return alphabet == that.alphabet && rule == that.rule && flags == that.flags;
+        }
+    }
+
+    static Integer findQuestionFieldSet(SQLiteDatabase db, Collection<QuestionField> collection) {
+        if (collection == null || collection.size() == 0) {
+            return null;
+        }
+
+        final Set<QuestionField> set = new HashSet<>(collection);
+
+        final QuestionField firstField = set.iterator().next();
+        final DbManager.QuestionFieldSets fieldSets = DbManager.Tables.questionFieldSets;
+        final Cursor cursor = db.rawQuery("SELECT" +
+                        " J0." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
+                        ",J1." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) +
+                        ",J1." + fieldSets.getColumnName(fieldSets.getRuleColumnIndex()) +
+                        ",J1." + fieldSets.getColumnName(fieldSets.getFlagsColumnIndex()) +
+                        " FROM " + fieldSets.getName() + " AS J0" +
+                        " JOIN " + fieldSets.getName() + " AS J1 ON J0." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) + "=J1." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
+                        " WHERE J0." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) + "=?" +
+                        " AND J0." + fieldSets.getColumnName(fieldSets.getRuleColumnIndex()) + "=?" +
+                        " AND J0." + fieldSets.getColumnName(fieldSets.getFlagsColumnIndex()) + "=?",
+                new String[] {Integer.toString(firstField.alphabet), Integer.toString(firstField.rule), Integer.toString(firstField.flags)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    int setId = cursor.getInt(0);
+                    final Set<QuestionField> foundSet = new HashSet<>();
+                    foundSet.add(new QuestionField(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3)));
+
+                    while (cursor.moveToNext()) {
+                        if (setId != cursor.getInt(0)) {
+                            if (foundSet.equals(set)) {
+                                return setId;
+                            }
+                            else {
+                                foundSet.clear();
+                                setId = cursor.getInt(0);
+                            }
+                        }
+
+                        foundSet.add(new QuestionField(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3)));
+                    }
+
+                    if (foundSet.equals(set)) {
+                        return setId;
+                    }
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
+    private static int getMaxQuestionFieldSetId(SQLiteDatabase db) {
+        DbManager.QuestionFieldSets table = DbManager.Tables.questionFieldSets;
+        Cursor cursor = db.rawQuery("SELECT max(" +
+                table.getColumnName(table.getSetIdColumnIndex()) + ") FROM " +
+                table.getName(), null);
+
+        if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
+            try {
+                return cursor.getInt(0);
+            } finally {
+                cursor.close();
+            }
+        }
+        else {
+            return 0;
+        }
+    }
+
+    static int insertQuestionFieldSet(SQLiteDatabase db, List<QuestionField> fields) {
+        final DbManager.QuestionFieldSets table = DbManager.Tables.questionFieldSets;
+        ContentValues fieldsCv = new ContentValues();
+        final int setId = getMaxQuestionFieldSetId(db) + 1;
+
+        for (QuestionField field : fields) {
+            fieldsCv.put(table.getColumnName(table.getSetIdColumnIndex()), setId);
+            fieldsCv.put(table.getColumnName(table.getAlphabetColumnIndex()), field.alphabet);
+            fieldsCv.put(table.getColumnName(table.getRuleColumnIndex()), field.rule);
+            fieldsCv.put(table.getColumnName(table.getFlagsColumnIndex()), field.flags);
+            db.insert(table.getName(), null, fieldsCv);
+        }
+
+        return setId;
+    }
+
+    static int obtainQuestionFieldSet(SQLiteDatabase db, List<QuestionField> fields) {
+        final Integer setId = findQuestionFieldSet(db, fields);
+        return (setId != null)? setId : insertQuestionFieldSet(db, fields);
+    }
+
+    static Integer findQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
+        final DbManager.QuizDefinitionsTable quizzes = Tables.quizDefinitions;
+        final Cursor cursor = db.rawQuery("SELECT " + idColumnName +
+                " FROM " + quizzes.getName() +
+                " WHERE " + quizzes.getColumnName(quizzes.getBunchColumnIndex()) + "=?" +
+                " AND " + quizzes.getColumnName(quizzes.getQuestionFieldsColumnIndex()) + "=?",
+                new String[] {Integer.toString(bunch), Integer.toString(setId)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return null;
+    }
+
+    static int insertQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
+        final QuizDefinitionsTable table = Tables.quizDefinitions;
+        ContentValues cv = new ContentValues();
+        cv.put(table.getColumnName(table.getBunchColumnIndex()), bunch);
+        cv.put(table.getColumnName(table.getQuestionFieldsColumnIndex()), setId);
+        final long returnId = db.insert(table.getName(), null, cv);
+        if (returnId < 0) {
+            throw new AssertionError("insert returned a negative id");
+        }
+        return (int) returnId;
+    }
+
+    static int obtainQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
+        final Integer id = findQuizDefinition(db, bunch, setId);
+        return (id != null)? id : insertQuizDefinition(db, bunch, setId);
+    }
+
     private int[] readSymbolArrays(SQLiteDatabase db, InputBitStream ibs) throws IOException {
         final int symbolArraysLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -1552,40 +1723,66 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    static final class QuizDefinitionsTable extends DbTable {
+    interface QuestionFieldFlags {
 
-        QuizDefinitionsTable() {
-            super("QuizDefinitions", new DbIntColumn("sourceBunch"), new DbIntColumn("targetBunch"), new DbIntColumn("sourceAlphabet"), new DbIntColumn("quizType"), new DbIntColumn("aux"));
+        /**
+         * Once we have an acceptation, there are 3 kind of questions ways of retrieving the information for the question field.
+         * <li>Same acceptation: We just get the acceptation form the Database.</li>
+         * <li>Same concept: Other acceptation matching the origina concept must be found. Depending on the alphabet, they will be synonymous or translations.</li>
+         * <li>Apply rule: The given acceptation is the dictionary form, then the ruled acceptation with the given rule should be found.</li>
+         */
+        int TYPE_MASK = 3;
+        int TYPE_SAME_ACC = 0;
+        int TYPE_SAME_CONCEPT = 1;
+        int TYPE_APPLY_RULE = 2;
+
+        /**
+         * If set, question mask has to be displayed when performing the question.
+         */
+        int IS_ANSWER = 4;
+    }
+
+    static final class QuestionFieldSets extends DbTable {
+
+        QuestionFieldSets() {
+            super("QuestionFieldSets", new DbIntColumn("setId"), new DbIntColumn("alphabet"), new DbIntColumn("flags"), new DbIntColumn("rule"));
         }
 
-        int getSourceBunchColumnIndex() {
+        int getSetIdColumnIndex() {
             return 1;
         }
 
-        int getTargetBunchColumnIndex() {
+        int getAlphabetColumnIndex() {
             return 2;
         }
 
-        int getSourceAlphabetColumnIndex() {
+        /**
+         * @see QuestionFieldFlags
+         */
+        int getFlagsColumnIndex() {
             return 3;
         }
 
         /**
-         * One of the following types
-         * <li>1: Inter-alphabet (e.g. written in kanji... what its kana?). Here aux is the targetAlphabet
-         * <li>2: Translation (e.g. a Japanese word... its Spanish, English,...?). Here aux is the targetAlphabet
-         * <li>3: Synonym. No aux required. Target alphabet is assumed to be the same as sourceAlphabet.
-         * <li>4: Applied rule. Here aux is the target rule. Target alphabet is assumed to be the same as sourceAlphabet.
+         * Only relevant if question type if 'apply rule'. Ignored in other cases.
          */
-        int getQuizTypeColumnIndex() {
+        int getRuleColumnIndex() {
             return 4;
         }
+    }
 
-        /**
-         * This can hold a targetAlphabet or a rule. Depending on the quiz type.
-         */
-        int getAuxiliarColumnIndex() {
-            return 5;
+    static final class QuizDefinitionsTable extends DbTable {
+
+        QuizDefinitionsTable() {
+            super("QuizDefinitions", new DbIntColumn("bunch"), new DbIntColumn("questionFields"));
+        }
+
+        int getBunchColumnIndex() {
+            return 1;
+        }
+
+        int getQuestionFieldsColumnIndex() {
+            return 2;
         }
     }
 
@@ -1671,6 +1868,7 @@ class DbManager extends SQLiteOpenHelper {
         static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
         static final KnowledgeTable knowledge = new KnowledgeTable();
         static final LanguagesTable languages = new LanguagesTable();
+        static final QuestionFieldSets questionFieldSets = new QuestionFieldSets();
         static final QuizDefinitionsTable quizDefinitions = new QuizDefinitionsTable();
         static final RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
         static final RuledConceptsTable ruledConcepts = new RuledConceptsTable();
@@ -1680,7 +1878,7 @@ class DbManager extends SQLiteOpenHelper {
 
     static final String idColumnName = "id";
 
-    private static final DbTable[] dbTables = new DbTable[17];
+    private static final DbTable[] dbTables = new DbTable[18];
     static {
         dbTables[0] = Tables.acceptations;
         dbTables[1] = Tables.agents;
@@ -1694,11 +1892,12 @@ class DbManager extends SQLiteOpenHelper {
         dbTables[9] = Tables.correlationArrays;
         dbTables[10] = Tables.knowledge;
         dbTables[11] = Tables.languages;
-        dbTables[12] = Tables.quizDefinitions;
-        dbTables[13] = Tables.ruledAcceptations;
-        dbTables[14] = Tables.ruledConcepts;
-        dbTables[15] = Tables.stringQueries;
-        dbTables[16] = Tables.symbolArrays;
+        dbTables[12] = Tables.questionFieldSets;
+        dbTables[13] = Tables.quizDefinitions;
+        dbTables[14] = Tables.ruledAcceptations;
+        dbTables[15] = Tables.ruledConcepts;
+        dbTables[16] = Tables.stringQueries;
+        dbTables[17] = Tables.symbolArrays;
     }
 
     private void createTables(SQLiteDatabase db) {

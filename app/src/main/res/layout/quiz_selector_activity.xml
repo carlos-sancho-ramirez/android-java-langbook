@@ -8,32 +8,62 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <Spinner
-            android:id="@+id/quizType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
         <TextView
             android:id="@+id/bunch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
-        <Spinner
-            android:id="@+id/sourceAlphabet"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content">
 
-        <Spinner
-            android:id="@+id/bunchApplianceToggle"
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/quizQuestionsHeader"/>
+
+            <Button
+                android:id="@+id/addQuestionButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/questionList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone"/>
+            android:orientation="vertical">
 
-        <Spinner
-            android:id="@+id/aux"
+            <include layout="@layout/quiz_selector_field_entry"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/quizAnswersHeader"/>
+
+            <Button
+                android:id="@+id/addAnswerButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/answerList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone"/>
+            android:orientation="vertical">
+
+            <include layout="@layout/quiz_selector_field_entry"/>
+        </LinearLayout>
 
         <Button
             android:id="@+id/startButton"

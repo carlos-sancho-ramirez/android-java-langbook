@@ -3,7 +3,11 @@
     <string name="menuItemSettings">Preferences</string>
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="importDatabaseButton">Import database</string>
+
+    <string name="quizQuestionsHeader">Question fields</string>
+    <string name="quizAnswersHeader">Answer fields</string>
     <string name="startQuizButton">Start quiz</string>
+    <string name="noValidQuestions">No valid questions can be presented for the given quiz definition</string>
 
     <string name="revealAnswerButton">Reveal answer</string>
     <string name="badAnswerButton">Bad</string>
