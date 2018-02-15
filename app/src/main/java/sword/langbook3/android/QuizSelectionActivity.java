@@ -295,12 +295,12 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
     private AdapterItem[] _alphabetItems;
     private AdapterItem[] _ruleItems;
 
-    private final class FieldSpinnerListener implements Spinner.OnItemSelectedListener {
+    private final class FieldListener implements Spinner.OnItemSelectedListener, View.OnClickListener {
 
         final FieldState fieldState;
         final Spinner ruleSpinner;
 
-        FieldSpinnerListener(FieldState fieldState, Spinner ruleSpinner) {
+        FieldListener(FieldState fieldState, Spinner ruleSpinner) {
             this.fieldState = fieldState;
             this.ruleSpinner = ruleSpinner;
         }
@@ -340,11 +340,16 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
         public void onNothingSelected(AdapterView<?> parent) {
             // Nothing to be done
         }
+
+        @Override
+        public void onClick(View view) {
+            removeField(fieldState);
+        }
     }
 
-    private void setUpFieldSpinners(View fieldViewGroup, FieldState fieldState) {
+    private void setUpFieldViews(View fieldViewGroup, FieldState fieldState) {
         final Spinner ruleSpinner = fieldViewGroup.findViewById(R.id.fieldRule);
-        final FieldSpinnerListener listener = new FieldSpinnerListener(fieldState, ruleSpinner);
+        final FieldListener listener = new FieldListener(fieldState, ruleSpinner);
 
         final Spinner typeSpinner = fieldViewGroup.findViewById(R.id.fieldType);
         typeSpinner.setAdapter(new FieldTypeAdapter(typeEntries));
@@ -356,6 +361,8 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
 
         ruleSpinner.setAdapter(new AlphabetAdapter(_ruleItems));
         ruleSpinner.setOnItemSelectedListener(listener);
+
+        fieldViewGroup.findViewById(R.id.removeFieldButton).setOnClickListener(listener);
     }
 
     private void addField(ArrayList<FieldState> list, int viewList) {
@@ -366,7 +373,35 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
         getLayoutInflater().inflate(R.layout.quiz_selector_field_entry, viewGroup, true);
 
         final View fieldViewGroup = viewGroup.getChildAt(viewGroup.getChildCount() - 1);
-        setUpFieldSpinners(fieldViewGroup, fieldState);
+        setUpFieldViews(fieldViewGroup, fieldState);
+
+        final int fieldCount = viewGroup.getChildCount();
+        for (int i = 0; i < fieldCount; i++) {
+            viewGroup.getChildAt(i).findViewById(R.id.removeFieldButton).setEnabled(true);
+        }
+    }
+
+    private boolean removeFieldInList(FieldState field, ArrayList<FieldState> fields, int listResId) {
+        int index = fields.indexOf(field);
+        if (index >= 0) {
+            fields.remove(index);
+            final ViewGroup list = findViewById(listResId);
+            list.removeViewAt(index);
+
+            if (fields.size() == 1) {
+                list.getChildAt(0).findViewById(R.id.removeFieldButton).setEnabled(false);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private void removeField(FieldState field) {
+        if (!removeFieldInList(field, _questionFields, R.id.questionList)) {
+            removeFieldInList(field, _answerFields, R.id.answerList);
+        }
     }
 
     @Override
@@ -401,10 +436,10 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
         _answerFields.add(new FieldState());
 
         final ViewGroup questionViewGroup = findViewById(R.id.questionList);
-        setUpFieldSpinners(questionViewGroup.getChildAt(0), _questionFields.get(0));
+        setUpFieldViews(questionViewGroup.getChildAt(0), _questionFields.get(0));
 
         final ViewGroup answerViewGroup = findViewById(R.id.answerList);
-        setUpFieldSpinners(answerViewGroup.getChildAt(0), _answerFields.get(0));
+        setUpFieldViews(answerViewGroup.getChildAt(0), _answerFields.get(0));
 
         findViewById(R.id.addQuestionButton).setOnClickListener(this);
         findViewById(R.id.addAnswerButton).setOnClickListener(this);
