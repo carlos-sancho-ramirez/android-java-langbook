@@ -171,7 +171,7 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
 
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int correlationId) {
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-        final SparseArray<String> alphabets = QuizSelectionActivity.readAllAlphabets(db);
+        final SparseArray<String> alphabets = QuizEditorActivity.readAllAlphabets(db);
         final SparseArray<String> correlation = readCorrelation(db, correlationId);
 
         final int entryCount = correlation.size();

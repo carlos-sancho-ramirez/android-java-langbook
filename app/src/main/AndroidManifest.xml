@@ -21,8 +21,9 @@
         <activity android:name=".AgentDetailsActivity"/>
         <activity android:name=".CorrelationDetailsActivity"/>
         <activity android:name=".QuestionActivity"/>
+        <activity android:name=".QuizEditorActivity"/>
         <activity android:name=".QuizResultActivity"/>
-        <activity android:name=".QuizSelectionActivity"/>
+        <activity android:name=".QuizSelectorActivity"/>
         <activity android:name=".RuleTableActivity"/>
         <activity android:name=".SettingsActivity"/>
     </application>

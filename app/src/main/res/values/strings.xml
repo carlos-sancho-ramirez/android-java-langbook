@@ -2,6 +2,7 @@
     <string name="appName">Langbook</string>
     <string name="menuItemSettings">Preferences</string>
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
+    <string name="menuItemNewQuizDefinition">New Quiz</string>
     <string name="importDatabaseButton">Import database</string>
 
     <string name="quizQuestionsHeader">Question fields</string>

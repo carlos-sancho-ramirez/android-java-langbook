@@ -1042,7 +1042,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemBunchChildrenQuiz:
-                QuizSelectionActivity.open(this, _concept);
+                QuizSelectorActivity.open(this, _concept);
                 return true;
         }
 

@@ -31,7 +31,7 @@ import static sword.langbook3.android.DbManager.idColumnName;
 import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
 import static sword.langbook3.android.DbManager.insertQuizDefinition;
 
-public class QuizSelectionActivity extends Activity implements View.OnClickListener {
+public class QuizEditorActivity extends Activity implements View.OnClickListener {
 
     private static final class BundleKeys {
         static final String BUNCH = "b";
@@ -42,7 +42,7 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
     static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
 
     public static void open(Context context, int bunch) {
-        Intent intent = new Intent(context, QuizSelectionActivity.class);
+        Intent intent = new Intent(context, QuizEditorActivity.class);
         intent.putExtra(BundleKeys.BUNCH, bunch);
         context.startActivity(intent);
     }
@@ -370,7 +370,7 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
         list.add(fieldState);
 
         final ViewGroup viewGroup = findViewById(viewList);
-        getLayoutInflater().inflate(R.layout.quiz_selector_field_entry, viewGroup, true);
+        getLayoutInflater().inflate(R.layout.quiz_editor_field_entry, viewGroup, true);
 
         final View fieldViewGroup = viewGroup.getChildAt(viewGroup.getChildCount() - 1);
         setUpFieldViews(fieldViewGroup, fieldState);
@@ -407,7 +407,7 @@ public class QuizSelectionActivity extends Activity implements View.OnClickListe
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.quiz_selector_activity);
+        setContentView(R.layout.quiz_editor_activity);
 
         _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
