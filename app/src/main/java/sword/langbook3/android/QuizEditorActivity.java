@@ -217,7 +217,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         return result;
     }
 
-    private SparseArray<String> readAllRules(SQLiteDatabase db) {
+    static SparseArray<String> readAllRules(SQLiteDatabase db) {
         final DbManager.AgentsTable agents = DbManager.Tables.agents;
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
         final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;

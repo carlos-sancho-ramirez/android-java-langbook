@@ -37,6 +37,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     private int _bunch;
+    private SparseArray<String> _ruleTexts;
 
     static final class Progress {
         // Due to int[] can be modified, this class may become inconsistent if value is changed.
@@ -110,6 +111,14 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return new Progress(progress, numberOfQuestions);
     }
 
+    private String getRuleText(SQLiteDatabase db, int rule) {
+        if (_ruleTexts == null) {
+            _ruleTexts = QuizEditorActivity.readAllRules(db);
+        }
+
+        return _ruleTexts.get(rule);
+    }
+
     private QuizSelectorAdapter.Item[] composeAdapterItems(SQLiteDatabase db, int bunch) {
         final SparseArray<String> allAlphabets = QuizEditorActivity.readAllAlphabets(db);
         final DbManager.QuizDefinitionsTable quizzes = DbManager.Tables.quizDefinitions;
@@ -181,7 +190,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                         .append(getString(field.getTypeStringResId()));
 
                 if (field.getType() == DbManager.QuestionFieldFlags.TYPE_APPLY_RULE) {
-                    sb.append(", ").append(field.rule);
+                    sb.append(", ").append(getRuleText(db, field.rule));
                 }
                 sb.append(')');
             }
