@@ -2,4 +2,5 @@
 <resources>
     <dimen name="quizSelectorEntryPadding">8dp</dimen>
     <dimen name="quizSelectorEntryTextPadding">12dp</dimen>
+    <dimen name="quizSelectorEntryKnowledgeCompletenessSpacing">4dp</dimen>
 </resources>

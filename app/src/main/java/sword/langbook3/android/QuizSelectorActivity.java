@@ -38,6 +38,78 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private int _bunch;
 
+    static final class Progress {
+        // Due to int[] can be modified, this class may become inconsistent if value is changed.
+        // TODO: Make this class completely immutable
+        private final int[] amountPerScore;
+        private final int totalAnsweredQuestions;
+        private final int numberOfQuestions;
+
+        Progress(int[] amountPerScore, int numberOfQuestions) {
+            int answeredQuestions = 0;
+            for (int amount : amountPerScore) {
+                answeredQuestions += amount;
+            }
+
+            if (answeredQuestions > numberOfQuestions) {
+                throw new IllegalArgumentException();
+            }
+
+            this.amountPerScore = amountPerScore;
+            totalAnsweredQuestions = answeredQuestions;
+            this.numberOfQuestions = numberOfQuestions;
+        }
+
+        int[] getAmountPerScore() {
+            return amountPerScore;
+        }
+
+        int getAnsweredQuestionsCount() {
+            return totalAnsweredQuestions;
+        }
+
+        int getNumberOfQuestions() {
+            return numberOfQuestions;
+        }
+
+        String getCompletenessString() {
+            final float completeness = (float) totalAnsweredQuestions * 100 / numberOfQuestions;
+            return String.format("%.1f%%", completeness);
+        }
+
+        KnowledgeDrawable getDrawable() {
+            return (totalAnsweredQuestions > 0)? new KnowledgeDrawable(amountPerScore) : null;
+        }
+    }
+
+    static Progress readProgress(SQLiteDatabase db, int quizId) {
+        final DbManager.KnowledgeTable knowledge = DbManager.Tables.knowledge;
+
+        final Cursor cursor = db.rawQuery("SELECT " + knowledge.getColumnName(knowledge.getScoreColumnIndex()) + " FROM " + knowledge.getName() + " WHERE " + knowledge.getColumnName(knowledge.getQuizDefinitionColumnIndex()) + "=?",
+                new String[] { Integer.toString(quizId)});
+
+        int numberOfQuestions = 0;
+        final int[] progress = new int[QuestionActivity.MAX_ALLOWED_SCORE - QuestionActivity.MIN_ALLOWED_SCORE + 1];
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    numberOfQuestions = cursor.getCount();
+                    do {
+                        final int score = cursor.getInt(0);
+                        if (score != QuestionActivity.NO_SCORE) {
+                            progress[score - QuestionActivity.MIN_ALLOWED_SCORE]++;
+                        }
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new Progress(progress, numberOfQuestions);
+    }
+
     private QuizSelectorAdapter.Item[] composeAdapterItems(SQLiteDatabase db, int bunch) {
         final SparseArray<String> allAlphabets = QuizEditorActivity.readAllAlphabets(db);
         final DbManager.QuizDefinitionsTable quizzes = DbManager.Tables.quizDefinitions;
@@ -114,7 +186,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 sb.append(')');
             }
 
-            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString());
+            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString(), readProgress(db, quizId));
         }
 
         return items;

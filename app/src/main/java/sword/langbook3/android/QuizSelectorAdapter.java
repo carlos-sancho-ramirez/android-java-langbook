@@ -46,6 +46,11 @@ final class QuizSelectorAdapter extends BaseAdapter {
         TextView atv = convertView.findViewById(R.id.answerText);
         atv.setText(item._answerText);
 
+        convertView.findViewById(R.id.knowledgeBarView).setBackground(item._progress.getDrawable());
+
+        TextView ctv = convertView.findViewById(R.id.completenessTextView);
+        ctv.setText(item._progress.getCompletenessString());
+
         return convertView;
     }
 
@@ -53,11 +58,13 @@ final class QuizSelectorAdapter extends BaseAdapter {
         private final int _quizId;
         private final String _questionText;
         private final String _answerText;
+        private final QuizSelectorActivity.Progress _progress;
 
-        Item(int quizId, String questionText, String answerText) {
+        Item(int quizId, String questionText, String answerText, QuizSelectorActivity.Progress progress) {
             _quizId = quizId;
             _questionText = questionText;
             _answerText = answerText;
+            _progress = progress;
         }
 
         int getQuizId() {
