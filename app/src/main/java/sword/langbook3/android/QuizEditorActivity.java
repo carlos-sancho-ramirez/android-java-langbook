@@ -285,13 +285,6 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     private final ArrayList<FieldState> _answerFields = new ArrayList<>(1);
     private int _bunch;
 
-    private static final String[] typeEntries = new String[] {
-            " -- Select type --",
-            "same acceptation",
-            "same concept",
-            "applied rule"
-    };
-
     private AdapterItem[] _alphabetItems;
     private AdapterItem[] _ruleItems;
 
@@ -352,6 +345,13 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final FieldListener listener = new FieldListener(fieldState, ruleSpinner);
 
         final Spinner typeSpinner = fieldViewGroup.findViewById(R.id.fieldType);
+        final String[] typeEntries = new String[] {
+                getString(R.string.questionTypeNoValue),
+                getString(R.string.questionTypeSameAcceptation),
+                getString(R.string.questionTypeSameConcept),
+                getString(R.string.questionTypeAppliedRule)
+        };
+
         typeSpinner.setAdapter(new FieldTypeAdapter(typeEntries));
         typeSpinner.setOnItemSelectedListener(listener);
 

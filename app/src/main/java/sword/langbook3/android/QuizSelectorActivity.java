@@ -39,6 +39,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     private int _bunch;
 
     private QuizSelectorAdapter.Item[] composeAdapterItems(SQLiteDatabase db, int bunch) {
+        final SparseArray<String> allAlphabets = QuizEditorActivity.readAllAlphabets(db);
         final DbManager.QuizDefinitionsTable quizzes = DbManager.Tables.quizDefinitions;
         final DbManager.QuestionFieldSets fieldSets = DbManager.Tables.questionFieldSets;
         Cursor cursor = db.rawQuery("SELECT" +
@@ -90,7 +91,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                         asb = new StringBuilder();
                     }
                     else {
-                        asb.append(", ");
+                        asb.append('\n');
                     }
                     sb = asb;
                 }
@@ -99,18 +100,21 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                         qsb = new StringBuilder();
                     }
                     else {
-                        qsb.append(", ");
+                        qsb.append('\n');
                     }
                     sb = qsb;
                 }
                 sb.append('(')
-                        .append(field.alphabet).append(", ")
-                        .append(field.flags).append(", ")
-                        .append(field.rule).append(')');
+                        .append(allAlphabets.get(field.alphabet, "?")).append(", ")
+                        .append(getString(field.getTypeStringResId()));
+
+                if (field.getType() == DbManager.QuestionFieldFlags.TYPE_APPLY_RULE) {
+                    sb.append(", ").append(field.rule);
+                }
+                sb.append(')');
             }
 
-            String text = qsb.toString() + " -> " + asb.toString();
-            items[i] = new QuizSelectorAdapter.Item(quizId, text);
+            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString());
         }
 
         return items;

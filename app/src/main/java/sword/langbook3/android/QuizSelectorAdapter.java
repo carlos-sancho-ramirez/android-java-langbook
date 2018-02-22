@@ -39,19 +39,25 @@ final class QuizSelectorAdapter extends BaseAdapter {
             convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.quiz_selector_entry, parent, false);
         }
 
-        TextView tv = convertView.findViewById(R.id.textView);
-        tv.setText(_items[position]._text);
+        final Item item = _items[position];
+        TextView qtv = convertView.findViewById(R.id.questionText);
+        qtv.setText(item._questionText);
+
+        TextView atv = convertView.findViewById(R.id.answerText);
+        atv.setText(item._answerText);
 
         return convertView;
     }
 
     static class Item {
         private final int _quizId;
-        private final String _text;
+        private final String _questionText;
+        private final String _answerText;
 
-        Item(int quizId, String text) {
+        Item(int quizId, String questionText, String answerText) {
             _quizId = quizId;
-            _text = text;
+            _questionText = questionText;
+            _answerText = answerText;
         }
 
         int getQuizId() {

@@ -12,6 +12,11 @@
     <string name="startQuizButton">Start quiz</string>
     <string name="noValidQuestions">No valid questions can be presented for the given quiz definition</string>
 
+    <string name="questionTypeNoValue"> -- Select type -- </string>
+    <string name="questionTypeSameAcceptation">same acceptation</string>
+    <string name="questionTypeSameConcept">same concept</string>
+    <string name="questionTypeAppliedRule">applied rule</string>
+
     <string name="revealAnswerButton">Reveal answer</string>
     <string name="badAnswerButton">Bad</string>
     <string name="goodAnswerButton">Good</string>

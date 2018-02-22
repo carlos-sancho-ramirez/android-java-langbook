@@ -815,7 +815,22 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         int getType() {
-            return flags & DbManager.QuestionFieldFlags.TYPE_MASK;
+            return flags & QuestionFieldFlags.TYPE_MASK;
+        }
+
+        int getTypeStringResId() {
+            switch (getType()) {
+                case QuestionFieldFlags.TYPE_SAME_ACC:
+                    return R.string.questionTypeSameAcceptation;
+
+                case QuestionFieldFlags.TYPE_SAME_CONCEPT:
+                    return R.string.questionTypeSameConcept;
+
+                case QuestionFieldFlags.TYPE_APPLY_RULE:
+                    return R.string.questionTypeAppliedRule;
+            }
+
+            return 0;
         }
 
         boolean isAnswer() {
