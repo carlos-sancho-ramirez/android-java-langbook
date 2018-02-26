@@ -108,6 +108,10 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
             case R.id.menuItemSettings:
                 SettingsActivity.open(this);
                 return true;
+
+            case R.id.menuItemAbout:
+                AboutActivity.open(this);
+                return true;
         }
 
         return false;
