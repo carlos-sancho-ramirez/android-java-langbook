@@ -17,6 +17,7 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".AboutActivity"/>
         <activity android:name=".AcceptationDetailsActivity"/>
         <activity android:name=".AgentDetailsActivity"/>
         <activity android:name=".CorrelationDetailsActivity"/>
