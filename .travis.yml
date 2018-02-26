@@ -3,22 +3,26 @@ android:
   components:
   - tools
   - platform-tools
-
-  # The BuildTools version used by your project
   - build-tools-26.0.2
-
-  # The SDK version used to compile your project
   - android-26
-
 script:
 - "./gradlew clean assembleDebug test"
-
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -rf $HOME/.gradle/caches/*/plugin-resolution/
-
 cache:
   directories:
-  - $HOME/.gradle/caches/
-  - $HOME/.gradle/wrapper/
-  - $HOME/.android/build-cache
+  - "$HOME/.gradle/caches/"
+  - "$HOME/.gradle/wrapper/"
+  - "$HOME/.android/build-cache"
+before_deploy:
+- "./travisBeforeDeploy.sh"
+deploy:
+  provider: releases
+  api_key:
+    secure: cygHQJBTid+EAUjXuiT8ltJtl6anL/3EhUQX+1iCmDL4a1HA8q5BKDbFFKiNWQH1jMlny6f3M7wRIsTSIP97waQwYVRgRSLhuMxH3nC6wXj3GNETJVQ4x+QJwD82uCtNRNgy7acS86mHmgNPK7rKJWYPS6DOXOB8SNoaXYPd6b35LiIvgEX8rgNnTTVA6aYHKe6JQGQWU421GkzGWgP5mKKgS8POoaeNp64IGfYS5/Z7zeApKBGzS1ogiAxSvDoRXbWIRkaTX+lOeptXzSwj/eYaQ80W6oCtZG0VE0Ldl1EIHFMadSda0KctmVcfF/kv9MdareasSMloIp+7vu/HQJYuU8ZhzaI1qWD2cDoCvpIZVTb0GMes5bYgnT9RnE7ClTGAafVaR7Lr5pBgL//kQJH2tRg/MbFZt6K3NcfAvo+hJVegfxsQDLchrPLjl7EV+UfzcjJYbd+0G7dzAdtWaL8SMioEpa+02Vh8Qz81VUOwjLRotcpSb8oW7z1Sg6r6PVgzvmiRZJskqQZTyKZlb1Q0SB1X2pNBqJ6iMeumd6rrnnr7w5Onw0vehzj10vMYtpsbr0HAMvlW4eSMwLA+JuCNgNCJ/w1ViYk+5wNUd0KGkWpdHG/BKR1nq5KQIplXcHBFaTg7Yhit9RaHeR5vQZgbEN+xljuCQWsEyH6JcFg=
+  file: app/build/outputs/apk/debug/app-debug.apk
+  skip_cleanup: true
+  on:
+    branch: master
+    repo: carlos-sancho-ramirez/android-java-langbook
