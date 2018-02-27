@@ -56,7 +56,6 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private final SparseIntArray _knowledge = new SparseIntArray();
 
     private int _quizId;
-    private int _bunch;
     private QuestionField[] _fields;
     private TextView[] _fieldTextViews;
 
@@ -75,7 +74,6 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final DbManager.QuizDefinitionsTable quizTable = DbManager.Tables.quizDefinitions;
         final DbManager.QuestionFieldSets fieldTable = DbManager.Tables.questionFieldSets;
         final Cursor cursor = db.rawQuery("SELECT " +
-                        quizTable.getColumnName(quizTable.getBunchColumnIndex()) + ',' +
                         fieldTable.getColumnName(fieldTable.getAlphabetColumnIndex()) + ',' +
                         fieldTable.getColumnName(fieldTable.getRuleColumnIndex()) + ',' +
                         fieldTable.getColumnName(fieldTable.getFlagsColumnIndex()) +
@@ -86,12 +84,11 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
         try {
             if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-                _bunch = cursor.getInt(0);
                 _fields = new QuestionField[cursor.getCount()];
                 _fieldTextViews = new TextView[cursor.getCount()];
                 int i = 0;
                 do {
-                    _fields[i++] = new QuestionField(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3));
+                    _fields[i++] = new QuestionField(cursor.getInt(0), cursor.getInt(1), cursor.getInt(2));
                 } while (cursor.moveToNext());
 
                 if (i != _fields.length) {
