@@ -30,6 +30,7 @@ import static sword.langbook3.android.DbManager.findQuizDefinition;
 import static sword.langbook3.android.DbManager.idColumnName;
 import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
 import static sword.langbook3.android.DbManager.insertQuizDefinition;
+import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 
 public class QuizEditorActivity extends Activity implements View.OnClickListener {
 
@@ -409,10 +410,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         super.onCreate(savedInstanceState);
         setContentView(R.layout.quiz_editor_activity);
 
-        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
+        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, NO_BUNCH);
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
-        if (_bunch != 0) {
+        if (_bunch != NO_BUNCH) {
             final String bunchText = AcceptationDetailsActivity.readConceptText(db, _bunch);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
@@ -446,6 +447,32 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
+    private Set<Integer> readAllAcceptations(SQLiteDatabase db, int alphabet) {
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " FROM " + strings.getName() +
+                        " WHERE " + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?" +
+                        " AND " + strings.getColumnName(strings.getMainAcceptationColumnIndex()) + '=' + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()),
+                new String[]{Integer.toString(alphabet)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    Set<Integer> result = new HashSet<>();
+                    do {
+                        result.add(cursor.getInt(0));
+                    } while (cursor.moveToNext());
+                    return result;
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new HashSet<>();
+    }
+
     private Set<Integer> readAllAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
         final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
@@ -455,6 +482,41 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                 " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
                 " AND J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?",
                 new String[]{Integer.toString(_bunch), Integer.toString(alphabet)});
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    Set<Integer> result = new HashSet<>();
+                    do {
+                        result.add(cursor.getInt(0));
+                    } while (cursor.moveToNext());
+                    return result;
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new HashSet<>();
+    }
+
+    private Set<Integer> readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int alphabet) {
+        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+
+        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
+        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
+        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+
+        final Cursor cursor = db.rawQuery("SELECT J0." + idColumnName +
+                        " FROM " + acceptations.getName() + " AS J0" +
+                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + conceptField + "=J1." + conceptField +
+                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + dynAccField +
+                        " WHERE J2." + alphabetField + "=?" +
+                        " AND J0." + idColumnName + "!=J1." + idColumnName,
+                new String[]{Integer.toString(alphabet)}
+        );
 
         if (cursor != null) {
             try {
@@ -502,6 +564,48 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                     do {
                         result.add(cursor.getInt(0));
                     } while (cursor.moveToNext());
+                    return result;
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+
+        return new HashSet<>();
+    }
+
+    private Set<Integer> readAllRulableAcceptations(SQLiteDatabase db, int alphabet, int rule) {
+        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
+        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+
+        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
+        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+        final Cursor cursor = db.rawQuery("SELECT J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) +
+                        " FROM " + ruledAcceptations.getName() + " AS J0" +
+                        " JOIN " + agents.getName() + " AS J1 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J1." + idColumnName +
+                        " JOIN " + strings.getName() + " AS J2 ON J0." + idColumnName + "=J2." + dynAccField +
+                        " WHERE J2." + alphabetField + "=?" +
+                        " AND J1." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
+                new String[]{Integer.toString(alphabet), Integer.toString(rule)}
+        );
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    SparseArray<Object> ids = new SparseArray<>();
+                    Object dummy = new Object();
+                    do {
+                        ids.put(cursor.getInt(0), dummy);
+                    } while (cursor.moveToNext());
+
+                    final int idCount = ids.size();
+                    Set<Integer> result = new HashSet<>(idCount);
+                    for (int i = 0; i < idCount; i++) {
+                        result.add(ids.keyAt(i));
+                    }
+
                     return result;
                 }
             }
@@ -561,13 +665,15 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     private Set<Integer> readAllPossibleAcceptationForField(SQLiteDatabase db, FieldState field) {
         switch (field.type) {
             case FieldTypes.sameAcceptation:
-                return readAllAcceptationsInBunch(db, field.alphabet);
+                return (_bunch == NO_BUNCH)? readAllAcceptations(db, field.alphabet) : readAllAcceptationsInBunch(db, field.alphabet);
 
             case FieldTypes.sameConcept:
-                return readAllPossibleSynonymOrTranslationAcceptationsInBunch(db, field.alphabet);
+                return (_bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(db, field.alphabet) :
+                        readAllPossibleSynonymOrTranslationAcceptationsInBunch(db, field.alphabet);
 
             case FieldTypes.appliedRule:
-                return readAllRulableAcceptationsInBunch(db, field.alphabet, field.rule);
+                return (_bunch == NO_BUNCH)? readAllRulableAcceptations(db, field.alphabet, field.rule) :
+                        readAllRulableAcceptationsInBunch(db, field.alphabet, field.rule);
 
             default:
                 throw new AssertionError();

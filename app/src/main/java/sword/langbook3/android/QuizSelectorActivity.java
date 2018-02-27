@@ -26,6 +26,13 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         static final String BUNCH = "b";
     }
 
+    /**
+     * Bunch identifier used within a quiz definition to denote that no bunch should be applied.
+     * When this identifier is used, questions are not coming from acceptations within an specific bunch,
+     * but it can be any acceptation within the database that matches the field restrictions.
+     */
+    public static final int NO_BUNCH = 0;
+
     // Specifies the alphabet the user would like to see if possible.
     // TODO: This should be a shared preference
     static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
@@ -207,9 +214,6 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         setContentView(R.layout.quiz_selector_activity);
 
         _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
-        if (_bunch == 0) {
-            throw new AssertionError("Bunch not specified");
-        }
 
         final QuizSelectorAdapter.Item[] items = composeAdapterItems(
                 DbManager.getInstance().getReadableDatabase(), _bunch);

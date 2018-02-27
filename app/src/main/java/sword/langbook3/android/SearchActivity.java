@@ -105,6 +105,10 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.menuItemQuiz:
+                QuizSelectorActivity.open(this, QuizSelectorActivity.NO_BUNCH);
+                return true;
+
             case R.id.menuItemSettings:
                 SettingsActivity.open(this);
                 return true;
