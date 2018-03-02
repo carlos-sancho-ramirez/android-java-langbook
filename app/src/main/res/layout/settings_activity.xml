@@ -8,11 +8,55 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <Button
-            android:id="@+id/importDatabaseButton"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/importDatabaseButton"/>
+            android:text="@string/settingsHeaderStreamedDatabase"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/importStreamedDatabaseButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/importButton"/>
+
+            <Button
+                android:id="@+id/exportStreamedDatabaseButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/exportButton"
+                android:enabled="false"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settingsHeaderSqliteDatabase"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/importSqliteDatabaseButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/importButton"
+                android:enabled="false"/>
+
+            <Button
+                android:id="@+id/exportSqliteDatabaseButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/exportButton"/>
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
