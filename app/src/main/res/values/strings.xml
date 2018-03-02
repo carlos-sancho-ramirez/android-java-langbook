@@ -12,6 +12,8 @@
     <string name="settingsHeaderStreamedDatabase">Streamed database management</string>
     <string name="importButton">Import</string>
     <string name="exportButton">Export</string>
+    <string name="importFailure">Unable to import database</string>
+    <string name="importSuccess">Database imported successfully</string>
     <string name="exportFailure">Unable to export database</string>
     <string name="exportSuccess">Database exported successfully</string>
 
