@@ -7,7 +7,16 @@
     <string name="menuItemAbout">About</string>
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="menuItemNewQuizDefinition">New Quiz</string>
-    <string name="importDatabaseButton">Import database</string>
+
+    <string name="settingsHeaderSqliteDatabase">SQLite database management</string>
+    <string name="settingsHeaderStreamedDatabase">Streamed database management</string>
+    <string name="importButton">Import</string>
+    <string name="exportButton">Export</string>
+    <string name="exportFailure">Unable to export database</string>
+    <string name="exportSuccess">Database exported successfully</string>
+
+    <string name="selectLocationDialogTitle">Introduce its file path</string>
+    <string name="selectLocationDialogOk">Save</string>
 
     <string name="quizQuestionsHeader">Question fields</string>
     <string name="quizAnswersHeader">Answer fields</string>
