@@ -18,7 +18,8 @@ import java.io.IOException;
 
 public class SettingsActivity extends Activity implements View.OnClickListener, DbManager.DatabaseImportProgressListener, DialogInterface.OnClickListener {
 
-    private static final int REQUEST_CODE_PICK_FILE = 1;
+    private static final int REQUEST_CODE_PICK_SQLITE_FILE = 1;
+    private static final int REQUEST_CODE_PICK_STREAMED_FILE = 2;
 
     private boolean _resumed;
     private EditText _dialogEditText;
@@ -28,11 +29,11 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
         context.startActivity(intent);
     }
 
-    private void pickFile() {
+    private void pickFile(int requestCode) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("file/*");
         if (!getPackageManager().queryIntentActivities(intent, 0).isEmpty()) {
-            startActivityForResult(intent, REQUEST_CODE_PICK_FILE);
+            startActivityForResult(intent, requestCode);
         }
         else {
             Toast.makeText(this, "No file picker application found in the device", Toast.LENGTH_SHORT).show();
@@ -79,8 +80,13 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
-                case REQUEST_CODE_PICK_FILE:
+                case REQUEST_CODE_PICK_STREAMED_FILE:
                     importDatabase((data != null)? data.getData() : null);
+                    break;
+
+                case REQUEST_CODE_PICK_SQLITE_FILE:
+                    loadSqliteDatabase((data != null)? data.getData() : null);
+                    break;
             }
         }
     }
@@ -100,7 +106,11 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.importStreamedDatabaseButton:
-                pickFile();
+                pickFile(REQUEST_CODE_PICK_STREAMED_FILE);
+                break;
+
+            case R.id.importSqliteDatabaseButton:
+                pickFile(REQUEST_CODE_PICK_SQLITE_FILE);
                 break;
 
             case R.id.exportSqliteDatabaseButton:
@@ -133,14 +143,33 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
         progressPanel.setVisibility(inProgress? View.VISIBLE : View.GONE);
     }
 
+    private void loadSqliteDatabase(Uri uri) {
+        final DbManager manager = DbManager.getInstance();
+        int stringId = R.string.importFailure;
+        if (uri != null) {
+            try {
+                manager.getReadableDatabase().close();
+                Utils.copyFile(this, uri, manager.getDatabasePath());
+                stringId = R.string.importSuccess;
+            } catch (IOException e) {
+                // Nothing to be done
+            }
+        }
+
+        Toast.makeText(this, stringId, Toast.LENGTH_SHORT).show();
+    }
+
     private void saveSqliteDatabase(String filePath) {
+        final String dbPath = DbManager.getInstance().getDatabasePath();
+        int stringId = R.string.exportSuccess;
         try {
-            Utils.copyFile(getDatabasePath(DbManager.DB_NAME).toString(), filePath);
-            Toast.makeText(this, R.string.exportSuccess, Toast.LENGTH_SHORT).show();
+            Utils.copyFile(dbPath, filePath);
         }
         catch (IOException e) {
-            Toast.makeText(this, R.string.exportFailure, Toast.LENGTH_SHORT).show();
+            stringId = R.string.exportFailure;
         }
+
+        Toast.makeText(this, stringId, Toast.LENGTH_SHORT).show();
     }
 
     @Override

@@ -1,13 +1,18 @@
 package sword.langbook3.android;
 
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.Context;
+import android.net.Uri;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 final class Utils {
 
-    static void copyFile(String originPath, String targetPath) throws IOException {
-        final FileInputStream inStream = new FileInputStream(originPath);
+    private static void copyFile(InputStream inStream, String targetPath) throws IOException {
         try {
             final FileOutputStream outStream = new FileOutputStream(targetPath);
             try {
@@ -27,5 +32,13 @@ final class Utils {
         finally {
             inStream.close();
         }
+    }
+
+    static void copyFile(String originPath, String targetPath) throws IOException {
+        copyFile(new FileInputStream(originPath), targetPath);
+    }
+
+    static void copyFile(Context context, Uri originUri, String targetPath) throws IOException {
+        copyFile(context.getContentResolver().openInputStream(originUri), targetPath);
     }
 }

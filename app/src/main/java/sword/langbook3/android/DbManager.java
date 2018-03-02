@@ -2545,4 +2545,8 @@ class DbManager extends SQLiteOpenHelper {
             listener.setProgress(lastProgress.progress, lastProgress.message);
         }
     }
+
+    public String getDatabasePath() {
+        return _context.getDatabasePath(DB_NAME).toString();
+    }
 }
