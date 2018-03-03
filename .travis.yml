@@ -29,3 +29,7 @@ deploy:
   on:
     branch: master
     repo: carlos-sancho-ramirez/android-java-langbook
+notifications:
+  email:
+    on_success: never
+    on_failure: always
