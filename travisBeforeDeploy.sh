@@ -1,15 +1,12 @@
 #!/bin/sh -e
 # Is this not a build which was triggered by setting a new tag?
 if [ -z "$TRAVIS_TAG" ]; then
-  echo -e "Tagging the commit.\n"
+  echo "Tagging the commit."
 
-  git config --global user.email "travis@travis-ci.org"
-  git config --global user.name "Travis"
-  echo "Git config updated for travis"
-
-  # Add tag and push to master.
-  git tag v1.0.0-cibuild${TRAVIS_BUILD_NUMBER}
-  echo "Created tag v1.0.0-cibuild${TRAVIS_BUILD_NUMBER}"
+  tagName="v1.0.0-cibuild"
+  git tag -d ${tagName} 2> /dev/null || echo "Tag ${tagName} not present"
+  git tag ${tagName}
+  echo "Created tag ${tagName}"
 
   git fetch origin
   echo "Fetched origin"
