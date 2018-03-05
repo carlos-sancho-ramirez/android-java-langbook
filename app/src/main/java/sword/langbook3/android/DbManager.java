@@ -16,6 +16,7 @@ import android.widget.Toast;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -948,25 +949,12 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     static Integer findQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
-        final DbManager.QuizDefinitionsTable quizzes = Tables.quizDefinitions;
-        final Cursor cursor = db.rawQuery("SELECT " + idColumnName +
-                " FROM " + quizzes.getName() +
-                " WHERE " + quizzes.getColumnName(quizzes.getBunchColumnIndex()) + "=?" +
-                " AND " + quizzes.getColumnName(quizzes.getQuestionFieldsColumnIndex()) + "=?",
-                new String[] {Integer.toString(bunch), Integer.toString(setId)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    return cursor.getInt(0);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return null;
+        final DbManager.QuizDefinitionsTable table = Tables.quizDefinitions;
+        final DbValue[][] result = getInstance().get(new DbQueryBuilder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .where(table.getQuestionFieldsColumnIndex(), setId)
+                .select(table.getIdColumnIndex()));
+        return (result.length > 0)? result[0][0].toInt() : null;
     }
 
     static int insertQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
@@ -1389,25 +1377,6 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private static final class JaWordRepr {
-
-        private final int[] _concepts;
-        private final int[] _correlationArray;
-
-        JaWordRepr(int[] concepts, int[] correlationArray) {
-            _concepts = concepts;
-            _correlationArray = correlationArray;
-        }
-
-        int[] getConcepts() {
-            return _concepts;
-        }
-
-        int[] getCorrelationArray() {
-            return _correlationArray;
-        }
-    }
-
     static abstract class DbColumn {
 
         private final String _name;
@@ -1420,7 +1389,14 @@ class DbManager extends SQLiteOpenHelper {
             return _name;
         }
 
-        abstract String getType();
+        abstract String getSqlType();
+
+        /**
+         * Whether the field content may be understood as a char sequence.
+         * Right now there is only int and text fields, then so far it is secure
+         * to assume that all non-text field are actually int fields.
+         */
+        abstract boolean isText();
     }
 
     static final class DbIdColumn extends DbColumn {
@@ -1430,8 +1406,13 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         @Override
-        String getType() {
+        String getSqlType() {
             return "INTEGER PRIMARY KEY AUTOINCREMENT";
+        }
+
+        @Override
+        boolean isText() {
+            return false;
         }
     }
 
@@ -1442,8 +1423,13 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         @Override
-        String getType() {
+        String getSqlType() {
             return "INTEGER";
+        }
+
+        @Override
+        boolean isText() {
+            return false;
         }
     }
 
@@ -1454,8 +1440,13 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         @Override
-        String getType() {
+        String getSqlType() {
             return "TEXT";
+        }
+
+        @Override
+        boolean isText() {
+            return true;
         }
     }
 
@@ -1466,8 +1457,73 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         @Override
-        String getType() {
+        String getSqlType() {
             return "TEXT UNIQUE ON CONFLICT IGNORE";
+        }
+
+        @Override
+        boolean isText() {
+            return true;
+        }
+    }
+
+    interface DbValue {
+        boolean isText();
+        int toInt() throws UnsupportedOperationException;
+        String toString();
+    }
+
+    public static final class DbIntValue implements DbValue {
+        private final int _value;
+
+        DbIntValue(int value) {
+            _value = value;
+        }
+
+        public int get() {
+            return _value;
+        }
+
+        @Override
+        public boolean isText() {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return Integer.toString(_value);
+        }
+
+        @Override
+        public int toInt() {
+            return get();
+        }
+    }
+
+    public static final class DbStringValue implements DbValue {
+        private final String _value;
+
+        DbStringValue(String value) {
+            _value = value;
+        }
+
+        public String get() {
+            return _value;
+        }
+
+        @Override
+        public boolean isText() {
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return _value;
+        }
+
+        @Override
+        public int toInt() throws UnsupportedOperationException {
+            throw new UnsupportedOperationException("String column should not be converted to integer");
         }
     }
 
@@ -1492,12 +1548,20 @@ class DbManager extends SQLiteOpenHelper {
             return _columns.length;
         }
 
+        int getIdColumnIndex() {
+            return 0;
+        }
+
+        DbColumn getColumn(int index) {
+            return _columns[index];
+        }
+
         String getColumnName(int index) {
-            return _columns[index].getName();
+            return getColumn(index).getName();
         }
 
         String getColumnType(int index) {
-            return _columns[index].getType();
+            return _columns[index].getSqlType();
         }
     }
 
@@ -1943,6 +2007,226 @@ class DbManager extends SQLiteOpenHelper {
 
         final AcceptationsTable accTable = Tables.acceptations;
         db.execSQL("CREATE INDEX AccConcept ON " + accTable.getName() + " (" + accTable.getColumnName(accTable.getConceptColumnIndex()) + ")");
+    }
+
+    private static boolean hasValidValues(int[] values, int min, int max) {
+        final int length = (values != null)? values.length : 0;
+        if (length < 1) {
+            return true;
+        }
+        else if (length == 1) {
+            return values[0] >= min && values[0] <= max;
+        }
+
+        for (int i = 0; i < length - 1; i++) {
+            final int iValue = values[i];
+            if (iValue < min || iValue > max) {
+                return false;
+            }
+
+            for (int j = i + 1; j < length; j++) {
+                if (values[i] == values[j]) {
+                    return false;
+                }
+            }
+        }
+
+        return values[length - 1] >= min && values[length - 1] <= max;
+    }
+
+    static final class DbQuery {
+
+        private final DbTable _table;
+        private final int[] _restrictionKeys;
+        private final DbValue[] _restrictionValues;
+        private final int[] _selectedColumns;
+
+        DbQuery(DbTable table, int[] restrictionKeys, DbValue[] restrictionValues, int[] selectedColumns) {
+
+            if (table == null || selectedColumns == null || selectedColumns.length == 0 || selectedColumns.length > table.getColumnCount()) {
+                throw new IllegalArgumentException();
+            }
+
+            if (!hasValidValues(selectedColumns, 0, table.getColumnCount() - 1)) {
+                throw new IllegalArgumentException("Invalid column selection");
+            }
+
+            if (restrictionKeys == null) {
+                restrictionKeys = new int[0];
+            }
+
+            if (restrictionValues == null) {
+                restrictionValues = new DbValue[0];
+            }
+
+            final int restrictionCount = restrictionKeys.length;
+            if (restrictionCount != restrictionValues.length) {
+                throw new IllegalArgumentException("Restriction key and value should match in length");
+            }
+
+            if (!hasValidValues(restrictionKeys, 0, table.getColumnCount() - 1)) {
+                throw new IllegalArgumentException("Selected columns has repeated values");
+            }
+
+            for (int i = 0; i < restrictionCount; i++) {
+                final DbValue value = restrictionValues[i];
+                if (value == null || table.getColumn(restrictionKeys[i]).isText() != value.isText()) {
+                    throw new IllegalArgumentException();
+                }
+            }
+
+            _table = table;
+            _restrictionKeys = restrictionKeys;
+            _restrictionValues = restrictionValues;
+            _selectedColumns = selectedColumns;
+        }
+
+        DbTable getTable() {
+            return _table;
+        }
+
+        DbColumn[] getSelectedColumns() {
+            final DbColumn[] result = new DbColumn[_selectedColumns.length];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = _table.getColumn(_selectedColumns[i]);
+            }
+
+            return result;
+        }
+
+        String getSqlSelectedColumnNames() {
+            final StringBuilder sb = new StringBuilder(_table.getColumnName(_selectedColumns[0]));
+            for (int i = 1; i < _selectedColumns.length; i++) {
+                sb.append(',').append(_table.getColumnName(_selectedColumns[i]));
+            }
+
+            return sb.toString();
+        }
+
+        String getSqlWhereClause() {
+            final StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < _restrictionKeys.length; i++) {
+                if (i == 0) {
+                    sb.append(" WHERE ");
+                }
+                else {
+                    sb.append(" AND ");
+                }
+                sb.append(_table.getColumnName(_restrictionKeys[i]))
+                        .append('=').append(_restrictionValues[i].toString());
+            }
+
+            return sb.toString();
+        }
+    }
+
+    static final class DbQueryBuilder {
+
+        private final DbTable _table;
+        private final ArrayList<Integer> _restrictionKeys = new ArrayList<>();
+        private final ArrayList<DbValue> _restrictionValues = new ArrayList<>();
+
+        DbQueryBuilder(DbTable table) {
+            _table = table;
+        }
+
+        DbQueryBuilder where(int columnIndex, DbValue value) {
+            _restrictionKeys.add(columnIndex);
+            _restrictionValues.add(value);
+            return this;
+        }
+
+        DbQueryBuilder where(int columnIndex, int value) {
+            return where(columnIndex, new DbIntValue(value));
+        }
+
+        DbQuery select(int... selection) {
+            final int restrictionPairs = _restrictionKeys.size();
+            final int[] keys = new int[restrictionPairs];
+            final DbValue[] values = new DbValue[restrictionPairs];
+
+            for (int i = 0; i < restrictionPairs; i++) {
+                keys[i] = _restrictionKeys.get(i);
+            }
+            _restrictionValues.toArray(values);
+
+            return new DbQuery(_table, keys, values, selection);
+        }
+    }
+
+    private DbValue[][] get(DbTable table, int id) {
+        final SQLiteDatabase db = getReadableDatabase();
+        final StringBuilder sb = new StringBuilder("SELECT ");
+        final int columnCount = table.getColumnCount();
+        for (int i = 1; i < columnCount; i++) {
+            if (i > 1) {
+                sb.append(',');
+            }
+            sb.append(table.getColumnName(i));
+        }
+
+        sb.append(" FROM ").append(table.getName()).append(" WHERE ").append(table.getColumnName(0)).append("=?");
+        final Cursor cursor = db.rawQuery(sb.toString(), new String[] {Integer.toString(id)});
+
+        final DbValue[][] result;
+        if (cursor != null) {
+            result = new DbValue[cursor.getCount()][];
+            try {
+                if (cursor.moveToFirst()) {
+                    int row = 0;
+                    do {
+                        final DbValue[] rowValues = new DbValue[columnCount - 1];
+                        for (int i = 1; i < columnCount; i++) {
+                            final DbColumn column = table.getColumn(i);
+                            rowValues[i - 1] = column.isText()? new DbStringValue(cursor.getString(i)) : new DbIntValue(cursor.getInt(i));
+                        }
+                        result[row++] = rowValues;
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+        else {
+            result = new DbValue[0][];
+        }
+
+        return result;
+    }
+
+    private DbValue[][] get(DbQuery query) {
+        final SQLiteDatabase db = getReadableDatabase();
+        final StringBuilder sb = new StringBuilder("SELECT ");
+        sb.append(query.getSqlSelectedColumnNames());
+        sb.append(" FROM ").append(query.getTable().getName()).append(query.getSqlWhereClause());
+        final Cursor cursor = db.rawQuery(sb.toString(), null);
+
+        final DbValue[][] result;
+        if (cursor != null) {
+            result = new DbValue[cursor.getCount()][];
+            try {
+                if (cursor.moveToFirst()) {
+                    final DbColumn[] selection = query.getSelectedColumns();
+                    int row = 0;
+                    do {
+                        final DbValue[] rowValues = new DbValue[selection.length];
+                        for (int i = 0; i < selection.length; i++) {
+                            rowValues[i] = selection[i].isText()? new DbStringValue(cursor.getString(i)) : new DbIntValue(cursor.getInt(i));
+                        }
+                        result[row++] = rowValues;
+                    } while (cursor.moveToNext());
+                }
+            }
+            finally {
+                cursor.close();
+            }
+        }
+        else {
+            result = new DbValue[0][];
+        }
+
+        return result;
     }
 
     private SparseIntArray readCorrelationMap(
