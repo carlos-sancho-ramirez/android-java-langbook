@@ -1470,7 +1470,7 @@ class DbManager extends SQLiteOpenHelper {
     interface DbValue {
         boolean isText();
         int toInt() throws UnsupportedOperationException;
-        String toString();
+        String toSql();
     }
 
     public static final class DbIntValue implements DbValue {
@@ -1490,7 +1490,7 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         @Override
-        public String toString() {
+        public String toSql() {
             return Integer.toString(_value);
         }
 
@@ -1517,8 +1517,8 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         @Override
-        public String toString() {
-            return _value;
+        public String toSql() {
+            return "'" + _value + '\'';
         }
 
         @Override
@@ -2014,6 +2014,22 @@ class DbManager extends SQLiteOpenHelper {
         if (length < 1) {
             return true;
         }
+
+        for (int i = 0; i < length; i++) {
+            final int iValue = values[i];
+            if (iValue < min || iValue > max) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean hasValidSetValues(int[] values, int min, int max) {
+        final int length = (values != null)? values.length : 0;
+        if (length < 1) {
+            return true;
+        }
         else if (length == 1) {
             return values[0] >= min && values[0] <= max;
         }
@@ -2036,18 +2052,43 @@ class DbManager extends SQLiteOpenHelper {
 
     static final class DbQuery {
 
-        private final DbTable _table;
+        private final DbTable[] _tables;
+        private final int[] _joinPairs;
         private final int[] _restrictionKeys;
         private final DbValue[] _restrictionValues;
         private final int[] _selectedColumns;
 
-        DbQuery(DbTable table, int[] restrictionKeys, DbValue[] restrictionValues, int[] selectedColumns) {
+        private final transient DbColumn[] _joinColumns;
 
-            if (table == null || selectedColumns == null || selectedColumns.length == 0 || selectedColumns.length > table.getColumnCount()) {
+        DbQuery(DbTable[] tables, int[] joinPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] selectedColumns) {
+
+            if (tables == null || tables.length == 0 || selectedColumns == null || selectedColumns.length == 0) {
                 throw new IllegalArgumentException();
             }
 
-            if (!hasValidValues(selectedColumns, 0, table.getColumnCount() - 1)) {
+            int joinColumnCount = tables[0].getColumnCount();
+            for (int i = 1; i < tables.length; i++) {
+                joinColumnCount += tables[i].getColumnCount();
+            }
+
+            final DbColumn[] joinColumns = new DbColumn[joinColumnCount];
+            int index = 0;
+            for (int i = 0; i < tables.length; i++) {
+                final int columnCount = tables[i].getColumnCount();
+                for (int j = 0; j < columnCount; j++) {
+                    joinColumns[index++] = tables[i].getColumn(j);
+                }
+            }
+
+            if (joinPairs == null) {
+                joinPairs = new int[0];
+            }
+
+            if ((joinPairs.length & 1) == 1 || !hasValidValues(joinPairs, 0, joinColumnCount - 1)) {
+                throw new IllegalArgumentException("Invalid column join pairs");
+            }
+
+            if (!hasValidSetValues(selectedColumns, 0, joinColumnCount - 1) || selectedColumns.length > joinColumnCount) {
                 throw new IllegalArgumentException("Invalid column selection");
             }
 
@@ -2064,40 +2105,89 @@ class DbManager extends SQLiteOpenHelper {
                 throw new IllegalArgumentException("Restriction key and value should match in length");
             }
 
-            if (!hasValidValues(restrictionKeys, 0, table.getColumnCount() - 1)) {
+            if (!hasValidSetValues(restrictionKeys, 0, joinColumnCount - 1)) {
                 throw new IllegalArgumentException("Selected columns has repeated values");
             }
 
             for (int i = 0; i < restrictionCount; i++) {
                 final DbValue value = restrictionValues[i];
-                if (value == null || table.getColumn(restrictionKeys[i]).isText() != value.isText()) {
+                if (value == null || joinColumns[restrictionKeys[i]].isText() != value.isText()) {
                     throw new IllegalArgumentException();
                 }
             }
 
-            _table = table;
+            _tables = tables;
+            _joinPairs = joinPairs;
             _restrictionKeys = restrictionKeys;
             _restrictionValues = restrictionValues;
             _selectedColumns = selectedColumns;
+
+            _joinColumns = joinColumns;
         }
 
-        DbTable getTable() {
-            return _table;
+        private int getTableIndexFromColumnIndex(int column) {
+            int count = 0;
+            int tableIndex = 0;
+            while (column >= count) {
+                count += _tables[tableIndex++].getColumnCount();
+            }
+            return tableIndex - 1;
+        }
+
+        DbTable getTable(int index) {
+            return _tables[index];
         }
 
         DbColumn[] getSelectedColumns() {
             final DbColumn[] result = new DbColumn[_selectedColumns.length];
             for (int i = 0; i < result.length; i++) {
-                result[i] = _table.getColumn(_selectedColumns[i]);
+                result[i] = _joinColumns[_selectedColumns[i]];
             }
 
             return result;
         }
 
+        String getSqlColumnName(int index) {
+            return "J" + getTableIndexFromColumnIndex(index) + '.' + _joinColumns[index].getName();
+        }
+
+        String getSqlSelectedColumnName(int index) {
+            return getSqlColumnName(_selectedColumns[index]);
+        }
+
         String getSqlSelectedColumnNames() {
-            final StringBuilder sb = new StringBuilder(_table.getColumnName(_selectedColumns[0]));
+            final StringBuilder sb = new StringBuilder(getSqlSelectedColumnName(0));
             for (int i = 1; i < _selectedColumns.length; i++) {
-                sb.append(',').append(_table.getColumnName(_selectedColumns[i]));
+                sb.append(',').append(getSqlSelectedColumnName(i));
+            }
+
+            return sb.toString();
+        }
+
+        String getSqlFromClause() {
+            final StringBuilder sb = new StringBuilder(" FROM ");
+            sb.append(_tables[0].getName()).append(" AS J0");
+
+            for (int i = 1; i < _tables.length; i++) {
+                final int pairCount = _joinPairs.length / 2;
+                int left = -1;
+                int right = -1;
+                for (int j = 0; j < pairCount; i++) {
+                    if (getTableIndexFromColumnIndex(_joinPairs[2 * j + 1]) == i && getTableIndexFromColumnIndex(_joinPairs[2 * j]) < i) {
+                        left = _joinPairs[2 * j];
+                        right = _joinPairs[2 * j + 1];
+                        break;
+                    }
+                }
+
+                if (left < 0) {
+                    throw new AssertionError("No pair found for table " + i);
+                }
+
+                sb.append(" JOIN ").append(_tables[i].getName()).append(" AS J").append(i);
+                sb.append(" ON J").append(getTableIndexFromColumnIndex(left)).append('.');
+                sb.append(_joinColumns[left].getName()).append("=J").append(i);
+                sb.append('.').append(_joinColumns[right].getName());
             }
 
             return sb.toString();
@@ -2112,22 +2202,29 @@ class DbManager extends SQLiteOpenHelper {
                 else {
                     sb.append(" AND ");
                 }
-                sb.append(_table.getColumnName(_restrictionKeys[i]))
-                        .append('=').append(_restrictionValues[i].toString());
+                sb.append(getSqlColumnName(_restrictionKeys[i]))
+                        .append('=').append(_restrictionValues[i].toSql());
             }
 
             return sb.toString();
+        }
+
+        String toSql() {
+            return "SELECT " + getSqlSelectedColumnNames() + getSqlFromClause() + getSqlWhereClause();
         }
     }
 
     static final class DbQueryBuilder {
 
-        private final DbTable _table;
+        private final ArrayList<DbTable> _tables = new ArrayList<>();
+        private final ArrayList<Integer> _joinPairs = new ArrayList<>();
         private final ArrayList<Integer> _restrictionKeys = new ArrayList<>();
         private final ArrayList<DbValue> _restrictionValues = new ArrayList<>();
+        private int _joinColumnCount;
 
         DbQueryBuilder(DbTable table) {
-            _table = table;
+            _tables.add(table);
+            _joinColumnCount = table.getColumnCount();
         }
 
         DbQueryBuilder where(int columnIndex, DbValue value) {
@@ -2140,7 +2237,23 @@ class DbManager extends SQLiteOpenHelper {
             return where(columnIndex, new DbIntValue(value));
         }
 
+        DbQueryBuilder join(DbTable table, int left, int newTableColumnIndex) {
+            final int tableColumnCount = table.getColumnCount();
+            if (left < 0 || left >= _joinColumnCount || newTableColumnIndex < 0 || newTableColumnIndex >= tableColumnCount) {
+                throw new IndexOutOfBoundsException();
+            }
+
+            _joinPairs.add(left);
+            _joinPairs.add(_joinColumnCount + newTableColumnIndex);
+            _tables.add(table);
+            _joinColumnCount += tableColumnCount;
+
+            return this;
+        }
+
         DbQuery select(int... selection) {
+            final DbTable[] tables = new DbTable[_tables.size()];
+            final int[] joinPairs = new int[_joinPairs.size()];
             final int restrictionPairs = _restrictionKeys.size();
             final int[] keys = new int[restrictionPairs];
             final DbValue[] values = new DbValue[restrictionPairs];
@@ -2149,36 +2262,35 @@ class DbManager extends SQLiteOpenHelper {
                 keys[i] = _restrictionKeys.get(i);
             }
             _restrictionValues.toArray(values);
+            _tables.toArray(tables);
 
-            return new DbQuery(_table, keys, values, selection);
+            for (int i = 0; i < _joinPairs.size(); i++) {
+                joinPairs[i] = _joinPairs.get(i);
+            }
+
+            return new DbQuery(tables, joinPairs, keys, values, selection);
         }
     }
 
-    private DbValue[][] get(DbTable table, int id) {
+    /*
+    private DbValue[][] get(DbQuery query) {
         final SQLiteDatabase db = getReadableDatabase();
         final StringBuilder sb = new StringBuilder("SELECT ");
-        final int columnCount = table.getColumnCount();
-        for (int i = 1; i < columnCount; i++) {
-            if (i > 1) {
-                sb.append(',');
-            }
-            sb.append(table.getColumnName(i));
-        }
-
-        sb.append(" FROM ").append(table.getName()).append(" WHERE ").append(table.getColumnName(0)).append("=?");
-        final Cursor cursor = db.rawQuery(sb.toString(), new String[] {Integer.toString(id)});
+        sb.append(query.getSqlSelectedColumnNames());
+        sb.append(" FROM ").append(query.getTable().getName()).append(query.getSqlWhereClause());
+        final Cursor cursor = db.rawQuery(sb.toString(), null);
 
         final DbValue[][] result;
         if (cursor != null) {
             result = new DbValue[cursor.getCount()][];
             try {
                 if (cursor.moveToFirst()) {
+                    final DbColumn[] selection = query.getSelectedColumns();
                     int row = 0;
                     do {
-                        final DbValue[] rowValues = new DbValue[columnCount - 1];
-                        for (int i = 1; i < columnCount; i++) {
-                            final DbColumn column = table.getColumn(i);
-                            rowValues[i - 1] = column.isText()? new DbStringValue(cursor.getString(i)) : new DbIntValue(cursor.getInt(i));
+                        final DbValue[] rowValues = new DbValue[selection.length];
+                        for (int i = 0; i < selection.length; i++) {
+                            rowValues[i] = selection[i].isText()? new DbStringValue(cursor.getString(i)) : new DbIntValue(cursor.getInt(i));
                         }
                         result[row++] = rowValues;
                     } while (cursor.moveToNext());
@@ -2194,13 +2306,10 @@ class DbManager extends SQLiteOpenHelper {
 
         return result;
     }
+    */
 
     private DbValue[][] get(DbQuery query) {
-        final SQLiteDatabase db = getReadableDatabase();
-        final StringBuilder sb = new StringBuilder("SELECT ");
-        sb.append(query.getSqlSelectedColumnNames());
-        sb.append(" FROM ").append(query.getTable().getName()).append(query.getSqlWhereClause());
-        final Cursor cursor = db.rawQuery(sb.toString(), null);
+        final Cursor cursor = getReadableDatabase().rawQuery(query.toSql(), null);
 
         final DbValue[][] result;
         if (cursor != null) {

@@ -148,14 +148,14 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
 
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J1." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                " WHERE J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=?",
-                new String[] { Integer.toString(concept) });
+        final int j1Offset = acceptations.getColumnCount();
+        final DbManager.DbQuery query = new DbManager.DbQueryBuilder(acceptations)
+                .join(strings, acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getConceptColumnIndex(), concept)
+                .select(j1Offset + strings.getStringAlphabetColumnIndex(), j1Offset + strings.getStringColumnIndex());
+        final String sqlQuery = query.toSql();
+
+        Cursor cursor = db.rawQuery(sqlQuery, null);
 
         String text = null;
         try {
