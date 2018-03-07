@@ -153,24 +153,23 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                 .join(strings, acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(acceptations.getConceptColumnIndex(), concept)
                 .select(j1Offset + strings.getStringAlphabetColumnIndex(), j1Offset + strings.getStringColumnIndex());
-        final String sqlQuery = query.toSql();
 
-        Cursor cursor = db.rawQuery(sqlQuery, null);
-
-        String text = null;
+        final DbManager.DbResult result = DbManager.getInstance().attach(query).iterator();
+        String text;
         try {
-            cursor.moveToFirst();
-            int firstAlphabet = cursor.getInt(0);
-            text = cursor.getString(1);
-            while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
-                if (cursor.getInt(0) == preferredAlphabet) {
+            DbManager.DbResultRow row = result.next();
+            int firstAlphabet = row.getInt(0);
+            text = row.getString(1);
+            while (firstAlphabet != preferredAlphabet && result.hasNext()) {
+                row = result.next();
+                if (row.getInt(0) == preferredAlphabet) {
                     firstAlphabet = preferredAlphabet;
-                    text = cursor.getString(1);
+                    text = row.getString(1);
                 }
             }
         }
         finally {
-            cursor.close();
+            result.close();
         }
 
         return text;

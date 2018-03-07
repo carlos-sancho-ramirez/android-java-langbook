@@ -13,6 +13,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.widget.Toast;
 
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -950,11 +951,16 @@ class DbManager extends SQLiteOpenHelper {
 
     static Integer findQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
         final DbManager.QuizDefinitionsTable table = Tables.quizDefinitions;
-        final DbValue[][] result = getInstance().get(new DbQueryBuilder(table)
+        final DbResult result = getInstance().attach(new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .where(table.getQuestionFieldsColumnIndex(), setId)
-                .select(table.getIdColumnIndex()));
-        return (result.length > 0)? result[0][0].toInt() : null;
+                .select(table.getIdColumnIndex())).iterator();
+        final Integer value = result.hasNext()? result.next().getInt(0) : null;
+        if (result.hasNext()) {
+            throw new AssertionError("Only one quiz definition expected");
+        }
+
+        return value;
     }
 
     static int insertQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
@@ -1470,6 +1476,7 @@ class DbManager extends SQLiteOpenHelper {
     interface DbValue {
         boolean isText();
         int toInt() throws UnsupportedOperationException;
+        String toText();
         String toSql();
     }
 
@@ -1498,6 +1505,11 @@ class DbManager extends SQLiteOpenHelper {
         public int toInt() {
             return get();
         }
+
+        @Override
+        public String toText() {
+            return Integer.toString(_value);
+        }
     }
 
     public static final class DbStringValue implements DbValue {
@@ -1524,6 +1536,11 @@ class DbManager extends SQLiteOpenHelper {
         @Override
         public int toInt() throws UnsupportedOperationException {
             throw new UnsupportedOperationException("String column should not be converted to integer");
+        }
+
+        @Override
+        public String toText() {
+            return _value;
         }
     }
 
@@ -2214,6 +2231,28 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    final class DbAttachedQuery implements Iterable<DbResultRow> {
+
+        private final DbQuery _query;
+
+        private DbAttachedQuery(DbQuery query) {
+            _query = query;
+        }
+
+        @Override
+        public DbResult iterator() {
+            return new DbResult(_query.getSelectedColumns(), getReadableDatabase().rawQuery(_query.toSql(), null));
+        }
+    }
+
+    /**
+     * Attach the given query to this manager instance.
+     * This targets a databses where to execute the query.
+     */
+    public DbAttachedQuery attach(DbQuery query) {
+        return new DbAttachedQuery(query);
+    }
+
     static final class DbQueryBuilder {
 
         private final ArrayList<DbTable> _tables = new ArrayList<>();
@@ -2272,70 +2311,73 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    /*
-    private DbValue[][] get(DbQuery query) {
-        final SQLiteDatabase db = getReadableDatabase();
-        final StringBuilder sb = new StringBuilder("SELECT ");
-        sb.append(query.getSqlSelectedColumnNames());
-        sb.append(" FROM ").append(query.getTable().getName()).append(query.getSqlWhereClause());
-        final Cursor cursor = db.rawQuery(sb.toString(), null);
+    static class DbResultRow {
 
-        final DbValue[][] result;
-        if (cursor != null) {
-            result = new DbValue[cursor.getCount()][];
-            try {
-                if (cursor.moveToFirst()) {
-                    final DbColumn[] selection = query.getSelectedColumns();
-                    int row = 0;
-                    do {
-                        final DbValue[] rowValues = new DbValue[selection.length];
-                        for (int i = 0; i < selection.length; i++) {
-                            rowValues[i] = selection[i].isText()? new DbStringValue(cursor.getString(i)) : new DbIntValue(cursor.getInt(i));
-                        }
-                        result[row++] = rowValues;
-                    } while (cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-        else {
-            result = new DbValue[0][];
+        private final DbValue[] _values;
+
+        private DbResultRow(DbValue[] values) {
+            _values = values;
         }
 
-        return result;
+        DbValue get(int index) {
+            return _values[index];
+        }
+
+        int getInt(int index) {
+            return get(index).toInt();
+        }
+
+        String getString(int index) {
+            return get(index).toText();
+        }
     }
-    */
 
-    private DbValue[][] get(DbQuery query) {
-        final Cursor cursor = getReadableDatabase().rawQuery(query.toSql(), null);
+    static class DbResult implements java.util.Iterator<DbResultRow>, Closeable {
+        private final DbColumn[] _columns;
+        private final Cursor _cursor;
+        private boolean _moreToRead;
 
-        final DbValue[][] result;
-        if (cursor != null) {
-            result = new DbValue[cursor.getCount()][];
-            try {
-                if (cursor.moveToFirst()) {
-                    final DbColumn[] selection = query.getSelectedColumns();
-                    int row = 0;
-                    do {
-                        final DbValue[] rowValues = new DbValue[selection.length];
-                        for (int i = 0; i < selection.length; i++) {
-                            rowValues[i] = selection[i].isText()? new DbStringValue(cursor.getString(i)) : new DbIntValue(cursor.getInt(i));
-                        }
-                        result[row++] = rowValues;
-                    } while (cursor.moveToNext());
-                }
+        DbResult(DbColumn[] columns, Cursor cursor) {
+            _columns = columns;
+            _cursor = cursor;
+
+            if (!cursor.moveToFirst()) {
+                close();
             }
-            finally {
-                cursor.close();
+            else {
+                _moreToRead = true;
             }
         }
-        else {
-            result = new DbValue[0][];
+
+        @Override
+        public void close() {
+            _moreToRead = false;
+            _cursor.close();
         }
 
-        return result;
+        @Override
+        public boolean hasNext() {
+            return _moreToRead;
+        }
+
+        @Override
+        public DbResultRow next() {
+            if (!_moreToRead) {
+                throw new UnsupportedOperationException("End already reached");
+            }
+
+            final DbValue[] values = new DbValue[_columns.length];
+            for (int i = 0; i < _columns.length; i++) {
+                values[i] = _columns[i].isText()? new DbStringValue(_cursor.getString(i)) : new DbIntValue(_cursor.getInt(i));
+            }
+            DbResultRow row = new DbResultRow(values);
+
+            if (!_cursor.moveToNext()) {
+                close();
+            }
+
+            return row;
+        }
     }
 
     private SparseIntArray readCorrelationMap(
