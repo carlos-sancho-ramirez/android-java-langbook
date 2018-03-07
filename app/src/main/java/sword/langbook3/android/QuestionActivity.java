@@ -17,7 +17,7 @@ import android.widget.TextView;
 
 import sword.langbook3.android.DbManager.QuestionField;
 
-import static sword.langbook3.android.DbManager.idColumnName;
+import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 

@@ -18,7 +18,7 @@ import java.util.Set;
 
 import sword.langbook3.android.DbManager.QuestionField;
 
-import static sword.langbook3.android.DbManager.idColumnName;
+import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener {
 

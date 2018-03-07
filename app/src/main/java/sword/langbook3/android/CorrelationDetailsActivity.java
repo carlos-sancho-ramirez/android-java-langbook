@@ -19,7 +19,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.composeCorrelation;
-import static sword.langbook3.android.DbManager.idColumnName;
+import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 

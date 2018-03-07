@@ -26,8 +26,10 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
+import sword.langbook3.android.db.DbQuery;
+import sword.langbook3.android.db.DbResult;
 
-import static sword.langbook3.android.DbManager.idColumnName;
+import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
@@ -149,22 +151,22 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
 
         final int j1Offset = acceptations.getColumnCount();
-        final DbManager.DbQuery query = new DbManager.DbQueryBuilder(acceptations)
+        final DbQuery query = new DbQuery.Builder(acceptations)
                 .join(strings, acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(acceptations.getConceptColumnIndex(), concept)
                 .select(j1Offset + strings.getStringAlphabetColumnIndex(), j1Offset + strings.getStringColumnIndex());
 
-        final DbManager.DbResult result = DbManager.getInstance().attach(query).iterator();
+        final DbResult result = DbManager.getInstance().attach(query).iterator();
         String text;
         try {
-            DbManager.DbResultRow row = result.next();
-            int firstAlphabet = row.getInt(0);
-            text = row.getString(1);
+            DbResult.Row row = result.next();
+            int firstAlphabet = row.get(0).toInt();
+            text = row.get(1).toText();
             while (firstAlphabet != preferredAlphabet && result.hasNext()) {
                 row = result.next();
-                if (row.getInt(0) == preferredAlphabet) {
+                if (row.get(0).toInt() == preferredAlphabet) {
                     firstAlphabet = preferredAlphabet;
-                    text = row.getString(1);
+                    text = row.get(1).toText();
                 }
             }
         }

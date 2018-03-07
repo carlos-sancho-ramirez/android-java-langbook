@@ -27,10 +27,10 @@ import sword.langbook3.android.DbManager.QuestionField;
 
 import static sword.langbook3.android.DbManager.findQuestionFieldSet;
 import static sword.langbook3.android.DbManager.findQuizDefinition;
-import static sword.langbook3.android.DbManager.idColumnName;
 import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
 import static sword.langbook3.android.DbManager.insertQuizDefinition;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
+import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class QuizEditorActivity extends Activity implements View.OnClickListener {
 

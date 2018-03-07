@@ -12,7 +12,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
-import static sword.langbook3.android.DbManager.idColumnName;
+import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class AgentDetailsActivity extends Activity {
 

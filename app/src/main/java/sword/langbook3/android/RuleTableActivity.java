@@ -11,7 +11,7 @@ import android.util.SparseArray;
 import java.util.HashMap;
 import java.util.Map;
 
-import static sword.langbook3.android.DbManager.idColumnName;
+import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class RuleTableActivity extends Activity {
 
