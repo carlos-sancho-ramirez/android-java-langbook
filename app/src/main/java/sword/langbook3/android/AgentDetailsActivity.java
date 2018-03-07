@@ -11,6 +11,14 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
+import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
+import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
+
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -36,7 +44,7 @@ public class AgentDetailsActivity extends Activity {
     int _rule;
 
     int readAgent(SQLiteDatabase db) {
-        final DbManager.AgentsTable agents = DbManager.Tables.agents; // J0
+        final AgentsTable agents = Tables.agents; // J0
         Cursor cursor = db.rawQuery(
                 "SELECT " + agents.getColumnName(agents.getTargetBunchColumnIndex()) +
                         "," + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
@@ -80,8 +88,8 @@ public class AgentDetailsActivity extends Activity {
     }
 
     private BunchInclusionResult readBunch(SQLiteDatabase db, int bunch) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -120,9 +128,9 @@ public class AgentDetailsActivity extends Activity {
     }
 
     private BunchInclusionResult[] readBunchSet(SQLiteDatabase db, int bunchSet) {
-        final DbManager.BunchSetsTable bunchSets = DbManager.Tables.bunchSets;
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final BunchSetsTable bunchSets = Tables.bunchSets;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -176,8 +184,8 @@ public class AgentDetailsActivity extends Activity {
     }
 
     private SparseArray<String> readCorrelation(SQLiteDatabase db, int correlationId) {
-        final DbManager.CorrelationsTable correlations = DbManager.Tables.correlations;
-        final DbManager.SymbolArraysTable symbolArrays = DbManager.Tables.symbolArrays;
+        final CorrelationsTable correlations = Tables.correlations;
+        final SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +

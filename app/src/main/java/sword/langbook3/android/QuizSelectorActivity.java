@@ -17,6 +17,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import sword.langbook3.android.DbManager.QuestionField;
+import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
+import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -91,7 +96,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     static Progress readProgress(SQLiteDatabase db, int quizId) {
-        final DbManager.KnowledgeTable knowledge = DbManager.Tables.knowledge;
+        final KnowledgeTable knowledge = Tables.knowledge;
 
         final Cursor cursor = db.rawQuery("SELECT " + knowledge.getColumnName(knowledge.getScoreColumnIndex()) + " FROM " + knowledge.getName() + " WHERE " + knowledge.getColumnName(knowledge.getQuizDefinitionColumnIndex()) + "=?",
                 new String[] { Integer.toString(quizId)});
@@ -128,8 +133,8 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private QuizSelectorAdapter.Item[] composeAdapterItems(SQLiteDatabase db, int bunch) {
         final SparseArray<String> allAlphabets = QuizEditorActivity.readAllAlphabets(db);
-        final DbManager.QuizDefinitionsTable quizzes = DbManager.Tables.quizDefinitions;
-        final DbManager.QuestionFieldSets fieldSets = DbManager.Tables.questionFieldSets;
+        final QuizDefinitionsTable quizzes = Tables.quizDefinitions;
+        final QuestionFieldSets fieldSets = Tables.questionFieldSets;
         Cursor cursor = db.rawQuery("SELECT" +
                 " J0." + idColumnName +
                 ",J1." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) +
@@ -196,7 +201,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                         .append(allAlphabets.get(field.alphabet, "?")).append(", ")
                         .append(getString(field.getTypeStringResId()));
 
-                if (field.getType() == DbManager.QuestionFieldFlags.TYPE_APPLY_RULE) {
+                if (field.getType() == QuestionFieldFlags.TYPE_APPLY_RULE) {
                     sb.append(", ").append(getRuleText(db, field.rule));
                 }
                 sb.append(')');

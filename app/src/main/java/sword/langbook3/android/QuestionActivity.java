@@ -16,6 +16,15 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import sword.langbook3.android.DbManager.QuestionField;
+import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
+import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
+import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -71,8 +80,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private int[] _possibleAcceptations;
 
     private void readQuizDefinition(SQLiteDatabase db) {
-        final DbManager.QuizDefinitionsTable quizTable = DbManager.Tables.quizDefinitions;
-        final DbManager.QuestionFieldSets fieldTable = DbManager.Tables.questionFieldSets;
+        final QuizDefinitionsTable quizTable = Tables.quizDefinitions;
+        final QuestionFieldSets fieldTable = Tables.questionFieldSets;
         final Cursor cursor = db.rawQuery("SELECT " +
                         fieldTable.getColumnName(fieldTable.getAlphabetColumnIndex()) + ',' +
                         fieldTable.getColumnName(fieldTable.getRuleColumnIndex()) + ',' +
@@ -102,7 +111,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private String readSameAcceptationQuestionText(SQLiteDatabase db, int index) {
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
                             " FROM " + strings.getName() +
                             " WHERE " + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) + "=?" +
@@ -123,8 +132,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private String readSameConceptQuestionText(SQLiteDatabase db, int index) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT J2." + strings.getColumnName(strings.getStringColumnIndex()) +
                         " FROM " + acceptations.getName() + " AS J0" +
                         " JOIN " + acceptations.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
@@ -152,9 +161,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private String readApplyRuleQuestionText(SQLiteDatabase db, int index) {
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
-        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AgentsTable agents = Tables.agents;
+        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
                         " FROM " + ruledAcceptations.getName() + " AS J0" +
                         " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
@@ -181,13 +190,13 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private String readFieldText(SQLiteDatabase db, int index) {
         switch (_fields[index].getType()) {
-            case DbManager.QuestionFieldFlags.TYPE_SAME_ACC:
+            case QuestionFieldFlags.TYPE_SAME_ACC:
                 return readSameAcceptationQuestionText(db, index);
 
-            case DbManager.QuestionFieldFlags.TYPE_SAME_CONCEPT:
+            case QuestionFieldFlags.TYPE_SAME_CONCEPT:
                 return readSameConceptQuestionText(db, index);
 
-            case DbManager.QuestionFieldFlags.TYPE_APPLY_RULE:
+            case QuestionFieldFlags.TYPE_APPLY_RULE:
                 return readApplyRuleQuestionText(db, index);
         }
 
@@ -332,7 +341,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private void readCurrentKnowledge(SQLiteDatabase db) {
-        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        final KnowledgeTable table = Tables.knowledge;
         final Cursor cursor = db.rawQuery("SELECT " +
                         table.getColumnName(table.getAcceptationColumnIndex()) + ',' +
                         table.getColumnName(table.getScoreColumnIndex()) +
@@ -371,7 +380,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private void insertKnowledge(SQLiteDatabase db, int score) {
-        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        final KnowledgeTable table = Tables.knowledge;
         ContentValues cv = new ContentValues();
         cv.put(table.getColumnName(table.getQuizDefinitionColumnIndex()), _quizId);
         cv.put(table.getColumnName(table.getAcceptationColumnIndex()), _acceptation);
@@ -381,7 +390,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private void updateKnowledge(SQLiteDatabase db, int score) {
-        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        final KnowledgeTable table = Tables.knowledge;
         ContentValues cv = new ContentValues();
         cv.put(table.getColumnName(table.getScoreColumnIndex()), score);
         final String whereClause = table.getColumnName(table.getQuizDefinitionColumnIndex()) +

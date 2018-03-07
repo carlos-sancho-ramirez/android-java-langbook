@@ -17,6 +17,12 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableIte
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
+import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.CorrelationArraysTable;
+import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.composeCorrelation;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
@@ -40,8 +46,8 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
     private AcceptationDetailsAdapter _listAdapter;
 
     private SparseArray<String> readCorrelation(SQLiteDatabase db, int correlation) {
-        final DbManager.CorrelationsTable correlations = DbManager.Tables.correlations;
-        final DbManager.SymbolArraysTable symbolArrays = DbManager.Tables.symbolArrays;
+        final CorrelationsTable correlations = Tables.correlations;
+        final SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
         Cursor cursor = db.rawQuery(
                 "SELECT J0." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
@@ -68,9 +74,9 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
     }
 
     private SparseArray<String> readAcceptationsIncludingCorrelation(SQLiteDatabase db, int correlation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.CorrelationArraysTable correlationArrays = DbManager.Tables.correlationArrays;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final CorrelationArraysTable correlationArrays = Tables.correlationArrays;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT J1." + idColumnName +
@@ -117,8 +123,8 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
     }
 
     private SparseArray<SparseArray<String>> readCorrelationsWithSameSymbolArray(SQLiteDatabase db, int correlation, int alphabet) {
-        final DbManager.CorrelationsTable correlations = DbManager.Tables.correlations;
-        final DbManager.SymbolArraysTable symbolArrays = DbManager.Tables.symbolArrays;
+        final CorrelationsTable correlations = Tables.correlations;
+        final SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
         final String alphabetField = correlations.getColumnName(correlations.getAlphabetColumnIndex());
         final String correlationIdField = correlations.getColumnName(correlations.getCorrelationIdColumnIndex());

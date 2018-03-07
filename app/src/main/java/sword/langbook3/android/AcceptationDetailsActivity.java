@@ -26,6 +26,20 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
+import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentSetsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchConceptsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
+import sword.langbook3.android.LangbookDbSchema.CorrelationArraysTable;
+import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
+import sword.langbook3.android.LangbookDbSchema.LanguagesTable;
+import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
@@ -64,10 +78,10 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private List<CorrelationHolder> readCorrelationArray(SQLiteDatabase db, int acceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
-        final DbManager.CorrelationArraysTable correlationArrays = DbManager.Tables.correlationArrays; // J1
-        final DbManager.CorrelationsTable correlations = DbManager.Tables.correlations; // J2
-        final DbManager.SymbolArraysTable symbolArrays = DbManager.Tables.symbolArrays; // J3
+        final AcceptationsTable acceptations = Tables.acceptations; // J0
+        final CorrelationArraysTable correlationArrays = Tables.correlationArrays; // J1
+        final CorrelationsTable correlations = Tables.correlations; // J2
+        final SymbolArraysTable symbolArrays = Tables.symbolArrays; // J3
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -124,7 +138,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     static int readConcept(SQLiteDatabase db, int acceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
+        final AcceptationsTable acceptations = Tables.acceptations; // J0
         Cursor cursor = db.rawQuery(
                 "SELECT " + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
                         " FROM " + acceptations.getName() +
@@ -147,8 +161,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     static String readConceptText(SQLiteDatabase db, int concept) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations; // J0
+        final StringQueriesTable strings = Tables.stringQueries;
 
         final int j1Offset = acceptations.getColumnCount();
         final DbQuery query = new DbQuery.Builder(acceptations)
@@ -191,9 +205,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private LanguageResult readLanguageFromAlphabet(SQLiteDatabase db, int alphabet) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations; // J0
-        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations; // J0
+        final AlphabetsTable alphabets = Tables.alphabets;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -244,9 +258,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private AcceptationResult readDefinition(SQLiteDatabase db, int acceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.BunchConceptsTable bunchConcepts = DbManager.Tables.bunchConcepts;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final BunchConceptsTable bunchConcepts = Tables.bunchConcepts;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -287,10 +301,10 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private AcceptationResult[] readSubTypes(SQLiteDatabase db, int acceptation, int language) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
-        final DbManager.BunchConceptsTable bunchConcepts = DbManager.Tables.bunchConcepts;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final AlphabetsTable alphabets = Tables.alphabets;
+        final BunchConceptsTable bunchConcepts = Tables.bunchConcepts;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -357,9 +371,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private BunchInclusionResult[] readBunchesWhereIncluded(SQLiteDatabase db, int acceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -377,7 +391,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    final int nullAgentSet = DbManager.Tables.agentSets.nullReference();
+                    final int nullAgentSet = Tables.agentSets.nullReference();
                     ArrayList<BunchInclusionResult> result = new ArrayList<>();
 
                     int bunch = cursor.getInt(0);
@@ -429,9 +443,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private BunchChildResult[] readBunchChildren(SQLiteDatabase db, int acceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -449,7 +463,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    final int nullAgentSet = DbManager.Tables.agentSets.nullReference();
+                    final int nullAgentSet = Tables.agentSets.nullReference();
                     ArrayList<BunchChildResult> result = new ArrayList<>();
 
                     int acc = cursor.getInt(0);
@@ -499,10 +513,10 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private SynonymTranslationResult[] readSynonymsAndTranslations(SQLiteDatabase db, int acceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.LanguagesTable languages = DbManager.Tables.languages;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final AlphabetsTable alphabets = Tables.alphabets;
+        final StringQueriesTable strings = Tables.stringQueries;
+        final LanguagesTable languages = Tables.languages;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -560,10 +574,10 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private MorphologyResult[] readMorphologies(SQLiteDatabase db, int acceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final AgentsTable agents = Tables.agents;
+        final StringQueriesTable strings = Tables.stringQueries;
+        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -654,8 +668,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private int[] readAgentsWhereAccIsTarget(SQLiteDatabase db, int staticAcceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final AgentsTable agents = Tables.agents;
 
         final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
                 " FROM " + acceptations.getName() + " AS J0" +
@@ -684,9 +698,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private int[] readAgentsWhereAccIsSource(SQLiteDatabase db, int staticAcceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
-        final DbManager.BunchSetsTable bunchSets = DbManager.Tables.bunchSets;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final AgentsTable agents = Tables.agents;
+        final BunchSetsTable bunchSets = Tables.bunchSets;
 
         final Cursor cursor = db.rawQuery(" SELECT J2." + idColumnName +
                 " FROM " + acceptations.getName() + " AS J0" +
@@ -716,8 +730,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private int[] readAgentsWhereAccIsRule(SQLiteDatabase db, int staticAcceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final AgentsTable agents = Tables.agents;
 
         final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
                         " FROM " + acceptations.getName() + " AS J0" +
@@ -746,9 +760,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     }
 
     private int[] readAgentsWhereAccIsProcessed(SQLiteDatabase db, int staticAcceptation) {
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
-        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
-        final DbManager.AgentSetsTable agentSets = DbManager.Tables.agentSets;
+        final AgentsTable agents = Tables.agents;
+        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
+        final AgentSetsTable agentSets = Tables.agentSets;
 
         final Cursor cursor = db.rawQuery(" SELECT J1." + agentSets.getColumnName(agentSets.getAgentColumnIndex()) +
                         " FROM " + bunchAcceptations.getName() + " AS J0" +

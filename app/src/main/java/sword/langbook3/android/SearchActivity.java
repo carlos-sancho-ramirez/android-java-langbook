@@ -14,6 +14,9 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
+
 public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener {
 
     private ListView _listView;
@@ -53,7 +56,7 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
     }
 
     private void querySearchResults(String query) {
-        final DbManager.StringQueriesTable table = DbManager.Tables.stringQueries;
+        final StringQueriesTable table = Tables.stringQueries;
         Cursor cursor = DbManager.getInstance().getReadableDatabase().rawQuery("SELECT " +
                 table.getColumnName(table.getStringColumnIndex()) + ',' +
                 table.getColumnName(table.getMainStringColumnIndex()) + ',' +

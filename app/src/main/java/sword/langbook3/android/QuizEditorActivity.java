@@ -24,6 +24,16 @@ import java.util.List;
 import java.util.Set;
 
 import sword.langbook3.android.DbManager.QuestionField;
+import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.RuledConceptsTable;
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
 
 import static sword.langbook3.android.DbManager.findQuestionFieldSet;
 import static sword.langbook3.android.DbManager.findQuizDefinition;
@@ -169,9 +179,9 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     static SparseArray<String> readAllAlphabets(SQLiteDatabase db) {
-        final DbManager.AlphabetsTable alphabets = DbManager.Tables.alphabets;
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AlphabetsTable alphabets = Tables.alphabets;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -219,10 +229,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     static SparseArray<String> readAllRules(SQLiteDatabase db) {
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AgentsTable agents = Tables.agents;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final RuledConceptsTable ruledConcepts = Tables.ruledConcepts;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
@@ -448,7 +458,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     private Set<Integer> readAllAcceptations(SQLiteDatabase db, int alphabet) {
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                         " FROM " + strings.getName() +
                         " WHERE " + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?" +
@@ -474,8 +484,8 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     private Set<Integer> readAllAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
-        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
                 " FROM " + bunchAcceptations.getName() + " AS J0" +
                 " JOIN " + strings.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
@@ -502,8 +512,8 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     private Set<Integer> readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int alphabet) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
         final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
@@ -537,9 +547,9 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     private Set<Integer> readAllPossibleSynonymOrTranslationAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
         final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
@@ -576,9 +586,9 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     private Set<Integer> readAllRulableAcceptations(SQLiteDatabase db, int alphabet, int rule) {
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+        final StringQueriesTable strings = Tables.stringQueries;
+        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
+        final AgentsTable agents = Tables.agents;
 
         final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
         final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
@@ -618,10 +628,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     private Set<Integer> readAllRulableAcceptationsInBunch(SQLiteDatabase db, int alphabet, int rule) {
-        final DbManager.BunchAcceptationsTable bunchAcceptations = DbManager.Tables.bunchAcceptations;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
-        final DbManager.RuledAcceptationsTable ruledAcceptations = DbManager.Tables.ruledAcceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
+        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
+        final StringQueriesTable strings = Tables.stringQueries;
+        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
+        final AgentsTable agents = Tables.agents;
 
         final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
         final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
@@ -696,7 +706,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     private void insertAllPossibilities(SQLiteDatabase db, int quizId, Set<Integer> acceptations) {
-        final DbManager.KnowledgeTable table = DbManager.Tables.knowledge;
+        final KnowledgeTable table = Tables.knowledge;
         final String quizDefField = table.getColumnName(table.getQuizDefinitionColumnIndex());
         final String accField = table.getColumnName(table.getAcceptationColumnIndex());
         final String scoreField = table.getColumnName(table.getScoreColumnIndex());
@@ -721,7 +731,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         }
 
         for (FieldState state : _answerFields) {
-            fields.add(new QuestionField(state.alphabet, state.rule, DbManager.QuestionFieldFlags.IS_ANSWER | (state.type - 1)));
+            fields.add(new QuestionField(state.alphabet, state.rule, QuestionFieldFlags.IS_ANSWER | (state.type - 1)));
         }
 
         final Integer existingSetId = findQuestionFieldSet(db, fields);

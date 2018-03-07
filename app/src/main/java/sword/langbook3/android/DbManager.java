@@ -35,11 +35,31 @@ import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
+import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentSetsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchConceptsTable;
+import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
+import sword.langbook3.android.LangbookDbSchema.ConversionsTable;
+import sword.langbook3.android.LangbookDbSchema.CorrelationArraysTable;
+import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
+import sword.langbook3.android.LangbookDbSchema.LanguagesTable;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
+import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
+import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.RuledConceptsTable;
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbColumn;
 import sword.langbook3.android.db.DbIntColumn;
 import sword.langbook3.android.db.DbIntValue;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbSchema;
 import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.db.DbTextColumn;
@@ -846,7 +866,7 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         boolean isAnswer() {
-            return (flags & DbManager.QuestionFieldFlags.IS_ANSWER) != 0;
+            return (flags & QuestionFieldFlags.IS_ANSWER) != 0;
         }
 
         @Override
@@ -873,7 +893,7 @@ class DbManager extends SQLiteOpenHelper {
         final Set<QuestionField> set = new HashSet<>(collection);
 
         final QuestionField firstField = set.iterator().next();
-        final DbManager.QuestionFieldSets fieldSets = DbManager.Tables.questionFieldSets;
+        final QuestionFieldSets fieldSets = Tables.questionFieldSets;
         final Cursor cursor = db.rawQuery("SELECT" +
                         " J0." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
                         ",J1." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) +
@@ -921,7 +941,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private static int getMaxQuestionFieldSetId(SQLiteDatabase db) {
-        DbManager.QuestionFieldSets table = DbManager.Tables.questionFieldSets;
+        QuestionFieldSets table = Tables.questionFieldSets;
         Cursor cursor = db.rawQuery("SELECT max(" +
                 table.getColumnName(table.getSetIdColumnIndex()) + ") FROM " +
                 table.getName(), null);
@@ -939,7 +959,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     static int insertQuestionFieldSet(SQLiteDatabase db, List<QuestionField> fields) {
-        final DbManager.QuestionFieldSets table = DbManager.Tables.questionFieldSets;
+        final QuestionFieldSets table = Tables.questionFieldSets;
         ContentValues fieldsCv = new ContentValues();
         final int setId = getMaxQuestionFieldSetId(db) + 1;
 
@@ -960,7 +980,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     static Integer findQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
-        final DbManager.QuizDefinitionsTable table = Tables.quizDefinitions;
+        final QuizDefinitionsTable table = Tables.quizDefinitions;
         final DbResult result = getInstance().attach(new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .where(table.getQuestionFieldsColumnIndex(), setId)
@@ -1393,434 +1413,25 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    static final class AcceptationsTable extends DbTable {
-
-        AcceptationsTable() {
-            super("Acceptations", new DbIntColumn("word"), new DbIntColumn("concept"), new DbIntColumn("correlationArray"));
-        }
-
-        int getWordColumnIndex() {
-            return 1;
-        }
-
-        int getConceptColumnIndex() {
-            return 2;
-        }
-
-        int getCorrelationArrayColumnIndex() {
-            return 3;
-        }
-    }
-
-    static final class AgentsTable extends DbTable {
-
-        AgentsTable() {
-            super("Agents", new DbIntColumn("target"), new DbIntColumn("sourceSet"), new DbIntColumn("diffSet"),
-                    new DbIntColumn("matcher"), new DbIntColumn("adder"), new DbIntColumn("rule"), new DbIntColumn("flags"));
-        }
-
-        int getTargetBunchColumnIndex() {
-            return 1;
-        }
-
-        int getSourceBunchSetColumnIndex() {
-            return 2;
-        }
-
-        int getDiffBunchSetColumnIndex() {
-            return 3;
-        }
-
-        int getMatcherColumnIndex() {
-            return 4;
-        }
-
-        int getAdderColumnIndex() {
-            return 5;
-        }
-
-        int getRuleColumnIndex() {
-            return 6;
-        }
-
-        int getFlagsColumnIndex() {
-            return 7;
-        }
-
-        int nullReference() {
-            return 0;
-        }
-    }
-
-    static final class AgentSetsTable extends DbTable {
-
-        AgentSetsTable() {
-            super("AgentSets", new DbIntColumn("setId"), new DbIntColumn("agent"));
-        }
-
-        int getSetIdColumnIndex() {
-            return 1;
-        }
-
-        int getAgentColumnIndex() {
-            return 2;
-        }
-
-        int nullReference() {
-            return 0;
-        }
-    }
-
-    static final class AlphabetsTable extends DbTable {
-
-        AlphabetsTable() {
-            super("Alphabets", new DbIntColumn("language"));
-        }
-
-        int getLanguageColumnIndex() {
-            return 1;
-        }
-    }
-
-    static final class BunchAcceptationsTable extends DbTable {
-
-        BunchAcceptationsTable() {
-            super("BunchAcceptations", new DbIntColumn("bunch"), new DbIntColumn("acceptation"), new DbIntColumn("agentSet"));
-        }
-
-        int getBunchColumnIndex() {
-            return 1;
-        }
-
-        int getAcceptationColumnIndex() {
-            return 2;
-        }
-
-        int getAgentSetColumnIndex() {
-            return 3;
-        }
-    }
-
-    static final class BunchConceptsTable extends DbTable {
-
-        BunchConceptsTable() {
-            super("BunchConcepts", new DbIntColumn("bunch"), new DbIntColumn("concept"));
-        }
-
-        int getBunchColumnIndex() {
-            return 1;
-        }
-
-        int getConceptColumnIndex() {
-            return 2;
-        }
-    }
-
-    static final class BunchSetsTable extends DbTable {
-
-        BunchSetsTable() {
-            super("BunchSets", new DbIntColumn("setId"), new DbIntColumn("bunch"));
-        }
-
-        int getSetIdColumnIndex() {
-            return 1;
-        }
-
-        int getBunchColumnIndex() {
-            return 2;
-        }
-
-        int nullReference() {
-            return 0;
-        }
-    }
-
-    static final class ConversionsTable extends DbTable {
-
-        ConversionsTable() {
-            super("Conversions", new DbIntColumn("sourceAlphabet"), new DbIntColumn("targetAlphabet"), new DbIntColumn("source"), new DbIntColumn("target"));
-        }
-
-        int getSourceAlphabetColumnIndex() {
-            return 1;
-        }
-
-        int getTargetAlphabetColumnIndex() {
-            return 2;
-        }
-
-        int getSourceColumnIndex() {
-            return 3;
-        }
-
-        int getTargetColumnIndex() {
-            return 4;
-        }
-    }
-
-    static final class CorrelationsTable extends DbTable {
-
-        CorrelationsTable() {
-            super("Correlations", new DbIntColumn("correlationId"), new DbIntColumn("alphabet"), new DbIntColumn("symbolArray"));
-        }
-
-        int getCorrelationIdColumnIndex() {
-            return 1;
-        }
-
-        int getAlphabetColumnIndex() {
-            return 2;
-        }
-
-        int getSymbolArrayColumnIndex() {
-            return 3;
-        }
-    }
-
-    static final class CorrelationArraysTable extends DbTable {
-
-        CorrelationArraysTable() {
-            super("CorrelationArrays", new DbIntColumn("arrayId"), new DbIntColumn("arrayPos"), new DbIntColumn("correlation"));
-        }
-
-        int getArrayIdColumnIndex() {
-            return 1;
-        }
-
-        int getArrayPositionColumnIndex() {
-            return 2;
-        }
-
-        int getCorrelationColumnIndex() {
-            return 3;
-        }
-    }
-
-    static final class KnowledgeTable extends DbTable {
-
-        KnowledgeTable() {
-            super("Knowledge", new DbIntColumn("quizDefinition"), new DbIntColumn("acceptation"), new DbIntColumn("score"));
-        }
-
-        int getQuizDefinitionColumnIndex() {
-            return 1;
-        }
-
-        int getAcceptationColumnIndex() {
-            return 2;
-        }
-
-        int getScoreColumnIndex() {
-            return 3;
-        }
-    }
-
-    static final class LanguagesTable extends DbTable {
-
-        LanguagesTable() {
-            super("Languages", new DbIntColumn("mainAlphabet"), new DbUniqueTextColumn("code"));
-        }
-
-        int getMainAlphabetColumnIndex() {
-            return 1;
-        }
-
-        int getCodeColumnIndex() {
-            return 2;
-        }
-    }
-
-    interface QuestionFieldFlags {
-
-        /**
-         * Once we have an acceptation, there are 3 kind of questions ways of retrieving the information for the question field.
-         * <li>Same acceptation: We just get the acceptation form the Database.</li>
-         * <li>Same concept: Other acceptation matching the origina concept must be found. Depending on the alphabet, they will be synonymous or translations.</li>
-         * <li>Apply rule: The given acceptation is the dictionary form, then the ruled acceptation with the given rule should be found.</li>
-         */
-        int TYPE_MASK = 3;
-        int TYPE_SAME_ACC = 0;
-        int TYPE_SAME_CONCEPT = 1;
-        int TYPE_APPLY_RULE = 2;
-
-        /**
-         * If set, question mask has to be displayed when performing the question.
-         */
-        int IS_ANSWER = 4;
-    }
-
-    static final class QuestionFieldSets extends DbTable {
-
-        QuestionFieldSets() {
-            super("QuestionFieldSets", new DbIntColumn("setId"), new DbIntColumn("alphabet"), new DbIntColumn("flags"), new DbIntColumn("rule"));
-        }
-
-        int getSetIdColumnIndex() {
-            return 1;
-        }
-
-        int getAlphabetColumnIndex() {
-            return 2;
-        }
-
-        /**
-         * @see QuestionFieldFlags
-         */
-        int getFlagsColumnIndex() {
-            return 3;
-        }
-
-        /**
-         * Only relevant if question type if 'apply rule'. Ignored in other cases.
-         */
-        int getRuleColumnIndex() {
-            return 4;
-        }
-    }
-
-    static final class QuizDefinitionsTable extends DbTable {
-
-        QuizDefinitionsTable() {
-            super("QuizDefinitions", new DbIntColumn("bunch"), new DbIntColumn("questionFields"));
-        }
-
-        int getBunchColumnIndex() {
-            return 1;
-        }
-
-        int getQuestionFieldsColumnIndex() {
-            return 2;
-        }
-    }
-
-    static final class RuledAcceptationsTable extends DbTable {
-
-        RuledAcceptationsTable() {
-            super("RuledAcceptations", new DbIntColumn("agent"), new DbIntColumn("acceptation"));
-        }
-
-        int getAgentColumnIndex() {
-            return 1;
-        }
-
-        int getAcceptationColumnIndex() {
-            return 2;
-        }
-    }
-
-    static final class RuledConceptsTable extends DbTable {
-
-        RuledConceptsTable() {
-            super("RuledConcepts", new DbIntColumn("agent"), new DbIntColumn("concept"));
-        }
-
-        int getAgentColumnIndex() {
-            return 1;
-        }
-
-        int getConceptColumnIndex() {
-            return 2;
-        }
-    }
-
-    static final class StringQueriesTable extends DbTable {
-
-        StringQueriesTable() {
-            super("StringQueryTable", new DbIntColumn("mainAcceptation"), new DbIntColumn("dynamicAcceptation"),
-                    new DbIntColumn("strAlphabet"), new DbTextColumn("str"), new DbTextColumn("mainStr"));
-        }
-
-        int getMainAcceptationColumnIndex() {
-            return 1;
-        }
-
-        int getDynamicAcceptationColumnIndex() {
-            return 2;
-        }
-
-        int getStringAlphabetColumnIndex() {
-            return 3;
-        }
-
-        int getStringColumnIndex() {
-            return 4;
-        }
-
-        int getMainStringColumnIndex() {
-            return 5;
-        }
-    }
-
-    static final class SymbolArraysTable extends DbTable {
-
-        SymbolArraysTable() {
-            super("SymbolArrays", new DbUniqueTextColumn("str"));
-        }
-
-        int getStrColumnIndex() {
-            return 1;
-        }
-    }
-
-    static final class Tables {
-        static final AcceptationsTable acceptations = new AcceptationsTable();
-        static final AgentsTable agents = new AgentsTable();
-        static final AgentSetsTable agentSets = new AgentSetsTable();
-        static final AlphabetsTable alphabets = new AlphabetsTable();
-        static final BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
-        static final BunchConceptsTable bunchConcepts = new BunchConceptsTable();
-        static final BunchSetsTable bunchSets = new BunchSetsTable();
-        static final ConversionsTable conversions = new ConversionsTable();
-        static final CorrelationsTable correlations = new CorrelationsTable();
-        static final CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
-        static final KnowledgeTable knowledge = new KnowledgeTable();
-        static final LanguagesTable languages = new LanguagesTable();
-        static final QuestionFieldSets questionFieldSets = new QuestionFieldSets();
-        static final QuizDefinitionsTable quizDefinitions = new QuizDefinitionsTable();
-        static final RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
-        static final RuledConceptsTable ruledConcepts = new RuledConceptsTable();
-        static final StringQueriesTable stringQueries = new StringQueriesTable();
-        static final SymbolArraysTable symbolArrays = new SymbolArraysTable();
-    }
-
-    private static final DbTable[] dbTables = new DbTable[18];
-    static {
-        dbTables[0] = Tables.acceptations;
-        dbTables[1] = Tables.agents;
-        dbTables[2] = Tables.agentSets;
-        dbTables[3] = Tables.alphabets;
-        dbTables[4] = Tables.bunchAcceptations;
-        dbTables[5] = Tables.bunchConcepts;
-        dbTables[6] = Tables.bunchSets;
-        dbTables[7] = Tables.conversions;
-        dbTables[8] = Tables.correlations;
-        dbTables[9] = Tables.correlationArrays;
-        dbTables[10] = Tables.knowledge;
-        dbTables[11] = Tables.languages;
-        dbTables[12] = Tables.questionFieldSets;
-        dbTables[13] = Tables.quizDefinitions;
-        dbTables[14] = Tables.ruledAcceptations;
-        dbTables[15] = Tables.ruledConcepts;
-        dbTables[16] = Tables.stringQueries;
-        dbTables[17] = Tables.symbolArrays;
-    }
-
     private void createTables(SQLiteDatabase db) {
-        for (DbTable table : dbTables) {
+        final DbSchema schema = LangbookDbSchema.getInstance();
+        final int tableCount = schema.getTableCount();
+        for (int i = 0; i < tableCount; i++) {
+            DbTable table = schema.getTable(i);
             StringBuilder builder = new StringBuilder();
             builder.append("CREATE TABLE ")
                     .append(table.getName())
                     .append(" (");
 
             final int columnCount = table.getColumnCount();
-            for (int i = 0; i < columnCount; i++) {
-                final String columnName = table.getColumnName(i);
-                if (i != 0) {
+            for (int j = 0; j < columnCount; j++) {
+                final String columnName = table.getColumnName(j);
+                if (j != 0) {
                     builder.append(", ");
                 }
 
                 builder.append(columnName).append(' ')
-                        .append(table.getColumnType(i));
+                        .append(table.getColumnType(j));
             }
             builder.append(')');
 
@@ -2415,7 +2026,7 @@ class DbManager extends SQLiteOpenHelper {
         for (Conversion conversion : conversions) {
             final int sourceAlphabet = conversion.getSourceAlphabet();
 
-            final DbManager.StringQueriesTable table = DbManager.Tables.stringQueries;
+            final StringQueriesTable table = Tables.stringQueries;
             Cursor cursor = db.rawQuery("SELECT " +
                     table.getColumnName(table.getStringColumnIndex()) + ',' +
                     table.getColumnName(table.getMainStringColumnIndex()) + ',' +

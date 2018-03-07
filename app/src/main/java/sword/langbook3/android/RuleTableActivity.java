@@ -11,6 +11,12 @@ import android.util.SparseArray;
 import java.util.HashMap;
 import java.util.Map;
 
+import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.LangbookDbSchema.RuledConceptsTable;
+import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.LangbookDbSchema.Tables;
+
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class RuleTableActivity extends Activity {
@@ -72,7 +78,7 @@ public class RuleTableActivity extends Activity {
     }
 
     private String readAcceptationText(int acceptation) {
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final StringQueriesTable strings = Tables.stringQueries;
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
         final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
                         " FROM " + strings.getName() + " WHERE " +
@@ -93,10 +99,10 @@ public class RuleTableActivity extends Activity {
     }
 
     private Map<TableCellRef, TableCellValue> readTableContent(int dynamicAcceptation) {
-        final DbManager.AcceptationsTable acceptations = DbManager.Tables.acceptations;
-        final DbManager.AgentsTable agents = DbManager.Tables.agents;
-        final DbManager.RuledConceptsTable ruledConcepts = DbManager.Tables.ruledConcepts;
-        final DbManager.StringQueriesTable strings = DbManager.Tables.stringQueries;
+        final AcceptationsTable acceptations = Tables.acceptations;
+        final AgentsTable agents = Tables.agents;
+        final RuledConceptsTable ruledConcepts = Tables.ruledConcepts;
+        final StringQueriesTable strings = Tables.stringQueries;
 
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
