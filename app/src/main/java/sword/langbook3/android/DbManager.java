@@ -6,7 +6,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.database.sqlite.SQLiteStatement;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.SparseArray;
@@ -55,6 +54,7 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbColumn;
+import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbIntValue;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
@@ -274,12 +274,34 @@ class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
+    private Integer insert(SQLiteDatabase db, DbInsertQuery query) {
+        final int count = query.getColumnCount();
+        ContentValues cv = new ContentValues();
+        for (int i = 0; i < count; i++) {
+            final String name = query.getColumn(i).getName();
+            final DbValue value = query.getValue(i);
+            if (value.isText()) {
+                cv.put(name, value.toText());
+            }
+            else {
+                cv.put(name, value.toInt());
+            }
+        }
+
+        final long returnId = db.insert(query.getTable().getName(), null, cv);
+        return (returnId >= 0)? (int) returnId : null;
+    }
+
+    public Integer insert(DbInsertQuery query) {
+        return insert(getWritableDatabase(), query);
+    }
+
     private Integer insertSymbolArray(SQLiteDatabase db, String str) {
         final SymbolArraysTable table = Tables.symbolArrays;
-        ContentValues cv = new ContentValues();
-        cv.put(table.getColumnName(table.getStrColumnIndex()), str);
-        final long returnId = db.insert(table.getName(), null, cv);
-        return (returnId >= 0)? (int) returnId : null;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getStrColumnIndex(), str)
+                .build();
+        return insert(db, query);
     }
 
     private int obtainSymbolArray(SQLiteDatabase db, String str) {
@@ -449,8 +471,6 @@ class DbManager extends SQLiteOpenHelper {
 
         final CorrelationsTable table = Tables.correlations;
         final String correlationIdColumnName = table.getColumnName(table.getCorrelationIdColumnIndex());
-        final String alphabetColumnName = table.getColumnName(table.getAlphabetColumnIndex());
-        final String symbolArrayColumnName = table.getColumnName(table.getSymbolArrayColumnIndex());
 
         Cursor cursor = db.rawQuery("SELECT max(" +
                 correlationIdColumnName + ") FROM " +
@@ -464,16 +484,13 @@ class DbManager extends SQLiteOpenHelper {
             final int newCorrelationId = cursor.getInt(0) + 1;
             final int mapLength = correlation.size();
 
-            SQLiteStatement statement = db.compileStatement("INSERT INTO " + table.getName() + " (" +
-                    correlationIdColumnName + ", " +
-                    alphabetColumnName + ", " +
-                    symbolArrayColumnName + ") VALUES (" +
-                    newCorrelationId + ",?,?)");
-
             for (int i = 0; i < mapLength; i++) {
-                statement.bindLong(1, correlation.keyAt(i));
-                statement.bindLong(2, correlation.valueAt(i));
-                statement.executeInsert();
+                final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                        .put(table.getCorrelationIdColumnIndex(), newCorrelationId)
+                        .put(table.getAlphabetColumnIndex(), correlation.keyAt(i))
+                        .put(table.getSymbolArrayColumnIndex(), correlation.valueAt(i))
+                        .build();
+                insert(db, query);
             }
 
             return newCorrelationId;
@@ -575,11 +592,12 @@ class DbManager extends SQLiteOpenHelper {
             final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
             final int arrayLength = correlation.length;
             for (int i = 0; i < arrayLength; i++) {
-                final int corr = correlation[i];
-                db.execSQL("INSERT INTO " + table.getName() + " (" + arrayIdColumnName + ", " +
-                        table.getColumnName(table.getArrayPositionColumnIndex()) + ", " +
-                        table.getColumnName(table.getCorrelationColumnIndex()) + ") VALUES (" +
-                        newArrayId + ',' + i + ',' + corr + ')');
+                final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                        .put(table.getArrayIdColumnIndex(), newArrayId)
+                        .put(table.getArrayPositionColumnIndex(), i)
+                        .put(table.getCorrelationColumnIndex(), correlation[i])
+                        .build();
+                insert(db, query);
             }
 
             return newArrayId;
@@ -596,15 +614,12 @@ class DbManager extends SQLiteOpenHelper {
 
     private int insertAcceptation(SQLiteDatabase db, int word, int concept, int correlationArray) {
         final AcceptationsTable table = Tables.acceptations;
-        ContentValues cv = new ContentValues();
-        cv.put(table.getColumnName(table.getWordColumnIndex()), word);
-        cv.put(table.getColumnName(table.getConceptColumnIndex()), concept);
-        cv.put(table.getColumnName(table.getCorrelationArrayColumnIndex()), correlationArray);
-        final long returnId = db.insert(table.getName(), null, cv);
-        if (returnId < 0) {
-            throw new AssertionError("insert returned a negative id");
-        }
-        return (int) returnId;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getWordColumnIndex(), word)
+                .put(table.getConceptColumnIndex(), concept)
+                .put(table.getCorrelationArrayColumnIndex(), correlationArray)
+                .build();
+        return insert(db, query);
     }
 
     private Integer getAgentId(SQLiteDatabase db, int targetBunch, int sourceBunchSetId,
