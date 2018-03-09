@@ -274,7 +274,11 @@ class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
-    private Integer insert(SQLiteDatabase db, DbInsertQuery query) {
+    private static SQLiteDbResult select(SQLiteDatabase db, DbQuery query) {
+        return new SQLiteDbResult(query.getSelectedColumns(), db.rawQuery(new SQLiteDbQuery(query).toSql(), null));
+    }
+
+    private static Integer insert(SQLiteDatabase db, DbInsertQuery query) {
         final int count = query.getColumnCount();
         ContentValues cv = new ContentValues();
         for (int i = 0; i < count; i++) {
@@ -1468,7 +1472,7 @@ class DbManager extends SQLiteOpenHelper {
 
         @Override
         public SQLiteDbResult iterator() {
-            return new SQLiteDbResult(_query.getSelectedColumns(), getReadableDatabase().rawQuery(_query.toSql(), null));
+            return select(getReadableDatabase(), _query);
         }
     }
 

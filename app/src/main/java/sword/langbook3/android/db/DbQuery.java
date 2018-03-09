@@ -4,8 +4,6 @@ import java.util.ArrayList;
 
 public final class DbQuery {
 
-    // TODO: Remove all SQLite related code from here
-
     private final DbTable[] _tables;
     private final int[] _joinPairs;
     private final int[] _restrictionKeys;
@@ -79,7 +77,15 @@ public final class DbQuery {
         _joinColumns = joinColumns;
     }
 
-    private int getTableIndexFromColumnIndex(int column) {
+    public int getTableCount() {
+        return _tables.length;
+    }
+
+    public DbTable getTable(int index) {
+        return _tables[index];
+    }
+
+    public int getTableIndexFromColumnIndex(int column) {
         int count = 0;
         int tableIndex = 0;
         while (column >= count) {
@@ -88,83 +94,71 @@ public final class DbQuery {
         return tableIndex - 1;
     }
 
-    private DbTable getTable(int index) {
-        return _tables[index];
+    public DbColumn getJoinColumn(int index) {
+        return _joinColumns[index];
+    }
+
+    public int getSelectedColumnCount() {
+        return _selectedColumns.length;
+    }
+
+    public int getSelectedColumnIndex(int index) {
+        return _selectedColumns[index];
+    }
+
+    public static final class JoinColumnPair {
+
+        private final int _left;
+        private final int _right;
+
+        private JoinColumnPair(int left, int right) {
+            _left = left;
+            _right = right;
+        }
+
+        public int getLeft() {
+            return _left;
+        }
+
+        public int getRight() {
+            return _right;
+        }
+    }
+
+    public JoinColumnPair getJoinPair(int index) {
+        final int pairCount = _joinPairs.length / 2;
+        for (int j = 0; j < pairCount; j++) {
+            if (getTableIndexFromColumnIndex(_joinPairs[2 * j + 1]) == index + 1 && getTableIndexFromColumnIndex(_joinPairs[2 * j]) < index + 1) {
+                return new JoinColumnPair(_joinPairs[2 * j], _joinPairs[2 * j + 1]);
+            }
+        }
+
+        throw new AssertionError("No pair found for table " + (index + 1));
+    }
+
+    public DbColumn getSelectedColumn(int index) {
+        return _joinColumns[getSelectedColumnIndex(index)];
     }
 
     public DbColumn[] getSelectedColumns() {
-        final DbColumn[] result = new DbColumn[_selectedColumns.length];
+        final DbColumn[] result = new DbColumn[getSelectedColumnCount()];
         for (int i = 0; i < result.length; i++) {
-            result[i] = _joinColumns[_selectedColumns[i]];
+            result[i] = getSelectedColumn(i);
         }
 
         return result;
     }
 
-    private String getSqlColumnName(int index) {
-        return "J" + getTableIndexFromColumnIndex(index) + '.' + _joinColumns[index].getName();
+    public int getRestrictionCount() {
+        return _restrictionKeys.length;
     }
 
-    private String getSqlSelectedColumnName(int index) {
-        return getSqlColumnName(_selectedColumns[index]);
+    public int getRestrictedColumnIndex(int index) {
+        return _restrictionKeys[index];
     }
 
-    private String getSqlSelectedColumnNames() {
-        final StringBuilder sb = new StringBuilder(getSqlSelectedColumnName(0));
-        for (int i = 1; i < _selectedColumns.length; i++) {
-            sb.append(',').append(getSqlSelectedColumnName(i));
-        }
-
-        return sb.toString();
-    }
-
-    private String getSqlFromClause() {
-        final StringBuilder sb = new StringBuilder(" FROM ");
-        sb.append(_tables[0].getName()).append(" AS J0");
-
-        for (int i = 1; i < _tables.length; i++) {
-            final int pairCount = _joinPairs.length / 2;
-            int left = -1;
-            int right = -1;
-            for (int j = 0; j < pairCount; i++) {
-                if (getTableIndexFromColumnIndex(_joinPairs[2 * j + 1]) == i && getTableIndexFromColumnIndex(_joinPairs[2 * j]) < i) {
-                    left = _joinPairs[2 * j];
-                    right = _joinPairs[2 * j + 1];
-                    break;
-                }
-            }
-
-            if (left < 0) {
-                throw new AssertionError("No pair found for table " + i);
-            }
-
-            sb.append(" JOIN ").append(_tables[i].getName()).append(" AS J").append(i);
-            sb.append(" ON J").append(getTableIndexFromColumnIndex(left)).append('.');
-            sb.append(_joinColumns[left].getName()).append("=J").append(i);
-            sb.append('.').append(_joinColumns[right].getName());
-        }
-
-        return sb.toString();
-    }
-
-    private String getSqlWhereClause() {
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < _restrictionKeys.length; i++) {
-            if (i == 0) {
-                sb.append(" WHERE ");
-            }
-            else {
-                sb.append(" AND ");
-            }
-            sb.append(getSqlColumnName(_restrictionKeys[i]))
-                    .append('=').append(_restrictionValues[i].toSql());
-        }
-
-        return sb.toString();
-    }
-
-    public String toSql() {
-        return "SELECT " + getSqlSelectedColumnNames() + getSqlFromClause() + getSqlWhereClause();
+    public DbValue getRestriction(int index) {
+        return _restrictionValues[index];
     }
 
     private static boolean hasValidValues(int[] values, int min, int max) {
@@ -228,6 +222,10 @@ public final class DbQuery {
 
         public Builder where(int columnIndex, int value) {
             return where(columnIndex, new DbIntValue(value));
+        }
+
+        public Builder where(int columnIndex, String value) {
+            return where(columnIndex, new DbStringValue(value));
         }
 
         public Builder join(DbTable table, int left, int newTableColumnIndex) {
