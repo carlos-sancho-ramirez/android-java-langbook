@@ -55,15 +55,12 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbColumn;
-import sword.langbook3.android.db.DbIntColumn;
 import sword.langbook3.android.db.DbIntValue;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbSchema;
 import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.db.DbTable;
-import sword.langbook3.android.db.DbTextColumn;
-import sword.langbook3.android.db.DbUniqueTextColumn;
 import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
@@ -1413,8 +1410,7 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private void createTables(SQLiteDatabase db) {
-        final DbSchema schema = LangbookDbSchema.getInstance();
+    private static void createTables(SQLiteDatabase db, DbSchema schema) {
         final int tableCount = schema.getTableCount();
         for (int i = 0; i < tableCount; i++) {
             DbTable table = schema.getTable(i);
@@ -1437,13 +1433,14 @@ class DbManager extends SQLiteOpenHelper {
 
             db.execSQL(builder.toString());
         }
+    }
 
-        // Temporal solution to speed up queries in the database
-        final StringQueriesTable table = Tables.stringQueries;
-        db.execSQL("CREATE INDEX StrDynAcc ON " + table.getName() + " (" + table.getColumnName(table.getDynamicAcceptationColumnIndex()) + ")");
-
-        final AcceptationsTable accTable = Tables.acceptations;
-        db.execSQL("CREATE INDEX AccConcept ON " + accTable.getName() + " (" + accTable.getColumnName(accTable.getConceptColumnIndex()) + ")");
+    private static void createIndexes(SQLiteDatabase db, DbSchema schema) {
+        final int indexCount = schema.getIndexCount();
+        for (int i = 0; i < indexCount; i++) {
+            final DbTable table = schema.getTable(i);
+            db.execSQL("CREATE INDEX I" + i + " ON " + table.getName() + " (" + table.getColumnName(schema.getIndexColumnIndex(i)) + ')');
+        }
     }
 
     final class DbAttachedQuery implements Iterable<DbResult.Row> {
@@ -1566,7 +1563,9 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private boolean importDatabase(SQLiteDatabase db, Uri uri) {
-        createTables(db);
+        final LangbookDbSchema schema = LangbookDbSchema.getInstance();
+        createTables(db, schema);
+        createIndexes(db, schema);
 
         try {
             final InputStream is = _context.getContentResolver().openInputStream(uri);

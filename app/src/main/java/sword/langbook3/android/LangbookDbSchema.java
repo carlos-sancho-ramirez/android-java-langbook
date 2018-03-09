@@ -398,7 +398,19 @@ public final class LangbookDbSchema implements DbSchema {
         SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
 
+    private static final class DbIndexHolder {
+        public final DbTable table;
+        public final int column;
+
+        DbIndexHolder(DbTable table, int column) {
+            this.table = table;
+            this.column = column;
+        }
+    }
+
     private final DbTable[] _tables;
+    private final DbIndexHolder[] _indexes;
+
     private LangbookDbSchema() {
         _tables = new DbTable[18];
 
@@ -420,6 +432,10 @@ public final class LangbookDbSchema implements DbSchema {
         _tables[15] = Tables.ruledConcepts;
         _tables[16] = Tables.stringQueries;
         _tables[17] = Tables.symbolArrays;
+
+        _indexes = new DbIndexHolder[2];
+        _indexes[0] = new DbIndexHolder(Tables.stringQueries, Tables.stringQueries.getDynamicAcceptationColumnIndex());
+        _indexes[1] = new DbIndexHolder(Tables.acceptations, Tables.acceptations.getConceptColumnIndex());
     }
 
     @Override
@@ -430,6 +446,21 @@ public final class LangbookDbSchema implements DbSchema {
     @Override
     public DbTable getTable(int index) {
         return _tables[index];
+    }
+
+    @Override
+    public int getIndexCount() {
+        return _indexes.length;
+    }
+
+    @Override
+    public DbTable getIndexTable(int index) {
+        return _indexes[index].table;
+    }
+
+    @Override
+    public int getIndexColumnIndex(int index) {
+        return _indexes[index].column;
     }
 
     private static LangbookDbSchema _instance;
