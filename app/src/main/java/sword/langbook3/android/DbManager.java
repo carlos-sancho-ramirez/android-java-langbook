@@ -223,29 +223,23 @@ class DbManager extends SQLiteOpenHelper {
         return null;
     }
 
-    private Integer getSymbolArray(SQLiteDatabase db, String str) {
+    private Integer findSymbolArray(SQLiteDatabase db, String str) {
         final SymbolArraysTable table = Tables.symbolArrays;
-        final String whereClause = table.getColumnName(table.getStrColumnIndex()) + " = ?";
-        Cursor cursor = db.query(table.getName(), new String[] {idColumnName}, whereClause,
-                new String[] { str }, null, null, null, null);
-
-        if (cursor != null) {
-            try {
-                final int count = cursor.getCount();
-                if (count > 1) {
-                    throw new AssertionError("There should not be repeated symbol arrays");
-                }
-
-                if (count > 0 && cursor.moveToFirst()) {
-                    return cursor.getInt(0);
-                }
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStrColumnIndex(), str)
+                .select(table.getIdColumnIndex());
+        final SQLiteDbResult result = select(db, query);
+        try {
+            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
+            if (result.hasNext()) {
+                throw new AssertionError();
             }
-            finally {
-                cursor.close();
-            }
+
+            return value;
         }
-
-        return null;
+        finally {
+            result.close();
+        }
     }
 
     private Integer findRuledConcept(SQLiteDatabase db, int agent, int concept) {
@@ -314,7 +308,7 @@ class DbManager extends SQLiteOpenHelper {
             return id;
         }
 
-        id = getSymbolArray(db, str);
+        id = findSymbolArray(db, str);
         if (id == null) {
             throw new AssertionError("Unable to insert, and not present");
         }
@@ -439,33 +433,22 @@ class DbManager extends SQLiteOpenHelper {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
 
-        final int firstAlphabet = correlation.keyAt(0);
-        final int firstSymbolArray = correlation.valueAt(0);
-
-        CorrelationsTable table = Tables.correlations;
-        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getCorrelationIdColumnIndex()) +
-                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getAlphabetColumnIndex()) +
-                "=? AND " + table.getColumnName(table.getSymbolArrayColumnIndex()) +
-                "=?", new String[] {Integer.toString(firstAlphabet), Integer.toString(firstSymbolArray)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        final int correlationId = cursor.getInt(0);
-                        final SparseIntArray corr = getCorrelation(db, correlationId);
-                        if (EqualUtils.checkEqual(corr, correlation)) {
-                            return correlationId;
-                        }
-                    } while (cursor.moveToNext());
-                }
+        final CorrelationsTable table = Tables.correlations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAlphabetColumnIndex(), correlation.keyAt(0))
+                .where(table.getSymbolArrayColumnIndex(), correlation.valueAt(0))
+                .select(table.getCorrelationIdColumnIndex());
+        final SQLiteDbResult result = select(db, query);
+        try {
+            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
+            if (result.hasNext()) {
+                throw new AssertionError();
             }
-            finally {
-                cursor.close();
-            }
+            return value;
         }
-
-        return null;
+        finally {
+            result.close();
+        }
     }
 
     private int insertCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
