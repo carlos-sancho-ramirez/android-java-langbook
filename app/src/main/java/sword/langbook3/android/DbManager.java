@@ -451,40 +451,38 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    private int getMaxCorrelationId(SQLiteDatabase db) {
+        final CorrelationsTable table = Tables.correlations;
+        final DbQuery q = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getCorrelationIdColumnIndex()));
+        final DbResult result = select(db, q);
+        try {
+            return result.next().get(0).toInt();
+        }
+        finally {
+            result.close();
+        }
+    }
+
     private int insertCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
 
+        final int newCorrelationId = getMaxCorrelationId(db) + 1;
+        final int mapLength = correlation.size();
+
         final CorrelationsTable table = Tables.correlations;
-        final String correlationIdColumnName = table.getColumnName(table.getCorrelationIdColumnIndex());
-
-        Cursor cursor = db.rawQuery("SELECT max(" +
-                correlationIdColumnName + ") FROM " +
-                table.getName(), null);
-
-        if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
-            throw new AssertionError("Unable to retrieve maximum correlationId");
+        for (int i = 0; i < mapLength; i++) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getCorrelationIdColumnIndex(), newCorrelationId)
+                    .put(table.getAlphabetColumnIndex(), correlation.keyAt(i))
+                    .put(table.getSymbolArrayColumnIndex(), correlation.valueAt(i))
+                    .build();
+            insert(db, query);
         }
 
-        try {
-            final int newCorrelationId = cursor.getInt(0) + 1;
-            final int mapLength = correlation.size();
-
-            for (int i = 0; i < mapLength; i++) {
-                final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                        .put(table.getCorrelationIdColumnIndex(), newCorrelationId)
-                        .put(table.getAlphabetColumnIndex(), correlation.keyAt(i))
-                        .put(table.getSymbolArrayColumnIndex(), correlation.valueAt(i))
-                        .build();
-                insert(db, query);
-            }
-
-            return newCorrelationId;
-        }
-        finally {
-            cursor.close();
-        }
+        return newCorrelationId;
     }
 
     private int obtainCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
