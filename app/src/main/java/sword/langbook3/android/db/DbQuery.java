@@ -4,15 +4,18 @@ import java.util.ArrayList;
 
 public final class DbQuery {
 
+    private static final int FLAG_COLUMN_FUNCTION_MAX = 0x10000;
+
     private final DbTable[] _tables;
     private final int[] _joinPairs;
     private final int[] _restrictionKeys;
     private final DbValue[] _restrictionValues;
     private final int[] _selectedColumns;
+    private final int[] _selectionFunctions;
 
     private final transient DbColumn[] _joinColumns;
 
-    private DbQuery(DbTable[] tables, int[] joinPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] selectedColumns) {
+    private DbQuery(DbTable[] tables, int[] joinPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] selectedColumns, int[] selectionFunctions) {
 
         if (tables == null || tables.length == 0 || selectedColumns == null || selectedColumns.length == 0) {
             throw new IllegalArgumentException();
@@ -44,6 +47,20 @@ public final class DbQuery {
             throw new IllegalArgumentException("Invalid column selection");
         }
 
+        if (selectionFunctions == null) {
+            selectionFunctions = new int[selectedColumns.length];
+        }
+
+        if (selectedColumns.length != selectionFunctions.length) {
+            throw new IllegalArgumentException();
+        }
+
+        for (int func : selectionFunctions) {
+            if (func != 0 && func != FLAG_COLUMN_FUNCTION_MAX) {
+                throw new IllegalArgumentException("Unexpected aggregate function");
+            }
+        }
+
         if (restrictionKeys == null) {
             restrictionKeys = new int[0];
         }
@@ -73,6 +90,7 @@ public final class DbQuery {
         _restrictionKeys = restrictionKeys;
         _restrictionValues = restrictionValues;
         _selectedColumns = selectedColumns;
+        _selectionFunctions = selectionFunctions;
 
         _joinColumns = joinColumns;
     }
@@ -202,6 +220,14 @@ public final class DbQuery {
         return values[length - 1] >= min && values[length - 1] <= max;
     }
 
+    public boolean isMaxAggregateFunctionSelection(int selectionIndex) {
+        return (_selectionFunctions[selectionIndex] & FLAG_COLUMN_FUNCTION_MAX) != 0;
+    }
+
+    public static int max(int index) {
+        return FLAG_COLUMN_FUNCTION_MAX | index;
+    }
+
     public static final class Builder {
         private final ArrayList<DbTable> _tables = new ArrayList<>();
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
@@ -247,6 +273,8 @@ public final class DbQuery {
             final int[] joinPairs = new int[_joinPairs.size()];
             final int restrictionPairs = _restrictionKeys.size();
             final int[] keys = new int[restrictionPairs];
+            final int[] filteredSelection = new int[selection.length];
+            final int[] funcSelection = new int[selection.length];
             final DbValue[] values = new DbValue[restrictionPairs];
 
             for (int i = 0; i < restrictionPairs; i++) {
@@ -259,7 +287,14 @@ public final class DbQuery {
                 joinPairs[i] = _joinPairs.get(i);
             }
 
-            return new DbQuery(tables, joinPairs, keys, values, selection);
+            for (int i = 0; i < selection.length; i++) {
+                filteredSelection[i] = (FLAG_COLUMN_FUNCTION_MAX - 1) & selection[i];
+                if ((selection[i] & FLAG_COLUMN_FUNCTION_MAX) != 0) {
+                    funcSelection[i] = FLAG_COLUMN_FUNCTION_MAX;
+                }
+            }
+
+            return new DbQuery(tables, joinPairs, keys, values, filteredSelection, funcSelection);
         }
     }
 }

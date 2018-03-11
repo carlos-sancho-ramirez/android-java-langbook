@@ -380,36 +380,28 @@ class DbManager extends SQLiteOpenHelper {
 
     private int getMaxWord(SQLiteDatabase db) {
         AcceptationsTable table = Tables.acceptations;
-        Cursor cursor = db.rawQuery("SELECT max(" +
-                table.getColumnName(table.getWordColumnIndex()) + ") FROM " +
-                table.getName(), null);
-
-        if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
-            try {
-                return cursor.getInt(0);
-            } finally {
-                cursor.close();
-            }
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getWordColumnIndex()));
+        final SQLiteDbResult result = select(db, query);
+        try {
+            return result.next().get(0).toInt();
         }
-
-        throw new AssertionError("Unable to retrieve maximum wordId");
+        finally {
+            result.close();
+        }
     }
 
     private int getMaxConcept(SQLiteDatabase db) {
         AcceptationsTable table = Tables.acceptations;
-        Cursor cursor = db.rawQuery("SELECT max(" +
-                table.getColumnName(table.getConceptColumnIndex()) + ") FROM " +
-                table.getName(), null);
-
-        if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
-            try {
-                return cursor.getInt(0);
-            } finally {
-                cursor.close();
-            }
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getConceptColumnIndex()));
+        final SQLiteDbResult result = select(db, query);
+        try {
+            return result.next().get(0).toInt();
         }
-
-        throw new AssertionError("Unable to retrieve maximum conceptId");
+        finally {
+            result.close();
+        }
     }
 
     private SparseIntArray getCorrelation(SQLiteDatabase db, int id) {

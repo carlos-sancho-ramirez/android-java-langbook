@@ -15,7 +15,8 @@ final class SQLiteDbQuery {
     }
 
     private String getSqlSelectedColumnName(int index) {
-        return getSqlColumnName(_query.getSelectedColumnIndex(index));
+        final String name = getSqlColumnName(_query.getSelectedColumnIndex(index));
+        return _query.isMaxAggregateFunctionSelection(index)? "coalesce(max(" + name + "), 0)" : name;
     }
 
     private String getSqlSelectedColumnNames() {
