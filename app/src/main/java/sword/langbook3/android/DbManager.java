@@ -500,32 +500,27 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         CorrelationArraysTable table = Tables.correlationArrays;
-        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getArrayPositionColumnIndex()) +
-                ',' + table.getColumnName(table.getCorrelationColumnIndex()) +
-                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getArrayIdColumnIndex()) +
-                "=?", new String[] {Integer.toString(id)});
-
-        int[] result = null;
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    result = new int[cursor.getCount()];
-                    final BitSet set = new BitSet();
-                    do {
-                        final int pos = cursor.getInt(0);
-                        final int corr = cursor.getInt(1);
-                        if (set.get(pos)) {
-                            throw new AssertionError("Malformed correlation array with id " + id);
-                        }
-
-                        set.set(pos);
-                        result[pos] = corr;
-                    } while (cursor.moveToNext());
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getArrayIdColumnIndex(), id)
+                .select(table.getArrayPositionColumnIndex(), table.getCorrelationColumnIndex());
+        final DbResult dbResult = select(db, query);
+        final int[] result = new int[dbResult.getRemainingRows()];
+        final BitSet set = new BitSet();
+        try {
+            while (dbResult.hasNext()) {
+                final DbResult.Row row = dbResult.next();
+                final int pos = row.get(0).toInt();
+                final int corr = row.get(1).toInt();
+                if (set.get(pos)) {
+                    throw new AssertionError("Malformed correlation array with id " + id);
                 }
+
+                set.set(pos);
+                result[pos] = corr;
             }
-            finally {
-                cursor.close();
-            }
+        }
+        finally {
+            dbResult.close();
         }
 
         return result;
@@ -537,59 +532,56 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         CorrelationArraysTable table = Tables.correlationArrays;
-        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getArrayIdColumnIndex()) +
-                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getArrayPositionColumnIndex()) +
-                "=0 AND " + table.getColumnName(table.getCorrelationColumnIndex()) +
-                "=?", new String[] {Integer.toString(correlations[0])});
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getArrayPositionColumnIndex(), 0)
+                .where(table.getCorrelationColumnIndex(), correlations[0])
+                .select(table.getArrayIdColumnIndex());
 
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        final int arrayId = cursor.getInt(0);
-                        final int[] array = getCorrelationArray(db, arrayId);
-                        if (Arrays.equals(correlations, array)) {
-                            return arrayId;
-                        }
-                    } while (cursor.moveToNext());
+        final DbResult result = select(db, query);
+        try {
+            while (result.hasNext()) {
+                final int arrayId = result.next().get(0).toInt();
+                final int[] array = getCorrelationArray(db, arrayId);
+                if (Arrays.equals(correlations, array)) {
+                    return arrayId;
                 }
             }
-            finally {
-                cursor.close();
-            }
+        }
+        finally {
+            result.close();
         }
 
         return null;
     }
 
-    private int insertCorrelationArray(SQLiteDatabase db, int... correlation) {
+    private int getMaxCorrelationArrayId(SQLiteDatabase db) {
         final CorrelationArraysTable table = Tables.correlationArrays;
-        final String arrayIdColumnName = table.getColumnName(table.getArrayIdColumnIndex());
-        Cursor cursor = db.rawQuery("SELECT max(" + arrayIdColumnName + ") FROM " +
-                table.getName(), null);
-
-        if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
-            throw new AssertionError("Unable to retrieve maximum arrayId");
-        }
-
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getArrayIdColumnIndex()));
+        final DbResult result = select(db, query);
         try {
-            final int maxArrayId = cursor.getInt(0);
-            final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
-            final int arrayLength = correlation.length;
-            for (int i = 0; i < arrayLength; i++) {
-                final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                        .put(table.getArrayIdColumnIndex(), newArrayId)
-                        .put(table.getArrayPositionColumnIndex(), i)
-                        .put(table.getCorrelationColumnIndex(), correlation[i])
-                        .build();
-                insert(db, query);
-            }
-
-            return newArrayId;
+            return result.next().get(0).toInt();
         }
         finally {
-            cursor.close();
+            result.close();
         }
+    }
+
+    private int insertCorrelationArray(SQLiteDatabase db, int... correlation) {
+        final CorrelationArraysTable table = Tables.correlationArrays;
+        final int maxArrayId = getMaxCorrelationArrayId(db);
+        final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
+        final int arrayLength = correlation.length;
+        for (int i = 0; i < arrayLength; i++) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getArrayIdColumnIndex(), newArrayId)
+                    .put(table.getArrayPositionColumnIndex(), i)
+                    .put(table.getCorrelationColumnIndex(), correlation[i])
+                    .build();
+            insert(db, query);
+        }
+
+        return newArrayId;
     }
 
     private int obtainCorrelationArray(SQLiteDatabase db, int... array) {
@@ -1468,34 +1460,38 @@ class DbManager extends SQLiteOpenHelper {
     static class SQLiteDbResult implements DbResult {
         private final DbColumn[] _columns;
         private final Cursor _cursor;
-        private boolean _moreToRead;
+        private final int _rowCount;
+        private int _nextRowIndex;
 
         SQLiteDbResult(DbColumn[] columns, Cursor cursor) {
             _columns = columns;
             _cursor = cursor;
+            _rowCount = cursor.getCount();
 
             if (!cursor.moveToFirst()) {
                 close();
-            }
-            else {
-                _moreToRead = true;
             }
         }
 
         @Override
         public void close() {
-            _moreToRead = false;
+            _nextRowIndex = _rowCount;
             _cursor.close();
         }
 
         @Override
+        public int getRemainingRows() {
+            return _rowCount - _nextRowIndex;
+        }
+
+        @Override
         public boolean hasNext() {
-            return _moreToRead;
+            return getRemainingRows() > 0;
         }
 
         @Override
         public Row next() {
-            if (!_moreToRead) {
+            if (!hasNext()) {
                 throw new UnsupportedOperationException("End already reached");
             }
 
@@ -1508,6 +1504,7 @@ class DbManager extends SQLiteOpenHelper {
             if (!_cursor.moveToNext()) {
                 close();
             }
+            _nextRowIndex++;
 
             return row;
         }
