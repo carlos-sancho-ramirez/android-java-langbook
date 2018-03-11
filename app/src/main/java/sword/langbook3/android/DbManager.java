@@ -350,24 +350,32 @@ class DbManager extends SQLiteOpenHelper {
 
     private void insertAlphabet(SQLiteDatabase db, int id, int language) {
         final AlphabetsTable table = Tables.alphabets;
-        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' + table.getColumnName(table.getLanguageColumnIndex()) +
-                ") VALUES (" + id + ',' + language + ')');
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getLanguageColumnIndex(), language)
+                .build();
+        insert(db, query);
     }
 
     private void insertLanguage(SQLiteDatabase db, int id, String code, int mainAlphabet) {
         final LanguagesTable table = Tables.languages;
-        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' + table.getColumnName(table.getCodeColumnIndex()) +
-                ',' + table.getColumnName(table.getMainAlphabetColumnIndex()) + ") VALUES (" + id + ",'" + code + "'," + mainAlphabet + ')');
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getCodeColumnIndex(), code)
+                .put(table.getMainAlphabetColumnIndex(), mainAlphabet)
+                .build();
+        insert(db, query);
     }
 
     private void insertConversion(SQLiteDatabase db, int sourceAlphabet, int targetAlphabet, int source, int target) {
         final ConversionsTable table = Tables.conversions;
-        db.execSQL("INSERT INTO " + table.getName() + " (" +
-                table.getColumnName(table.getSourceAlphabetColumnIndex()) + ", " +
-                table.getColumnName(table.getTargetAlphabetColumnIndex()) + ", " +
-                table.getColumnName(table.getSourceColumnIndex()) + ", " +
-                table.getColumnName(table.getTargetColumnIndex()) + ") VALUES (" +
-                sourceAlphabet + ',' + targetAlphabet + ',' + source + ',' + target + ')');
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
+                .put(table.getTargetAlphabetColumnIndex(), targetAlphabet)
+                .put(table.getSourceColumnIndex(), source)
+                .put(table.getTargetColumnIndex(), target)
+                .build();
+        insert(db, query);
     }
 
     private int getMaxWord(SQLiteDatabase db) {
