@@ -378,10 +378,9 @@ class DbManager extends SQLiteOpenHelper {
         insert(db, query);
     }
 
-    private int getMaxWord(SQLiteDatabase db) {
-        AcceptationsTable table = Tables.acceptations;
+    private static int getColumnMax(SQLiteDatabase db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getWordColumnIndex()));
+                .select(DbQuery.max(columnIndex));
         final SQLiteDbResult result = select(db, query);
         try {
             return result.next().get(0).toInt();
@@ -391,17 +390,14 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private int getMaxConcept(SQLiteDatabase db) {
+    private static int getMaxWord(SQLiteDatabase db) {
         AcceptationsTable table = Tables.acceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getConceptColumnIndex()));
-        final SQLiteDbResult result = select(db, query);
-        try {
-            return result.next().get(0).toInt();
-        }
-        finally {
-            result.close();
-        }
+        return getColumnMax(db, table, table.getWordColumnIndex());
+    }
+
+    private static int getMaxConcept(SQLiteDatabase db) {
+        AcceptationsTable table = Tables.acceptations;
+        return getColumnMax(db, table, table.getConceptColumnIndex());
     }
 
     private SparseIntArray getCorrelation(SQLiteDatabase db, int id) {
@@ -451,17 +447,9 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private int getMaxCorrelationId(SQLiteDatabase db) {
+    private static int getMaxCorrelationId(SQLiteDatabase db) {
         final CorrelationsTable table = Tables.correlations;
-        final DbQuery q = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getCorrelationIdColumnIndex()));
-        final DbResult result = select(db, q);
-        try {
-            return result.next().get(0).toInt();
-        }
-        finally {
-            result.close();
-        }
+        return getColumnMax(db, table, table.getCorrelationIdColumnIndex());
     }
 
     private int insertCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
@@ -556,15 +544,7 @@ class DbManager extends SQLiteOpenHelper {
 
     private int getMaxCorrelationArrayId(SQLiteDatabase db) {
         final CorrelationArraysTable table = Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getArrayIdColumnIndex()));
-        final DbResult result = select(db, query);
-        try {
-            return result.next().get(0).toInt();
-        }
-        finally {
-            result.close();
-        }
+        return getColumnMax(db, table, table.getArrayIdColumnIndex());
     }
 
     private int insertCorrelationArray(SQLiteDatabase db, int... correlation) {
@@ -702,6 +682,11 @@ class DbManager extends SQLiteOpenHelper {
                 bunch + ',' + concept + ')');
     }
 
+    private int getMaxAgentSetId(SQLiteDatabase db) {
+        final AgentSetsTable table = Tables.agentSets;
+        return getColumnMax(db, table, table.getSetIdColumnIndex());
+    }
+
     private int insertAgentSet(SQLiteDatabase db, Set<Integer> agents) {
         final AgentSetsTable table = Tables.agentSets;
 
@@ -709,17 +694,7 @@ class DbManager extends SQLiteOpenHelper {
             return table.nullReference();
         }
         else {
-            final String setIdColumnName = table.getColumnName(table.getSetIdColumnIndex());
-            Cursor cursor = db.rawQuery("SELECT max(" + setIdColumnName + ") FROM " +
-                    table.getName(), null);
-
-            if (cursor == null || cursor.getCount() != 1 || !cursor.moveToFirst()) {
-                throw new AssertionError("Unable to retrieve maximum setId");
-            }
-
-            final int setId = cursor.getInt(0) + 1;
-            cursor.close();
-
+            final int setId = getMaxAgentSetId(db) + 1;
             for (int agent : agents) {
                 db.execSQL("INSERT INTO " + table.getName() + " (" +
                         table.getColumnName(table.getSetIdColumnIndex()) + ", " +
@@ -731,27 +706,9 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private int findLastBunchSet(SQLiteDatabase db) {
+    private static int getMaxBunchSetId(SQLiteDatabase db) {
         final BunchSetsTable table = Tables.bunchSets;
-        final String setIdColumnName = table.getColumnName(table.getSetIdColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT max(" + setIdColumnName + ") FROM " +
-                table.getName(), null);
-
-        if (cursor != null) {
-            try {
-                if (cursor.getCount() == 1 && cursor.moveToFirst()) {
-                    return cursor.getInt(0);
-                }
-                else if (cursor.getCount() == 0) {
-                    return table.nullReference();
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        throw new AssertionError("Unable to retrieve maximum setId");
+        return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
     private int insertBunchSet(SQLiteDatabase db, int setId, Set<Integer> bunches) {
@@ -931,20 +888,7 @@ class DbManager extends SQLiteOpenHelper {
 
     private static int getMaxQuestionFieldSetId(SQLiteDatabase db) {
         QuestionFieldSets table = Tables.questionFieldSets;
-        Cursor cursor = db.rawQuery("SELECT max(" +
-                table.getColumnName(table.getSetIdColumnIndex()) + ") FROM " +
-                table.getName(), null);
-
-        if (cursor != null && cursor.getCount() == 1 && cursor.moveToFirst()) {
-            try {
-                return cursor.getInt(0);
-            } finally {
-                cursor.close();
-            }
-        }
-        else {
-            return 0;
-        }
+        return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
     static int insertQuestionFieldSet(SQLiteDatabase db, List<QuestionField> fields) {
@@ -1228,7 +1172,7 @@ class DbManager extends SQLiteOpenHelper {
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = StreamedDatabaseConstants.minValidConcept;
-            int desiredSetId = findLastBunchSet(db) + 1;
+            int desiredSetId = getMaxBunchSetId(db) + 1;
             final Map<Set<Integer>, Integer> insertedBunchSets = new HashMap<>();
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, maxConcept);
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
