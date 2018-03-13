@@ -1347,9 +1347,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private static void createTables(SQLiteDatabase db, DbSchema schema) {
-        final int tableCount = schema.getTableCount();
-        for (int i = 0; i < tableCount; i++) {
-            DbTable table = schema.getTable(i);
+        for (DbTable table : schema.tables()) {
             StringBuilder builder = new StringBuilder();
             builder.append("CREATE TABLE ")
                     .append(table.getName())
@@ -1372,10 +1370,9 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private static void createIndexes(SQLiteDatabase db, DbSchema schema) {
-        final int indexCount = schema.getIndexCount();
-        for (int i = 0; i < indexCount; i++) {
-            final DbTable table = schema.getTable(i);
-            db.execSQL("CREATE INDEX I" + i + " ON " + table.getName() + " (" + table.getColumnName(schema.getIndexColumnIndex(i)) + ')');
+        int i = 0;
+        for (DbSchema.DbIndex index : schema.indexes()) {
+            db.execSQL("CREATE INDEX I" + (i++) + " ON " + index.table.getName() + " (" + index.table.getColumnName(index.column) + ')');
         }
     }
 

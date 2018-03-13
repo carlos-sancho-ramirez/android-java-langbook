@@ -35,4 +35,6 @@ public abstract class DbTable {
     public String getColumnType(int index) {
         return _columns[index].getSqlType();
     }
+
+
 }

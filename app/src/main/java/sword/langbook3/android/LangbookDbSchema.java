@@ -1,5 +1,6 @@
 package sword.langbook3.android;
 
+import sword.collections.ImmutableList;
 import sword.langbook3.android.db.DbIntColumn;
 import sword.langbook3.android.db.DbSchema;
 import sword.langbook3.android.db.DbTable;
@@ -398,69 +399,43 @@ public final class LangbookDbSchema implements DbSchema {
         SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
 
-    private static final class DbIndexHolder {
-        public final DbTable table;
-        public final int column;
+    private final ImmutableList<DbTable> _tables = new ImmutableList.Builder<DbTable>()
+            .add(Tables.acceptations)
+            .add(Tables.agents)
+            .add(Tables.agentSets)
+            .add(Tables.alphabets)
+            .add(Tables.bunchAcceptations)
+            .add(Tables.bunchConcepts)
+            .add(Tables.bunchSets)
+            .add(Tables.conversions)
+            .add(Tables.correlations)
+            .add(Tables.correlationArrays)
+            .add(Tables.knowledge)
+            .add(Tables.languages)
+            .add(Tables.questionFieldSets)
+            .add(Tables.quizDefinitions)
+            .add(Tables.ruledAcceptations)
+            .add(Tables.ruledConcepts)
+            .add(Tables.stringQueries)
+            .add(Tables.symbolArrays)
+            .build();
 
-        DbIndexHolder(DbTable table, int column) {
-            this.table = table;
-            this.column = column;
-        }
-    }
-
-    private final DbTable[] _tables;
-    private final DbIndexHolder[] _indexes;
+    private final ImmutableList<DbIndex> _indexes = new ImmutableList.Builder<DbIndex>()
+            .add(new DbIndex(Tables.stringQueries, Tables.stringQueries.getDynamicAcceptationColumnIndex()))
+            .add(new DbIndex(Tables.acceptations, Tables.acceptations.getConceptColumnIndex()))
+            .build();
 
     private LangbookDbSchema() {
-        _tables = new DbTable[18];
-
-        _tables[0] = Tables.acceptations;
-        _tables[1] = Tables.agents;
-        _tables[2] = Tables.agentSets;
-        _tables[3] = Tables.alphabets;
-        _tables[4] = Tables.bunchAcceptations;
-        _tables[5] = Tables.bunchConcepts;
-        _tables[6] = Tables.bunchSets;
-        _tables[7] = Tables.conversions;
-        _tables[8] = Tables.correlations;
-        _tables[9] = Tables.correlationArrays;
-        _tables[10] = Tables.knowledge;
-        _tables[11] = Tables.languages;
-        _tables[12] = Tables.questionFieldSets;
-        _tables[13] = Tables.quizDefinitions;
-        _tables[14] = Tables.ruledAcceptations;
-        _tables[15] = Tables.ruledConcepts;
-        _tables[16] = Tables.stringQueries;
-        _tables[17] = Tables.symbolArrays;
-
-        _indexes = new DbIndexHolder[2];
-        _indexes[0] = new DbIndexHolder(Tables.stringQueries, Tables.stringQueries.getDynamicAcceptationColumnIndex());
-        _indexes[1] = new DbIndexHolder(Tables.acceptations, Tables.acceptations.getConceptColumnIndex());
     }
 
     @Override
-    public int getTableCount() {
-        return _tables.length;
+    public ImmutableList<DbTable> tables() {
+        return _tables;
     }
 
     @Override
-    public DbTable getTable(int index) {
-        return _tables[index];
-    }
-
-    @Override
-    public int getIndexCount() {
-        return _indexes.length;
-    }
-
-    @Override
-    public DbTable getIndexTable(int index) {
-        return _indexes[index].table;
-    }
-
-    @Override
-    public int getIndexColumnIndex(int index) {
-        return _indexes[index].column;
+    public ImmutableList<DbIndex> indexes() {
+        return _indexes;
     }
 
     private static LangbookDbSchema _instance;
