@@ -1677,28 +1677,26 @@ class DbManager extends SQLiteOpenHelper {
         CorrelationsTable correlations = Tables.correlations;
         SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
-        Cursor cursor = db.rawQuery("SELECT J1." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) + ",J2." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
-                " FROM " + agents.getName() + " AS J0" +
-                " JOIN " + correlations.getName() + " AS J1 ON J0." + agents.getColumnName(agentColumn) + "=J1." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
-                " JOIN " + symbolArrays.getName() + " AS J2 ON J1." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J2." + idColumnName +
-                " WHERE J0." + idColumnName + "=?", new String[] { Integer.toString(agentId)});
+        final int corrTableOffset = agents.getColumnCount();
+        final int symArrayTableOffset = corrTableOffset + correlations.getColumnCount();
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(correlations, agentColumn, correlations.getCorrelationIdColumnIndex())
+                .join(symbolArrays, corrTableOffset + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(agents.getIdColumnIndex(), agentId)
+                .select(corrTableOffset + correlations.getAlphabetColumnIndex(), symArrayTableOffset + symbolArrays.getStrColumnIndex());
 
-        if (cursor == null) {
-            throw new AssertionError("Cursor should not be null");
-        }
-
-        final SparseArray<String> matcher = new SparseArray<>(cursor.getCount());
+        final DbResult result = select(db, query);
+        final SparseArray<String> matcher = new SparseArray<>(result.getRemainingRows());
         try {
-            if (cursor.moveToFirst()) {
-                do {
-                    final int alphabet = cursor.getInt(0);
-                    final String str = cursor.getString(1);
-                    matcher.put(alphabet, str);
-                } while (cursor.moveToNext());
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int alphabet = row.get(0).toInt();
+                final String str = row.get(1).toText();
+                matcher.put(alphabet, str);
             }
         }
         finally {
-            cursor.close();
+            result.close();
         }
 
         return matcher;
