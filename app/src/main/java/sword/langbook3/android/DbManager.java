@@ -402,26 +402,23 @@ class DbManager extends SQLiteOpenHelper {
 
     private SparseIntArray getCorrelation(SQLiteDatabase db, int id) {
         CorrelationsTable table = Tables.correlations;
-        Cursor cursor = db.rawQuery("SELECT " + table.getColumnName(table.getAlphabetColumnIndex()) +
-                ',' + table.getColumnName(table.getSymbolArrayColumnIndex()) +
-                " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getCorrelationIdColumnIndex()) +
-                "=?", new String[] {Integer.toString(id)});
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getCorrelationIdColumnIndex(), id)
+                .select(table.getAlphabetColumnIndex(), table.getSymbolArrayColumnIndex());
 
-        SparseIntArray result = new SparseIntArray();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        result.put(cursor.getInt(0), cursor.getInt(1));
-                    } while (cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
+        SparseIntArray correlation = new SparseIntArray();
+        final DbResult result = select(db, query);
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                correlation.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
+        finally {
+            result.close();
+        }
 
-        return result;
+        return correlation;
     }
 
     private Integer findCorrelation(SQLiteDatabase db, SparseIntArray correlation) {
