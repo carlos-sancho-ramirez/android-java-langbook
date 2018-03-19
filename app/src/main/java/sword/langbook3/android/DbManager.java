@@ -732,41 +732,38 @@ class DbManager extends SQLiteOpenHelper {
             return table.nullReference();
         }
 
-        final String setIdField = table.getColumnName(table.getSetIdColumnIndex());
-        Cursor cursor = db.rawQuery("SELECT " +
-                setIdField + ',' + table.getColumnName(table.getBunchColumnIndex()) +
-                " FROM " + table.getName() + " ORDER BY " + setIdField, null);
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
+                .where(table.getBunchColumnIndex(), bunches.iterator().next())
+                .select(table.getSetIdColumnIndex(), table.getColumnCount() + table.getBunchColumnIndex());
+        final DbResult result = select(db, query);
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                final HashSet<Integer> set = new HashSet<>();
+                int setId = row.get(0).toInt();
+                set.add(row.get(1).toInt());
 
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int setId = cursor.getInt(0);
-                    final Set<Integer> set = new HashSet<>();
-                    set.add(cursor.getInt(1));
-
-                    while (cursor.moveToNext()) {
-                        if (setId == cursor.getInt(0)) {
-                            set.add(cursor.getInt(1));
+                while (result.hasNext()) {
+                    row = result.next();
+                    if (row.get(0).toInt() != setId) {
+                        if (set.equals(bunches)) {
+                            return setId;
                         }
-                        else {
-                            if (set.equals(bunches)) {
-                                return setId;
-                            }
 
-                            setId = cursor.getInt(0);
-                            set.clear();
-                            set.add(cursor.getInt(1));
-                        }
-                    }
-
-                    if (set.equals(bunches)) {
-                        return setId;
+                        setId = row.get(0).toInt();
+                        set.clear();
+                        set.add(row.get(1).toInt());
                     }
                 }
+
+                if (set.equals(bunches)) {
+                    return setId;
+                }
             }
-            finally {
-                cursor.close();
-            }
+        }
+        finally {
+            result.close();
         }
 
         return null;
