@@ -62,7 +62,39 @@ final class SQLiteDbQuery {
         return sb.toString();
     }
 
+    private String getGroupingClause() {
+        final int count = _query.getGroupingCount();
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i == 0) {
+                sb.append(" GROUP BY ");
+            }
+            else {
+                sb.append(", ");
+            }
+            sb.append(_query.getJoinColumn(_query.getGrouping(i)).getName());
+        }
+
+        return sb.toString();
+    }
+
+    private String getOrderingClause() {
+        final int count = _query.getOrderingCount();
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i == 0) {
+                sb.append(" ORDER BY ");
+            }
+            else {
+                sb.append(", ");
+            }
+            sb.append(_query.getJoinColumn(_query.getOrdering(i)).getName());
+        }
+
+        return sb.toString();
+    }
+
     public String toSql() {
-        return "SELECT " + getSqlSelectedColumnNames() + getSqlFromClause() + getSqlWhereClause();
+        return "SELECT " + getSqlSelectedColumnNames() + getSqlFromClause() + getSqlWhereClause() + getGroupingClause() + getOrderingClause();
     }
 }

@@ -1822,73 +1822,71 @@ class DbManager extends SQLiteOpenHelper {
         final SparseArray<String> matcher = readCorrelation(db, agentId, agents.getMatcherColumnIndex());
         final SparseArray<String> adder = readCorrelation(db, agentId, agents.getAdderColumnIndex());
 
+        final int bunchSetsOffset = agents.getColumnCount();
+        final int bunchAccsOffset = bunchSetsOffset + bunchSets.getColumnCount();
+        final int stringsOffset = bunchAccsOffset + bunchAccs.getColumnCount();
+        final int acceptationsOffset = stringsOffset + strings.getColumnCount();
+
         // TODO: This query does not manage the case where sourceSet is null
         // TODO: This query does not manage the case where diff is different from null
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) +
-                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        ",J0." + agents.getColumnName(agents.getRuleColumnIndex()) +
-                        ",J0." + agents.getColumnName(agents.getFlagsColumnIndex()) +
-                        ",J4." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        ",J0." + agents.getColumnName(agents.getTargetBunchColumnIndex()) +
-                " FROM " + agents.getName() + " AS J0" +
-                " JOIN " + bunchSets.getName() + " AS J1 ON J0." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) + "=J1." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) +
-                " JOIN " + bunchAccs.getName() + " AS J2 ON J1." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) + "=J2." + bunchAccs.getColumnName(bunchAccs.getBunchColumnIndex()) +
-                " JOIN " + strings.getName() + " AS J3 ON J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                " JOIN " + acceptations.getName() + " AS J4 ON J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) + "=J4." + idColumnName +
-                " WHERE J0." + idColumnName + "=?" +
-                " ORDER BY" +
-                        " J2." + bunchAccs.getColumnName(bunchAccs.getAcceptationColumnIndex()) +
-                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex())
-                , new String[] { Integer.toString(agentId)});
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(bunchSets, agents.getSourceBunchSetColumnIndex(), bunchSets.getSetIdColumnIndex())
+                .join(bunchAccs, bunchSetsOffset + bunchSets.getBunchColumnIndex(), bunchAccs.getBunchColumnIndex())
+                .join(strings, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(acceptations, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), acceptations.getIdColumnIndex())
+                .where(agents.getIdColumnIndex(), agentId)
+                .orderBy(bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), stringsOffset + strings.getStringAlphabetColumnIndex())
+                .select(
+                        bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(),
+                        stringsOffset + strings.getStringAlphabetColumnIndex(),
+                        stringsOffset + strings.getStringColumnIndex(),
+                        agents.getRuleColumnIndex(),
+                        agents.getFlagsColumnIndex(),
+                        acceptationsOffset + acceptations.getConceptColumnIndex(),
+                        agents.getTargetBunchColumnIndex());
 
-        if (cursor != null) {
-            try {
+        final DbResult result = select(db, query);
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
                 final SparseArray<String> corr = new SparseArray<>();
-                int accId;
-                int rule;
-                int flags;
-                int concept;
-                int targetBunch;
+                int accId = row.get(0).toInt();
+                corr.put(row.get(1).toInt(), row.get(2).toText());
+                int rule = row.get(3).toInt();
+                int flags = row.get(4).toInt();
+                int concept = row.get(5).toInt();
+                int targetBunch = row.get(6).toInt();
 
-                if (cursor.moveToFirst()) {
-                    accId = cursor.getInt(0);
-                    corr.put(cursor.getInt(1), cursor.getString(2));
-                    rule = cursor.getInt(3);
-                    flags = cursor.getInt(4);
-                    concept = cursor.getInt(5);
-                    targetBunch = cursor.getInt(6);
-
-                    final AgentSetSupplier agentSetSupplier = new AgentSetSupplier(agentId);
-                    int newAccId;
-                    while (cursor.moveToNext()) {
-                        newAccId = cursor.getInt(0);
-                        if (newAccId != accId) {
-                            if (applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder, rule, corr, flags)) {
-                                ++maxWord;
-                            }
-
-                            accId = newAccId;
-                            corr.clear();
-                            corr.put(cursor.getInt(1), cursor.getString(2));
-                            rule = cursor.getInt(3);
-                            flags = cursor.getInt(4);
-                            concept = cursor.getInt(5);
-                            targetBunch = cursor.getInt(6);
+                final AgentSetSupplier agentSetSupplier = new AgentSetSupplier(agentId);
+                int newAccId;
+                while (result.hasNext()) {
+                    row = result.next();
+                    newAccId = row.get(0).toInt();
+                    if (newAccId != accId) {
+                        if (applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch,
+                                matcher, adder, rule, corr, flags)) {
+                            ++maxWord;
                         }
-                        else {
-                            corr.put(cursor.getInt(1), cursor.getString(2));
-                        }
+
+                        accId = newAccId;
+                        corr.clear();
+                        corr.put(row.get(1).toInt(), row.get(2).toText());
+                        rule = row.get(3).toInt();
+                        flags = row.get(4).toInt();
+                        concept = row.get(5).toInt();
+                        targetBunch = row.get(6).toInt();
                     }
-
-                    applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord +1, targetBunch, matcher, adder, rule, corr, flags);
+                    else {
+                        corr.put(row.get(1).toInt(), row.get(2).toText());
+                    }
                 }
+
+                applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder,
+                        rule, corr, flags);
             }
-            finally {
-                cursor.close();
-            }
+        }
+        finally {
+            result.close();
         }
     }
 

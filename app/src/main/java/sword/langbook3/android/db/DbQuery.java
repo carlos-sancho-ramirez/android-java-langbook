@@ -10,12 +10,14 @@ public final class DbQuery {
     private final int[] _joinPairs;
     private final int[] _restrictionKeys;
     private final DbValue[] _restrictionValues;
+    private final int[] _groupBy;
+    private final int[] _orderBy;
     private final int[] _selectedColumns;
     private final int[] _selectionFunctions;
 
     private final transient DbColumn[] _joinColumns;
 
-    private DbQuery(DbTable[] tables, int[] joinPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] selectedColumns, int[] selectionFunctions) {
+    private DbQuery(DbTable[] tables, int[] joinPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] groupBy, int[] orderBy, int[] selectedColumns, int[] selectionFunctions) {
 
         if (tables == null || tables.length == 0 || selectedColumns == null || selectedColumns.length == 0) {
             throw new IllegalArgumentException();
@@ -85,10 +87,28 @@ public final class DbQuery {
             }
         }
 
+        if (groupBy == null) {
+            groupBy = new int[0];
+        }
+
+        if (!hasValidSetValues(groupBy, 0, joinColumnCount - 1)) {
+            throw new IllegalArgumentException("Invalid grouping parameters");
+        }
+
+        if (orderBy == null) {
+            orderBy = new int[0];
+        }
+
+        if (!hasValidSetValues(orderBy, 0, joinColumnCount - 1)) {
+            throw new IllegalArgumentException("Invalid ordering parameters");
+        }
+
         _tables = tables;
         _joinPairs = joinPairs;
         _restrictionKeys = restrictionKeys;
         _restrictionValues = restrictionValues;
+        _groupBy = groupBy;
+        _orderBy = orderBy;
         _selectedColumns = selectedColumns;
         _selectionFunctions = selectionFunctions;
 
@@ -179,6 +199,22 @@ public final class DbQuery {
         return _restrictionValues[index];
     }
 
+    public int getGroupingCount() {
+        return _groupBy.length;
+    }
+
+    public int getGrouping(int index) {
+        return _groupBy[index];
+    }
+
+    public int getOrderingCount() {
+        return _orderBy.length;
+    }
+
+    public int getOrdering(int index) {
+        return _orderBy[index];
+    }
+
     private static boolean hasValidValues(int[] values, int min, int max) {
         final int length = (values != null)? values.length : 0;
         if (length < 1) {
@@ -233,6 +269,8 @@ public final class DbQuery {
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
         private final ArrayList<Integer> _restrictionKeys = new ArrayList<>();
         private final ArrayList<DbValue> _restrictionValues = new ArrayList<>();
+        private int[] _groupBy;
+        private int[] _orderBy;
         private int _joinColumnCount;
 
         public Builder(DbTable table) {
@@ -268,6 +306,24 @@ public final class DbQuery {
             return this;
         }
 
+        public Builder groupBy(int... columnIndexes) {
+            if (_groupBy != null) {
+                throw new UnsupportedOperationException("groupBy can only be called once per query");
+            }
+
+            _groupBy = columnIndexes;
+            return this;
+        }
+
+        public Builder orderBy(int... columnIndexes) {
+            if (_orderBy != null) {
+                throw new UnsupportedOperationException("orderBy can only be called once per query");
+            }
+
+            _orderBy = columnIndexes;
+            return this;
+        }
+
         public DbQuery select(int... selection) {
             final DbTable[] tables = new DbTable[_tables.size()];
             final int[] joinPairs = new int[_joinPairs.size()];
@@ -294,7 +350,7 @@ public final class DbQuery {
                 }
             }
 
-            return new DbQuery(tables, joinPairs, keys, values, filteredSelection, funcSelection);
+            return new DbQuery(tables, joinPairs, keys, values, _groupBy, _orderBy, filteredSelection, funcSelection);
         }
     }
 }
