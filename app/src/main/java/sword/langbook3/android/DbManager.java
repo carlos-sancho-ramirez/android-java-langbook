@@ -834,47 +834,49 @@ class DbManager extends SQLiteOpenHelper {
 
         final QuestionField firstField = set.iterator().next();
         final QuestionFieldSets fieldSets = Tables.questionFieldSets;
-        final Cursor cursor = db.rawQuery("SELECT" +
-                        " J0." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
-                        ",J1." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) +
-                        ",J1." + fieldSets.getColumnName(fieldSets.getRuleColumnIndex()) +
-                        ",J1." + fieldSets.getColumnName(fieldSets.getFlagsColumnIndex()) +
-                        " FROM " + fieldSets.getName() + " AS J0" +
-                        " JOIN " + fieldSets.getName() + " AS J1 ON J0." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) + "=J1." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
-                        " WHERE J0." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) + "=?" +
-                        " AND J0." + fieldSets.getColumnName(fieldSets.getRuleColumnIndex()) + "=?" +
-                        " AND J0." + fieldSets.getColumnName(fieldSets.getFlagsColumnIndex()) + "=?",
-                new String[] {Integer.toString(firstField.alphabet), Integer.toString(firstField.rule), Integer.toString(firstField.flags)});
+        final int columnCount = fieldSets.getColumnCount();
+        final DbQuery query = new DbQuery.Builder(fieldSets)
+                .join(fieldSets, fieldSets.getSetIdColumnIndex(), fieldSets.getSetIdColumnIndex())
+                .where(fieldSets.getAlphabetColumnIndex(), firstField.alphabet)
+                .where(fieldSets.getRuleColumnIndex(), firstField.rule)
+                .where(fieldSets.getFlagsColumnIndex(), firstField.flags)
+                .select(
+                        fieldSets.getSetIdColumnIndex(),
+                        columnCount + fieldSets.getAlphabetColumnIndex(),
+                        columnCount + fieldSets.getRuleColumnIndex(),
+                        columnCount + fieldSets.getFlagsColumnIndex());
 
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int setId = cursor.getInt(0);
-                    final Set<QuestionField> foundSet = new HashSet<>();
-                    foundSet.add(new QuestionField(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3)));
+        final DbResult result = select(db, query);
 
-                    while (cursor.moveToNext()) {
-                        if (setId != cursor.getInt(0)) {
-                            if (foundSet.equals(set)) {
-                                return setId;
-                            }
-                            else {
-                                foundSet.clear();
-                                setId = cursor.getInt(0);
-                            }
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int setId = row.get(0).toInt();
+                final Set<QuestionField> foundSet = new HashSet<>();
+                foundSet.add(new QuestionField(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    if (setId != row.get(0).toInt()) {
+                        if (foundSet.equals(set)) {
+                            return setId;
                         }
-
-                        foundSet.add(new QuestionField(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3)));
+                        else {
+                            foundSet.clear();
+                            setId = row.get(0).toInt();
+                        }
                     }
 
-                    if (foundSet.equals(set)) {
-                        return setId;
-                    }
+                    foundSet.add(new QuestionField(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+                }
+
+                if (foundSet.equals(set)) {
+                    return setId;
                 }
             }
-            finally {
-                cursor.close();
-            }
+        }
+        finally {
+            result.close();
         }
 
         return null;
