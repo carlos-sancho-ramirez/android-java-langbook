@@ -1,6 +1,8 @@
 package sword.langbook3.android;
 
 import sword.langbook3.android.db.DbQuery;
+import sword.langbook3.android.db.DbTable;
+import sword.langbook3.android.db.DbView;
 
 final class SQLiteDbQuery {
 
@@ -10,33 +12,59 @@ final class SQLiteDbQuery {
         _query = query;
     }
 
-    private String getSqlColumnName(int index) {
-        return "J" + _query.getTableIndexFromColumnIndex(index) + '.' + _query.getJoinColumn(index).getName();
+    private String getSqlColumnName(int subQueryIndex, int index) {
+        final int tableIndex = _query.getTableIndexFromColumnIndex(index);
+        if (tableIndex == 0 && _query.getView(0).asQuery() != null) {
+            return "S" + (subQueryIndex + 1) + "C" + index;
+        }
+        else {
+            return "J" + _query.getTableIndexFromColumnIndex(index) + '.' + _query.getJoinColumn(index).getName();
+        }
     }
 
-    private String getSqlSelectedColumnName(int index) {
-        final String name = getSqlColumnName(_query.getSelectedColumnIndex(index));
-        return _query.isMaxAggregateFunctionSelection(index)? "coalesce(max(" + name + "), 0)" : name;
+    private String getSqlSelectedColumnName(int subQueryIndex, int index) {
+        final String name = getSqlColumnName(subQueryIndex, _query.getSelectedColumnIndex(index));
+        return _query.isMaxAggregateFunctionSelection(index)? "coalesce(max(" + name + "), 0)" :
+                _query.isConcatAggregateFunctionSelection(index)? "group_concat(" + name + ",'')" : name;
     }
 
-    private String getSqlSelectedColumnNames() {
+    private String getSqlSelectedColumnNames(int subQueryIndex) {
         final int selectedColumnCount = _query.getSelectedColumnCount();
-        final StringBuilder sb = new StringBuilder(getSqlSelectedColumnName(0));
+        final StringBuilder sb = new StringBuilder(getSqlSelectedColumnName(subQueryIndex, 0));
+        if (subQueryIndex > 0) {
+            sb.append(" AS S").append(subQueryIndex).append("C0");
+        }
+
         for (int i = 1; i < selectedColumnCount; i++) {
-            sb.append(',').append(getSqlSelectedColumnName(i));
+            sb.append(',').append(getSqlSelectedColumnName(subQueryIndex, i));
+
+            if (subQueryIndex > 0) {
+                sb.append(" AS S").append(subQueryIndex).append('C').append(i);
+            }
         }
 
         return sb.toString();
     }
 
-    private String getSqlFromClause() {
+    private String getSqlFromClause(int subQueryIndex) {
         final int tableCount = _query.getTableCount();
         final StringBuilder sb = new StringBuilder(" FROM ");
-        sb.append(_query.getTable(0).getName()).append(" AS J0");
+
+        final DbView firstView = _query.getView(0);
+        final DbQuery query = firstView.asQuery();
+        final DbTable table = firstView.asTable();
+        if (query != null) {
+            final SQLiteDbQuery sqlQuery = new SQLiteDbQuery(query);
+            sb.append('(').append(sqlQuery.toSql(subQueryIndex + 1)).append(')');
+        }
+        else if (table != null) {
+            sb.append(table.getName());
+        }
+        sb.append(" AS J0");
 
         for (int i = 1; i < tableCount; i++) {
             final DbQuery.JoinColumnPair pair = _query.getJoinPair(i - 1);
-            sb.append(" JOIN ").append(_query.getTable(i).getName()).append(" AS J").append(i);
+            sb.append(" JOIN ").append(_query.getView(i).asTable().getName()).append(" AS J").append(i);
             sb.append(" ON J").append(_query.getTableIndexFromColumnIndex(pair.getLeft())).append('.');
             sb.append(_query.getJoinColumn(pair.getLeft()).getName()).append("=J").append(i);
             sb.append('.').append(_query.getJoinColumn(pair.getRight()).getName());
@@ -45,24 +73,41 @@ final class SQLiteDbQuery {
         return sb.toString();
     }
 
-    private String getSqlWhereClause() {
+    private String getSqlWhereClause(int subQueryIndex) {
         final int restrictionCount = _query.getRestrictionCount();
         final StringBuilder sb = new StringBuilder();
+        boolean prefixAdded = false;
         for (int i = 0; i < restrictionCount; i++) {
-            if (i == 0) {
+            if (!prefixAdded) {
                 sb.append(" WHERE ");
+                prefixAdded = true;
             }
             else {
                 sb.append(" AND ");
             }
-            sb.append(getSqlColumnName(_query.getRestrictedColumnIndex(i)))
+            sb.append(getSqlColumnName(subQueryIndex, _query.getRestrictedColumnIndex(i)))
                     .append('=').append(_query.getRestriction(i).toSql());
+        }
+
+        final int columnValueMatchiPairCount = _query.getColumnValueMatchPairCount();
+        for (int i = 0; i < columnValueMatchiPairCount; i++) {
+            if (!prefixAdded) {
+                sb.append(" WHERE ");
+                prefixAdded = true;
+            }
+            else {
+                sb.append(" AND ");
+            }
+
+            final DbQuery.JoinColumnPair pair = _query.getColumnValueMatchPair(i);
+            sb.append(getSqlColumnName(subQueryIndex, pair.getLeft()))
+                    .append('=').append(getSqlColumnName(subQueryIndex, pair.getRight()));
         }
 
         return sb.toString();
     }
 
-    private String getGroupingClause() {
+    private String getGroupingClause(int subQueryIndex) {
         final int count = _query.getGroupingCount();
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < count; i++) {
@@ -72,13 +117,13 @@ final class SQLiteDbQuery {
             else {
                 sb.append(", ");
             }
-            sb.append(_query.getJoinColumn(_query.getGrouping(i)).getName());
+            sb.append(getSqlColumnName(subQueryIndex, _query.getGrouping(i)));
         }
 
         return sb.toString();
     }
 
-    private String getOrderingClause() {
+    private String getOrderingClause(int subQueryIndex) {
         final int count = _query.getOrderingCount();
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < count; i++) {
@@ -88,13 +133,19 @@ final class SQLiteDbQuery {
             else {
                 sb.append(", ");
             }
-            sb.append(_query.getJoinColumn(_query.getOrdering(i)).getName());
+            sb.append(getSqlColumnName(subQueryIndex, _query.getOrdering(i)));
         }
 
         return sb.toString();
     }
 
+    private String toSql(int subQueryIndex) {
+        return "SELECT " + getSqlSelectedColumnNames(subQueryIndex) +
+                getSqlFromClause(subQueryIndex) + getSqlWhereClause(subQueryIndex) +
+                getGroupingClause(subQueryIndex) + getOrderingClause(subQueryIndex);
+    }
+
     public String toSql() {
-        return "SELECT " + getSqlSelectedColumnNames() + getSqlFromClause() + getSqlWhereClause() + getGroupingClause() + getOrderingClause();
+        return toSql(0);
     }
 }

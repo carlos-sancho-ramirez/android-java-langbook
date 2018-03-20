@@ -2,12 +2,14 @@ package sword.langbook3.android.db;
 
 import java.util.ArrayList;
 
-public final class DbQuery {
+public final class DbQuery implements DbView {
 
     private static final int FLAG_COLUMN_FUNCTION_MAX = 0x10000;
+    private static final int FLAG_COLUMN_FUNCTION_CONCAT = 0x20000;
 
-    private final DbTable[] _tables;
+    private final DbView[] _tables;
     private final int[] _joinPairs;
+    private final int[] _columnValueMatchingPairs;
     private final int[] _restrictionKeys;
     private final DbValue[] _restrictionValues;
     private final int[] _groupBy;
@@ -17,7 +19,7 @@ public final class DbQuery {
 
     private final transient DbColumn[] _joinColumns;
 
-    private DbQuery(DbTable[] tables, int[] joinPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] groupBy, int[] orderBy, int[] selectedColumns, int[] selectionFunctions) {
+    private DbQuery(DbView[] tables, int[] joinPairs, int[] columnValueMatchPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] groupBy, int[] orderBy, int[] selectedColumns, int[] selectionFunctions) {
 
         if (tables == null || tables.length == 0 || selectedColumns == null || selectedColumns.length == 0) {
             throw new IllegalArgumentException();
@@ -45,6 +47,14 @@ public final class DbQuery {
             throw new IllegalArgumentException("Invalid column join pairs");
         }
 
+        if (columnValueMatchPairs == null) {
+            columnValueMatchPairs = new int[0];
+        }
+
+        if ((columnValueMatchPairs.length & 1) == 1 || !hasValidValues(columnValueMatchPairs, 0, joinColumnCount - 1)) {
+            throw new IllegalArgumentException("Invalid column value matching pairs");
+        }
+
         if (!hasValidSetValues(selectedColumns, 0, joinColumnCount - 1) || selectedColumns.length > joinColumnCount) {
             throw new IllegalArgumentException("Invalid column selection");
         }
@@ -58,7 +68,7 @@ public final class DbQuery {
         }
 
         for (int func : selectionFunctions) {
-            if (func != 0 && func != FLAG_COLUMN_FUNCTION_MAX) {
+            if (func != 0 && func != FLAG_COLUMN_FUNCTION_MAX && func != FLAG_COLUMN_FUNCTION_CONCAT) {
                 throw new IllegalArgumentException("Unexpected aggregate function");
             }
         }
@@ -105,6 +115,7 @@ public final class DbQuery {
 
         _tables = tables;
         _joinPairs = joinPairs;
+        _columnValueMatchingPairs = columnValueMatchPairs;
         _restrictionKeys = restrictionKeys;
         _restrictionValues = restrictionValues;
         _groupBy = groupBy;
@@ -119,7 +130,7 @@ public final class DbQuery {
         return _tables.length;
     }
 
-    public DbTable getTable(int index) {
+    public DbView getView(int index) {
         return _tables[index];
     }
 
@@ -142,6 +153,26 @@ public final class DbQuery {
 
     public int getSelectedColumnIndex(int index) {
         return _selectedColumns[index];
+    }
+
+    @Override
+    public int getColumnCount() {
+        return _selectedColumns.length;
+    }
+
+    @Override
+    public DbColumn getColumn(int index) {
+        return _joinColumns[_selectedColumns[index]];
+    }
+
+    @Override
+    public DbTable asTable() {
+        return null;
+    }
+
+    @Override
+    public DbQuery asQuery() {
+        return this;
     }
 
     public static final class JoinColumnPair {
@@ -172,6 +203,14 @@ public final class DbQuery {
         }
 
         throw new AssertionError("No pair found for table " + (index + 1));
+    }
+
+    public int getColumnValueMatchPairCount() {
+        return _columnValueMatchingPairs.length / 2;
+    }
+
+    public JoinColumnPair getColumnValueMatchPair(int index) {
+        return new JoinColumnPair(_columnValueMatchingPairs[index * 2], _columnValueMatchingPairs[index * 2 + 1]);
     }
 
     public DbColumn getSelectedColumn(int index) {
@@ -260,20 +299,29 @@ public final class DbQuery {
         return (_selectionFunctions[selectionIndex] & FLAG_COLUMN_FUNCTION_MAX) != 0;
     }
 
+    public boolean isConcatAggregateFunctionSelection(int selectionIndex) {
+        return (_selectionFunctions[selectionIndex] & FLAG_COLUMN_FUNCTION_CONCAT) != 0;
+    }
+
     public static int max(int index) {
         return FLAG_COLUMN_FUNCTION_MAX | index;
     }
 
+    public static int concat(int index) {
+        return FLAG_COLUMN_FUNCTION_CONCAT | index;
+    }
+
     public static final class Builder {
-        private final ArrayList<DbTable> _tables = new ArrayList<>();
+        private final ArrayList<DbView> _tables = new ArrayList<>();
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
         private final ArrayList<Integer> _restrictionKeys = new ArrayList<>();
         private final ArrayList<DbValue> _restrictionValues = new ArrayList<>();
+        private final ArrayList<Integer> _columnValueMatchPairs = new ArrayList<>();
         private int[] _groupBy;
         private int[] _orderBy;
         private int _joinColumnCount;
 
-        public Builder(DbTable table) {
+        public Builder(DbView table) {
             _tables.add(table);
             _joinColumnCount = table.getColumnCount();
         }
@@ -290,6 +338,16 @@ public final class DbQuery {
 
         public Builder where(int columnIndex, String value) {
             return where(columnIndex, new DbStringValue(value));
+        }
+
+        public Builder whereColumnValueMatch(int leftColumnIndex, int rightColumnIndex) {
+            if (leftColumnIndex >= rightColumnIndex) {
+                throw new IllegalArgumentException("Wrong column matching condition");
+            }
+
+            _columnValueMatchPairs.add(leftColumnIndex);
+            _columnValueMatchPairs.add(rightColumnIndex);
+            return this;
         }
 
         public Builder join(DbTable table, int left, int newTableColumnIndex) {
@@ -325,8 +383,9 @@ public final class DbQuery {
         }
 
         public DbQuery select(int... selection) {
-            final DbTable[] tables = new DbTable[_tables.size()];
+            final DbView[] views = new DbView[_tables.size()];
             final int[] joinPairs = new int[_joinPairs.size()];
+            final int[] columnValueMatchPairs = new int[_columnValueMatchPairs.size()];
             final int restrictionPairs = _restrictionKeys.size();
             final int[] keys = new int[restrictionPairs];
             final int[] filteredSelection = new int[selection.length];
@@ -337,20 +396,24 @@ public final class DbQuery {
                 keys[i] = _restrictionKeys.get(i);
             }
             _restrictionValues.toArray(values);
-            _tables.toArray(tables);
+            _tables.toArray(views);
 
             for (int i = 0; i < _joinPairs.size(); i++) {
                 joinPairs[i] = _joinPairs.get(i);
             }
 
+            for (int i = 0; i < _columnValueMatchPairs.size(); i++) {
+                columnValueMatchPairs[i] = _columnValueMatchPairs.get(i);
+            }
+
             for (int i = 0; i < selection.length; i++) {
                 filteredSelection[i] = (FLAG_COLUMN_FUNCTION_MAX - 1) & selection[i];
-                if ((selection[i] & FLAG_COLUMN_FUNCTION_MAX) != 0) {
-                    funcSelection[i] = FLAG_COLUMN_FUNCTION_MAX;
+                if (selection[i] != filteredSelection[i]) {
+                    funcSelection[i] = selection[i] & ~(FLAG_COLUMN_FUNCTION_MAX - 1);
                 }
             }
 
-            return new DbQuery(tables, joinPairs, keys, values, _groupBy, _orderBy, filteredSelection, funcSelection);
+            return new DbQuery(views, joinPairs, columnValueMatchPairs, keys, values, _groupBy, _orderBy, filteredSelection, funcSelection);
         }
     }
 }

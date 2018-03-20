@@ -64,6 +64,7 @@ import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
+import static sword.langbook3.android.db.DbQuery.concat;
 
 class DbManager extends SQLiteOpenHelper {
 
@@ -1907,47 +1908,54 @@ class DbManager extends SQLiteOpenHelper {
         final AlphabetsTable alphabets = Tables.alphabets;
         final LanguagesTable languages = Tables.languages;
 
-        Cursor cursor = db.rawQuery("SELECT accId, alphabetId, group_concat(str1,''), group_concat(str2,'') FROM (" +
-                "SELECT" +
-                    " J0." + idColumnName + " AS accId," +
-                    " J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) + " AS alphabetId," +
-                    " J7." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) + " AS str2," +
-                    " J3." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) + " AS str1" +
-                " FROM " + acceptations.getName() + " AS J0" +
-                " JOIN " + correlationArrays.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) + "=J1." + correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) +
-                " JOIN " + correlations.getName() + " AS J2 ON J1." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J2." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
-                " JOIN " + symbolArrays.getName() + " AS J3 ON J2." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J3." + idColumnName +
-                " JOIN " + alphabets.getName() + " AS J4 ON J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) + "=J4." + idColumnName +
-                " JOIN " + languages.getName() + " AS J5 ON J4." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J5." + idColumnName +
-                " JOIN " + correlations.getName() + " AS J6 ON J1." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J6." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
-                " JOIN " + symbolArrays.getName() + " AS J7 ON J6." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J7." + idColumnName +
-                " WHERE J5." + languages.getColumnName(languages.getMainAlphabetColumnIndex()) + "=J6." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
+        final int corrArrayOffset = acceptations.getColumnCount();
+        final int corrOffset = corrArrayOffset + correlationArrays.getColumnCount();
+        final int symbolArrayOffset = corrOffset + correlations.getColumnCount();
+        final int alphabetsOffset = symbolArrayOffset + symbolArrays.getColumnCount();
+        final int langOffset = alphabetsOffset + alphabets.getColumnCount();
+        final int corrOffset2 = langOffset + languages.getColumnCount();
+        final int symbolArrayOffset2 = corrOffset2 + correlations.getColumnCount();
 
-                " ORDER BY" +
-                    " J0." + idColumnName +
-                    ",J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
-                    ",J1." + correlationArrays.getColumnName(correlationArrays.getArrayPositionColumnIndex()) +
-                ") GROUP BY accId, alphabetId", null);
+        final DbQuery innerQuery = new DbQuery.Builder(acceptations)
+                .join(correlationArrays, acceptations.getCorrelationArrayColumnIndex(), correlationArrays.getArrayIdColumnIndex())
+                .join(correlations, corrArrayOffset + correlationArrays.getCorrelationColumnIndex(), correlations.getCorrelationIdColumnIndex())
+                .join(symbolArrays, corrOffset + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .join(alphabets, corrOffset + correlations.getAlphabetColumnIndex(), alphabets.getIdColumnIndex())
+                .join(languages, alphabetsOffset + alphabets.getLanguageColumnIndex(), languages.getIdColumnIndex())
+                .join(correlations, corrArrayOffset + correlationArrays.getCorrelationColumnIndex(), correlations.getCorrelationIdColumnIndex())
+                .join(symbolArrays, corrOffset2 + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .whereColumnValueMatch(langOffset + languages.getMainAlphabetColumnIndex(), corrOffset2 + correlations.getAlphabetColumnIndex())
+                .orderBy(
+                        acceptations.getIdColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex(),
+                        corrArrayOffset + correlationArrays.getArrayPositionColumnIndex())
+                .select(
+                        acceptations.getIdColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex(),
+                        symbolArrayOffset2 + symbolArrays.getStrColumnIndex(),
+                        symbolArrayOffset + symbolArrays.getStrColumnIndex());
 
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        final int accId = cursor.getInt(0);
-                        final int alphabet = cursor.getInt(1);
-                        final String str = cursor.getString(2);
-                        final String mainStr = cursor.getString(3);
+        final DbQuery query = new DbQuery.Builder(innerQuery)
+                .groupBy(0, 1)
+                .select(0, 1, concat(3), concat(2));
 
-                        // TODO: Change this to point to the dynamic acceptation in Japanese. More JOINS are required whenever agents are applied
-                        final int dynAccId = accId;
+        final DbResult result = select(db, query);
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int accId = row.get(0).toInt();
+                final int alphabet = row.get(1).toInt();
+                final String str = row.get(2).toText();
+                final String mainStr = row.get(3).toText();
 
-                        insertStringQuery(db, str, mainStr, accId, dynAccId, alphabet);
-                    } while(cursor.moveToNext());
-                }
+                // TODO: Change this to point to the dynamic acceptation in Japanese. More JOINS are required whenever agents are applied
+                final int dynAccId = accId;
+
+                insertStringQuery(db, str, mainStr, accId, dynAccId, alphabet);
             }
-            finally {
-                cursor.close();
-            }
+        }
+        finally {
+            result.close();
         }
     }
 

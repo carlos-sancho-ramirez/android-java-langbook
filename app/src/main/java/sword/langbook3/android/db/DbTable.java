@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-public abstract class DbTable {
+public abstract class DbTable implements DbView {
     private final String _name;
     private final DbColumn[] _columns;
 
@@ -16,6 +16,7 @@ public abstract class DbTable {
         return _name;
     }
 
+    @Override
     public int getColumnCount() {
         return _columns.length;
     }
@@ -24,6 +25,7 @@ public abstract class DbTable {
         return 0;
     }
 
+    @Override
     public DbColumn getColumn(int index) {
         return _columns[index];
     }
@@ -36,5 +38,13 @@ public abstract class DbTable {
         return _columns[index].getSqlType();
     }
 
+    @Override
+    public DbTable asTable() {
+        return this;
+    }
 
+    @Override
+    public DbQuery asQuery() {
+        return null;
+    }
 }
