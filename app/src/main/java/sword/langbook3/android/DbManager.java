@@ -628,54 +628,49 @@ class DbManager extends SQLiteOpenHelper {
     private int insertAgent(SQLiteDatabase db, int targetBunch, int sourceBunchSetId,
                              int diffBunchSetId, int matcherId, int adderId, int rule, int flags) {
         final AgentsTable table = Tables.agents;
-        db.execSQL("INSERT INTO " + table.getName() + " (" +
-                table.getColumnName(table.getTargetBunchColumnIndex()) + ", " +
-                table.getColumnName(table.getSourceBunchSetColumnIndex()) + ", " +
-                table.getColumnName(table.getDiffBunchSetColumnIndex()) + ", " +
-                table.getColumnName(table.getMatcherColumnIndex()) + ", " +
-                table.getColumnName(table.getAdderColumnIndex()) + ", " +
-                table.getColumnName(table.getRuleColumnIndex()) + ", " +
-                table.getColumnName(table.getFlagsColumnIndex()) + ") VALUES (" +
-                targetBunch + ',' + sourceBunchSetId + ',' + diffBunchSetId + ',' +
-                matcherId + ',' + adderId + ',' + rule + ',' + flags + ')');
-
-        final Integer id = getAgentId(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
-        if (id == null) {
-            throw new AssertionError("A just introduced register should be found");
-        }
-
-        return id;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getTargetBunchColumnIndex(), targetBunch)
+                .put(table.getSourceBunchSetColumnIndex(), sourceBunchSetId)
+                .put(table.getDiffBunchSetColumnIndex(), diffBunchSetId)
+                .put(table.getMatcherColumnIndex(), matcherId)
+                .put(table.getAdderColumnIndex(), adderId)
+                .put(table.getRuleColumnIndex(), rule)
+                .put(table.getFlagsColumnIndex(), flags)
+                .build();
+        return insert(db, query);
     }
 
     private void insertStringQuery(
             SQLiteDatabase db, String str, String mainStr, int mainAcceptation,
             int dynAcceptation, int strAlphabet) {
         final StringQueriesTable table = Tables.stringQueries;
-        db.execSQL("INSERT INTO " + table.getName() + " (" +
-                table.getColumnName(table.getStringColumnIndex()) + ", " +
-                table.getColumnName(table.getMainStringColumnIndex()) + ", " +
-                table.getColumnName(table.getMainAcceptationColumnIndex()) + ", " +
-                table.getColumnName(table.getDynamicAcceptationColumnIndex()) + ", " +
-                table.getColumnName(table.getStringAlphabetColumnIndex()) + ") VALUES ('" +
-                str + "','" + mainStr + "'," + mainAcceptation + ',' +
-                dynAcceptation + ',' + strAlphabet + ')');
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getStringColumnIndex(), str)
+                .put(table.getMainStringColumnIndex(), mainStr)
+                .put(table.getMainAcceptationColumnIndex(), mainAcceptation)
+                .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
+                .put(table.getStringAlphabetColumnIndex(), strAlphabet)
+                .build();
+        insert(db, query);
     }
 
     private void insertBunchAcceptation(SQLiteDatabase db, int bunch, int acceptation, int agentSet) {
         final BunchAcceptationsTable table = Tables.bunchAcceptations;
-        db.execSQL("INSERT INTO " + table.getName() + " (" +
-                table.getColumnName(table.getBunchColumnIndex()) + ", " +
-                table.getColumnName(table.getAcceptationColumnIndex()) + ", " +
-                table.getColumnName(table.getAgentSetColumnIndex()) + ") VALUES (" +
-                bunch + ',' + acceptation + ',' + agentSet + ')');
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getBunchColumnIndex(), bunch)
+                .put(table.getAcceptationColumnIndex(), acceptation)
+                .put(table.getAgentSetColumnIndex(), agentSet)
+                .build();
+        insert(db, query);
     }
 
     private void insertBunchConcept(SQLiteDatabase db, int bunch, int concept) {
         final BunchConceptsTable table = Tables.bunchConcepts;
-        db.execSQL("INSERT INTO " + table.getName() + " (" +
-                table.getColumnName(table.getBunchColumnIndex()) + ", " +
-                table.getColumnName(table.getConceptColumnIndex()) + ") VALUES (" +
-                bunch + ',' + concept + ')');
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getBunchColumnIndex(), bunch)
+                .put(table.getConceptColumnIndex(), concept)
+                .build();
+        insert(db, query);
     }
 
     private int getMaxAgentSetId(SQLiteDatabase db) {
@@ -692,10 +687,11 @@ class DbManager extends SQLiteOpenHelper {
         else {
             final int setId = getMaxAgentSetId(db) + 1;
             for (int agent : agents) {
-                db.execSQL("INSERT INTO " + table.getName() + " (" +
-                        table.getColumnName(table.getSetIdColumnIndex()) + ", " +
-                        table.getColumnName(table.getAgentColumnIndex()) + ") VALUES (" +
-                        setId + ',' + agent + ')');
+                final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                        .put(table.getSetIdColumnIndex(), setId)
+                        .put(table.getAgentColumnIndex(), agent)
+                        .build();
+                insert(db, query);
             }
 
             return setId;
@@ -715,10 +711,11 @@ class DbManager extends SQLiteOpenHelper {
         }
         else {
             for (int bunch : bunches) {
-                db.execSQL("INSERT INTO " + table.getName() + " (" +
-                        table.getColumnName(table.getSetIdColumnIndex()) + ", " +
-                        table.getColumnName(table.getBunchColumnIndex()) + ") VALUES (" +
-                        setId + ',' + bunch + ')');
+                final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                        .put(table.getSetIdColumnIndex(), setId)
+                        .put(table.getBunchColumnIndex(), bunch)
+                        .build();
+                insert(db, query);
             }
 
             return setId;
