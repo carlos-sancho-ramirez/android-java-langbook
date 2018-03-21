@@ -1964,31 +1964,30 @@ class DbManager extends SQLiteOpenHelper {
             final int sourceAlphabet = conversion.getSourceAlphabet();
 
             final StringQueriesTable table = Tables.stringQueries;
-            Cursor cursor = db.rawQuery("SELECT " +
-                    table.getColumnName(table.getStringColumnIndex()) + ',' +
-                    table.getColumnName(table.getMainStringColumnIndex()) + ',' +
-                    table.getColumnName(table.getMainAcceptationColumnIndex()) + ',' +
-                    table.getColumnName(table.getDynamicAcceptationColumnIndex()) +
-                    " FROM " + table.getName() + " WHERE " + table.getColumnName(table.getStringAlphabetColumnIndex()) + '=' + sourceAlphabet, null);
+            final DbQuery query = new DbQuery.Builder(table)
+                    .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                    .select(
+                            table.getStringColumnIndex(),
+                            table.getMainStringColumnIndex(),
+                            table.getMainAcceptationColumnIndex(),
+                            table.getDynamicAcceptationColumnIndex());
 
-            if (cursor != null) {
-                try {
-                    if (cursor.moveToFirst()) {
-                        do {
-                            final String str = conversion.convert(cursor.getString(0));
-                            if (str != null) {
-                                final String mainStr = cursor.getString(1);
-                                final int mainAcc = cursor.getInt(2);
-                                final int dynAcc = cursor.getInt(3);
+            final DbResult result = select(db, query);
+            try {
+                while (result.hasNext()) {
+                    final DbResult.Row row = result.next();
+                    final String str = conversion.convert(row.get(0).toText());
+                    if (str != null) {
+                        final String mainStr = row.get(1).toText();
+                        final int mainAcc = row.get(2).toInt();
+                        final int dynAcc = row.get(3).toInt();
 
-                                insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
-                            }
-                        } while (cursor.moveToNext());
+                        insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
                     }
                 }
-                finally {
-                    cursor.close();
-                }
+            }
+            finally {
+                result.close();
             }
         }
     }
