@@ -319,25 +319,23 @@ class DbManager extends SQLiteOpenHelper {
 
     private void insertRuledAcceptation(SQLiteDatabase db, int ruledAcceptation, int agent, int acceptation) {
         final RuledAcceptationsTable table = Tables.ruledAcceptations;
-        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' +
-                table.getColumnName(table.getAgentColumnIndex()) + ',' +
-                table.getColumnName(table.getAcceptationColumnIndex()) + ") VALUES (" +
-                ruledAcceptation + ',' + agent + ',' + acceptation + ')');
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), ruledAcceptation)
+                .put(table.getAgentColumnIndex(), agent)
+                .put(table.getAcceptationColumnIndex(), acceptation)
+                .build();
+        insert(db, query);
     }
 
     private int insertRuledConcept(SQLiteDatabase db, int agent, int concept) {
         final int ruledConcept = getMaxConcept(db) + 1;
         final RuledConceptsTable table = Tables.ruledConcepts;
-        db.execSQL("INSERT INTO " + table.getName() + " (" + idColumnName + ',' +
-                table.getColumnName(table.getAgentColumnIndex()) + ',' +
-                table.getColumnName(table.getConceptColumnIndex()) + ") VALUES (" +
-                ruledConcept + ',' + agent + ',' + concept + ')');
-        final Integer id = findRuledConcept(db, agent, concept);
-        if (id == null) {
-            throw new AssertionError("A just introduced register should be found");
-        }
-
-        return id;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), ruledConcept)
+                .put(table.getAgentColumnIndex(), agent)
+                .put(table.getConceptColumnIndex(), concept)
+                .build();
+        return insert(db, query);
     }
 
     private int obtainRuledConcept(SQLiteDatabase db, int agent, int concept) {
