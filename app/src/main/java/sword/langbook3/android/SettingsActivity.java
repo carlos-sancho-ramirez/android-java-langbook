@@ -16,7 +16,9 @@ import android.widget.Toast;
 
 import java.io.IOException;
 
-public class SettingsActivity extends Activity implements View.OnClickListener, DbManager.DatabaseImportProgressListener, DialogInterface.OnClickListener {
+import sword.langbook3.android.sdb.ProgressListener;
+
+public class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_PICK_SQLITE_FILE = 1;
     private static final int REQUEST_CODE_PICK_STREAMED_FILE = 2;

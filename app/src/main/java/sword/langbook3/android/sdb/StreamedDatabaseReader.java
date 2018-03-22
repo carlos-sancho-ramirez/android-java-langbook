@@ -1,11 +1,8 @@
-package sword.langbook3.android;
+package sword.langbook3.android.sdb;
 
-import android.content.Context;
-import android.net.Uri;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -25,8 +22,9 @@ import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
-import sword.langbook3.android.DbManager.DatabaseImportProgressListener;
-import sword.langbook3.android.db.DbInitializer;
+import sword.langbook3.android.EqualUtils;
+import sword.langbook3.android.LangbookDbSchema;
+import sword.langbook3.android.db.DbInitializer.Database;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
@@ -34,13 +32,22 @@ import sword.langbook3.android.db.DbTable;
 
 import static sword.langbook3.android.db.DbQuery.concat;
 
-public final class StreamedDatabaseReader implements DbInitializer {
+public final class StreamedDatabaseReader {
 
     private final NaturalNumberHuffmanTable _naturalNumberTable = new NaturalNumberHuffmanTable(8);
+    private final Database _db;
+    private final InputStream _is;
+    private final ProgressListener _listener;
 
-    private void setProgress(DatabaseImportProgressListener listener, float progress, String message) {
-        if (listener != null) {
-            listener.setProgress(progress, message);
+    public StreamedDatabaseReader(Database db, InputStream is, ProgressListener listener) {
+        _db = db;
+        _is = is;
+        _listener = listener;
+    }
+
+    private void setProgress(float progress, String message) {
+        if (_listener != null) {
+            _listener.setProgress(progress, message);
         }
     }
 
@@ -284,25 +291,25 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private int getMaxAgentSetId(Database db) {
+    private int getMaxAgentSetId() {
         final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        return getColumnMax(db, table, table.getSetIdColumnIndex());
+        return getColumnMax(table, table.getSetIdColumnIndex());
     }
 
-    private int insertAgentSet(Database db, Set<Integer> agents) {
+    private int insertAgentSet(Set<Integer> agents) {
         final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
 
         if (agents.isEmpty()) {
             return table.nullReference();
         }
         else {
-            final int setId = getMaxAgentSetId(db) + 1;
+            final int setId = getMaxAgentSetId() + 1;
             for (int agent : agents) {
                 final DbInsertQuery query = new DbInsertQuery.Builder(table)
                         .put(table.getSetIdColumnIndex(), setId)
                         .put(table.getAgentColumnIndex(), agent)
                         .build();
-                db.insert(query);
+                _db.insert(query);
             }
 
             return setId;
@@ -319,11 +326,11 @@ public final class StreamedDatabaseReader implements DbInitializer {
             _agentId = agentId;
         }
 
-        private int get(Database db) {
+        private int get() {
             if (!_created) {
                 final Set<Integer> set = new HashSet<>();
                 set.add(_agentId);
-                _agentSetId = insertAgentSet(db, set);
+                _agentSetId = insertAgentSet(set);
                 _created = true;
             }
 
@@ -331,10 +338,10 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private static int getColumnMax(Database db, DbTable table, int columnIndex) {
+    private int getColumnMax(DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(DbQuery.max(columnIndex));
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             return result.next().get(0).toInt();
         }
@@ -343,12 +350,12 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private String getSymbolArray(Database db, int id) {
+    private String getSymbolArray(int id) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), id)
                 .select(table.getStrColumnIndex());
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             final String str = result.hasNext()? result.next().get(0).toText() : null;
             if (result.hasNext()) {
@@ -361,12 +368,12 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private Integer findSymbolArray(Database db, String str) {
+    private Integer findSymbolArray(String str) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStrColumnIndex(), str)
                 .select(table.getIdColumnIndex());
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
             if (result.hasNext()) {
@@ -380,21 +387,21 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private Integer insertSymbolArray(Database db, String str) {
+    private Integer insertSymbolArray(String str) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getStrColumnIndex(), str)
                 .build();
-        return db.insert(query);
+        return _db.insert(query);
     }
 
-    private int obtainSymbolArray(Database db, String str) {
-        Integer id = insertSymbolArray(db, str);
+    private int obtainSymbolArray(String str) {
+        Integer id = insertSymbolArray(str);
         if (id != null) {
             return id;
         }
 
-        id = findSymbolArray(db, str);
+        id = findSymbolArray(str);
         if (id == null) {
             throw new AssertionError("Unable to insert, and not present");
         }
@@ -402,26 +409,26 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return id;
     }
 
-    private void insertAlphabet(Database db, int id, int language) {
+    private void insertAlphabet(int id, int language) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
                 .put(table.getLanguageColumnIndex(), language)
                 .build();
-        db.insert(query);
+        _db.insert(query);
     }
 
-    private void insertLanguage(Database db, int id, String code, int mainAlphabet) {
+    private void insertLanguage(int id, String code, int mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
                 .put(table.getCodeColumnIndex(), code)
                 .put(table.getMainAlphabetColumnIndex(), mainAlphabet)
                 .build();
-        db.insert(query);
+        _db.insert(query);
     }
 
-    private void insertConversion(Database db, int sourceAlphabet, int targetAlphabet, int source, int target) {
+    private void insertConversion(int sourceAlphabet, int targetAlphabet, int source, int target) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
@@ -429,17 +436,17 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .put(table.getSourceColumnIndex(), source)
                 .put(table.getTargetColumnIndex(), target)
                 .build();
-        db.insert(query);
+        _db.insert(query);
     }
 
-    private SparseIntArray getCorrelation(Database db, int id) {
+    private SparseIntArray getCorrelation(int id) {
         LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getCorrelationIdColumnIndex(), id)
                 .select(table.getAlphabetColumnIndex(), table.getSymbolArrayColumnIndex());
 
         SparseIntArray correlation = new SparseIntArray();
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             while (result.hasNext()) {
                 final DbResult.Row row = result.next();
@@ -453,7 +460,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return correlation;
     }
 
-    private Integer findCorrelation(Database db, SparseIntArray correlation) {
+    private Integer findCorrelation(SparseIntArray correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
@@ -463,7 +470,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .where(table.getAlphabetColumnIndex(), correlation.keyAt(0))
                 .where(table.getSymbolArrayColumnIndex(), correlation.valueAt(0))
                 .select(table.getCorrelationIdColumnIndex());
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
             if (result.hasNext()) {
@@ -476,17 +483,17 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private static int getMaxCorrelationId(Database db) {
+    private int getMaxCorrelationId() {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        return getColumnMax(db, table, table.getCorrelationIdColumnIndex());
+        return getColumnMax(table, table.getCorrelationIdColumnIndex());
     }
 
-    private int insertCorrelation(Database db, SparseIntArray correlation) {
+    private int insertCorrelation(SparseIntArray correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
 
-        final int newCorrelationId = getMaxCorrelationId(db) + 1;
+        final int newCorrelationId = getMaxCorrelationId() + 1;
         final int mapLength = correlation.size();
 
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
@@ -496,22 +503,22 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     .put(table.getAlphabetColumnIndex(), correlation.keyAt(i))
                     .put(table.getSymbolArrayColumnIndex(), correlation.valueAt(i))
                     .build();
-            db.insert(query);
+            _db.insert(query);
         }
 
         return newCorrelationId;
     }
 
-    private int obtainCorrelation(Database db, SparseIntArray correlation) {
-        final Integer id = findCorrelation(db, correlation);
+    private int obtainCorrelation(SparseIntArray correlation) {
+        final Integer id = findCorrelation(correlation);
         if (id == null) {
-            return insertCorrelation(db, correlation);
+            return insertCorrelation(correlation);
         }
 
         return id;
     }
 
-    private int[] getCorrelationArray(Database db, int id) {
+    private int[] getCorrelationArray(int id) {
         if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
             return new int[0];
         }
@@ -520,7 +527,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getArrayIdColumnIndex(), id)
                 .select(table.getArrayPositionColumnIndex(), table.getCorrelationColumnIndex());
-        final DbResult dbResult = db.select(query);
+        final DbResult dbResult = _db.select(query);
         final int[] result = new int[dbResult.getRemainingRows()];
         final BitSet set = new BitSet();
         try {
@@ -543,7 +550,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return result;
     }
 
-    private Integer findCorrelationArray(Database db, int... correlations) {
+    private Integer findCorrelationArray(int... correlations) {
         if (correlations.length == 0) {
             return StreamedDatabaseConstants.nullCorrelationArrayId;
         }
@@ -554,11 +561,11 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .where(table.getCorrelationColumnIndex(), correlations[0])
                 .select(table.getArrayIdColumnIndex());
 
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             while (result.hasNext()) {
                 final int arrayId = result.next().get(0).toInt();
-                final int[] array = getCorrelationArray(db, arrayId);
+                final int[] array = getCorrelationArray(arrayId);
                 if (Arrays.equals(correlations, array)) {
                     return arrayId;
                 }
@@ -571,14 +578,14 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return null;
     }
 
-    private int getMaxCorrelationArrayId(Database db) {
+    private int getMaxCorrelationArrayId() {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        return getColumnMax(db, table, table.getArrayIdColumnIndex());
+        return getColumnMax(table, table.getArrayIdColumnIndex());
     }
 
-    private int insertCorrelationArray(Database db, int... correlation) {
+    private int insertCorrelationArray(int... correlation) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final int maxArrayId = getMaxCorrelationArrayId(db);
+        final int maxArrayId = getMaxCorrelationArrayId();
         final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
         final int arrayLength = correlation.length;
         for (int i = 0; i < arrayLength; i++) {
@@ -587,62 +594,62 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     .put(table.getArrayPositionColumnIndex(), i)
                     .put(table.getCorrelationColumnIndex(), correlation[i])
                     .build();
-            db.insert(query);
+            _db.insert(query);
         }
 
         return newArrayId;
     }
 
-    private int obtainCorrelationArray(Database db, int... array) {
-        final Integer id = findCorrelationArray(db, array);
-        return (id == null)? insertCorrelationArray(db, array) : id;
+    private int obtainCorrelationArray(int... array) {
+        final Integer id = findCorrelationArray(array);
+        return (id == null)? insertCorrelationArray(array) : id;
     }
 
-    private static int getMaxWord(Database db) {
+    private int getMaxWord() {
         LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        return getColumnMax(db, table, table.getWordColumnIndex());
+        return getColumnMax(table, table.getWordColumnIndex());
     }
 
-    private static int getMaxConcept(Database db) {
+    private int getMaxConcept() {
         LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        return getColumnMax(db, table, table.getConceptColumnIndex());
+        return getColumnMax(table, table.getConceptColumnIndex());
     }
 
-    private int insertAcceptation(Database db, int word, int concept, int correlationArray) {
+    private int insertAcceptation(int word, int concept, int correlationArray) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getWordColumnIndex(), word)
                 .put(table.getConceptColumnIndex(), concept)
                 .put(table.getCorrelationArrayColumnIndex(), correlationArray)
                 .build();
-        return db.insert(query);
+        return _db.insert(query);
     }
 
-    private void insertBunchConcept(Database db, int bunch, int concept) {
+    private void insertBunchConcept(int bunch, int concept) {
         final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getBunchColumnIndex(), bunch)
                 .put(table.getConceptColumnIndex(), concept)
                 .build();
-        db.insert(query);
+        _db.insert(query);
     }
 
-    private void insertBunchAcceptation(Database db, int bunch, int acceptation, int agentSet) {
+    private void insertBunchAcceptation(int bunch, int acceptation, int agentSet) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getBunchColumnIndex(), bunch)
                 .put(table.getAcceptationColumnIndex(), acceptation)
                 .put(table.getAgentSetColumnIndex(), agentSet)
                 .build();
-        db.insert(query);
+        _db.insert(query);
     }
 
-    private static int getMaxBunchSetId(Database db) {
+    private int getMaxBunchSetId() {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        return getColumnMax(db, table, table.getSetIdColumnIndex());
+        return getColumnMax(table, table.getSetIdColumnIndex());
     }
 
-    private Integer findBunchSet(Database db, Set<Integer> bunches) {
+    private Integer findBunchSet(Set<Integer> bunches) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         if (bunches.isEmpty()) {
             return table.nullReference();
@@ -652,7 +659,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
                 .where(table.getBunchColumnIndex(), bunches.iterator().next())
                 .select(table.getSetIdColumnIndex(), table.getColumnCount() + table.getBunchColumnIndex());
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             if (result.hasNext()) {
                 DbResult.Row row = result.next();
@@ -685,7 +692,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return null;
     }
 
-    private int insertBunchSet(Database db, int setId, Set<Integer> bunches) {
+    private int insertBunchSet(int setId, Set<Integer> bunches) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
 
         if (bunches.isEmpty()) {
@@ -697,19 +704,19 @@ public final class StreamedDatabaseReader implements DbInitializer {
                         .put(table.getSetIdColumnIndex(), setId)
                         .put(table.getBunchColumnIndex(), bunch)
                         .build();
-                db.insert(query);
+                _db.insert(query);
             }
 
             return setId;
         }
     }
 
-    private int obtainBunchSet(Database db, int setId, Set<Integer> bunches) {
-        final Integer foundId = findBunchSet(db, bunches);
-        return (foundId != null)? foundId : insertBunchSet(db, setId, bunches);
+    private int obtainBunchSet(int setId, Set<Integer> bunches) {
+        final Integer foundId = findBunchSet(bunches);
+        return (foundId != null)? foundId : insertBunchSet(setId, bunches);
     }
 
-    private int insertAgent(Database db, int targetBunch, int sourceBunchSetId,
+    private int insertAgent(int targetBunch, int sourceBunchSetId,
             int diffBunchSetId, int matcherId, int adderId, int rule, int flags) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -721,11 +728,11 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .put(table.getRuleColumnIndex(), rule)
                 .put(table.getFlagsColumnIndex(), flags)
                 .build();
-        return db.insert(query);
+        return _db.insert(query);
     }
 
     private void insertStringQuery(
-            Database db, String str, String mainStr, int mainAcceptation,
+            String str, String mainStr, int mainAcceptation,
             int dynAcceptation, int strAlphabet) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -735,26 +742,26 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
                 .put(table.getStringAlphabetColumnIndex(), strAlphabet)
                 .build();
-        db.insert(query);
+        _db.insert(query);
     }
 
-    private void insertRuledAcceptation(Database db, int ruledAcceptation, int agent, int acceptation) {
+    private void insertRuledAcceptation(int ruledAcceptation, int agent, int acceptation) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), ruledAcceptation)
                 .put(table.getAgentColumnIndex(), agent)
                 .put(table.getAcceptationColumnIndex(), acceptation)
                 .build();
-        db.insert(query);
+        _db.insert(query);
     }
 
-    private Integer findRuledConcept(Database db, int agent, int concept) {
+    private Integer findRuledConcept(int agent, int concept) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getAgentColumnIndex(), agent)
                 .where(table.getConceptColumnIndex(), concept)
                 .select(table.getIdColumnIndex());
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             final Integer id = result.hasNext()? result.next().get(0).toInt() : null;
             if (result.hasNext()) {
@@ -767,27 +774,27 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private int insertRuledConcept(Database db, int agent, int concept) {
-        final int ruledConcept = getMaxConcept(db) + 1;
+    private int insertRuledConcept(int agent, int concept) {
+        final int ruledConcept = getMaxConcept() + 1;
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), ruledConcept)
                 .put(table.getAgentColumnIndex(), agent)
                 .put(table.getConceptColumnIndex(), concept)
                 .build();
-        return db.insert(query);
+        return _db.insert(query);
     }
 
-    private int obtainRuledConcept(Database db, int agent, int concept) {
-        final Integer id = findRuledConcept(db, agent, concept);
+    private int obtainRuledConcept(int agent, int concept) {
+        final Integer id = findRuledConcept(agent, concept);
         if (id != null) {
             return id;
         }
 
-        return insertRuledConcept(db, agent, concept);
+        return insertRuledConcept(agent, concept);
     }
 
-    private int[] readSymbolArrays(Database db, InputBitStream ibs) throws IOException {
+    private int[] readSymbolArrays(InputBitStream ibs) throws IOException {
         final int symbolArraysLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
         final NaturalNumberHuffmanTable nat4Table = new NaturalNumberHuffmanTable(4);
@@ -806,13 +813,13 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 builder.append(ibs.readHuffmanSymbol(charHuffmanTable));
             }
 
-            idMap[index] = obtainSymbolArray(db, builder.toString());
+            idMap[index] = obtainSymbolArray(builder.toString());
         }
 
         return idMap;
     }
 
-    private Conversion[] readConversions(Database db, InputBitStream ibs, int minValidAlphabet, int maxValidAlphabet, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
+    private Conversion[] readConversions(InputBitStream ibs, int minValidAlphabet, int maxValidAlphabet, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
         final int conversionsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final Conversion[] conversions = new Conversion[conversionsLength];
         final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex, maxSymbolArrayIndex);
@@ -838,10 +845,10 @@ public final class StreamedDatabaseReader implements DbInitializer {
             for (int j = 0; j < pairCount; j++) {
                 final int source = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
                 final int target = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
-                insertConversion(db, sourceAlphabet, targetAlphabet, source, target);
+                insertConversion(sourceAlphabet, targetAlphabet, source, target);
 
-                sources[j] = getSymbolArray(db, source);
-                targets[j] = getSymbolArray(db, target);
+                sources[j] = getSymbolArray(source);
+                targets[j] = getSymbolArray(target);
             }
 
             conversions[i] = new Conversion(sourceAlphabet, targetAlphabet, sources, targets);
@@ -850,7 +857,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return conversions;
     }
 
-    private int[] readCorrelations(Database db, InputBitStream ibs, int minAlphabet, int maxAlphabet, int[] symbolArraysIdMap) throws IOException {
+    private int[] readCorrelations(InputBitStream ibs, int minAlphabet, int maxAlphabet, int[] symbolArraysIdMap) throws IOException {
         final int correlationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final int[] result = new int[correlationsLength];
         if (correlationsLength > 0) {
@@ -866,14 +873,14 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 for (Map.Entry<Integer, Integer> entry : corrMap.entrySet()) {
                     corr.put(entry.getKey(), symbolArraysIdMap[entry.getValue()]);
                 }
-                result[i] = obtainCorrelation(db, corr);
+                result[i] = obtainCorrelation(corr);
             }
         }
 
         return result;
     }
 
-    private int[] readCorrelationArrays(Database db, InputBitStream ibs, int[] correlationIdMap) throws IOException {
+    private int[] readCorrelationArrays(InputBitStream ibs, int[] correlationIdMap) throws IOException {
         final int arraysLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final int[] result = new int[arraysLength];
         if (arraysLength > 0) {
@@ -888,14 +895,14 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 for (int j = 0; j < arrayLength; j++) {
                     corrArray[j] = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
                 }
-                result[i] = obtainCorrelationArray(db, corrArray);
+                result[i] = obtainCorrelationArray(corrArray);
             }
         }
 
         return result;
     }
 
-    private int[] readAcceptations(Database db, InputBitStream ibs, int[] wordIdMap, int[] conceptIdMap, int[] correlationArrayIdMap) throws IOException {
+    private int[] readAcceptations(InputBitStream ibs, int[] wordIdMap, int[] conceptIdMap, int[] correlationArrayIdMap) throws IOException {
         final int acceptationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
 
         final int[] acceptationsIdMap = new int[acceptationsLength];
@@ -910,7 +917,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 final Set<Integer> corrArraySet = readRangedNumberSet(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
                 for (int corrArray : corrArraySet) {
                     // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
-                    acceptationsIdMap[i] = insertAcceptation(db, word, concept, correlationArrayIdMap[corrArray]);
+                    acceptationsIdMap[i] = insertAcceptation(word, concept, correlationArrayIdMap[corrArray]);
                 }
             }
         }
@@ -918,7 +925,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return acceptationsIdMap;
     }
 
-    private void readBunchConcepts(Database db, InputBitStream ibs, int minValidConcept, int maxConcept) throws IOException {
+    private void readBunchConcepts(InputBitStream ibs, int minValidConcept, int maxConcept) throws IOException {
         final int bunchConceptsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
@@ -928,12 +935,12 @@ public final class StreamedDatabaseReader implements DbInitializer {
             final int bunch = ibs.readHuffmanSymbol(conceptTable);
             final Set<Integer> concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, minValidConcept, maxConcept);
             for (int concept : concepts) {
-                insertBunchConcept(db, bunch, concept);
+                insertBunchConcept(bunch, concept);
             }
         }
     }
 
-    private void readBunchAcceptations(Database db, InputBitStream ibs, int minValidConcept, int[] conceptIdMap, int[] acceptationsIdMap) throws IOException {
+    private void readBunchAcceptations(InputBitStream ibs, int minValidConcept, int[] conceptIdMap, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
@@ -946,13 +953,13 @@ public final class StreamedDatabaseReader implements DbInitializer {
             final int bunch = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
             final Set<Integer> acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
-                insertBunchAcceptation(db, bunch, acceptationsIdMap[acceptation], nullAgentSet);
+                insertBunchAcceptation(bunch, acceptationsIdMap[acceptation], nullAgentSet);
             }
         }
     }
 
     private SparseArray<AgentBunches> readAgents(
-            Database db, InputBitStream ibs, int maxConcept, int[] correlationIdMap) throws IOException {
+            InputBitStream ibs, int maxConcept, int[] correlationIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
         final SparseArray<AgentBunches> result = new SparseArray<>(agentsLength);
@@ -964,7 +971,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = StreamedDatabaseConstants.minValidConcept;
-            int desiredSetId = getMaxBunchSetId(db) + 1;
+            int desiredSetId = getMaxBunchSetId() + 1;
             final Map<Set<Integer>, Integer> insertedBunchSets = new HashMap<>();
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, maxConcept);
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
@@ -991,14 +998,14 @@ public final class StreamedDatabaseReader implements DbInitializer {
 
                 final int matcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
                 final int adderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final SparseIntArray adder = getCorrelation(db, adderId);
+                final SparseIntArray adder = getCorrelation(adderId);
 
                 final boolean adderNonEmpty = adder.size() > 0;
                 final int rule = adderNonEmpty?
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final boolean fromStart = (adderNonEmpty || getCorrelation(db, matcherId).size() > 0) && ibs.readBoolean();
+                final boolean fromStart = (adderNonEmpty || getCorrelation(matcherId).size() > 0) && ibs.readBoolean();
                 final int flags = fromStart? 1 : 0;
 
                 final Integer reusedBunchSetId = insertedBunchSets.get(sourceSet);
@@ -1007,7 +1014,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     sourceBunchSetId = reusedBunchSetId;
                 }
                 else {
-                    sourceBunchSetId = obtainBunchSet(db, desiredSetId, sourceSet);
+                    sourceBunchSetId = obtainBunchSet(desiredSetId, sourceSet);
                     if (sourceBunchSetId == desiredSetId) {
                         ++desiredSetId;
                     }
@@ -1020,7 +1027,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     throw new AssertionError("When rule is provided, modification is expected, but matcher and adder are the same");
                 }
 
-                final int agentId = insertAgent(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+                final int agentId = insertAgent(targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
 
                 final Set<Integer> diffSet = Collections.emptySet();
                 result.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
@@ -1032,7 +1039,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return result;
     }
 
-    private void fillSearchQueryTable(Database db) {
+    private void fillSearchQueryTable() {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays; // J1
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations; // J2
@@ -1071,7 +1078,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .groupBy(0, 1)
                 .select(0, 1, concat(3), concat(2));
 
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             while (result.hasNext()) {
                 final DbResult.Row row = result.next();
@@ -1083,7 +1090,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 // TODO: Change this to point to the dynamic acceptation in Japanese. More JOINS are required whenever agents are applied
                 final int dynAccId = accId;
 
-                insertStringQuery(db, str, mainStr, accId, dynAccId, alphabet);
+                insertStringQuery(str, mainStr, accId, dynAccId, alphabet);
             }
         }
         finally {
@@ -1130,7 +1137,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         return ids;
     }
 
-    private SparseArray<String> readCorrelation(Database db, int agentId, int agentColumn) {
+    private SparseArray<String> readCorrelation(int agentId, int agentColumn) {
         LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
@@ -1143,7 +1150,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 .where(agents.getIdColumnIndex(), agentId)
                 .select(corrTableOffset + correlations.getAlphabetColumnIndex(), symArrayTableOffset + symbolArrays.getStrColumnIndex());
 
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         final SparseArray<String> matcher = new SparseArray<>(result.getRemainingRows());
         try {
             while (result.hasNext()) {
@@ -1167,7 +1174,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
     /**
      * @return True if the suggestedNewWordId has been used.
      */
-    private boolean applyAgent(Database db, int agentId, AgentSetSupplier agentSetSupplier,
+    private boolean applyAgent(int agentId, AgentSetSupplier agentSetSupplier,
             int accId, int concept, int suggestedNewWordId, int targetBunch,
             SparseArray<String> matcher, SparseArray<String> adder, int rule,
             SparseArray<String> corr, int flags) {
@@ -1222,45 +1229,45 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     resultCorr.put(alphabet, resultStr);
                 }
 
-                final int newConcept = obtainRuledConcept(db, agentId, concept);
+                final int newConcept = obtainRuledConcept(agentId, concept);
                 final int resultCorrLength = resultCorr.size();
                 final SparseIntArray resultCorrIds = new SparseIntArray(resultCorrLength);
                 for (int i = 0; i < resultCorrLength; i++) {
                     final int alphabet = resultCorr.keyAt(i);
-                    resultCorrIds.put(alphabet, obtainSymbolArray(db, resultCorr.valueAt(i)));
+                    resultCorrIds.put(alphabet, obtainSymbolArray(resultCorr.valueAt(i)));
                 }
 
-                final int corrId = obtainCorrelation(db, resultCorrIds);
-                final int corrArrayId = insertCorrelationArray(db, corrId);
+                final int corrId = obtainCorrelation(resultCorrIds);
+                final int corrArrayId = insertCorrelationArray(corrId);
                 suggestedNewWordUsed = true;
-                final int dynAccId = insertAcceptation(db, suggestedNewWordId, newConcept, corrArrayId);
-                insertRuledAcceptation(db, dynAccId, agentId, accId);
+                final int dynAccId = insertAcceptation(suggestedNewWordId, newConcept, corrArrayId);
+                insertRuledAcceptation(dynAccId, agentId, accId);
 
                 for (int i = 0; i < resultCorrLength; i++) {
-                    insertStringQuery(db, resultCorr.valueAt(i), resultCorr.valueAt(0), accId, dynAccId, resultCorr.keyAt(i));
+                    insertStringQuery(resultCorr.valueAt(i), resultCorr.valueAt(0), accId, dynAccId, resultCorr.keyAt(i));
                 }
 
                 targetAccId = dynAccId;
             }
 
             if (targetBunch != StreamedDatabaseConstants.nullBunchId) {
-                insertBunchAcceptation(db, targetBunch, targetAccId, agentSetSupplier.get(db));
+                insertBunchAcceptation(targetBunch, targetAccId, agentSetSupplier.get());
             }
         }
 
         return suggestedNewWordUsed;
     }
 
-    private void runAgent(Database db, int agentId) {
+    private void runAgent(int agentId) {
         LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         LangbookDbSchema.BunchAcceptationsTable bunchAccs = LangbookDbSchema.Tables.bunchAcceptations;
         LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
-        int maxWord = getMaxWord(db);
-        final SparseArray<String> matcher = readCorrelation(db, agentId, agents.getMatcherColumnIndex());
-        final SparseArray<String> adder = readCorrelation(db, agentId, agents.getAdderColumnIndex());
+        int maxWord = getMaxWord();
+        final SparseArray<String> matcher = readCorrelation(agentId, agents.getMatcherColumnIndex());
+        final SparseArray<String> adder = readCorrelation(agentId, agents.getAdderColumnIndex());
 
         final int bunchSetsOffset = agents.getColumnCount();
         final int bunchAccsOffset = bunchSetsOffset + bunchSets.getColumnCount();
@@ -1285,7 +1292,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                         acceptationsOffset + acceptations.getConceptColumnIndex(),
                         agents.getTargetBunchColumnIndex());
 
-        final DbResult result = db.select(query);
+        final DbResult result = _db.select(query);
         try {
             if (result.hasNext()) {
                 DbResult.Row row = result.next();
@@ -1303,7 +1310,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     row = result.next();
                     newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
-                        if (applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch,
+                        if (applyAgent(agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch,
                                 matcher, adder, rule, corr, flags)) {
                             ++maxWord;
                         }
@@ -1321,7 +1328,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     }
                 }
 
-                applyAgent(db, agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder,
+                applyAgent(agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder,
                         rule, corr, flags);
             }
         }
@@ -1330,16 +1337,16 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private void runAgents(Database db, SparseArray<AgentBunches> agents, DatabaseImportProgressListener listener) {
+    private void runAgents(SparseArray<AgentBunches> agents) {
         final int agentCount = agents.size();
         int index = 0;
         for (int agentId : sortAgents(agents)) {
-            setProgress(listener, 0.4f + ((0.8f - 0.4f) / agentCount) * index, "Running agent " + (++index) + " out of " + agentCount);
-            runAgent(db, agentId);
+            setProgress(0.4f + ((0.8f - 0.4f) / agentCount) * index, "Running agent " + (++index) + " out of " + agentCount);
+            runAgent(agentId);
         }
     }
 
-    private void applyConversions(Database db, Conversion[] conversions) {
+    private void applyConversions(Conversion[] conversions) {
         for (Conversion conversion : conversions) {
             final int sourceAlphabet = conversion.getSourceAlphabet();
 
@@ -1352,7 +1359,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                             table.getMainAcceptationColumnIndex(),
                             table.getDynamicAcceptationColumnIndex());
 
-            final DbResult result = db.select(query);
+            final DbResult result = _db.select(query);
             try {
                 while (result.hasNext()) {
                     final DbResult.Row row = result.next();
@@ -1362,7 +1369,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                         final int mainAcc = row.get(2).toInt();
                         final int dynAcc = row.get(3).toInt();
 
-                        insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+                        insertStringQuery(str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
                     }
                 }
             }
@@ -1372,20 +1379,20 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private void read(Database db, InputStream is, DatabaseImportProgressListener listener) throws UnableToInitializeException {
+    public void read() throws IOException {
         try {
-            is.skip(20);
+            _is.skip(20);
 
-            setProgress(listener, 0, "Reading symbolArrays");
-            final InputBitStream ibs = new InputBitStream(is);
-            final int[] symbolArraysIdMap = readSymbolArrays(db, ibs);
+            setProgress(0, "Reading symbolArrays");
+            final InputBitStream ibs = new InputBitStream(_is);
+            final int[] symbolArraysIdMap = readSymbolArrays(ibs);
             final int minSymbolArrayIndex = 0;
             final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
             final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex,
                     maxSymbolArrayIndex);
 
             // Read languages and its alphabets
-            setProgress(listener, 0.03f, "Reading languages and its alphabets");
+            setProgress(0.03f, "Reading languages and its alphabets");
             final int languageCount = ibs.readHuffmanSymbol(_naturalNumberTable);
             final Language[] languages = new Language[languageCount];
             final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
@@ -1395,7 +1402,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
             for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
                 final int codeSymbolArrayIndex = ibs.readHuffmanSymbol(symbolArrayTable);
                 final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
-                final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
+                final String code = getSymbolArray(symbolArraysIdMap[codeSymbolArrayIndex]);
                 languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
 
                 nextMinAlphabet += alphabetCount;
@@ -1408,7 +1415,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 for (int j = 0; j < languageCount; j++) {
                     Language lang = languages[j];
                     if (lang.containsAlphabet(i)) {
-                        insertAlphabet(db, i, minLanguage + j);
+                        insertAlphabet(i, minLanguage + j);
                         break;
                     }
                 }
@@ -1416,12 +1423,12 @@ public final class StreamedDatabaseReader implements DbInitializer {
 
             for (int i = 0; i < languageCount; i++) {
                 final Language lang = languages[i];
-                insertLanguage(db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
+                insertLanguage(minLanguage + i, lang.getCode(), lang.getMainAlphabet());
             }
 
             // Read conversions
-            setProgress(listener, 0.06f, "Reading conversions");
-            final Conversion[] conversions = readConversions(db, ibs, minValidAlphabet, maxValidAlphabet, 0,
+            setProgress(0.06f, "Reading conversions");
+            final Conversion[] conversions = readConversions(ibs, minValidAlphabet, maxValidAlphabet, 0,
                     maxSymbolArrayIndex, symbolArraysIdMap);
 
             // Export the amount of words and concepts in order to range integers
@@ -1440,74 +1447,48 @@ public final class StreamedDatabaseReader implements DbInitializer {
             }
 
             // Import correlations
-            setProgress(listener, 0.09f, "Reading correlations");
-            int[] correlationIdMap = readCorrelations(db, ibs, StreamedDatabaseConstants.minValidAlphabet,
+            setProgress(0.09f, "Reading correlations");
+            int[] correlationIdMap = readCorrelations(ibs, StreamedDatabaseConstants.minValidAlphabet,
                     maxValidAlphabet, symbolArraysIdMap);
 
             // Import correlation arrays
-            setProgress(listener, 0.13f, "Reading correlation arrays");
-            int[] correlationArrayIdMap = readCorrelationArrays(db, ibs, correlationIdMap);
+            setProgress(0.13f, "Reading correlation arrays");
+            int[] correlationArrayIdMap = readCorrelationArrays(ibs, correlationIdMap);
 
             // Import correlation arrays
-            setProgress(listener, 0.17f, "Reading acceptations");
-            int[] acceptationIdMap = readAcceptations(db, ibs, wordIdMap, conceptIdMap, correlationArrayIdMap);
+            setProgress(0.17f, "Reading acceptations");
+            int[] acceptationIdMap = readAcceptations(ibs, wordIdMap, conceptIdMap, correlationArrayIdMap);
 
             // Export bunchConcepts
-            setProgress(listener, 0.21f, "Reading bunch concepts");
-            readBunchConcepts(db, ibs, minValidConcept, maxConcept);
+            setProgress(0.21f, "Reading bunch concepts");
+            readBunchConcepts(ibs, minValidConcept, maxConcept);
 
             // Export bunchAcceptations
-            setProgress(listener, 0.24f, "Reading bunch acceptations");
-            readBunchAcceptations(db, ibs, minValidConcept, conceptIdMap, acceptationIdMap);
+            setProgress(0.24f, "Reading bunch acceptations");
+            readBunchAcceptations(ibs, minValidConcept, conceptIdMap, acceptationIdMap);
 
             // Export agents
-            setProgress(listener, 0.27f, "Reading agents");
-            SparseArray<AgentBunches> agents = readAgents(db, ibs, maxConcept, correlationIdMap);
+            setProgress(0.27f, "Reading agents");
+            SparseArray<AgentBunches> agents = readAgents(ibs, maxConcept, correlationIdMap);
 
-            setProgress(listener, 0.3f, "Indexing strings");
-            fillSearchQueryTable(db);
+            setProgress(0.3f, "Indexing strings");
+            fillSearchQueryTable();
 
-            setProgress(listener, 0.4f, "Running agents");
-            runAgents(db, agents, listener);
+            setProgress(0.4f, "Running agents");
+            runAgents(agents);
 
-            setProgress(listener, 0.8f, "Applying conversions");
-            applyConversions(db, conversions);
-        }
-        catch (IOException e) {
-            throw new UnableToInitializeException();
+            setProgress(0.8f, "Applying conversions");
+            applyConversions(conversions);
         }
         finally {
             try {
-                if (is != null) {
-                    is.close();
+                if (_is != null) {
+                    _is.close();
                 }
             }
             catch (IOException e) {
                 // Nothing can be done
             }
         }
-    }
-
-    @Override
-    public void init(Database db) throws UnableToInitializeException {
-        try {
-            final InputStream is = _context.getContentResolver().openInputStream(_uri);
-            if (is != null) {
-                read(db, is, _listener);
-            }
-        }
-        catch (FileNotFoundException e) {
-            throw new UnableToInitializeException();
-        }
-    }
-
-    private final Context _context;
-    private final Uri _uri;
-    private final DatabaseImportProgressListener _listener;
-
-    StreamedDatabaseReader(Context context, Uri uri, DatabaseImportProgressListener listener) {
-        _context = context;
-        _uri = uri;
-        _listener = listener;
     }
 }

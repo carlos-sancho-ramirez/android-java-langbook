@@ -29,6 +29,7 @@ import sword.langbook3.android.db.DbSchema;
 import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.db.DbValue;
+import sword.langbook3.android.sdb.ProgressListener;
 
 class DbManager extends SQLiteOpenHelper {
 
@@ -39,20 +40,10 @@ class DbManager extends SQLiteOpenHelper {
 
     private final Context _context;
     private Uri _uri;
-    private DatabaseImportProgressListener _progressListener;
+    private ProgressListener _progressListener;
     private DatabaseImportTask _databaseImportTask;
-    private DatabaseImportProgressListener _externalProgressListener;
+    private ProgressListener _externalProgressListener;
     private DatabaseImportProgress _lastProgress;
-
-    interface DatabaseImportProgressListener {
-
-        /**
-         * Notify the progress of a task
-         * @param progress float value expected to be between 0 and 1.
-         * @param message Text message describing the current subTask.
-         */
-        void setProgress(float progress, String message);
-    }
 
     static DbManager getInstance() {
         return _instance;
@@ -409,7 +400,7 @@ class DbManager extends SQLiteOpenHelper {
         createIndexes(db, schema);
 
         DbInitializer.Database initDb = new InitializerDatabase(db);
-        final StreamedDatabaseReader reader = new StreamedDatabaseReader(_context, uri, _progressListener);
+        final DatabaseImporter reader = new DatabaseImporter(_context, uri, _progressListener);
         try {
             reader.init(initDb);
         }
@@ -434,7 +425,7 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    private class DatabaseImportTask extends AsyncTask<Uri, DatabaseImportProgress, Boolean> implements DbManager.DatabaseImportProgressListener {
+    private class DatabaseImportTask extends AsyncTask<Uri, DatabaseImportProgress, Boolean> implements ProgressListener {
 
         @Override
         protected Boolean doInBackground(Uri... uris) {
@@ -453,7 +444,7 @@ class DbManager extends SQLiteOpenHelper {
         @Override
         public void onProgressUpdate(DatabaseImportProgress... progresses) {
             final DatabaseImportProgress progress = progresses[0];
-            final DatabaseImportProgressListener listener = _externalProgressListener;
+            final ProgressListener listener = _externalProgressListener;
             if (listener != null) {
                 listener.setProgress(progress.progress, progress.message);
             }
@@ -466,7 +457,7 @@ class DbManager extends SQLiteOpenHelper {
             _progressListener = null;
             _databaseImportTask = null;
 
-            final DatabaseImportProgressListener listener = _externalProgressListener;
+            final ProgressListener listener = _externalProgressListener;
             final DatabaseImportProgress lastProgress = new DatabaseImportProgress(1f, "Completed");
             if (listener != null) {
                 listener.setProgress(lastProgress.progress, lastProgress.message);
@@ -485,7 +476,7 @@ class DbManager extends SQLiteOpenHelper {
         return _databaseImportTask != null;
     }
 
-    void setProgressListener(DatabaseImportProgressListener listener) {
+    void setProgressListener(ProgressListener listener) {
         _externalProgressListener = listener;
         final DatabaseImportProgress lastProgress = _lastProgress;
         if (listener != null && lastProgress != null) {
