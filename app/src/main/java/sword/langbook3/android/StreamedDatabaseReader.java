@@ -266,28 +266,19 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private static class Agent {
+    private static class AgentBunches {
 
         private final int _target;
         private final Set<Integer> _sources;
         private final Set<Integer> _diff;
-        private final SparseIntArray _matcher;
-        private final SparseIntArray _adder;
-        private final int _rule;
-        private final int _flags;
 
-        Agent(int target, Set<Integer> sources, Set<Integer> diff,
-                SparseIntArray matcher, SparseIntArray adder, int rule, int flags) {
+        AgentBunches(int target, Set<Integer> sources, Set<Integer> diff) {
             _target = target;
             _sources = sources;
             _diff = diff;
-            _matcher = matcher;
-            _adder = adder;
-            _rule = rule;
-            _flags = flags;
         }
 
-        boolean dependsOn(Agent agent) {
+        boolean dependsOn(AgentBunches agent) {
             final int target = agent._target;
             return _sources.contains(target) || _diff.contains(target);
         }
@@ -333,6 +324,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 final Set<Integer> set = new HashSet<>();
                 set.add(_agentId);
                 _agentSetId = insertAgentSet(db, set);
+                _created = true;
             }
 
             return _agentSetId;
@@ -959,11 +951,11 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private SparseArray<Agent> readAgents(
+    private SparseArray<AgentBunches> readAgents(
             Database db, InputBitStream ibs, int maxConcept, int[] correlationIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
-        final SparseArray<Agent> result = new SparseArray<>(agentsLength);
+        final SparseArray<AgentBunches> result = new SparseArray<>(agentsLength);
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -999,7 +991,6 @@ public final class StreamedDatabaseReader implements DbInitializer {
 
                 final int matcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
                 final int adderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final SparseIntArray matcher = getCorrelation(db, matcherId);
                 final SparseIntArray adder = getCorrelation(db, adderId);
 
                 final boolean adderNonEmpty = adder.size() > 0;
@@ -1032,7 +1023,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 final int agentId = insertAgent(db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
 
                 final Set<Integer> diffSet = Collections.emptySet();
-                result.put(agentId, new Agent(targetBunch, sourceSet, diffSet, matcher, adder, rule, flags));
+                result.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
 
                 lastTarget = targetBunch;
             }
@@ -1100,14 +1091,14 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private int[] sortAgents(SparseArray<Agent> agents) {
+    private int[] sortAgents(SparseArray<AgentBunches> agents) {
         final int agentCount = agents.size();
         int[] ids = new int[agentCount];
         if (agentCount == 0) {
             return ids;
         }
 
-        Agent[] result = new Agent[agentCount];
+        AgentBunches[] result = new AgentBunches[agentCount];
 
         for (int i = 0; i < agentCount; i++) {
             ids[i] = agents.keyAt(i);
@@ -1116,7 +1107,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
 
         int index = agentCount;
         do {
-            final Agent agent = result[--index];
+            final AgentBunches agent = result[--index];
 
             int firstDependency = -1;
             for (int i = 0; i < index; i++) {
@@ -1130,7 +1121,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 ids[firstDependency] = ids[index];
                 ids[index] = id;
 
-                Agent temp = result[firstDependency];
+                AgentBunches temp = result[firstDependency];
                 result[firstDependency] = result[index];
                 result[index++] = temp;
             }
@@ -1339,7 +1330,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
         }
     }
 
-    private void runAgents(Database db, SparseArray<Agent> agents, DatabaseImportProgressListener listener) {
+    private void runAgents(Database db, SparseArray<AgentBunches> agents, DatabaseImportProgressListener listener) {
         final int agentCount = agents.size();
         int index = 0;
         for (int agentId : sortAgents(agents)) {
@@ -1400,8 +1391,6 @@ public final class StreamedDatabaseReader implements DbInitializer {
             final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
             int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
             final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
-            int kanjiAlphabet = -1;
-            int kanaAlphabet = -1;
 
             for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
                 final int codeSymbolArrayIndex = ibs.readHuffmanSymbol(symbolArrayTable);
@@ -1409,19 +1398,11 @@ public final class StreamedDatabaseReader implements DbInitializer {
                 final String code = getSymbolArray(db, symbolArraysIdMap[codeSymbolArrayIndex]);
                 languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
 
-                // In order to inflate kanjiKanaCorrelations we assume that the Japanese language
-                // is present and that its first alphabet is the kanji and the second the kana.
-                if ("ja".equals(code)) {
-                    kanjiAlphabet = nextMinAlphabet;
-                    kanaAlphabet = nextMinAlphabet + 1;
-                }
-
                 nextMinAlphabet += alphabetCount;
             }
 
             final int maxValidAlphabet = nextMinAlphabet - 1;
             final int minLanguage = nextMinAlphabet;
-            final int maxLanguage = minLanguage + languages.length - 1;
 
             for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
                 for (int j = 0; j < languageCount; j++) {
@@ -1444,7 +1425,6 @@ public final class StreamedDatabaseReader implements DbInitializer {
                     maxSymbolArrayIndex, symbolArraysIdMap);
 
             // Export the amount of words and concepts in order to range integers
-            final int minValidWord = StreamedDatabaseConstants.minValidWord;
             final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
             final int maxWord = ibs.readHuffmanSymbol(_naturalNumberTable) - 1;
             final int maxConcept = ibs.readHuffmanSymbol(_naturalNumberTable) - 1;
@@ -1482,7 +1462,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
 
             // Export agents
             setProgress(listener, 0.27f, "Reading agents");
-            SparseArray<Agent> agents = readAgents(db, ibs, maxConcept, correlationIdMap);
+            SparseArray<AgentBunches> agents = readAgents(db, ibs, maxConcept, correlationIdMap);
 
             setProgress(listener, 0.3f, "Indexing strings");
             fillSearchQueryTable(db);
@@ -1525,7 +1505,7 @@ public final class StreamedDatabaseReader implements DbInitializer {
     private final Uri _uri;
     private final DatabaseImportProgressListener _listener;
 
-    public StreamedDatabaseReader(Context context, Uri uri, DatabaseImportProgressListener listener) {
+    StreamedDatabaseReader(Context context, Uri uri, DatabaseImportProgressListener listener) {
         _context = context;
         _uri = uri;
         _listener = listener;
