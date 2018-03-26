@@ -152,7 +152,7 @@ class DbManager extends SQLiteOpenHelper {
 
         final QuestionField firstField = set.iterator().next();
         final QuestionFieldSets fieldSets = Tables.questionFieldSets;
-        final int columnCount = fieldSets.getColumnCount();
+        final int columnCount = fieldSets.columns().size();
         final DbQuery query = new DbQuery.Builder(fieldSets)
                 .join(fieldSets, fieldSets.getSetIdColumnIndex(), fieldSets.getSetIdColumnIndex())
                 .where(fieldSets.getAlphabetColumnIndex(), firstField.alphabet)
@@ -254,7 +254,7 @@ class DbManager extends SQLiteOpenHelper {
                     .append(table.getName())
                     .append(" (");
 
-            final int columnCount = table.getColumnCount();
+            final int columnCount = table.columns().size();
             for (int j = 0; j < columnCount; j++) {
                 final String columnName = table.getColumnName(j);
                 if (j != 0) {

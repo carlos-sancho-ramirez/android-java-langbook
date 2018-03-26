@@ -25,7 +25,7 @@ public final class DbInsertQuery {
     }
 
     public DbColumn getColumn(int index) {
-        return _table.getColumn(_columns[index]);
+        return _table.columns().get(_columns[index]);
     }
 
     public DbValue getValue(int index) {
@@ -45,7 +45,7 @@ public final class DbInsertQuery {
         }
 
         private DbInsertQuery.Builder put(int column, DbValue value) {
-            if (column < 0 || column >= _table.getColumnCount() || _map.containsKey(column)) {
+            if (column < 0 || column >= _table.columns().size() || _map.containsKey(column)) {
                 throw new IllegalArgumentException();
             }
 

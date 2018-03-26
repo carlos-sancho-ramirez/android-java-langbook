@@ -658,7 +658,7 @@ public final class StreamedDatabaseReader {
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
                 .where(table.getBunchColumnIndex(), bunches.iterator().next())
-                .select(table.getSetIdColumnIndex(), table.getColumnCount() + table.getBunchColumnIndex());
+                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
         final DbResult result = _db.select(query);
         try {
             if (result.hasNext()) {
@@ -1047,13 +1047,13 @@ public final class StreamedDatabaseReader {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
 
-        final int corrArrayOffset = acceptations.getColumnCount();
-        final int corrOffset = corrArrayOffset + correlationArrays.getColumnCount();
-        final int symbolArrayOffset = corrOffset + correlations.getColumnCount();
-        final int alphabetsOffset = symbolArrayOffset + symbolArrays.getColumnCount();
-        final int langOffset = alphabetsOffset + alphabets.getColumnCount();
-        final int corrOffset2 = langOffset + languages.getColumnCount();
-        final int symbolArrayOffset2 = corrOffset2 + correlations.getColumnCount();
+        final int corrArrayOffset = acceptations.columns().size();
+        final int corrOffset = corrArrayOffset + correlationArrays.columns().size();
+        final int symbolArrayOffset = corrOffset + correlations.columns().size();
+        final int alphabetsOffset = symbolArrayOffset + symbolArrays.columns().size();
+        final int langOffset = alphabetsOffset + alphabets.columns().size();
+        final int corrOffset2 = langOffset + languages.columns().size();
+        final int symbolArrayOffset2 = corrOffset2 + correlations.columns().size();
 
         final DbQuery innerQuery = new DbQuery.Builder(acceptations)
                 .join(correlationArrays, acceptations.getCorrelationArrayColumnIndex(), correlationArrays.getArrayIdColumnIndex())
@@ -1142,8 +1142,8 @@ public final class StreamedDatabaseReader {
         LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
 
-        final int corrTableOffset = agents.getColumnCount();
-        final int symArrayTableOffset = corrTableOffset + correlations.getColumnCount();
+        final int corrTableOffset = agents.columns().size();
+        final int symArrayTableOffset = corrTableOffset + correlations.columns().size();
         final DbQuery query = new DbQuery.Builder(agents)
                 .join(correlations, agentColumn, correlations.getCorrelationIdColumnIndex())
                 .join(symbolArrays, corrTableOffset + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
@@ -1269,10 +1269,10 @@ public final class StreamedDatabaseReader {
         final SparseArray<String> matcher = readCorrelation(agentId, agents.getMatcherColumnIndex());
         final SparseArray<String> adder = readCorrelation(agentId, agents.getAdderColumnIndex());
 
-        final int bunchSetsOffset = agents.getColumnCount();
-        final int bunchAccsOffset = bunchSetsOffset + bunchSets.getColumnCount();
-        final int stringsOffset = bunchAccsOffset + bunchAccs.getColumnCount();
-        final int acceptationsOffset = stringsOffset + strings.getColumnCount();
+        final int bunchSetsOffset = agents.columns().size();
+        final int bunchAccsOffset = bunchSetsOffset + bunchSets.columns().size();
+        final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
+        final int acceptationsOffset = stringsOffset + strings.columns().size();
 
         // TODO: This query does not manage the case where sourceSet is null
         // TODO: This query does not manage the case where diff is different from null

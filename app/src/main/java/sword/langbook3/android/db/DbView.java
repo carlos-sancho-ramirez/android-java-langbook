@@ -1,8 +1,9 @@
 package sword.langbook3.android.db;
 
+import sword.collections.ImmutableList;
+
 public interface DbView {
-    int getColumnCount();
-    DbColumn getColumn(int index);
+    ImmutableList<DbColumn> columns();
 
     /**
      * Return this instance typed as DbTable, or null if it's not a table

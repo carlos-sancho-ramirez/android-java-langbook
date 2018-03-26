@@ -164,7 +164,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final AcceptationsTable acceptations = Tables.acceptations; // J0
         final StringQueriesTable strings = Tables.stringQueries;
 
-        final int j1Offset = acceptations.getColumnCount();
+        final int j1Offset = acceptations.columns().size();
         final DbQuery query = new DbQuery.Builder(acceptations)
                 .join(strings, acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(acceptations.getConceptColumnIndex(), concept)

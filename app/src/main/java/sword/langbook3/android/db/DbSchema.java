@@ -12,7 +12,7 @@ public interface DbSchema {
         public final int column;
 
         public DbIndex(DbTable table, int column) {
-            if (table == null || column < 0 || column >= table.getColumnCount()) {
+            if (table == null || column < 0 || column >= table.columns().size()) {
                 throw new IllegalArgumentException();
             }
 

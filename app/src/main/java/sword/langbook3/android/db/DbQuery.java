@@ -2,6 +2,8 @@ package sword.langbook3.android.db;
 
 import java.util.ArrayList;
 
+import sword.collections.ImmutableList;
+
 public final class DbQuery implements DbView {
 
     private static final int FLAG_COLUMN_FUNCTION_MAX = 0x10000;
@@ -18,6 +20,7 @@ public final class DbQuery implements DbView {
     private final int[] _selectionFunctions;
 
     private final transient DbColumn[] _joinColumns;
+    private transient ImmutableList<DbColumn> _columns;
 
     private DbQuery(DbView[] tables, int[] joinPairs, int[] columnValueMatchPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] groupBy, int[] orderBy, int[] selectedColumns, int[] selectionFunctions) {
 
@@ -25,17 +28,16 @@ public final class DbQuery implements DbView {
             throw new IllegalArgumentException();
         }
 
-        int joinColumnCount = tables[0].getColumnCount();
+        int joinColumnCount = tables[0].columns().size();
         for (int i = 1; i < tables.length; i++) {
-            joinColumnCount += tables[i].getColumnCount();
+            joinColumnCount += tables[i].columns().size();
         }
 
         final DbColumn[] joinColumns = new DbColumn[joinColumnCount];
         int index = 0;
         for (int i = 0; i < tables.length; i++) {
-            final int columnCount = tables[i].getColumnCount();
-            for (int j = 0; j < columnCount; j++) {
-                joinColumns[index++] = tables[i].getColumn(j);
+            for (DbColumn column : tables[i].columns()) {
+                joinColumns[index++] = column;
             }
         }
 
@@ -138,7 +140,7 @@ public final class DbQuery implements DbView {
         int count = 0;
         int tableIndex = 0;
         while (column >= count) {
-            count += _tables[tableIndex++].getColumnCount();
+            count += _tables[tableIndex++].columns().size();
         }
         return tableIndex - 1;
     }
@@ -156,13 +158,18 @@ public final class DbQuery implements DbView {
     }
 
     @Override
-    public int getColumnCount() {
-        return _selectedColumns.length;
-    }
+    public ImmutableList<DbColumn> columns() {
+        if (_columns == null) {
+            final int size = _selectedColumns.length;
+            final ImmutableList.Builder<DbColumn> builder = new ImmutableList.Builder<>(size);
+            for (int selected : _selectedColumns) {
+                builder.add(_joinColumns[selected]);
+            }
 
-    @Override
-    public DbColumn getColumn(int index) {
-        return _joinColumns[_selectedColumns[index]];
+            _columns = builder.build();
+        }
+
+        return _columns;
     }
 
     @Override
@@ -323,7 +330,7 @@ public final class DbQuery implements DbView {
 
         public Builder(DbView table) {
             _tables.add(table);
-            _joinColumnCount = table.getColumnCount();
+            _joinColumnCount = table.columns().size();
         }
 
         public Builder where(int columnIndex, DbValue value) {
@@ -351,7 +358,7 @@ public final class DbQuery implements DbView {
         }
 
         public Builder join(DbTable table, int left, int newTableColumnIndex) {
-            final int tableColumnCount = table.getColumnCount();
+            final int tableColumnCount = table.columns().size();
             if (left < 0 || left >= _joinColumnCount || newTableColumnIndex < 0 || newTableColumnIndex >= tableColumnCount) {
                 throw new IndexOutOfBoundsException();
             }
