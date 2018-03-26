@@ -98,7 +98,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     static Progress readProgress(SQLiteDatabase db, int quizId) {
         final KnowledgeTable knowledge = Tables.knowledge;
 
-        final Cursor cursor = db.rawQuery("SELECT " + knowledge.getColumnName(knowledge.getScoreColumnIndex()) + " FROM " + knowledge.name() + " WHERE " + knowledge.getColumnName(knowledge.getQuizDefinitionColumnIndex()) + "=?",
+        final Cursor cursor = db.rawQuery("SELECT " + knowledge.columns().get(knowledge.getScoreColumnIndex()).name() + " FROM " + knowledge.name() + " WHERE " + knowledge.columns().get(knowledge.getQuizDefinitionColumnIndex()).name() + "=?",
                 new String[] { Integer.toString(quizId)});
 
         int numberOfQuestions = 0;
@@ -137,12 +137,12 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         final QuestionFieldSets fieldSets = Tables.questionFieldSets;
         Cursor cursor = db.rawQuery("SELECT" +
                 " J0." + idColumnName +
-                ",J1." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) +
-                ",J1." + fieldSets.getColumnName(fieldSets.getRuleColumnIndex()) +
-                ",J1." + fieldSets.getColumnName(fieldSets.getFlagsColumnIndex()) +
+                ",J1." + fieldSets.columns().get(fieldSets.getAlphabetColumnIndex()).name() +
+                ",J1." + fieldSets.columns().get(fieldSets.getRuleColumnIndex()).name() +
+                ",J1." + fieldSets.columns().get(fieldSets.getFlagsColumnIndex()).name() +
                 " FROM " + quizzes.name() + " AS J0" +
-                " JOIN " + fieldSets.name() + " AS J1 ON J0." + quizzes.getColumnName(quizzes.getQuestionFieldsColumnIndex()) + "=J1." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
-                " WHERE J0." + quizzes.getColumnName(quizzes.getBunchColumnIndex()) + "=?",
+                " JOIN " + fieldSets.name() + " AS J1 ON J0." + quizzes.columns().get(quizzes.getQuestionFieldsColumnIndex()).name() + "=J1." + fieldSets.columns().get(fieldSets.getSetIdColumnIndex()).name() +
+                " WHERE J0." + quizzes.columns().get(quizzes.getBunchColumnIndex()).name() + "=?",
                 new String[] {Integer.toString(bunch)});
 
         final SparseArray<Set<QuestionField>> resultMap = new SparseArray<>();

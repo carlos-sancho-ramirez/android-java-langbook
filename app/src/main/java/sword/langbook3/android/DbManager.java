@@ -211,10 +211,10 @@ class DbManager extends SQLiteOpenHelper {
         final int setId = getMaxQuestionFieldSetId(db) + 1;
 
         for (QuestionField field : fields) {
-            fieldsCv.put(table.getColumnName(table.getSetIdColumnIndex()), setId);
-            fieldsCv.put(table.getColumnName(table.getAlphabetColumnIndex()), field.alphabet);
-            fieldsCv.put(table.getColumnName(table.getRuleColumnIndex()), field.rule);
-            fieldsCv.put(table.getColumnName(table.getFlagsColumnIndex()), field.flags);
+            fieldsCv.put(table.columns().get(table.getSetIdColumnIndex()).name(), setId);
+            fieldsCv.put(table.columns().get(table.getAlphabetColumnIndex()).name(), field.alphabet);
+            fieldsCv.put(table.columns().get(table.getRuleColumnIndex()).name(), field.rule);
+            fieldsCv.put(table.columns().get(table.getFlagsColumnIndex()).name(), field.flags);
             db.insert(table.name(), null, fieldsCv);
         }
 
@@ -238,8 +238,8 @@ class DbManager extends SQLiteOpenHelper {
     static int insertQuizDefinition(SQLiteDatabase db, int bunch, int setId) {
         final QuizDefinitionsTable table = Tables.quizDefinitions;
         ContentValues cv = new ContentValues();
-        cv.put(table.getColumnName(table.getBunchColumnIndex()), bunch);
-        cv.put(table.getColumnName(table.getQuestionFieldsColumnIndex()), setId);
+        cv.put(table.columns().get(table.getBunchColumnIndex()).name(), bunch);
+        cv.put(table.columns().get(table.getQuestionFieldsColumnIndex()).name(), setId);
         final long returnId = db.insert(table.name(), null, cv);
         if (returnId < 0) {
             throw new AssertionError("insert returned a negative id");
@@ -254,18 +254,11 @@ class DbManager extends SQLiteOpenHelper {
                     .append(table.name())
                     .append(" (");
 
-            final int columnCount = table.columns().size();
-            for (int j = 0; j < columnCount; j++) {
-                final String columnName = table.getColumnName(j);
-                if (j != 0) {
-                    builder.append(", ");
-                }
+            final String columns = table.columns()
+                    .map(column -> column.name() + ' ' + column.sqlType())
+                    .reduce((left, right) -> left + ", " + right);
 
-                builder.append(columnName).append(' ')
-                        .append(table.getColumnType(j));
-            }
-            builder.append(')');
-
+            builder.append(columns).append(')');
             db.execSQL(builder.toString());
         }
     }
@@ -273,7 +266,7 @@ class DbManager extends SQLiteOpenHelper {
     private static void createIndexes(SQLiteDatabase db, DbSchema schema) {
         int i = 0;
         for (DbSchema.DbIndex index : schema.indexes()) {
-            db.execSQL("CREATE INDEX I" + (i++) + " ON " + index.table.name() + " (" + index.table.getColumnName(index.column) + ')');
+            db.execSQL("CREATE INDEX I" + (i++) + " ON " + index.table.name() + " (" + index.table.columns().get(index.column).name() + ')');
         }
     }
 

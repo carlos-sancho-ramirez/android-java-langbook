@@ -50,11 +50,11 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
         final SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
         Cursor cursor = db.rawQuery(
-                "SELECT J0." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
-                        ",J1." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
+                "SELECT J0." + correlations.columns().get(correlations.getAlphabetColumnIndex()).name() +
+                        ",J1." + symbolArrays.columns().get(symbolArrays.getStrColumnIndex()).name() +
                 " FROM " + correlations.name() + " AS J0" +
-                        " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J1." + idColumnName +
-                        " WHERE J0." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) + "=?", new String[] { Integer.toString(correlation) });
+                        " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.columns().get(correlations.getSymbolArrayColumnIndex()).name() + "=J1." + idColumnName +
+                        " WHERE J0." + correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name() + "=?", new String[] { Integer.toString(correlation) });
 
         final SparseArray<String> result = new SparseArray<>();
         if (cursor != null) {
@@ -80,12 +80,12 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
 
         Cursor cursor = db.rawQuery(
                 "SELECT J1." + idColumnName +
-                        ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
+                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
                 " FROM " + correlationArrays.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                " WHERE J0." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=?" +
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + correlationArrays.columns().get(correlationArrays.getArrayIdColumnIndex()).name() + "=J1." + acceptations.columns().get(acceptations.getCorrelationArrayColumnIndex()).name() +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
+                " WHERE J0." + correlationArrays.columns().get(correlationArrays.getCorrelationColumnIndex()).name() + "=?" +
                 " ORDER BY J1." + idColumnName, new String[] { Integer.toString(correlation) });
 
         final SparseArray<String> result = new SparseArray<>();
@@ -126,14 +126,14 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
         final CorrelationsTable correlations = Tables.correlations;
         final SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
-        final String alphabetField = correlations.getColumnName(correlations.getAlphabetColumnIndex());
-        final String correlationIdField = correlations.getColumnName(correlations.getCorrelationIdColumnIndex());
-        final String symbolArrayField = correlations.getColumnName(correlations.getSymbolArrayColumnIndex());
+        final String alphabetField = correlations.columns().get(correlations.getAlphabetColumnIndex()).name();
+        final String correlationIdField = correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name();
+        final String symbolArrayField = correlations.columns().get(correlations.getSymbolArrayColumnIndex()).name();
 
         final Cursor cursor = db.rawQuery(
                 "SELECT J1." + correlationIdField +
                         ",J2." + alphabetField +
-                        ",J3." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
+                        ",J3." + symbolArrays.columns().get(symbolArrays.getStrColumnIndex()).name() +
                 " FROM " + correlations.name() + " AS J0" +
                         " JOIN " + correlations.name() + " AS J1 ON J0." + symbolArrayField + "=J1." + symbolArrayField +
                         " JOIN " + correlations.name() + " AS J2 ON J1." + correlationIdField + "=J2." + correlationIdField +

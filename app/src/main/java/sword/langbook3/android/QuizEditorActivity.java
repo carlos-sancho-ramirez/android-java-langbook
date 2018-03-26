@@ -186,11 +186,11 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         Cursor cursor = db.rawQuery(
                 "SELECT" +
                         " J0." + idColumnName +
-                        ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
+                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
                 " FROM " + alphabets.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + idColumnName + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + idColumnName + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
                         " ORDER BY J0." + idColumnName, null);
 
         final SparseArray<String> result = new SparseArray<>();
@@ -236,14 +236,14 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
-                        " J1." + agents.getColumnName(agents.getRuleColumnIndex()) +
-                        ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        " J1." + agents.columns().get(agents.getRuleColumnIndex()).name() +
+                        ",J3." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
+                        ",J3." + strings.columns().get(strings.getStringColumnIndex()).name() +
                 " FROM " + ruledConcepts.name() + " AS J0" +
-                        " JOIN " + agents.name() + " AS J1 ON J0." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J1." + idColumnName +
-                        " JOIN " + acceptations.name() + " AS J2 ON J1." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " ORDER BY J1." + agents.getColumnName(agents.getRuleColumnIndex()), null);
+                        " JOIN " + agents.name() + " AS J1 ON J0." + ruledConcepts.columns().get(ruledConcepts.getAgentColumnIndex()).name() + "=J1." + idColumnName +
+                        " JOIN " + acceptations.name() + " AS J2 ON J1." + agents.columns().get(agents.getRuleColumnIndex()).name() + "=J2." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
+                        " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
+                        " ORDER BY J1." + agents.columns().get(agents.getRuleColumnIndex()).name(), null);
 
         final SparseArray<String> result = new SparseArray<>();
         if (cursor != null) {
@@ -459,10 +459,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
 
     private Set<Integer> readAllAcceptations(SQLiteDatabase db, int alphabet) {
         final StringQueriesTable strings = Tables.stringQueries;
-        final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+        final Cursor cursor = db.rawQuery("SELECT " + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
                         " FROM " + strings.name() +
-                        " WHERE " + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?" +
-                        " AND " + strings.getColumnName(strings.getMainAcceptationColumnIndex()) + '=' + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()),
+                        " WHERE " + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?" +
+                        " AND " + strings.columns().get(strings.getMainAcceptationColumnIndex()).name() + '=' + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name(),
                 new String[]{Integer.toString(alphabet)});
 
         if (cursor != null) {
@@ -486,11 +486,11 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     private Set<Integer> readAllAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
         final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
-        final Cursor cursor = db.rawQuery("SELECT " + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
+        final Cursor cursor = db.rawQuery("SELECT " + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() +
                 " FROM " + bunchAcceptations.name() + " AS J0" +
-                " JOIN " + strings.name() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
-                " AND J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?",
+                " JOIN " + strings.name() + " AS J1 ON J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() + "=J1." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
+                " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() + "=?" +
+                " AND J1." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?",
                 new String[]{Integer.toString(_bunch), Integer.toString(alphabet)});
 
         if (cursor != null) {
@@ -515,9 +515,9 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final AcceptationsTable acceptations = Tables.acceptations;
         final StringQueriesTable strings = Tables.stringQueries;
 
-        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
-        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
+        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
+        final String conceptField = acceptations.columns().get(acceptations.getConceptColumnIndex()).name();
+        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
 
         final Cursor cursor = db.rawQuery("SELECT J0." + idColumnName +
                         " FROM " + acceptations.name() + " AS J0" +
@@ -551,17 +551,17 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
 
-        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String conceptField = acceptations.getColumnName(acceptations.getConceptColumnIndex());
-        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-        final String accField = bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex());
+        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
+        final String conceptField = acceptations.columns().get(acceptations.getConceptColumnIndex()).name();
+        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
+        final String accField = bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name();
 
         final Cursor cursor = db.rawQuery("SELECT J1." + idColumnName +
                         " FROM " + bunchAcceptations.name() + " AS J0" +
                         " JOIN " + acceptations.name() + " AS J1 ON J0." + accField + "=J1." + idColumnName +
                         " JOIN " + acceptations.name() + " AS J2 ON J1." + conceptField + "=J2." + conceptField +
                         " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + dynAccField +
-                        " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
+                        " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() + "=?" +
                         " AND J3." + alphabetField + "=?" +
                         " AND J1." + idColumnName + "!=J2." + idColumnName,
                 new String[]{Integer.toString(_bunch), Integer.toString(alphabet)}
@@ -590,14 +590,14 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
         final AgentsTable agents = Tables.agents;
 
-        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) +
+        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
+        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
+        final Cursor cursor = db.rawQuery("SELECT J0." + ruledAcceptations.columns().get(ruledAcceptations.getAcceptationColumnIndex()).name() +
                         " FROM " + ruledAcceptations.name() + " AS J0" +
-                        " JOIN " + agents.name() + " AS J1 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J1." + idColumnName +
+                        " JOIN " + agents.name() + " AS J1 ON J0." + ruledAcceptations.columns().get(ruledAcceptations.getAgentColumnIndex()).name() + "=J1." + idColumnName +
                         " JOIN " + strings.name() + " AS J2 ON J0." + idColumnName + "=J2." + dynAccField +
                         " WHERE J2." + alphabetField + "=?" +
-                        " AND J1." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
+                        " AND J1." + agents.columns().get(agents.getRuleColumnIndex()).name() + "=?",
                 new String[]{Integer.toString(alphabet), Integer.toString(rule)}
         );
 
@@ -633,16 +633,16 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
         final AgentsTable agents = Tables.agents;
 
-        final String alphabetField = strings.getColumnName(strings.getStringAlphabetColumnIndex());
-        final String dynAccField = strings.getColumnName(strings.getDynamicAcceptationColumnIndex());
-        final Cursor cursor = db.rawQuery("SELECT J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) +
+        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
+        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
+        final Cursor cursor = db.rawQuery("SELECT J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() +
                         " FROM " + bunchAcceptations.name() + " AS J0" +
-                        " JOIN " + ruledAcceptations.name() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J1." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) +
-                        " JOIN " + agents.name() + " AS J2 ON J1." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
+                        " JOIN " + ruledAcceptations.name() + " AS J1 ON J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() + "=J1." + ruledAcceptations.columns().get(ruledAcceptations.getAcceptationColumnIndex()).name() +
+                        " JOIN " + agents.name() + " AS J2 ON J1." + ruledAcceptations.columns().get(ruledAcceptations.getAgentColumnIndex()).name() + "=J2." + idColumnName +
                         " JOIN " + strings.name() + " AS J3 ON J1." + idColumnName + "=J3." + dynAccField +
-                        " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=?" +
+                        " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() + "=?" +
                         " AND J3." + alphabetField + "=?" +
-                        " AND J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=?",
+                        " AND J2." + agents.columns().get(agents.getRuleColumnIndex()).name() + "=?",
                 new String[]{Integer.toString(_bunch), Integer.toString(alphabet), Integer.toString(rule)}
         );
 
@@ -707,9 +707,9 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
 
     private void insertAllPossibilities(SQLiteDatabase db, int quizId, Set<Integer> acceptations) {
         final KnowledgeTable table = Tables.knowledge;
-        final String quizDefField = table.getColumnName(table.getQuizDefinitionColumnIndex());
-        final String accField = table.getColumnName(table.getAcceptationColumnIndex());
-        final String scoreField = table.getColumnName(table.getScoreColumnIndex());
+        final String quizDefField = table.columns().get(table.getQuizDefinitionColumnIndex()).name();
+        final String accField = table.columns().get(table.getAcceptationColumnIndex()).name();
+        final String scoreField = table.columns().get(table.getScoreColumnIndex()).name();
 
         final ContentValues cv = new ContentValues();
         for (int acceptation : acceptations) {

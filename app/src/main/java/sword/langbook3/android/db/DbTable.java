@@ -30,14 +30,6 @@ public abstract class DbTable implements DbView {
         return 0;
     }
 
-    public String getColumnName(int index) {
-        return _columns.get(index).name();
-    }
-
-    public String getColumnType(int index) {
-        return _columns.get(index).sqlType();
-    }
-
     @Override
     public DbTable asTable() {
         return this;

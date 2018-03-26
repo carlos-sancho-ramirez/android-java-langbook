@@ -58,11 +58,11 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
     private void querySearchResults(String query) {
         final StringQueriesTable table = Tables.stringQueries;
         Cursor cursor = DbManager.getInstance().getReadableDatabase().rawQuery("SELECT " +
-                table.getColumnName(table.getStringColumnIndex()) + ',' +
-                table.getColumnName(table.getMainStringColumnIndex()) + ',' +
-                table.getColumnName(table.getMainAcceptationColumnIndex()) + ',' +
-                table.getColumnName(table.getDynamicAcceptationColumnIndex()) +
-                " FROM " + table.name() + " WHERE " + table.getColumnName(table.getStringColumnIndex()) + " LIKE '" + query + "%'", null);
+                table.columns().get(table.getStringColumnIndex()).name() + ',' +
+                table.columns().get(table.getMainStringColumnIndex()).name() + ',' +
+                table.columns().get(table.getMainAcceptationColumnIndex()).name() + ',' +
+                table.columns().get(table.getDynamicAcceptationColumnIndex()).name() +
+                " FROM " + table.name() + " WHERE " + table.columns().get(table.getStringColumnIndex()).name() + " LIKE '" + query + "%'", null);
 
         SearchResult[] results = new SearchResult[0];
         if (cursor != null) {

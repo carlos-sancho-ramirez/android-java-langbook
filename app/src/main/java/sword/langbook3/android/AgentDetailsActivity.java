@@ -46,12 +46,12 @@ public class AgentDetailsActivity extends Activity {
     int readAgent(SQLiteDatabase db) {
         final AgentsTable agents = Tables.agents; // J0
         Cursor cursor = db.rawQuery(
-                "SELECT " + agents.getColumnName(agents.getTargetBunchColumnIndex()) +
-                        "," + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
-                        "," + agents.getColumnName(agents.getDiffBunchSetColumnIndex()) +
-                        "," + agents.getColumnName(agents.getMatcherColumnIndex()) +
-                        "," + agents.getColumnName(agents.getAdderColumnIndex()) +
-                        "," + agents.getColumnName(agents.getRuleColumnIndex()) +
+                "SELECT " + agents.columns().get(agents.getTargetBunchColumnIndex()).name() +
+                        "," + agents.columns().get(agents.getSourceBunchSetColumnIndex()).name() +
+                        "," + agents.columns().get(agents.getDiffBunchSetColumnIndex()).name() +
+                        "," + agents.columns().get(agents.getMatcherColumnIndex()).name() +
+                        "," + agents.columns().get(agents.getAdderColumnIndex()).name() +
+                        "," + agents.columns().get(agents.getRuleColumnIndex()).name() +
                         " FROM " + agents.name() +
                         " WHERE " + idColumnName + "=?",
                 new String[] { Integer.toString(_agentId) });
@@ -94,11 +94,11 @@ public class AgentDetailsActivity extends Activity {
         Cursor cursor = db.rawQuery(
                 "SELECT" +
                         " J0." + idColumnName +
-                        ",J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J1." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J1." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
+                        ",J1." + strings.columns().get(strings.getStringColumnIndex()).name() +
                         " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " WHERE J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=?",
+                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
+                        " WHERE J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=?",
                 new String[] { Integer.toString(bunch) });
 
         if (cursor != null) {
@@ -134,14 +134,14 @@ public class AgentDetailsActivity extends Activity {
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
-                        " J0." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) +
+                        " J0." + bunchSets.columns().get(bunchSets.getBunchColumnIndex()).name() +
                         ",J1." + idColumnName +
-                        ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
-                        ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
+                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
+                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
                         " FROM " + bunchSets.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " WHERE J0." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) + "=?",
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + bunchSets.columns().get(bunchSets.getBunchColumnIndex()).name() + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
+                        " WHERE J0." + bunchSets.columns().get(bunchSets.getSetIdColumnIndex()).name() + "=?",
                 new String[] { Integer.toString(bunchSet) });
 
         if (cursor != null) {
@@ -189,11 +189,11 @@ public class AgentDetailsActivity extends Activity {
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
-                        " J0." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
-                        ",J1." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
+                        " J0." + correlations.columns().get(correlations.getAlphabetColumnIndex()).name() +
+                        ",J1." + symbolArrays.columns().get(symbolArrays.getStrColumnIndex()).name() +
                         " FROM " + correlations.name() + " AS J0" +
-                        " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J1." + idColumnName +
-                        " WHERE J0." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) + "=?",
+                        " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.columns().get(correlations.getSymbolArrayColumnIndex()).name() + "=J1." + idColumnName +
+                        " WHERE J0." + correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name() + "=?",
                 new String[] { Integer.toString(correlationId) });
 
         final SparseArray<String> result = new SparseArray<>();
