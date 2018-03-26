@@ -52,7 +52,7 @@ public class AgentDetailsActivity extends Activity {
                         "," + agents.getColumnName(agents.getMatcherColumnIndex()) +
                         "," + agents.getColumnName(agents.getAdderColumnIndex()) +
                         "," + agents.getColumnName(agents.getRuleColumnIndex()) +
-                        " FROM " + agents.getName() +
+                        " FROM " + agents.name() +
                         " WHERE " + idColumnName + "=?",
                 new String[] { Integer.toString(_agentId) });
 
@@ -96,8 +96,8 @@ public class AgentDetailsActivity extends Activity {
                         " J0." + idColumnName +
                         ",J1." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J1." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " FROM " + acceptations.name() + " AS J0" +
+                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                         " WHERE J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=?",
                 new String[] { Integer.toString(bunch) });
 
@@ -138,9 +138,9 @@ public class AgentDetailsActivity extends Activity {
                         ",J1." + idColumnName +
                         ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        " FROM " + bunchSets.getName() + " AS J0" +
-                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " FROM " + bunchSets.name() + " AS J0" +
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                         " WHERE J0." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) + "=?",
                 new String[] { Integer.toString(bunchSet) });
 
@@ -191,8 +191,8 @@ public class AgentDetailsActivity extends Activity {
                 "SELECT" +
                         " J0." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
                         ",J1." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
-                        " FROM " + correlations.getName() + " AS J0" +
-                        " JOIN " + symbolArrays.getName() + " AS J1 ON J0." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J1." + idColumnName +
+                        " FROM " + correlations.name() + " AS J0" +
+                        " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J1." + idColumnName +
                         " WHERE J0." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) + "=?",
                 new String[] { Integer.toString(correlationId) });
 

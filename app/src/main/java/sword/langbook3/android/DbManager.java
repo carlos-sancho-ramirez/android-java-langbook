@@ -66,7 +66,7 @@ class DbManager extends SQLiteOpenHelper {
         final int count = query.getColumnCount();
         ContentValues cv = new ContentValues();
         for (int i = 0; i < count; i++) {
-            final String name = query.getColumn(i).getName();
+            final String name = query.getColumn(i).name();
             final DbValue value = query.getValue(i);
             if (value.isText()) {
                 cv.put(name, value.toText());
@@ -76,7 +76,7 @@ class DbManager extends SQLiteOpenHelper {
             }
         }
 
-        final long returnId = db.insert(query.getTable().getName(), null, cv);
+        final long returnId = db.insert(query.getTable().name(), null, cv);
         return (returnId >= 0)? (int) returnId : null;
     }
 
@@ -215,7 +215,7 @@ class DbManager extends SQLiteOpenHelper {
             fieldsCv.put(table.getColumnName(table.getAlphabetColumnIndex()), field.alphabet);
             fieldsCv.put(table.getColumnName(table.getRuleColumnIndex()), field.rule);
             fieldsCv.put(table.getColumnName(table.getFlagsColumnIndex()), field.flags);
-            db.insert(table.getName(), null, fieldsCv);
+            db.insert(table.name(), null, fieldsCv);
         }
 
         return setId;
@@ -240,7 +240,7 @@ class DbManager extends SQLiteOpenHelper {
         ContentValues cv = new ContentValues();
         cv.put(table.getColumnName(table.getBunchColumnIndex()), bunch);
         cv.put(table.getColumnName(table.getQuestionFieldsColumnIndex()), setId);
-        final long returnId = db.insert(table.getName(), null, cv);
+        final long returnId = db.insert(table.name(), null, cv);
         if (returnId < 0) {
             throw new AssertionError("insert returned a negative id");
         }
@@ -251,7 +251,7 @@ class DbManager extends SQLiteOpenHelper {
         for (DbTable table : schema.tables()) {
             StringBuilder builder = new StringBuilder();
             builder.append("CREATE TABLE ")
-                    .append(table.getName())
+                    .append(table.name())
                     .append(" (");
 
             final int columnCount = table.columns().size();
@@ -273,7 +273,7 @@ class DbManager extends SQLiteOpenHelper {
     private static void createIndexes(SQLiteDatabase db, DbSchema schema) {
         int i = 0;
         for (DbSchema.DbIndex index : schema.indexes()) {
-            db.execSQL("CREATE INDEX I" + (i++) + " ON " + index.table.getName() + " (" + index.table.getColumnName(index.column) + ')');
+            db.execSQL("CREATE INDEX I" + (i++) + " ON " + index.table.name() + " (" + index.table.getColumnName(index.column) + ')');
         }
     }
 

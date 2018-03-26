@@ -7,7 +7,7 @@ public final class DbTextColumn extends DbColumn {
     }
 
     @Override
-    public String getSqlType() {
+    public String sqlType() {
         return "TEXT";
     }
 

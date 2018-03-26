@@ -89,10 +89,10 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                     ",J2." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
                     ",J2." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
                     ",J3." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
-                " FROM " + acceptations.getName() + " AS J0" +
-                    " JOIN " + correlationArrays.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) + "=J1." + correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) +
-                    " JOIN " + correlations.getName() + " AS J2 ON J1." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J2." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
-                    " JOIN " + symbolArrays.getName() + " AS J3 ON J2." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J3." + idColumnName +
+                " FROM " + acceptations.name() + " AS J0" +
+                    " JOIN " + correlationArrays.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) + "=J1." + correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) +
+                    " JOIN " + correlations.name() + " AS J2 ON J1." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=J2." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) +
+                    " JOIN " + symbolArrays.name() + " AS J3 ON J2." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J3." + idColumnName +
                 " WHERE J0." + idColumnName + "=?" +
                 " ORDER BY" +
                     " J1." + correlationArrays.getColumnName(correlationArrays.getArrayPositionColumnIndex()) +
@@ -141,7 +141,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final AcceptationsTable acceptations = Tables.acceptations; // J0
         Cursor cursor = db.rawQuery(
                 "SELECT " + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " FROM " + acceptations.getName() +
+                        " FROM " + acceptations.name() +
                         " WHERE " + idColumnName + "=?",
                 new String[] { Integer.toString(acceptation) });
 
@@ -215,9 +215,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                     ",J1." + idColumnName +
                     ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                     ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + alphabets.getName() + " AS J0" +
-                    " JOIN " + acceptations.getName() + " AS J1 ON J0." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                    " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " FROM " + alphabets.name() + " AS J0" +
+                    " JOIN " + acceptations.name() + " AS J1 ON J0." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                    " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                     " WHERE J0." + idColumnName + "=?",
                 new String[] { Integer.toString(alphabet) });
 
@@ -267,10 +267,10 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         " J2." + idColumnName +
                         ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + acceptations.getName() + " AS J0" +
-                    " JOIN " + bunchConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchConcepts.getColumnName(bunchConcepts.getConceptColumnIndex()) +
-                    " JOIN " + acceptations.getName() + " AS J2 ON J1." + bunchConcepts.getColumnName(bunchConcepts.getBunchColumnIndex()) + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                    " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " FROM " + acceptations.name() + " AS J0" +
+                    " JOIN " + bunchConcepts.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchConcepts.getColumnName(bunchConcepts.getConceptColumnIndex()) +
+                    " JOIN " + acceptations.name() + " AS J2 ON J1." + bunchConcepts.getColumnName(bunchConcepts.getBunchColumnIndex()) + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                    " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                 " WHERE J0." + idColumnName + "=?",
                 new String[] { Integer.toString(acceptation) });
 
@@ -311,11 +311,11 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         " J2." + idColumnName +
                         ",J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J3." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + bunchConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchConcepts.getColumnName(bunchConcepts.getBunchColumnIndex()) +
-                        " JOIN " + acceptations.getName() + " AS J2 ON J1." + bunchConcepts.getColumnName(bunchConcepts.getConceptColumnIndex()) + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " JOIN " + alphabets.getName() + " AS J4 ON J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=J4." + idColumnName +
+                " FROM " + acceptations.name() + " AS J0" +
+                        " JOIN " + bunchConcepts.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchConcepts.getColumnName(bunchConcepts.getBunchColumnIndex()) +
+                        " JOIN " + acceptations.name() + " AS J2 ON J1." + bunchConcepts.getColumnName(bunchConcepts.getConceptColumnIndex()) + "=J2." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + alphabets.name() + " AS J4 ON J3." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=J4." + idColumnName +
                 " WHERE J0." + idColumnName + "=?" +
                         " AND J4." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=?" +
                 " ORDER BY J2." + idColumnName,
@@ -382,9 +382,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
                         ",J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAgentSetColumnIndex()) +
-                " FROM " + bunchAcceptations.getName() + " AS J0" +
-                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " FROM " + bunchAcceptations.name() + " AS J0" +
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                         " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=?",
                 new String[] { Integer.toString(acceptation) });
 
@@ -453,9 +453,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
                         ",J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAgentSetColumnIndex()) +
-                " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + bunchAcceptations.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J2 ON J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " FROM " + acceptations.name() + " AS J0" +
+                        " JOIN " + bunchAcceptations.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchAcceptations.getColumnName(bunchAcceptations.getBunchColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                 " WHERE J0." + idColumnName + "=?" +
                 " ORDER BY J1." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()),
                 new String[] { Integer.toString(acceptation) });
@@ -523,11 +523,11 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         " J1." + idColumnName +
                         ",J4." + idColumnName +
                         ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " JOIN " + alphabets.getName() + " AS J3 ON J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=J3." + idColumnName +
-                        " JOIN " + languages.getName() + " AS J4 ON J3." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J4." + idColumnName +
+                " FROM " + acceptations.name() + " AS J0" +
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + alphabets.name() + " AS J3 ON J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=J3." + idColumnName +
+                        " JOIN " + languages.name() + " AS J4 ON J3." + alphabets.getColumnName(alphabets.getLanguageColumnIndex()) + "=J4." + idColumnName +
                 " WHERE J0." + idColumnName + "=?" +
                         " AND J0." + acceptations.getColumnName(acceptations.getWordColumnIndex()) + "!=J1." + acceptations.getColumnName(acceptations.getWordColumnIndex()) +
                         " AND J3." + idColumnName + "=J4." + languages.getColumnName(languages.getMainAlphabetColumnIndex()),
@@ -588,11 +588,11 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
                         ",J4." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J4." + strings.getColumnName(strings.getStringColumnIndex()) +
                         ",J2." + idColumnName +
-                " FROM " + ruledAcceptations.getName() + " AS J0" +
-                        " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " JOIN " + agents.getName() + " AS J2 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
-                        " JOIN " + acceptations.getName() + " AS J3 ON J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J3." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J4 ON J3." + idColumnName + "=J4." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " FROM " + ruledAcceptations.name() + " AS J0" +
+                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + agents.name() + " AS J2 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
+                        " JOIN " + acceptations.name() + " AS J3 ON J2." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J3." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J4 ON J3." + idColumnName + "=J4." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                 " WHERE J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) + "=?" +
                         " AND J1." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) + "=?" +
                 " ORDER BY J0." + idColumnName,
@@ -672,8 +672,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final AgentsTable agents = Tables.agents;
 
         final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
-                " FROM " + acceptations.getName() + " AS J0" +
-                " JOIN " + agents.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + agents.getColumnName(agents.getTargetBunchColumnIndex()) +
+                " FROM " + acceptations.name() + " AS J0" +
+                " JOIN " + agents.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + agents.getColumnName(agents.getTargetBunchColumnIndex()) +
                 " WHERE J0." + idColumnName + "=?",
         new String[] { Integer.toString(staticAcceptation)});
 
@@ -703,9 +703,9 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final BunchSetsTable bunchSets = Tables.bunchSets;
 
         final Cursor cursor = db.rawQuery(" SELECT J2." + idColumnName +
-                " FROM " + acceptations.getName() + " AS J0" +
-                " JOIN " + bunchSets.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) +
-                " JOIN " + agents.getName() + " AS J2 ON J1." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) + "=J2." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
+                " FROM " + acceptations.name() + " AS J0" +
+                " JOIN " + bunchSets.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + bunchSets.getColumnName(bunchSets.getBunchColumnIndex()) +
+                " JOIN " + agents.name() + " AS J2 ON J1." + bunchSets.getColumnName(bunchSets.getSetIdColumnIndex()) + "=J2." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
                 " WHERE J0." + idColumnName + "=?",
                 new String[] { Integer.toString(staticAcceptation)});
 
@@ -734,8 +734,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final AgentsTable agents = Tables.agents;
 
         final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
-                        " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + agents.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + agents.getColumnName(agents.getRuleColumnIndex()) +
+                        " FROM " + acceptations.name() + " AS J0" +
+                        " JOIN " + agents.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + agents.getColumnName(agents.getRuleColumnIndex()) +
                         " WHERE J0." + idColumnName + "=?",
                 new String[] { Integer.toString(staticAcceptation)});
 
@@ -765,8 +765,8 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
         final AgentSetsTable agentSets = Tables.agentSets;
 
         final Cursor cursor = db.rawQuery(" SELECT J1." + agentSets.getColumnName(agentSets.getAgentColumnIndex()) +
-                        " FROM " + bunchAcceptations.getName() + " AS J0" +
-                        " JOIN " + agentSets.getName() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAgentSetColumnIndex()) + "=J1." + agentSets.getColumnName(agentSets.getSetIdColumnIndex()) +
+                        " FROM " + bunchAcceptations.name() + " AS J0" +
+                        " JOIN " + agentSets.name() + " AS J1 ON J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAgentSetColumnIndex()) + "=J1." + agentSets.getColumnName(agentSets.getSetIdColumnIndex()) +
                         " WHERE J0." + bunchAcceptations.getColumnName(bunchAcceptations.getAcceptationColumnIndex()) + "=?",
                 new String[] { Integer.toString(staticAcceptation)});
 

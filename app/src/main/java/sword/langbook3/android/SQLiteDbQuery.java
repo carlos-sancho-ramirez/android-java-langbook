@@ -18,7 +18,7 @@ final class SQLiteDbQuery {
             return "S" + (subQueryIndex + 1) + "C" + index;
         }
         else {
-            return "J" + _query.getTableIndexFromColumnIndex(index) + '.' + _query.getJoinColumn(index).getName();
+            return "J" + _query.getTableIndexFromColumnIndex(index) + '.' + _query.getJoinColumn(index).name();
         }
     }
 
@@ -58,16 +58,16 @@ final class SQLiteDbQuery {
             sb.append('(').append(sqlQuery.toSql(subQueryIndex + 1)).append(')');
         }
         else if (table != null) {
-            sb.append(table.getName());
+            sb.append(table.name());
         }
         sb.append(" AS J0");
 
         for (int i = 1; i < tableCount; i++) {
             final DbQuery.JoinColumnPair pair = _query.getJoinPair(i - 1);
-            sb.append(" JOIN ").append(_query.getView(i).asTable().getName()).append(" AS J").append(i);
+            sb.append(" JOIN ").append(_query.getView(i).asTable().name()).append(" AS J").append(i);
             sb.append(" ON J").append(_query.getTableIndexFromColumnIndex(pair.getLeft())).append('.');
-            sb.append(_query.getJoinColumn(pair.getLeft()).getName()).append("=J").append(i);
-            sb.append('.').append(_query.getJoinColumn(pair.getRight()).getName());
+            sb.append(_query.getJoinColumn(pair.getLeft()).name()).append("=J").append(i);
+            sb.append('.').append(_query.getJoinColumn(pair.getRight()).name());
         }
 
         return sb.toString();

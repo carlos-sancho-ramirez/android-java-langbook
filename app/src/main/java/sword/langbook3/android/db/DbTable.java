@@ -17,7 +17,7 @@ public abstract class DbTable implements DbView {
         _columns = builder.build();
     }
 
-    public String getName() {
+    public String name() {
         return _name;
     }
 
@@ -31,11 +31,11 @@ public abstract class DbTable implements DbView {
     }
 
     public String getColumnName(int index) {
-        return _columns.get(index).getName();
+        return _columns.get(index).name();
     }
 
     public String getColumnType(int index) {
-        return _columns.get(index).getSqlType();
+        return _columns.get(index).sqlType();
     }
 
     @Override

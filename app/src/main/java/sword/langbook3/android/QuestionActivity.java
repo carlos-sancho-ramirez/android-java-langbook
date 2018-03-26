@@ -86,8 +86,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                         fieldTable.getColumnName(fieldTable.getAlphabetColumnIndex()) + ',' +
                         fieldTable.getColumnName(fieldTable.getRuleColumnIndex()) + ',' +
                         fieldTable.getColumnName(fieldTable.getFlagsColumnIndex()) +
-                        " FROM " + quizTable.getName() + " AS J0" +
-                        " JOIN " + fieldTable.getName() + " AS J1 ON J0." + quizTable.getColumnName(quizTable.getQuestionFieldsColumnIndex()) + "=J1." + fieldTable.getColumnName(fieldTable.getSetIdColumnIndex()) +
+                        " FROM " + quizTable.name() + " AS J0" +
+                        " JOIN " + fieldTable.name() + " AS J1 ON J0." + quizTable.getColumnName(quizTable.getQuestionFieldsColumnIndex()) + "=J1." + fieldTable.getColumnName(fieldTable.getSetIdColumnIndex()) +
                         " WHERE J0." + idColumnName + "=?",
                 new String[] {Integer.toString(_quizId)});
 
@@ -113,7 +113,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private String readSameAcceptationQuestionText(SQLiteDatabase db, int index) {
         final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
-                            " FROM " + strings.getName() +
+                            " FROM " + strings.name() +
                             " WHERE " + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) + "=?" +
                             " AND " + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?",
                     new String[]{Integer.toString(_acceptation), Integer.toString(_fields[index].alphabet)});
@@ -135,9 +135,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final AcceptationsTable acceptations = Tables.acceptations;
         final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT J2." + strings.getColumnName(strings.getStringColumnIndex()) +
-                        " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " FROM " + acceptations.name() + " AS J0" +
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                         " WHERE J0." + idColumnName + "=?" +
                         " AND J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?" +
                         " AND J1." + idColumnName + "!=J0." + idColumnName,
@@ -165,9 +165,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
-                        " FROM " + ruledAcceptations.getName() + " AS J0" +
-                        " JOIN " + strings.getName() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
-                        " JOIN " + agents.getName() + " AS J2 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
+                        " FROM " + ruledAcceptations.name() + " AS J0" +
+                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                        " JOIN " + agents.name() + " AS J2 ON J0." + ruledAcceptations.getColumnName(ruledAcceptations.getAgentColumnIndex()) + "=J2." + idColumnName +
                         " WHERE " + ruledAcceptations.getColumnName(ruledAcceptations.getAcceptationColumnIndex()) + "=?" +
                         " AND " + agents.getColumnName(agents.getRuleColumnIndex()) + "=?" +
                         " AND " + strings.getColumnName(strings.getStringAlphabetColumnIndex()) + "=?",
@@ -345,7 +345,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final Cursor cursor = db.rawQuery("SELECT " +
                         table.getColumnName(table.getAcceptationColumnIndex()) + ',' +
                         table.getColumnName(table.getScoreColumnIndex()) +
-                        " FROM " + table.getName() + " WHERE " +
+                        " FROM " + table.name() + " WHERE " +
                         table.getColumnName(table.getQuizDefinitionColumnIndex()) + "=?",
                 new String[] {Integer.toString(_quizId)});
 
@@ -386,7 +386,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         cv.put(table.getColumnName(table.getAcceptationColumnIndex()), _acceptation);
         cv.put(table.getColumnName(table.getScoreColumnIndex()), score);
 
-        db.insert(table.getName(), null, cv);
+        db.insert(table.name(), null, cv);
     }
 
     private void updateKnowledge(SQLiteDatabase db, int score) {
@@ -395,7 +395,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         cv.put(table.getColumnName(table.getScoreColumnIndex()), score);
         final String whereClause = table.getColumnName(table.getQuizDefinitionColumnIndex()) +
                 "=? AND " + table.getColumnName(table.getAcceptationColumnIndex()) + "=?";
-        db.update(table.getName(), cv, whereClause,
+        db.update(table.name(), cv, whereClause,
                 new String[] { Integer.toString(_quizId), Integer.toString(_acceptation)});
     }
 

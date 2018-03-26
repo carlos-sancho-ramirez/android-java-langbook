@@ -8,11 +8,11 @@ public abstract class DbColumn {
         _name = name;
     }
 
-    public final String getName() {
+    public final String name() {
         return _name;
     }
 
-    public abstract String getSqlType();
+    public abstract String sqlType();
 
     /**
      * Whether the field content may be understood as a char sequence.

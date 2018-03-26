@@ -52,8 +52,8 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
         Cursor cursor = db.rawQuery(
                 "SELECT J0." + correlations.getColumnName(correlations.getAlphabetColumnIndex()) +
                         ",J1." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
-                " FROM " + correlations.getName() + " AS J0" +
-                        " JOIN " + symbolArrays.getName() + " AS J1 ON J0." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J1." + idColumnName +
+                " FROM " + correlations.name() + " AS J0" +
+                        " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.getColumnName(correlations.getSymbolArrayColumnIndex()) + "=J1." + idColumnName +
                         " WHERE J0." + correlations.getColumnName(correlations.getCorrelationIdColumnIndex()) + "=?", new String[] { Integer.toString(correlation) });
 
         final SparseArray<String> result = new SparseArray<>();
@@ -82,9 +82,9 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
                 "SELECT J1." + idColumnName +
                         ",J2." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J2." + strings.getColumnName(strings.getStringColumnIndex()) +
-                " FROM " + correlationArrays.getName() + " AS J0" +
-                        " JOIN " + acceptations.getName() + " AS J1 ON J0." + correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                " FROM " + correlationArrays.name() + " AS J0" +
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + correlationArrays.getColumnName(correlationArrays.getArrayIdColumnIndex()) + "=J1." + acceptations.getColumnName(acceptations.getCorrelationArrayColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                 " WHERE J0." + correlationArrays.getColumnName(correlationArrays.getCorrelationColumnIndex()) + "=?" +
                 " ORDER BY J1." + idColumnName, new String[] { Integer.toString(correlation) });
 
@@ -134,10 +134,10 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
                 "SELECT J1." + correlationIdField +
                         ",J2." + alphabetField +
                         ",J3." + symbolArrays.getColumnName(symbolArrays.getStrColumnIndex()) +
-                " FROM " + correlations.getName() + " AS J0" +
-                        " JOIN " + correlations.getName() + " AS J1 ON J0." + symbolArrayField + "=J1." + symbolArrayField +
-                        " JOIN " + correlations.getName() + " AS J2 ON J1." + correlationIdField + "=J2." + correlationIdField +
-                        " JOIN " + symbolArrays.getName() + " AS J3 ON J2." + symbolArrayField + "=J3." + idColumnName +
+                " FROM " + correlations.name() + " AS J0" +
+                        " JOIN " + correlations.name() + " AS J1 ON J0." + symbolArrayField + "=J1." + symbolArrayField +
+                        " JOIN " + correlations.name() + " AS J2 ON J1." + correlationIdField + "=J2." + correlationIdField +
+                        " JOIN " + symbolArrays.name() + " AS J3 ON J2." + symbolArrayField + "=J3." + idColumnName +
                 " WHERE J0." + correlationIdField + "=? AND " +
                         "J0." + alphabetField + "=? AND " +
                         "J0." + alphabetField + "=J1." + alphabetField + " AND " +

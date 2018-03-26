@@ -81,7 +81,7 @@ public class RuleTableActivity extends Activity {
         final StringQueriesTable strings = Tables.stringQueries;
         SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
         final Cursor cursor = db.rawQuery("SELECT " + strings.getColumnName(strings.getStringColumnIndex()) +
-                        " FROM " + strings.getName() + " WHERE " +
+                        " FROM " + strings.name() + " WHERE " +
                         strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) + "=?",
                 new String[]{Integer.toString(acceptation)});
 
@@ -113,14 +113,14 @@ public class RuleTableActivity extends Activity {
                         ",J7." + strings.getColumnName(strings.getStringAlphabetColumnIndex()) +
                         ",J7." + strings.getColumnName(strings.getStringColumnIndex()) +
                         ",J7." + strings.getColumnName(strings.getMainAcceptationColumnIndex()) +
-                    " FROM " + acceptations.getName() + " AS J0" +
-                        " JOIN " + ruledConcepts.getName() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + idColumnName +
-                        " JOIN " + ruledConcepts.getName() + " AS J2 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) + "=J2." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
-                        " JOIN " + agents.getName() + " AS J3 ON J2." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J3." + idColumnName +
-                        " JOIN " + agents.getName() + " AS J4 ON J3." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J4." + agents.getColumnName(agents.getRuleColumnIndex()) +
-                        " JOIN " + ruledConcepts.getName() + " AS J5 ON J4." + idColumnName + "=J5." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) +
-                        " JOIN " + acceptations.getName() + " AS J6 ON J5." + idColumnName + "=J6." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
-                        " JOIN " + strings.getName() + " AS J7 ON J6." + idColumnName + "=J7." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
+                    " FROM " + acceptations.name() + " AS J0" +
+                        " JOIN " + ruledConcepts.name() + " AS J1 ON J0." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) + "=J1." + idColumnName +
+                        " JOIN " + ruledConcepts.name() + " AS J2 ON J1." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) + "=J2." + ruledConcepts.getColumnName(ruledConcepts.getConceptColumnIndex()) +
+                        " JOIN " + agents.name() + " AS J3 ON J2." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) + "=J3." + idColumnName +
+                        " JOIN " + agents.name() + " AS J4 ON J3." + agents.getColumnName(agents.getRuleColumnIndex()) + "=J4." + agents.getColumnName(agents.getRuleColumnIndex()) +
+                        " JOIN " + ruledConcepts.name() + " AS J5 ON J4." + idColumnName + "=J5." + ruledConcepts.getColumnName(ruledConcepts.getAgentColumnIndex()) +
+                        " JOIN " + acceptations.name() + " AS J6 ON J5." + idColumnName + "=J6." + acceptations.getColumnName(acceptations.getConceptColumnIndex()) +
+                        " JOIN " + strings.name() + " AS J7 ON J6." + idColumnName + "=J7." + strings.getColumnName(strings.getDynamicAcceptationColumnIndex()) +
                     " WHERE J0." + idColumnName + "=?" +
                         " ORDER BY J4." + agents.getColumnName(agents.getSourceBunchSetColumnIndex()) +
                         ",J6." + idColumnName +

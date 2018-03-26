@@ -98,7 +98,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     static Progress readProgress(SQLiteDatabase db, int quizId) {
         final KnowledgeTable knowledge = Tables.knowledge;
 
-        final Cursor cursor = db.rawQuery("SELECT " + knowledge.getColumnName(knowledge.getScoreColumnIndex()) + " FROM " + knowledge.getName() + " WHERE " + knowledge.getColumnName(knowledge.getQuizDefinitionColumnIndex()) + "=?",
+        final Cursor cursor = db.rawQuery("SELECT " + knowledge.getColumnName(knowledge.getScoreColumnIndex()) + " FROM " + knowledge.name() + " WHERE " + knowledge.getColumnName(knowledge.getQuizDefinitionColumnIndex()) + "=?",
                 new String[] { Integer.toString(quizId)});
 
         int numberOfQuestions = 0;
@@ -140,8 +140,8 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 ",J1." + fieldSets.getColumnName(fieldSets.getAlphabetColumnIndex()) +
                 ",J1." + fieldSets.getColumnName(fieldSets.getRuleColumnIndex()) +
                 ",J1." + fieldSets.getColumnName(fieldSets.getFlagsColumnIndex()) +
-                " FROM " + quizzes.getName() + " AS J0" +
-                " JOIN " + fieldSets.getName() + " AS J1 ON J0." + quizzes.getColumnName(quizzes.getQuestionFieldsColumnIndex()) + "=J1." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
+                " FROM " + quizzes.name() + " AS J0" +
+                " JOIN " + fieldSets.name() + " AS J1 ON J0." + quizzes.getColumnName(quizzes.getQuestionFieldsColumnIndex()) + "=J1." + fieldSets.getColumnName(fieldSets.getSetIdColumnIndex()) +
                 " WHERE J0." + quizzes.getColumnName(quizzes.getBunchColumnIndex()) + "=?",
                 new String[] {Integer.toString(bunch)});
 

@@ -9,7 +9,7 @@ public final class DbIdColumn extends DbColumn {
     }
 
     @Override
-    public String getSqlType() {
+    public String sqlType() {
         return "INTEGER PRIMARY KEY AUTOINCREMENT";
     }
 
