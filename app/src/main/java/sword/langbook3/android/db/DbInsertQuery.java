@@ -1,18 +1,15 @@
 package sword.langbook3.android.db;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.MutableIntKeyMap;
 
 public final class DbInsertQuery {
 
     private final DbTable _table;
-    private final int[] _columns;
-    private final DbValue[] _values;
+    private final ImmutableIntKeyMap<DbValue> _values;
 
-    private DbInsertQuery(DbTable table, int[] columns, DbValue[] values) {
+    private DbInsertQuery(DbTable table, ImmutableIntKeyMap<DbValue> values) {
         _table = table;
-        _columns = columns;
         _values = values;
     }
 
@@ -21,20 +18,20 @@ public final class DbInsertQuery {
     }
 
     public int getColumnCount() {
-        return _columns.length;
+        return _values.size();
     }
 
     public DbColumn getColumn(int index) {
-        return _table.columns().get(_columns[index]);
+        return _table.columns().get(_values.keyAt(index));
     }
 
     public DbValue getValue(int index) {
-        return _values[index];
+        return _values.valueAt(index);
     }
 
     public static final class Builder {
         private final DbTable _table;
-        private final Map<Integer, DbValue> _map = new HashMap<>();
+        private final MutableIntKeyMap<DbValue> _values = MutableIntKeyMap.empty();
 
         public Builder(DbTable table) {
             if (table == null) {
@@ -45,11 +42,11 @@ public final class DbInsertQuery {
         }
 
         private DbInsertQuery.Builder put(int column, DbValue value) {
-            if (column < 0 || column >= _table.columns().size() || _map.containsKey(column)) {
+            if (column < 0 || column >= _table.columns().size() || _values.keySet().contains(column)) {
                 throw new IllegalArgumentException();
             }
 
-            _map.put(column, value);
+            _values.put(column, value);
             return this;
         }
 
@@ -62,21 +59,7 @@ public final class DbInsertQuery {
         }
 
         public DbInsertQuery build() {
-            final int size = _map.size();
-            final int[] keys = new int[size];
-
-            int i = 0;
-            for (int key : _map.keySet()) {
-                keys[i++] = key;
-            }
-            Arrays.sort(keys);
-
-            final DbValue[] values = new DbValue[size];
-            for (i = 0; i < size; i++) {
-                values[i] = _map.get(keys[i]);
-            }
-
-            return new DbInsertQuery(_table, keys, values);
+            return new DbInsertQuery(_table, _values.toImmutable());
         }
     }
 }
