@@ -17,4 +17,14 @@ public final class DbIdColumn extends DbColumn {
     public boolean isText() {
         return false;
     }
+
+    @Override
+    public boolean isPrimaryKey() {
+        return true;
+    }
+
+    @Override
+    public boolean isUnique() {
+        return true;
+    }
 }

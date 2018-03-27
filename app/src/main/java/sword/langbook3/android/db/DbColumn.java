@@ -20,4 +20,12 @@ public abstract class DbColumn {
      * to assume that all non-text field are actually int fields.
      */
     public abstract boolean isText();
+
+    public boolean isPrimaryKey() {
+        return false;
+    }
+
+    public boolean isUnique() {
+        return false;
+    }
 }

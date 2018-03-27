@@ -15,4 +15,9 @@ public final class DbUniqueTextColumn extends DbColumn {
     public boolean isText() {
         return true;
     }
+
+    @Override
+    public boolean isUnique() {
+        return true;
+    }
 }

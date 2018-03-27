@@ -2,11 +2,11 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableList;
 
-public abstract class DbTable implements DbView {
+public class DbTable implements DbView {
     private final String _name;
     private final ImmutableList<DbColumn> _columns;
 
-    protected DbTable(String name, DbColumn... columns) {
+    public DbTable(String name, DbColumn... columns) {
         final ImmutableList.Builder<DbColumn> builder = new ImmutableList.Builder<>();
         builder.add(new DbIdColumn());
         for (DbColumn column : columns) {
