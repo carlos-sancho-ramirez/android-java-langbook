@@ -12,24 +12,24 @@ final class SQLiteDbQuery {
         _query = query;
     }
 
-    private String getSqlColumnName(int subQueryIndex, int index) {
-        final int tableIndex = _query.getTableIndexFromColumnIndex(index);
+    private String getSqlColumnName(int subQueryIndex, int columnIndex) {
+        final int tableIndex = _query.getTableIndexFromColumnIndex(columnIndex);
         if (tableIndex == 0 && _query.getView(0).asQuery() != null) {
-            return "S" + (subQueryIndex + 1) + "C" + index;
+            return "S" + (subQueryIndex + 1) + "C" + columnIndex;
         }
         else {
-            return "J" + _query.getTableIndexFromColumnIndex(index) + '.' + _query.getJoinColumn(index).name();
+            return "J" + _query.getTableIndexFromColumnIndex(columnIndex) + '.' + _query.getJoinColumn(columnIndex).name();
         }
     }
 
-    private String getSqlSelectedColumnName(int subQueryIndex, int index) {
-        final String name = getSqlColumnName(subQueryIndex, _query.getSelectedColumnIndex(index));
-        return _query.isMaxAggregateFunctionSelection(index)? "coalesce(max(" + name + "), 0)" :
-                _query.isConcatAggregateFunctionSelection(index)? "group_concat(" + name + ",'')" : name;
+    private String getSqlSelectedColumnName(int subQueryIndex, int selectionIndex) {
+        final String name = getSqlColumnName(subQueryIndex, _query.selection().valueAt(selectionIndex));
+        return _query.isMaxAggregateFunctionSelection(selectionIndex)? "coalesce(max(" + name + "), 0)" :
+                _query.isConcatAggregateFunctionSelection(selectionIndex)? "group_concat(" + name + ",'')" : name;
     }
 
     private String getSqlSelectedColumnNames(int subQueryIndex) {
-        final int selectedColumnCount = _query.getSelectedColumnCount();
+        final int selectedColumnCount = _query.selection().size();
         final StringBuilder sb = new StringBuilder(getSqlSelectedColumnName(subQueryIndex, 0));
         if (subQueryIndex > 0) {
             sb.append(" AS S").append(subQueryIndex).append("C0");

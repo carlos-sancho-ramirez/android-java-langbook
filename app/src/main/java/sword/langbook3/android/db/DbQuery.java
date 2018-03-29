@@ -3,8 +3,8 @@ package sword.langbook3.android.db;
 import java.util.ArrayList;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.MutableIntKeyMap;
 
@@ -19,16 +19,17 @@ public final class DbQuery implements DbView {
     private final ImmutableIntKeyMap<DbValue> _restrictions;
     private final int[] _groupBy;
     private final int[] _orderBy;
-    private final int[] _selectedColumns;
-    private final int[] _selectionFunctions;
+
+    // keys of this maps are the column indexes, while value is the FLAG for the column selection function, or 0 if not aggregate function is required.
+    private final ImmutableIntPairMap _selection;
 
     private final transient DbColumn[] _joinColumns;
     private transient ImmutableList<DbColumn> _columns;
 
     private DbQuery(DbView[] tables, int[] joinPairs, int[] columnValueMatchPairs,
-            ImmutableIntKeyMap<DbValue> restrictions, int[] groupBy, int[] orderBy, int[] selectedColumns, int[] selectionFunctions) {
+            ImmutableIntKeyMap<DbValue> restrictions, int[] groupBy, int[] orderBy, ImmutableIntPairMap selection) {
 
-        if (tables == null || tables.length == 0 || selectedColumns == null || selectedColumns.length == 0) {
+        if (tables == null || tables.length == 0 || selection == null || selection.isEmpty()) {
             throw new IllegalArgumentException();
         }
 
@@ -61,19 +62,12 @@ public final class DbQuery implements DbView {
             throw new IllegalArgumentException("Invalid column value matching pairs");
         }
 
-        if (!hasValidSetValues(selectedColumns, 0, joinColumnCount - 1) || selectedColumns.length > joinColumnCount) {
-            throw new IllegalArgumentException("Invalid column selection");
+        if (selection.keySet().min() < 0 || selection.keySet().max() >= joinColumnCount) {
+            throw new IllegalArgumentException("Selected column indexes out of bounds");
         }
 
-        if (selectionFunctions == null) {
-            selectionFunctions = new int[selectedColumns.length];
-        }
-
-        if (selectedColumns.length != selectionFunctions.length) {
-            throw new IllegalArgumentException();
-        }
-
-        for (int func : selectionFunctions) {
+        for (ImmutableIntPairMap.Entry entry : selection) {
+            final int func = entry.getValue();
             if (func != 0 && func != FLAG_COLUMN_FUNCTION_MAX && func != FLAG_COLUMN_FUNCTION_CONCAT) {
                 throw new IllegalArgumentException("Unexpected aggregate function");
             }
@@ -118,8 +112,7 @@ public final class DbQuery implements DbView {
         _restrictions = restrictions;
         _groupBy = groupBy;
         _orderBy = orderBy;
-        _selectedColumns = selectedColumns;
-        _selectionFunctions = selectionFunctions;
+        _selection = selection;
 
         _joinColumns = joinColumns;
     }
@@ -145,29 +138,15 @@ public final class DbQuery implements DbView {
         return _joinColumns[index];
     }
 
-    public int getSelectedColumnCount() {
-        return _selectedColumns.length;
-    }
-
-    public int getSelectedColumnIndex(int index) {
-        return _selectedColumns[index];
-    }
-
     public ImmutableIntSet selection() {
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        for (int columnIndex : _selectedColumns) {
-            builder.add(columnIndex);
-        }
-
-        return builder.build();
+        return _selection.keySet();
     }
 
     @Override
     public ImmutableList<DbColumn> columns() {
         if (_columns == null) {
-            final int size = _selectedColumns.length;
-            final ImmutableList.Builder<DbColumn> builder = new ImmutableList.Builder<>(size);
-            for (int selected : _selectedColumns) {
+            final ImmutableList.Builder<DbColumn> builder = new ImmutableList.Builder<>();
+            for (int selected : _selection.keySet()) {
                 builder.add(_joinColumns[selected]);
             }
 
@@ -299,11 +278,11 @@ public final class DbQuery implements DbView {
     }
 
     public boolean isMaxAggregateFunctionSelection(int selectionIndex) {
-        return (_selectionFunctions[selectionIndex] & FLAG_COLUMN_FUNCTION_MAX) != 0;
+        return (_selection.valueAt(selectionIndex) & FLAG_COLUMN_FUNCTION_MAX) != 0;
     }
 
     public boolean isConcatAggregateFunctionSelection(int selectionIndex) {
-        return (_selectionFunctions[selectionIndex] & FLAG_COLUMN_FUNCTION_CONCAT) != 0;
+        return (_selection.valueAt(selectionIndex) & FLAG_COLUMN_FUNCTION_CONCAT) != 0;
     }
 
     public static int max(int index) {
@@ -387,8 +366,6 @@ public final class DbQuery implements DbView {
             final DbView[] views = new DbView[_tables.size()];
             final int[] joinPairs = new int[_joinPairs.size()];
             final int[] columnValueMatchPairs = new int[_columnValueMatchPairs.size()];
-            final int[] filteredSelection = new int[selection.length];
-            final int[] funcSelection = new int[selection.length];
 
             _tables.toArray(views);
 
@@ -400,14 +377,15 @@ public final class DbQuery implements DbView {
                 columnValueMatchPairs[i] = _columnValueMatchPairs.get(i);
             }
 
+            final ImmutableIntPairMap.Builder selectionBuilder = new ImmutableIntPairMap.Builder();
             for (int i = 0; i < selection.length; i++) {
-                filteredSelection[i] = (FLAG_COLUMN_FUNCTION_MAX - 1) & selection[i];
-                if (selection[i] != filteredSelection[i]) {
-                    funcSelection[i] = selection[i] & ~(FLAG_COLUMN_FUNCTION_MAX - 1);
-                }
+                int columnIndex = (FLAG_COLUMN_FUNCTION_MAX - 1) & selection[i];
+                int func = selection[i] & ~(FLAG_COLUMN_FUNCTION_MAX - 1);
+                selectionBuilder.put(columnIndex, func);
             }
 
-            return new DbQuery(views, joinPairs, columnValueMatchPairs, _restrictions.toImmutable(), _groupBy, _orderBy, filteredSelection, funcSelection);
+            return new DbQuery(views, joinPairs, columnValueMatchPairs, _restrictions.toImmutable(),
+                    _groupBy, _orderBy, selectionBuilder.build());
         }
     }
 }
