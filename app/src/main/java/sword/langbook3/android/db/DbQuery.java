@@ -2,7 +2,11 @@ package sword.langbook3.android.db;
 
 import java.util.ArrayList;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
+import sword.collections.MutableIntKeyMap;
 
 public final class DbQuery implements DbView {
 
@@ -12,8 +16,7 @@ public final class DbQuery implements DbView {
     private final DbView[] _tables;
     private final int[] _joinPairs;
     private final int[] _columnValueMatchingPairs;
-    private final int[] _restrictionKeys;
-    private final DbValue[] _restrictionValues;
+    private final ImmutableIntKeyMap<DbValue> _restrictions;
     private final int[] _groupBy;
     private final int[] _orderBy;
     private final int[] _selectedColumns;
@@ -22,7 +25,8 @@ public final class DbQuery implements DbView {
     private final transient DbColumn[] _joinColumns;
     private transient ImmutableList<DbColumn> _columns;
 
-    private DbQuery(DbView[] tables, int[] joinPairs, int[] columnValueMatchPairs, int[] restrictionKeys, DbValue[] restrictionValues, int[] groupBy, int[] orderBy, int[] selectedColumns, int[] selectionFunctions) {
+    private DbQuery(DbView[] tables, int[] joinPairs, int[] columnValueMatchPairs,
+            ImmutableIntKeyMap<DbValue> restrictions, int[] groupBy, int[] orderBy, int[] selectedColumns, int[] selectionFunctions) {
 
         if (tables == null || tables.length == 0 || selectedColumns == null || selectedColumns.length == 0) {
             throw new IllegalArgumentException();
@@ -75,26 +79,19 @@ public final class DbQuery implements DbView {
             }
         }
 
-        if (restrictionKeys == null) {
-            restrictionKeys = new int[0];
+        if (restrictions == null) {
+            restrictions = ImmutableIntKeyMap.empty();
         }
 
-        if (restrictionValues == null) {
-            restrictionValues = new DbValue[0];
-        }
-
-        final int restrictionCount = restrictionKeys.length;
-        if (restrictionCount != restrictionValues.length) {
-            throw new IllegalArgumentException("Restriction key and value should match in length");
-        }
-
-        if (!hasValidSetValues(restrictionKeys, 0, joinColumnCount - 1)) {
-            throw new IllegalArgumentException("Selected columns has repeated values");
+        final int restrictionCount = restrictions.size();
+        final ImmutableIntSet restrictedColumns = restrictions.keySet();
+        if (restrictionCount > 0 && (restrictedColumns.min() < 0 || restrictedColumns.max() >= joinColumnCount)) {
+            throw new IllegalArgumentException("Restricted column indexes out of bounds");
         }
 
         for (int i = 0; i < restrictionCount; i++) {
-            final DbValue value = restrictionValues[i];
-            if (value == null || joinColumns[restrictionKeys[i]].isText() != value.isText()) {
+            final DbValue value = restrictions.valueAt(i);
+            if (value == null || joinColumns[restrictions.keyAt(i)].isText() != value.isText()) {
                 throw new IllegalArgumentException();
             }
         }
@@ -118,8 +115,7 @@ public final class DbQuery implements DbView {
         _tables = tables;
         _joinPairs = joinPairs;
         _columnValueMatchingPairs = columnValueMatchPairs;
-        _restrictionKeys = restrictionKeys;
-        _restrictionValues = restrictionValues;
+        _restrictions = restrictions;
         _groupBy = groupBy;
         _orderBy = orderBy;
         _selectedColumns = selectedColumns;
@@ -155,6 +151,15 @@ public final class DbQuery implements DbView {
 
     public int getSelectedColumnIndex(int index) {
         return _selectedColumns[index];
+    }
+
+    public ImmutableIntSet selection() {
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (int columnIndex : _selectedColumns) {
+            builder.add(columnIndex);
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -234,15 +239,19 @@ public final class DbQuery implements DbView {
     }
 
     public int getRestrictionCount() {
-        return _restrictionKeys.length;
+        return _restrictions.size();
     }
 
     public int getRestrictedColumnIndex(int index) {
-        return _restrictionKeys[index];
+        return _restrictions.keyAt(index);
     }
 
     public DbValue getRestriction(int index) {
-        return _restrictionValues[index];
+        return _restrictions.valueAt(index);
+    }
+
+    public ImmutableIntKeyMap<DbValue> restrictions() {
+        return _restrictions;
     }
 
     public int getGroupingCount() {
@@ -321,8 +330,7 @@ public final class DbQuery implements DbView {
     public static final class Builder {
         private final ArrayList<DbView> _tables = new ArrayList<>();
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
-        private final ArrayList<Integer> _restrictionKeys = new ArrayList<>();
-        private final ArrayList<DbValue> _restrictionValues = new ArrayList<>();
+        private final MutableIntKeyMap<DbValue> _restrictions = MutableIntKeyMap.empty();
         private final ArrayList<Integer> _columnValueMatchPairs = new ArrayList<>();
         private int[] _groupBy;
         private int[] _orderBy;
@@ -334,8 +342,7 @@ public final class DbQuery implements DbView {
         }
 
         public Builder where(int columnIndex, DbValue value) {
-            _restrictionKeys.add(columnIndex);
-            _restrictionValues.add(value);
+            _restrictions.put(columnIndex, value);
             return this;
         }
 
@@ -393,16 +400,9 @@ public final class DbQuery implements DbView {
             final DbView[] views = new DbView[_tables.size()];
             final int[] joinPairs = new int[_joinPairs.size()];
             final int[] columnValueMatchPairs = new int[_columnValueMatchPairs.size()];
-            final int restrictionPairs = _restrictionKeys.size();
-            final int[] keys = new int[restrictionPairs];
             final int[] filteredSelection = new int[selection.length];
             final int[] funcSelection = new int[selection.length];
-            final DbValue[] values = new DbValue[restrictionPairs];
 
-            for (int i = 0; i < restrictionPairs; i++) {
-                keys[i] = _restrictionKeys.get(i);
-            }
-            _restrictionValues.toArray(values);
             _tables.toArray(views);
 
             for (int i = 0; i < _joinPairs.size(); i++) {
@@ -420,7 +420,7 @@ public final class DbQuery implements DbView {
                 }
             }
 
-            return new DbQuery(views, joinPairs, columnValueMatchPairs, keys, values, _groupBy, _orderBy, filteredSelection, funcSelection);
+            return new DbQuery(views, joinPairs, columnValueMatchPairs, _restrictions.toImmutable(), _groupBy, _orderBy, filteredSelection, funcSelection);
         }
     }
 }

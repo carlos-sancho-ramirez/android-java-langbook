@@ -1,7 +1,12 @@
 package sword.langbook3.android.db;
 
+import java.util.Iterator;
+
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableList;
 import sword.collections.MutableMap;
 
 public class MemoryDatabase implements DbInitializer.Database {
@@ -58,25 +63,55 @@ public class MemoryDatabase implements DbInitializer.Database {
     public DbResult select(DbQuery query) {
         if (query.getTableCount() != 1 || query.getColumnValueMatchPairCount() != 0 ||
                 query.getGroupingCount() != 0 || query.getOrderingCount() != 0 ||
-                query.getRestrictionCount() != 1 || query.getRestrictedColumnIndex(0) != 0) {
+                query.getRestrictionCount() != 1) {
             throw new UnsupportedOperationException("Unimplemented");
         }
 
         final DbView view = query.getView(0);
         final MutableIntKeyMap<ImmutableList<Object>> content = _tableMap.get(view);
-        final ImmutableList<Object> register = content.get(query.getRestriction(0).toInt());
 
-        final int selectionCount = query.getSelectedColumnCount();
-        final ImmutableList.Builder<Object> builder = new ImmutableList.Builder<>();
-        for (int i = 0; i < selectionCount; i++) {
-            builder.add(register.get(query.getSelectedColumnIndex(i) - 1));
+        // Apply id restriction if found
+        final ImmutableIntKeyMap<DbValue> restrictions = query.restrictions();
+        final MutableList<ImmutableList<Object>> unselectedResult;
+        if (restrictions.keySet().contains(0)) {
+            final int id = restrictions.get(0).toInt();
+            ImmutableList<Object> register = content.get(id).prepend(id);
+            unselectedResult = new MutableList.Builder<ImmutableList<Object>>().add(register).build();
+        }
+        else {
+            final MutableList.Builder<ImmutableList<Object>> builder = new MutableList.Builder<>();
+            for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : content) {
+                final ImmutableList<Object> register = entry.getValue().prepend(entry.getKey());
+                builder.add(register);
+            }
+            unselectedResult = builder.build();
         }
 
-        final ImmutableList<ImmutableList<Object>> resultTable = new ImmutableList.Builder<ImmutableList<Object>>(1)
-                .add(builder.build())
-                .build();
+        // Apply restrictions
+        for (ImmutableIntKeyMap.Entry<DbValue> restriction : restrictions) {
+            final DbValue value = restriction.getValue();
+            final Object rawValue = value.isText()? value.toText() : value.toInt();
 
-        return new Result(resultTable);
+            final Iterator<ImmutableList<Object>> it = unselectedResult.iterator();
+            while (it.hasNext()) {
+                final ImmutableList<Object> register = it.next();
+                if (!rawValue.equals(register.get(restriction.getKey()))) {
+                    it.remove();
+                }
+            }
+        }
+
+        // Apply column selection
+        final ImmutableList.Builder<ImmutableList<Object>> builder = new ImmutableList.Builder<>(unselectedResult.size());
+        final ImmutableIntSet selection = query.selection();
+        for (ImmutableList<Object> register : unselectedResult) {
+            final ImmutableList.Builder<Object> regBuilder = new ImmutableList.Builder<>();
+            for (int columnIndex : selection) {
+                regBuilder.add(register.get(columnIndex));
+            }
+            builder.add(regBuilder.build());
+        }
+        return new Result(builder.build());
     }
 
     private MutableIntKeyMap<ImmutableList<Object>> obtainTableContent(DbTable table) {
