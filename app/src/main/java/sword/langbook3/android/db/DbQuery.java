@@ -225,19 +225,6 @@ public final class DbQuery implements DbView {
         return new JoinColumnPair(_columnValueMatchingPairs[index * 2], _columnValueMatchingPairs[index * 2 + 1]);
     }
 
-    public DbColumn getSelectedColumn(int index) {
-        return _joinColumns[getSelectedColumnIndex(index)];
-    }
-
-    public DbColumn[] getSelectedColumns() {
-        final DbColumn[] result = new DbColumn[getSelectedColumnCount()];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = getSelectedColumn(i);
-        }
-
-        return result;
-    }
-
     public int getRestrictionCount() {
         return _restrictions.size();
     }

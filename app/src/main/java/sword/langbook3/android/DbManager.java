@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import sword.collections.ImmutableList;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
@@ -59,7 +60,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private static SQLiteDbResult select(SQLiteDatabase db, DbQuery query) {
-        return new SQLiteDbResult(query.getSelectedColumns(), db.rawQuery(new SQLiteDbQuery(query).toSql(), null));
+        return new SQLiteDbResult(query.columns(), db.rawQuery(new SQLiteDbQuery(query).toSql(), null));
     }
 
     private static Integer insert(SQLiteDatabase db, DbInsertQuery query) {
@@ -293,12 +294,12 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     static class SQLiteDbResult implements DbResult {
-        private final DbColumn[] _columns;
+        private final ImmutableList<DbColumn> _columns;
         private final Cursor _cursor;
         private final int _rowCount;
         private int _nextRowIndex;
 
-        SQLiteDbResult(DbColumn[] columns, Cursor cursor) {
+        SQLiteDbResult(ImmutableList<DbColumn> columns, Cursor cursor) {
             _columns = columns;
             _cursor = cursor;
             _rowCount = cursor.getCount();
@@ -330,9 +331,10 @@ class DbManager extends SQLiteOpenHelper {
                 throw new UnsupportedOperationException("End already reached");
             }
 
-            final DbValue[] values = new DbValue[_columns.length];
-            for (int i = 0; i < _columns.length; i++) {
-                values[i] = _columns[i].isText()? new DbStringValue(_cursor.getString(i)) : new DbIntValue(_cursor.getInt(i));
+            final int columnCount = _columns.size();
+            final DbValue[] values = new DbValue[columnCount];
+            for (int i = 0; i < columnCount; i++) {
+                values[i] = _columns.get(i).isText()? new DbStringValue(_cursor.getString(i)) : new DbIntValue(_cursor.getInt(i));
             }
             Row row = new Row(values);
 
