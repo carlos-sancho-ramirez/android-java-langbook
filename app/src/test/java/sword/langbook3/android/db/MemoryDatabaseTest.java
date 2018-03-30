@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableList;
 import sword.collections.IntSet;
 
 import static org.junit.Assert.assertEquals;
@@ -180,5 +181,138 @@ public final class MemoryDatabaseTest {
         state.assertSet(primesSetId, primes);
         state.assertSet(fibonacciSetId, fibonacci);
         state.assertSet(evenSetId, even);
+    }
+
+    @Test
+    public void testInsertTextsAndSetsRetrieveAnIdMatchingJoinOfThem() {
+        final State state = new State();
+
+        final String name1 = "John";
+        final String name2 = "Sarah";
+        final String name3 = "Marie";
+        final String name4 = "Robert";
+        final String name5 = "Jill";
+
+        final int johnId = state.insertText(name1);
+        final int sarahId = state.insertText(name2);
+        final int marieId = state.insertText(name3);
+        final int robertId = state.insertText(name4);
+        final int jillId = state.insertText(name5);
+
+        final ImmutableIntSet males = new ImmutableIntSetBuilder()
+                .add(johnId).add(robertId).build();
+        final ImmutableIntSet females = new ImmutableIntSetBuilder()
+                .add(sarahId).add(marieId).add(jillId).build();
+        final ImmutableIntSet developers = new ImmutableIntSetBuilder()
+                .add(sarahId).add(robertId).build();
+        state.insertSet(males);
+        state.insertSet(females);
+        final int developersSetId = state.insertSet(developers);
+
+        final DbQuery query = new DbQuery.Builder(setTable)
+                .join(textTable, setTable.columns().indexOf(itemIdColumn), textTable.getIdColumnIndex())
+                .where(setTable.columns().indexOf(setIdColumn), developersSetId)
+                .select(setTable.columns().size() + textTable.columns().indexOf(textColumn));
+        final DbResult result = state.db.select(query);
+        final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>(result.getRemainingRows());
+        try {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toText());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        final ImmutableList<String> devNames = new ImmutableList.Builder<String>()
+                .add(name2).add(name4).build();
+        assertEquals(devNames, builder.build());
+    }
+
+    @Test
+    public void testInsertTextsAndSetsRetrieveANonIdMatchingJoinOfThem() {
+        final State state = new State();
+
+        final String name1 = "John";
+        final String name2 = "Sarah";
+        final String name3 = "Marie";
+        final String name4 = "Robert";
+        final String name5 = "Jill";
+
+        final int johnId = state.insertText(name1);
+        final int sarahId = state.insertText(name2);
+        final int marieId = state.insertText(name3);
+        final int robertId = state.insertText(name4);
+        final int jillId = state.insertText(name5);
+
+        final ImmutableIntSet males = new ImmutableIntSetBuilder()
+                .add(johnId).add(robertId).build();
+        final ImmutableIntSet females = new ImmutableIntSetBuilder()
+                .add(sarahId).add(marieId).add(jillId).build();
+        final ImmutableIntSet developers = new ImmutableIntSetBuilder()
+                .add(sarahId).add(robertId).build();
+        state.insertSet(males);
+        final int femalesSetId = state.insertSet(females);
+        final int developersSetId = state.insertSet(developers);
+
+        final DbQuery query = new DbQuery.Builder(textTable)
+                .join(setTable, textTable.getIdColumnIndex(), setTable.columns().indexOf(itemIdColumn))
+                .where(textTable.columns().indexOf(textColumn), name2)
+                .select(textTable.columns().size() + setTable.columns().indexOf(setIdColumn));
+        final DbResult result = state.db.select(query);
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        final ImmutableIntSet sarahGroups = new ImmutableIntSetBuilder()
+                .add(femalesSetId).add(developersSetId).build();
+        assertEquals(sarahGroups, builder.build());
+    }
+
+    @Test
+    public void testInsertTextsAndSetsRetrieveANonMatchingJoinOfThem() {
+        final State state = new State();
+
+        final String name1 = "John";
+        final String name2 = "Sarah";
+        final String name3 = "Marie";
+        final String name4 = "Robert";
+        final String name5 = "Jill";
+        final String name6 = "James";
+
+        final int johnId = state.insertText(name1);
+        final int sarahId = state.insertText(name2);
+        final int marieId = state.insertText(name3);
+        final int robertId = state.insertText(name4);
+        final int jillId = state.insertText(name5);
+        state.insertText(name6);
+
+        final ImmutableIntSet males = new ImmutableIntSetBuilder()
+                .add(johnId).add(robertId).build();
+        final ImmutableIntSet females = new ImmutableIntSetBuilder()
+                .add(sarahId).add(marieId).add(jillId).build();
+        final ImmutableIntSet developers = new ImmutableIntSetBuilder()
+                .add(sarahId).add(robertId).build();
+        state.insertSet(males);
+        state.insertSet(females);
+        state.insertSet(developers);
+
+        final DbQuery query = new DbQuery.Builder(textTable)
+                .join(setTable, textTable.getIdColumnIndex(), setTable.columns().indexOf(itemIdColumn))
+                .where(textTable.columns().indexOf(textColumn), name6)
+                .select(textTable.columns().size() + setTable.columns().indexOf(setIdColumn));
+        final DbResult result = state.db.select(query);
+        try {
+            assertFalse(result.hasNext());
+        }
+        finally {
+            result.close();
+        }
     }
 }

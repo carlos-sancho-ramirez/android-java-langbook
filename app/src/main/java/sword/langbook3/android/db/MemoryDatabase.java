@@ -9,6 +9,8 @@ import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
 
+import static sword.langbook3.android.EqualUtils.equal;
+
 public class MemoryDatabase implements DbInitializer.Database {
 
     private final MutableMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableMap.empty();
@@ -59,11 +61,68 @@ public class MemoryDatabase implements DbInitializer.Database {
         }
     }
 
+    private void applyJoins(MutableList<ImmutableList<Object>> result, DbQuery query) {
+        final int tableCount = query.getTableCount();
+        for (int viewIndex = 1; viewIndex < tableCount; viewIndex++) {
+            final DbView view = query.getView(viewIndex);
+            final DbQuery.JoinColumnPair joinPair = query.getJoinPair(viewIndex - 1);
+
+            for (int row = 0; row < result.size(); row++) {
+                final ImmutableList<Object> oldRow = result.get(row);
+                final Object rawValue = oldRow.get(joinPair.getLeft());
+                final MutableIntKeyMap<ImmutableList<Object>> viewContent = _tableMap.get(view);
+                final int targetJoinColumnIndex = joinPair.getRight() - oldRow.size();
+
+                if (targetJoinColumnIndex == 0) {
+                    final int id = (Integer) rawValue;
+                    ImmutableList<Object> newRow = oldRow.append(id).appendAll(viewContent.get(id));
+                    result.put(row, newRow);
+                }
+                else {
+                    boolean somethingReplaced = false;
+                    for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : viewContent) {
+                        if (equal(entry.getValue().get(targetJoinColumnIndex - 1), rawValue)) {
+                            final ImmutableList<Object> newRow = oldRow.append(entry.getKey())
+                                    .appendAll(entry.getValue());
+                            if (!somethingReplaced) {
+                                result.put(row, newRow);
+                                somethingReplaced = true;
+                            }
+                            else {
+                                result.insert(++row, newRow);
+                            }
+                        }
+                    }
+
+                    if (!somethingReplaced) {
+                        result.removeAt(row--);
+                    }
+                }
+            }
+        }
+    }
+
+    private void applyRestrictions(
+            MutableList<ImmutableList<Object>> result,
+            ImmutableIntKeyMap<DbValue> restrictions) {
+        for (ImmutableIntKeyMap.Entry<DbValue> restriction : restrictions) {
+            final DbValue value = restriction.getValue();
+            final Object rawValue = value.isText()? value.toText() : value.toInt();
+
+            final Iterator<ImmutableList<Object>> it = result.iterator();
+            while (it.hasNext()) {
+                final ImmutableList<Object> register = it.next();
+                if (!rawValue.equals(register.get(restriction.getKey()))) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
     @Override
     public DbResult select(DbQuery query) {
-        if (query.getTableCount() != 1 || query.getColumnValueMatchPairCount() != 0 ||
-                query.getGroupingCount() != 0 || query.getOrderingCount() != 0 ||
-                query.getRestrictionCount() != 1) {
+        if (query.getColumnValueMatchPairCount() != 0 ||
+                query.getGroupingCount() != 0 || query.getOrderingCount() != 0) {
             throw new UnsupportedOperationException("Unimplemented");
         }
 
@@ -87,19 +146,8 @@ public class MemoryDatabase implements DbInitializer.Database {
             unselectedResult = builder.build();
         }
 
-        // Apply restrictions
-        for (ImmutableIntKeyMap.Entry<DbValue> restriction : restrictions) {
-            final DbValue value = restriction.getValue();
-            final Object rawValue = value.isText()? value.toText() : value.toInt();
-
-            final Iterator<ImmutableList<Object>> it = unselectedResult.iterator();
-            while (it.hasNext()) {
-                final ImmutableList<Object> register = it.next();
-                if (!rawValue.equals(register.get(restriction.getKey()))) {
-                    it.remove();
-                }
-            }
-        }
+        applyJoins(unselectedResult, query);
+        applyRestrictions(unselectedResult, restrictions);
 
         // Apply column selection
         final ImmutableList.Builder<ImmutableList<Object>> builder = new ImmutableList.Builder<>(unselectedResult.size());
