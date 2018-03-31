@@ -6,6 +6,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableSet;
 import sword.collections.MutableIntKeyMap;
 
 public final class DbQuery implements DbView {
@@ -202,6 +203,16 @@ public final class DbQuery implements DbView {
 
     public JoinColumnPair getColumnValueMatchPair(int index) {
         return new JoinColumnPair(_columnValueMatchingPairs[index * 2], _columnValueMatchingPairs[index * 2 + 1]);
+    }
+
+    public ImmutableSet<JoinColumnPair> columnValueMatchPairs() {
+        final int count = _columnValueMatchingPairs.length / 2;
+        final ImmutableSet.Builder<JoinColumnPair> builder = new ImmutableSet.Builder<>();
+        for (int index = 0; index < count; index++) {
+            builder.add(new JoinColumnPair(_columnValueMatchingPairs[index * 2], _columnValueMatchingPairs[index * 2 + 1]));
+        }
+
+        return builder.build();
     }
 
     public int getRestrictionCount() {

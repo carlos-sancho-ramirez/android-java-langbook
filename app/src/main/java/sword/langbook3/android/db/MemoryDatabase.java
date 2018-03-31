@@ -102,6 +102,19 @@ public class MemoryDatabase implements DbInitializer.Database {
         }
     }
 
+    private void applyColumnMatchRestrictions(
+            MutableList<ImmutableList<Object>> result, Iterable<DbQuery.JoinColumnPair> pairs) {
+        for (DbQuery.JoinColumnPair pair : pairs) {
+            final Iterator<ImmutableList<Object>> it = result.iterator();
+            while (it.hasNext()) {
+                final ImmutableList<Object> row = it.next();
+                if (!equal(row.get(pair.getLeft()), row.get(pair.getRight()))) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
     private void applyRestrictions(
             MutableList<ImmutableList<Object>> result,
             ImmutableIntKeyMap<DbValue> restrictions) {
@@ -121,8 +134,7 @@ public class MemoryDatabase implements DbInitializer.Database {
 
     @Override
     public DbResult select(DbQuery query) {
-        if (query.getColumnValueMatchPairCount() != 0 ||
-                query.getGroupingCount() != 0 || query.getOrderingCount() != 0) {
+        if (query.getGroupingCount() != 0 || query.getOrderingCount() != 0) {
             throw new UnsupportedOperationException("Unimplemented");
         }
 
@@ -147,6 +159,7 @@ public class MemoryDatabase implements DbInitializer.Database {
         }
 
         applyJoins(unselectedResult, query);
+        applyColumnMatchRestrictions(unselectedResult, query.columnValueMatchPairs());
         applyRestrictions(unselectedResult, restrictions);
 
         // Apply column selection
