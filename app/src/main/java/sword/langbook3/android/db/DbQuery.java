@@ -8,6 +8,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableSet;
 
 public final class DbQuery implements DbView {
 
@@ -16,7 +17,7 @@ public final class DbQuery implements DbView {
 
     private final DbView[] _tables;
     private final int[] _joinPairs;
-    private final int[] _columnValueMatchingPairs;
+    private final ImmutableSet<JoinColumnPair> _columnValueMatchingPairs;
     private final ImmutableIntKeyMap<DbValue> _restrictions;
     private final int[] _groupBy;
     private final int[] _orderBy;
@@ -27,7 +28,7 @@ public final class DbQuery implements DbView {
     private final transient DbColumn[] _joinColumns;
     private transient ImmutableList<DbColumn> _columns;
 
-    private DbQuery(DbView[] tables, int[] joinPairs, int[] columnValueMatchPairs,
+    private DbQuery(DbView[] tables, int[] joinPairs, ImmutableSet<JoinColumnPair> columnValueMatchPairs,
             ImmutableIntKeyMap<DbValue> restrictions, int[] groupBy, int[] orderBy, ImmutableIntPairMap selection) {
 
         if (tables == null || tables.length == 0 || selection == null || selection.isEmpty()) {
@@ -56,11 +57,13 @@ public final class DbQuery implements DbView {
         }
 
         if (columnValueMatchPairs == null) {
-            columnValueMatchPairs = new int[0];
+            columnValueMatchPairs = ImmutableSet.empty();
         }
 
-        if ((columnValueMatchPairs.length & 1) == 1 || !hasValidValues(columnValueMatchPairs, 0, joinColumnCount - 1)) {
-            throw new IllegalArgumentException("Invalid column value matching pairs");
+        for (JoinColumnPair pair : columnValueMatchPairs) {
+            if (pair.getRight() >= joinColumnCount) {
+                throw new IllegalArgumentException("Invalid column index");
+            }
         }
 
         if (selection.keySet().min() < 0 || selection.keySet().max() >= joinColumnCount) {
@@ -173,6 +176,10 @@ public final class DbQuery implements DbView {
         private final int _right;
 
         private JoinColumnPair(int left, int right) {
+            if (left < 0 || left >= right) {
+                throw new IllegalArgumentException();
+            }
+
             _left = left;
             _right = right;
         }
@@ -197,22 +204,8 @@ public final class DbQuery implements DbView {
         throw new AssertionError("No pair found for table " + (index + 1));
     }
 
-    public int getColumnValueMatchPairCount() {
-        return _columnValueMatchingPairs.length / 2;
-    }
-
-    public JoinColumnPair getColumnValueMatchPair(int index) {
-        return new JoinColumnPair(_columnValueMatchingPairs[index * 2], _columnValueMatchingPairs[index * 2 + 1]);
-    }
-
     public ImmutableSet<JoinColumnPair> columnValueMatchPairs() {
-        final int count = _columnValueMatchingPairs.length / 2;
-        final ImmutableSet.Builder<JoinColumnPair> builder = new ImmutableSet.Builder<>();
-        for (int index = 0; index < count; index++) {
-            builder.add(new JoinColumnPair(_columnValueMatchingPairs[index * 2], _columnValueMatchingPairs[index * 2 + 1]));
-        }
-
-        return builder.build();
+        return _columnValueMatchingPairs;
     }
 
     public int getRestrictionCount() {
@@ -308,7 +301,7 @@ public final class DbQuery implements DbView {
         private final ArrayList<DbView> _tables = new ArrayList<>();
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
         private final MutableIntKeyMap<DbValue> _restrictions = MutableIntKeyMap.empty();
-        private final ArrayList<Integer> _columnValueMatchPairs = new ArrayList<>();
+        private final MutableSet<JoinColumnPair> _columnValueMatchPairs = MutableSet.empty();
         private int[] _groupBy;
         private int[] _orderBy;
         private int _joinColumnCount;
@@ -332,12 +325,10 @@ public final class DbQuery implements DbView {
         }
 
         public Builder whereColumnValueMatch(int leftColumnIndex, int rightColumnIndex) {
-            if (leftColumnIndex >= rightColumnIndex) {
-                throw new IllegalArgumentException("Wrong column matching condition");
+            if (rightColumnIndex >= _joinColumnCount) {
+                throw new IndexOutOfBoundsException();
             }
-
-            _columnValueMatchPairs.add(leftColumnIndex);
-            _columnValueMatchPairs.add(rightColumnIndex);
+            _columnValueMatchPairs.add(new JoinColumnPair(leftColumnIndex, rightColumnIndex));
             return this;
         }
 
@@ -376,16 +367,11 @@ public final class DbQuery implements DbView {
         public DbQuery select(int... selection) {
             final DbView[] views = new DbView[_tables.size()];
             final int[] joinPairs = new int[_joinPairs.size()];
-            final int[] columnValueMatchPairs = new int[_columnValueMatchPairs.size()];
 
             _tables.toArray(views);
 
             for (int i = 0; i < _joinPairs.size(); i++) {
                 joinPairs[i] = _joinPairs.get(i);
-            }
-
-            for (int i = 0; i < _columnValueMatchPairs.size(); i++) {
-                columnValueMatchPairs[i] = _columnValueMatchPairs.get(i);
             }
 
             final ImmutableIntPairMap.Builder selectionBuilder = new ImmutableIntPairMap.Builder();
@@ -395,8 +381,8 @@ public final class DbQuery implements DbView {
                 selectionBuilder.put(columnIndex, func);
             }
 
-            return new DbQuery(views, joinPairs, columnValueMatchPairs, _restrictions.toImmutable(),
-                    _groupBy, _orderBy, selectionBuilder.build());
+            return new DbQuery(views, joinPairs, _columnValueMatchPairs.toImmutable(),
+                    _restrictions.toImmutable(), _groupBy, _orderBy, selectionBuilder.build());
         }
     }
 }

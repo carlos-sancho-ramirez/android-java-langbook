@@ -89,8 +89,7 @@ final class SQLiteDbQuery {
                     .append('=').append(_query.getRestriction(i).toSql());
         }
 
-        final int columnValueMatchiPairCount = _query.getColumnValueMatchPairCount();
-        for (int i = 0; i < columnValueMatchiPairCount; i++) {
+        for (DbQuery.JoinColumnPair pair : _query.columnValueMatchPairs()) {
             if (!prefixAdded) {
                 sb.append(" WHERE ");
                 prefixAdded = true;
@@ -99,7 +98,6 @@ final class SQLiteDbQuery {
                 sb.append(" AND ");
             }
 
-            final DbQuery.JoinColumnPair pair = _query.getColumnValueMatchPair(i);
             sb.append(getSqlColumnName(subQueryIndex, pair.getLeft()))
                     .append('=').append(getSqlColumnName(subQueryIndex, pair.getRight()));
         }
