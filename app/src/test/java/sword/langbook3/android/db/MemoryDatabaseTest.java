@@ -7,6 +7,7 @@ import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
+import sword.collections.Procedure;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -331,100 +332,90 @@ public final class MemoryDatabaseTest {
         }
     }
 
+    private final class WordTableCase {
+        static final String wordEnBig = "big";
+        static final String wordEnSmall = "small";
+        static final String wordEsBig = "grande";
+        static final String wordEsSmall = "pequeño";
+        static final String wordEnHuge = "huge";
+        static final String wordEsHuge = "enorme";
+
+        static final int conceptBig = 1;
+        static final int conceptSmall = 2;
+
+        static final int languageEn = 1;
+        static final int languageEs = 2;
+
+        final State state;
+
+        WordTableCase(State state) {
+            this.state = state;
+        }
+
+        void initializeWords() {
+            state.insertWord(conceptBig, languageEn, wordEnBig);
+            state.insertWord(conceptBig, languageEs, wordEsBig);
+            state.insertWord(conceptSmall, languageEn, wordEnSmall);
+            state.insertWord(conceptSmall, languageEs, wordEsSmall);
+            state.insertWord(conceptBig, languageEn, wordEnHuge);
+            state.insertWord(conceptBig, languageEs, wordEsHuge);
+        }
+
+        private void performAssertion(ImmutableSet<String> expectedWords, Procedure<DbQuery.Builder> params) {
+            final int conceptColumnIndex = wordTable.columns().indexOf(conceptColumn);
+            final int writtenColumnIndex = wordTable.columns().indexOf(writtenColumn);
+
+            final DbQuery.Builder queryBuilder = new DbQuery.Builder(wordTable)
+                    .join(wordTable, conceptColumnIndex, conceptColumnIndex);
+            params.apply(queryBuilder);
+            final DbQuery query = queryBuilder.where(writtenColumnIndex, "big")
+                    .select(wordTable.columns().size() + writtenColumnIndex);
+            final DbResult result = state.db.select(query);
+            final ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
+            try {
+                while (result.hasNext()) {
+                    builder.add(result.next().get(0).toText());
+                }
+            }
+            finally {
+                result.close();
+            }
+
+            assertEquals(expectedWords, builder.build());
+        }
+
+        void assertTranslations() {
+            final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEsBig).add(wordEsHuge).build();
+            performAssertion(expectedWords, builder -> {
+                final int languageColumnIndex = wordTable.columns().indexOf(languageColumn);
+                builder.whereColumnValueDiffer(languageColumnIndex, wordTable.columns().size() + languageColumnIndex);
+            });
+        }
+
+        void assertSynonyms() {
+            final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEnHuge).build();
+            performAssertion(expectedWords, builder -> {
+                final int languageColumnIndex = wordTable.columns().indexOf(languageColumn);
+                final int writtenColumnIndex = wordTable.columns().indexOf(writtenColumn);
+                builder.whereColumnValueMatch(languageColumnIndex, wordTable.columns().size() + languageColumnIndex)
+                        .whereColumnValueDiffer(writtenColumnIndex, wordTable.columns().size() + writtenColumnIndex);
+            });
+        }
+    }
+
     @Test
     public void testLookForTranslationsInWordTable() {
         final State state = new State();
-
-        final String wordEnBig = "big";
-        final String wordEnSmall = "small";
-        final String wordEsBig = "grande";
-        final String wordEsSmall = "pequeño";
-        final String wordEnHuge = "huge";
-        final String wordEsHuge = "enorme";
-
-        final int conceptBig = 1;
-        final int conceptSmall = 2;
-
-        final int languageEn = 1;
-        final int languageEs = 2;
-
-        state.insertWord(conceptBig, languageEn, wordEnBig);
-        state.insertWord(conceptBig, languageEs, wordEsBig);
-        state.insertWord(conceptSmall, languageEn, wordEnSmall);
-        state.insertWord(conceptSmall, languageEs, wordEsSmall);
-        state.insertWord(conceptBig, languageEn, wordEnHuge);
-        state.insertWord(conceptBig, languageEs, wordEsHuge);
-
-        final int conceptColumnIndex = wordTable.columns().indexOf(conceptColumn);
-        final int languageColumnIndex = wordTable.columns().indexOf(languageColumn);
-        final int writtenColumnIndex = wordTable.columns().indexOf(writtenColumn);
-
-        final DbQuery query = new DbQuery.Builder(wordTable)
-                .join(wordTable, conceptColumnIndex, conceptColumnIndex)
-                .whereColumnValueDiffer(languageColumnIndex, wordTable.columns().size() + languageColumnIndex)
-                .where(writtenColumnIndex, "big")
-                .select(wordTable.columns().size() + writtenColumnIndex);
-        final DbResult result = state.db.select(query);
-        final ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
-        try {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toText());
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEsBig).add(wordEsHuge).build();
-        assertEquals(expectedWords, builder.build());
+        final WordTableCase inst = new WordTableCase(state);
+        inst.initializeWords();
+        inst.assertTranslations();
     }
 
     @Test
     public void testLookForSynonymsInWordTable() {
         final State state = new State();
-
-        final String wordEnBig = "big";
-        final String wordEnSmall = "small";
-        final String wordEsBig = "grande";
-        final String wordEsSmall = "pequeño";
-        final String wordEnHuge = "huge";
-        final String wordEsHuge = "enorme";
-
-        final int conceptBig = 1;
-        final int conceptSmall = 2;
-
-        final int languageEn = 1;
-        final int languageEs = 2;
-
-        state.insertWord(conceptBig, languageEn, wordEnBig);
-        state.insertWord(conceptBig, languageEs, wordEsBig);
-        state.insertWord(conceptSmall, languageEn, wordEnSmall);
-        state.insertWord(conceptSmall, languageEs, wordEsSmall);
-        state.insertWord(conceptBig, languageEn, wordEnHuge);
-        state.insertWord(conceptBig, languageEs, wordEsHuge);
-
-        final int conceptColumnIndex = wordTable.columns().indexOf(conceptColumn);
-        final int languageColumnIndex = wordTable.columns().indexOf(languageColumn);
-        final int writtenColumnIndex = wordTable.columns().indexOf(writtenColumn);
-
-        final DbQuery query = new DbQuery.Builder(wordTable)
-                .join(wordTable, conceptColumnIndex, conceptColumnIndex)
-                .whereColumnValueMatch(languageColumnIndex, wordTable.columns().size() + languageColumnIndex)
-                .whereColumnValueDiffer(writtenColumnIndex, wordTable.columns().size() + writtenColumnIndex)
-                .where(writtenColumnIndex, "big")
-                .select(wordTable.columns().size() + writtenColumnIndex);
-        final DbResult result = state.db.select(query);
-        final ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
-        try {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toText());
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEnHuge).build();
-        assertEquals(expectedWords, builder.build());
+        final WordTableCase inst = new WordTableCase(state);
+        inst.initializeWords();
+        inst.assertSynonyms();
     }
 }
