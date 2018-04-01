@@ -2,11 +2,12 @@ package sword.langbook3.android.db;
 
 import org.junit.Test;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
-import sword.collections.IntSet;
 import sword.collections.Procedure;
 
 import static org.junit.Assert.assertEquals;
@@ -56,8 +57,7 @@ public final class MemoryDatabaseTest {
                     .select(DbQuery.max(setTable.columns().indexOf(setIdColumn)));
             final DbResult result = db.select(query);
             try {
-                assertTrue(result.hasNext());
-                final int max = result.next().get(0).toInt();
+                final int max = result.hasNext()? result.next().get(0).toInt() : 0;
                 assertFalse(result.hasNext());
                 return max;
             }
@@ -66,7 +66,7 @@ public final class MemoryDatabaseTest {
             }
         }
 
-        private int insertSet(IntSet set) {
+        private int insertIntIterable(Iterable<Integer> set) {
             final int setId = obtainMaxSetId() + 1;
             final int setIdColumnIndex = setTable.columns().indexOf(setIdColumn);
             final int itemIdColumnIndex = setTable.columns().indexOf(itemIdColumn);
@@ -195,16 +195,16 @@ public final class MemoryDatabaseTest {
 
         final ImmutableIntSet primes = new ImmutableIntSetBuilder()
                 .add(2).add(3).add(5).add(7).build();
-        final int primesSetId = state.insertSet(primes);
+        final int primesSetId = state.insertIntIterable(primes);
 
         final ImmutableIntSet fibonacci = new ImmutableIntSetBuilder()
                 .add(1).add(2).add(3).add(5).add(8).build();
-        final int fibonacciSetId = state.insertSet(fibonacci);
+        final int fibonacciSetId = state.insertIntIterable(fibonacci);
         assertNotEquals(primesSetId, fibonacciSetId);
 
         final ImmutableIntSet even = new ImmutableIntSetBuilder()
                 .add(2).add(4).add(6).add(8).add(10).build();
-        final int evenSetId = state.insertSet(even);
+        final int evenSetId = state.insertIntIterable(even);
         assertNotEquals(primesSetId, evenSetId);
         assertNotEquals(fibonacciSetId, evenSetId);
 
@@ -235,9 +235,9 @@ public final class MemoryDatabaseTest {
                 .add(sarahId).add(marieId).add(jillId).build();
         final ImmutableIntSet developers = new ImmutableIntSetBuilder()
                 .add(sarahId).add(robertId).build();
-        state.insertSet(males);
-        state.insertSet(females);
-        final int developersSetId = state.insertSet(developers);
+        state.insertIntIterable(males);
+        state.insertIntIterable(females);
+        final int developersSetId = state.insertIntIterable(developers);
 
         final DbQuery query = new DbQuery.Builder(setTable)
                 .join(textTable, setTable.columns().indexOf(itemIdColumn), textTable.getIdColumnIndex())
@@ -281,9 +281,9 @@ public final class MemoryDatabaseTest {
                 .add(sarahId).add(marieId).add(jillId).build();
         final ImmutableIntSet developers = new ImmutableIntSetBuilder()
                 .add(sarahId).add(robertId).build();
-        state.insertSet(males);
-        final int femalesSetId = state.insertSet(females);
-        final int developersSetId = state.insertSet(developers);
+        state.insertIntIterable(males);
+        final int femalesSetId = state.insertIntIterable(females);
+        final int developersSetId = state.insertIntIterable(developers);
 
         final DbQuery query = new DbQuery.Builder(textTable)
                 .join(setTable, textTable.getIdColumnIndex(), setTable.columns().indexOf(itemIdColumn))
@@ -329,9 +329,9 @@ public final class MemoryDatabaseTest {
                 .add(sarahId).add(marieId).add(jillId).build();
         final ImmutableIntSet developers = new ImmutableIntSetBuilder()
                 .add(sarahId).add(robertId).build();
-        state.insertSet(males);
-        state.insertSet(females);
-        state.insertSet(developers);
+        state.insertIntIterable(males);
+        state.insertIntIterable(females);
+        state.insertIntIterable(developers);
 
         final DbQuery query = new DbQuery.Builder(textTable)
                 .join(setTable, textTable.getIdColumnIndex(), setTable.columns().indexOf(itemIdColumn))
@@ -431,5 +431,40 @@ public final class MemoryDatabaseTest {
         final WordTableCase inst = new WordTableCase(state);
         inst.initializeWords();
         inst.assertSynonyms();
+    }
+
+    @Test
+    public void testSyllableComposition() {
+        final State state = new State();
+        final int naId = state.insertUniqueText("na");
+        final int maId = state.insertUniqueText("ma");
+        final int paId = state.insertUniqueText("pa");
+
+        final int panaSetId = state.insertIntIterable(new ImmutableIntList.Builder().add(paId).add(naId).build());
+        final int papaSetId = state.insertIntIterable(new ImmutableIntList.Builder().add(paId).add(paId).build());
+        final int mapaSetId = state.insertIntIterable(new ImmutableIntList.Builder().add(maId).add(paId).build());
+
+        final DbQuery query = new DbQuery.Builder(setTable)
+                .join(uniqueTextTable, setTable.columns().indexOf(itemIdColumn), uniqueTextTable.getIdColumnIndex())
+                .groupBy(setTable.columns().indexOf(setIdColumn))
+                .select(setTable.columns().indexOf(setIdColumn), DbQuery.concat(setTable.columns().size() + uniqueTextTable.columns().indexOf(uniqueTextColumn)));
+        final DbResult result = state.db.select(query);
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toText());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        final ImmutableIntKeyMap<String> expectedMap = new ImmutableIntKeyMap.Builder<String>()
+                .put(panaSetId, "pana")
+                .put(papaSetId, "papa")
+                .put(mapaSetId, "mapa")
+                .build();
+        assertEquals(expectedMap, builder.build());
     }
 }

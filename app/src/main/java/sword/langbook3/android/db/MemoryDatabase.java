@@ -5,7 +5,10 @@ import java.util.Iterator;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
+import sword.collections.ImmutableSet;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
 
@@ -133,9 +136,17 @@ public class MemoryDatabase implements DbInitializer.Database {
         }
     }
 
+    private ImmutableList<Object> getGroup(ImmutableList<Object> reg, ImmutableIntSet grouping) {
+        final ImmutableList.Builder<Object> groupBuilder = new ImmutableList.Builder<>();
+        for (int columnIndex : grouping) {
+            groupBuilder.add(reg.get(columnIndex));
+        }
+        return groupBuilder.build();
+    }
+
     @Override
     public DbResult select(DbQuery query) {
-        if (query.getGroupingCount() != 0 || query.getOrderingCount() != 0) {
+        if (query.getOrderingCount() != 0) {
             throw new UnsupportedOperationException("Unimplemented");
         }
 
@@ -172,34 +183,56 @@ public class MemoryDatabase implements DbInitializer.Database {
 
         // Apply column selection
         final int selectionCount = query.selection().size();
-        boolean groupedSelection = false;
-        for (int i = 0; i < selectionCount; i++) {
-            if (query.isMaxAggregateFunctionSelection(i) || query.isConcatAggregateFunctionSelection(i)) {
-                groupedSelection = true;
-                break;
+        boolean groupedSelection = query.getGroupingCount() != 0;
+        if (!groupedSelection) {
+            for (int i = 0; i < selectionCount; i++) {
+                if (query.isMaxAggregateFunctionSelection(i) || query.isConcatAggregateFunctionSelection(i)) {
+                    groupedSelection = true;
+                    break;
+                }
             }
         }
 
         if (groupedSelection) {
-            final ImmutableList.Builder<Object> rowBuilder = new ImmutableList.Builder<>();
-            for (int selectionIndex = 0; selectionIndex < selectionCount; selectionIndex++) {
-                if (query.isMaxAggregateFunctionSelection(selectionIndex)) {
-                    final int selectedColumnIndex = query.selection().valueAt(selectionIndex);
-                    int max = 0;
-                    for (ImmutableList<Object> reg : unselectedResult) {
-                        int value = (Integer) reg.get(selectedColumnIndex);
-                        if (value > max) {
-                            max = value;
-                        }
+            final MutableMap<ImmutableList<Object>, Integer> groups = MutableMap.empty();
+            for (int resultRow = 0; resultRow < unselectedResult.size(); resultRow++) {
+                final ImmutableList<Object> reg = unselectedResult.get(resultRow);
+                final ImmutableList<Object> group = getGroup(reg, query.grouping());
+                if (!groups.containsKey(group)) {
+                    groups.put(group, resultRow);
+                    final ImmutableList.Builder<Object> rowBuilder = new ImmutableList.Builder<>();
+                    for (int selectedColumn : query.selection()) {
+                        rowBuilder.add(reg.get(selectedColumn));
                     }
-                    rowBuilder.add(max);
+                    unselectedResult.put(resultRow, rowBuilder.build());
                 }
                 else {
-                    throw new UnsupportedOperationException("Unimplemented");
+                    final int oldRowIndex = groups.get(group);
+                    final ImmutableList<Object> oldRow = unselectedResult.get(oldRowIndex);
+                    final ImmutableList.Builder<Object> rowBuilder = new ImmutableList.Builder<>();
+                    for (int selectionIndex = 0; selectionIndex < selectionCount; selectionIndex++) {
+                        Object rawValue = reg.get(query.selection().valueAt(selectionIndex));
+                        if (query.isMaxAggregateFunctionSelection(selectionIndex)) {
+                            int oldMax = (Integer) oldRow.get(selectionIndex);
+                            int value = (Integer) rawValue;
+                            rowBuilder.add(value > oldMax? value : oldMax);
+                        }
+                        else if (query.isConcatAggregateFunctionSelection(selectionIndex)) {
+                            String oldText = (String) oldRow.get(selectionIndex);
+                            String value = (String) rawValue;
+                            rowBuilder.add(oldText + value);
+                        }
+                        else {
+                            rowBuilder.add(rawValue);
+                        }
+                    }
+
+                    unselectedResult.put(oldRowIndex, rowBuilder.build());
+                    unselectedResult.removeAt(resultRow);
+                    --resultRow;
                 }
             }
-            return new Result(new ImmutableList.Builder<ImmutableList<Object>>()
-                    .add(rowBuilder.build()).build());
+            return new Result(unselectedResult.toImmutable());
         }
         else {
             final ImmutableList.Builder<ImmutableList<Object>> builder = new ImmutableList.Builder<>(unselectedResult.size());

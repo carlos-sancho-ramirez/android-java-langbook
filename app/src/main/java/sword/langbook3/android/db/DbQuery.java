@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableIntKeyMap;
@@ -241,6 +242,15 @@ public final class DbQuery implements DbView {
 
     public int getGrouping(int index) {
         return _groupBy[index];
+    }
+
+    public ImmutableIntSet grouping() {
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (int columnIndex : _groupBy) {
+            builder.add(columnIndex);
+        }
+
+        return builder.build();
     }
 
     public int getOrderingCount() {
