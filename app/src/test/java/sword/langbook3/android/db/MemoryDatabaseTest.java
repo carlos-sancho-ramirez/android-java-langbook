@@ -34,7 +34,6 @@ public final class MemoryDatabaseTest {
 
     private final class State {
         final MemoryDatabase db = new MemoryDatabase();
-        int maxSetId;
 
         private Integer insertText(String value) {
             final int columnIndex = textTable.columns().indexOf(textColumn);
@@ -52,8 +51,23 @@ public final class MemoryDatabaseTest {
             return db.insert(insertQuery);
         }
 
+        private int obtainMaxSetId() {
+            final DbQuery query = new DbQuery.Builder(setTable)
+                    .select(DbQuery.max(setTable.columns().indexOf(setIdColumn)));
+            final DbResult result = db.select(query);
+            try {
+                assertTrue(result.hasNext());
+                final int max = result.next().get(0).toInt();
+                assertFalse(result.hasNext());
+                return max;
+            }
+            finally {
+                result.close();
+            }
+        }
+
         private int insertSet(IntSet set) {
-            final int setId = ++maxSetId;
+            final int setId = obtainMaxSetId() + 1;
             final int setIdColumnIndex = setTable.columns().indexOf(setIdColumn);
             final int itemIdColumnIndex = setTable.columns().indexOf(itemIdColumn);
 

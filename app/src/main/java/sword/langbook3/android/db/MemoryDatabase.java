@@ -140,7 +140,14 @@ public class MemoryDatabase implements DbInitializer.Database {
         }
 
         final DbView view = query.getView(0);
-        final MutableIntKeyMap<ImmutableList<Object>> content = _tableMap.get(view);
+        final MutableIntKeyMap<ImmutableList<Object>> content;
+        if (_tableMap.containsKey(view)) {
+            content = _tableMap.get(view);
+        }
+        else {
+            content = MutableIntKeyMap.empty();
+            _tableMap.put(view, content);
+        }
 
         // Apply id restriction if found
         final ImmutableIntKeyMap<DbValue> restrictions = query.restrictions();
@@ -164,16 +171,48 @@ public class MemoryDatabase implements DbInitializer.Database {
         applyRestrictions(unselectedResult, restrictions);
 
         // Apply column selection
-        final ImmutableList.Builder<ImmutableList<Object>> builder = new ImmutableList.Builder<>(unselectedResult.size());
-        final ImmutableIntSet selection = query.selection();
-        for (ImmutableList<Object> register : unselectedResult) {
-            final ImmutableList.Builder<Object> regBuilder = new ImmutableList.Builder<>();
-            for (int columnIndex : selection) {
-                regBuilder.add(register.get(columnIndex));
+        final int selectionCount = query.selection().size();
+        boolean groupedSelection = false;
+        for (int i = 0; i < selectionCount; i++) {
+            if (query.isMaxAggregateFunctionSelection(i) || query.isConcatAggregateFunctionSelection(i)) {
+                groupedSelection = true;
+                break;
             }
-            builder.add(regBuilder.build());
         }
-        return new Result(builder.build());
+
+        if (groupedSelection) {
+            final ImmutableList.Builder<Object> rowBuilder = new ImmutableList.Builder<>();
+            for (int selectionIndex = 0; selectionIndex < selectionCount; selectionIndex++) {
+                if (query.isMaxAggregateFunctionSelection(selectionIndex)) {
+                    final int selectedColumnIndex = query.selection().valueAt(selectionIndex);
+                    int max = 0;
+                    for (ImmutableList<Object> reg : unselectedResult) {
+                        int value = (Integer) reg.get(selectedColumnIndex);
+                        if (value > max) {
+                            max = value;
+                        }
+                    }
+                    rowBuilder.add(max);
+                }
+                else {
+                    throw new UnsupportedOperationException("Unimplemented");
+                }
+            }
+            return new Result(new ImmutableList.Builder<ImmutableList<Object>>()
+                    .add(rowBuilder.build()).build());
+        }
+        else {
+            final ImmutableList.Builder<ImmutableList<Object>> builder = new ImmutableList.Builder<>(unselectedResult.size());
+            final ImmutableIntSet selection = query.selection();
+            for (ImmutableList<Object> register : unselectedResult) {
+                final ImmutableList.Builder<Object> regBuilder = new ImmutableList.Builder<>();
+                for (int columnIndex : selection) {
+                    regBuilder.add(register.get(columnIndex));
+                }
+                builder.add(regBuilder.build());
+            }
+            return new Result(builder.build());
+        }
     }
 
     private MutableIntKeyMap<ImmutableList<Object>> obtainTableContent(DbTable table) {
