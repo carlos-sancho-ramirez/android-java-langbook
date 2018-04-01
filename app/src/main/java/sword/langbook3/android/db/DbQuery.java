@@ -61,7 +61,7 @@ public final class DbQuery implements DbView {
         }
 
         for (JoinColumnPair pair : columnValueMatchPairs) {
-            if (pair.getRight() >= joinColumnCount) {
+            if (pair.right() >= joinColumnCount) {
                 throw new IllegalArgumentException("Invalid column index");
             }
         }
@@ -175,21 +175,32 @@ public final class DbQuery implements DbView {
         private final int _left;
         private final int _right;
 
-        private JoinColumnPair(int left, int right) {
+        /**
+         * If set, it is understood that both columns must have the same value in order to match.
+         * If clear, it is understood that values in both column must differ.
+         */
+        private final boolean _mustMatch;
+
+        private JoinColumnPair(int left, int right, boolean mustMatch) {
             if (left < 0 || left >= right) {
                 throw new IllegalArgumentException();
             }
 
             _left = left;
             _right = right;
+            _mustMatch = mustMatch;
         }
 
-        public int getLeft() {
+        public int left() {
             return _left;
         }
 
-        public int getRight() {
+        public int right() {
             return _right;
+        }
+
+        public boolean mustMatch() {
+            return _mustMatch;
         }
     }
 
@@ -197,7 +208,7 @@ public final class DbQuery implements DbView {
         final int pairCount = _joinPairs.length / 2;
         for (int j = 0; j < pairCount; j++) {
             if (getTableIndexFromColumnIndex(_joinPairs[2 * j + 1]) == index + 1 && getTableIndexFromColumnIndex(_joinPairs[2 * j]) < index + 1) {
-                return new JoinColumnPair(_joinPairs[2 * j], _joinPairs[2 * j + 1]);
+                return new JoinColumnPair(_joinPairs[2 * j], _joinPairs[2 * j + 1], true);
             }
         }
 
@@ -328,7 +339,15 @@ public final class DbQuery implements DbView {
             if (rightColumnIndex >= _joinColumnCount) {
                 throw new IndexOutOfBoundsException();
             }
-            _columnValueMatchPairs.add(new JoinColumnPair(leftColumnIndex, rightColumnIndex));
+            _columnValueMatchPairs.add(new JoinColumnPair(leftColumnIndex, rightColumnIndex, true));
+            return this;
+        }
+
+        public Builder whereColumnValueDiffer(int leftColumnIndex, int rightColumnIndex) {
+            if (rightColumnIndex >= _joinColumnCount) {
+                throw new IndexOutOfBoundsException();
+            }
+            _columnValueMatchPairs.add(new JoinColumnPair(leftColumnIndex, rightColumnIndex, false));
             return this;
         }
 

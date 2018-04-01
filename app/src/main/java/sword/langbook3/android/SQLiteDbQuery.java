@@ -65,9 +65,9 @@ final class SQLiteDbQuery {
         for (int i = 1; i < tableCount; i++) {
             final DbQuery.JoinColumnPair pair = _query.getJoinPair(i - 1);
             sb.append(" JOIN ").append(_query.getView(i).asTable().name()).append(" AS J").append(i);
-            sb.append(" ON J").append(_query.getTableIndexFromColumnIndex(pair.getLeft())).append('.');
-            sb.append(_query.getJoinColumn(pair.getLeft()).name()).append("=J").append(i);
-            sb.append('.').append(_query.getJoinColumn(pair.getRight()).name());
+            sb.append(" ON J").append(_query.getTableIndexFromColumnIndex(pair.left())).append('.');
+            sb.append(_query.getJoinColumn(pair.left()).name()).append("=J").append(i);
+            sb.append('.').append(_query.getJoinColumn(pair.right()).name());
         }
 
         return sb.toString();
@@ -98,8 +98,8 @@ final class SQLiteDbQuery {
                 sb.append(" AND ");
             }
 
-            sb.append(getSqlColumnName(subQueryIndex, pair.getLeft()))
-                    .append('=').append(getSqlColumnName(subQueryIndex, pair.getRight()));
+            sb.append(getSqlColumnName(subQueryIndex, pair.left()))
+                    .append('=').append(getSqlColumnName(subQueryIndex, pair.right()));
         }
 
         return sb.toString();

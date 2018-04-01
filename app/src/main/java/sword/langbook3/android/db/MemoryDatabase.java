@@ -69,9 +69,9 @@ public class MemoryDatabase implements DbInitializer.Database {
 
             for (int row = 0; row < result.size(); row++) {
                 final ImmutableList<Object> oldRow = result.get(row);
-                final Object rawValue = oldRow.get(joinPair.getLeft());
+                final Object rawValue = oldRow.get(joinPair.left());
                 final MutableIntKeyMap<ImmutableList<Object>> viewContent = _tableMap.get(view);
-                final int targetJoinColumnIndex = joinPair.getRight() - oldRow.size();
+                final int targetJoinColumnIndex = joinPair.right() - oldRow.size();
 
                 if (targetJoinColumnIndex == 0) {
                     final int id = (Integer) rawValue;
@@ -108,7 +108,8 @@ public class MemoryDatabase implements DbInitializer.Database {
             final Iterator<ImmutableList<Object>> it = result.iterator();
             while (it.hasNext()) {
                 final ImmutableList<Object> row = it.next();
-                if (!equal(row.get(pair.getLeft()), row.get(pair.getRight()))) {
+                final boolean matchValue = equal(row.get(pair.left()), row.get(pair.right()));
+                if (pair.mustMatch() && !matchValue || !pair.mustMatch() && matchValue) {
                     it.remove();
                 }
             }

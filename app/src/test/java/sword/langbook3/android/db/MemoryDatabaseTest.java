@@ -332,7 +332,55 @@ public final class MemoryDatabaseTest {
     }
 
     @Test
-    public void testLookForSynonimsInWordTable() {
+    public void testLookForTranslationsInWordTable() {
+        final State state = new State();
+
+        final String wordEnBig = "big";
+        final String wordEnSmall = "small";
+        final String wordEsBig = "grande";
+        final String wordEsSmall = "pequeño";
+        final String wordEnHuge = "huge";
+        final String wordEsHuge = "enorme";
+
+        final int conceptBig = 1;
+        final int conceptSmall = 2;
+
+        final int languageEn = 1;
+        final int languageEs = 2;
+
+        state.insertWord(conceptBig, languageEn, wordEnBig);
+        state.insertWord(conceptBig, languageEs, wordEsBig);
+        state.insertWord(conceptSmall, languageEn, wordEnSmall);
+        state.insertWord(conceptSmall, languageEs, wordEsSmall);
+        state.insertWord(conceptBig, languageEn, wordEnHuge);
+        state.insertWord(conceptBig, languageEs, wordEsHuge);
+
+        final int conceptColumnIndex = wordTable.columns().indexOf(conceptColumn);
+        final int languageColumnIndex = wordTable.columns().indexOf(languageColumn);
+        final int writtenColumnIndex = wordTable.columns().indexOf(writtenColumn);
+
+        final DbQuery query = new DbQuery.Builder(wordTable)
+                .join(wordTable, conceptColumnIndex, conceptColumnIndex)
+                .whereColumnValueDiffer(languageColumnIndex, wordTable.columns().size() + languageColumnIndex)
+                .where(writtenColumnIndex, "big")
+                .select(wordTable.columns().size() + writtenColumnIndex);
+        final DbResult result = state.db.select(query);
+        final ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
+        try {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toText());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEsBig).add(wordEsHuge).build();
+        assertEquals(expectedWords, builder.build());
+    }
+
+    @Test
+    public void testLookForSynonymsInWordTable() {
         final State state = new State();
 
         final String wordEnBig = "big";
@@ -362,6 +410,7 @@ public final class MemoryDatabaseTest {
         final DbQuery query = new DbQuery.Builder(wordTable)
                 .join(wordTable, conceptColumnIndex, conceptColumnIndex)
                 .whereColumnValueMatch(languageColumnIndex, wordTable.columns().size() + languageColumnIndex)
+                .whereColumnValueDiffer(writtenColumnIndex, wordTable.columns().size() + writtenColumnIndex)
                 .where(writtenColumnIndex, "big")
                 .select(wordTable.columns().size() + writtenColumnIndex);
         final DbResult result = state.db.select(query);
@@ -375,7 +424,7 @@ public final class MemoryDatabaseTest {
             result.close();
         }
 
-        final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEnBig).add(wordEnHuge).build();
+        final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEnHuge).build();
         assertEquals(expectedWords, builder.build());
     }
 }
