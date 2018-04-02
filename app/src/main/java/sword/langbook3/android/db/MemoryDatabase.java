@@ -284,6 +284,7 @@ public class MemoryDatabase implements DbInitializer.Database {
                             // Let's avoid duplicates
                             return null;
                         }
+                        found = true;
                     }
                     else {
                         final Object rawValue = value.isText()? value.toText() : value.toInt();
