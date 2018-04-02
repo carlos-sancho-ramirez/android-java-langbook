@@ -22,6 +22,12 @@ import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
+import sword.collections.IntKeyMap;
+import sword.collections.IntPairMap;
+import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.EqualUtils;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.db.DbInitializer.Database;
@@ -343,7 +349,7 @@ public final class StreamedDatabaseReader {
                 .select(DbQuery.max(columnIndex));
         final DbResult result = _db.select(query);
         try {
-            return result.next().get(0).toInt();
+            return result.hasNext()? result.next().get(0).toInt() : 0;
         }
         finally {
             result.close();
@@ -439,28 +445,28 @@ public final class StreamedDatabaseReader {
         _db.insert(query);
     }
 
-    private SparseIntArray getCorrelation(int id) {
+    private ImmutableIntPairMap getCorrelation(int id) {
         LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getCorrelationIdColumnIndex(), id)
                 .select(table.getAlphabetColumnIndex(), table.getSymbolArrayColumnIndex());
 
-        SparseIntArray correlation = new SparseIntArray();
+        ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
         final DbResult result = _db.select(query);
         try {
             while (result.hasNext()) {
                 final DbResult.Row row = result.next();
-                correlation.put(row.get(0).toInt(), row.get(1).toInt());
+                corrBuilder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
         finally {
             result.close();
         }
 
-        return correlation;
+        return corrBuilder.build();
     }
 
-    private Integer findCorrelation(SparseIntArray correlation) {
+    private Integer findCorrelation(IntPairMap correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
@@ -488,7 +494,7 @@ public final class StreamedDatabaseReader {
         return getColumnMax(table, table.getCorrelationIdColumnIndex());
     }
 
-    private int insertCorrelation(SparseIntArray correlation) {
+    private int insertCorrelation(IntPairMap correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
@@ -509,7 +515,7 @@ public final class StreamedDatabaseReader {
         return newCorrelationId;
     }
 
-    private int obtainCorrelation(SparseIntArray correlation) {
+    private int obtainCorrelation(IntPairMap correlation) {
         final Integer id = findCorrelation(correlation);
         if (id == null) {
             return insertCorrelation(correlation);
@@ -869,7 +875,7 @@ public final class StreamedDatabaseReader {
 
             for (int i = 0; i < correlationsLength; i++) {
                 Map<Integer, Integer> corrMap = ibs.readMap(keyDecoder, keyDecoder, keyDecoder, valueDecoder);
-                SparseIntArray corr = new SparseIntArray();
+                MutableIntPairMap corr = MutableIntPairMap.empty();
                 for (Map.Entry<Integer, Integer> entry : corrMap.entrySet()) {
                     corr.put(entry.getKey(), symbolArraysIdMap[entry.getValue()]);
                 }
@@ -958,11 +964,11 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private SparseArray<AgentBunches> readAgents(
+    private ImmutableIntKeyMap<AgentBunches> readAgents(
             InputBitStream ibs, int maxConcept, int[] correlationIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(_naturalNumberTable);
-        final SparseArray<AgentBunches> result = new SparseArray<>(agentsLength);
+        final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -998,7 +1004,7 @@ public final class StreamedDatabaseReader {
 
                 final int matcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
                 final int adderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final SparseIntArray adder = getCorrelation(adderId);
+                final ImmutableIntPairMap adder = getCorrelation(adderId);
 
                 final boolean adderNonEmpty = adder.size() > 0;
                 final int rule = adderNonEmpty?
@@ -1030,13 +1036,13 @@ public final class StreamedDatabaseReader {
                 final int agentId = insertAgent(targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
 
                 final Set<Integer> diffSet = Collections.emptySet();
-                result.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
+                builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
 
                 lastTarget = targetBunch;
             }
         }
 
-        return result;
+        return builder.build();
     }
 
     private void fillSearchQueryTable() {
@@ -1098,7 +1104,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private int[] sortAgents(SparseArray<AgentBunches> agents) {
+    private int[] sortAgents(IntKeyMap<AgentBunches> agents) {
         final int agentCount = agents.size();
         int[] ids = new int[agentCount];
         if (agentCount == 0) {
@@ -1231,7 +1237,7 @@ public final class StreamedDatabaseReader {
 
                 final int newConcept = obtainRuledConcept(agentId, concept);
                 final int resultCorrLength = resultCorr.size();
-                final SparseIntArray resultCorrIds = new SparseIntArray(resultCorrLength);
+                final MutableIntPairMap resultCorrIds = MutableIntPairMap.empty();
                 for (int i = 0; i < resultCorrLength; i++) {
                     final int alphabet = resultCorr.keyAt(i);
                     resultCorrIds.put(alphabet, obtainSymbolArray(resultCorr.valueAt(i)));
@@ -1337,7 +1343,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private void runAgents(SparseArray<AgentBunches> agents) {
+    private void runAgents(IntKeyMap<AgentBunches> agents) {
         final int agentCount = agents.size();
         int index = 0;
         for (int agentId : sortAgents(agents)) {
@@ -1381,8 +1387,6 @@ public final class StreamedDatabaseReader {
 
     public void read() throws IOException {
         try {
-            _is.skip(20);
-
             setProgress(0, "Reading symbolArrays");
             final InputBitStream ibs = new InputBitStream(_is);
             final int[] symbolArraysIdMap = readSymbolArrays(ibs);
@@ -1469,7 +1473,7 @@ public final class StreamedDatabaseReader {
 
             // Export agents
             setProgress(0.27f, "Reading agents");
-            SparseArray<AgentBunches> agents = readAgents(ibs, maxConcept, correlationIdMap);
+            ImmutableIntKeyMap<AgentBunches> agents = readAgents(ibs, maxConcept, correlationIdMap);
 
             setProgress(0.3f, "Indexing strings");
             fillSearchQueryTable();

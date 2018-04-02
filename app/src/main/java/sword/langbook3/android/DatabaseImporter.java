@@ -27,6 +27,7 @@ public final class DatabaseImporter implements DbInitializer {
         try {
             final InputStream is = _context.getContentResolver().openInputStream(_uri);
             if (is != null) {
+                is.skip(20);
                 final StreamedDatabaseReader reader = new StreamedDatabaseReader(db, is, _listener);
                 reader.read();
             }
