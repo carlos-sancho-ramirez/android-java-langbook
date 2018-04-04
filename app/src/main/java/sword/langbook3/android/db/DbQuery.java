@@ -71,7 +71,7 @@ public final class DbQuery implements DbView {
             throw new IllegalArgumentException("Selected column indexes out of bounds");
         }
 
-        for (ImmutableIntPairMap.Entry entry : selection) {
+        for (ImmutableIntPairMap.Entry entry : selection.entries()) {
             final int func = entry.getValue();
             if (func != 0 && func != FLAG_COLUMN_FUNCTION_MAX && func != FLAG_COLUMN_FUNCTION_CONCAT) {
                 throw new IllegalArgumentException("Unexpected aggregate function");

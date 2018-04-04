@@ -5,10 +5,7 @@ import java.util.Iterator;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
-import sword.collections.ImmutableSet;
 import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
 
@@ -83,7 +80,7 @@ public class MemoryDatabase implements DbInitializer.Database {
                 }
                 else {
                     boolean somethingReplaced = false;
-                    for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : viewContent) {
+                    for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : viewContent.entries()) {
                         if (equal(entry.getValue().get(targetJoinColumnIndex - 1), rawValue)) {
                             final ImmutableList<Object> newRow = oldRow.append(entry.getKey())
                                     .appendAll(entry.getValue());
@@ -122,7 +119,7 @@ public class MemoryDatabase implements DbInitializer.Database {
     private void applyRestrictions(
             MutableList<ImmutableList<Object>> result,
             ImmutableIntKeyMap<DbValue> restrictions) {
-        for (ImmutableIntKeyMap.Entry<DbValue> restriction : restrictions) {
+        for (ImmutableIntKeyMap.Entry<DbValue> restriction : restrictions.entries()) {
             final DbValue value = restriction.getValue();
             final Object rawValue = value.isText()? value.toText() : value.toInt();
 
@@ -165,12 +162,12 @@ public class MemoryDatabase implements DbInitializer.Database {
         final MutableList<ImmutableList<Object>> unselectedResult;
         if (restrictions.keySet().contains(0)) {
             final int id = restrictions.get(0).toInt();
-            ImmutableList<Object> register = content.get(id).prepend(id);
+            ImmutableList<Object> register = content.get(id, ImmutableList.empty()).prepend(id);
             unselectedResult = new MutableList.Builder<ImmutableList<Object>>().add(register).build();
         }
         else {
             final MutableList.Builder<ImmutableList<Object>> builder = new MutableList.Builder<>();
-            for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : content) {
+            for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : content.entries()) {
                 final ImmutableList<Object> register = entry.getValue().prepend(entry.getKey());
                 builder.add(register);
             }
@@ -249,7 +246,7 @@ public class MemoryDatabase implements DbInitializer.Database {
     }
 
     private MutableIntKeyMap<ImmutableList<Object>> obtainTableContent(DbTable table) {
-        MutableIntKeyMap<ImmutableList<Object>> content = _tableMap.get(table);
+        MutableIntKeyMap<ImmutableList<Object>> content = _tableMap.get(table, null);
 
         if (content == null) {
             content = MutableIntKeyMap.empty();
@@ -319,7 +316,7 @@ public class MemoryDatabase implements DbInitializer.Database {
         final ImmutableList<Object> register = builder.build();
         content.put(id, register);
 
-        for (MutableMap.Entry<DbColumn, Object> entry : uniqueMap) {
+        for (MutableMap.Entry<DbColumn, Object> entry : uniqueMap.entries()) {
             final MutableMap<Object, Integer> map;
             if (_indexes.containsKey(entry.getKey())) {
                 map = _indexes.get(entry.getKey());
