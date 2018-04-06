@@ -172,7 +172,7 @@ public final class StreamedDatabaseReader {
         return ibs.readSet(decoder, decoder, decoder);
     }
 
-    private static final class StreamedDatabaseConstants {
+    static final class StreamedDatabaseConstants {
 
         /** Reserved for empty correlations */
         static final int nullCorrelationId = 0;

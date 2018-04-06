@@ -13,9 +13,12 @@ import sword.bitstream.huffman.DefinedHuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableIntValueMap;
+import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntPairMap;
 import sword.collections.IntValueMap;
@@ -256,11 +259,12 @@ public final class StreamedDatabaseWriter {
         return new SymbolArrayWriterResult(idMapBuilder.build(), langCodeSymbolArrayBuilder.build());
     }
 
-    private void writeLanguages(ImmutableIntPairMap symbolArraysIdMap, ImmutableIntValueMap<String> langMap) throws IOException {
+    private ImmutableIntRange writeLanguages(ImmutableIntPairMap symbolArraysIdMap, ImmutableIntValueMap<String> langMap) throws IOException {
         final LangbookDbSchema.AlphabetsTable alphabetsTable = LangbookDbSchema.Tables.alphabets;
         final DbResult alphabetResult = _db.select(new DbQuery.Builder(alphabetsTable).select(alphabetsTable.getIdColumnIndex(), alphabetsTable.getLanguageColumnIndex()));
         final MutableIntKeyMap<ImmutableIntSet> alphabetMap = MutableIntKeyMap.empty();
         final ImmutableIntSet emptySet = new ImmutableIntSetBuilder().build();
+        int alphabetCount = 0;
         try {
             while (alphabetResult.hasNext()) {
                 final DbResult.Row row = alphabetResult.next();
@@ -268,6 +272,7 @@ public final class StreamedDatabaseWriter {
                 final int langDbId = row.get(1).toInt();
                 final ImmutableIntSet set = alphabetMap.get(langDbId, emptySet);
                 alphabetMap.put(langDbId, set.add(alphabetDbId));
+                ++alphabetCount;
             }
         }
         finally {
@@ -299,12 +304,107 @@ public final class StreamedDatabaseWriter {
         finally {
             result.close();
         }
+
+        final int minValidAlphabet = StreamedDatabaseReader.StreamedDatabaseConstants.minValidAlphabet;
+        return new ImmutableIntRange(minValidAlphabet, minValidAlphabet + alphabetCount - 1);
+    }
+
+    private static final class IntPair {
+        final int source;
+        final int target;
+
+        IntPair(int source, int target) {
+            this.source = source;
+            this.target = target;
+        }
+
+        @Override
+        public int hashCode() {
+            return source * 37 + target;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == null || !(other instanceof IntPair)) {
+                return false;
+            }
+
+            IntPair that = (IntPair) other;
+            return source == that.source && target == that.target;
+        }
+    }
+
+    private void writeConversions(ImmutableIntRange validAlphabets, ImmutableIntPairMap symbolArraysIdMap) throws IOException {
+        final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getSourceAlphabetColumnIndex(), table.getTargetAlphabetColumnIndex(), table.getSourceColumnIndex(), table.getTargetColumnIndex());
+        final DbResult result = _db.select(query);
+        final ImmutableMap.Builder<IntPair, ImmutableList<IntPair>> builder = new ImmutableMap.Builder<>();
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                IntPair alphabetPair = new IntPair(row.get(0).toInt(), row.get(1).toInt());
+                ImmutableList.Builder<IntPair> arrayPairs = new ImmutableList.Builder<>();
+                arrayPairs.add(new IntPair(row.get(2).toInt(), row.get(3).toInt()));
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    final int alphabetSource = row.get(0).toInt();
+                    final int alphabetTarget = row.get(1).toInt();
+                    final int source = row.get(2).toInt();
+                    final int target = row.get(3).toInt();
+
+                    if (alphabetPair.source != alphabetSource || alphabetPair.target != alphabetTarget) {
+                        builder.put(alphabetPair, arrayPairs.build());
+
+                        alphabetPair = new IntPair(alphabetSource, alphabetTarget);
+                        arrayPairs = new ImmutableList.Builder<>();
+                    }
+                    arrayPairs.add(new IntPair(source, target));
+                }
+
+                builder.put(alphabetPair, arrayPairs.build());
+            }
+        }
+        finally {
+            result.close();
+        }
+        final ImmutableMap<IntPair, ImmutableList<IntPair>> conversions = builder.build();
+
+        final ImmutableIntRange validSymbolArrays = new ImmutableIntRange(0, symbolArraysIdMap.size() - 1);
+        final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(validSymbolArrays.min(), validSymbolArrays.max());
+        _obs.writeHuffmanSymbol(naturalNumberTable, conversions.size());
+
+        int minSourceAlphabet = validAlphabets.min();
+        int minTargetAlphabet = minSourceAlphabet;
+        for (ImmutableMap.Entry<IntPair, ImmutableList<IntPair>> entry : conversions.entries()) {
+            final RangedIntegerHuffmanTable sourceAlphabetTable = new RangedIntegerHuffmanTable(minSourceAlphabet, validAlphabets.max());
+            final int sourceAlphabet = entry.getKey().source;
+            _obs.writeHuffmanSymbol(sourceAlphabetTable, sourceAlphabet);
+
+            if (minSourceAlphabet != sourceAlphabet) {
+                minTargetAlphabet = validAlphabets.min();
+                minSourceAlphabet = sourceAlphabet;
+            }
+
+            final RangedIntegerHuffmanTable targetAlphabetTable = new RangedIntegerHuffmanTable(minTargetAlphabet, validAlphabets.max());
+            final int targetAlphabet = entry.getKey().target;
+            _obs.writeHuffmanSymbol(targetAlphabetTable, targetAlphabet);
+            minTargetAlphabet = targetAlphabet + 1;
+
+            _obs.writeHuffmanSymbol(naturalNumberTable, entry.getValue().size());
+            for (IntPair pair : entry.getValue()) {
+                _obs.writeHuffmanSymbol(symbolArrayTable, symbolArraysIdMap.get(pair.source));
+                _obs.writeHuffmanSymbol(symbolArrayTable, symbolArraysIdMap.get(pair.target));
+            }
+        }
     }
 
     public void write() throws IOException {
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
-        writeLanguages(symbolArrayWriterResult.idMap, symbolArrayWriterResult.langMap);
+        final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayWriterResult.idMap, symbolArrayWriterResult.langMap);
+        writeConversions(validAlphabets, symbolArrayWriterResult.idMap);
         _obs.close();
     }
 }
