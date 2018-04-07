@@ -172,30 +172,6 @@ public final class StreamedDatabaseReader {
         return ibs.readSet(decoder, decoder, decoder);
     }
 
-    static final class StreamedDatabaseConstants {
-
-        /** Reserved for empty correlations */
-        static final int nullCorrelationId = 0;
-
-        /** Reserved for empty correlations */
-        static final int nullCorrelationArrayId = 0;
-
-        /** Reserved for agents for null references */
-        static final int nullBunchId = 0;
-
-        /** Reserved for agents for null references */
-        static final int nullRuleId = 0;
-
-        /** First alphabet within the database */
-        static final int minValidAlphabet = 3;
-
-        /** First concept within the database that is considered to be a valid concept */
-        static final int minValidConcept = 1;
-
-        /** First word within the database that is considered to be a valid word */
-        static final int minValidWord = 0;
-    }
-
     private static final class Language {
 
         private final String _code;

@@ -332,7 +332,7 @@ public final class StreamedDatabaseWriter {
             result.close();
         }
 
-        final int minValidAlphabet = StreamedDatabaseReader.StreamedDatabaseConstants.minValidAlphabet;
+        final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
         return new ImmutableIntRange(minValidAlphabet, minValidAlphabet + alphabetCount - 1);
     }
 
