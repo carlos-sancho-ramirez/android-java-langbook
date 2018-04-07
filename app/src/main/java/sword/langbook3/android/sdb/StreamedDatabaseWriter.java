@@ -21,6 +21,7 @@ import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
@@ -550,6 +551,77 @@ public final class StreamedDatabaseWriter {
         return idMapBuilder.build();
     }
 
+    private ImmutableIntPairMap writeCorrelationArrays(ImmutableIntPairMap correlationIdMap) throws IOException {
+        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getArrayIdColumnIndex(),
+                table.getCorrelationColumnIndex());
+        final DbResult result = _db.select(query);
+        final ImmutableList.Builder<ImmutableIntList> builder = new ImmutableList.Builder<>();
+        final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
+        final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
+        int index = 0;
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int arrayId = row.get(0).toInt();
+                ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
+                arrayBuilder.add(correlationIdMap.get(row.get(1).toInt()));
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newArrayId = row.get(0).toInt();
+                    if (newArrayId != arrayId) {
+                        final ImmutableIntList array = arrayBuilder.build();
+                        final int length = array.size();
+                        final int amount = lengthFrequencies.get(length, 0);
+                        lengthFrequencies.put(length, amount + 1);
+
+                        builder.add(array);
+                        idMapBuilder.put(arrayId, index++);
+
+                        arrayId = newArrayId;
+                        arrayBuilder = new ImmutableIntList.Builder();
+                    }
+
+                    arrayBuilder.add(correlationIdMap.get(row.get(1).toInt()));
+                }
+
+                final ImmutableIntList array = arrayBuilder.build();
+                final int length = array.size();
+                final int amount = lengthFrequencies.get(length, 0);
+                lengthFrequencies.put(length, amount + 1);
+
+                builder.add(array);
+                idMapBuilder.put(arrayId, index++);
+            }
+        }
+        finally {
+            result.close();
+        }
+        final ImmutableList<ImmutableIntList> corrArrays = builder.build();
+        _obs.writeHuffmanSymbol(naturalNumberTable, index);
+
+        if (!corrArrays.isEmpty()) {
+            final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(
+                    composeJavaMap(lengthFrequencies), new IntComparator());
+            final RangedIntegerHuffmanTable correlationTable =
+                    new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
+
+            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
+            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+
+            for (ImmutableIntList array : corrArrays) {
+                _obs.writeHuffmanSymbol(lengthTable, array.size());
+                for (int value : array) {
+                    _obs.writeHuffmanSymbol(correlationTable, value);
+                }
+            }
+        }
+
+        return idMapBuilder.build();
+    }
+
     public void write() throws IOException {
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
@@ -564,7 +636,8 @@ public final class StreamedDatabaseWriter {
         // should be considered into the count of the maximum concept
         _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
 
-        writeCorrelations(validAlphabets, symbolArrayIdMap);
+        final ImmutableIntPairMap correlationIdMap = writeCorrelations(validAlphabets, symbolArrayIdMap);
+        writeCorrelationArrays(correlationIdMap);
         _obs.close();
     }
 }
