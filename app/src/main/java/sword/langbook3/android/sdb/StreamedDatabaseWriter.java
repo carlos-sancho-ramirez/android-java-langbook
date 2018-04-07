@@ -4,14 +4,23 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Map;
 
+import sword.bitstream.InputBitStream;
+import sword.bitstream.IntegerDecoder;
+import sword.bitstream.IntegerEncoder;
 import sword.bitstream.OutputBitStream;
 import sword.bitstream.Procedure2WithIOException;
 import sword.bitstream.ProcedureWithIOException;
+import sword.bitstream.RangedIntegerSetDecoder;
+import sword.bitstream.RangedIntegerSetEncoder;
+import sword.bitstream.SupplierWithIOException;
 import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.DefinedHuffmanTable;
+import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
@@ -113,6 +122,24 @@ public final class StreamedDatabaseWriter {
         @Override
         public int compare(Integer a, Integer b) {
             return a - b;
+        }
+    }
+
+    private class ValueEncoder<E> implements ProcedureWithIOException<E> {
+
+        private final HuffmanTable<E> _table;
+
+        ValueEncoder(HuffmanTable<E> table) {
+            if (table == null) {
+                throw new IllegalArgumentException();
+            }
+
+            _table = table;
+        }
+
+        @Override
+        public void apply(E element) throws IOException {
+            _obs.writeHuffmanSymbol(_table, element);
         }
     }
 
@@ -450,11 +477,85 @@ public final class StreamedDatabaseWriter {
                 new ImmutableIntRange(minConcept, maxConcept));
     }
 
+    private ImmutableIntPairMap writeCorrelations(ImmutableIntRange validAlphabets, ImmutableIntPairMap symbolArraysIdMap) throws IOException {
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getCorrelationIdColumnIndex(),
+                table.getAlphabetColumnIndex(),
+                table.getSymbolArrayColumnIndex());
+        final DbResult result = _db.select(query);
+        final ImmutableIntKeyMap.Builder<ImmutableIntPairMap> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
+        final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
+        int setCount = 0;
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                ImmutableIntPairMap.Builder setBuilder = new ImmutableIntPairMap.Builder();
+                int setId = row.get(0).toInt();
+                setBuilder.put(row.get(1).toInt(), symbolArraysIdMap.get(row.get(2).toInt()));
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newSetId = row.get(0).toInt();
+                    if (newSetId != setId) {
+                        final ImmutableIntPairMap set = setBuilder.build();
+                        final int setLength = set.size();
+                        final int amount = lengthFrequencies.get(setLength, 0);
+                        lengthFrequencies.put(setLength, amount + 1);
+
+                        builder.put(setId, set);
+                        idMapBuilder.put(setId, setCount++);
+                        setBuilder = new ImmutableIntPairMap.Builder();
+                        setId = newSetId;
+                    }
+
+                    setBuilder.put(row.get(1).toInt(), symbolArraysIdMap.get(row.get(2).toInt()));
+                }
+
+                final ImmutableIntPairMap set = setBuilder.build();
+                final int setLength = set.size();
+                final int amount = lengthFrequencies.get(setLength, 0);
+                lengthFrequencies.put(setLength, amount + 1);
+
+                builder.put(setId, set);
+                idMapBuilder.put(setId, setCount);
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(
+                composeJavaMap(lengthFrequencies), new IntComparator());
+        final RangedIntegerSetEncoder keyEncoder = new RangedIntegerSetEncoder(_obs,
+                lengthTable, validAlphabets.min(), validAlphabets.max());
+        final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(0, symbolArraysIdMap.size() - 1);
+        final ValueEncoder<Integer> symbolArrayEncoder = new ValueEncoder<>(symbolArrayTable);
+
+        final ImmutableIntKeyMap<ImmutableIntPairMap> correlations = builder.build();
+        _obs.writeHuffmanSymbol(naturalNumberTable, correlations.size());
+
+        boolean tableWritten = false;
+        for (ImmutableIntPairMap corr : correlations) {
+            if (!tableWritten) {
+                final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
+                _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+                tableWritten = true;
+            }
+
+            _obs.writeMap(keyEncoder, keyEncoder, keyEncoder, keyEncoder, symbolArrayEncoder, composeJavaMap(corr));
+        }
+
+        return idMapBuilder.build();
+    }
+
     public void write() throws IOException {
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
-        final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayWriterResult.idMap, symbolArrayWriterResult.langMap);
-        writeConversions(validAlphabets, symbolArrayWriterResult.idMap);
+        final ImmutableIntPairMap symbolArrayIdMap = symbolArrayWriterResult.idMap;
+        final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayIdMap, symbolArrayWriterResult.langMap);
+        writeConversions(validAlphabets, symbolArrayIdMap);
 
         final AcceptationWordConceptRanges accRanges = getRangesFromAcceptations();
         _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.words.max() + 1);
@@ -462,6 +563,8 @@ public final class StreamedDatabaseWriter {
         // TODO: Languages, Alphabets, Bunches and Rules are concepts as well and they
         // should be considered into the count of the maximum concept
         _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
+
+        writeCorrelations(validAlphabets, symbolArrayIdMap);
         _obs.close();
     }
 }
