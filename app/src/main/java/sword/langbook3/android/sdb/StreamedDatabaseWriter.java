@@ -400,11 +400,68 @@ public final class StreamedDatabaseWriter {
         }
     }
 
+    private static final class AcceptationWordConceptRanges {
+        final ImmutableIntRange words;
+        final ImmutableIntRange concepts;
+
+        AcceptationWordConceptRanges(ImmutableIntRange words, ImmutableIntRange concepts) {
+            this.words = words;
+            this.concepts = concepts;
+        }
+    }
+
+    private AcceptationWordConceptRanges getRangesFromAcceptations() {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getWordColumnIndex(), table.getConceptColumnIndex());
+        final DbResult result = _db.select(query);
+        int minWord = Integer.MAX_VALUE;
+        int maxWord = Integer.MIN_VALUE;
+        int minConcept = Integer.MAX_VALUE;
+        int maxConcept = Integer.MIN_VALUE;
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int word = row.get(0).toInt();
+                final int concept = row.get(1).toInt();
+                if (word < minWord) {
+                    minWord = word;
+                }
+
+                if (word > maxWord) {
+                    maxWord = word;
+                }
+
+                if (concept < minConcept) {
+                    minConcept = concept;
+                }
+
+                if (concept > maxConcept) {
+                    maxConcept = concept;
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return new AcceptationWordConceptRanges(
+                new ImmutableIntRange(minWord, maxWord),
+                new ImmutableIntRange(minConcept, maxConcept));
+    }
+
     public void write() throws IOException {
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
         final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayWriterResult.idMap, symbolArrayWriterResult.langMap);
         writeConversions(validAlphabets, symbolArrayWriterResult.idMap);
+
+        final AcceptationWordConceptRanges accRanges = getRangesFromAcceptations();
+        _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.words.max() + 1);
+
+        // TODO: Languages, Alphabets, Bunches and Rules are concepts as well and they
+        // should be considered into the count of the maximum concept
+        _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
         _obs.close();
     }
 }
