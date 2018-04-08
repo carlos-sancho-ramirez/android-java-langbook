@@ -910,9 +910,14 @@ public final class StreamedDatabaseReader {
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
-        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minValidConcept, maxConcept);
+        int remainingBunches = bunchConceptsLength;
+        int minBunchConcept = minValidConcept;
         for (int i = 0; i < bunchConceptsLength; i++) {
-            final int bunch = ibs.readHuffmanSymbol(conceptTable);
+            final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, maxConcept - remainingBunches + 1);
+            final int bunch = ibs.readHuffmanSymbol(bunchTable);
+            minBunchConcept = bunch + 1;
+            --remainingBunches;
+
             final Set<Integer> concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, minValidConcept, maxConcept);
             for (int concept : concepts) {
                 insertBunchConcept(bunch, concept);
