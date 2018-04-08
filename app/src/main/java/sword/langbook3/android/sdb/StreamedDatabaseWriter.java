@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import sword.bitstream.InputBitStream;
 import sword.bitstream.IntegerDecoder;
@@ -622,6 +623,57 @@ public final class StreamedDatabaseWriter {
         return idMapBuilder.build();
     }
 
+    private ImmutableIntPairMap writeAcceptations(ImmutableIntRange validWords, ImmutableIntRange validConcepts, ImmutableIntPairMap correlationArrayIdMap) throws IOException {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final int length = getTableLength(table);
+        _obs.writeHuffmanSymbol(naturalNumberTable, length);
+
+        final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
+        if (length > 0) {
+            // The streamed database file allow having more than one representation for acceptation.
+            // However, the database schema only allows 1 per each acceptation.
+            // Because of that, the length table will have a single element, as all will be have length 1.
+            final Map<Integer, Integer> dummyFrequencyMap =
+                    composeJavaMap(new ImmutableIntPairMap.Builder().put(1, 50).build());
+            final DefinedHuffmanTable<Integer> lengthTable =
+                    DefinedHuffmanTable.withFrequencies(dummyFrequencyMap, new IntComparator());
+            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
+            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+
+            final DbQuery query = new DbQuery.Builder(table).select(
+                    table.getIdColumnIndex(),
+                    table.getWordColumnIndex(),
+                    table.getConceptColumnIndex(),
+                    table.getCorrelationArrayColumnIndex());
+            final DbResult result = _db.select(query);
+
+            int index = 0;
+            try {
+                final RangedIntegerHuffmanTable wordTable =
+                        new RangedIntegerHuffmanTable(validWords.min(), validWords.max());
+                final RangedIntegerHuffmanTable conceptTable =
+                        new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
+
+                while (result.hasNext()) {
+                    final DbResult.Row row = result.next();
+                    idMapBuilder.put(row.get(0).toInt(), index++);
+                    _obs.writeHuffmanSymbol(wordTable, row.get(1).toInt());
+                    _obs.writeHuffmanSymbol(conceptTable, row.get(2).toInt());
+
+                    // Here the number of correlation arrays within the acceptation should be written.
+                    // As length is always 1, it is expected that this will never include anything
+                    // into the stream. So, it should not be required
+                    final RangedIntegerHuffmanTable corrArrayTable = new RangedIntegerHuffmanTable(0, correlationArrayIdMap.size() - 1);
+                    _obs.writeHuffmanSymbol(corrArrayTable, correlationArrayIdMap.get(row.get(3).toInt()));
+                }
+            } finally {
+                result.close();
+            }
+        }
+
+        return idMapBuilder.build();
+    }
+
     public void write() throws IOException {
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
@@ -637,7 +689,14 @@ public final class StreamedDatabaseWriter {
         _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
 
         final ImmutableIntPairMap correlationIdMap = writeCorrelations(validAlphabets, symbolArrayIdMap);
-        writeCorrelationArrays(correlationIdMap);
+        final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(correlationIdMap);
+
+        // TODO: Check if this is already required and accRanges.words cannot be used instead
+        final ImmutableIntRange validWords = new ImmutableIntRange(StreamedDatabaseConstants.minValidWord, accRanges.words.max());
+
+        // TODO: Check if this is already required and accRanges.concepts cannot be used instead
+        final ImmutableIntRange validConcepts = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, accRanges.concepts.max());
+        writeAcceptations(validWords, validConcepts, correlationArrayIdMap);
         _obs.close();
     }
 }
