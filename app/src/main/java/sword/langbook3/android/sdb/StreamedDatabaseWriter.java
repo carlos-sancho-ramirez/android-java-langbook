@@ -746,6 +746,58 @@ public final class StreamedDatabaseWriter {
         }
     }
 
+    private void writeBunchAcceptations(ImmutableIntRange validConcepts, ImmutableIntPairMap accIdMap) throws IOException {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getBunchColumnIndex(),
+                table.getAcceptationColumnIndex());
+        final DbResult result = _db.select(query);
+        final MutableIntKeyMap<MutableIntSet> bunches = MutableIntKeyMap.empty();
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int bunchId = row.get(0).toInt();
+                final MutableIntSet set;
+                if (bunches.keySet().contains(bunchId)) {
+                    set = bunches.get(bunchId);
+                }
+                else {
+                    set = MutableIntSet.empty();
+                    bunches.put(bunchId, set);
+                }
+                set.add(accIdMap.get(row.get(1).toInt()));
+            }
+        }
+        finally {
+            result.close();
+        }
+        _obs.writeHuffmanSymbol(naturalNumberTable, bunches.size());
+
+        if (!bunches.isEmpty()) {
+            final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
+            for (IntSet set : bunches) {
+                final int length = set.size();
+                final int amount = lengthFrequencies.get(length, 0);
+                lengthFrequencies.put(length, amount + 1);
+            }
+
+            final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequencies), new IntComparator());
+            _obs.writeHuffmanTable(lengthTable, new IntWriter(), new IntDiffWriter());
+
+            final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, 0, accIdMap.size() - 1);
+            int maxBunchConcept = validConcepts.max() - bunches.size() + 1;
+            int minBunchConcept = validConcepts.min();
+            for (IntKeyMap.Entry<MutableIntSet> entry : bunches.entries()) {
+                final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept);
+                _obs.writeHuffmanSymbol(bunchTable, entry.getKey());
+                minBunchConcept = entry.getKey() + 1;
+                ++maxBunchConcept;
+
+                writeRangedNumberSet(encoder, entry.getValue());
+            }
+        }
+    }
+
     public void write() throws IOException {
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
@@ -768,8 +820,9 @@ public final class StreamedDatabaseWriter {
 
         // TODO: Check if this is already required and accRanges.concepts cannot be used instead
         final ImmutableIntRange validConcepts = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, accRanges.concepts.max());
-        writeAcceptations(validWords, validConcepts, correlationArrayIdMap);
+        final ImmutableIntPairMap accIdMap = writeAcceptations(validWords, validConcepts, correlationArrayIdMap);
         writeBunchConcepts(validConcepts);
+        writeBunchAcceptations(validConcepts, accIdMap);
         _obs.close();
     }
 }

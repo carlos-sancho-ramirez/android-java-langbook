@@ -23,6 +23,7 @@ import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.MutableIntPairMap;
@@ -905,37 +906,42 @@ public final class StreamedDatabaseReader {
         return acceptationsIdMap;
     }
 
-    private void readBunchConcepts(InputBitStream ibs, int minValidConcept, int maxConcept) throws IOException {
+    private void readBunchConcepts(InputBitStream ibs, ImmutableIntRange validConcepts) throws IOException {
         final int bunchConceptsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
         int remainingBunches = bunchConceptsLength;
-        int minBunchConcept = minValidConcept;
+        int minBunchConcept = validConcepts.min();
         for (int i = 0; i < bunchConceptsLength; i++) {
-            final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, maxConcept - remainingBunches + 1);
+            final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, validConcepts.max() - remainingBunches + 1);
             final int bunch = ibs.readHuffmanSymbol(bunchTable);
             minBunchConcept = bunch + 1;
             --remainingBunches;
 
-            final Set<Integer> concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, minValidConcept, maxConcept);
+            final Set<Integer> concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
             for (int concept : concepts) {
                 insertBunchConcept(bunch, concept);
             }
         }
     }
 
-    private void readBunchAcceptations(InputBitStream ibs, int minValidConcept, int[] conceptIdMap, int[] acceptationsIdMap) throws IOException {
+    private void readBunchAcceptations(InputBitStream ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
                 ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
         final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
-        final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minValidConcept, conceptIdMap.length - 1);
 
+        int minValidBunch = validConcepts.min();
+        int maxValidBunch = validConcepts.max() - bunchAcceptationsLength + 1;
         for (int i = 0; i < bunchAcceptationsLength; i++) {
-            final int bunch = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
+            final RangedIntegerHuffmanTable table = new RangedIntegerHuffmanTable(minValidBunch, maxValidBunch);
+            final int bunch = ibs.readHuffmanSymbol(table);
+            minValidBunch = bunch + 1;
+            ++maxValidBunch;
+
             final Set<Integer> acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
                 insertBunchAcceptation(bunch, acceptationsIdMap[acceptation], nullAgentSet);
@@ -1444,11 +1450,12 @@ public final class StreamedDatabaseReader {
 
             // Export bunchConcepts
             setProgress(0.21f, "Reading bunch concepts");
-            readBunchConcepts(ibs, minValidConcept, maxConcept);
+            final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
+            readBunchConcepts(ibs, validConcepts);
 
             // Export bunchAcceptations
             setProgress(0.24f, "Reading bunch acceptations");
-            readBunchAcceptations(ibs, minValidConcept, conceptIdMap, acceptationIdMap);
+            readBunchAcceptations(ibs, validConcepts, acceptationIdMap);
 
             // Export agents
             setProgress(0.27f, "Reading agents");
