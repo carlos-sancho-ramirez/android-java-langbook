@@ -91,9 +91,19 @@ public final class StreamedDatabaseWriter {
 
     private class IntWriter implements ProcedureWithIOException<Integer> {
 
+        private final NaturalNumberHuffmanTable _table;
+
+        IntWriter() {
+            _table = naturalNumberTable;
+        }
+
+        IntWriter(NaturalNumberHuffmanTable table) {
+            _table = table;
+        }
+
         @Override
         public void apply(Integer value) throws IOException {
-            _obs.writeHuffmanSymbol(naturalNumberTable, value);
+            _obs.writeHuffmanSymbol(_table, value);
         }
     }
 
@@ -746,6 +756,122 @@ public final class StreamedDatabaseWriter {
         }
     }
 
+    private ImmutableIntKeyMap<ImmutableIntSet> getBunchSets() {
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getSetIdColumnIndex(),
+                table.getBunchColumnIndex());
+        final DbResult result = _db.select(query);
+        final MutableIntKeyMap<ImmutableIntSet> bunchSets = MutableIntKeyMap.empty();
+        try {
+            final ImmutableIntSet emptySet = new ImmutableIntSetBuilder().build();
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int setId = row.get(0).toInt();
+                final int bunch = row.get(1).toInt();
+
+                final ImmutableIntSet set = bunchSets.get(setId, emptySet);
+                bunchSets.put(setId, set.add(bunch));
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return bunchSets.toImmutable();
+    }
+
+    private void writeAgents(int maxConcept, ImmutableIntPairMap correlationIdMap) throws IOException {
+        final ImmutableIntKeyMap<ImmutableIntSet> bunchSets = getBunchSets();
+
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        DbQuery query = new DbQuery.Builder(table).select(
+                table.getSourceBunchSetColumnIndex(),
+                table.getDiffBunchSetColumnIndex());
+        DbResult result = _db.select(query);
+        final MutableIntPairMap bunchSetLengthFrequencyMap = MutableIntPairMap.empty();
+        int count = 0;
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int sourceBunchSet = row.get(0).toInt();
+                final int diffBunchSet = row.get(1).toInt();
+
+                final int sourceBunchSetLength = bunchSets.get(sourceBunchSet).size();
+                final int diffBunchSetLength = bunchSets.get(diffBunchSet).size();
+
+                int amount = bunchSetLengthFrequencyMap.get(sourceBunchSetLength, 0);
+                bunchSetLengthFrequencyMap.put(sourceBunchSetLength, amount + 1);
+
+                amount = bunchSetLengthFrequencyMap.get(diffBunchSetLength, 0);
+                bunchSetLengthFrequencyMap.put(diffBunchSetLength, amount + 1);
+                count++;
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        final int agentCount = count;
+        _obs.writeHuffmanSymbol(naturalNumberTable, agentCount);
+
+        if (agentCount != 0) {
+            final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
+            final IntWriter intWriter = new IntWriter(nat3Table);
+            final DefinedHuffmanTable<Integer> sourceSetLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(bunchSetLengthFrequencyMap), new IntComparator());
+            _obs.writeHuffmanTable(sourceSetLengthTable, intWriter, null);
+
+            query = new DbQuery.Builder(table).select(
+                    table.getTargetBunchColumnIndex(),
+                    table.getSourceBunchSetColumnIndex(),
+                    table.getMatcherColumnIndex(),
+                    table.getAdderColumnIndex(),
+                    table.getRuleColumnIndex(),
+                    table.getFlagsColumnIndex());
+            result = _db.select(query);
+            try {
+                final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
+                int lastTarget = StreamedDatabaseConstants.nullBunchId;
+                int minSource = StreamedDatabaseConstants.minValidConcept;
+                while (result.hasNext()) {
+                    final DbResult.Row row = result.next();
+                    final int targetBunch = row.get(0).toInt();
+                    final int sourceBunchSetId = row.get(1).toInt();
+                    final int matcher = row.get(2).toInt();
+                    final int adder = row.get(3).toInt();
+                    final int rule = row.get(4).toInt();
+                    final int flags = row.get(5).toInt();
+
+                    final RangedIntegerHuffmanTable targetBunchTable = new RangedIntegerHuffmanTable(lastTarget, maxConcept);
+                    _obs.writeHuffmanSymbol(targetBunchTable, targetBunch);
+
+                    if (targetBunch != lastTarget) {
+                        minSource = StreamedDatabaseConstants.minValidConcept;
+                    }
+
+                    final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxConcept);
+                    final IntSet sourceBunchSet = bunchSets.get(sourceBunchSetId);
+                    writeRangedNumberSet(encoder, sourceBunchSet);
+
+                    if (!sourceBunchSet.isEmpty()) {
+                        minSource = sourceBunchSet.min();
+                    }
+
+                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(matcher));
+                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(adder));
+
+                    // Rule and flags are still missing. However there must be an error here as the adder
+                    // could match the empty correlation. But the empty correlation has not been included
+                    // within the file in writeCorrelations method.
+                    // TODO: Ensure that the empty correlation is present and implement the rest of the logic to write agents
+                }
+            }
+            finally {
+                result.close();
+            }
+        }
+    }
+
     private void writeBunchAcceptations(ImmutableIntRange validConcepts, ImmutableIntPairMap accIdMap) throws IOException {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table).select(
@@ -823,6 +949,7 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntPairMap accIdMap = writeAcceptations(validWords, validConcepts, correlationArrayIdMap);
         writeBunchConcepts(validConcepts);
         writeBunchAcceptations(validConcepts, accIdMap);
+        writeAgents(validConcepts.max(), correlationIdMap);
         _obs.close();
     }
 }
