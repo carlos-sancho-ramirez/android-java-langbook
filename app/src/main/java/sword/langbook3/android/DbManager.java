@@ -404,6 +404,16 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
+    public void exportStreamedDatabase(Uri uri) {
+        final DatabaseExporter writer = new DatabaseExporter(_context, uri, _progressListener);
+        try {
+            writer.save(new InitializerDatabase(getReadableDatabase()));
+        }
+        catch (DbInitializer.UnableToInitializeException e) {
+            Toast.makeText(_context, "Error saving database", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
         // So far, version 5 is the only one expected. So this method should never be called

@@ -14,6 +14,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.IOException;
 
 import sword.langbook3.android.sdb.ProgressListener;
@@ -25,6 +26,7 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
 
     private boolean _resumed;
     private EditText _dialogEditText;
+    private boolean _sqliteExporting;
 
     public static void open(Context context) {
         Intent intent = new Intent(context, SettingsActivity.class);
@@ -116,6 +118,12 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
                 break;
 
             case R.id.exportSqliteDatabaseButton:
+                _sqliteExporting = true;
+                selectLocation();
+                break;
+
+            case R.id.exportStreamedDatabaseButton:
+                _sqliteExporting = false;
                 selectLocation();
                 break;
 
@@ -184,7 +192,13 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
-        saveSqliteDatabase(_dialogEditText.getText().toString());
+        final String filePath = _dialogEditText.getText().toString();
+        if (_sqliteExporting) {
+            saveSqliteDatabase(filePath);
+        }
+        else {
+            DbManager.getInstance().exportStreamedDatabase(Uri.fromFile(new File(filePath)));
+        }
         dialog.dismiss();
     }
 }
