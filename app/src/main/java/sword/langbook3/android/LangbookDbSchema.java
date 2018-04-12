@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import sword.collections.ImmutableList;
+import sword.langbook3.android.db.DbIndex;
 import sword.langbook3.android.db.DbIntColumn;
 import sword.langbook3.android.db.DbSchema;
 import sword.langbook3.android.db.DbTable;

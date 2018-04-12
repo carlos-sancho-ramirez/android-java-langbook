@@ -23,6 +23,7 @@ import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbColumn;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
+import sword.langbook3.android.db.DbIndex;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbIntValue;
 import sword.langbook3.android.db.DbQuery;
@@ -270,7 +271,7 @@ class DbManager extends SQLiteOpenHelper {
 
     private static void createIndexes(SQLiteDatabase db, DbSchema schema) {
         int i = 0;
-        for (DbSchema.DbIndex index : schema.indexes()) {
+        for (DbIndex index : schema.indexes()) {
             db.execSQL("CREATE INDEX I" + (i++) + " ON " + index.table.name() + " (" + index.table.columns().get(index.column).name() + ')');
         }
     }
