@@ -950,6 +950,10 @@ public final class StreamedDatabaseWriter {
         writeBunchConcepts(validConcepts);
         writeBunchAcceptations(validConcepts, accIdMap);
         writeAgents(validConcepts.max(), correlationIdMap);
+
+        // Export ruleConcepts
+        // Unimplemented. So far let's confirm that this table is always empty
+        _obs.writeHuffmanSymbol(naturalNumberTable, 0);
         _obs.close();
     }
 }

@@ -1448,18 +1448,23 @@ public final class StreamedDatabaseReader {
             setProgress(0.17f, "Reading acceptations");
             int[] acceptationIdMap = readAcceptations(ibs, wordIdMap, conceptIdMap, correlationArrayIdMap);
 
-            // Export bunchConcepts
+            // Import bunchConcepts
             setProgress(0.21f, "Reading bunch concepts");
             final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
             readBunchConcepts(ibs, validConcepts);
 
-            // Export bunchAcceptations
+            // Import bunchAcceptations
             setProgress(0.24f, "Reading bunch acceptations");
             readBunchAcceptations(ibs, validConcepts, acceptationIdMap);
 
-            // Export agents
+            // Import agents
             setProgress(0.27f, "Reading agents");
             ImmutableIntKeyMap<AgentBunches> agents = readAgents(ibs, maxConcept, correlationIdMap);
+
+            // Import ruleConcepts
+            if (ibs.readHuffmanSymbol(naturalNumberTable) != 0) {
+                throw new UnsupportedOperationException("For now, this should always be an empty table");
+            }
 
             setProgress(0.3f, "Indexing strings");
             fillSearchQueryTable();
