@@ -37,7 +37,7 @@ import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.LangbookDbSchema;
-import sword.langbook3.android.db.DbInitializer.Database;
+import sword.langbook3.android.db.DbExporter.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;

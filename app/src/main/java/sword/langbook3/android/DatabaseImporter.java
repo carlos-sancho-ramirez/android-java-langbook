@@ -6,11 +6,11 @@ import android.net.Uri;
 import java.io.IOException;
 import java.io.InputStream;
 
-import sword.langbook3.android.db.DbInitializer;
+import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
-public final class DatabaseImporter implements DbInitializer {
+public final class DatabaseImporter implements DbImporter {
 
     private final Context _context;
     private final Uri _uri;
@@ -23,7 +23,7 @@ public final class DatabaseImporter implements DbInitializer {
     }
 
     @Override
-    public void init(Database db) throws UnableToInitializeException {
+    public void init(Database db) throws UnableToImportException {
         try {
             final InputStream is = _context.getContentResolver().openInputStream(_uri);
             if (is != null) {
@@ -33,7 +33,7 @@ public final class DatabaseImporter implements DbInitializer {
             }
         }
         catch (IOException e) {
-            throw new UnableToInitializeException();
+            throw new UnableToImportException();
         }
     }
 }

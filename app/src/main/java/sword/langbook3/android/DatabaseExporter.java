@@ -11,11 +11,11 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import sword.langbook3.android.db.DbInitializer;
+import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseWriter;
 
-public final class DatabaseExporter {
+public final class DatabaseExporter implements DbExporter {
 
     private final Context _context;
     private final Uri _uri;
@@ -27,7 +27,8 @@ public final class DatabaseExporter {
         _listener = listener;
     }
 
-    public void save(DbInitializer.Database db) throws DbInitializer.UnableToInitializeException {
+    @Override
+    public void save(Database db) throws UnableToExportException {
         try {
             final OutputStream os = _context.getContentResolver().openOutputStream(_uri);
             if (os != null) {
@@ -51,7 +52,7 @@ public final class DatabaseExporter {
             }
         }
         catch (IOException | NoSuchAlgorithmException e) {
-            throw new DbInitializer.UnableToInitializeException();
+            throw new UnableToExportException();
         }
     }
 }

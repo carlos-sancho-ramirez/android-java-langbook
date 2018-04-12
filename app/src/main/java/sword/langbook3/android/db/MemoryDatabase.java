@@ -11,7 +11,7 @@ import sword.collections.MutableMap;
 
 import static sword.langbook3.android.EqualUtils.equal;
 
-public class MemoryDatabase implements DbInitializer.Database {
+public class MemoryDatabase implements DbImporter.Database {
 
     private final MutableMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableMap.empty();
     private final MutableMap<DbColumn, MutableMap<Object, Integer>> _indexes = MutableMap.empty();

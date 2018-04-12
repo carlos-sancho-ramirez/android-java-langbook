@@ -21,7 +21,8 @@ import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbColumn;
-import sword.langbook3.android.db.DbInitializer;
+import sword.langbook3.android.db.DbExporter;
+import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbIntValue;
 import sword.langbook3.android.db.DbQuery;
@@ -370,7 +371,7 @@ class DbManager extends SQLiteOpenHelper {
         importDatabase(db, uri);
     }
 
-    private static final class InitializerDatabase implements DbInitializer.Database {
+    private static final class InitializerDatabase implements DbImporter.Database {
 
         private final SQLiteDatabase _db;
 
@@ -394,12 +395,12 @@ class DbManager extends SQLiteOpenHelper {
         createTables(db, schema);
         createIndexes(db, schema);
 
-        DbInitializer.Database initDb = new InitializerDatabase(db);
+        DbImporter.Database initDb = new InitializerDatabase(db);
         final DatabaseImporter reader = new DatabaseImporter(_context, uri, _progressListener);
         try {
             reader.init(initDb);
         }
-        catch (DbInitializer.UnableToInitializeException e) {
+        catch (DbImporter.UnableToImportException e) {
             Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
         }
     }
@@ -409,7 +410,7 @@ class DbManager extends SQLiteOpenHelper {
         try {
             writer.save(new InitializerDatabase(getReadableDatabase()));
         }
-        catch (DbInitializer.UnableToInitializeException e) {
+        catch (DbExporter.UnableToExportException e) {
             Toast.makeText(_context, "Error saving database", Toast.LENGTH_SHORT).show();
         }
     }
