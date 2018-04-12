@@ -17,11 +17,6 @@ public final class DbIntValue implements DbValue {
     }
 
     @Override
-    public String toSql() {
-        return Integer.toString(_value);
-    }
-
-    @Override
     public int toInt() {
         return get();
     }

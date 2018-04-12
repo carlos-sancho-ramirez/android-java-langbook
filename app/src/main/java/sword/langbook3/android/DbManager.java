@@ -32,6 +32,9 @@ import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.db.DbValue;
 import sword.langbook3.android.sdb.ProgressListener;
+import sword.langbook3.android.sqlite.SQLiteDbQuery;
+
+import static sword.langbook3.android.sqlite.SqliteUtils.sqlType;
 
 class DbManager extends SQLiteOpenHelper {
 
@@ -257,7 +260,7 @@ class DbManager extends SQLiteOpenHelper {
                     .append(" (");
 
             final String columns = table.columns()
-                    .map(column -> column.name() + ' ' + column.sqlType())
+                    .map(column -> column.name() + ' ' + sqlType(column))
                     .reduce((left, right) -> left + ", " + right);
 
             builder.append(columns).append(')');

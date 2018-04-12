@@ -7,11 +7,6 @@ public final class DbIntColumn extends DbColumn {
     }
 
     @Override
-    public String sqlType() {
-        return "INTEGER";
-    }
-
-    @Override
     public boolean isText() {
         return false;
     }

@@ -7,11 +7,6 @@ public final class DbUniqueTextColumn extends DbColumn {
     }
 
     @Override
-    public String sqlType() {
-        return "TEXT UNIQUE ON CONFLICT IGNORE";
-    }
-
-    @Override
     public boolean isText() {
         return true;
     }

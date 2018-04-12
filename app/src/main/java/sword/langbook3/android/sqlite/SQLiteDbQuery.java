@@ -1,14 +1,16 @@
-package sword.langbook3.android;
+package sword.langbook3.android.sqlite;
 
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.db.DbView;
 
-final class SQLiteDbQuery {
+import static sword.langbook3.android.sqlite.SqliteUtils.sqlValue;
+
+public final class SQLiteDbQuery {
 
     private final DbQuery _query;
 
-    SQLiteDbQuery(DbQuery query) {
+    public SQLiteDbQuery(DbQuery query) {
         _query = query;
     }
 
@@ -86,7 +88,7 @@ final class SQLiteDbQuery {
                 sb.append(" AND ");
             }
             sb.append(getSqlColumnName(subQueryIndex, _query.getRestrictedColumnIndex(i)))
-                    .append('=').append(_query.getRestriction(i).toSql());
+                    .append('=').append(sqlValue(_query.getRestriction(i)));
         }
 
         for (DbQuery.JoinColumnPair pair : _query.columnValueMatchPairs()) {

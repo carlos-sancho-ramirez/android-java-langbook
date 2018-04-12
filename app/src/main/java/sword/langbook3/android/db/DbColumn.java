@@ -12,8 +12,6 @@ public abstract class DbColumn {
         return _name;
     }
 
-    public abstract String sqlType();
-
     /**
      * Whether the field content may be understood as a char sequence.
      * Right now there is only int and text fields, then so far it is secure

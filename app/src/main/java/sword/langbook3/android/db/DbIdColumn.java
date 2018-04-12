@@ -9,11 +9,6 @@ public final class DbIdColumn extends DbColumn {
     }
 
     @Override
-    public String sqlType() {
-        return "INTEGER PRIMARY KEY AUTOINCREMENT";
-    }
-
-    @Override
     public boolean isText() {
         return false;
     }
