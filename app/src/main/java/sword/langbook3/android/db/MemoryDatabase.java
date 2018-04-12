@@ -11,7 +11,13 @@ import sword.collections.MutableMap;
 
 import static sword.langbook3.android.EqualUtils.equal;
 
-public class MemoryDatabase implements DbImporter.Database {
+/**
+ * Implementation for an in-memory non-permanent database.
+ * <p>
+ * This class can be used for data that is valid while the process is still
+ * alive, as a cache, or just for testing purposes.
+ */
+public final class MemoryDatabase implements DbImporter.Database {
 
     private final MutableMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableMap.empty();
     private final MutableMap<DbColumn, MutableMap<Object, Integer>> _indexes = MutableMap.empty();

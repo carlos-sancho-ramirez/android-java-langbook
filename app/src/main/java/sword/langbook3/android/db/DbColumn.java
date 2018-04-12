@@ -1,5 +1,8 @@
 package sword.langbook3.android.db;
 
+/**
+ * This class specifies all info related to a single column within a {@link DbView}
+ */
 public abstract class DbColumn {
 
     private final String _name;

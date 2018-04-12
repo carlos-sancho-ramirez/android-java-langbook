@@ -1,5 +1,10 @@
 package sword.langbook3.android.db;
 
+/**
+ * Pointer to an specific column within an specific {@link DbTable} that is
+ * expected to be accessed frequently and need an extra indexation to look
+ * values faster.
+ */
 public final class DbIndex {
     public final DbTable table;
     public final int column;
