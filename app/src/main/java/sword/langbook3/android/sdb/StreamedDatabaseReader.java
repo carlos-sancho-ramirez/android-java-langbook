@@ -783,16 +783,15 @@ public final class StreamedDatabaseReader {
 
     private void readBunchConcepts(InputBitStream ibs, ImmutableIntRange validConcepts) throws IOException {
         final int bunchConceptsLength = ibs.readHuffmanSymbol(naturalNumberTable);
+        final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
-                ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
+                ibs.readHuffmanTable(intDecoder, intDecoder) : null;
 
-        int remainingBunches = bunchConceptsLength;
         int minBunchConcept = validConcepts.min();
-        for (int i = 0; i < bunchConceptsLength; i++) {
-            final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, validConcepts.max() - remainingBunches + 1);
-            final int bunch = ibs.readHuffmanSymbol(bunchTable);
+        final int maxValidBunch = validConcepts.max();
+        for (int maxBunchConcept = validConcepts.max() - bunchConceptsLength + 1; maxBunchConcept <= maxValidBunch; maxBunchConcept++) {
+            final int bunch = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept));
             minBunchConcept = bunch + 1;
-            --remainingBunches;
 
             final Set<Integer> concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
             for (int concept : concepts) {
@@ -803,19 +802,18 @@ public final class StreamedDatabaseReader {
 
     private void readBunchAcceptations(InputBitStream ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
+        final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
         final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
-                ibs.readHuffmanTable(new IntReader(ibs), new IntDiffReader(ibs)) : null;
+                ibs.readHuffmanTable(intDecoder, intDecoder) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
         final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
 
-        int minValidBunch = validConcepts.min();
-        int maxValidBunch = validConcepts.max() - bunchAcceptationsLength + 1;
-        for (int i = 0; i < bunchAcceptationsLength; i++) {
-            final RangedIntegerHuffmanTable table = new RangedIntegerHuffmanTable(minValidBunch, maxValidBunch);
-            final int bunch = ibs.readHuffmanSymbol(table);
-            minValidBunch = bunch + 1;
-            ++maxValidBunch;
+        int minBunch = validConcepts.min();
+        final int maxValidBunch = validConcepts.max();
+        for (int maxBunch = validConcepts.max() - bunchAcceptationsLength + 1; maxBunch <= maxValidBunch; maxBunch++) {
+            final int bunch = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunch, maxBunch));
+            minBunch = bunch + 1;
 
             final Set<Integer> acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
