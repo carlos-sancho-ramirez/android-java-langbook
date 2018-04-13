@@ -924,11 +924,20 @@ public final class StreamedDatabaseWriter {
         }
     }
 
+    private void setProgress(float progress, String message) {
+        if (_listener != null) {
+            _listener.setProgress(progress, message);
+        }
+    }
+
     public void write() throws IOException {
+        setProgress(0.0f, "Writing symbol arrays");
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
         final ImmutableIntPairMap symbolArrayIdMap = symbolArrayWriterResult.idMap;
         final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayIdMap, symbolArrayWriterResult.langMap);
+
+        setProgress(0.1f, "Writing conversions");
         writeConversions(validAlphabets, symbolArrayIdMap);
 
         final AcceptationWordConceptRanges accRanges = getRangesFromAcceptations();
@@ -938,7 +947,10 @@ public final class StreamedDatabaseWriter {
         // should be considered into the count of the maximum concept
         _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
 
+        setProgress(0.15f, "Writing correlations");
         final ImmutableIntPairMap correlationIdMap = writeCorrelations(validAlphabets, symbolArrayIdMap);
+
+        setProgress(0.30f, "Writing correlation arrays");
         final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(correlationIdMap);
 
         // TODO: Check if this is already required and accRanges.words cannot be used instead
@@ -946,9 +958,16 @@ public final class StreamedDatabaseWriter {
 
         // TODO: Check if this is already required and accRanges.concepts cannot be used instead
         final ImmutableIntRange validConcepts = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, accRanges.concepts.max());
+        setProgress(0.5f, "Writing acceptations");
         final ImmutableIntPairMap accIdMap = writeAcceptations(validWords, validConcepts, correlationArrayIdMap);
+
+        setProgress(0.6f, "Writing bunch concepts");
         writeBunchConcepts(validConcepts);
+
+        setProgress(0.7f, "Writing bunch acceptations");
         writeBunchAcceptations(validConcepts, accIdMap);
+
+        setProgress(0.8f, "Writing agents");
         writeAgents(validConcepts.max(), correlationIdMap);
 
         // Export ruleConcepts

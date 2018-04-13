@@ -843,6 +843,7 @@ public final class StreamedDatabaseReader {
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 
             for (int i = 0; i < agentsLength; i++) {
+                setProgress((0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f, "Reading agent " + (i + 1) + "/" + agentsLength);
                 final RangedIntegerHuffmanTable thisConceptTable = new RangedIntegerHuffmanTable(lastTarget, maxConcept);
                 final int targetBunch = ibs.readHuffmanSymbol(thisConceptTable);
 
@@ -917,7 +918,7 @@ public final class StreamedDatabaseReader {
 
     public Result read() throws IOException {
         try {
-            setProgress(0, "Reading symbolArrays");
+            setProgress(0, "Reading symbol arrays");
             final InputBitStream ibs = new InputBitStream(_is);
             final int[] symbolArraysIdMap = readSymbolArrays(ibs);
             final int minSymbolArrayIndex = 0;
@@ -926,7 +927,7 @@ public final class StreamedDatabaseReader {
                     maxSymbolArrayIndex);
 
             // Read languages and its alphabets
-            setProgress(0.03f, "Reading languages and its alphabets");
+            setProgress(0.09f, "Reading languages and its alphabets");
             final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
             final Language[] languages = new Language[languageCount];
             final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
@@ -961,7 +962,7 @@ public final class StreamedDatabaseReader {
             }
 
             // Read conversions
-            setProgress(0.06f, "Reading conversions");
+            setProgress(0.1f, "Reading conversions");
             final Conversion[] conversions = readConversions(ibs, minValidAlphabet, maxValidAlphabet, 0,
                     maxSymbolArrayIndex, symbolArraysIdMap);
 
@@ -981,32 +982,33 @@ public final class StreamedDatabaseReader {
             }
 
             // Import correlations
-            setProgress(0.09f, "Reading correlations");
+            setProgress(0.15f, "Reading correlations");
             int[] correlationIdMap = readCorrelations(ibs, StreamedDatabaseConstants.minValidAlphabet,
                     maxValidAlphabet, symbolArraysIdMap);
 
             // Import correlation arrays
-            setProgress(0.13f, "Reading correlation arrays");
+            setProgress(0.30f, "Reading correlation arrays");
             int[] correlationArrayIdMap = readCorrelationArrays(ibs, correlationIdMap);
 
             // Import acceptations
-            setProgress(0.17f, "Reading acceptations");
+            setProgress(0.5f, "Reading acceptations");
             int[] acceptationIdMap = readAcceptations(ibs, wordIdMap, conceptIdMap, correlationArrayIdMap);
 
             // Import bunchConcepts
-            setProgress(0.21f, "Reading bunch concepts");
+            setProgress(0.6f, "Reading bunch concepts");
             final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
             readBunchConcepts(ibs, validConcepts);
 
             // Import bunchAcceptations
-            setProgress(0.24f, "Reading bunch acceptations");
+            setProgress(0.7f, "Reading bunch acceptations");
             readBunchAcceptations(ibs, validConcepts, acceptationIdMap);
 
             // Import agents
-            setProgress(0.27f, "Reading agents");
+            setProgress(0.8f, "Reading agents");
             ImmutableIntKeyMap<AgentBunches> agents = readAgents(ibs, maxConcept, correlationIdMap);
 
             // Import ruleConcepts
+            setProgress(0.99f, "Reading rule concepts");
             if (ibs.readHuffmanSymbol(naturalNumberTable) != 0) {
                 throw new UnsupportedOperationException("For now, this should always be an empty table");
             }
