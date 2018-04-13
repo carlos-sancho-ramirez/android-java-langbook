@@ -3,6 +3,7 @@ package sword.langbook3.android.db;
 import java.util.Iterator;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.MutableIntKeyMap;
@@ -239,7 +240,7 @@ public final class MemoryDatabase implements DbImporter.Database {
         }
         else {
             final ImmutableList.Builder<ImmutableList<Object>> builder = new ImmutableList.Builder<>(unselectedResult.size());
-            final ImmutableIntSet selection = query.selection();
+            final ImmutableIntList selection = query.selection();
             for (ImmutableList<Object> register : unselectedResult) {
                 final ImmutableList.Builder<Object> regBuilder = new ImmutableList.Builder<>();
                 for (int columnIndex : selection) {
