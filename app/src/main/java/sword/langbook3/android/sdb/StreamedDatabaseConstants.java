@@ -1,6 +1,6 @@
 package sword.langbook3.android.sdb;
 
-interface StreamedDatabaseConstants {
+public interface StreamedDatabaseConstants {
 
     /** Reserved for empty correlations */
     int nullCorrelationId = 0;

@@ -8,7 +8,6 @@ import java.io.InputStream;
 
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.sdb.ProgressListener;
-import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 public final class DatabaseImporter implements DbImporter {
 
@@ -28,7 +27,7 @@ public final class DatabaseImporter implements DbImporter {
             final InputStream is = _context.getContentResolver().openInputStream(_uri);
             if (is != null) {
                 is.skip(20);
-                final StreamedDatabaseReader reader = new StreamedDatabaseReader(db, is, _listener);
+                final DatabaseInflater reader = new DatabaseInflater(db, is, _listener);
                 reader.read();
             }
         }
