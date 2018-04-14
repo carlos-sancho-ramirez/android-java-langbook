@@ -50,6 +50,12 @@ public final class StreamedDatabaseWriter {
     private final OutputBitStream _obs;
     private final ProgressListener _listener;
 
+    /**
+     * Reserved set id for the empty correlation.
+     * This is expected not to be present in the Database.
+     */
+    private final int nullCorrelationSetId = 0;
+
     private static class CharWriter implements ProcedureWithIOException<Character> {
 
         private final CharHuffmanTable _table = new CharHuffmanTable(8);
@@ -520,16 +526,31 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
         final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
         int setCount = 0;
+
+        if (shouldEmptyCorrelationBePresent()) {
+            builder.put(nullCorrelationSetId, ImmutableIntPairMap.empty());
+            idMapBuilder.put(nullCorrelationSetId, setCount++);
+            lengthFrequencies.put(0, 1);
+        }
+
         try {
             if (result.hasNext()) {
                 DbResult.Row row = result.next();
                 ImmutableIntPairMap.Builder setBuilder = new ImmutableIntPairMap.Builder();
                 int setId = row.get(0).toInt();
+                if (setId == nullCorrelationSetId) {
+                    throw new AssertionError("setId " + nullCorrelationSetId + " should be reserved for the empty one");
+                }
+
                 setBuilder.put(row.get(1).toInt(), symbolArraysIdMap.get(row.get(2).toInt()));
 
                 while (result.hasNext()) {
                     row = result.next();
                     int newSetId = row.get(0).toInt();
+                    if (newSetId == nullCorrelationSetId) {
+                        throw new AssertionError("setId " + nullCorrelationSetId + " should be reserved for the empty one");
+                    }
+
                     if (newSetId != setId) {
                         final ImmutableIntPairMap set = setBuilder.build();
                         final int setLength = set.size();
@@ -821,6 +842,9 @@ public final class StreamedDatabaseWriter {
             final DefinedHuffmanTable<Integer> sourceSetLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(bunchSetLengthFrequencyMap), new IntComparator());
             _obs.writeHuffmanTable(sourceSetLengthTable, intWriter, null);
 
+            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(
+                    StreamedDatabaseConstants.minValidConcept, maxConcept);
+
             query = new DbQuery.Builder(table).select(
                     table.getTargetBunchColumnIndex(),
                     table.getSourceBunchSetColumnIndex(),
@@ -860,16 +884,61 @@ public final class StreamedDatabaseWriter {
                     _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(matcher));
                     _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(adder));
 
-                    // Rule and flags are still missing. However there must be an error here as the adder
-                    // could match the empty correlation. But the empty correlation has not been included
-                    // within the file in writeCorrelations method.
-                    // TODO: Ensure that the empty correlation is present and implement the rest of the logic to write agents
+                    if (adder != nullCorrelationSetId) {
+                        _obs.writeHuffmanSymbol(conceptTable, rule);
+                    }
+
+                    if (matcher != nullCorrelationSetId || adder != nullCorrelationSetId) {
+                        final boolean fromStart = (flags & 1) != 0;
+                        _obs.writeBoolean(fromStart);
+                    }
                 }
             }
             finally {
                 result.close();
             }
         }
+    }
+
+    private ImmutableIntSet getCorrelationSetIds() {
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getCorrelationIdColumnIndex());
+        final DbResult result = _db.select(query);
+        final ImmutableIntSetBuilder setIdBuilder = new ImmutableIntSetBuilder();
+        try {
+            while (result.hasNext()) {
+                setIdBuilder.add(result.next().get(0).toInt());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return setIdBuilder.build();
+    }
+
+    private boolean shouldEmptyCorrelationBePresent() {
+        final ImmutableIntSet setIds = getCorrelationSetIds();
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        DbQuery query = new DbQuery.Builder(table).select(
+                table.getMatcherColumnIndex(),
+                table.getAdderColumnIndex());
+        DbResult result = _db.select(query);
+        boolean foundNullReference = false;
+        try {
+            while (result.hasNext() && !foundNullReference) {
+                final DbResult.Row row = result.next();
+                foundNullReference =
+                        !setIds.contains(row.get(0).toInt()) ||
+                        !setIds.contains(row.get(1).toInt());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return foundNullReference;
     }
 
     private void writeBunchAcceptations(ImmutableIntRange validConcepts, ImmutableIntPairMap accIdMap) throws IOException {
