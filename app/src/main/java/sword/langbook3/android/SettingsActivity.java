@@ -101,7 +101,7 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
 
         _resumed = true;
         final DbManager dbManager = DbManager.getInstance();
-        if (dbManager.isImportingDatabase()) {
+        if (dbManager.isProcessingDatabase()) {
             dbManager.setProgressListener(this);
         }
     }
@@ -138,7 +138,7 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
         final View progressPanel = findViewById(R.id.progressPanel);
 
         final DbManager dbManager = DbManager.getInstance();
-        final boolean inProgress = dbManager.isImportingDatabase();
+        final boolean inProgress = dbManager.isProcessingDatabase();
         if (inProgress) {
             final ProgressBar progressBar = findViewById(R.id.progressBar);
             final TextView progressMessage = findViewById(R.id.progressMessage);
@@ -197,7 +197,11 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
             saveSqliteDatabase(filePath);
         }
         else {
-            DbManager.getInstance().exportStreamedDatabase(Uri.fromFile(new File(filePath)));
+            final DbManager manager = DbManager.getInstance();
+            manager.exportStreamedDatabase(Uri.fromFile(new File(filePath)));
+            if (_resumed) {
+                manager.setProgressListener(this);
+            }
         }
         dialog.dismiss();
     }

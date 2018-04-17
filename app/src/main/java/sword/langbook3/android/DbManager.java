@@ -48,8 +48,9 @@ class DbManager extends SQLiteOpenHelper {
     private Uri _uri;
     private ProgressListener _progressListener;
     private DatabaseImportTask _databaseImportTask;
+    private DatabaseExportTask _databaseExportTask;
     private ProgressListener _externalProgressListener;
-    private DatabaseImportProgress _lastProgress;
+    private TaskProgress _lastProgress;
 
     static DbManager getInstance() {
         return _instance;
@@ -409,33 +410,23 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    public void exportStreamedDatabase(Uri uri) {
-        final DatabaseExporter writer = new DatabaseExporter(_context, uri, _progressListener);
-        try {
-            writer.save(new InitializerDatabase(getReadableDatabase()));
-        }
-        catch (DbExporter.UnableToExportException e) {
-            Toast.makeText(_context, "Error saving database", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
         // So far, version 5 is the only one expected. So this method should never be called
     }
 
-    private static class DatabaseImportProgress {
+    private static class TaskProgress {
 
         final float progress;
         final String message;
 
-        DatabaseImportProgress(float progress, String message) {
+        TaskProgress(float progress, String message) {
             this.progress = progress;
             this.message = message;
         }
     }
 
-    private class DatabaseImportTask extends AsyncTask<Uri, DatabaseImportProgress, Boolean> implements ProgressListener {
+    private class DatabaseImportTask extends AsyncTask<Uri, TaskProgress, Boolean> implements ProgressListener {
 
         @Override
         protected Boolean doInBackground(Uri... uris) {
@@ -448,12 +439,12 @@ class DbManager extends SQLiteOpenHelper {
 
         @Override
         public void setProgress(float progress, String message) {
-            publishProgress(new DatabaseImportProgress(progress, message));
+            publishProgress(new TaskProgress(progress, message));
         }
 
         @Override
-        public void onProgressUpdate(DatabaseImportProgress... progresses) {
-            final DatabaseImportProgress progress = progresses[0];
+        public void onProgressUpdate(TaskProgress... progresses) {
+            final TaskProgress progress = progresses[0];
             final ProgressListener listener = _externalProgressListener;
             if (listener != null) {
                 listener.setProgress(progress.progress, progress.message);
@@ -468,7 +459,7 @@ class DbManager extends SQLiteOpenHelper {
             _databaseImportTask = null;
 
             final ProgressListener listener = _externalProgressListener;
-            final DatabaseImportProgress lastProgress = new DatabaseImportProgress(1f, "Completed");
+            final TaskProgress lastProgress = new TaskProgress(1f, "Completed");
             if (listener != null) {
                 listener.setProgress(lastProgress.progress, lastProgress.message);
             }
@@ -482,13 +473,68 @@ class DbManager extends SQLiteOpenHelper {
         _databaseImportTask.execute(uri);
     }
 
-    boolean isImportingDatabase() {
-        return _databaseImportTask != null;
+    private class DatabaseExportTask extends AsyncTask<Uri, TaskProgress, Boolean> implements ProgressListener {
+
+        @Override
+        protected Boolean doInBackground(Uri... uris) {
+            final DatabaseExporter writer = new DatabaseExporter(_context, uris[0], _progressListener);
+            try {
+                writer.save(new InitializerDatabase(getReadableDatabase()));
+            }
+            catch (DbExporter.UnableToExportException e) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public void setProgress(float progress, String message) {
+            publishProgress(new TaskProgress(progress, message));
+        }
+
+        @Override
+        public void onProgressUpdate(TaskProgress... progresses) {
+            final TaskProgress progress = progresses[0];
+            final ProgressListener listener = _externalProgressListener;
+            if (listener != null) {
+                listener.setProgress(progress.progress, progress.message);
+            }
+
+            _lastProgress = progress;
+        }
+
+        @Override
+        public void onPostExecute(Boolean result) {
+            _progressListener = null;
+            _databaseExportTask = null;
+
+            final TaskProgress lastProgress = new TaskProgress(1f, "Completed");
+            final ProgressListener listener = _externalProgressListener;
+            if (listener != null) {
+                listener.setProgress(lastProgress.progress, lastProgress.message);
+            }
+            _lastProgress = lastProgress;
+
+            if (!result) {
+                Toast.makeText(_context, "Error saving database", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    public void exportStreamedDatabase(Uri uri) {
+        _databaseExportTask = new DatabaseExportTask();
+        _progressListener = _databaseExportTask;
+        _databaseExportTask.execute(uri);
+    }
+
+    boolean isProcessingDatabase() {
+        return _databaseImportTask != null || _databaseExportTask != null;
     }
 
     void setProgressListener(ProgressListener listener) {
         _externalProgressListener = listener;
-        final DatabaseImportProgress lastProgress = _lastProgress;
+        final TaskProgress lastProgress = _lastProgress;
         if (listener != null && lastProgress != null) {
             listener.setProgress(lastProgress.progress, lastProgress.message);
         }
