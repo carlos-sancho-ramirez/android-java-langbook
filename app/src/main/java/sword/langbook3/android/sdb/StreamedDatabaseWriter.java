@@ -515,7 +515,7 @@ public final class StreamedDatabaseWriter {
                 new ImmutableIntRange(minConcept, maxConcept));
     }
 
-    private ImmutableIntPairMap writeCorrelations(ImmutableIntRange validAlphabets, ImmutableIntPairMap symbolArraysIdMap) throws IOException {
+    private ImmutableIntPairMap writeCorrelations(ImmutableIntSet exportable, ImmutableIntRange validAlphabets, ImmutableIntPairMap symbolArraysIdMap) throws IOException {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getCorrelationIdColumnIndex(),
@@ -527,7 +527,8 @@ public final class StreamedDatabaseWriter {
         final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
         int setCount = 0;
 
-        if (shouldEmptyCorrelationBePresent()) {
+        final boolean shouldEmptyCorrelationBePresent = exportable.contains(nullCorrelationSetId);
+        if (shouldEmptyCorrelationBePresent) {
             builder.put(nullCorrelationSetId, ImmutableIntPairMap.empty());
             idMapBuilder.put(nullCorrelationSetId, setCount++);
             lengthFrequencies.put(0, 1);
@@ -552,13 +553,16 @@ public final class StreamedDatabaseWriter {
                     }
 
                     if (newSetId != setId) {
-                        final ImmutableIntPairMap set = setBuilder.build();
-                        final int setLength = set.size();
-                        final int amount = lengthFrequencies.get(setLength, 0);
-                        lengthFrequencies.put(setLength, amount + 1);
+                        if (exportable.contains(setId)) {
+                            final ImmutableIntPairMap set = setBuilder.build();
+                            final int setLength = set.size();
+                            final int amount = lengthFrequencies.get(setLength, 0);
+                            lengthFrequencies.put(setLength, amount + 1);
 
-                        builder.put(setId, set);
-                        idMapBuilder.put(setId, setCount++);
+                            builder.put(setId, set);
+                            idMapBuilder.put(setId, setCount++);
+                        }
+
                         setBuilder = new ImmutableIntPairMap.Builder();
                         setId = newSetId;
                     }
@@ -566,13 +570,15 @@ public final class StreamedDatabaseWriter {
                     setBuilder.put(row.get(1).toInt(), symbolArraysIdMap.get(row.get(2).toInt()));
                 }
 
-                final ImmutableIntPairMap set = setBuilder.build();
-                final int setLength = set.size();
-                final int amount = lengthFrequencies.get(setLength, 0);
-                lengthFrequencies.put(setLength, amount + 1);
+                if (exportable.contains(setId)) {
+                    final ImmutableIntPairMap set = setBuilder.build();
+                    final int setLength = set.size();
+                    final int amount = lengthFrequencies.get(setLength, 0);
+                    lengthFrequencies.put(setLength, amount + 1);
 
-                builder.put(setId, set);
-                idMapBuilder.put(setId, setCount);
+                    builder.put(setId, set);
+                    idMapBuilder.put(setId, setCount++);
+                }
             }
         }
         finally {
@@ -587,7 +593,11 @@ public final class StreamedDatabaseWriter {
         final ValueEncoder<Integer> symbolArrayEncoder = new ValueEncoder<>(symbolArrayTable);
 
         final ImmutableIntKeyMap<ImmutableIntPairMap> correlations = builder.build();
-        _obs.writeHuffmanSymbol(naturalNumberTable, correlations.size());
+        if (setCount != exportable.size()) {
+            throw new AssertionError();
+        }
+
+        _obs.writeHuffmanSymbol(naturalNumberTable, setCount);
 
         boolean tableWritten = false;
         for (ImmutableIntPairMap corr : correlations) {
@@ -617,14 +627,17 @@ public final class StreamedDatabaseWriter {
             if (result.hasNext()) {
                 DbResult.Row row = result.next();
                 int arrayId = row.get(0).toInt();
-                ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
-                arrayBuilder.add(correlationIdMap.get(row.get(1).toInt()));
+                boolean isExportable = exportable.contains(arrayId);
+                ImmutableIntList.Builder arrayBuilder = isExportable? new ImmutableIntList.Builder() : null;
+                if (isExportable) {
+                    arrayBuilder.add(correlationIdMap.get(row.get(1).toInt()));
+                }
 
                 while (result.hasNext()) {
                     row = result.next();
                     int newArrayId = row.get(0).toInt();
                     if (newArrayId != arrayId) {
-                        if (exportable.contains(arrayId)) {
+                        if (isExportable) {
                             final ImmutableIntList array = arrayBuilder.build();
                             final int length = array.size();
                             final int amount = lengthFrequencies.get(length, 0);
@@ -635,13 +648,16 @@ public final class StreamedDatabaseWriter {
                         }
 
                         arrayId = newArrayId;
-                        arrayBuilder = new ImmutableIntList.Builder();
+                        isExportable = exportable.contains(arrayId);
+                        arrayBuilder = isExportable? new ImmutableIntList.Builder() : null;
                     }
 
-                    arrayBuilder.add(correlationIdMap.get(row.get(1).toInt()));
+                    if (isExportable) {
+                        arrayBuilder.add(correlationIdMap.get(row.get(1).toInt()));
+                    }
                 }
 
-                if (exportable.contains(arrayId)) {
+                if (isExportable) {
                     final ImmutableIntList array = arrayBuilder.build();
                     final int length = array.size();
                     final int amount = lengthFrequencies.get(length, 0);
@@ -933,29 +949,6 @@ public final class StreamedDatabaseWriter {
         return setIdBuilder.build();
     }
 
-    private boolean shouldEmptyCorrelationBePresent() {
-        final ImmutableIntSet setIds = getCorrelationSetIds();
-        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        DbQuery query = new DbQuery.Builder(table).select(
-                table.getMatcherColumnIndex(),
-                table.getAdderColumnIndex());
-        DbResult result = _db.select(query);
-        boolean foundNullReference = false;
-        try {
-            while (result.hasNext() && !foundNullReference) {
-                final DbResult.Row row = result.next();
-                foundNullReference =
-                        !setIds.contains(row.get(0).toInt()) ||
-                        !setIds.contains(row.get(1).toInt());
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return foundNullReference;
-    }
-
     private void writeBunchAcceptations(ImmutableIntRange validConcepts, ImmutableIntPairMap accIdMap) throws IOException {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table).select(
@@ -1056,6 +1049,7 @@ public final class StreamedDatabaseWriter {
             while (result.hasNext()) {
                 final DbResult.Row row = result.next();
                 final int accId = row.get(0).toInt();
+
                 if (!ruledAcceptations.contains(accId)) {
                     acceptations.add(accId);
                     correlationArrays.add(row.get(1).toInt());
@@ -1069,9 +1063,55 @@ public final class StreamedDatabaseWriter {
         return new ExportableAcceptationsAndCorrelationArrays(acceptations.build(), correlationArrays.build());
     }
 
+    private ImmutableIntSet listAgentCorrelations() {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table).select(table.getMatcherColumnIndex(), table.getAdderColumnIndex());
+        final DbResult result = _db.select(query);
+
+        final ImmutableIntSetBuilder correlations = new ImmutableIntSetBuilder();
+        try {
+            while(result.hasNext()) {
+                final DbResult.Row row = result.next();
+                correlations.add(row.get(0).toInt());
+                correlations.add(row.get(1).toInt());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return correlations.build();
+    }
+
+    private ImmutableIntSet listExportableCorrelations(ImmutableIntSet correlationArrays) {
+        final ImmutableIntSetBuilder correlations = new ImmutableIntSetBuilder();
+        for (int corrId : listAgentCorrelations()) {
+            correlations.add(corrId);
+        }
+
+        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(table).select(table.getArrayIdColumnIndex(), table.getCorrelationColumnIndex());
+        final DbResult result = _db.select(query);
+
+        try {
+            while(result.hasNext()) {
+                final DbResult.Row row = result.next();
+                if (correlationArrays.contains(row.get(0).toInt())) {
+                    correlations.add(row.get(1).toInt());
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return correlations.build();
+    }
+
     public void write() throws IOException {
         setProgress(0.0f, "Filtering database");
         final ExportableAcceptationsAndCorrelationArrays exportable = listExportableAcceptationsAndCorrelationArrays();
+        final ImmutableIntSet exportableCorrelations = listExportableCorrelations(exportable.correlationArrays);
 
         setProgress(0.1f, "Writing symbol arrays");
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
@@ -1090,7 +1130,7 @@ public final class StreamedDatabaseWriter {
         _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
 
         setProgress(0.25f, "Writing correlations");
-        final ImmutableIntPairMap correlationIdMap = writeCorrelations(validAlphabets, symbolArrayIdMap);
+        final ImmutableIntPairMap correlationIdMap = writeCorrelations(exportableCorrelations, validAlphabets, symbolArrayIdMap);
 
         setProgress(0.40f, "Writing correlation arrays");
         final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(exportable.correlationArrays, correlationIdMap);
