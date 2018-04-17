@@ -603,7 +603,7 @@ public final class StreamedDatabaseWriter {
         return idMapBuilder.build();
     }
 
-    private ImmutableIntPairMap writeCorrelationArrays(ImmutableIntPairMap correlationIdMap) throws IOException {
+    private ImmutableIntPairMap writeCorrelationArrays(ImmutableIntSet exportable, ImmutableIntPairMap correlationIdMap) throws IOException {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getArrayIdColumnIndex(),
@@ -624,13 +624,15 @@ public final class StreamedDatabaseWriter {
                     row = result.next();
                     int newArrayId = row.get(0).toInt();
                     if (newArrayId != arrayId) {
-                        final ImmutableIntList array = arrayBuilder.build();
-                        final int length = array.size();
-                        final int amount = lengthFrequencies.get(length, 0);
-                        lengthFrequencies.put(length, amount + 1);
+                        if (exportable.contains(arrayId)) {
+                            final ImmutableIntList array = arrayBuilder.build();
+                            final int length = array.size();
+                            final int amount = lengthFrequencies.get(length, 0);
+                            lengthFrequencies.put(length, amount + 1);
 
-                        builder.add(array);
-                        idMapBuilder.put(arrayId, index++);
+                            builder.add(array);
+                            idMapBuilder.put(arrayId, index++);
+                        }
 
                         arrayId = newArrayId;
                         arrayBuilder = new ImmutableIntList.Builder();
@@ -639,13 +641,15 @@ public final class StreamedDatabaseWriter {
                     arrayBuilder.add(correlationIdMap.get(row.get(1).toInt()));
                 }
 
-                final ImmutableIntList array = arrayBuilder.build();
-                final int length = array.size();
-                final int amount = lengthFrequencies.get(length, 0);
-                lengthFrequencies.put(length, amount + 1);
+                if (exportable.contains(arrayId)) {
+                    final ImmutableIntList array = arrayBuilder.build();
+                    final int length = array.size();
+                    final int amount = lengthFrequencies.get(length, 0);
+                    lengthFrequencies.put(length, amount + 1);
 
-                builder.add(array);
-                idMapBuilder.put(arrayId, index++);
+                    builder.add(array);
+                    idMapBuilder.put(arrayId, index++);
+                }
             }
         }
         finally {
@@ -674,9 +678,9 @@ public final class StreamedDatabaseWriter {
         return idMapBuilder.build();
     }
 
-    private ImmutableIntPairMap writeAcceptations(ImmutableIntRange validWords, ImmutableIntRange validConcepts, ImmutableIntPairMap correlationArrayIdMap) throws IOException {
+    private ImmutableIntPairMap writeAcceptations(ImmutableIntSet exportable, ImmutableIntRange validWords, ImmutableIntRange validConcepts, ImmutableIntPairMap correlationArrayIdMap) throws IOException {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final int length = getTableLength(table);
+        final int length = exportable.size();
         _obs.writeHuffmanSymbol(naturalNumberTable, length);
 
         final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
@@ -707,18 +711,26 @@ public final class StreamedDatabaseWriter {
 
                 while (result.hasNext()) {
                     final DbResult.Row row = result.next();
-                    idMapBuilder.put(row.get(0).toInt(), index++);
-                    _obs.writeHuffmanSymbol(wordTable, row.get(1).toInt());
-                    _obs.writeHuffmanSymbol(conceptTable, row.get(2).toInt());
+                    final int accId = row.get(0).toInt();
+                    if (exportable.contains(accId)) {
+                        idMapBuilder.put(accId, index++);
+                        _obs.writeHuffmanSymbol(wordTable, row.get(1).toInt());
+                        _obs.writeHuffmanSymbol(conceptTable, row.get(2).toInt());
 
-                    // Here the number of correlation arrays within the acceptation should be written.
-                    // As length is always 1, it is expected that this will never include anything
-                    // into the stream. So, it should not be required
-                    final RangedIntegerHuffmanTable corrArrayTable = new RangedIntegerHuffmanTable(0, correlationArrayIdMap.size() - 1);
-                    _obs.writeHuffmanSymbol(corrArrayTable, correlationArrayIdMap.get(row.get(3).toInt()));
+                        // Here the number of correlation arrays within the acceptation should be written.
+                        // As length is always 1, it is expected that this will never include anything
+                        // into the stream. So, it should not be required
+                        final RangedIntegerHuffmanTable corrArrayTable = new RangedIntegerHuffmanTable(0,
+                                correlationArrayIdMap.size() - 1);
+                        _obs.writeHuffmanSymbol(corrArrayTable, correlationArrayIdMap.get(row.get(3).toInt()));
+                    }
                 }
             } finally {
                 result.close();
+            }
+
+            if (index != length) {
+                throw new AssertionError();
             }
         }
 
@@ -1002,14 +1014,72 @@ public final class StreamedDatabaseWriter {
         }
     }
 
+    private ImmutableIntSet listRuledAcceptations() {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(table).select(table.getIdColumnIndex());
+        final DbResult result = _db.select(query);
+
+        final ImmutableIntSetBuilder acceptations = new ImmutableIntSetBuilder();
+        try {
+            while(result.hasNext()) {
+                acceptations.add(result.next().get(0).toInt());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return acceptations.build();
+    }
+
+    private static class ExportableAcceptationsAndCorrelationArrays {
+        final ImmutableIntSet acceptations;
+        final ImmutableIntSet correlationArrays;
+
+        ExportableAcceptationsAndCorrelationArrays(ImmutableIntSet acceptations, ImmutableIntSet correlationArrays) {
+            this.acceptations = acceptations;
+            this.correlationArrays = correlationArrays;
+        }
+    }
+
+    private ExportableAcceptationsAndCorrelationArrays listExportableAcceptationsAndCorrelationArrays() {
+        final ImmutableIntSet ruledAcceptations = listRuledAcceptations();
+
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(), table.getCorrelationArrayColumnIndex());
+        final DbResult result = _db.select(query);
+
+        final ImmutableIntSetBuilder acceptations = new ImmutableIntSetBuilder();
+        final ImmutableIntSetBuilder correlationArrays = new ImmutableIntSetBuilder();
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int accId = row.get(0).toInt();
+                if (!ruledAcceptations.contains(accId)) {
+                    acceptations.add(accId);
+                    correlationArrays.add(row.get(1).toInt());
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return new ExportableAcceptationsAndCorrelationArrays(acceptations.build(), correlationArrays.build());
+    }
+
     public void write() throws IOException {
-        setProgress(0.0f, "Writing symbol arrays");
+        setProgress(0.0f, "Filtering database");
+        final ExportableAcceptationsAndCorrelationArrays exportable = listExportableAcceptationsAndCorrelationArrays();
+
+        setProgress(0.1f, "Writing symbol arrays");
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(langCodes);
         final ImmutableIntPairMap symbolArrayIdMap = symbolArrayWriterResult.idMap;
         final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayIdMap, symbolArrayWriterResult.langMap);
 
-        setProgress(0.1f, "Writing conversions");
+        setProgress(0.2f, "Writing conversions");
         writeConversions(validAlphabets, symbolArrayIdMap);
 
         final AcceptationWordConceptRanges accRanges = getRangesFromAcceptations();
@@ -1019,27 +1089,27 @@ public final class StreamedDatabaseWriter {
         // should be considered into the count of the maximum concept
         _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
 
-        setProgress(0.15f, "Writing correlations");
+        setProgress(0.25f, "Writing correlations");
         final ImmutableIntPairMap correlationIdMap = writeCorrelations(validAlphabets, symbolArrayIdMap);
 
-        setProgress(0.30f, "Writing correlation arrays");
-        final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(correlationIdMap);
+        setProgress(0.40f, "Writing correlation arrays");
+        final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(exportable.correlationArrays, correlationIdMap);
 
         // TODO: Check if this is already required and accRanges.words cannot be used instead
         final ImmutableIntRange validWords = new ImmutableIntRange(StreamedDatabaseConstants.minValidWord, accRanges.words.max());
 
         // TODO: Check if this is already required and accRanges.concepts cannot be used instead
         final ImmutableIntRange validConcepts = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, accRanges.concepts.max());
-        setProgress(0.5f, "Writing acceptations");
-        final ImmutableIntPairMap accIdMap = writeAcceptations(validWords, validConcepts, correlationArrayIdMap);
+        setProgress(0.6f, "Writing acceptations");
+        final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, validWords, validConcepts, correlationArrayIdMap);
 
-        setProgress(0.6f, "Writing bunch concepts");
+        setProgress(0.7f, "Writing bunch concepts");
         writeBunchConcepts(validConcepts);
 
-        setProgress(0.7f, "Writing bunch acceptations");
+        setProgress(0.8f, "Writing bunch acceptations");
         writeBunchAcceptations(validConcepts, accIdMap);
 
-        setProgress(0.8f, "Writing agents");
+        setProgress(0.9f, "Writing agents");
         writeAgents(validConcepts.max(), correlationIdMap);
 
         // Export ruleConcepts
