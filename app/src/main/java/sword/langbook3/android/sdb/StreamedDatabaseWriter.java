@@ -818,8 +818,11 @@ public final class StreamedDatabaseWriter {
                 final int sourceBunchSet = row.get(0).toInt();
                 final int diffBunchSet = row.get(1).toInt();
 
-                final int sourceBunchSetLength = bunchSets.get(sourceBunchSet).size();
-                final int diffBunchSetLength = bunchSets.get(diffBunchSet).size();
+                final ImmutableIntSet sourceSet = bunchSets.get(sourceBunchSet, null);
+                final ImmutableIntSet diffSet = bunchSets.get(diffBunchSet, null);
+
+                final int sourceBunchSetLength = (sourceSet != null)? sourceSet.size() : 0;
+                final int diffBunchSetLength = (diffSet != null)? diffSet.size() : 0;
 
                 int amount = bunchSetLengthFrequencyMap.get(sourceBunchSetLength, 0);
                 bunchSetLengthFrequencyMap.put(sourceBunchSetLength, amount + 1);
