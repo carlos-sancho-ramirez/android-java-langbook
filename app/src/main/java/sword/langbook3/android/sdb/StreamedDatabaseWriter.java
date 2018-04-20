@@ -960,26 +960,35 @@ public final class StreamedDatabaseWriter {
         return setIdBuilder.build();
     }
 
-    private void writeBunchAcceptations(ImmutableIntRange validConcepts, ImmutableIntPairMap accIdMap) throws IOException {
+    private void writeBunchAcceptations(ImmutableIntRange validConcepts, ImmutableIntSet agentSetIds, ImmutableIntPairMap accIdMap) throws IOException {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getBunchColumnIndex(),
-                table.getAcceptationColumnIndex());
+                table.getAcceptationColumnIndex(),
+                table.getAgentSetColumnIndex());
         final DbResult result = _db.select(query);
         final MutableIntKeyMap<MutableIntSet> bunches = MutableIntKeyMap.empty();
         try {
             while (result.hasNext()) {
                 final DbResult.Row row = result.next();
-                final int bunchId = row.get(0).toInt();
-                final MutableIntSet set;
-                if (bunches.keySet().contains(bunchId)) {
-                    set = bunches.get(bunchId);
+                final int agentSetId = row.get(2).toInt();
+                if (!agentSetIds.contains(agentSetId)) {
+                    if (agentSetId != LangbookDbSchema.Tables.agentSets.nullReference()) {
+                        throw new AssertionError();
+                    }
+
+                    final int bunchId = row.get(0).toInt();
+                    final MutableIntSet set;
+                    if (bunches.keySet().contains(bunchId)) {
+                        set = bunches.get(bunchId);
+                    }
+                    else {
+                        set = MutableIntSet.empty();
+                        bunches.put(bunchId, set);
+                    }
+
+                    set.add(accIdMap.get(row.get(1).toInt()));
                 }
-                else {
-                    set = MutableIntSet.empty();
-                    bunches.put(bunchId, set);
-                }
-                set.add(accIdMap.get(row.get(1).toInt()));
             }
         }
         finally {
@@ -1200,11 +1209,30 @@ public final class StreamedDatabaseWriter {
         return new ExportableSymbolArraysResult(symbolArrays.build(), targetedAlphabets.toImmutable());
     }
 
+    private ImmutableIntSet listAgentSets() {
+        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
+        final DbQuery query = new DbQuery.Builder(table).select(table.getSetIdColumnIndex());
+        final DbResult result = _db.select(query);
+
+        final ImmutableIntSetBuilder setIds = new ImmutableIntSetBuilder();
+        try {
+            while (result.hasNext()) {
+                setIds.add(result.next().get(0).toInt());
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return setIds.build();
+    }
+
     public void write() throws IOException {
         setProgress(0.0f, "Filtering database");
         final ExportableAcceptationsAndCorrelationArrays exportable = listExportableAcceptationsAndCorrelationArrays();
         final ImmutableIntSet exportableCorrelations = listExportableCorrelations(exportable.correlationArrays);
         final ExportableSymbolArraysResult exportableSymbolArrays = listExportableSymbolArrays(exportableCorrelations);
+        final ImmutableIntSet agentSetIds = listAgentSets();
 
         setProgress(0.1f, "Writing symbol arrays");
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
@@ -1240,7 +1268,7 @@ public final class StreamedDatabaseWriter {
         writeBunchConcepts(validConcepts);
 
         setProgress(0.8f, "Writing bunch acceptations");
-        writeBunchAcceptations(validConcepts, accIdMap);
+        writeBunchAcceptations(validConcepts, agentSetIds, accIdMap);
 
         setProgress(0.9f, "Writing agents");
         writeAgents(validConcepts.max(), correlationIdMap);
