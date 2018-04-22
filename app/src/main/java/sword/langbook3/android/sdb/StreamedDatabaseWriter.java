@@ -936,6 +936,8 @@ public final class StreamedDatabaseWriter {
                         final boolean fromStart = (flags & 1) != 0;
                         _obs.writeBoolean(fromStart);
                     }
+
+                    lastTarget = targetBunch;
                 }
             }
             finally {
