@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import sword.bitstream.IntegerEncoder;
+import sword.bitstream.NaturalEncoder;
 import sword.bitstream.OutputBitStream;
 import sword.bitstream.Procedure2WithIOException;
 import sword.bitstream.ProcedureWithIOException;
@@ -800,7 +801,8 @@ public final class StreamedDatabaseWriter {
             }
 
             final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequencies), new IntComparator());
-            _obs.writeHuffmanTable(lengthTable, new IntWriter(), new IntDiffWriter());
+            final NaturalEncoder natEncoder = new NaturalEncoder(_obs);
+            _obs.writeHuffmanTable(lengthTable, natEncoder, natEncoder);
 
             final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, validConcepts.min(), validConcepts.max());
             int remainingBunches = bunches.size();
@@ -1005,7 +1007,8 @@ public final class StreamedDatabaseWriter {
             }
 
             final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequencies), new IntComparator());
-            _obs.writeHuffmanTable(lengthTable, new IntWriter(), new IntDiffWriter());
+            final NaturalEncoder natEncoder = new NaturalEncoder(_obs);
+            _obs.writeHuffmanTable(lengthTable, natEncoder, natEncoder);
 
             final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, 0, accIdMap.size() - 1);
             int maxBunchConcept = validConcepts.max() - bunches.size() + 1;

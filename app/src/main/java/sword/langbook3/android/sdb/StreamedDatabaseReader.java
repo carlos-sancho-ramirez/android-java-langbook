@@ -13,6 +13,7 @@ import java.util.Set;
 import sword.bitstream.FunctionWithIOException;
 import sword.bitstream.InputBitStream;
 import sword.bitstream.IntegerDecoder;
+import sword.bitstream.NaturalDecoder;
 import sword.bitstream.RangedIntegerSetDecoder;
 import sword.bitstream.SupplierWithIOException;
 import sword.bitstream.huffman.CharHuffmanTable;
@@ -783,9 +784,9 @@ public final class StreamedDatabaseReader {
 
     private void readBunchConcepts(InputBitStream ibs, ImmutableIntRange validConcepts) throws IOException {
         final int bunchConceptsLength = ibs.readHuffmanSymbol(naturalNumberTable);
-        final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
+        final NaturalDecoder natDecoder = new NaturalDecoder(ibs);
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
-                ibs.readHuffmanTable(intDecoder, intDecoder) : null;
+                ibs.readHuffmanTable(natDecoder, natDecoder) : null;
 
         int minBunchConcept = validConcepts.min();
         final int maxValidBunch = validConcepts.max();
@@ -802,9 +803,9 @@ public final class StreamedDatabaseReader {
 
     private void readBunchAcceptations(InputBitStream ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
-        final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
+        final NaturalDecoder natDecoder = new NaturalDecoder(ibs);
         final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
-                ibs.readHuffmanTable(intDecoder, intDecoder) : null;
+                ibs.readHuffmanTable(natDecoder, natDecoder) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
         final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
