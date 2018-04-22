@@ -18,7 +18,8 @@
     <string name="exportSuccess">Database exported successfully</string>
 
     <string name="selectLocationDialogTitle">Introduce its file path</string>
-    <string name="selectLocationDialogOk">Save</string>
+    <string name="selectLocationDialogSave">Save</string>
+    <string name="selectLocationDialogLoad">Load</string>
 
     <string name="quizQuestionsHeader">Question fields</string>
     <string name="quizAnswersHeader">Answer fields</string>

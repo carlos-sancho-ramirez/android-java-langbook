@@ -21,35 +21,63 @@ import sword.langbook3.android.sdb.ProgressListener;
 
 public class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener, DialogInterface.OnClickListener {
 
-    private static final int REQUEST_CODE_PICK_SQLITE_FILE = 1;
-    private static final int REQUEST_CODE_PICK_STREAMED_FILE = 2;
+    private static final int REQUEST_CODE_PICK = 1;
+    private interface BundleKeys {
+        String FILE_FLAGS = "ff";
+    }
 
     private boolean _resumed;
     private EditText _dialogEditText;
-    private boolean _sqliteExporting;
+
+    private interface FileFlags {
+        /**
+         * If set, the intention is to save into a file.
+         * if clear, the intention is to load a file.
+         */
+        int SAVE = 1;
+
+        /**
+         * If set, the file format is streamed database.
+         * If clear, the format is SQLite database file.
+         */
+        int SQLITE = 2;
+    }
+
+    private int _fileFlags;
 
     public static void open(Context context) {
         Intent intent = new Intent(context, SettingsActivity.class);
         context.startActivity(intent);
     }
 
-    private void pickFile(int requestCode) {
+    private boolean expectsSaveFile() {
+        return (_fileFlags & FileFlags.SAVE) != 0;
+    }
+
+    private boolean expectsSqliteFileFormat() {
+        return (_fileFlags & FileFlags.SQLITE) != 0;
+    }
+
+    private void pickFile() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("file/*");
         if (!getPackageManager().queryIntentActivities(intent, 0).isEmpty()) {
-            startActivityForResult(intent, requestCode);
+            startActivityForResult(intent, REQUEST_CODE_PICK);
         }
         else {
-            Toast.makeText(this, "No file picker application found in the device", Toast.LENGTH_SHORT).show();
+            selectLocation();
         }
     }
 
     private void selectLocation() {
+        final int buttonStrId = expectsSaveFile()?
+                R.string.selectLocationDialogSave : R.string.selectLocationDialogLoad;
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.selectLocationDialogTitle)
-                .setPositiveButton(R.string.selectLocationDialogOk, this)
+                .setPositiveButton(buttonStrId, this)
                 .create();
-        final View dialogView = LayoutInflater.from(dialog.getContext()).inflate(R.layout.select_location_dialog, null);
+        final View dialogView = LayoutInflater.from(dialog.getContext())
+                .inflate(R.layout.select_location_dialog, null);
         _dialogEditText = dialogView.findViewById(R.id.filePath);
 
         dialog.setView(dialogView);
@@ -71,6 +99,10 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.settings_activity);
 
+        if (savedInstanceState != null) {
+            _fileFlags = savedInstanceState.getInt(BundleKeys.FILE_FLAGS);
+        }
+
         final View progressPanel = findViewById(R.id.progressPanel);
         progressPanel.setOnClickListener(this);
 
@@ -82,16 +114,9 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == Activity.RESULT_OK) {
-            switch (requestCode) {
-                case REQUEST_CODE_PICK_STREAMED_FILE:
-                    importDatabase((data != null)? data.getData() : null);
-                    break;
-
-                case REQUEST_CODE_PICK_SQLITE_FILE:
-                    loadSqliteDatabase((data != null)? data.getData() : null);
-                    break;
-            }
+        final Uri uri = (data != null)? data.getData() : null;
+        if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_PICK && uri != null) {
+            triggerFileProcessing(uri);
         }
     }
 
@@ -110,20 +135,22 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.importStreamedDatabaseButton:
-                pickFile(REQUEST_CODE_PICK_STREAMED_FILE);
+                _fileFlags = 0;
+                pickFile();
                 break;
 
             case R.id.importSqliteDatabaseButton:
-                pickFile(REQUEST_CODE_PICK_SQLITE_FILE);
-                break;
-
-            case R.id.exportSqliteDatabaseButton:
-                _sqliteExporting = true;
-                selectLocation();
+                _fileFlags = FileFlags.SQLITE;
+                pickFile();
                 break;
 
             case R.id.exportStreamedDatabaseButton:
-                _sqliteExporting = false;
+                _fileFlags = FileFlags.SAVE;
+                selectLocation();
+                break;
+
+            case R.id.exportSqliteDatabaseButton:
+                _fileFlags = FileFlags.SAVE | FileFlags.SQLITE;
                 selectLocation();
                 break;
 
@@ -193,16 +220,39 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
     @Override
     public void onClick(DialogInterface dialog, int which) {
         final String filePath = _dialogEditText.getText().toString();
-        if (_sqliteExporting) {
-            saveSqliteDatabase(filePath);
-        }
-        else {
-            final DbManager manager = DbManager.getInstance();
-            manager.exportStreamedDatabase(Uri.fromFile(new File(filePath)));
-            if (_resumed) {
-                manager.setProgressListener(this);
+        final Uri uri = Uri.fromFile(new File(filePath));
+        triggerFileProcessing(uri);
+        dialog.dismiss();
+    }
+
+    private void triggerFileProcessing(Uri uri) {
+        if (expectsSaveFile()) {
+            if (expectsSqliteFileFormat()) {
+                if (!"file".equals(uri.getScheme())) {
+                    throw new UnsupportedOperationException("Unable to save for no file uri");
+                }
+                saveSqliteDatabase(uri.getPath());
+            }
+            else {
+                final DbManager manager = DbManager.getInstance();
+                manager.exportStreamedDatabase(uri);
+                if (_resumed) {
+                    manager.setProgressListener(this);
+                }
             }
         }
-        dialog.dismiss();
+        else {
+            if (expectsSqliteFileFormat()) {
+                loadSqliteDatabase(uri);
+            }
+            else {
+                importDatabase(uri);
+            }
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putInt(BundleKeys.FILE_FLAGS, _fileFlags);
     }
 }
