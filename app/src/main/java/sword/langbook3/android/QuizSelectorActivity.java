@@ -28,6 +28,7 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener {
 
     private static final int REQUEST_CODE_EDITOR = 1;
+    private static final int NO_QUIZ = 0;
 
     private interface BundleKeys {
         String BUNCH = "b";
@@ -278,7 +279,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemNewQuizDefinition:
-                QuizEditorActivity.open(this, _bunch);
+                QuizEditorActivity.open(this, REQUEST_CODE_EDITOR, _bunch);
                 return true;
         }
 
@@ -293,7 +294,11 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_EDITOR) {
-            if (_activityStarted) {
+            final int quizId = (data != null)? data.getIntExtra(QuizEditorActivity.ResultKeys.QUIZ, NO_QUIZ) : NO_QUIZ;
+            if (resultCode == RESULT_OK && quizId != NO_QUIZ) {
+                QuizResultActivity.open(this, quizId);
+            }
+            else if (_activityStarted) {
                 if (_listView.getAdapter().isEmpty()) {
                     finish();
                 }

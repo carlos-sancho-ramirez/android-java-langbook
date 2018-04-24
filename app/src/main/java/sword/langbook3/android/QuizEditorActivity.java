@@ -2,7 +2,6 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -44,19 +43,17 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class QuizEditorActivity extends Activity implements View.OnClickListener {
 
-    private static final class BundleKeys {
-        static final String BUNCH = "b";
+    private interface BundleKeys {
+        String BUNCH = "b";
+    }
+
+    interface ResultKeys {
+        String QUIZ = "q";
     }
 
     // Specifies the alphabet the user would like to see if possible.
     // TODO: This should be a shared preference
     static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
-
-    public static void open(Context context, int bunch) {
-        Intent intent = new Intent(context, QuizEditorActivity.class);
-        intent.putExtra(BundleKeys.BUNCH, bunch);
-        context.startActivity(intent);
-    }
 
     public static void open(Activity activity, int requestCode, int bunch) {
         Intent intent = new Intent(activity, QuizEditorActivity.class);
@@ -759,7 +756,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         }
 
         if (quizId != null) {
-            QuizResultActivity.open(this, quizId);
+            final Intent intent = new Intent();
+            intent.putExtra(ResultKeys.QUIZ, quizId);
+            setResult(RESULT_OK, intent);
+            finish();
         }
     }
 
