@@ -27,8 +27,14 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener {
 
-    private static final class BundleKeys {
-        static final String BUNCH = "b";
+    private static final int REQUEST_CODE_EDITOR = 1;
+
+    private interface BundleKeys {
+        String BUNCH = "b";
+    }
+
+    private interface SavedKeys {
+        String FIRST_ACTION_EXECUTED = "fae";
     }
 
     /**
@@ -50,6 +56,11 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private int _bunch;
     private SparseArray<String> _ruleTexts;
+
+    private boolean _finishIfEmptyWhenStarting;
+    private boolean _activityStarted;
+    private boolean _firstActionExecuted;
+    private ListView _listView;
 
     static final class Progress {
         // Due to int[] can be modified, this class may become inconsistent if value is changed.
@@ -220,17 +231,34 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
         _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
 
+        if (savedInstanceState != null) {
+            _firstActionExecuted = savedInstanceState.getBoolean(SavedKeys.FIRST_ACTION_EXECUTED);
+        }
+
+        _listView = findViewById(R.id.listView);
+        _listView.setOnItemClickListener(this);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        _activityStarted = true;
+
         final QuizSelectorAdapter.Item[] items = composeAdapterItems(
                 DbManager.getInstance().getReadableDatabase(), _bunch);
 
         if (items.length == 0) {
-            QuizEditorActivity.open(this, _bunch);
+            if (!_firstActionExecuted) {
+                QuizEditorActivity.open(this, REQUEST_CODE_EDITOR, _bunch);
+            }
+            else if (_finishIfEmptyWhenStarting) {
+                finish();
+            }
         }
-        else {
-            ListView listView = findViewById(R.id.listView);
-            listView.setAdapter(new QuizSelectorAdapter(items));
-            listView.setOnItemClickListener(this);
-        }
+
+        _listView.setAdapter(new QuizSelectorAdapter(items));
+        _firstActionExecuted = true;
+        _finishIfEmptyWhenStarting = false;
     }
 
     @Override
@@ -255,5 +283,30 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         }
 
         return false;
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean(SavedKeys.FIRST_ACTION_EXECUTED, _firstActionExecuted);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_EDITOR) {
+            if (_activityStarted) {
+                if (_listView.getAdapter().isEmpty()) {
+                    finish();
+                }
+            }
+            else {
+                _finishIfEmptyWhenStarting = true;
+            }
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        _activityStarted = false;
+        super.onStop();
     }
 }
