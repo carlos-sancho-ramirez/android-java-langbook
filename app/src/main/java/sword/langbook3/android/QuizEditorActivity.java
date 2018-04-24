@@ -58,6 +58,12 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         context.startActivity(intent);
     }
 
+    public static void open(Activity activity, int requestCode, int bunch) {
+        Intent intent = new Intent(activity, QuizEditorActivity.class);
+        intent.putExtra(BundleKeys.BUNCH, bunch);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     private static class FieldTypeAdapter extends BaseAdapter {
 
         private final String[] _entries;
