@@ -6,26 +6,27 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.util.SparseIntArray;
+
+import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntPairMap;
 
 public class KnowledgeDrawable extends Drawable {
 
     private static final int COLOR_MAP_TOP = 256;
-    private static final SparseIntArray COLOR_MAP = new SparseIntArray();
-    static {
-        COLOR_MAP.put(0, 0xFFFF6666);
-        COLOR_MAP.put(192, 0xFFFFFF66);
-        COLOR_MAP.put(256, 0xFF66FF66);
-    }
+    private static final ImmutableIntPairMap COLOR_MAP = new ImmutableIntPairMap.Builder()
+            .put(0, 0xFFFF6666)
+            .put(192, 0xFFFFFF66)
+            .put(256, 0xFF66FF66)
+            .build();
 
     private static int[] COLORS;
-    private final int[] _knowledge;
+    private final ImmutableIntList _knowledge;
     private final int _questionCount;
 
     private final Paint _paint;
 
-    public KnowledgeDrawable(int[] knowledge) {
-        if (knowledge == null || knowledge.length != getColors().length) {
+    KnowledgeDrawable(ImmutableIntList knowledge) {
+        if (knowledge == null || knowledge.size() != getColors().length) {
             throw new IllegalArgumentException();
         }
 
@@ -101,7 +102,7 @@ public class KnowledgeDrawable extends Drawable {
         final int[] colors = getColors();
         for (int i = 0; i < colors.length; i++) {
             x = nextX;
-            count += _knowledge[i];
+            count += _knowledge.get(i);
             nextX = count * width;
             nextX /= _questionCount + bounds.left;
 

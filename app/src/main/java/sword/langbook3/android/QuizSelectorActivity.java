@@ -16,6 +16,7 @@ import android.widget.ListView;
 import java.util.HashSet;
 import java.util.Set;
 
+import sword.collections.ImmutableIntList;
 import sword.langbook3.android.DbManager.QuestionField;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
@@ -64,13 +65,11 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     private ListView _listView;
 
     static final class Progress {
-        // Due to int[] can be modified, this class may become inconsistent if value is changed.
-        // TODO: Make this class completely immutable
-        private final int[] amountPerScore;
+        private final ImmutableIntList amountPerScore;
         private final int totalAnsweredQuestions;
         private final int numberOfQuestions;
 
-        Progress(int[] amountPerScore, int numberOfQuestions) {
+        Progress(ImmutableIntList amountPerScore, int numberOfQuestions) {
             int answeredQuestions = 0;
             for (int amount : amountPerScore) {
                 answeredQuestions += amount;
@@ -85,7 +84,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
             this.numberOfQuestions = numberOfQuestions;
         }
 
-        int[] getAmountPerScore() {
+        ImmutableIntList getAmountPerScore() {
             return amountPerScore;
         }
 
@@ -132,7 +131,12 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
             }
         }
 
-        return new Progress(progress, numberOfQuestions);
+        final ImmutableIntList.Builder builder = new ImmutableIntList.Builder(progress.length);
+        for (int value : progress) {
+            builder.add(value);
+        }
+
+        return new Progress(builder.build(), numberOfQuestions);
     }
 
     private String getRuleText(SQLiteDatabase db, int rule) {

@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+import sword.collections.ImmutableIntList;
+
 public class QuizResultActivity extends Activity {
 
     private static final int REQUEST_CODE_QUESTION = 1;
@@ -65,10 +67,10 @@ public class QuizResultActivity extends Activity {
                 .append("\nBad answers: ").append(_badAnswerCount);
 
         sb.append("\nTotal answers given for this quiz: ").append(_progress.getAnsweredQuestionsCount());
-        int[] amounts = _progress.getAmountPerScore();
-        for (int i = 0; i < amounts.length; i++) {
+        final ImmutableIntList amounts = _progress.getAmountPerScore();
+        for (int i = 0; i < amounts.size(); i++) {
             sb.append("\n  With score ").append(QuestionActivity.MIN_ALLOWED_SCORE + i)
-                    .append(": ").append(amounts[i]);
+                    .append(": ").append(amounts.get(i));
         }
 
         sb.append("\n\nTotal possible questions: ").append(_progress.getNumberOfQuestions())
