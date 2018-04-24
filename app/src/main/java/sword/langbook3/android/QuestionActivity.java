@@ -379,16 +379,6 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         }
     }
 
-    private void insertKnowledge(SQLiteDatabase db, int score) {
-        final KnowledgeTable table = Tables.knowledge;
-        ContentValues cv = new ContentValues();
-        cv.put(table.columns().get(table.getQuizDefinitionColumnIndex()).name(), _quizId);
-        cv.put(table.columns().get(table.getAcceptationColumnIndex()).name(), _acceptation);
-        cv.put(table.columns().get(table.getScoreColumnIndex()).name(), score);
-
-        db.insert(table.name(), null, cv);
-    }
-
     private void updateKnowledge(SQLiteDatabase db, int score) {
         final KnowledgeTable table = Tables.knowledge;
         ContentValues cv = new ContentValues();
@@ -405,7 +395,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         if (foundScore < MIN_ALLOWED_SCORE) {
             final int newScore = INITIAL_SCORE + SCORE_INCREMENT;
             _knowledge.put(_acceptation, newScore);
-            insertKnowledge(db, newScore);
+            updateKnowledge(db, newScore);
         }
         else if (foundScore < MAX_ALLOWED_SCORE) {
             final int newProposedScore = foundScore + SCORE_INCREMENT;
@@ -423,7 +413,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         if (foundScore < MIN_ALLOWED_SCORE) {
             final int newScore = INITIAL_SCORE - SCORE_DECREMENT;
             _knowledge.put(_acceptation, newScore);
-            insertKnowledge(db, newScore);
+            updateKnowledge(db, newScore);
         }
         else if (foundScore > MIN_ALLOWED_SCORE) {
             final int newProposedScore = foundScore - SCORE_DECREMENT;
