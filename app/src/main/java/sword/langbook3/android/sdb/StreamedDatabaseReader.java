@@ -394,23 +394,51 @@ public final class StreamedDatabaseReader {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
+        final ImmutableIntPairMap corr = correlation.toImmutable();
 
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getAlphabetColumnIndex(), correlation.keyAt(0))
-                .where(table.getSymbolArrayColumnIndex(), correlation.valueAt(0))
-                .select(table.getCorrelationIdColumnIndex());
+                .join(table, table.getCorrelationIdColumnIndex(), table.getCorrelationIdColumnIndex())
+                .where(table.getAlphabetColumnIndex(), corr.keyAt(0))
+                .where(table.getSymbolArrayColumnIndex(), corr.valueAt(0))
+                .select(
+                        table.getCorrelationIdColumnIndex(),
+                        offset + table.getAlphabetColumnIndex(),
+                        offset + table.getSymbolArrayColumnIndex());
         final DbResult result = db.select(query);
         try {
-            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
             if (result.hasNext()) {
-                throw new AssertionError();
+                DbResult.Row row = result.next();
+                int correlationId = row.get(0).toInt();
+                ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+                builder.put(row.get(1).toInt(), row.get(2).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newCorrelationId = row.get(0).toInt();
+                    if (newCorrelationId != correlationId) {
+                        if (builder.build().equals(corr)) {
+                            return correlationId;
+                        }
+
+                        correlationId = newCorrelationId;
+                        builder = new ImmutableIntPairMap.Builder();
+                    }
+
+                    builder.put(row.get(1).toInt(), row.get(2).toInt());
+                }
+
+                if (builder.build().equals(corr)) {
+                    return correlationId;
+                }
             }
-            return value;
         }
         finally {
             result.close();
         }
+
+        return null;
     }
 
     private static int getMaxCorrelationId(Database db) {
