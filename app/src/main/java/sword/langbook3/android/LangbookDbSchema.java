@@ -423,6 +423,7 @@ public final class LangbookDbSchema implements DbSchema {
 
     private final ImmutableList<DbIndex> _indexes = new ImmutableList.Builder<DbIndex>()
             .add(new DbIndex(Tables.stringQueries, Tables.stringQueries.getDynamicAcceptationColumnIndex()))
+            .add(new DbIndex(Tables.correlations, Tables.correlations.getCorrelationIdColumnIndex()))
             .add(new DbIndex(Tables.acceptations, Tables.acceptations.getConceptColumnIndex()))
             .build();
 

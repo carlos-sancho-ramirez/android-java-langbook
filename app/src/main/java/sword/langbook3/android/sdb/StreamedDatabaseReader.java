@@ -558,11 +558,6 @@ public final class StreamedDatabaseReader {
         return newArrayId;
     }
 
-    private int obtainCorrelationArray(int... array) {
-        final Integer id = findCorrelationArray(array);
-        return (id == null)? insertCorrelationArray(_db, array) : id;
-    }
-
     public static int insertAcceptation(Database db, int word, int concept, int correlationArray) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -758,7 +753,7 @@ public final class StreamedDatabaseReader {
                 for (Map.Entry<Integer, Integer> entry : corrMap.entrySet()) {
                     corr.put(entry.getKey(), symbolArraysIdMap[entry.getValue()]);
                 }
-                result[i] = obtainCorrelation(_db, corr);
+                result[i] = insertCorrelation(_db, corr);
             }
         }
 
@@ -780,7 +775,7 @@ public final class StreamedDatabaseReader {
                 for (int j = 0; j < arrayLength; j++) {
                     corrArray[j] = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
                 }
-                result[i] = obtainCorrelationArray(corrArray);
+                result[i] = insertCorrelationArray(_db, corrArray);
             }
         }
 
