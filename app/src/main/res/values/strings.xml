@@ -11,6 +11,8 @@
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="menuItemNewQuizDefinition">New Quiz</string>
 
+    <string name="wordEditorNextButton">Next</string>
+
     <string name="settingsHeaderSqliteDatabase">SQLite database management</string>
     <string name="settingsHeaderStreamedDatabase">Streamed database management</string>
     <string name="importButton">Import</string>
