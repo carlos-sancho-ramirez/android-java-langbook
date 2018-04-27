@@ -26,6 +26,7 @@
         <activity android:name=".QuizEditorActivity"/>
         <activity android:name=".QuizResultActivity"/>
         <activity android:name=".QuizSelectorActivity"/>
+        <activity android:name=".LanguagePickerActivity"/>
         <activity android:name=".RuleTableActivity"/>
         <activity android:name=".SettingsActivity"/>
         <activity android:name=".WordEditorActivity"/>
