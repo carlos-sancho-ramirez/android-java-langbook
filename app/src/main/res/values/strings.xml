@@ -2,6 +2,9 @@
     <string name="appName">Langbook</string>
     <string name="appCredits">App developed by Carlos Sancho Ramirez</string>
 
+    <string name="searchFieldHint">Search Here</string>
+    <string name="addWordButton">Add</string>
+
     <string name="menuItemQuiz">Start quiz</string>
     <string name="menuItemSettings">Preferences</string>
     <string name="menuItemAbout">About</string>

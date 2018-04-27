@@ -17,10 +17,11 @@ import android.widget.ListView;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 
-public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener {
+public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
     private ListView _listView;
     private SearchResultAdapter _listAdapter;
+    private String _query;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +30,8 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
 
         _listView = findViewById(R.id.listView);
         _listView.setOnItemClickListener(this);
+
+        findViewById(R.id.addWordButton).setOnClickListener(this);
 
         final EditText searchField = findViewById(R.id.searchField);
         searchField.addTextChangedListener(this);
@@ -46,23 +49,23 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
 
     @Override
     public void afterTextChanged(Editable editable) {
-        final String query = editable.toString();
-        if (TextUtils.isEmpty(query)) {
+        _query = editable.toString();
+        if (TextUtils.isEmpty(_query)) {
             updateSearchResults(new SearchResult[0]);
         }
         else {
-            querySearchResults(editable.toString());
+            querySearchResults();
         }
     }
 
-    private void querySearchResults(String query) {
+    private void querySearchResults() {
         final StringQueriesTable table = Tables.stringQueries;
         Cursor cursor = DbManager.getInstance().getReadableDatabase().rawQuery("SELECT " +
                 table.columns().get(table.getStringColumnIndex()).name() + ',' +
                 table.columns().get(table.getMainStringColumnIndex()).name() + ',' +
                 table.columns().get(table.getMainAcceptationColumnIndex()).name() + ',' +
                 table.columns().get(table.getDynamicAcceptationColumnIndex()).name() +
-                " FROM " + table.name() + " WHERE " + table.columns().get(table.getStringColumnIndex()).name() + " LIKE '" + query + "%'", null);
+                " FROM " + table.name() + " WHERE " + table.columns().get(table.getStringColumnIndex()).name() + " LIKE '" + _query + "%'", null);
 
         SearchResult[] results = new SearchResult[0];
         if (cursor != null) {
@@ -122,5 +125,10 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
         }
 
         return false;
+    }
+
+    @Override
+    public void onClick(View v) {
+        WordEditorActivity.open(this, _query);
     }
 }

@@ -28,6 +28,7 @@
         <activity android:name=".QuizSelectorActivity"/>
         <activity android:name=".RuleTableActivity"/>
         <activity android:name=".SettingsActivity"/>
+        <activity android:name=".WordEditorActivity"/>
     </application>
 
 </manifest>
