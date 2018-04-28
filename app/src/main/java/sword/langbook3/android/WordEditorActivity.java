@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -13,6 +15,8 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
@@ -21,6 +25,7 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
+import static sword.langbook3.android.EqualUtils.equal;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
@@ -36,6 +41,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     private LinearLayout _formPanel;
+    private ImmutableIntKeyMap<FieldConversion> _fieldConversions;
+    private String[] _texts;
 
     private int _language = NO_LANGUAGE;
 
@@ -108,6 +115,52 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         return builder.build();
     }
 
+    private static final class StringPair {
+        final String source;
+        final String target;
+
+        StringPair(String source, String target) {
+            this.source = source;
+            this.target = target;
+        }
+    }
+
+    private static final class FieldConversion {
+        final int sourceField;
+        final ImmutableList<StringPair> textPairs;
+
+        FieldConversion(int sourceField, ImmutableList<StringPair> textPairs) {
+            this.sourceField = sourceField;
+            this.textPairs = textPairs;
+        }
+    }
+
+    private ImmutableList<StringPair> readConversion(int source, int target) {
+        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+        final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
+
+        final int off1Symbols = conversions.columns().size();
+        final int off2Symbols = off1Symbols + symbols.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .join(symbols, conversions.getSourceColumnIndex(), symbols.getIdColumnIndex())
+                .join(symbols, conversions.getTargetColumnIndex(), symbols.getIdColumnIndex())
+                .where(conversions.getSourceAlphabetColumnIndex(), source)
+                .where(conversions.getTargetAlphabetColumnIndex(), target)
+                .select(
+                        off1Symbols + symbols.getStrColumnIndex(),
+                        off2Symbols + symbols.getStrColumnIndex());
+
+        final ImmutableList.Builder<StringPair> builder = new ImmutableList.Builder<>();
+        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+            final String sourceText = row.get(0).toText();
+            final String targetText = row.get(1).toText();
+            builder.add(new StringPair(sourceText, targetText));
+        }
+
+        return builder.build();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -146,18 +199,32 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             final ImmutableIntPairMap fieldConversions = findConversions(fieldNames.keySet());
 
             final LayoutInflater inflater = getLayoutInflater();
-            for (IntKeyMap.Entry<String> entry : fieldNames.entries()) {
+            final int fieldCount = fieldNames.size();
+            _texts = new String[fieldCount];
+            final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
+            for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
                 inflater.inflate(R.layout.word_editor_field_entry, _formPanel, true);
-                View fieldEntry = _formPanel.getChildAt(_formPanel.getChildCount() - 1);
+                View fieldEntry = _formPanel.getChildAt(fieldIndex);
 
                 final TextView textView = fieldEntry.findViewById(R.id.fieldName);
-                textView.setText(entry.getValue());
+                textView.setText(fieldNames.valueAt(fieldIndex));
 
-                if (fieldConversions.keySet().contains(entry.getKey())) {
-                    final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
+                final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
+                final int alphabet = fieldNames.keyAt(fieldIndex);
+                final int conversionIndex = fieldConversions.keySet().indexOf(alphabet);
+                if (conversionIndex >= 0) {
+                    final ImmutableList<StringPair> conversion = readConversion(
+                            fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
+                    final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
+                    builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
                     editText.setEnabled(false);
                 }
+                else {
+                    editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
+                }
             }
+
+            _fieldConversions = builder.build();
         }
     }
 
@@ -169,5 +236,67 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     @Override
     public void onClick(View v) {
         Toast.makeText(this, "Not implemented yet", Toast.LENGTH_SHORT).show();
+    }
+
+    private String convertText(ImmutableList<StringPair> pairs, String text) {
+        String result = "";
+        while (text.length() > 0) {
+            boolean found = false;
+            for (StringPair pair : pairs) {
+                if (text.startsWith(pair.source)) {
+                    result += pair.target;
+                    text = text.substring(pair.source.length());
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                return null;
+            }
+        }
+
+        return result;
+    }
+
+    private void updateText(int fieldIndex, String newText) {
+        String oldText = _texts[fieldIndex];
+        _texts[fieldIndex] = newText;
+
+        for (IntKeyMap.Entry<FieldConversion> entry : _fieldConversions.entries()) {
+            if (entry.getValue().sourceField == fieldIndex && !equal(oldText, newText)) {
+                String convertedText = convertText(entry.getValue().textPairs, newText);
+                _texts[entry.getKey()] = convertedText;
+
+                View fieldEntry = _formPanel.getChildAt(entry.getKey());
+                final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
+                final String displayed = (convertedText != null)? convertedText : "-- Wrong --";
+                editText.setText(displayed);
+            }
+        }
+    }
+
+    private final class FieldTextWatcher implements TextWatcher {
+
+        final int fieldIndex;
+
+        FieldTextWatcher(int fieldIndex) {
+            this.fieldIndex = fieldIndex;
+        }
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            updateText(fieldIndex, s.toString());
+        }
     }
 }
