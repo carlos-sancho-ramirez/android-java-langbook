@@ -6,11 +6,15 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
+import sword.collections.IntKeyMap;
+import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.DbQuery;
@@ -72,6 +76,38 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         return result.toImmutable();
     }
 
+    private ImmutableIntPairMap findConversions(IntSet alphabets) {
+        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
+                .select(
+                        conversions.getSourceAlphabetColumnIndex(),
+                        conversions.getTargetAlphabetColumnIndex());
+
+        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+            final int source = row.get(0).toInt();
+            final int target = row.get(1).toInt();
+
+            if (foundAlphabets.contains(target)) {
+                throw new AssertionError();
+            }
+            foundAlphabets.add(target);
+
+            if (alphabets.contains(target)) {
+                if (!alphabets.contains(source)) {
+                    throw new AssertionError();
+                }
+
+                builder.put(target, source);
+            }
+        }
+
+        return builder.build();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,13 +142,21 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private void updateFields() {
         if (_language != NO_LANGUAGE) {
             _formPanel.removeAllViews();
+            final ImmutableIntKeyMap<String> fieldNames = readAlphabets();
+            final ImmutableIntPairMap fieldConversions = findConversions(fieldNames.keySet());
 
             final LayoutInflater inflater = getLayoutInflater();
-            for (String name : readAlphabets()) {
+            for (IntKeyMap.Entry<String> entry : fieldNames.entries()) {
                 inflater.inflate(R.layout.word_editor_field_entry, _formPanel, true);
                 View fieldEntry = _formPanel.getChildAt(_formPanel.getChildCount() - 1);
+
                 final TextView textView = fieldEntry.findViewById(R.id.fieldName);
-                textView.setText(name);
+                textView.setText(entry.getValue());
+
+                if (fieldConversions.keySet().contains(entry.getKey())) {
+                    final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
+                    editText.setEnabled(false);
+                }
             }
         }
     }
