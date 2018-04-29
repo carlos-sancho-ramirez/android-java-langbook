@@ -11,6 +11,7 @@
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="menuItemNewQuizDefinition">New Quiz</string>
 
+    <string name="wordEditorWrongConversionFieldText">-- Wrong --</string>
     <string name="wordEditorNextButton">Next</string>
 
     <string name="settingsHeaderSqliteDatabase">SQLite database management</string>

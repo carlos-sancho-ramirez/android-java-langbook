@@ -38,6 +38,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private interface SavedKeys {
         String LANGUAGE = "lang";
+        String TEXTS = "texts";
     }
 
     private LinearLayout _formPanel;
@@ -175,6 +176,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
         else {
             _language = savedInstanceState.getInt(SavedKeys.LANGUAGE, NO_LANGUAGE);
+            _texts = savedInstanceState.getStringArray(SavedKeys.TEXTS);
             updateFields();
         }
     }
@@ -192,6 +194,15 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
+    private static void setConversionText(EditText editText, String text) {
+        if (text == null) {
+            editText.setText(R.string.wordEditorWrongConversionFieldText);
+        }
+        else {
+            editText.setText(text);
+        }
+    }
+
     private void updateFields() {
         if (_language != NO_LANGUAGE) {
             _formPanel.removeAllViews();
@@ -200,7 +211,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
             final LayoutInflater inflater = getLayoutInflater();
             final int fieldCount = fieldNames.size();
-            _texts = new String[fieldCount];
+
+            if (_texts == null) {
+                _texts = new String[fieldCount];
+            }
+
             final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
             for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
                 inflater.inflate(R.layout.word_editor_field_entry, _formPanel, true);
@@ -217,9 +232,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                             fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
                     final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
                     builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
+
+                    setConversionText(editText, _texts[fieldIndex]);
                     editText.setEnabled(false);
                 }
                 else {
+                    editText.setText(_texts[fieldIndex]);
                     editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
                 }
             }
@@ -231,6 +249,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putInt(SavedKeys.LANGUAGE, _language);
+        outState.putStringArray(SavedKeys.TEXTS, _texts);
     }
 
     @Override
@@ -268,10 +287,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 String convertedText = convertText(entry.getValue().textPairs, newText);
                 _texts[entry.getKey()] = convertedText;
 
-                View fieldEntry = _formPanel.getChildAt(entry.getKey());
-                final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
-                final String displayed = (convertedText != null)? convertedText : "-- Wrong --";
-                editText.setText(displayed);
+                final EditText editText = _formPanel.getChildAt(entry.getKey()).findViewById(R.id.fieldValue);
+                setConversionText(editText, convertedText);
             }
         }
     }
