@@ -18,6 +18,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
+import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
@@ -30,6 +31,7 @@ import static sword.langbook3.android.EqualUtils.equal;
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_LANGUAGE_PICKER = 1;
+    private static final int REQUEST_CODE_CORRELATION_PICKER = 2;
     private static final int NO_LANGUAGE = 0;
 
     private interface BundleKeys {
@@ -44,6 +46,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private LinearLayout _formPanel;
     private ImmutableIntKeyMap<FieldConversion> _fieldConversions;
     private String[] _texts;
+    private ImmutableIntPairMap _fieldIndexAlphabetRelationMap;
 
     private int _language = NO_LANGUAGE;
 
@@ -217,6 +220,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             }
 
             final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
+            final ImmutableIntPairMap.Builder indexAlphabetBuilder = new ImmutableIntPairMap.Builder();
+
             for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
                 inflater.inflate(R.layout.word_editor_field_entry, _formPanel, true);
                 View fieldEntry = _formPanel.getChildAt(fieldIndex);
@@ -239,10 +244,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 else {
                     editText.setText(_texts[fieldIndex]);
                     editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
+                    indexAlphabetBuilder.put(fieldIndex, alphabet);
                 }
             }
 
             _fieldConversions = builder.build();
+            _fieldIndexAlphabetRelationMap = indexAlphabetBuilder.build();
         }
     }
 
@@ -254,7 +261,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     @Override
     public void onClick(View v) {
-        Toast.makeText(this, "Not implemented yet", Toast.LENGTH_SHORT).show();
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        for (IntPairMap.Entry entry : _fieldIndexAlphabetRelationMap.entries()) {
+            builder.put(entry.getValue(), _texts[entry.getKey()]);
+        }
+
+        CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, builder.build());
     }
 
     private String convertText(ImmutableList<StringPair> pairs, String text) {
