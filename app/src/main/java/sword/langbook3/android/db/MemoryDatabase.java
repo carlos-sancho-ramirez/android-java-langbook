@@ -88,9 +88,9 @@ public final class MemoryDatabase implements DbImporter.Database {
                 else {
                     boolean somethingReplaced = false;
                     for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : viewContent.entries()) {
-                        if (equal(entry.getValue().get(targetJoinColumnIndex - 1), rawValue)) {
-                            final ImmutableList<Object> newRow = oldRow.append(entry.getKey())
-                                    .appendAll(entry.getValue());
+                        if (equal(entry.value().get(targetJoinColumnIndex - 1), rawValue)) {
+                            final ImmutableList<Object> newRow = oldRow.append(entry.key())
+                                    .appendAll(entry.value());
                             if (!somethingReplaced) {
                                 result.put(row, newRow);
                                 somethingReplaced = true;
@@ -127,13 +127,13 @@ public final class MemoryDatabase implements DbImporter.Database {
             MutableList<ImmutableList<Object>> result,
             ImmutableIntKeyMap<DbValue> restrictions) {
         for (ImmutableIntKeyMap.Entry<DbValue> restriction : restrictions.entries()) {
-            final DbValue value = restriction.getValue();
+            final DbValue value = restriction.value();
             final Object rawValue = value.isText()? value.toText() : value.toInt();
 
             final Iterator<ImmutableList<Object>> it = result.iterator();
             while (it.hasNext()) {
                 final ImmutableList<Object> register = it.next();
-                if (!rawValue.equals(register.get(restriction.getKey()))) {
+                if (!rawValue.equals(register.get(restriction.key()))) {
                     it.remove();
                 }
             }
@@ -175,7 +175,7 @@ public final class MemoryDatabase implements DbImporter.Database {
         else {
             final MutableList.Builder<ImmutableList<Object>> builder = new MutableList.Builder<>();
             for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : content.entries()) {
-                final ImmutableList<Object> register = entry.getValue().prepend(entry.getKey());
+                final ImmutableList<Object> register = entry.value().prepend(entry.key());
                 builder.add(register);
             }
             unselectedResult = builder.build();
@@ -325,15 +325,15 @@ public final class MemoryDatabase implements DbImporter.Database {
 
         for (MutableMap.Entry<DbColumn, Object> entry : uniqueMap.entries()) {
             final MutableMap<Object, Integer> map;
-            if (_indexes.containsKey(entry.getKey())) {
-                map = _indexes.get(entry.getKey());
+            if (_indexes.containsKey(entry.key())) {
+                map = _indexes.get(entry.key());
             }
             else {
                 map = MutableMap.empty();
-                _indexes.put(entry.getKey(), map);
+                _indexes.put(entry.key(), map);
             }
 
-            map.put(entry.getValue(), id);
+            map.put(entry.value(), id);
         }
 
         return id;

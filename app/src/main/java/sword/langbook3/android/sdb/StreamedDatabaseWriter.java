@@ -192,7 +192,7 @@ public final class StreamedDatabaseWriter {
     private <E> java.util.Map<E, Integer> composeJavaMap(IntValueMap<E> map) {
         final HashMap<E, Integer> result = new HashMap<>();
         for (IntValueMap.Entry<E> entry : map.entries()) {
-            result.put(entry.getKey(), entry.getValue());
+            result.put(entry.key(), entry.value());
         }
         return result;
     }
@@ -200,7 +200,7 @@ public final class StreamedDatabaseWriter {
     private java.util.Map<Integer, Integer> composeJavaMap(IntPairMap map) {
         final HashMap<Integer, Integer> result = new HashMap<>();
         for (IntPairMap.Entry entry : map.entries()) {
-            result.put(entry.getKey(), entry.getValue());
+            result.put(entry.key(), entry.value());
         }
         return result;
     }
@@ -448,7 +448,7 @@ public final class StreamedDatabaseWriter {
         int minTargetAlphabet = minSourceAlphabet;
         for (ImmutableMap.Entry<IntPair, ImmutableList<IntPair>> entry : conversions.entries()) {
             final RangedIntegerHuffmanTable sourceAlphabetTable = new RangedIntegerHuffmanTable(minSourceAlphabet, validAlphabets.max());
-            final int sourceAlphabet = entry.getKey().source;
+            final int sourceAlphabet = entry.key().source;
             _obs.writeHuffmanSymbol(sourceAlphabetTable, sourceAlphabet);
 
             if (minSourceAlphabet != sourceAlphabet) {
@@ -457,12 +457,12 @@ public final class StreamedDatabaseWriter {
             }
 
             final RangedIntegerHuffmanTable targetAlphabetTable = new RangedIntegerHuffmanTable(minTargetAlphabet, validAlphabets.max());
-            final int targetAlphabet = entry.getKey().target;
+            final int targetAlphabet = entry.key().target;
             _obs.writeHuffmanSymbol(targetAlphabetTable, targetAlphabet);
             minTargetAlphabet = targetAlphabet + 1;
 
-            _obs.writeHuffmanSymbol(naturalNumberTable, entry.getValue().size());
-            for (IntPair pair : entry.getValue()) {
+            _obs.writeHuffmanSymbol(naturalNumberTable, entry.value().size());
+            for (IntPair pair : entry.value()) {
                 _obs.writeHuffmanSymbol(symbolArrayTable, symbolArraysIdMap.get(pair.source));
                 _obs.writeHuffmanSymbol(symbolArrayTable, symbolArraysIdMap.get(pair.target));
             }
@@ -809,11 +809,11 @@ public final class StreamedDatabaseWriter {
             int minBunchConcept = validConcepts.min();
             for (IntKeyMap.Entry<MutableIntSet> entry : bunches.entries()) {
                 final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, validConcepts.max() - remainingBunches + 1);
-                _obs.writeHuffmanSymbol(bunchTable, entry.getKey());
-                minBunchConcept = entry.getKey() + 1;
+                _obs.writeHuffmanSymbol(bunchTable, entry.key());
+                minBunchConcept = entry.key() + 1;
                 --remainingBunches;
 
-                writeRangedNumberSet(encoder, entry.getValue());
+                writeRangedNumberSet(encoder, entry.value());
             }
         }
     }
@@ -1017,11 +1017,11 @@ public final class StreamedDatabaseWriter {
             int minBunchConcept = validConcepts.min();
             for (IntKeyMap.Entry<MutableIntSet> entry : bunches.entries()) {
                 final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept);
-                _obs.writeHuffmanSymbol(bunchTable, entry.getKey());
-                minBunchConcept = entry.getKey() + 1;
+                _obs.writeHuffmanSymbol(bunchTable, entry.key());
+                minBunchConcept = entry.key() + 1;
                 ++maxBunchConcept;
 
-                writeRangedNumberSet(encoder, entry.getValue());
+                writeRangedNumberSet(encoder, entry.value());
             }
         }
     }

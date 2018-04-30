@@ -271,7 +271,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         if (allValid) {
             final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
             for (IntPairMap.Entry entry : _fieldIndexAlphabetRelationMap.entries()) {
-                builder.put(entry.getValue(), _texts[entry.getKey()]);
+                builder.put(entry.value(), _texts[entry.key()]);
             }
 
             CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, builder.build());
@@ -307,11 +307,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         _texts[fieldIndex] = newText;
 
         for (IntKeyMap.Entry<FieldConversion> entry : _fieldConversions.entries()) {
-            if (entry.getValue().sourceField == fieldIndex && !equal(oldText, newText)) {
-                String convertedText = convertText(entry.getValue().textPairs, newText);
-                _texts[entry.getKey()] = convertedText;
+            if (entry.value().sourceField == fieldIndex && !equal(oldText, newText)) {
+                String convertedText = convertText(entry.value().textPairs, newText);
+                _texts[entry.key()] = convertedText;
 
-                final EditText editText = _formPanel.getChildAt(entry.getKey()).findViewById(R.id.fieldValue);
+                final EditText editText = _formPanel.getChildAt(entry.key()).findViewById(R.id.fieldValue);
                 setConversionText(editText, convertedText);
             }
         }
