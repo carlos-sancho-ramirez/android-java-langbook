@@ -13,10 +13,13 @@ import sword.collections.ImmutableSet;
 final class CorrelationPickerAdapter extends BaseAdapter {
 
     private final ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> _entries;
+    private final ImmutableSet<ImmutableIntKeyMap<String>> _knownCorrelations;
+
     private LayoutInflater _inflater;
 
-    CorrelationPickerAdapter(ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> entries) {
+    CorrelationPickerAdapter(ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> entries, ImmutableSet<ImmutableIntKeyMap<String>> knownCorrelations) {
         _entries = entries;
+        _knownCorrelations = knownCorrelations;
     }
 
     @Override
@@ -49,7 +52,10 @@ final class CorrelationPickerAdapter extends BaseAdapter {
         }
 
         ImmutableList<ImmutableIntKeyMap<String>> array = _entries.valueAt(position);
-        final String text = array.map(correlation -> correlation.reduce((a,b) -> a + '/' + b)).reduce((a,b) -> a + '+' + b);
+        final String text = array.map(correlation -> {
+            final String str = correlation.reduce((a,b) -> a + '/' + b);
+            return _knownCorrelations.contains(correlation)? "<" + str + ">" : str;
+        }).reduce((a,b) -> a + " + " + b);
 
         final TextView textView = view.findViewById(R.id.searchResultTextView);
         textView.setText(text);

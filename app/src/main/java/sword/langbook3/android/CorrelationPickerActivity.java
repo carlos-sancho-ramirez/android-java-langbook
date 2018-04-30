@@ -7,10 +7,14 @@ import android.widget.ListView;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
+import sword.langbook3.android.db.DbQuery;
+import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 public final class CorrelationPickerActivity extends Activity {
 
@@ -20,6 +24,8 @@ public final class CorrelationPickerActivity extends Activity {
     }
 
     private ListView _listView;
+    private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> _options;
+    private ImmutableIntValueMap<ImmutableIntKeyMap<String>> _knownCorrelations;
 
     public static void open(Activity activity, int requestCode, IntKeyMap<String> texts) {
         final int mapSize = texts.size();
@@ -102,13 +108,93 @@ public final class CorrelationPickerActivity extends Activity {
         return builder.build();
     }
 
+    private static Integer findCorrelation(IntKeyMap<String> correlation) {
+        if (correlation.size() == 0) {
+            return StreamedDatabaseConstants.nullCorrelationId;
+        }
+        final ImmutableIntKeyMap<String> corr = correlation.toImmutable();
+
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
+
+        final int offset = table.columns().size();
+        final int offset2 = offset + symbolArrays.columns().size();
+        final int offset3 = offset2 + table.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(symbolArrays, table.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(table.getAlphabetColumnIndex(), corr.keyAt(0))
+                .where(offset + symbolArrays.getStrColumnIndex(), corr.valueAt(0))
+                .join(table, table.getCorrelationIdColumnIndex(), table.getCorrelationIdColumnIndex())
+                .join(symbolArrays, offset2 + table.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .select(
+                        table.getCorrelationIdColumnIndex(),
+                        offset2 + table.getAlphabetColumnIndex(),
+                        offset3 + symbolArrays.getStrColumnIndex());
+        final DbResult result = DbManager.getInstance().attach(query).iterator();
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int correlationId = row.get(0).toInt();
+                ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+                builder.put(row.get(1).toInt(), row.get(2).toText());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newCorrelationId = row.get(0).toInt();
+                    if (newCorrelationId != correlationId) {
+                        if (builder.build().equals(corr)) {
+                            return correlationId;
+                        }
+
+                        correlationId = newCorrelationId;
+                        builder = new ImmutableIntKeyMap.Builder<>();
+                    }
+
+                    builder.put(row.get(1).toInt(), row.get(2).toText());
+                }
+
+                if (builder.build().equals(corr)) {
+                    return correlationId;
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return null;
+    }
+
+    private ImmutableIntValueMap<ImmutableIntKeyMap<String>> findExistingCorrelations() {
+        final ImmutableSet.Builder<ImmutableIntKeyMap<String>> correlationsBuilder = new ImmutableSet.Builder<>();
+        for (ImmutableList<ImmutableIntKeyMap<String>> option : _options) {
+            for (ImmutableIntKeyMap<String> correlation : option) {
+                correlationsBuilder.add(correlation);
+            }
+        }
+        final ImmutableSet<ImmutableIntKeyMap<String>> correlations = correlationsBuilder.build();
+
+        final ImmutableIntValueMap.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableIntValueMap.Builder<>();
+        for (ImmutableIntKeyMap<String> correlation : correlations) {
+            final Integer id = findCorrelation(correlation);
+            if (id != null) {
+                builder.put(correlation, id);
+            }
+        }
+
+        return builder.build();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_picker_activity);
 
-        final ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> set = checkPossibleCorrelationArrays(getTexts());
+        _options = checkPossibleCorrelationArrays(getTexts());
+        _knownCorrelations = findExistingCorrelations();
+
         _listView = findViewById(R.id.listView);
-        _listView.setAdapter(new CorrelationPickerAdapter(set));
+        _listView.setAdapter(new CorrelationPickerAdapter(_options, _knownCorrelations.keySet()));
     }
 }
