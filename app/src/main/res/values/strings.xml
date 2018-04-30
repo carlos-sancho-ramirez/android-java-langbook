@@ -13,6 +13,7 @@
 
     <string name="wordEditorWrongConversionFieldText">-- Wrong --</string>
     <string name="wordEditorNextButton">Next</string>
+    <string name="wordEditorWrongTextError">Invalid values present</string>
 
     <string name="correlationPickerNextButton">Next</string>
 

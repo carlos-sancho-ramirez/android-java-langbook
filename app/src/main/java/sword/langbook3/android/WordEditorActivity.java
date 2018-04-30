@@ -15,7 +15,6 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
@@ -261,12 +260,25 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     @Override
     public void onClick(View v) {
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-        for (IntPairMap.Entry entry : _fieldIndexAlphabetRelationMap.entries()) {
-            builder.put(entry.getValue(), _texts[entry.getKey()]);
+        boolean allValid = true;
+        for (String text : _texts) {
+            if (text == null || text.length() == 0) {
+                allValid = false;
+                break;
+            }
         }
 
-        CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, builder.build());
+        if (allValid) {
+            final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+            for (IntPairMap.Entry entry : _fieldIndexAlphabetRelationMap.entries()) {
+                builder.put(entry.getValue(), _texts[entry.getKey()]);
+            }
+
+            CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, builder.build());
+        }
+        else {
+            Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private String convertText(ImmutableList<StringPair> pairs, String text) {
