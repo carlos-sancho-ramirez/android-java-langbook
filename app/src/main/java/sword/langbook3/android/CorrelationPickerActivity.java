@@ -3,7 +3,9 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
@@ -16,7 +18,7 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
-public final class CorrelationPickerActivity extends Activity {
+public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
     private interface BundleKeys {
         String ALPHABETS = "alphabets";
@@ -94,7 +96,7 @@ public final class CorrelationPickerActivity extends Activity {
     private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> checkPossibleCorrelationArrays(ImmutableIntKeyMap<String> global) {
         final int globalSize = global.size();
         final IntResultFunction<String> lengthFunc = text -> (text == null)? 0 : text.length();
-        final ImmutableIntPairMap lengths = global.mapValues(lengthFunc);
+        final ImmutableIntPairMap lengths = global.map(lengthFunc);
         if (globalSize == 0 || lengths.anyMatch(length -> length <= 0)) {
             return ImmutableSet.empty();
         }
@@ -196,5 +198,19 @@ public final class CorrelationPickerActivity extends Activity {
 
         _listView = findViewById(R.id.listView);
         _listView.setAdapter(new CorrelationPickerAdapter(_options, _knownCorrelations.keySet()));
+        _listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+
+        findViewById(R.id.nextButton).setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View view) {
+        final int selection = _listView.getCheckedItemPosition();
+        if (selection != ListView.INVALID_POSITION) {
+            Toast.makeText(this, "Selected is " + selection, Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();
+        }
     }
 }

@@ -45,7 +45,7 @@ final class CorrelationPickerAdapter extends BaseAdapter {
                 _inflater = LayoutInflater.from(parent.getContext());
             }
 
-            view = _inflater.inflate(R.layout.search_result, parent, false);
+            view = _inflater.inflate(R.layout.correlation_picker_entry, parent, false);
         }
         else {
             view = convertView;
@@ -57,7 +57,7 @@ final class CorrelationPickerAdapter extends BaseAdapter {
             return _knownCorrelations.contains(correlation)? "<" + str + ">" : str;
         }).reduce((a,b) -> a + " + " + b);
 
-        final TextView textView = view.findViewById(R.id.searchResultTextView);
+        final TextView textView = view.findViewById(R.id.textView);
         textView.setText(text);
 
         return view;
