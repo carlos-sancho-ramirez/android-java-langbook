@@ -17,12 +17,19 @@ import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphab
 
 public final class LanguagePickerActivity extends Activity implements ListView.OnItemClickListener {
 
-    public interface ResultKeys {
-        String LANGUAGE = "lang";
+    private static final int REQUEST_CODE_NEW_WORD = 1;
+
+    interface BundleKeys {
+        String SEARCH_QUERY = WordEditorActivity.BundleKeys.SEARCH_QUERY;
     }
 
-    public static void open(Activity activity, int requestCode) {
+    interface ResultKeys {
+        String ACCEPTATION = WordEditorActivity.ResultKeys.ACCEPTATION;
+    }
+
+    public static void open(Activity activity, int requestCode, String searchQuery) {
         final Intent intent = new Intent(activity, LanguagePickerActivity.class);
+        intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -71,9 +78,14 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        final Intent intent = new Intent();
-        intent.putExtra(ResultKeys.LANGUAGE, (int) id);
-        setResult(RESULT_OK, intent);
-        finish();
+        WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, (int) id, getIntent().getStringExtra(BundleKeys.SEARCH_QUERY));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_NEW_WORD && resultCode == RESULT_OK) {
+            setResult(RESULT_OK, data);
+            finish();
+        }
     }
 }

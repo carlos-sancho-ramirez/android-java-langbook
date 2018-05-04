@@ -28,16 +28,14 @@ import static sword.langbook3.android.EqualUtils.equal;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
-    private static final int REQUEST_CODE_LANGUAGE_PICKER = 1;
-    private static final int REQUEST_CODE_CORRELATION_PICKER = 2;
-    private static final int NO_LANGUAGE = 0;
+    private static final int REQUEST_CODE_CORRELATION_PICKER = 1;
 
-    private interface BundleKeys {
+    interface BundleKeys {
+        String LANGUAGE = "language";
         String SEARCH_QUERY = "searchQuery";
     }
 
     private interface SavedKeys {
-        String LANGUAGE = "lang";
         String TEXTS = "texts";
     }
 
@@ -50,10 +48,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private String[] _texts;
     private ImmutableIntPairMap _fieldIndexAlphabetRelationMap;
 
-    private int _language = NO_LANGUAGE;
-
-    public static void open(Activity activity, int requestCode, String searchQuery) {
+    public static void open(Activity activity, int requestCode, int language, String searchQuery) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
+        intent.putExtra(BundleKeys.LANGUAGE, language);
         intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -66,10 +63,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final int accOffset = alphabets.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
 
+        final int language = getIntent().getIntExtra(BundleKeys.LANGUAGE, 0);
         final DbQuery query = new DbQuery.Builder(alphabets)
                 .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(stringQueries, accOffset + acceptations.getIdColumnIndex(), stringQueries.getDynamicAcceptationColumnIndex())
-                .where(alphabets.getLanguageColumnIndex(), _language)
+                .where(alphabets.getLanguageColumnIndex(), language)
                 .select(
                         alphabets.getIdColumnIndex(),
                         strOffset + stringQueries.getStringAlphabetColumnIndex(),
@@ -175,33 +173,18 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         _formPanel = findViewById(R.id.formPanel);
         findViewById(R.id.nextButton).setOnClickListener(this);
 
-        if (savedInstanceState == null) {
-            _language = NO_LANGUAGE;
-            LanguagePickerActivity.open(this, REQUEST_CODE_LANGUAGE_PICKER);
-        }
-        else {
-            _language = savedInstanceState.getInt(SavedKeys.LANGUAGE, NO_LANGUAGE);
+        if (savedInstanceState != null) {
             _texts = savedInstanceState.getStringArray(SavedKeys.TEXTS);
-            updateFields();
         }
+
+        updateFields();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_LANGUAGE_PICKER) {
-            if (resultCode == RESULT_OK) {
-                _language = data.getIntExtra(LanguagePickerActivity.ResultKeys.LANGUAGE, 0);
-                updateFields();
-            }
-            else {
-                finish();
-            }
-        }
-        else if (requestCode == REQUEST_CODE_CORRELATION_PICKER) {
-            if (resultCode == RESULT_OK) {
-                setResult(RESULT_OK, data);
-                finish();
-            }
+        if (requestCode == REQUEST_CODE_CORRELATION_PICKER && resultCode == RESULT_OK) {
+            setResult(RESULT_OK, data);
+            finish();
         }
     }
 
@@ -215,55 +198,52 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     private void updateFields() {
-        if (_language != NO_LANGUAGE) {
-            _formPanel.removeAllViews();
-            final ImmutableIntKeyMap<String> fieldNames = readAlphabets();
-            final ImmutableIntPairMap fieldConversions = findConversions(fieldNames.keySet());
+        _formPanel.removeAllViews();
+        final ImmutableIntKeyMap<String> fieldNames = readAlphabets();
+        final ImmutableIntPairMap fieldConversions = findConversions(fieldNames.keySet());
 
-            final LayoutInflater inflater = getLayoutInflater();
-            final int fieldCount = fieldNames.size();
+        final LayoutInflater inflater = getLayoutInflater();
+        final int fieldCount = fieldNames.size();
 
-            if (_texts == null) {
-                _texts = new String[fieldCount];
-            }
-
-            final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
-            final ImmutableIntPairMap.Builder indexAlphabetBuilder = new ImmutableIntPairMap.Builder();
-
-            for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
-                inflater.inflate(R.layout.word_editor_field_entry, _formPanel, true);
-                View fieldEntry = _formPanel.getChildAt(fieldIndex);
-
-                final TextView textView = fieldEntry.findViewById(R.id.fieldName);
-                textView.setText(fieldNames.valueAt(fieldIndex));
-
-                final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
-                final int alphabet = fieldNames.keyAt(fieldIndex);
-                final int conversionIndex = fieldConversions.keySet().indexOf(alphabet);
-                if (conversionIndex >= 0) {
-                    final ImmutableList<StringPair> conversion = readConversion(
-                            fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
-                    final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
-                    builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
-
-                    setConversionText(editText, _texts[fieldIndex]);
-                    editText.setEnabled(false);
-                }
-                else {
-                    editText.setText(_texts[fieldIndex]);
-                    editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
-                    indexAlphabetBuilder.put(fieldIndex, alphabet);
-                }
-            }
-
-            _fieldConversions = builder.build();
-            _fieldIndexAlphabetRelationMap = indexAlphabetBuilder.build();
+        if (_texts == null) {
+            _texts = new String[fieldCount];
         }
+
+        final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableIntPairMap.Builder indexAlphabetBuilder = new ImmutableIntPairMap.Builder();
+
+        for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+            inflater.inflate(R.layout.word_editor_field_entry, _formPanel, true);
+            View fieldEntry = _formPanel.getChildAt(fieldIndex);
+
+            final TextView textView = fieldEntry.findViewById(R.id.fieldName);
+            textView.setText(fieldNames.valueAt(fieldIndex));
+
+            final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
+            final int alphabet = fieldNames.keyAt(fieldIndex);
+            final int conversionIndex = fieldConversions.keySet().indexOf(alphabet);
+            if (conversionIndex >= 0) {
+                final ImmutableList<StringPair> conversion = readConversion(
+                        fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
+                final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
+                builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
+
+                setConversionText(editText, _texts[fieldIndex]);
+                editText.setEnabled(false);
+            }
+            else {
+                editText.setText(_texts[fieldIndex]);
+                editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
+                indexAlphabetBuilder.put(fieldIndex, alphabet);
+            }
+        }
+
+        _fieldConversions = builder.build();
+        _fieldIndexAlphabetRelationMap = indexAlphabetBuilder.build();
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putInt(SavedKeys.LANGUAGE, _language);
         outState.putStringArray(SavedKeys.TEXTS, _texts);
     }
 

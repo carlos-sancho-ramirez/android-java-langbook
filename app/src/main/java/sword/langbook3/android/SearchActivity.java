@@ -132,13 +132,13 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
 
     @Override
     public void onClick(View v) {
-        WordEditorActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, _query);
+        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, _query);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_NEW_ACCEPTATION && resultCode == RESULT_OK) {
-            final int acceptationId = data.getIntExtra(WordEditorActivity.ResultKeys.ACCEPTATION, 0);
+            final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
             if (acceptationId != 0) {
                 AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
             }
