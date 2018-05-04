@@ -22,15 +22,25 @@
         <activity android:name=".AcceptationDetailsActivity"/>
         <activity android:name=".AgentDetailsActivity"/>
         <activity android:name=".CorrelationDetailsActivity"/>
-        <activity android:name=".CorrelationPickerActivity"/>
         <activity android:name=".QuestionActivity"/>
         <activity android:name=".QuizEditorActivity"/>
         <activity android:name=".QuizResultActivity"/>
         <activity android:name=".QuizSelectorActivity"/>
-        <activity android:name=".LanguagePickerActivity"/>
         <activity android:name=".RuleTableActivity"/>
         <activity android:name=".SettingsActivity"/>
-        <activity android:name=".WordEditorActivity"/>
+
+        <!-- Word editor wizard -->
+        <activity
+            android:name=".CorrelationPickerActivity"
+            android:label="@string/correlationPickerActivityTitle"/>
+
+        <activity
+            android:name=".LanguagePickerActivity"
+            android:label="@string/languagePickerActivityTitle"/>
+
+        <activity
+            android:name=".WordEditorActivity"
+            android:label="@string/wordEditorActivityTitle"/>
     </application>
 
 </manifest>

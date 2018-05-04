@@ -37,6 +37,10 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         String TEXTS = "texts";
     }
 
+    interface ResultKeys {
+        String ACCEPTATION = "acc";
+    }
+
     private ListView _listView;
     private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> _options;
     private ImmutableIntValueMap<ImmutableIntKeyMap<String>> _knownCorrelations;
@@ -425,6 +429,11 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             final int accId = insertAcceptation(arrayId);
             insertSearchQueries(accId, array);
             Toast.makeText(this, "New acceptation inserted: " + accId, Toast.LENGTH_SHORT).show();
+
+            final Intent intent = new Intent();
+            intent.putExtra(ResultKeys.ACCEPTATION, accId);
+            setResult(RESULT_OK, intent);
+            finish();
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();

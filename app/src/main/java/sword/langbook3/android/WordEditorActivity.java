@@ -1,7 +1,6 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -42,6 +41,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         String TEXTS = "texts";
     }
 
+    interface ResultKeys {
+        String ACCEPTATION = CorrelationPickerActivity.ResultKeys.ACCEPTATION;
+    }
+
     private LinearLayout _formPanel;
     private ImmutableIntKeyMap<FieldConversion> _fieldConversions;
     private String[] _texts;
@@ -49,10 +52,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private int _language = NO_LANGUAGE;
 
-    public static void open(Context context, String searchQuery) {
-        final Intent intent = new Intent(context, WordEditorActivity.class);
+    public static void open(Activity activity, int requestCode, String searchQuery) {
+        final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
-        context.startActivity(intent);
+        activity.startActivityForResult(intent, requestCode);
     }
 
     private ImmutableIntKeyMap<String> readAlphabets() {
@@ -191,6 +194,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 updateFields();
             }
             else {
+                finish();
+            }
+        }
+        else if (requestCode == REQUEST_CODE_CORRELATION_PICKER) {
+            if (resultCode == RESULT_OK) {
+                setResult(RESULT_OK, data);
                 finish();
             }
         }

@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Editable;
@@ -18,6 +19,8 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 
 public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
+
+    private static final int REQUEST_CODE_NEW_ACCEPTATION = 1;
 
     private ListView _listView;
     private SearchResultAdapter _listAdapter;
@@ -129,6 +132,16 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
 
     @Override
     public void onClick(View v) {
-        WordEditorActivity.open(this, _query);
+        WordEditorActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, _query);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_NEW_ACCEPTATION && resultCode == RESULT_OK) {
+            final int acceptationId = data.getIntExtra(WordEditorActivity.ResultKeys.ACCEPTATION, 0);
+            if (acceptationId != 0) {
+                AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
+            }
+        }
     }
 }
