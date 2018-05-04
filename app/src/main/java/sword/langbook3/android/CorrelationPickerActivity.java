@@ -18,12 +18,17 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
+import sword.collections.IntSet;
+import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
+
+import static sword.langbook3.android.WordEditorActivity.convertText;
+import static sword.langbook3.android.WordEditorActivity.readConversion;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -325,20 +330,61 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return manager.insert(query);
     }
 
+    private ImmutableIntPairMap findConversions(IntSet alphabets) {
+        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
+                .select(
+                        conversions.getSourceAlphabetColumnIndex(),
+                        conversions.getTargetAlphabetColumnIndex());
+
+        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+            final int source = row.get(0).toInt();
+            final int target = row.get(1).toInt();
+
+            if (foundAlphabets.contains(target)) {
+                throw new AssertionError();
+            }
+            foundAlphabets.add(target);
+
+            if (alphabets.contains(source)) {
+                builder.put(source, target);
+            }
+        }
+
+        return builder.build();
+    }
+
     private void insertSearchQueries(int accId, ImmutableList<ImmutableIntKeyMap<String>> array) {
         final ImmutableIntSet alphabets = array.get(0).keySet();
         if (array.anyMatch(map -> !map.keySet().equals(alphabets))) {
             throw new AssertionError();
         }
 
+        final ImmutableIntPairMap foundConversions = findConversions(alphabets);
         final ImmutableIntKeyMap.Builder<String> mapBuilder = new ImmutableIntKeyMap.Builder<>();
         for (int alphabet : alphabets) {
-            mapBuilder.put(alphabet, array.map(map -> map.get(alphabet)).reduce((a,b) -> a + b));
+            final String text = array.map(map -> map.get(alphabet)).reduce((a,b) -> a + b);
+            mapBuilder.put(alphabet, text);
+
+            if (foundConversions.keySet().contains(alphabet)) {
+                final int targetAlphabet = foundConversions.get(alphabet);
+                ImmutableList<WordEditorActivity.StringPair> conversion = readConversion(alphabet, targetAlphabet);
+                final String convertedText = convertText(conversion, text);
+                if (convertedText == null) {
+                    throw new AssertionError();
+                }
+
+                mapBuilder.put(targetAlphabet, convertedText);
+            }
         }
         final ImmutableIntKeyMap<String> map = mapBuilder.build();
 
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        for (int alphabet : alphabets) {
+        for (int alphabet : map.keySet()) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
                     .put(table.getMainAcceptationColumnIndex(), accId)
                     .put(table.getDynamicAcceptationColumnIndex(), accId)

@@ -118,7 +118,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         return builder.build();
     }
 
-    private static final class StringPair {
+    static final class StringPair {
         final String source;
         final String target;
 
@@ -138,7 +138,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private ImmutableList<StringPair> readConversion(int source, int target) {
+    static ImmutableList<StringPair> readConversion(int source, int target) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
         final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
 
@@ -281,7 +281,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private String convertText(ImmutableList<StringPair> pairs, String text) {
+    static String convertText(ImmutableList<StringPair> pairs, String text) {
         String result = "";
         while (text.length() > 0) {
             boolean found = false;
