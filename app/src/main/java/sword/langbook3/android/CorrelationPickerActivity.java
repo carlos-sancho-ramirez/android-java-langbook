@@ -12,6 +12,7 @@ import java.util.Iterator;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
@@ -324,6 +325,31 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return manager.insert(query);
     }
 
+    private void insertSearchQueries(int accId, ImmutableList<ImmutableIntKeyMap<String>> array) {
+        final ImmutableIntSet alphabets = array.get(0).keySet();
+        if (array.anyMatch(map -> !map.keySet().equals(alphabets))) {
+            throw new AssertionError();
+        }
+
+        final ImmutableIntKeyMap.Builder<String> mapBuilder = new ImmutableIntKeyMap.Builder<>();
+        for (int alphabet : alphabets) {
+            mapBuilder.put(alphabet, array.map(map -> map.get(alphabet)).reduce((a,b) -> a + b));
+        }
+        final ImmutableIntKeyMap<String> map = mapBuilder.build();
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        for (int alphabet : alphabets) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getMainAcceptationColumnIndex(), accId)
+                    .put(table.getDynamicAcceptationColumnIndex(), accId)
+                    .put(table.getStringAlphabetColumnIndex(), alphabet)
+                    .put(table.getStringColumnIndex(), map.get(alphabet))
+                    .put(table.getMainStringColumnIndex(), map.valueAt(0))
+                    .build();
+            DbManager.getInstance().insert(query);
+        }
+    }
+
     @Override
     public void onClick(View view) {
         final int selection = _listView.getCheckedItemPosition();
@@ -351,6 +377,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             }
 
             final int accId = insertAcceptation(arrayId);
+            insertSearchQueries(accId, array);
             Toast.makeText(this, "New acceptation inserted: " + accId, Toast.LENGTH_SHORT).show();
         }
         else {
