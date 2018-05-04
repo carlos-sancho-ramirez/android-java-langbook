@@ -7,16 +7,22 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.util.Iterator;
+
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
+import sword.langbook3.android.db.DbImporter;
+import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
+import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -203,11 +209,149 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         findViewById(R.id.nextButton).setOnClickListener(this);
     }
 
+    private int insertCorrelation(IntKeyMap<String> correlation) {
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final DbManager manager = DbManager.getInstance();
+        final DbImporter.Database db = manager.getDatabase();
+        final DbQuery maxQuery = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getCorrelationIdColumnIndex()));
+        final Iterator<DbResult.Row> it = db.select(maxQuery);
+        final int id = it.next().get(0).toInt() + 1;
+
+        if (it.hasNext()) {
+            throw new AssertionError();
+        }
+
+        for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getCorrelationIdColumnIndex(), id)
+                    .put(table.getAlphabetColumnIndex(), entry.key())
+                    .put(table.getSymbolArrayColumnIndex(), StreamedDatabaseReader.obtainSymbolArray(db, entry.value()))
+                    .build();
+            manager.insert(query);
+        }
+
+        return id;
+    }
+
+    private Integer findCorrelationArray(ImmutableIntList array) {
+        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
+                .where(table.getArrayPositionColumnIndex(), 0)
+                .where(table.getCorrelationColumnIndex(), array.get(0))
+                .select(table.getArrayIdColumnIndex(), table.columns().size() + table.getCorrelationColumnIndex());
+        final DbResult result = DbManager.getInstance().getDatabase().select(query);
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int arrayId = row.get(0).toInt();
+                ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
+                builder.add(row.get(1).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newArrayId = row.get(0).toInt();
+                    if (arrayId != newArrayId) {
+                        if (builder.build().equals(array)) {
+                            return arrayId;
+                        }
+
+                        arrayId = newArrayId;
+                        builder = new ImmutableIntList.Builder();
+                    }
+                    builder.add(row.get(1).toInt());
+                }
+
+                if (builder.build().equals(array)) {
+                    return arrayId;
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return null;
+    }
+
+    private int insertCorrelationArray(ImmutableIntList array) {
+        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final DbManager manager = DbManager.getInstance();
+        final DbImporter.Database db = manager.getDatabase();
+        final DbQuery maxQuery = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getArrayIdColumnIndex()));
+        final Iterator<DbResult.Row> it = db.select(maxQuery);
+        final int id = it.next().get(0).toInt() + 1;
+
+        if (it.hasNext()) {
+            throw new AssertionError();
+        }
+
+        int index = 0;
+        for (int value : array) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getArrayIdColumnIndex(), id)
+                    .put(table.getArrayPositionColumnIndex(), index++)
+                    .put(table.getCorrelationColumnIndex(), value)
+                    .build();
+            manager.insert(query);
+        }
+
+        return id;
+    }
+
+    private int insertAcceptation(int arrayId) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbManager manager = DbManager.getInstance();
+        final DbImporter.Database db = manager.getDatabase();
+        final DbQuery maxQuery = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getWordColumnIndex()), DbQuery.max(table.getConceptColumnIndex()));
+        final Iterator<DbResult.Row> it = db.select(maxQuery);
+        final DbResult.Row maxRow = it.next();
+        final int word = maxRow.get(0).toInt() + 1;
+        final int concept = maxRow.get(1).toInt() + 1;
+
+        if (it.hasNext()) {
+            throw new AssertionError();
+        }
+
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getWordColumnIndex(), word)
+                .put(table.getConceptColumnIndex(), concept)
+                .put(table.getCorrelationArrayColumnIndex(), arrayId)
+                .build();
+        return manager.insert(query);
+    }
+
     @Override
     public void onClick(View view) {
         final int selection = _listView.getCheckedItemPosition();
         if (selection != ListView.INVALID_POSITION) {
-            Toast.makeText(this, "Selected is " + selection, Toast.LENGTH_SHORT).show();
+            ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(selection);
+            boolean correlationInserted = false;
+            final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
+            for (ImmutableIntKeyMap<String> correlation : array) {
+                int id = _knownCorrelations.get(correlation, StreamedDatabaseConstants.nullCorrelationId);
+                if (id == StreamedDatabaseConstants.nullCorrelationId) {
+                    id = insertCorrelation(correlation);
+                    correlationInserted = true;
+                }
+                arrayBuilder.add(id);
+            }
+
+            final ImmutableIntList idArray = arrayBuilder.build();
+            final int arrayId;
+            if (!correlationInserted) {
+                final Integer arrayIdOpt = findCorrelationArray(idArray);
+                arrayId = (arrayIdOpt == null)? insertCorrelationArray(idArray) : arrayIdOpt;
+            }
+            else {
+                arrayId = insertCorrelationArray(idArray);
+            }
+
+            final int accId = insertAcceptation(arrayId);
+            Toast.makeText(this, "New acceptation inserted: " + accId, Toast.LENGTH_SHORT).show();
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();

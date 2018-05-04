@@ -87,6 +87,10 @@ class DbManager extends SQLiteOpenHelper {
         return (returnId >= 0)? (int) returnId : null;
     }
 
+    public Integer insert(DbInsertQuery query) {
+        return insert(getWritableDatabase(), query);
+    }
+
     private static int getColumnMax(SQLiteDatabase db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(DbQuery.max(columnIndex));
@@ -542,5 +546,22 @@ class DbManager extends SQLiteOpenHelper {
 
     String getDatabasePath() {
         return _context.getDatabasePath(DB_NAME).toString();
+    }
+
+    private final class ManagerDatabase implements DbImporter.Database {
+
+        @Override
+        public DbResult select(DbQuery query) {
+            return DbManager.select(getReadableDatabase(), query);
+        }
+
+        @Override
+        public Integer insert(DbInsertQuery query) {
+            return DbManager.insert(getWritableDatabase(), query);
+        }
+    }
+
+    public DbImporter.Database getDatabase() {
+        return new ManagerDatabase();
     }
 }
