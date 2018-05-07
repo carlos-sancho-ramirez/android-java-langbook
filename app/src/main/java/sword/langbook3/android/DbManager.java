@@ -20,6 +20,7 @@ import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbColumn;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
@@ -89,6 +90,10 @@ class DbManager extends SQLiteOpenHelper {
 
     public Integer insert(DbInsertQuery query) {
         return insert(getWritableDatabase(), query);
+    }
+
+    private static boolean delete(SQLiteDatabase db, DbTable table, int id) {
+        return db.delete(table.name(), table.columns().get(table.getIdColumnIndex()).name() + "=?", new String[] { Integer.toString(id) }) > 0;
     }
 
     private static int getColumnMax(SQLiteDatabase db, DbTable table, int columnIndex) {
@@ -548,7 +553,7 @@ class DbManager extends SQLiteOpenHelper {
         return _context.getDatabasePath(DB_NAME).toString();
     }
 
-    private final class ManagerDatabase implements DbImporter.Database {
+    private final class ManagerDatabase implements Database {
 
         @Override
         public DbResult select(DbQuery query) {
@@ -559,9 +564,14 @@ class DbManager extends SQLiteOpenHelper {
         public Integer insert(DbInsertQuery query) {
             return DbManager.insert(getWritableDatabase(), query);
         }
+
+        @Override
+        public boolean delete(DbTable table, int id) {
+            return DbManager.delete(getWritableDatabase(), table, id);
+        }
     }
 
-    public DbImporter.Database getDatabase() {
+    public Database getDatabase() {
         return new ManagerDatabase();
     }
 }

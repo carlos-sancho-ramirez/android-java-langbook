@@ -1,7 +1,9 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -17,10 +19,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import sword.collections.ImmutableIntSetBuilder;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
@@ -40,12 +44,13 @@ import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
-public class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
+public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener, DialogInterface.OnClickListener {
 
     private static final class BundleKeys {
         static final String STATIC_ACCEPTATION = "sa";
@@ -56,6 +61,7 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
     // TODO: This should be a shared preference
     static final int preferredAlphabet = 4;
 
+    private int _staticAcceptation;
     private int _concept;
     private boolean _shouldShowBunchChildrenQuizMenuOption;
     private AcceptationDetailsAdapter _listAdapter;
@@ -1024,10 +1030,10 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
             throw new IllegalArgumentException("staticAcceptation not provided");
         }
 
-        final int staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
-        _concept = readConcept(DbManager.getInstance().getReadableDatabase(), staticAcceptation);
+        _staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
+        _concept = readConcept(DbManager.getInstance().getReadableDatabase(), _staticAcceptation);
         if (_concept != 0) {
-            _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(staticAcceptation));
+            _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(_staticAcceptation));
 
             ListView listView = findViewById(R.id.listView);
             listView.setAdapter(_listAdapter);
@@ -1045,12 +1051,13 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        final MenuInflater inflater = new MenuInflater(this);
         if (_shouldShowBunchChildrenQuizMenuOption) {
-            new MenuInflater(this).inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
-            return true;
+            inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
         }
 
-        return false;
+        inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
+        return true;
     }
 
     @Override
@@ -1059,8 +1066,85 @@ public class AcceptationDetailsActivity extends Activity implements AdapterView.
             case R.id.menuItemBunchChildrenQuiz:
                 QuizSelectorActivity.open(this, _concept);
                 return true;
+
+            case R.id.menuItemDeleteAcceptation:
+                showDeleteConfirmationDialog();
+                return true;
         }
 
         return false;
+    }
+
+    public void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.deleteAcceptationConfirmationText)
+                .setPositiveButton(R.string.menuItemDeleteAcceptation, this)
+                .create().show();
+    }
+
+    private void removeFromStringQueryTable(DbManager manager, Database db) {
+        final StringQueriesTable table = Tables.stringQueries;
+        final DbQuery stringsQuery = new DbQuery.Builder(table)
+                .where(table.getMainAcceptationColumnIndex(), _staticAcceptation)
+                .select(table.getIdColumnIndex());
+
+        for (DbResult.Row row : manager.attach(stringsQuery)) {
+            if (!db.delete(table, row.get(0).toInt())) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    private void removeFromBunches(DbManager manager, Database db) {
+        final BunchAcceptationsTable table = Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAcceptationColumnIndex(), _staticAcceptation)
+                .select(table.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (DbResult.Row row : manager.attach(query)) {
+            builder.add(row.get(0).toInt());
+        }
+
+        for (int id : builder.build()) {
+            if (!db.delete(table, id)) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    private void removeKnowledge(DbManager manager, Database db) {
+        final LangbookDbSchema.KnowledgeTable table = Tables.knowledge;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAcceptationColumnIndex(), _staticAcceptation)
+                .select(table.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (DbResult.Row row : manager.attach(query)) {
+            builder.add(row.get(0).toInt());
+        }
+
+        for (int id : builder.build()) {
+            if (!db.delete(table, id)) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    @Override
+    public void onClick(DialogInterface dialog, int which) {
+        final DbManager manager = DbManager.getInstance();
+        final Database db = manager.getDatabase();
+
+        removeKnowledge(manager, db);
+        removeFromBunches(manager, db);
+        removeFromStringQueryTable(manager, db);
+
+        if (!db.delete(Tables.acceptations, _staticAcceptation)) {
+            throw new AssertionError();
+        }
+
+        Toast.makeText(this, R.string.deleteAcceptationFeedback, Toast.LENGTH_SHORT).show();
+        finish();
     }
 }
