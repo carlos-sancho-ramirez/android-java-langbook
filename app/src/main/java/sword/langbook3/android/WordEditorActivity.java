@@ -24,6 +24,7 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
+import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
@@ -31,6 +32,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private static final int REQUEST_CODE_CORRELATION_PICKER = 1;
 
     interface BundleKeys {
+        String CONCEPT = CorrelationPickerActivity.BundleKeys.CONCEPT;
         String LANGUAGE = "language";
         String SEARCH_QUERY = "searchQuery";
     }
@@ -52,6 +54,13 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(BundleKeys.LANGUAGE, language);
         intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    public static void open(Activity activity, int requestCode, int language, int concept) {
+        final Intent intent = new Intent(activity, WordEditorActivity.class);
+        intent.putExtra(BundleKeys.CONCEPT, concept);
+        intent.putExtra(BundleKeys.LANGUAGE, language);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -263,7 +272,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 
-            CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, builder.build());
+            CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
+                    getIntent().getIntExtra(BundleKeys.CONCEPT, NO_CONCEPT), builder.build());
         }
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();

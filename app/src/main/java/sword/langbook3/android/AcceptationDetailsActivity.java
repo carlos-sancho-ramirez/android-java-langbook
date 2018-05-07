@@ -52,6 +52,8 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener, DialogInterface.OnClickListener {
 
+    private static final int REQUEST_CODE_NEW_LINKED_ACCEPTATION = 1;
+
     private static final class BundleKeys {
         static final String STATIC_ACCEPTATION = "sa";
         static final String DYNAMIC_ACCEPTATION = "da";
@@ -63,6 +65,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private int _staticAcceptation;
     private int _concept;
+    private int _language;
+
     private boolean _shouldShowBunchChildrenQuizMenuOption;
     private AcceptationDetailsAdapter _listAdapter;
 
@@ -905,6 +909,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).texts.keyAt(0));
         result.add(new NonNavigableItem("Language: " + languageResult.text));
+        _language = languageResult.language;
 
         final SparseArray<String> languageStrs = new SparseArray<>();
         languageStrs.put(languageResult.language, languageResult.text);
@@ -1056,6 +1061,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
         }
 
+        inflater.inflate(R.menu.acceptation_details_activity_new_linked_acceptation, menu);
         inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
         return true;
     }
@@ -1065,6 +1071,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         switch (item.getItemId()) {
             case R.id.menuItemBunchChildrenQuiz:
                 QuizSelectorActivity.open(this, _concept);
+                return true;
+
+            case R.id.menuItemNewSynonymAcceptation:
+                WordEditorActivity.open(this, REQUEST_CODE_NEW_LINKED_ACCEPTATION, _language, _concept);
                 return true;
 
             case R.id.menuItemDeleteAcceptation:

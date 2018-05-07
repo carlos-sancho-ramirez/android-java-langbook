@@ -32,8 +32,11 @@ import static sword.langbook3.android.WordEditorActivity.readConversion;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
-    private interface BundleKeys {
+    static final int NO_CONCEPT = 0;
+
+    interface BundleKeys {
         String ALPHABETS = "alphabets";
+        String CONCEPT = "concept";
         String TEXTS = "texts";
     }
 
@@ -45,7 +48,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> _options;
     private ImmutableIntValueMap<ImmutableIntKeyMap<String>> _knownCorrelations;
 
-    public static void open(Activity activity, int requestCode, IntKeyMap<String> texts) {
+    public static void open(Activity activity, int requestCode, int concept, IntKeyMap<String> texts) {
         final int mapSize = texts.size();
         final int[] alphabets = new int[mapSize];
         final String[] str = new String[mapSize];
@@ -57,6 +60,10 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
         intent.putExtra(BundleKeys.ALPHABETS, alphabets);
+        if (concept != NO_CONCEPT) {
+            intent.putExtra(BundleKeys.CONCEPT, concept);
+        }
+
         intent.putExtra(BundleKeys.TEXTS, str);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -311,7 +318,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return id;
     }
 
-    private int insertAcceptation(int arrayId) {
+    private int insertAcceptation(int arrayId, int concept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbManager manager = DbManager.getInstance();
         final DbImporter.Database db = manager.getDatabase();
@@ -320,7 +327,9 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         final Iterator<DbResult.Row> it = db.select(maxQuery);
         final DbResult.Row maxRow = it.next();
         final int word = maxRow.get(0).toInt() + 1;
-        final int concept = maxRow.get(1).toInt() + 1;
+        if (concept == NO_CONCEPT) {
+            concept = maxRow.get(1).toInt() + 1;
+        }
 
         if (it.hasNext()) {
             throw new AssertionError();
@@ -426,9 +435,9 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                 arrayId = insertCorrelationArray(idArray);
             }
 
-            final int accId = insertAcceptation(arrayId);
+            final int accId = insertAcceptation(arrayId, getIntent().getIntExtra(BundleKeys.CONCEPT, NO_CONCEPT));
             insertSearchQueries(accId, array);
-            Toast.makeText(this, "New acceptation inserted: " + accId, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
 
             final Intent intent = new Intent();
             intent.putExtra(ResultKeys.ACCEPTATION, accId);

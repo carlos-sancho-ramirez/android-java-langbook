@@ -14,6 +14,7 @@
     <string name="menuItemAbout">About</string>
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="menuItemNewQuizDefinition">New Quiz</string>
+    <string name="menuItemNewSynonym">New Synonym</string>
     <string name="menuItemDeleteAcceptation">Delete</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
@@ -57,5 +58,6 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
 
+    <string name="newAcceptationFeedback">Acceptation included</string>
     <string name="deleteAcceptationFeedback">Acceptation deleted</string>
 </resources>
