@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/menuItemNewSynonymAcceptation"
-        android:title="@string/menuItemNewSynonym"
+        android:id="@+id/menuItemLinkConcept"
+        android:title="@string/menuItemLinkConcept"
         android:showAsAction="never"/>
 </menu>

@@ -5,6 +5,7 @@
     <string name="languagePickerActivityTitle">Select a language</string>
     <string name="wordEditorActivityTitle">Fill representations</string>
     <string name="correlationPickerActivityTitle">Select its correlation</string>
+    <string name="acceptationPickerActivityTitle">Select an acceptation</string>
 
     <string name="searchFieldHint">Search Here</string>
     <string name="addWordButton">Add</string>
@@ -14,7 +15,7 @@
     <string name="menuItemAbout">About</string>
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="menuItemNewQuizDefinition">New Quiz</string>
-    <string name="menuItemNewSynonym">New Synonym</string>
+    <string name="menuItemLinkConcept">Link Concept</string>
     <string name="menuItemDeleteAcceptation">Delete</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>

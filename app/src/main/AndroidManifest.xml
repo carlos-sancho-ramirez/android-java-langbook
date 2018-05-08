@@ -11,7 +11,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".SearchActivity">
+        <activity android:name=".MainSearchActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -30,6 +30,10 @@
         <activity android:name=".SettingsActivity"/>
 
         <!-- Word editor wizard -->
+        <activity
+            android:name=".AcceptationPickerActivity"
+            android:label="@string/acceptationPickerActivityTitle"/>
+
         <activity
             android:name=".CorrelationPickerActivity"
             android:label="@string/correlationPickerActivityTitle"/>

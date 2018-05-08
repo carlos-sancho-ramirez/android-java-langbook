@@ -50,8 +50,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private String[] _texts;
     private ImmutableIntPairMap _fieldIndexAlphabetRelationMap;
 
-    public static void open(Activity activity, int requestCode, int language, String searchQuery) {
+    public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
+        intent.putExtra(BundleKeys.CONCEPT, concept);
         intent.putExtra(BundleKeys.LANGUAGE, language);
         intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);

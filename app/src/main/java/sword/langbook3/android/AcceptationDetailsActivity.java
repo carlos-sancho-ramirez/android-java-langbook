@@ -52,7 +52,7 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener, DialogInterface.OnClickListener {
 
-    private static final int REQUEST_CODE_NEW_LINKED_ACCEPTATION = 1;
+    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
 
     private static final class BundleKeys {
         static final String STATIC_ACCEPTATION = "sa";
@@ -145,29 +145,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         return result;
-    }
-
-    static int readConcept(SQLiteDatabase db, int acceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations; // J0
-        Cursor cursor = db.rawQuery(
-                "SELECT " + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " FROM " + acceptations.name() +
-                        " WHERE " + idColumnName + "=?",
-                new String[] { Integer.toString(acceptation) });
-
-        int concept = 0;
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    concept = cursor.getInt(0);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return concept;
     }
 
     static String readConceptText(SQLiteDatabase db, int concept) {
@@ -1036,7 +1013,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         _staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
-        _concept = readConcept(DbManager.getInstance().getReadableDatabase(), _staticAcceptation);
+        _concept = conceptFromAcceptation(_staticAcceptation);
         if (_concept != 0) {
             _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(_staticAcceptation));
 
@@ -1073,8 +1050,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 QuizSelectorActivity.open(this, _concept);
                 return true;
 
-            case R.id.menuItemNewSynonymAcceptation:
-                WordEditorActivity.open(this, REQUEST_CODE_NEW_LINKED_ACCEPTATION, _language, _concept);
+            case R.id.menuItemLinkConcept:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _concept);
                 return true;
 
             case R.id.menuItemDeleteAcceptation:
@@ -1156,5 +1133,24 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         Toast.makeText(this, R.string.deleteAcceptationFeedback, Toast.LENGTH_SHORT).show();
         finish();
+    }
+
+    private int conceptFromAcceptation(int accId) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), accId)
+                .select(table.getConceptColumnIndex());
+        return DbManager.getInstance().attach(query).iterator().next().get(0).toInt();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION && resultCode == RESULT_OK) {
+            final int linkedAcc = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            final boolean usedConcept = data.getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
+            if (!usedConcept) {
+                Toast.makeText(this, "Unimplemented concept linking", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

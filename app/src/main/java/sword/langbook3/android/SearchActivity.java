@@ -1,15 +1,11 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
@@ -18,7 +14,7 @@ import android.widget.ListView;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 
-public class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
+abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
     private static final int REQUEST_CODE_NEW_ACCEPTATION = 1;
 
@@ -102,46 +98,14 @@ public class SearchActivity extends Activity implements TextWatcher, AdapterView
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         SearchResult item = _listAdapter.getItem(position);
-        AcceptationDetailsActivity.open(this, item.getAcceptation(), item.getDynamicAcceptation());
+        onAcceptationSelected(item.getAcceptation(), item.getDynamicAcceptation());
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        new MenuInflater(this).inflate(R.menu.search_activity, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemQuiz:
-                QuizSelectorActivity.open(this, QuizSelectorActivity.NO_BUNCH);
-                return true;
-
-            case R.id.menuItemSettings:
-                SettingsActivity.open(this);
-                return true;
-
-            case R.id.menuItemAbout:
-                AboutActivity.open(this);
-                return true;
-        }
-
-        return false;
-    }
+    abstract void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation);
+    abstract void openLanguagePicker(int requestCode, String query);
 
     @Override
     public void onClick(View v) {
-        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, _query);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_NEW_ACCEPTATION && resultCode == RESULT_OK) {
-            final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
-            if (acceptationId != 0) {
-                AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
-            }
-        }
+        openLanguagePicker(REQUEST_CODE_NEW_ACCEPTATION, _query);
     }
 }
