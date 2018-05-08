@@ -131,7 +131,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
             }
         }
 
-        final ImmutableIntList.Builder builder = new ImmutableIntList.Builder(progress.length);
+        final ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
         for (int value : progress) {
             builder.add(value);
         }

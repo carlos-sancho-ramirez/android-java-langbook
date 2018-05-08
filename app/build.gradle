@@ -52,6 +52,6 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.github.carlos-sancho-ramirez:lib-java-bitstream:cc83755605b55173b1dcef75dc5ba873a216a39d'
-    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:bfb77e116101b57c704c31e77e39128229f16aef'
+    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:d1106284990ab078843763d7d65d439f683bd397'
     testImplementation 'junit:junit:4.12'
 }
