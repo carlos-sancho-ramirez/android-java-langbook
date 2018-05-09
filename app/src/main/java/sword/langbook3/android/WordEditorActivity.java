@@ -31,10 +31,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private static final int REQUEST_CODE_CORRELATION_PICKER = 1;
 
-    interface BundleKeys {
-        String CONCEPT = CorrelationPickerActivity.BundleKeys.CONCEPT;
-        String LANGUAGE = "language";
-        String SEARCH_QUERY = "searchQuery";
+    interface ArgKeys {
+        String CONCEPT = BundleKeys.CONCEPT;
+        String LANGUAGE = BundleKeys.LANGUAGE;
+        String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
     }
 
     private interface SavedKeys {
@@ -42,7 +42,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     interface ResultKeys {
-        String ACCEPTATION = CorrelationPickerActivity.ResultKeys.ACCEPTATION;
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
     private LinearLayout _formPanel;
@@ -52,16 +52,16 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        intent.putExtra(BundleKeys.CONCEPT, concept);
-        intent.putExtra(BundleKeys.LANGUAGE, language);
-        intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
+        intent.putExtra(ArgKeys.CONCEPT, concept);
+        intent.putExtra(ArgKeys.LANGUAGE, language);
+        intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
 
     public static void open(Activity activity, int requestCode, int language, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        intent.putExtra(BundleKeys.CONCEPT, concept);
-        intent.putExtra(BundleKeys.LANGUAGE, language);
+        intent.putExtra(ArgKeys.CONCEPT, concept);
+        intent.putExtra(ArgKeys.LANGUAGE, language);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -73,7 +73,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final int accOffset = alphabets.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
 
-        final int language = getIntent().getIntExtra(BundleKeys.LANGUAGE, 0);
+        final int language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
         final DbQuery query = new DbQuery.Builder(alphabets)
                 .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(stringQueries, accOffset + acceptations.getIdColumnIndex(), stringQueries.getDynamicAcceptationColumnIndex())
@@ -274,7 +274,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             }
 
             CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
-                    getIntent().getIntExtra(BundleKeys.CONCEPT, NO_CONCEPT), builder.build());
+                    getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT), builder.build());
         }
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();

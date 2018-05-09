@@ -21,8 +21,8 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class RuleTableActivity extends Activity {
 
-    private static final class BundleKeys {
-        static final String ACCEPTATION = "acc";
+    private interface ArgKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -34,7 +34,7 @@ public class RuleTableActivity extends Activity {
 
     public static void open(Context context, int dynamicAcceptation) {
         Intent intent = new Intent(context, RuleTableActivity.class);
-        intent.putExtra(BundleKeys.ACCEPTATION, dynamicAcceptation);
+        intent.putExtra(ArgKeys.ACCEPTATION, dynamicAcceptation);
         context.startActivity(intent);
     }
 
@@ -172,7 +172,7 @@ public class RuleTableActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.rule_table_activity);
 
-        final int dynAcc = getIntent().getIntExtra(BundleKeys.ACCEPTATION, 0);
+        final int dynAcc = getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
         Map<TableCellRef, TableCellValue> tableContent = readTableContent(dynAcc);
 
         SparseArray<String> acceptationSet = new SparseArray<>();

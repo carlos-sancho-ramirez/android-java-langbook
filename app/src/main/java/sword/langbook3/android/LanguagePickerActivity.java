@@ -20,25 +20,25 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
 
     private static final int REQUEST_CODE_NEW_WORD = 1;
 
-    interface BundleKeys {
-        String CONCEPT = WordEditorActivity.BundleKeys.CONCEPT;
-        String SEARCH_QUERY = WordEditorActivity.BundleKeys.SEARCH_QUERY;
+    interface ArgKeys {
+        String CONCEPT = BundleKeys.CONCEPT;
+        String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
     }
 
     interface ResultKeys {
-        String ACCEPTATION = WordEditorActivity.ResultKeys.ACCEPTATION;
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
     public static void open(Activity activity, int requestCode, String searchQuery) {
         final Intent intent = new Intent(activity, LanguagePickerActivity.class);
-        intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
+        intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
 
     public static void open(Activity activity, int requestCode, String searchQuery, int concept) {
         final Intent intent = new Intent(activity, LanguagePickerActivity.class);
-        intent.putExtra(BundleKeys.CONCEPT, concept);
-        intent.putExtra(BundleKeys.SEARCH_QUERY, searchQuery);
+        intent.putExtra(ArgKeys.CONCEPT, concept);
+        intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -87,8 +87,8 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        final int concept = getIntent().getIntExtra(BundleKeys.CONCEPT, NO_CONCEPT);
-        final String searchQuery = getIntent().getStringExtra(BundleKeys.SEARCH_QUERY);
+        final int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
+        final String searchQuery = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
         WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, (int) id, searchQuery, concept);
     }
 

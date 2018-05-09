@@ -43,12 +43,12 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class QuizEditorActivity extends Activity implements View.OnClickListener {
 
-    private interface BundleKeys {
-        String BUNCH = "b";
+    private interface ArgKeys {
+        String BUNCH = BundleKeys.BUNCH;
     }
 
     interface ResultKeys {
-        String QUIZ = "q";
+        String QUIZ = BundleKeys.QUIZ;
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -57,7 +57,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
 
     public static void open(Activity activity, int requestCode, int bunch) {
         Intent intent = new Intent(activity, QuizEditorActivity.class);
-        intent.putExtra(BundleKeys.BUNCH, bunch);
+        intent.putExtra(ArgKeys.BUNCH, bunch);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -423,7 +423,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         super.onCreate(savedInstanceState);
         setContentView(R.layout.quiz_editor_activity);
 
-        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, NO_BUNCH);
+        _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, NO_BUNCH);
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
         if (_bunch != NO_BUNCH) {

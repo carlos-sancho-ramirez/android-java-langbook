@@ -31,8 +31,8 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     private static final int REQUEST_CODE_EDITOR = 1;
     private static final int NO_QUIZ = 0;
 
-    private interface BundleKeys {
-        String BUNCH = "b";
+    private interface ArgKeys {
+        String BUNCH = BundleKeys.BUNCH;
     }
 
     private interface SavedKeys {
@@ -52,7 +52,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     public static void open(Context context, int bunch) {
         Intent intent = new Intent(context, QuizSelectorActivity.class);
-        intent.putExtra(BundleKeys.BUNCH, bunch);
+        intent.putExtra(ArgKeys.BUNCH, bunch);
         context.startActivity(intent);
     }
 
@@ -234,7 +234,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         super.onCreate(savedInstanceState);
         setContentView(R.layout.quiz_selector_activity);
 
-        _bunch = getIntent().getIntExtra(BundleKeys.BUNCH, 0);
+        _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, 0);
 
         if (savedInstanceState != null) {
             _firstActionExecuted = savedInstanceState.getBoolean(SavedKeys.FIRST_ACTION_EXECUTED);

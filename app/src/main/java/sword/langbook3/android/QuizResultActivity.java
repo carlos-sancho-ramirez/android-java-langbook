@@ -9,23 +9,23 @@ import android.widget.TextView;
 
 import sword.collections.ImmutableIntList;
 
-public class QuizResultActivity extends Activity {
+public final class QuizResultActivity extends Activity {
 
     private static final int REQUEST_CODE_QUESTION = 1;
 
-    private static final class BundleKeys {
-        static final String QUIZ = "quiz";
+    private interface ArgKeys {
+        String QUIZ = BundleKeys.QUIZ;
     }
 
-    private static final class SavedKeys {
-        static final String QUIZ_FINISHED = "finished";
-        static final String GOOD_ANSWER_AMOUNT = "gA";
-        static final String BAD_ANSWER_AMOUNT = "bA";
+    private interface SavedKeys {
+        String QUIZ_FINISHED = "finished";
+        String GOOD_ANSWER_AMOUNT = "gA";
+        String BAD_ANSWER_AMOUNT = "bA";
     }
 
     public static void open(Context context, int quizId) {
         Intent intent = new Intent(context, QuizResultActivity.class);
-        intent.putExtra(BundleKeys.QUIZ, quizId);
+        intent.putExtra(ArgKeys.QUIZ, quizId);
         context.startActivity(intent);
     }
 
@@ -49,7 +49,7 @@ public class QuizResultActivity extends Activity {
             _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_AMOUNT);
         }
 
-        _quizId = getIntent().getIntExtra(BundleKeys.QUIZ, 0);
+        _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
         _textView = findViewById(R.id.textView);
         _knowledgeBarView = findViewById(R.id.knowledgeBarView);
     }

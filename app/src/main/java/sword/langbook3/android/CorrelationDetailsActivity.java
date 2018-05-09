@@ -29,8 +29,8 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
-    private static final class BundleKeys {
-        static final String CORRELATION = "cId";
+    private interface ArgKeys {
+        String CORRELATION = BundleKeys.CORRELATION;
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -39,7 +39,7 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
 
     public static void open(Context context, int correlationId) {
         Intent intent = new Intent(context, CorrelationDetailsActivity.class);
-        intent.putExtra(BundleKeys.CORRELATION, correlationId);
+        intent.putExtra(ArgKeys.CORRELATION, correlationId);
         context.startActivity(intent);
     }
 
@@ -220,7 +220,7 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_details_activity);
 
-        final int correlationId = getIntent().getIntExtra(BundleKeys.CORRELATION, 0);
+        final int correlationId = getIntent().getIntExtra(ArgKeys.CORRELATION, 0);
         _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(correlationId));
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(_listAdapter);

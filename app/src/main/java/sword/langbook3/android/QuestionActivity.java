@@ -39,26 +39,26 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private static final long CLICK_MILLIS_TIME_INTERVAL = 600;
 
-    private static final class BundleKeys {
-        static final String QUIZ = "quiz";
+    private interface ArgKeys {
+        String QUIZ = BundleKeys.QUIZ;
     }
 
-    private static final class SavedKeys {
-        static final String ACCEPTATION = "acc";
-        static final String IS_ANSWER_VISIBLE = "av";
-        static final String GOOD_ANSWER_COUNT = "ga";
-        static final String BAD_ANSWER_COUNT = "ba";
-        static final String LEAVE_DIALOG_PRESENT = "ldp";
+    private interface SavedKeys {
+        String ACCEPTATION = "acc";
+        String IS_ANSWER_VISIBLE = "av";
+        String GOOD_ANSWER_COUNT = "ga";
+        String BAD_ANSWER_COUNT = "ba";
+        String LEAVE_DIALOG_PRESENT = "ldp";
     }
 
-    static final class ReturnKeys {
-        static final String GOOD_ANSWER_COUNT = "g";
-        static final String BAD_ANSWER_COUNT = "b";
+    interface ReturnKeys {
+        String GOOD_ANSWER_COUNT = BundleKeys.GOOD_ANSWER_COUNT;
+        String BAD_ANSWER_COUNT = BundleKeys.BAD_ANSWER_COUNT;
     }
 
     public static void open(Activity activity, int requestCode, int quizId) {
         Intent intent = new Intent(activity, QuestionActivity.class);
-        intent.putExtra(BundleKeys.QUIZ, quizId);
+        intent.putExtra(ArgKeys.QUIZ, quizId);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -294,7 +294,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.question_activity);
 
-        _quizId = getIntent().getIntExtra(BundleKeys.QUIZ, 0);
+        _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
         readQuizDefinition(db);
         readCurrentKnowledge(db);

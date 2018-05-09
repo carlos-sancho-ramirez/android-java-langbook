@@ -24,13 +24,13 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class AgentDetailsActivity extends Activity {
 
-    private static final class BundleKeys {
-        static final String AGENT = "a";
+    private interface ArgKeys {
+        String AGENT = BundleKeys.AGENT;
     }
 
     public static void open(Context context, int agent) {
         Intent intent = new Intent(context, AgentDetailsActivity.class);
-        intent.putExtra(BundleKeys.AGENT, agent);
+        intent.putExtra(ArgKeys.AGENT, agent);
         context.startActivity(intent);
     }
 
@@ -218,11 +218,11 @@ public class AgentDetailsActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.agent_details_activity);
 
-        if (!getIntent().hasExtra(BundleKeys.AGENT)) {
+        if (!getIntent().hasExtra(ArgKeys.AGENT)) {
             throw new IllegalArgumentException("agent identifier not provided");
         }
 
-        _agentId = getIntent().getIntExtra(BundleKeys.AGENT, 0);
+        _agentId = getIntent().getIntExtra(ArgKeys.AGENT, 0);
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
         readAgent(db);
 

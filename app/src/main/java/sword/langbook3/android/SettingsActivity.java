@@ -22,7 +22,7 @@ import sword.langbook3.android.sdb.ProgressListener;
 public class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_PICK = 1;
-    private interface BundleKeys {
+    private interface SavedKeys {
         String FILE_FLAGS = "ff";
     }
 
@@ -100,7 +100,7 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
         setContentView(R.layout.settings_activity);
 
         if (savedInstanceState != null) {
-            _fileFlags = savedInstanceState.getInt(BundleKeys.FILE_FLAGS);
+            _fileFlags = savedInstanceState.getInt(SavedKeys.FILE_FLAGS);
         }
 
         final View progressPanel = findViewById(R.id.progressPanel);
@@ -253,6 +253,6 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putInt(BundleKeys.FILE_FLAGS, _fileFlags);
+        outState.putInt(SavedKeys.FILE_FLAGS, _fileFlags);
     }
 }

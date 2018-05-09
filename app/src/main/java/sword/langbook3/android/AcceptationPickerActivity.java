@@ -5,24 +5,24 @@ import android.content.Intent;
 
 public final class AcceptationPickerActivity extends SearchActivity {
 
-    interface BundleKeys {
-        String CONCEPT = LanguagePickerActivity.BundleKeys.CONCEPT;
+    interface ArgKeys {
+        String CONCEPT = BundleKeys.CONCEPT;
     }
 
     interface ResultKeys {
-        String ACCEPTATION = LanguagePickerActivity.ResultKeys.ACCEPTATION;
-        String CONCEPT_USED = "conceptUsed";
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
+        String CONCEPT_USED = BundleKeys.CONCEPT_USED;
     }
 
     public static void open(Activity activity, int requestCode, int concept) {
         final Intent intent = new Intent(activity, AcceptationPickerActivity.class);
-        intent.putExtra(BundleKeys.CONCEPT, concept);
+        intent.putExtra(ArgKeys.CONCEPT, concept);
         activity.startActivityForResult(intent, requestCode);
     }
 
     @Override
     void openLanguagePicker(int requestCode, String query) {
-        final int concept = getIntent().getIntExtra(BundleKeys.CONCEPT, 0);
+        final int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
         LanguagePickerActivity.open(this, requestCode, query, concept);
     }
 

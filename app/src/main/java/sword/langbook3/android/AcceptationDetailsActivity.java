@@ -57,9 +57,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
 
-    private interface BundleKeys {
-        String STATIC_ACCEPTATION = "sa";
-        String DYNAMIC_ACCEPTATION = "da";
+    private interface ArgKeys {
+        String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
+        String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
     }
 
     private interface SavedKeys {
@@ -82,8 +82,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     public static void open(Context context, int staticAcceptation, int dynamicAcceptation) {
         Intent intent = new Intent(context, AcceptationDetailsActivity.class);
-        intent.putExtra(BundleKeys.STATIC_ACCEPTATION, staticAcceptation);
-        intent.putExtra(BundleKeys.DYNAMIC_ACCEPTATION, dynamicAcceptation);
+        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
+        intent.putExtra(ArgKeys.DYNAMIC_ACCEPTATION, dynamicAcceptation);
         context.startActivity(intent);
     }
 
@@ -1017,7 +1017,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.acceptation_details_activity);
 
-        if (!getIntent().hasExtra(BundleKeys.STATIC_ACCEPTATION)) {
+        if (!getIntent().hasExtra(ArgKeys.STATIC_ACCEPTATION)) {
             throw new IllegalArgumentException("staticAcceptation not provided");
         }
 
@@ -1026,7 +1026,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             _linkDialogCheckedOption = savedInstanceState.getInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, 0);
         }
 
-        _staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
+        _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
         _concept = conceptFromAcceptation(_staticAcceptation);
         if (_concept != 0) {
             _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(_staticAcceptation));

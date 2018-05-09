@@ -34,14 +34,14 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     static final int NO_CONCEPT = 0;
 
-    interface BundleKeys {
-        String ALPHABETS = "alphabets";
-        String CONCEPT = "concept";
-        String TEXTS = "texts";
+    interface ArgKeys {
+        String ALPHABETS = BundleKeys.ALPHABETS;
+        String CONCEPT = BundleKeys.CONCEPT;
+        String TEXTS = BundleKeys.TEXTS;
     }
 
     interface ResultKeys {
-        String ACCEPTATION = "acc";
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
     private ListView _listView;
@@ -59,19 +59,19 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
 
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
-        intent.putExtra(BundleKeys.ALPHABETS, alphabets);
+        intent.putExtra(ArgKeys.ALPHABETS, alphabets);
         if (concept != NO_CONCEPT) {
-            intent.putExtra(BundleKeys.CONCEPT, concept);
+            intent.putExtra(ArgKeys.CONCEPT, concept);
         }
 
-        intent.putExtra(BundleKeys.TEXTS, str);
+        intent.putExtra(ArgKeys.TEXTS, str);
         activity.startActivityForResult(intent, requestCode);
     }
 
     private ImmutableIntKeyMap<String> getTexts() {
         final Bundle extras = getIntent().getExtras();
-        final int[] alphabets = extras.getIntArray(BundleKeys.ALPHABETS);
-        final String[] texts = extras.getStringArray(BundleKeys.TEXTS);
+        final int[] alphabets = extras.getIntArray(ArgKeys.ALPHABETS);
+        final String[] texts = extras.getStringArray(ArgKeys.TEXTS);
 
         if (alphabets == null || texts == null || alphabets.length != texts.length) {
             throw new AssertionError();
@@ -435,7 +435,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                 arrayId = insertCorrelationArray(idArray);
             }
 
-            final int accId = insertAcceptation(arrayId, getIntent().getIntExtra(BundleKeys.CONCEPT, NO_CONCEPT));
+            final int accId = insertAcceptation(arrayId, getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT));
             insertSearchQueries(accId, array);
             Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
 
