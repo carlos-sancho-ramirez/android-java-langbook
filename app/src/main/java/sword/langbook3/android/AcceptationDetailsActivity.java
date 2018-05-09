@@ -24,7 +24,9 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableList;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
@@ -45,6 +47,7 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
+import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
@@ -54,9 +57,14 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
 
-    private static final class BundleKeys {
-        static final String STATIC_ACCEPTATION = "sa";
-        static final String DYNAMIC_ACCEPTATION = "da";
+    private interface BundleKeys {
+        String STATIC_ACCEPTATION = "sa";
+        String DYNAMIC_ACCEPTATION = "da";
+    }
+
+    private interface SavedKeys {
+        String LINKED_ACCEPTATION = "la";
+        String LINK_DIALOG_CHECKED_OPTION = "ldco";
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -65,7 +73,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private int _staticAcceptation;
     private int _concept;
-    private int _language;
+
+    private int _linkedAcceptation;
+    private int _linkDialogCheckedOption;
 
     private boolean _shouldShowBunchChildrenQuizMenuOption;
     private AcceptationDetailsAdapter _listAdapter;
@@ -886,7 +896,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).texts.keyAt(0));
         result.add(new NonNavigableItem("Language: " + languageResult.text));
-        _language = languageResult.language;
 
         final SparseArray<String> languageStrs = new SparseArray<>();
         languageStrs.put(languageResult.language, languageResult.text);
@@ -1012,6 +1021,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             throw new IllegalArgumentException("staticAcceptation not provided");
         }
 
+        if (savedInstanceState != null) {
+            _linkedAcceptation = savedInstanceState.getInt(SavedKeys.LINKED_ACCEPTATION, 0);
+            _linkDialogCheckedOption = savedInstanceState.getInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, 0);
+        }
+
         _staticAcceptation = getIntent().getIntExtra(BundleKeys.STATIC_ACCEPTATION, 0);
         _concept = conceptFromAcceptation(_staticAcceptation);
         if (_concept != 0) {
@@ -1020,6 +1034,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             ListView listView = findViewById(R.id.listView);
             listView.setAdapter(_listAdapter);
             listView.setOnItemClickListener(this);
+
+            if (_linkedAcceptation != 0) {
+                showLinkModeSelectorDialog();
+            }
         }
         else {
             finish();
@@ -1146,10 +1164,111 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION && resultCode == RESULT_OK) {
-            final int linkedAcc = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
             final boolean usedConcept = data.getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
             if (!usedConcept) {
-                Toast.makeText(this, "Unimplemented concept linking", Toast.LENGTH_SHORT).show();
+                _linkedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                showLinkModeSelectorDialog();
+            }
+        }
+    }
+
+    private void showLinkModeSelectorDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.linkDialogTitle)
+                .setPositiveButton(R.string.linkDialogButton, this::onLinkDialogButtonClicked)
+                .setSingleChoiceItems(R.array.linkDialogOptions, 0, this::onLinkDialogChoiceChecked)
+                .setOnCancelListener(dialog -> _linkedAcceptation = 0)
+                .create().show();
+    }
+
+    private void onLinkDialogChoiceChecked(DialogInterface dialog, int which) {
+        _linkDialogCheckedOption = which;
+    }
+
+    private void onLinkDialogButtonClicked(DialogInterface dialog, int which) {
+        if (_linkDialogCheckedOption == 0) {
+            // Sharing concept
+            Toast.makeText(this, "Sharing concept not implemented yet", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            // Duplicate concepts
+            duplicateAcceptationWithThisConcept();
+            _linkedAcceptation = 0;
+            Toast.makeText(this, "Acceptation linked", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (_linkedAcceptation != 0) {
+            outState.putInt(SavedKeys.LINKED_ACCEPTATION, _linkedAcceptation);
+            outState.putInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, _linkDialogCheckedOption);
+        }
+    }
+
+    private void duplicateAcceptationWithThisConcept() {
+        final int concept = _concept;
+        if (concept == 0) {
+            throw new AssertionError();
+        }
+
+        final AcceptationsTable table = Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), _linkedAcceptation)
+                .select(table.getWordColumnIndex(), table.getCorrelationArrayColumnIndex());
+
+        final Database db = DbManager.getInstance().getDatabase();
+        final DbResult result = db.select(query);
+        final DbResult.Row row = result.next();
+        if (result.hasNext()) {
+            throw new AssertionError();
+        }
+
+        final int word = row.get(0).toInt();
+        final int correlationArray = row.get(1).toInt();
+
+        final DbInsertQuery insertQuery = new DbInsertQuery.Builder(table)
+                .put(table.getWordColumnIndex(), word)
+                .put(table.getConceptColumnIndex(), _concept)
+                .put(table.getCorrelationArrayColumnIndex(), correlationArray)
+                .build();
+
+        final int newAccId = db.insert(insertQuery);
+
+        final StringQueriesTable strings = Tables.stringQueries;
+        final DbQuery stringsQuery = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), _linkedAcceptation)
+                .where(strings.getMainAcceptationColumnIndex(), _linkedAcceptation)
+                .select(strings.getStringAlphabetColumnIndex(), strings.getStringColumnIndex(), strings.getMainStringColumnIndex());
+
+        final ImmutableIntList.Builder alphabetsBuilder = new ImmutableIntList.Builder();
+        final ImmutableList.Builder<String> stringsBuilder = new ImmutableList.Builder<>();
+        final ImmutableList.Builder<String> mainStringsBuilder = new ImmutableList.Builder<>();
+
+        for (DbResult.Row r : DbManager.getInstance().attach(stringsQuery)) {
+            alphabetsBuilder.add(r.get(0).toInt());
+            stringsBuilder.add(r.get(1).toText());
+            mainStringsBuilder.add(r.get(2).toText());
+        }
+
+        final ImmutableIntList alphabets = alphabetsBuilder.build();
+        final ImmutableList<String> strs = stringsBuilder.build();
+        final ImmutableList<String> mainStrs = mainStringsBuilder.build();
+        final int length = alphabets.size();
+
+        for (int i = 0; i < length; i++) {
+            final DbInsertQuery iQuery = new DbInsertQuery.Builder(strings)
+                    .put(strings.getDynamicAcceptationColumnIndex(), newAccId)
+                    .put(strings.getMainAcceptationColumnIndex(), newAccId)
+                    .put(strings.getStringAlphabetColumnIndex(), alphabets.valueAt(i))
+                    .put(strings.getStringColumnIndex(), strs.valueAt(i))
+                    .put(strings.getMainStringColumnIndex(), mainStrs.valueAt(i))
+                    .build();
+
+            if (db.insert(iQuery) == null) {
+                throw new AssertionError();
             }
         }
     }
