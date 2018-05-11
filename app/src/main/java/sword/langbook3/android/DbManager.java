@@ -15,7 +15,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
+import sword.collections.IntKeyMap;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
@@ -32,6 +34,7 @@ import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbSchema;
 import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.db.DbTable;
+import sword.langbook3.android.db.DbUpdateQuery;
 import sword.langbook3.android.db.DbValue;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sqlite.SQLiteDbQuery;
@@ -94,6 +97,33 @@ class DbManager extends SQLiteOpenHelper {
 
     private static boolean delete(SQLiteDatabase db, DbTable table, int id) {
         return db.delete(table.name(), table.columns().get(table.getIdColumnIndex()).name() + "=?", new String[] { Integer.toString(id) }) > 0;
+    }
+
+    private static boolean update(SQLiteDatabase db, DbUpdateQuery query) {
+        final ImmutableIntKeyMap<DbValue> constraints = query.constraints();
+        final ImmutableList.Builder<String> whereList = new ImmutableList.Builder<>(constraints.size());
+        final String[] values = new String[constraints.size()];
+        for (IntKeyMap.Entry<DbValue> entry : constraints.entries()) {
+            whereList.add(query.table().columns().get(entry.key()).name() + "=?");
+
+            final DbValue value = entry.value();
+            values[entry.index()] = value.isText()? value.toText() : Integer.toString(value.toInt());
+        }
+
+        final String whereClause = whereList.build().reduce((a,b) -> a + " AND " + b);
+        ContentValues cv = new ContentValues();
+        for (IntKeyMap.Entry<DbValue> entry : query.values().entries()) {
+            final String columnName = query.table().columns().get(entry.key()).name();
+            final DbValue value = entry.value();
+            if (value.isText()) {
+                cv.put(columnName, value.toText());
+            }
+            else {
+                cv.put(columnName, value.toInt());
+            }
+        }
+
+        return db.update(query.table().name(), cv, whereClause, values) > 0;
     }
 
     private static int getColumnMax(SQLiteDatabase db, DbTable table, int columnIndex) {
@@ -306,6 +336,30 @@ class DbManager extends SQLiteOpenHelper {
      */
     DbAttachedQuery attach(DbQuery query) {
         return new DbAttachedQuery(query);
+    }
+
+    /**
+     * Allow selecting a single row.
+     *
+     * This method is suitable for situations where a single row is expected.
+     *
+     * This method will ensure that one, and one one, row is returned and on
+     * executing the query.
+     *
+     * @param query Query to be executed.
+     * @return The result row on executing the query
+     */
+    public DbResult.Row selectSingleRow(DbQuery query) {
+        DbResult result = attach(query).iterator();
+        if (!result.hasNext()) {
+            throw new AssertionError();
+        }
+
+        final DbResult.Row row = result.next();
+        if (result.hasNext()) {
+            throw new AssertionError();
+        }
+        return row;
     }
 
     static class SQLiteDbResult implements DbResult {
@@ -568,6 +622,11 @@ class DbManager extends SQLiteOpenHelper {
         @Override
         public boolean delete(DbTable table, int id) {
             return DbManager.delete(getWritableDatabase(), table, id);
+        }
+
+        @Override
+        public boolean update(DbUpdateQuery query) {
+            return DbManager.update(getWritableDatabase(), query);
         }
     }
 

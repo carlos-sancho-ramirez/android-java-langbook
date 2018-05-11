@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
@@ -42,6 +43,8 @@ import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
 import sword.langbook3.android.LangbookDbSchema.CorrelationArraysTable;
 import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
 import sword.langbook3.android.LangbookDbSchema.LanguagesTable;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
+import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
@@ -50,6 +53,7 @@ import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbUpdateQuery;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -1188,7 +1192,14 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private void onLinkDialogButtonClicked(DialogInterface dialog, int which) {
         if (_linkDialogCheckedOption == 0) {
             // Sharing concept
-            Toast.makeText(this, "Sharing concept not implemented yet", Toast.LENGTH_SHORT).show();
+            if (shareConcept()) {
+                Toast.makeText(this, "Concept shared", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                Toast.makeText(this, "Unable to shared concept", Toast.LENGTH_SHORT).show();
+            }
+
+            _linkedAcceptation = 0;
         }
         else {
             // Duplicate concepts
@@ -1206,6 +1217,132 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             outState.putInt(SavedKeys.LINKED_ACCEPTATION, _linkedAcceptation);
             outState.putInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, _linkDialogCheckedOption);
         }
+    }
+
+    private int getLinkedConcept() {
+        final AcceptationsTable table = Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), _linkedAcceptation)
+                .select(table.getConceptColumnIndex());
+        return DbManager.getInstance().selectSingleRow(query).get(0).toInt();
+    }
+
+    private ImmutableIntSet getImmutableConcepts() {
+        final AlphabetsTable table = Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getIdColumnIndex(), table.getLanguageColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+            builder.add(row.get(0).toInt());
+            builder.add(row.get(1).toInt());
+        }
+
+        return builder.build();
+    }
+
+    private static void updateBunchConceptConcepts(int oldConcept, int newConcept) {
+        final BunchConceptsTable table = Tables.bunchConcepts;
+        final Database db = DbManager.getInstance().getDatabase();
+
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldConcept)
+                .put(table.getBunchColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+
+        query = new DbUpdateQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), oldConcept)
+                .put(table.getConceptColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateBunchAcceptationConcepts(int oldConcept, int newConcept) {
+        final BunchAcceptationsTable table = Tables.bunchAcceptations;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldConcept)
+                .put(table.getBunchColumnIndex(), newConcept)
+                .build();
+        DbManager.getInstance().getDatabase().update(query);
+    }
+
+    private static void updateQuestionRules(int oldRule, int newRule) {
+        final QuestionFieldSets table = Tables.questionFieldSets;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getRuleColumnIndex(), oldRule)
+                .put(table.getRuleColumnIndex(), newRule)
+                .build();
+        DbManager.getInstance().getDatabase().update(query);
+    }
+
+    private static void updateQuizBunches(int oldBunch, int newBunch) {
+        final QuizDefinitionsTable table = Tables.quizDefinitions;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldBunch)
+                .put(table.getBunchColumnIndex(), newBunch)
+                .build();
+        DbManager.getInstance().getDatabase().update(query);
+    }
+
+    private static void updateBunchSetBunches(int oldBunch, int newBunch) {
+        final BunchSetsTable table = Tables.bunchSets;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldBunch)
+                .put(table.getBunchColumnIndex(), newBunch)
+                .build();
+        DbManager.getInstance().getDatabase().update(query);
+    }
+
+    private static void updateAgentRules(int oldRule, int newRule) {
+        final AgentsTable table = Tables.agents;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getRuleColumnIndex(), oldRule)
+                .put(table.getRuleColumnIndex(), newRule)
+                .build();
+        DbManager.getInstance().getDatabase().update(query);
+    }
+
+    private static void updateAgentTargetBunches(int oldBunch, int newBunch) {
+        final AgentsTable table = Tables.agents;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getTargetBunchColumnIndex(), oldBunch)
+                .put(table.getTargetBunchColumnIndex(), newBunch)
+                .build();
+        DbManager.getInstance().getDatabase().update(query);
+    }
+
+    private static void updateAcceptationConcepts(int oldConcept, int newConcept) {
+        final AcceptationsTable table = Tables.acceptations;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), oldConcept)
+                .put(table.getConceptColumnIndex(), newConcept)
+                .build();
+        DbManager.getInstance().getDatabase().update(query);
+    }
+
+    private boolean shareConcept() {
+        final int linkedConcept = getLinkedConcept();
+
+        final ImmutableIntSet immutableConcepts = getImmutableConcepts();
+        if (immutableConcepts.contains(linkedConcept)) {
+            return false;
+        }
+
+        final int oldConcept = _concept;
+        if (oldConcept == 0 || linkedConcept == 0) {
+            throw new AssertionError();
+        }
+
+        updateBunchConceptConcepts(oldConcept, linkedConcept);
+        updateBunchAcceptationConcepts(oldConcept, linkedConcept);
+        updateQuestionRules(oldConcept, linkedConcept);
+        updateQuizBunches(oldConcept, linkedConcept);
+        updateBunchSetBunches(oldConcept, linkedConcept);
+        updateAgentRules(oldConcept, linkedConcept);
+        updateAgentTargetBunches(oldConcept, linkedConcept);
+        updateAcceptationConcepts(oldConcept, linkedConcept);
+        return true;
     }
 
     private void duplicateAcceptationWithThisConcept() {
