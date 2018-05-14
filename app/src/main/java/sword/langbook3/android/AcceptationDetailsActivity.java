@@ -28,6 +28,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
+import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
@@ -70,9 +71,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private interface SavedKeys {
-        String LINKED_ACCEPTATION = "la";
-        String LINK_DIALOG_CHECKED_OPTION = "ldco";
-        String DELETE_BUNCH_TARGET = "dbt";
+        String STATE = "cSt";
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -84,10 +83,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private ImmutableIntSet _bunchesWhereIncluded;
 
-    private int _linkedAcceptation;
-    private int _linkDialogCheckedOption;
-
-    private DisplayableItem _deleteBunchTarget;
+    private AcceptationDetailsActivityState _state;
 
     private boolean _shouldShowBunchChildrenQuizMenuOption;
     private AcceptationDetailsAdapter _listAdapter;
@@ -1039,9 +1035,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         if (savedInstanceState != null) {
-            _linkedAcceptation = savedInstanceState.getInt(SavedKeys.LINKED_ACCEPTATION, 0);
-            _linkDialogCheckedOption = savedInstanceState.getInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, 0);
-            _deleteBunchTarget = savedInstanceState.getParcelable(SavedKeys.DELETE_BUNCH_TARGET);
+            _state = savedInstanceState.getParcelable(SavedKeys.STATE);
+        }
+
+        if (_state == null) {
+            _state = new AcceptationDetailsActivityState();
         }
 
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
@@ -1054,11 +1052,18 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             listView.setOnItemClickListener(this);
             listView.setOnItemLongClickListener(this);
 
-            if (_linkedAcceptation != 0) {
-                showLinkModeSelectorDialog();
-            }
-            else if (_deleteBunchTarget != null) {
-                showDeleteFromBunchConfirmationDialog();
+            switch (_state.getIntrinsicState()) {
+                case IntrinsicStates.DELETE_ACCEPTATION:
+                    showDeleteConfirmationDialog();
+                    break;
+
+                case IntrinsicStates.DELETING_FROM_BUNCH:
+                    showDeleteFromBunchConfirmationDialog();
+                    break;
+
+                case IntrinsicStates.LINKING_CONCEPT:
+                    showLinkModeSelectorDialog();
+                    break;
             }
         }
         else {
@@ -1083,7 +1088,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED) {
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
             final int bunch = conceptFromAcceptation(it.getId());
-            _deleteBunchTarget = new DisplayableItem(bunch, it.getText().toString());
+            _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText().toString()));
             showDeleteFromBunchConfirmationDialog();
             return true;
         }
@@ -1119,6 +1124,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemDeleteAcceptation:
+                _state.setDeletingAcceptation();
                 showDeleteConfirmationDialog();
                 return true;
         }
@@ -1127,11 +1133,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void showDeleteFromBunchConfirmationDialog() {
-        final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _deleteBunchTarget.text);
+        final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _state.getDeleteBunchTarget().text);
         new AlertDialog.Builder(this)
                 .setMessage(message)
-                .setPositiveButton(R.string.menuItemDeleteAcceptation, this::deleteFromBunch)
-                .setOnCancelListener(dialog -> _deleteBunchTarget = null)
+                .setPositiveButton(R.string.menuItemDeleteAcceptation, this)
+                .setOnCancelListener(dialog -> _state.clearDeleteBunchTarget())
                 .create().show();
     }
 
@@ -1145,23 +1151,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         return db.delete(query);
     }
 
-    private void deleteFromBunch(DialogInterface dialog, int which) {
-        final int bunch = _deleteBunchTarget.id;
-        final String bunchText = _deleteBunchTarget.text;
-        _deleteBunchTarget = null;
-
-        if (!removeFromBunch(DbManager.getInstance().getDatabase(), bunch)) {
-            throw new AssertionError();
-        }
-
-        final String message = getString(R.string.deleteAcceptationFromBunchFeedback, bunchText);
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
-
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setMessage(R.string.deleteAcceptationConfirmationText)
                 .setPositiveButton(R.string.menuItemDeleteAcceptation, this)
+                .setOnCancelListener(dialog -> _state.clearDeletingAcceptation())
                 .create().show();
     }
 
@@ -1194,6 +1188,43 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
+        switch (_state.getIntrinsicState()) {
+            case IntrinsicStates.DELETE_ACCEPTATION:
+                deleteAcceptation();
+                break;
+
+            case IntrinsicStates.LINKING_CONCEPT:
+                if (_state.getDialogCheckedOption() == 0) {
+                    // Sharing concept
+                    showFeedback(shareConcept()? "Concept shared" : "Unable to shared concept");
+                }
+                else {
+                    // Duplicate concepts
+                    duplicateAcceptationWithThisConcept();
+                    showFeedback("Acceptation linked");
+                }
+                _state.clearLinkedAcceptation();
+                break;
+
+            case IntrinsicStates.DELETING_FROM_BUNCH:
+                final DisplayableItem item = _state.getDeleteBunchTarget();
+                final int bunch = item.id;
+                final String bunchText = item.text;
+                _state.clearDeleteBunchTarget();
+
+                if (!removeFromBunch(DbManager.getInstance().getDatabase(), bunch)) {
+                    throw new AssertionError();
+                }
+
+                showFeedback(getString(R.string.deleteAcceptationFromBunchFeedback, bunchText));
+                break;
+
+            default:
+                throw new AssertionError("Unable to handle state " + _state.getIntrinsicState());
+        }
+    }
+
+    private void deleteAcceptation() {
         final DbManager manager = DbManager.getInstance();
         final Database db = manager.getDatabase();
 
@@ -1210,7 +1241,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             throw new AssertionError();
         }
 
-        Toast.makeText(this, R.string.deleteAcceptationFeedback, Toast.LENGTH_SHORT).show();
+        showFeedback(getString(R.string.deleteAcceptationFeedback));
         finish();
     }
 
@@ -1229,7 +1260,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final boolean usedConcept = data
                         .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
                 if (!usedConcept) {
-                    _linkedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                    _state.setLinkedAcceptation(data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0));
                     showLinkModeSelectorDialog();
                 }
             }
@@ -1237,7 +1268,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
                 final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(pickedAcceptation) : 0;
                 final int message = includeInBunch(pickedBunch)? R.string.includeInBunchOk : R.string.includeInBunchKo;
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                showFeedback(getString(message));
             }
         }
     }
@@ -1266,54 +1297,26 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private void showLinkModeSelectorDialog() {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.linkDialogTitle)
-                .setPositiveButton(R.string.linkDialogButton, this::onLinkDialogButtonClicked)
+                .setPositiveButton(R.string.linkDialogButton, this)
                 .setSingleChoiceItems(R.array.linkDialogOptions, 0, this::onLinkDialogChoiceChecked)
-                .setOnCancelListener(dialog -> _linkedAcceptation = 0)
+                .setOnCancelListener(dialog -> _state.clearLinkedAcceptation())
                 .create().show();
     }
 
     private void onLinkDialogChoiceChecked(DialogInterface dialog, int which) {
-        _linkDialogCheckedOption = which;
-    }
-
-    private void onLinkDialogButtonClicked(DialogInterface dialog, int which) {
-        if (_linkDialogCheckedOption == 0) {
-            // Sharing concept
-            if (shareConcept()) {
-                Toast.makeText(this, "Concept shared", Toast.LENGTH_SHORT).show();
-            }
-            else {
-                Toast.makeText(this, "Unable to shared concept", Toast.LENGTH_SHORT).show();
-            }
-
-            _linkedAcceptation = 0;
-        }
-        else {
-            // Duplicate concepts
-            duplicateAcceptationWithThisConcept();
-            _linkedAcceptation = 0;
-            Toast.makeText(this, "Acceptation linked", Toast.LENGTH_SHORT).show();
-        }
+        _state.setDialogCheckedOption(which);
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-
-        if (_linkedAcceptation != 0) {
-            outState.putInt(SavedKeys.LINKED_ACCEPTATION, _linkedAcceptation);
-            outState.putInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, _linkDialogCheckedOption);
-        }
-
-        if (_deleteBunchTarget != null) {
-            outState.putParcelable(SavedKeys.DELETE_BUNCH_TARGET, _deleteBunchTarget);
-        }
+        outState.putParcelable(SavedKeys.STATE, _state);
     }
 
     private int getLinkedConcept() {
         final AcceptationsTable table = Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), _linkedAcceptation)
+                .where(table.getIdColumnIndex(), _state.getLinkedAcceptation())
                 .select(table.getConceptColumnIndex());
         return DbManager.getInstance().selectSingleRow(query).get(0).toInt();
     }
@@ -1442,9 +1445,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             throw new AssertionError();
         }
 
+        final int linkedAcceptation = _state.getLinkedAcceptation();
         final AcceptationsTable table = Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), _linkedAcceptation)
+                .where(table.getIdColumnIndex(), linkedAcceptation)
                 .select(table.getWordColumnIndex(), table.getCorrelationArrayColumnIndex());
 
         final Database db = DbManager.getInstance().getDatabase();
@@ -1467,8 +1471,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         final StringQueriesTable strings = Tables.stringQueries;
         final DbQuery stringsQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), _linkedAcceptation)
-                .where(strings.getMainAcceptationColumnIndex(), _linkedAcceptation)
+                .where(strings.getDynamicAcceptationColumnIndex(), linkedAcceptation)
+                .where(strings.getMainAcceptationColumnIndex(), linkedAcceptation)
                 .select(strings.getStringAlphabetColumnIndex(), strings.getStringColumnIndex(), strings.getMainStringColumnIndex());
 
         final ImmutableIntList.Builder alphabetsBuilder = new ImmutableIntList.Builder();
@@ -1499,5 +1503,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 throw new AssertionError();
             }
         }
+    }
+
+    private void showFeedback(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
