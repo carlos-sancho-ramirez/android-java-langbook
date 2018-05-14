@@ -14,15 +14,22 @@ import java.util.Set;
 
 public class AcceptationDetailsAdapter extends BaseAdapter {
 
+    public interface ItemTypes {
+        int UNKNOWN = 0;
+        int BUNCH_WHERE_INCLUDED = 1;
+    }
+
     public static abstract class Item {
 
+        private final int _type;
         private CharSequence _text;
 
-        Item(CharSequence text) {
+        Item(int type, CharSequence text) {
             if (text == null) {
                 throw new IllegalArgumentException();
             }
 
+            _type = type;
             _text = text;
         }
 
@@ -43,6 +50,10 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         int getTextColorRes() {
             return R.color.agentStaticTextColor;
         }
+
+        int getItemType() {
+            return _type;
+        }
     }
 
     /**
@@ -52,7 +63,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     static final class HeaderItem extends Item {
 
         HeaderItem(CharSequence text) {
-            super(text);
+            super(ItemTypes.UNKNOWN, text);
         }
 
         @Override
@@ -75,7 +86,13 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         private final int _textColor;
 
         AcceptationNavigableItem(int id, CharSequence text, boolean dynamic) {
-            super(text);
+            super(ItemTypes.UNKNOWN, text);
+            _id = id;
+            _textColor = dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
+        }
+
+        AcceptationNavigableItem(int itemType, int id, CharSequence text, boolean dynamic) {
+            super(itemType, text);
             _id = id;
             _textColor = dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
         }
@@ -88,6 +105,10 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         @Override
         boolean isEnabled() {
             return true;
+        }
+
+        int getId() {
+            return _id;
         }
 
         @Override
@@ -105,7 +126,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         private final int _id;
 
         CorrelationNavigableItem(int id, CharSequence text) {
-            super(text);
+            super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
 
@@ -129,7 +150,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         private final int _id;
 
         RuleNavigableItem(int id, CharSequence text) {
-            super(text);
+            super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
 
@@ -154,7 +175,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         private final int _id;
 
         AgentNavigableItem(int id, CharSequence text) {
-            super(text);
+            super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
 
@@ -176,7 +197,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     static final class NonNavigableItem extends Item {
 
         NonNavigableItem(CharSequence text) {
-            super(text);
+            super(ItemTypes.UNKNOWN, text);
         }
 
         @Override

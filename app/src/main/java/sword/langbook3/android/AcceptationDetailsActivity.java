@@ -58,7 +58,8 @@ import sword.langbook3.android.db.DbUpdateQuery;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
-public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener, DialogInterface.OnClickListener {
+public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
+        AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
     private static final int REQUEST_CODE_PICK_BUNCH = 2;
@@ -71,6 +72,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private interface SavedKeys {
         String LINKED_ACCEPTATION = "la";
         String LINK_DIALOG_CHECKED_OPTION = "ldco";
+        String DELETE_BUNCH_TARGET = "dbt";
     }
 
     // Specifies the alphabet the user would like to see if possible.
@@ -84,6 +86,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private int _linkedAcceptation;
     private int _linkDialogCheckedOption;
+
+    private DisplayableItem _deleteBunchTarget;
 
     private boolean _shouldShowBunchChildrenQuizMenuOption;
     private AcceptationDetailsAdapter _listAdapter;
@@ -966,7 +970,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 parentBunchFound = true;
             }
 
-            result.add(new AcceptationNavigableItem(r.acceptation, r.text, r.dynamic));
+            result.add(new AcceptationNavigableItem(AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED,
+                    r.acceptation, r.text, r.dynamic));
         }
 
         boolean morphologyFound = false;
@@ -1036,6 +1041,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (savedInstanceState != null) {
             _linkedAcceptation = savedInstanceState.getInt(SavedKeys.LINKED_ACCEPTATION, 0);
             _linkDialogCheckedOption = savedInstanceState.getInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, 0);
+            _deleteBunchTarget = savedInstanceState.getParcelable(SavedKeys.DELETE_BUNCH_TARGET);
         }
 
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
@@ -1046,9 +1052,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             ListView listView = findViewById(R.id.listView);
             listView.setAdapter(_listAdapter);
             listView.setOnItemClickListener(this);
+            listView.setOnItemLongClickListener(this);
 
             if (_linkedAcceptation != 0) {
                 showLinkModeSelectorDialog();
+            }
+            else if (_deleteBunchTarget != null) {
+                showDeleteFromBunchConfirmationDialog();
             }
         }
         else {
@@ -1059,6 +1069,26 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         _listAdapter.getItem(position).navigate(this);
+    }
+
+    @Override
+    public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+        // For now, as the only valuable action per item is 'delete', no
+        // contextual menu is displayed and confirmation dialog is prompted directly.
+        //
+        // This routine may be valuable while there is only one enabled item.
+        // For multiple, the action mode for the list view should be enabled
+        // instead to apply the same action to multiple items at the same time.
+        final AcceptationDetailsAdapter.Item item = _listAdapter.getItem(position);
+        if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED) {
+            AcceptationNavigableItem it = (AcceptationNavigableItem) item;
+            final int bunch = conceptFromAcceptation(it.getId());
+            _deleteBunchTarget = new DisplayableItem(bunch, it.getText().toString());
+            showDeleteFromBunchConfirmationDialog();
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -1096,7 +1126,39 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         return false;
     }
 
-    public void showDeleteConfirmationDialog() {
+    private void showDeleteFromBunchConfirmationDialog() {
+        final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _deleteBunchTarget.text);
+        new AlertDialog.Builder(this)
+                .setMessage(message)
+                .setPositiveButton(R.string.menuItemDeleteAcceptation, this::deleteFromBunch)
+                .setOnCancelListener(dialog -> _deleteBunchTarget = null)
+                .create().show();
+    }
+
+    private boolean removeFromBunch(Database db, int bunch) {
+        final BunchAcceptationsTable table = Tables.bunchAcceptations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .where(table.getAcceptationColumnIndex(), _staticAcceptation)
+                .build();
+
+        return db.delete(query);
+    }
+
+    private void deleteFromBunch(DialogInterface dialog, int which) {
+        final int bunch = _deleteBunchTarget.id;
+        final String bunchText = _deleteBunchTarget.text;
+        _deleteBunchTarget = null;
+
+        if (!removeFromBunch(DbManager.getInstance().getDatabase(), bunch)) {
+            throw new AssertionError();
+        }
+
+        final String message = getString(R.string.deleteAcceptationFromBunchFeedback, bunchText);
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setMessage(R.string.deleteAcceptationConfirmationText)
                 .setPositiveButton(R.string.menuItemDeleteAcceptation, this)
@@ -1241,6 +1303,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (_linkedAcceptation != 0) {
             outState.putInt(SavedKeys.LINKED_ACCEPTATION, _linkedAcceptation);
             outState.putInt(SavedKeys.LINK_DIALOG_CHECKED_OPTION, _linkDialogCheckedOption);
+        }
+
+        if (_deleteBunchTarget != null) {
+            outState.putParcelable(SavedKeys.DELETE_BUNCH_TARGET, _deleteBunchTarget);
         }
     }
 
