@@ -24,6 +24,7 @@ import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbColumn;
+import sword.langbook3.android.db.DbDeleteQuery;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbIndex;
@@ -95,8 +96,20 @@ class DbManager extends SQLiteOpenHelper {
         return insert(getWritableDatabase(), query);
     }
 
-    private static boolean delete(SQLiteDatabase db, DbTable table, int id) {
-        return db.delete(table.name(), table.columns().get(table.getIdColumnIndex()).name() + "=?", new String[] { Integer.toString(id) }) > 0;
+    private static boolean delete(SQLiteDatabase db, DbDeleteQuery query) {
+        final ImmutableIntKeyMap<DbValue> constraints = query.constraints();
+        final ImmutableList.Builder<String> whereList = new ImmutableList.Builder<>(constraints.size());
+        final String[] values = new String[constraints.size()];
+        final ImmutableList<DbColumn> columns = query.table().columns();
+        for (IntKeyMap.Entry<DbValue> entry : constraints.entries()) {
+            whereList.add(columns.get(entry.key()).name() + "=?");
+
+            final DbValue value = entry.value();
+            values[entry.index()] = value.isText()? value.toText() : Integer.toString(value.toInt());
+        }
+
+        final String whereClause = whereList.build().reduce((a,b) -> a + " AND " + b);
+        return db.delete(query.table().name(), whereClause, values) > 0;
     }
 
     private static boolean update(SQLiteDatabase db, DbUpdateQuery query) {
@@ -620,8 +633,8 @@ class DbManager extends SQLiteOpenHelper {
         }
 
         @Override
-        public boolean delete(DbTable table, int id) {
-            return DbManager.delete(getWritableDatabase(), table, id);
+        public boolean delete(DbDeleteQuery query) {
+            return DbManager.delete(getWritableDatabase(), query);
         }
 
         @Override

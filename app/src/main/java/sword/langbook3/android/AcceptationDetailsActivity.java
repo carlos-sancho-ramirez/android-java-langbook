@@ -50,6 +50,7 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
+import sword.langbook3.android.db.DbDeleteQuery;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
@@ -1091,53 +1092,31 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 .create().show();
     }
 
-    private void removeFromStringQueryTable(DbManager manager, Database db) {
+    private void removeFromStringQueryTable(Database db) {
         final StringQueriesTable table = Tables.stringQueries;
-        final DbQuery stringsQuery = new DbQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getMainAcceptationColumnIndex(), _staticAcceptation)
-                .select(table.getIdColumnIndex());
+                .build();
 
-        for (DbResult.Row row : manager.attach(stringsQuery)) {
-            if (!db.delete(table, row.get(0).toInt())) {
-                throw new AssertionError();
-            }
-        }
+        db.delete(query);
     }
 
-    private void removeFromBunches(DbManager manager, Database db) {
+    private void removeFromBunches(Database db) {
         final BunchAcceptationsTable table = Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getAcceptationColumnIndex(), _staticAcceptation)
-                .select(table.getIdColumnIndex());
+                .build();
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        for (DbResult.Row row : manager.attach(query)) {
-            builder.add(row.get(0).toInt());
-        }
-
-        for (int id : builder.build()) {
-            if (!db.delete(table, id)) {
-                throw new AssertionError();
-            }
-        }
+        db.delete(query);
     }
 
-    private void removeKnowledge(DbManager manager, Database db) {
+    private void removeKnowledge(Database db) {
         final LangbookDbSchema.KnowledgeTable table = Tables.knowledge;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getAcceptationColumnIndex(), _staticAcceptation)
-                .select(table.getIdColumnIndex());
+                .build();
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        for (DbResult.Row row : manager.attach(query)) {
-            builder.add(row.get(0).toInt());
-        }
-
-        for (int id : builder.build()) {
-            if (!db.delete(table, id)) {
-                throw new AssertionError();
-            }
-        }
+        db.delete(query);
     }
 
     @Override
@@ -1145,11 +1124,16 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final DbManager manager = DbManager.getInstance();
         final Database db = manager.getDatabase();
 
-        removeKnowledge(manager, db);
-        removeFromBunches(manager, db);
-        removeFromStringQueryTable(manager, db);
+        removeKnowledge(db);
+        removeFromBunches(db);
+        removeFromStringQueryTable(db);
 
-        if (!db.delete(Tables.acceptations, _staticAcceptation)) {
+        final AcceptationsTable table = Tables.acceptations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(Tables.acceptations)
+                .where(table.getIdColumnIndex(), _staticAcceptation)
+                .build();
+
+        if (!db.delete(query)) {
             throw new AssertionError();
         }
 

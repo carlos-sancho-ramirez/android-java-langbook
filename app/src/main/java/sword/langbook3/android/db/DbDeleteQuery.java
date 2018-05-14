@@ -3,16 +3,14 @@ package sword.langbook3.android.db;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 
-public final class DbUpdateQuery {
+public final class DbDeleteQuery {
 
     private final DbTable _table;
     private final ImmutableIntKeyMap<DbValue> _constraints;
-    private final ImmutableIntKeyMap<DbValue> _values;
 
-    private DbUpdateQuery(DbTable table, ImmutableIntKeyMap<DbValue> constraints, ImmutableIntKeyMap<DbValue> values) {
+    private DbDeleteQuery(DbTable table, ImmutableIntKeyMap<DbValue> constraints) {
         _table = table;
         _constraints = constraints;
-        _values = values;
     }
 
     public DbTable table() {
@@ -23,14 +21,9 @@ public final class DbUpdateQuery {
         return _constraints;
     }
 
-    public ImmutableIntKeyMap<DbValue> values() {
-        return _values;
-    }
-
     public static final class Builder {
         private final DbTable _table;
         private final MutableIntPairMap _constraints = MutableIntPairMap.empty();
-        private final MutableIntPairMap _values = MutableIntPairMap.empty();
 
         public Builder(DbTable table) {
             _table = table;
@@ -57,24 +50,12 @@ public final class DbUpdateQuery {
             return this;
         }
 
-        public Builder put(int columnIndex, int value) {
-            assertValidIntColumn(columnIndex);
-            if (_values.keySet().contains(columnIndex)) {
-                throw new IllegalArgumentException("Column already has value");
+        public DbDeleteQuery build() {
+            if (_constraints.isEmpty()) {
+                throw new AssertionError("No constraints set");
             }
 
-            _values.put(columnIndex, value);
-            return this;
-        }
-
-        public DbUpdateQuery build() {
-            if (_values.isEmpty()) {
-                throw new AssertionError("No values set");
-            }
-
-            return new DbUpdateQuery(_table,
-                    _constraints.toImmutable().map(DbIntValue::new),
-                    _values.toImmutable().map(DbIntValue::new));
+            return new DbDeleteQuery(_table, _constraints.toImmutable().map(DbIntValue::new));
         }
     }
 }
