@@ -4,4 +4,9 @@
         android:id="@+id/menuItemLinkConcept"
         android:title="@string/menuItemLinkConcept"
         android:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menuItemIncludeInBunch"
+        android:title="@string/menuItemIncludeInBunch"
+        android:showAsAction="never"/>
 </menu>

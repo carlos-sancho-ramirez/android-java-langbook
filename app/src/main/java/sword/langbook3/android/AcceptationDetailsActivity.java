@@ -61,6 +61,7 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
+    private static final int REQUEST_CODE_PICK_BUNCH = 2;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -78,6 +79,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private int _staticAcceptation;
     private int _concept;
+
+    private ImmutableIntSet _bunchesWhereIncluded;
 
     private int _linkedAcceptation;
     private int _linkDialogCheckedOption;
@@ -377,6 +380,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
 
+        final ImmutableIntSetBuilder bunchSetBuilder = new ImmutableIntSetBuilder();
         Cursor cursor = db.rawQuery(
                 "SELECT" +
                         " J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() +
@@ -409,6 +413,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                         }
 
                         if (bunch != cursor.getInt(0)) {
+                            bunchSetBuilder.add(bunch);
                             result.add(new BunchInclusionResult(acc, agentSet != nullAgentSet, text));
 
                             bunch = cursor.getInt(0);
@@ -419,6 +424,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                         }
                     }
 
+                    bunchSetBuilder.add(bunch);
                     result.add(new BunchInclusionResult(acc, agentSet != nullAgentSet, text));
                     return result.toArray(new BunchInclusionResult[result.size()]);
                 }
@@ -428,6 +434,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
         }
 
+        _bunchesWhereIncluded = bunchSetBuilder.build();
         return new BunchInclusionResult[0];
     }
 
@@ -1061,7 +1068,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
         }
 
-        inflater.inflate(R.menu.acceptation_details_activity_new_linked_acceptation, menu);
+        inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
         inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
         return true;
     }
@@ -1075,6 +1082,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case R.id.menuItemLinkConcept:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _concept);
+                return true;
+
+            case R.id.menuItemIncludeInBunch:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BUNCH);
                 return true;
 
             case R.id.menuItemDeleteAcceptation:
@@ -1151,13 +1162,43 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION && resultCode == RESULT_OK) {
-            final boolean usedConcept = data.getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
-            if (!usedConcept) {
-                _linkedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                showLinkModeSelectorDialog();
+        if (resultCode == RESULT_OK) {
+            if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
+                final boolean usedConcept = data
+                        .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
+                if (!usedConcept) {
+                    _linkedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                    showLinkModeSelectorDialog();
+                }
+            }
+            else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
+                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(pickedAcceptation) : 0;
+                final int message = includeInBunch(pickedBunch)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    private boolean includeInBunch(int bunch) {
+        if (bunch == 0 || _bunchesWhereIncluded.contains(bunch)) {
+            return false;
+        }
+
+        final BunchAcceptationsTable table = Tables.bunchAcceptations;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getBunchColumnIndex(), bunch)
+                .put(table.getAgentSetColumnIndex(), 0)
+                .put(table.getAcceptationColumnIndex(), _staticAcceptation)
+                .build();
+
+        final boolean included = DbManager.getInstance().getDatabase().insert(query) != null;
+        if (included) {
+            _bunchesWhereIncluded = _bunchesWhereIncluded.add(bunch);
+            // TODO: UI should be updated
+        }
+
+        return included;
     }
 
     private void showLinkModeSelectorDialog() {

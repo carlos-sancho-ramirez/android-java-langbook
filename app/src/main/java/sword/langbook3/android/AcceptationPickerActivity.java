@@ -14,6 +14,11 @@ public final class AcceptationPickerActivity extends SearchActivity {
         String CONCEPT_USED = BundleKeys.CONCEPT_USED;
     }
 
+    public static void open(Activity activity, int requestCode) {
+        final Intent intent = new Intent(activity, AcceptationPickerActivity.class);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     public static void open(Activity activity, int requestCode, int concept) {
         final Intent intent = new Intent(activity, AcceptationPickerActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
