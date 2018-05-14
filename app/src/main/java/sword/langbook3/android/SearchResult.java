@@ -2,16 +2,23 @@ package sword.langbook3.android;
 
 class SearchResult {
 
+    interface Types {
+        int ACCEPTATION = 0; //auxId is dynamicAcceptation
+        int AGENT = 1; //auxId not used
+    }
+
     private final String _str;
     private final String _mainStr;
-    private final int _acceptation;
-    private final int _dynamicAcceptation;
+    private final int _type;
+    private final int _id;
+    private final int _auxId;
 
-    SearchResult(String str, String mainStr, int acceptation, int dynamicAcceptation) {
+    SearchResult(String str, String mainStr, int type, int id, int auxId) {
         _str = str;
         _mainStr = mainStr;
-        _acceptation = acceptation;
-        _dynamicAcceptation = dynamicAcceptation;
+        _type = type;
+        _id = id;
+        _auxId = auxId;
     }
 
     String getStr() {
@@ -22,15 +29,19 @@ class SearchResult {
         return _mainStr;
     }
 
-    int getAcceptation() {
-        return _acceptation;
+    int getType() {
+        return _type;
     }
 
-    int getDynamicAcceptation() {
-        return _dynamicAcceptation;
+    int getId() {
+        return _id;
+    }
+
+    int getAuxiliarId() {
+        return _auxId;
     }
 
     boolean isDynamic() {
-        return _acceptation != _dynamicAcceptation;
+        return _type == Types.ACCEPTATION && _id != _auxId;
     }
 }

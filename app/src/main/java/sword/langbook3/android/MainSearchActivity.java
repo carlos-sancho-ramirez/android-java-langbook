@@ -39,6 +39,11 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         return false;
     }
 
+    @Override
+    boolean includeAgentsAsResult() {
+        return true;
+    }
+
     void openLanguagePicker(int requestCode, String query) {
         LanguagePickerActivity.open(this, requestCode, query);
     }

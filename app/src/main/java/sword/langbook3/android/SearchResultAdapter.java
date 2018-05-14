@@ -6,12 +6,14 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import sword.collections.ImmutableList;
+
 class SearchResultAdapter extends BaseAdapter {
 
-    private final SearchResult[] _items;
+    private final ImmutableList<SearchResult> _items;
     private LayoutInflater _inflater;
 
-    SearchResultAdapter(SearchResult[] items) {
+    SearchResultAdapter(ImmutableList<SearchResult> items) {
         if (items == null) {
             throw new IllegalArgumentException();
         }
@@ -21,12 +23,12 @@ class SearchResultAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return _items.length;
+        return _items.size();
     }
 
     @Override
     public SearchResult getItem(int i) {
-        return _items[i];
+        return _items.get(i);
     }
 
     @Override
@@ -48,12 +50,13 @@ class SearchResultAdapter extends BaseAdapter {
             view = convertView;
         }
 
+        final SearchResult item = _items.get(i);
         final TextView tv = view.findViewById(R.id.searchResultTextView);
-        final int textColor = _items[i].isDynamic()? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
+        final int textColor = item.isDynamic()? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
         tv.setTextColor(tv.getContext().getResources().getColor(textColor));
 
-        final String str = _items[i].getStr();
-        final String mainStr = _items[i].getMainStr();
+        final String str = item.getStr();
+        final String mainStr = item.getMainStr();
 
         final String text = str.equals(mainStr)? str : mainStr + " (" + str + ')';
         tv.setText(text);
