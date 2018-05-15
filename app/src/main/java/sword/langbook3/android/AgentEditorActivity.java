@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import sword.collections.MutableIntList;
@@ -22,6 +23,8 @@ import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
     private static final int REQUEST_CODE_PICK_TARGET_BUNCH = 1;
+    private static final int REQUEST_CODE_PICK_SOURCE_BUNCH = 2;
+    private static final int REQUEST_CODE_PICK_DIFF_BUNCH = 3;
 
     private interface SavedKeys {
         String STATE = "st";
@@ -140,6 +143,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private CheckBox _includeTargetBunchCheckBox;
     private Button _targetBunchChangeButton;
+    private LinearLayout _sourceBunchesContainer;
+    private LinearLayout _diffBunchesContainer;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -169,6 +174,58 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
         }
         _targetBunchChangeButton.setOnClickListener(this);
+
+        findViewById(R.id.addSourceBunchButton).setOnClickListener(this);
+        _sourceBunchesContainer = findViewById(R.id.sourceBunchesContainer);
+        for (int concept : _state.sourceBunches) {
+            addSourceBunch(concept);
+        }
+
+        findViewById(R.id.addDiffBunchButton).setOnClickListener(this);
+        _diffBunchesContainer = findViewById(R.id.diffBunchesContainer);
+        for (int concept : _state.diffBunches) {
+            addDiffBunch(concept);
+        }
+    }
+
+    private void addSourceBunch(int concept) {
+        getLayoutInflater().inflate(R.layout.agent_editor_bunch_entry, _sourceBunchesContainer, true);
+        final View view = _sourceBunchesContainer.getChildAt(_sourceBunchesContainer.getChildCount() - 1);
+
+        final TextView textView = view.findViewById(R.id.textView);
+        textView.setText(readConceptText(concept));
+
+        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeSourceBunch(concept));
+    }
+
+    private void removeSourceBunch(int concept) {
+        final int index = _state.sourceBunches.indexOf(concept);
+        if (index < 0) {
+            throw new AssertionError();
+        }
+
+        _sourceBunchesContainer.removeViewAt(index);
+        _state.sourceBunches.removeAt(index);
+    }
+
+    private void addDiffBunch(int concept) {
+        getLayoutInflater().inflate(R.layout.agent_editor_bunch_entry, _diffBunchesContainer, true);
+        final View view = _diffBunchesContainer.getChildAt(_diffBunchesContainer.getChildCount() - 1);
+
+        final TextView textView = view.findViewById(R.id.textView);
+        textView.setText(readConceptText(concept));
+
+        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeDiffBunch(concept));
+    }
+
+    private void removeDiffBunch(int concept) {
+        final int index = _state.diffBunches.indexOf(concept);
+        if (index < 0) {
+            throw new AssertionError();
+        }
+
+        _diffBunchesContainer.removeViewAt(index);
+        _state.diffBunches.removeAt(index);
     }
 
     @Override
@@ -197,6 +254,14 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             case R.id.targetBunchChangeButton:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH);
                 break;
+
+            case R.id.addSourceBunchButton:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_SOURCE_BUNCH);
+                break;
+
+            case R.id.addDiffBunchButton:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_DIFF_BUNCH);
+                break;
         }
     }
 
@@ -222,6 +287,26 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 _targetBunchChangeButton.setEnabled(false);
                 _includeTargetBunchCheckBox.setChecked(false);
             }
+        }
+        else if (requestCode == REQUEST_CODE_PICK_SOURCE_BUNCH && resultCode == RESULT_OK) {
+            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            if (acceptation == 0) {
+                throw new AssertionError();
+            }
+
+            final int concept = conceptFromAcceptation(acceptation);
+            _state.sourceBunches.append(concept);
+            addSourceBunch(concept);
+        }
+        else if (requestCode == REQUEST_CODE_PICK_DIFF_BUNCH && resultCode == RESULT_OK) {
+            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            if (acceptation == 0) {
+                throw new AssertionError();
+            }
+
+            final int concept = conceptFromAcceptation(acceptation);
+            _state.diffBunches.append(concept);
+            addDiffBunch(concept);
         }
     }
 
