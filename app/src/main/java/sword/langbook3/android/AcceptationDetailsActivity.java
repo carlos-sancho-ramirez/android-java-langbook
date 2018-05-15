@@ -165,7 +165,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         return result;
     }
 
-    static String readConceptText(SQLiteDatabase db, int concept) {
+    static String readConceptText(int concept) {
         final AcceptationsTable acceptations = Tables.acceptations; // J0
         final StringQueriesTable strings = Tables.stringQueries;
 
@@ -951,7 +951,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
                 String langStr = languageStrs.get(language);
                 if (langStr == null) {
-                    langStr = readConceptText(db, language);
+                    langStr = readConceptText(language);
                     languageStrs.put(language, langStr);
                 }
 
@@ -1245,7 +1245,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         finish();
     }
 
-    private int conceptFromAcceptation(int accId) {
+    static int conceptFromAcceptation(int accId) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), accId)

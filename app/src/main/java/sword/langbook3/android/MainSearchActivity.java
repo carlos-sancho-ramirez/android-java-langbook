@@ -27,6 +27,10 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 QuizSelectorActivity.open(this, QuizSelectorActivity.NO_BUNCH);
                 return true;
 
+            case R.id.menuItemNewAgent:
+                AgentEditorActivity.open(this);
+                return true;
+
             case R.id.menuItemSettings:
                 SettingsActivity.open(this);
                 return true;

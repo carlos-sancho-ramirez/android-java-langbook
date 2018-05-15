@@ -186,7 +186,7 @@ public class RuleTableActivity extends Activity {
             }
 
             if (ruleSet.get(ref.rule) == null) {
-                ruleSet.put(ref.rule, AcceptationDetailsActivity.readConceptText(db, ref.rule));
+                ruleSet.put(ref.rule, AcceptationDetailsActivity.readConceptText(ref.rule));
             }
         }
 

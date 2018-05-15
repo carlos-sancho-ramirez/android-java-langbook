@@ -7,6 +7,12 @@
         android:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/menuItemNewAgent"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="@string/menuItemNewAgent"
+        android:showAsAction="ifRoom"/>
+
+    <item
         android:id="@+id/menuItemSettings"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="@string/menuItemSettings"

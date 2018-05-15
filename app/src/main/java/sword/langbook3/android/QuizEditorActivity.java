@@ -427,7 +427,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
         if (_bunch != NO_BUNCH) {
-            final String bunchText = AcceptationDetailsActivity.readConceptText(db, _bunch);
+            final String bunchText = AcceptationDetailsActivity.readConceptText(_bunch);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
         }

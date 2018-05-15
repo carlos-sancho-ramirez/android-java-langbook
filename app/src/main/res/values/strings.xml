@@ -11,6 +11,7 @@
     <string name="addWordButton">Add</string>
 
     <string name="menuItemQuiz">Start quiz</string>
+    <string name="menuItemNewAgent">New agent</string>
     <string name="menuItemSettings">Preferences</string>
     <string name="menuItemAbout">About</string>
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
