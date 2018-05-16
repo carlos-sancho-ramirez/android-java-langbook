@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -156,6 +157,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private State _state;
 
     private ImmutableIntKeyMap<String> _alphabets;
+    private boolean _enabledFlagAndRuleFields;
 
     private CheckBox _includeTargetBunchCheckBox;
     private Button _targetBunchChangeButton;
@@ -163,6 +165,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private LinearLayout _diffBunchesContainer;
     private LinearLayout _matchersContainer;
     private LinearLayout _addersContainer;
+    private CheckBox _matchWordStartingCheckBox;
 
     private void updateAlphabets() {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
@@ -248,6 +251,18 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addAdderEntry(entry);
         }
         findViewById(R.id.addAdderButton).setOnClickListener(this);
+
+        _matchWordStartingCheckBox = findViewById(R.id.matchWordStarting);
+        if (_state.matchWordStarting ||
+                _state.matcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
+                _state.adder.anyMatch(entry -> !TextUtils.isEmpty(entry.text))) {
+
+            enableFlagAndRuleFields();
+            if (_state.matchWordStarting) {
+                _matchWordStartingCheckBox.setChecked(true);
+            }
+        }
+        _matchWordStartingCheckBox.setOnCheckedChangeListener(this);
     }
 
     private void addMatcherEntry(CorrelationEntry entry) {
@@ -356,6 +371,15 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         @Override
         public void afterTextChanged(Editable s) {
             _entry.text = s.toString();
+            enableFlagAndRuleFields();
+        }
+    }
+
+    private void enableFlagAndRuleFields() {
+        if (!_enabledFlagAndRuleFields) {
+            _matchWordStartingCheckBox.setEnabled(true);
+            findViewById(R.id.rulePickerPanel).setVisibility(View.VISIBLE);
+            _enabledFlagAndRuleFields = true;
         }
     }
 
@@ -456,6 +480,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 }
                 _state.includeTargetBunch = isChecked;
                 break;
+
+            case R.id.matchWordStarting:
+                _state.matchWordStarting = isChecked;
         }
     }
 
