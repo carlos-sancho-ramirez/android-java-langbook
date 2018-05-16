@@ -21,19 +21,30 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.IntList;
+import sword.collections.IntSet;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
+import sword.langbook3.android.db.Database;
+import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcceptation;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.AcceptationDetailsActivity.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
@@ -42,6 +53,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private static final int REQUEST_CODE_PICK_DIFF_BUNCH = 3;
     private static final int REQUEST_CODE_PICK_RULE = 4;
 
+    private static final int EMPTY_BUNCH_SET = 0;
     private static final int NO_RULE = 0;
 
     private interface SavedKeys {
@@ -273,6 +285,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             final TextView textView = findViewById(R.id.ruleText);
             textView.setText(readConceptText(_state.rule));
         }
+
+        findViewById(R.id.saveButton).setOnClickListener(this);
     }
 
     private void addMatcherEntry(CorrelationEntry entry) {
@@ -526,6 +540,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             case R.id.ruleChangeButton:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_RULE);
                 break;
+
+            case R.id.saveButton:
+                saveAgent();
+                break;
         }
     }
 
@@ -591,5 +609,166 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(SavedKeys.STATE, _state);
+    }
+
+    private String getErrorMessage() {
+        if (_state.includeTargetBunch && _state.targetBunch == NO_BUNCH) {
+            return "No valid target bunch";
+        }
+
+        for (int bunch : _state.sourceBunches) {
+            if (bunch == NO_BUNCH || _state.includeTargetBunch && bunch == _state.targetBunch || _state.diffBunches.contains(bunch)) {
+                return "Invalid bunch selection";
+            }
+        }
+
+        for (int bunch : _state.diffBunches) {
+            if (bunch == NO_BUNCH || _state.includeTargetBunch && bunch == _state.targetBunch) {
+                return "Invalid bunch selection";
+            }
+        }
+
+        final MutableIntSet alphabets = MutableIntSet.empty();
+        for (CorrelationEntry entry : _state.matcher) {
+            if (alphabets.contains(entry.alphabet)) {
+                return "Unable to duplicate alphabet in matcher";
+            }
+            alphabets.add(entry.alphabet);
+
+            if (TextUtils.isEmpty(entry.text)) {
+                return "Matcher entries cannot be empty";
+            }
+        }
+
+        alphabets.clear();
+        for (CorrelationEntry entry : _state.adder) {
+            if (alphabets.contains(entry.alphabet)) {
+                return "Unable to duplicate alphabet in adder";
+            }
+            alphabets.add(entry.alphabet);
+        }
+
+        return null;
+    }
+
+    private Integer findBunchSet(IntSet bunchSet) {
+        if (bunchSet.isEmpty()) {
+            return EMPTY_BUNCH_SET;
+        }
+
+        final ImmutableIntSet set = bunchSet.toImmutable();
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
+                .where(table.getBunchColumnIndex(), bunchSet.valueAt(0))
+                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
+
+        final DbResult result = DbManager.getInstance().getDatabase().select(query);
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int setId = row.get(0).toInt();
+                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+                builder.add(row.get(1).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newSetId = row.get(0).toInt();
+                    if (newSetId != setId) {
+                        if (set.equals(builder.build())) {
+                            return setId;
+                        }
+
+                        setId = newSetId;
+                        builder = new ImmutableIntSetBuilder();
+                    }
+                    builder.add(row.get(1).toInt());
+                }
+
+                if (set.equals(builder.build())) {
+                    return setId;
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return null;
+    }
+
+    private int insertBunchSet(IntSet bunchSet) {
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final DbQuery maxQuery = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getSetIdColumnIndex()));
+        final Database db = DbManager.getInstance().getDatabase();
+        final DbResult maxResult = db.select(maxQuery);
+        final int setId = maxResult.hasNext()? maxResult.next().get(0).toInt() + 1 : 1;
+
+        for (int bunch : bunchSet) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getSetIdColumnIndex(), setId)
+                    .put(table.getBunchColumnIndex(), bunch)
+                    .build();
+            if (db.insert(query) == null) {
+                throw new AssertionError();
+            }
+        }
+
+        return setId;
+    }
+
+    private int obtainBunchSet(IntSet bunchSet) {
+        final Integer id = findBunchSet(bunchSet);
+        return (id != null)? id : insertBunchSet(bunchSet);
+    }
+
+    private static ImmutableIntSet toSet(IntList list) {
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (int value : list) {
+            builder.add(value);
+        }
+
+        return builder.build();
+    }
+
+    private int obtainCorrelation(List<CorrelationEntry> entries) {
+        final Database db = DbManager.getInstance().getDatabase();
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        for (CorrelationEntry entry : entries) {
+            builder.put(entry.alphabet, obtainSymbolArray(db, entry.text));
+        }
+        return StreamedDatabaseReader.obtainCorrelation(db, builder.build());
+    }
+
+    private void saveAgent() {
+        final String errorMessage = getErrorMessage();
+        if (errorMessage != null) {
+            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final int matcherId = obtainCorrelation(_state.matcher);
+        final int adderId = obtainCorrelation(_state.adder);
+
+        final int rule = (matcherId != adderId)? _state.rule : NO_RULE;
+        final int flags = _state.matchWordStarting? 1 : 0;
+
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbInsertQuery query = new DbInsertQuery.Builder(agents)
+                .put(agents.getTargetBunchColumnIndex(), _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH)
+                .put(agents.getSourceBunchSetColumnIndex(), obtainBunchSet(toSet(_state.sourceBunches)))
+                .put(agents.getDiffBunchSetColumnIndex(), obtainBunchSet(toSet(_state.diffBunches)))
+                .put(agents.getMatcherColumnIndex(), matcherId)
+                .put(agents.getAdderColumnIndex(), adderId)
+                .put(agents.getRuleColumnIndex(), rule)
+                .put(agents.getFlagsColumnIndex(), flags)
+                .build();
+        final Integer agentId = DbManager.getInstance().getDatabase().insert(query);
+        final int message = (agentId != null)? R.string.newAgentFeedback : R.string.newAgentError;
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        if (agentId != null) {
+            finish();
+        }
     }
 }
