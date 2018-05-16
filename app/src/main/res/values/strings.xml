@@ -27,6 +27,19 @@
     <string name="wordEditorNextButton">Next</string>
     <string name="wordEditorWrongTextError">Invalid values present</string>
 
+    <string name="agentEditorIncludeTargetBunchCheckBoxText">Include target bunch</string>
+    <string name="agentEditorMatchWordStartingCheckBoxText">Match word starting</string>
+    <string name="agentEditorSourceBunchesHeader">Source bunches</string>
+    <string name="agentEditorDiffBunchesHeader">Differential bunches</string>
+    <string name="agentEditorMatchersHeader">Matchers</string>
+    <string name="agentEditorAddersHeader">Adders</string>
+    <string name="agentEditorRuleHeader">Rule</string>
+    <string name="agentEditorChangeButton">Change</string>
+    <string name="agentEditorAddButton">Add</string>
+    <string name="agentEditorRemoveButton">Remove</string>
+    <string name="agentEditorSaveButton">Save</string>
+    <string name="agentEditorRuleDefaultText">Select a Rule</string>
+
     <string name="correlationPickerNextButton">Next</string>
 
     <string name="linkDialogTitle">Choose a link option</string>

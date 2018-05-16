@@ -6,4 +6,7 @@
 
     <dimen name="aboutAppNameTextSize">30sp</dimen>
     <dimen name="aboutPadding">12dp</dimen>
+
+    <dimen name="agentEditorMainPadding">4dp</dimen>
+    <dimen name="agentEditorSectionPadding">8dp</dimen>
 </resources>

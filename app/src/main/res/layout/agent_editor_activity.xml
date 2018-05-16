@@ -6,17 +6,19 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="@dimen/agentEditorMainPadding"
         android:orientation="vertical">
 
         <CheckBox
             android:id="@+id/includeTargetBunch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Include target bunch"/>
+            android:text="@string/agentEditorIncludeTargetBunchCheckBoxText"/>
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/agentEditorSectionPadding">
 
             <TextView
                 android:id="@+id/targetBunchText"
@@ -28,7 +30,7 @@
                 android:id="@+id/targetBunchChangeButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Change"
+                android:text="@string/agentEditorChangeButton"
                 android:enabled="false"/>
         </LinearLayout>
 
@@ -40,19 +42,20 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Source bunches"/>
+                android:text="@string/agentEditorSourceBunchesHeader"/>
 
             <Button
                 android:id="@+id/addSourceBunchButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add"/>
+                android:text="@string/agentEditorAddButton"/>
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/sourceBunchesContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/agentEditorSectionPadding"
             android:orientation="vertical"/>
 
         <LinearLayout
@@ -63,19 +66,20 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Differential bunches"/>
+                android:text="@string/agentEditorDiffBunchesHeader"/>
 
             <Button
                 android:id="@+id/addDiffBunchButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add"/>
+                android:text="@string/agentEditorAddButton"/>
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/diffBunchesContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/agentEditorSectionPadding"
             android:orientation="vertical"/>
 
         <LinearLayout
@@ -86,26 +90,27 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Matchers"/>
+                android:text="@string/agentEditorMatchersHeader"/>
 
             <Button
                 android:id="@+id/addMatcherButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add"/>
+                android:text="@string/agentEditorAddButton"/>
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/matchersContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/agentEditorSectionPadding"
             android:orientation="vertical"/>
 
         <CheckBox
             android:id="@+id/matchWordStarting"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Match word starting"
+            android:text="@string/agentEditorMatchWordStartingCheckBoxText"
             android:enabled="false"/>
 
         <LinearLayout
@@ -116,19 +121,20 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Adders"/>
+                android:text="@string/agentEditorAddersHeader"/>
 
             <Button
                 android:id="@+id/addAdderButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add"/>
+                android:text="@string/agentEditorAddButton"/>
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/addersContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/agentEditorSectionPadding"
             android:orientation="vertical"/>
 
         <LinearLayout
@@ -141,24 +147,25 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Rule"/>
+                android:text="@string/agentEditorRuleHeader"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:paddingLeft="@dimen/agentEditorSectionPadding">
 
                 <TextView
                     android:id="@+id/ruleText"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Select a Rule"/>
+                    android:text="@string/agentEditorRuleDefaultText"/>
 
                 <Button
                     android:id="@+id/ruleChangeButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Change"/>
+                    android:text="@string/agentEditorChangeButton"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -166,6 +173,6 @@
             android:id="@+id/saveButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save"/>
+            android:text="@string/agentEditorSaveButton"/>
     </LinearLayout>
 </ScrollView>
