@@ -6,17 +6,31 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
+import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
+import sword.langbook3.android.db.DbQuery;
+import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcceptation;
+import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.AcceptationDetailsActivity.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 
@@ -141,15 +155,51 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private State _state;
 
+    private ImmutableIntKeyMap<String> _alphabets;
+
     private CheckBox _includeTargetBunchCheckBox;
     private Button _targetBunchChangeButton;
     private LinearLayout _sourceBunchesContainer;
     private LinearLayout _diffBunchesContainer;
+    private LinearLayout _matchersContainer;
+    private LinearLayout _addersContainer;
+
+    private void updateAlphabets() {
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int acceptationsOffset = alphabets.columns().size();
+        final int stringsOffset = acceptationsOffset + acceptations.columns().size();
+
+        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        final DbQuery query = new DbQuery.Builder(alphabets)
+                .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, acceptationsOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .select(
+                        alphabets.getIdColumnIndex(),
+                        stringsOffset + strings.getStringAlphabetColumnIndex(),
+                        stringsOffset + strings.getStringColumnIndex());
+
+        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+            final int id = row.get(0).toInt();
+            final int strAlphabet = row.get(1).toInt();
+
+            if (strAlphabet == preferredAlphabet || !foundAlphabets.contains(id)) {
+                foundAlphabets.add(id);
+                result.put(id, row.get(2).toText());
+            }
+        }
+
+        _alphabets = result.toImmutable();
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.agent_editor_activity);
+        updateAlphabets();
 
         if (savedInstanceState != null) {
             _state = savedInstanceState.getParcelable(SavedKeys.STATE);
@@ -185,6 +235,167 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         _diffBunchesContainer = findViewById(R.id.diffBunchesContainer);
         for (int concept : _state.diffBunches) {
             addDiffBunch(concept);
+        }
+
+        _matchersContainer = findViewById(R.id.matchersContainer);
+        for (CorrelationEntry entry : _state.matcher) {
+            addMatcherEntry(entry);
+        }
+        findViewById(R.id.addMatcherButton).setOnClickListener(this);
+
+        _addersContainer = findViewById(R.id.addersContainer);
+        for (CorrelationEntry entry : _state.adder) {
+            addAdderEntry(entry);
+        }
+        findViewById(R.id.addAdderButton).setOnClickListener(this);
+    }
+
+    private void addMatcherEntry(CorrelationEntry entry) {
+        getLayoutInflater().inflate(R.layout.agent_editor_correlation_entry, _matchersContainer, true);
+        final View view = _matchersContainer.getChildAt(_matchersContainer.getChildCount() - 1);
+
+        final Spinner alphabetSpinner = view.findViewById(R.id.alphabet);
+        alphabetSpinner.setAdapter(new AlphabetAdapter());
+        final int position = _alphabets.keySet().indexOf(entry.alphabet);
+        if (position >= 0) {
+            alphabetSpinner.setSelection(position);
+        }
+        alphabetSpinner.setOnItemSelectedListener(new AlphabetSelectedListener(entry));
+
+        final EditText textField = view.findViewById(R.id.text);
+        if (entry.text != null) {
+            textField.setText(entry.text);
+        }
+        textField.addTextChangedListener(new CorrelationTextWatcher(entry));
+
+        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeMatcherEntry(entry));
+    }
+
+    private void removeMatcherEntry(CorrelationEntry entry) {
+        final int position = _state.matcher.indexOf(entry);
+        if (position < 0) {
+            throw new AssertionError();
+        }
+
+        _matchersContainer.removeViewAt(position);
+        _state.matcher.removeAt(position);
+    }
+
+    private void addAdderEntry(CorrelationEntry entry) {
+        getLayoutInflater().inflate(R.layout.agent_editor_correlation_entry, _addersContainer, true);
+        final View view = _addersContainer.getChildAt(_addersContainer.getChildCount() - 1);
+
+        final Spinner alphabetSpinner = view.findViewById(R.id.alphabet);
+        alphabetSpinner.setAdapter(new AlphabetAdapter());
+        final int position = _alphabets.keySet().indexOf(entry.alphabet);
+        if (position >= 0) {
+            alphabetSpinner.setSelection(position);
+        }
+        alphabetSpinner.setOnItemSelectedListener(new AlphabetSelectedListener(entry));
+
+        final EditText textField = view.findViewById(R.id.text);
+        if (entry.text != null) {
+            textField.setText(entry.text);
+        }
+        textField.addTextChangedListener(new CorrelationTextWatcher(entry));
+
+        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeAdderEntry(entry));
+    }
+
+    private void removeAdderEntry(CorrelationEntry entry) {
+        final int position = _state.adder.indexOf(entry);
+        if (position < 0) {
+            throw new AssertionError();
+        }
+
+        _addersContainer.removeViewAt(position);
+        _state.adder.removeAt(position);
+    }
+
+    private final class AlphabetSelectedListener implements AdapterView.OnItemSelectedListener {
+
+        private final CorrelationEntry _entry;
+
+        AlphabetSelectedListener(CorrelationEntry entry) {
+            if (entry == null) {
+                throw new IllegalArgumentException();
+            }
+
+            _entry = entry;
+        }
+
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            _entry.alphabet = _alphabets.keyAt(position);
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {
+            // Nothing to be done
+        }
+    }
+
+    private final class CorrelationTextWatcher implements TextWatcher {
+
+        private final CorrelationEntry _entry;
+
+        CorrelationTextWatcher(CorrelationEntry entry) {
+            _entry = entry;
+        }
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            _entry.text = s.toString();
+        }
+    }
+
+    private final class AlphabetAdapter extends BaseAdapter {
+
+        private LayoutInflater _inflater;
+
+        @Override
+        public int getCount() {
+            return _alphabets.size();
+        }
+
+        @Override
+        public Integer getItem(int position) {
+            return _alphabets.keyAt(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return _alphabets.keyAt(position);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            final View view;
+            if (convertView == null) {
+                if (_inflater == null) {
+                    _inflater = LayoutInflater.from(parent.getContext());
+                }
+
+                view = _inflater.inflate(R.layout.quiz_type_item, parent, false);
+            }
+            else {
+                view = convertView;
+            }
+
+            final TextView textView = view.findViewById(R.id.itemTextView);
+            textView.setText(_alphabets.valueAt(position));
+
+            return view;
         }
     }
 
@@ -261,6 +472,18 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
             case R.id.addDiffBunchButton:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_DIFF_BUNCH);
+                break;
+
+            case R.id.addMatcherButton:
+                CorrelationEntry entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                _state.matcher.append(entry);
+                addMatcherEntry(entry);
+                break;
+
+            case R.id.addAdderButton:
+                entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                _state.adder.append(entry);
+                addAdderEntry(entry);
                 break;
         }
     }
