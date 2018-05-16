@@ -40,6 +40,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private static final int REQUEST_CODE_PICK_TARGET_BUNCH = 1;
     private static final int REQUEST_CODE_PICK_SOURCE_BUNCH = 2;
     private static final int REQUEST_CODE_PICK_DIFF_BUNCH = 3;
+    private static final int REQUEST_CODE_PICK_RULE = 4;
+
+    private static final int NO_RULE = 0;
 
     private interface SavedKeys {
         String STATE = "st";
@@ -50,11 +53,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         context.startActivity(intent);
     }
 
-    public static final class CorrelationEntry {
+    static final class CorrelationEntry {
         public int alphabet;
         public String text;
 
-        public CorrelationEntry(int alphabet, String text) {
+        CorrelationEntry(int alphabet, String text) {
             this.alphabet = alphabet;
             this.text = text;
         }
@@ -70,7 +73,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         boolean matchWordStarting;
         int rule;
 
-        public State() {
+        State() {
         }
 
         private State(Parcel in) {
@@ -263,6 +266,13 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
         }
         _matchWordStartingCheckBox.setOnCheckedChangeListener(this);
+
+        findViewById(R.id.ruleChangeButton).setOnClickListener(this);
+
+        if (_state.rule != NO_RULE) {
+            final TextView textView = findViewById(R.id.ruleText);
+            textView.setText(readConceptText(_state.rule));
+        }
     }
 
     private void addMatcherEntry(CorrelationEntry entry) {
@@ -512,6 +522,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 _state.adder.append(entry);
                 addAdderEntry(entry);
                 break;
+
+            case R.id.ruleChangeButton:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_RULE);
+                break;
         }
     }
 
@@ -557,6 +571,19 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             final int concept = conceptFromAcceptation(acceptation);
             _state.diffBunches.append(concept);
             addDiffBunch(concept);
+        }
+        else if (requestCode == REQUEST_CODE_PICK_RULE && resultCode == RESULT_OK) {
+            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            if (acceptation == 0) {
+                throw new AssertionError();
+            }
+
+            final int concept = conceptFromAcceptation(acceptation);
+            _state.rule = concept;
+
+            final String text = readConceptText(concept);
+            final TextView textView = findViewById(R.id.ruleText);
+            textView.setText(text);
         }
     }
 
