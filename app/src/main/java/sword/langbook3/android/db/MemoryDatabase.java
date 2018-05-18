@@ -125,15 +125,15 @@ public final class MemoryDatabase implements DbImporter.Database {
 
     private void applyRestrictions(
             MutableList<ImmutableList<Object>> result,
-            ImmutableIntKeyMap<DbValue> restrictions) {
-        for (ImmutableIntKeyMap.Entry<DbValue> restriction : restrictions.entries()) {
-            final DbValue value = restriction.value();
+            ImmutableIntKeyMap<DbQuery.Restriction> restrictions) {
+        for (ImmutableIntKeyMap.Entry<DbQuery.Restriction> entry : restrictions.entries()) {
+            final DbValue value = entry.value().value;
             final Object rawValue = value.isText()? value.toText() : value.toInt();
 
             final Iterator<ImmutableList<Object>> it = result.iterator();
             while (it.hasNext()) {
                 final ImmutableList<Object> register = it.next();
-                if (!rawValue.equals(register.get(restriction.key()))) {
+                if (!rawValue.equals(register.get(entry.key()))) {
                     it.remove();
                 }
             }
@@ -165,10 +165,10 @@ public final class MemoryDatabase implements DbImporter.Database {
         }
 
         // Apply id restriction if found
-        final ImmutableIntKeyMap<DbValue> restrictions = query.restrictions();
+        final ImmutableIntKeyMap<DbQuery.Restriction> restrictions = query.restrictions();
         final MutableList<ImmutableList<Object>> unselectedResult;
         if (restrictions.keySet().contains(0)) {
-            final int id = restrictions.get(0).toInt();
+            final int id = restrictions.get(0).value.toInt();
             ImmutableList<Object> register = content.get(id, ImmutableList.empty()).prepend(id);
             unselectedResult = new MutableList.Builder<ImmutableList<Object>>().add(register).build();
         }

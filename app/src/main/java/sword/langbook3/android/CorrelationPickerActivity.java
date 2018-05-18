@@ -20,6 +20,7 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
 import sword.collections.IntSet;
 import sword.collections.MutableIntSet;
+import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
@@ -292,7 +293,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return null;
     }
 
-    private int insertCorrelationArray(ImmutableIntList array) {
+    static int insertCorrelationArray(ImmutableIntList array) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final DbManager manager = DbManager.getInstance();
         final DbImporter.Database db = manager.getDatabase();
@@ -318,21 +319,45 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return id;
     }
 
+    static final class AcceptationFirstAvailables {
+        final int word;
+        final int concept;
+
+        AcceptationFirstAvailables(int word, int concept) {
+            this.word = word;
+            this.concept = concept;
+        }
+    }
+
+    static AcceptationFirstAvailables getAcceptationFirstAvailables(DbExporter.Database db) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery maxQuery = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getWordColumnIndex()), DbQuery.max(table.getConceptColumnIndex()));
+        final Iterator<DbResult.Row> it = db.select(maxQuery);
+        final AcceptationFirstAvailables result;
+        if (it.hasNext()) {
+            final DbResult.Row maxRow = it.next();
+            if (it.hasNext()) {
+                throw new AssertionError();
+            }
+
+            result = new AcceptationFirstAvailables(maxRow.get(0).toInt() + 1, maxRow.get(1).toInt() + 1);
+        }
+        else {
+            result = new AcceptationFirstAvailables(1, 1);
+        }
+
+        return result;
+    }
+
     private int insertAcceptation(int arrayId, int concept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbManager manager = DbManager.getInstance();
         final DbImporter.Database db = manager.getDatabase();
-        final DbQuery maxQuery = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getWordColumnIndex()), DbQuery.max(table.getConceptColumnIndex()));
-        final Iterator<DbResult.Row> it = db.select(maxQuery);
-        final DbResult.Row maxRow = it.next();
-        final int word = maxRow.get(0).toInt() + 1;
+        final AcceptationFirstAvailables firstAvailables = getAcceptationFirstAvailables(db);
+        final int word = firstAvailables.word;
         if (concept == NO_CONCEPT) {
-            concept = maxRow.get(1).toInt() + 1;
-        }
-
-        if (it.hasNext()) {
-            throw new AssertionError();
+            concept = firstAvailables.concept;
         }
 
         final DbInsertQuery query = new DbInsertQuery.Builder(table)

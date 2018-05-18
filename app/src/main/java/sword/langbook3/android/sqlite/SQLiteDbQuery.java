@@ -1,10 +1,10 @@
 package sword.langbook3.android.sqlite;
 
+import sword.collections.ImmutableList;
+import sword.collections.IntKeyMap;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.db.DbView;
-
-import static sword.langbook3.android.sqlite.SqliteUtils.sqlValue;
 
 public final class SQLiteDbQuery {
 
@@ -76,35 +76,29 @@ public final class SQLiteDbQuery {
     }
 
     private String getSqlWhereClause(int subQueryIndex) {
-        final int restrictionCount = _query.getRestrictionCount();
-        final StringBuilder sb = new StringBuilder();
-        boolean prefixAdded = false;
-        for (int i = 0; i < restrictionCount; i++) {
-            if (!prefixAdded) {
-                sb.append(" WHERE ");
-                prefixAdded = true;
+        final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
+        for (IntKeyMap.Entry<DbQuery.Restriction> entry : _query.restrictions().entries()) {
+            final String value;
+            if (entry.value().value.isText()) {
+                final int type = entry.value().type;
+                value = ((type == DbQuery.RestrictionTypes.EXACT)? "=" : " LIKE ") +
+                        ((type == DbQuery.RestrictionStringTypes.ENDS_WITH || type == DbQuery.RestrictionStringTypes.CONTAINS)? "'%" : "'") +
+                        entry.value().value.toText() +
+                        ((type == DbQuery.RestrictionStringTypes.STARTS_WITH || type == DbQuery.RestrictionStringTypes.CONTAINS)? "%'" : "'");
             }
             else {
-                sb.append(" AND ");
+                value = "=" + Integer.toString(entry.value().value.toInt());
             }
-            sb.append(getSqlColumnName(subQueryIndex, _query.getRestrictedColumnIndex(i)))
-                    .append('=').append(sqlValue(_query.getRestriction(i)));
+
+            builder.add(getSqlColumnName(subQueryIndex, entry.key()) + value);
         }
 
         for (DbQuery.JoinColumnPair pair : _query.columnValueMatchPairs()) {
-            if (!prefixAdded) {
-                sb.append(" WHERE ");
-                prefixAdded = true;
-            }
-            else {
-                sb.append(" AND ");
-            }
-
-            sb.append(getSqlColumnName(subQueryIndex, pair.left()))
-                    .append('=').append(getSqlColumnName(subQueryIndex, pair.right()));
+            builder.add(getSqlColumnName(subQueryIndex, pair.left()) + "=" + getSqlColumnName(subQueryIndex, pair.right()));
         }
 
-        return sb.toString();
+        final ImmutableList<String> conditions = builder.build();
+        return !conditions.isEmpty()? " WHERE " + conditions.reduce((a,b) -> a + " AND " + b) : "";
     }
 
     private String getGroupingClause(int subQueryIndex) {

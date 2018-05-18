@@ -27,23 +27,29 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
+import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcceptation;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.AcceptationDetailsActivity.readConceptText;
+import static sword.langbook3.android.CorrelationPickerActivity.getAcceptationFirstAvailables;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertCorrelationArray;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
@@ -542,7 +548,22 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.saveButton:
-                saveAgent();
+                final String errorMessage = getErrorMessage();
+                if (errorMessage != null) {
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    final InsertAgentResult insertionResult = insertAgent();
+                    if (insertionResult != null) {
+                        runAgent(insertionResult);
+                    }
+
+                    final int message = (insertionResult != null) ? R.string.newAgentFeedback : R.string.newAgentError;
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                    if (insertionResult != null) {
+                        finish();
+                    }
+                }
                 break;
         }
     }
@@ -648,6 +669,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             alphabets.add(entry.alphabet);
         }
 
+        if (_state.sourceBunches.isEmpty() && _state.matcher.isEmpty()) {
+            // This would select all acceptations from the database, which has no sense
+            return "Source bunches and matcher cannot be both empty";
+        }
+
         return null;
     }
 
@@ -664,6 +690,52 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
 
         final DbResult result = DbManager.getInstance().getDatabase().select(query);
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int setId = row.get(0).toInt();
+                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+                builder.add(row.get(1).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newSetId = row.get(0).toInt();
+                    if (newSetId != setId) {
+                        if (set.equals(builder.build())) {
+                            return setId;
+                        }
+
+                        setId = newSetId;
+                        builder = new ImmutableIntSetBuilder();
+                    }
+                    builder.add(row.get(1).toInt());
+                }
+
+                if (set.equals(builder.build())) {
+                    return setId;
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return null;
+    }
+
+    private static Integer findAgentSet(Database db, IntSet agentSet) {
+        if (agentSet.isEmpty()) {
+            return EMPTY_BUNCH_SET;
+        }
+
+        final ImmutableIntSet set = agentSet.toImmutable();
+        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
+                .where(table.getAgentColumnIndex(), set.valueAt(0))
+                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getAgentColumnIndex());
+
+        final DbResult result = db.select(query);
         try {
             if (result.hasNext()) {
                 DbResult.Row row = result.next();
@@ -741,13 +813,25 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         return StreamedDatabaseReader.obtainCorrelation(db, builder.build());
     }
 
-    private void saveAgent() {
-        final String errorMessage = getErrorMessage();
-        if (errorMessage != null) {
-            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private static final class InsertAgentResult {
+        final int agentId;
+        final int sourceBunchSetId;
+        final int diffBunchSetId;
+        final int matcherId;
+        final int adderId;
 
+        InsertAgentResult(int agentId, int sourceBunchSetId, int diffBunchSetId, int matcherId, int adderId) {
+            this.agentId = agentId;
+            this.sourceBunchSetId = sourceBunchSetId;
+            this.diffBunchSetId = diffBunchSetId;
+            this.matcherId = matcherId;
+            this.adderId = adderId;
+        }
+    }
+
+    private InsertAgentResult insertAgent() {
+        final int sourceBunchSetId = obtainBunchSet(toSet(_state.sourceBunches));
+        final int diffBunchSetId = obtainBunchSet(toSet(_state.diffBunches));
         final int matcherId = obtainCorrelation(_state.matcher);
         final int adderId = obtainCorrelation(_state.adder);
 
@@ -757,18 +841,245 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbInsertQuery query = new DbInsertQuery.Builder(agents)
                 .put(agents.getTargetBunchColumnIndex(), _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH)
-                .put(agents.getSourceBunchSetColumnIndex(), obtainBunchSet(toSet(_state.sourceBunches)))
-                .put(agents.getDiffBunchSetColumnIndex(), obtainBunchSet(toSet(_state.diffBunches)))
+                .put(agents.getSourceBunchSetColumnIndex(), sourceBunchSetId)
+                .put(agents.getDiffBunchSetColumnIndex(), diffBunchSetId)
                 .put(agents.getMatcherColumnIndex(), matcherId)
                 .put(agents.getAdderColumnIndex(), adderId)
                 .put(agents.getRuleColumnIndex(), rule)
                 .put(agents.getFlagsColumnIndex(), flags)
                 .build();
+
         final Integer agentId = DbManager.getInstance().getDatabase().insert(query);
-        final int message = (agentId != null)? R.string.newAgentFeedback : R.string.newAgentError;
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-        if (agentId != null) {
-            finish();
+        return (agentId != null)? new InsertAgentResult(agentId, sourceBunchSetId, diffBunchSetId, matcherId, adderId) : null;
+    }
+
+    private static void insertRuledConcept(Database db, int ruledConcept, int agent, int baseConcept) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), ruledConcept)
+                .put(table.getAgentColumnIndex(), agent)
+                .put(table.getConceptColumnIndex(), baseConcept)
+                .build();
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static void insertRuledAcceptation(Database db, int ruledAcceptation, int agent, int baseAcceptation) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), ruledAcceptation)
+                .put(table.getAgentColumnIndex(), agent)
+                .put(table.getAcceptationColumnIndex(), baseAcceptation)
+                .build();
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static int insertAgentSet(Database db, IntSet agentSet) {
+        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
+        final DbQuery maxQuery = new DbQuery.Builder(table)
+                .select(DbQuery.max(table.getSetIdColumnIndex()));
+        final DbResult maxResult = db.select(maxQuery);
+        final int setId = maxResult.hasNext()? maxResult.next().get(0).toInt() + 1 : 1;
+
+        for (int agent : agentSet) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getSetIdColumnIndex(), setId)
+                    .put(table.getAgentColumnIndex(), agent)
+                    .build();
+            if (db.insert(query) == null) {
+                throw new AssertionError();
+            }
+        }
+
+        return setId;
+    }
+
+    private static int obtainAgentSet(Database db, IntSet set) {
+        final Integer setId = findAgentSet(db, set);
+        return (setId != null)? setId : insertAgentSet(db, set);
+    }
+
+    private void runAgent(InsertAgentResult insertData) {
+        final DbManager manager = DbManager.getInstance();
+        final ImmutableIntSetBuilder diffAccBuilder = new ImmutableIntSetBuilder();
+        for (int bunch : _state.diffBunches) {
+            final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+            final DbQuery query = new DbQuery.Builder(table)
+                    .where(table.getBunchColumnIndex(), bunch)
+                    .select(table.getAcceptationColumnIndex());
+            for (DbResult.Row row : manager.attach(query)) {
+                diffAccBuilder.add(row.get(0).toInt());
+            }
+        }
+        final ImmutableIntSet diffAcceptations = diffAccBuilder.build();
+
+        ImmutableIntSet matchingAcceptations = null;
+        if (!_state.sourceBunches.isEmpty()) {
+            final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            for (int bunch : _state.sourceBunches) {
+                final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+                final DbQuery query = new DbQuery.Builder(table)
+                        .where(table.getBunchColumnIndex(), bunch)
+                        .select(table.getAcceptationColumnIndex());
+                for (DbResult.Row row : manager.attach(query)) {
+                    final int acc = row.get(0).toInt();
+                    if (!diffAcceptations.contains(acc)) {
+                        builder.add(acc);
+                    }
+                }
+            }
+
+            matchingAcceptations = builder.build();
+        }
+
+        final LangbookDbSchema.StringQueriesTable strTable = LangbookDbSchema.Tables.stringQueries;
+        for (CorrelationEntry entry : _state.matcher) {
+            final DbQuery matchQuery = new DbQuery.Builder(strTable)
+                    .where(strTable.getStringAlphabetColumnIndex(), entry.alphabet)
+                    .where(strTable.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(entry.text),
+                            _state.matchWordStarting? DbQuery.RestrictionStringTypes.STARTS_WITH : DbQuery.RestrictionStringTypes.ENDS_WITH))
+                    .select(strTable.getDynamicAcceptationColumnIndex());
+            final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            for (DbResult.Row row : manager.attach(matchQuery)) {
+                final int acc = row.get(0).toInt();
+                if (matchingAcceptations == null && !diffAcceptations.contains(acc) ||
+                        matchingAcceptations != null && matchingAcceptations.contains(acc)) {
+                    builder.add(acc);
+                }
+            }
+            matchingAcceptations = builder.build();
+        }
+
+        if (matchingAcceptations == null) {
+            throw new AssertionError("Unable to select all acceptations from the database");
+        }
+
+        final Database db = manager.getDatabase();
+        final ImmutableIntSet processedAcceptations;
+        if (insertData.matcherId == insertData.adderId) {
+            processedAcceptations = matchingAcceptations;
+        }
+        else {
+            final CorrelationPickerActivity.AcceptationFirstAvailables wordAndConcept = getAcceptationFirstAvailables(db);
+            int nextWord = wordAndConcept.word;
+            int nextConcept = wordAndConcept.concept;
+
+            final MutableIntPairMap mainAlphabets = MutableIntPairMap.empty();
+            final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
+            for (int acc : matchingAcceptations) {
+                final DbQuery query = new DbQuery.Builder(strTable)
+                        .where(strTable.getDynamicAcceptationColumnIndex(), acc)
+                        .select(
+                                strTable.getStringAlphabetColumnIndex(),
+                                strTable.getStringColumnIndex(),
+                                strTable.getMainAcceptationColumnIndex(),
+                                strTable.getMainStringColumnIndex());
+                final MutableIntKeyMap<String> correlation = MutableIntKeyMap.empty();
+                int mainAcc = 0;
+                String mainString = null;
+                boolean firstFound = false;
+                for (DbResult.Row row : manager.attach(query)) {
+                    final int alphabet = row.get(0).toInt();
+                    final String text = row.get(1).toText();
+                    correlation.put(alphabet, text);
+
+                    if (firstFound) {
+                        if (mainAcc != row.get(2).toInt() || !mainString.equals(row.get(3).toText())) {
+                            throw new AssertionError();
+                        }
+                    }
+                    else {
+                        mainAcc = row.get(2).toInt();
+                        mainString = row.get(3).toText();
+                        firstFound = true;
+                    }
+                }
+
+                for (CorrelationEntry entry : _state.matcher) {
+                    String text = correlation.get(entry.alphabet);
+                    final int length = entry.text.length();
+                    if (_state.matchWordStarting) {
+                        text = text.substring(length);
+                    }
+                    else {
+                        text = text.substring(0, text.length() - length);
+                    }
+                    correlation.put(entry.alphabet, text);
+                }
+
+                for (CorrelationEntry entry : _state.adder) {
+                    String text = correlation.get(entry.alphabet);
+                    if (_state.matchWordStarting) {
+                        text = entry.text + text;
+                    }
+                    else {
+                        text = text + entry.text;
+                    }
+                    correlation.put(entry.alphabet, text);
+                }
+
+                final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
+                for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
+                    corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                }
+
+                final int correlationId = StreamedDatabaseReader.obtainCorrelation(db, corrBuilder.build());
+                final int correlationArrayId = insertCorrelationArray(db, correlationId);
+
+                final int baseConcept = conceptFromAcceptation(acc);
+                insertRuledConcept(db, nextConcept, insertData.agentId, baseConcept);
+                final int newAcc = insertAcceptation(db, nextWord, nextConcept, correlationArrayId);
+                insertRuledAcceptation(db, newAcc, insertData.agentId, acc);
+
+                // TODO: Conversion is missing
+                for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+                    int mainTextAlphabet = mainAlphabets.get(entry.key(), 0);
+                    if (mainTextAlphabet == 0) {
+                        final LangbookDbSchema.AlphabetsTable alpTable = LangbookDbSchema.Tables.alphabets;
+                        final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
+                        final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
+                                .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
+                                .where(alpTable.getIdColumnIndex(), entry.key())
+                                .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
+                        mainTextAlphabet = manager.selectSingleRow(mainAlphableQuery).get(0).toInt();
+                        mainAlphabets.put(entry.key(), mainTextAlphabet);
+                    }
+
+                    final String mainText = correlation.get(entry.key(), entry.value());
+                    final DbInsertQuery strInsertQuery = new DbInsertQuery.Builder(strTable)
+                            .put(strTable.getDynamicAcceptationColumnIndex(), newAcc)
+                            .put(strTable.getMainAcceptationColumnIndex(), mainAcc)
+                            .put(strTable.getMainStringColumnIndex(), mainText)
+                            .put(strTable.getStringAlphabetColumnIndex(), entry.key())
+                            .put(strTable.getStringColumnIndex(), entry.value())
+                            .build();
+                    db.insert(strInsertQuery);
+                }
+                processedAccBuilder.add(newAcc);
+
+                nextConcept++;
+                nextWord++;
+            }
+            processedAcceptations = processedAccBuilder.build();
+        }
+
+        if (_state.includeTargetBunch) {
+            final int targetBunch = _state.targetBunch;
+            final int agentSetId = obtainAgentSet(db, new ImmutableIntSetBuilder().add(insertData.agentId).build());
+            final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+            for (int acc : processedAcceptations) {
+                final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                        .put(table.getBunchColumnIndex(), targetBunch)
+                        .put(table.getAgentSetColumnIndex(), agentSetId)
+                        .put(table.getAcceptationColumnIndex(), acc)
+                        .build();
+                if (db.insert(query) == null) {
+                    throw new AssertionError();
+                }
+            }
         }
     }
 }

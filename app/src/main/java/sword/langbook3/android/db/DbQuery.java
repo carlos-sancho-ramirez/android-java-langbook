@@ -19,7 +19,7 @@ public final class DbQuery implements DbView {
     private final DbView[] _tables;
     private final int[] _joinPairs;
     private final ImmutableSet<JoinColumnPair> _columnValueMatchingPairs;
-    private final ImmutableIntKeyMap<DbValue> _restrictions;
+    private final ImmutableIntKeyMap<Restriction> _restrictions;
     private final int[] _groupBy;
     private final int[] _orderBy;
 
@@ -33,7 +33,7 @@ public final class DbQuery implements DbView {
     private transient ImmutableList<DbColumn> _columns;
 
     private DbQuery(DbView[] tables, int[] joinPairs, ImmutableSet<JoinColumnPair> columnValueMatchPairs,
-            ImmutableIntKeyMap<DbValue> restrictions, int[] groupBy, int[] orderBy, int[] selection) {
+            ImmutableIntKeyMap<Restriction> restrictions, int[] groupBy, int[] orderBy, int[] selection) {
 
         if (tables == null || tables.length == 0 || selection == null || selection.length == 0) {
             throw new IllegalArgumentException();
@@ -97,7 +97,7 @@ public final class DbQuery implements DbView {
         }
 
         for (int i = 0; i < restrictionCount; i++) {
-            final DbValue value = restrictions.valueAt(i);
+            final DbValue value = restrictions.valueAt(i).value;
             if (value == null || joinColumns[restrictions.keyAt(i)].isText() != value.isText()) {
                 throw new IllegalArgumentException();
             }
@@ -214,6 +214,35 @@ public final class DbQuery implements DbView {
         }
     }
 
+    public interface RestrictionTypes {
+        int EXACT = 0;
+    }
+
+    public interface RestrictionStringTypes extends RestrictionTypes {
+        int ENDS_WITH = 1;
+        int STARTS_WITH = 2;
+        int CONTAINS = 3;
+    }
+
+    public static final class Restriction {
+        public final DbValue value;
+
+        /**
+         * If DbValue is text, this must be one of the values within {@link sword.langbook3.android.db.DbQuery.RestrictionStringTypes}
+         * If DbValue is int, this must be 0
+         */
+        public final int type;
+
+        public Restriction(DbValue value, int type) {
+            if (value == null || value.isText() && (type < 0 || type > 3) || !value.isText() && type != RestrictionTypes.EXACT) {
+                throw new IllegalArgumentException();
+            }
+
+            this.value = value;
+            this.type = type;
+        }
+    }
+
     public JoinColumnPair getJoinPair(int index) {
         final int pairCount = _joinPairs.length / 2;
         for (int j = 0; j < pairCount; j++) {
@@ -238,10 +267,10 @@ public final class DbQuery implements DbView {
     }
 
     public DbValue getRestriction(int index) {
-        return _restrictions.valueAt(index);
+        return _restrictions.valueAt(index).value;
     }
 
-    public ImmutableIntKeyMap<DbValue> restrictions() {
+    public ImmutableIntKeyMap<Restriction> restrictions() {
         return _restrictions;
     }
 
@@ -330,7 +359,7 @@ public final class DbQuery implements DbView {
     public static final class Builder {
         private final ArrayList<DbView> _tables = new ArrayList<>();
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
-        private final MutableIntKeyMap<DbValue> _restrictions = MutableIntKeyMap.empty();
+        private final MutableIntKeyMap<Restriction> _restrictions = MutableIntKeyMap.empty();
         private final MutableSet<JoinColumnPair> _columnValueMatchPairs = MutableSet.empty();
         private int[] _groupBy;
         private int[] _orderBy;
@@ -342,16 +371,23 @@ public final class DbQuery implements DbView {
         }
 
         public Builder where(int columnIndex, DbValue value) {
-            _restrictions.put(columnIndex, value);
+            _restrictions.put(columnIndex, new Restriction(value, RestrictionTypes.EXACT));
             return this;
         }
 
         public Builder where(int columnIndex, int value) {
-            return where(columnIndex, new DbIntValue(value));
+            _restrictions.put(columnIndex, new Restriction(new DbIntValue(value), RestrictionTypes.EXACT));
+            return this;
+        }
+
+        public Builder where(int columnIndex, Restriction restriction) {
+            _restrictions.put(columnIndex, restriction);
+            return this;
         }
 
         public Builder where(int columnIndex, String value) {
-            return where(columnIndex, new DbStringValue(value));
+            _restrictions.put(columnIndex, new Restriction(new DbStringValue(value), RestrictionTypes.EXACT));
+            return this;
         }
 
         public Builder whereColumnValueMatch(int leftColumnIndex, int rightColumnIndex) {
