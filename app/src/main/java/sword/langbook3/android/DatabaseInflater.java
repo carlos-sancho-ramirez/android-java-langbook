@@ -17,8 +17,8 @@ import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
+import static sword.langbook3.android.LangbookReadableDatabase.getColumnMax;
 import static sword.langbook3.android.db.DbQuery.concat;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.getColumnMax;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertBunchAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertCorrelationArray;

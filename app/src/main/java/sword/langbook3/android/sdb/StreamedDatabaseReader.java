@@ -23,8 +23,11 @@ import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
+import sword.collections.IntSet;
 import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.db.DbImporter.Database;
@@ -32,6 +35,15 @@ import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
+
+import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
+import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxBunchSetId;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
+import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
 
 public final class StreamedDatabaseReader {
 
@@ -164,9 +176,13 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private Set<Integer> readRangedNumberSet(InputBitStream ibs, HuffmanTable<Integer> lengthTable, int min, int max) throws IOException {
+    private ImmutableIntSet readRangedNumberSet(InputBitStream ibs, HuffmanTable<Integer> lengthTable, int min, int max) throws IOException {
         final RangedIntegerSetDecoder decoder = new RangedIntegerSetDecoder(ibs, lengthTable, min, max);
-        return ibs.readSet(decoder, decoder, decoder);
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (int value : ibs.readSet(decoder, decoder, decoder)) {
+            builder.add(value);
+        }
+        return builder.build();
     }
 
     private static final class Language {
@@ -253,10 +269,10 @@ public final class StreamedDatabaseReader {
     public static class AgentBunches {
 
         private final int _target;
-        private final Set<Integer> _sources;
-        private final Set<Integer> _diff;
+        private final ImmutableIntSet _sources;
+        private final ImmutableIntSet _diff;
 
-        AgentBunches(int target, Set<Integer> sources, Set<Integer> diff) {
+        AgentBunches(int target, ImmutableIntSet sources, ImmutableIntSet diff) {
             _target = target;
             _sources = sources;
             _diff = diff;
@@ -265,55 +281,6 @@ public final class StreamedDatabaseReader {
         public boolean dependsOn(AgentBunches agent) {
             final int target = agent._target;
             return _sources.contains(target) || _diff.contains(target);
-        }
-    }
-
-    public static int getColumnMax(Database db, DbTable table, int columnIndex) {
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(DbQuery.max(columnIndex));
-        final DbResult result = db.select(query);
-        try {
-            return result.hasNext()? result.next().get(0).toInt() : 0;
-        }
-        finally {
-            result.close();
-        }
-    }
-
-    private String getSymbolArray(int id) {
-        final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), id)
-                .select(table.getStrColumnIndex());
-        final DbResult result = _db.select(query);
-        try {
-            final String str = result.hasNext()? result.next().get(0).toText() : null;
-            if (result.hasNext()) {
-                throw new AssertionError("There should not be repeated identifiers");
-            }
-            return str;
-        }
-        finally {
-            result.close();
-        }
-    }
-
-    private static Integer findSymbolArray(Database db, String str) {
-        final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStrColumnIndex(), str)
-                .select(table.getIdColumnIndex());
-        final DbResult result = db.select(query);
-        try {
-            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
-            if (result.hasNext()) {
-                throw new AssertionError();
-            }
-
-            return value;
-        }
-        finally {
-            result.close();
         }
     }
 
@@ -369,83 +336,6 @@ public final class StreamedDatabaseReader {
         _db.insert(query);
     }
 
-    private ImmutableIntPairMap getCorrelation(int id) {
-        LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getCorrelationIdColumnIndex(), id)
-                .select(table.getAlphabetColumnIndex(), table.getSymbolArrayColumnIndex());
-
-        ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
-        final DbResult result = _db.select(query);
-        try {
-            while (result.hasNext()) {
-                final DbResult.Row row = result.next();
-                corrBuilder.put(row.get(0).toInt(), row.get(1).toInt());
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return corrBuilder.build();
-    }
-
-    private static Integer findCorrelation(Database db, IntPairMap correlation) {
-        if (correlation.size() == 0) {
-            return StreamedDatabaseConstants.nullCorrelationId;
-        }
-        final ImmutableIntPairMap corr = correlation.toImmutable();
-
-        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final int offset = table.columns().size();
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getCorrelationIdColumnIndex(), table.getCorrelationIdColumnIndex())
-                .where(table.getAlphabetColumnIndex(), corr.keyAt(0))
-                .where(table.getSymbolArrayColumnIndex(), corr.valueAt(0))
-                .select(
-                        table.getCorrelationIdColumnIndex(),
-                        offset + table.getAlphabetColumnIndex(),
-                        offset + table.getSymbolArrayColumnIndex());
-        final DbResult result = db.select(query);
-        try {
-            if (result.hasNext()) {
-                DbResult.Row row = result.next();
-                int correlationId = row.get(0).toInt();
-                ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-                builder.put(row.get(1).toInt(), row.get(2).toInt());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    int newCorrelationId = row.get(0).toInt();
-                    if (newCorrelationId != correlationId) {
-                        if (builder.build().equals(corr)) {
-                            return correlationId;
-                        }
-
-                        correlationId = newCorrelationId;
-                        builder = new ImmutableIntPairMap.Builder();
-                    }
-
-                    builder.put(row.get(1).toInt(), row.get(2).toInt());
-                }
-
-                if (builder.build().equals(corr)) {
-                    return correlationId;
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return null;
-    }
-
-    private static int getMaxCorrelationId(Database db) {
-        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        return getColumnMax(db, table, table.getCorrelationIdColumnIndex());
-    }
-
     private static int insertCorrelation(Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
@@ -474,71 +364,6 @@ public final class StreamedDatabaseReader {
         }
 
         return id;
-    }
-
-    private int[] getCorrelationArray(int id) {
-        if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
-            return new int[0];
-        }
-
-        LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getArrayIdColumnIndex(), id)
-                .select(table.getArrayPositionColumnIndex(), table.getCorrelationColumnIndex());
-        final DbResult dbResult = _db.select(query);
-        final int[] result = new int[dbResult.getRemainingRows()];
-        final BitSet set = new BitSet();
-        try {
-            while (dbResult.hasNext()) {
-                final DbResult.Row row = dbResult.next();
-                final int pos = row.get(0).toInt();
-                final int corr = row.get(1).toInt();
-                if (set.get(pos)) {
-                    throw new AssertionError("Malformed correlation array with id " + id);
-                }
-
-                set.set(pos);
-                result[pos] = corr;
-            }
-        }
-        finally {
-            dbResult.close();
-        }
-
-        return result;
-    }
-
-    private Integer findCorrelationArray(int... correlations) {
-        if (correlations.length == 0) {
-            return StreamedDatabaseConstants.nullCorrelationArrayId;
-        }
-
-        LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getArrayPositionColumnIndex(), 0)
-                .where(table.getCorrelationColumnIndex(), correlations[0])
-                .select(table.getArrayIdColumnIndex());
-
-        final DbResult result = _db.select(query);
-        try {
-            while (result.hasNext()) {
-                final int arrayId = result.next().get(0).toInt();
-                final int[] array = getCorrelationArray(arrayId);
-                if (Arrays.equals(correlations, array)) {
-                    return arrayId;
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return null;
-    }
-
-    private static int getMaxCorrelationArrayId(Database db) {
-        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        return getColumnMax(db, table, table.getArrayIdColumnIndex());
     }
 
     public static int insertCorrelationArray(Database db, int... correlation) {
@@ -587,55 +412,7 @@ public final class StreamedDatabaseReader {
         db.insert(query);
     }
 
-    private int getMaxBunchSetId() {
-        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        return getColumnMax(_db, table, table.getSetIdColumnIndex());
-    }
-
-    private Integer findBunchSet(Set<Integer> bunches) {
-        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        if (bunches.isEmpty()) {
-            return table.nullReference();
-        }
-
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
-                .where(table.getBunchColumnIndex(), bunches.iterator().next())
-                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
-        final DbResult result = _db.select(query);
-        try {
-            if (result.hasNext()) {
-                DbResult.Row row = result.next();
-                final HashSet<Integer> set = new HashSet<>();
-                int setId = row.get(0).toInt();
-                set.add(row.get(1).toInt());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    if (row.get(0).toInt() != setId) {
-                        if (set.equals(bunches)) {
-                            return setId;
-                        }
-
-                        setId = row.get(0).toInt();
-                        set.clear();
-                        set.add(row.get(1).toInt());
-                    }
-                }
-
-                if (set.equals(bunches)) {
-                    return setId;
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return null;
-    }
-
-    private int insertBunchSet(int setId, Set<Integer> bunches) {
+    private int insertBunchSet(int setId, IntSet bunches) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
 
         if (bunches.isEmpty()) {
@@ -654,8 +431,8 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private int obtainBunchSet(int setId, Set<Integer> bunches) {
-        final Integer foundId = findBunchSet(bunches);
+    private int obtainBunchSet(int setId, IntSet bunches) {
+        final Integer foundId = findBunchSet(_db, bunches);
         return (foundId != null)? foundId : insertBunchSet(setId, bunches);
     }
 
@@ -727,8 +504,8 @@ public final class StreamedDatabaseReader {
                 final int target = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
                 insertConversion(sourceAlphabet, targetAlphabet, source, target);
 
-                sources[j] = getSymbolArray(source);
-                targets[j] = getSymbolArray(target);
+                sources[j] = getSymbolArray(_db, source);
+                targets[j] = getSymbolArray(_db, target);
             }
 
             conversions[i] = new Conversion(sourceAlphabet, targetAlphabet, sources, targets);
@@ -794,7 +571,7 @@ public final class StreamedDatabaseReader {
             for (int i = 0; i < acceptationsLength; i++) {
                 final int word = wordIdMap[ibs.readHuffmanSymbol(wordTable)];
                 final int concept = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
-                final Set<Integer> corrArraySet = readRangedNumberSet(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
+                final ImmutableIntSet corrArraySet = readRangedNumberSet(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
                 for (int corrArray : corrArraySet) {
                     // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
                     acceptationsIdMap[i] = insertAcceptation(_db, word, concept, correlationArrayIdMap[corrArray]);
@@ -817,7 +594,7 @@ public final class StreamedDatabaseReader {
             final int bunch = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept));
             minBunchConcept = bunch + 1;
 
-            final Set<Integer> concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
+            final ImmutableIntSet concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
             for (int concept : concepts) {
                 insertBunchConcept(bunch, concept);
             }
@@ -839,7 +616,7 @@ public final class StreamedDatabaseReader {
             final int bunch = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunch, maxBunch));
             minBunch = bunch + 1;
 
-            final Set<Integer> acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
+            final ImmutableIntSet acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
                 insertBunchAcceptation(_db, bunch, acceptationsIdMap[acceptation], nullAgentSet);
             }
@@ -859,8 +636,8 @@ public final class StreamedDatabaseReader {
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = StreamedDatabaseConstants.minValidConcept;
-            int desiredSetId = getMaxBunchSetId() + 1;
-            final Map<Set<Integer>, Integer> insertedBunchSets = new HashMap<>();
+            int desiredSetId = getMaxBunchSetId(_db) + 1;
+            final Map<ImmutableIntSet, Integer> insertedBunchSets = new HashMap<>();
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, maxConcept);
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 
@@ -873,7 +650,7 @@ public final class StreamedDatabaseReader {
                     minSource = StreamedDatabaseConstants.minValidConcept;
                 }
 
-                final Set<Integer> sourceSet = readRangedNumberSet(ibs, sourceSetLengthTable, minSource, maxConcept);
+                final ImmutableIntSet sourceSet = readRangedNumberSet(ibs, sourceSetLengthTable, minSource, maxConcept);
 
                 if (!sourceSet.isEmpty()) {
                     int min = Integer.MAX_VALUE;
@@ -887,14 +664,14 @@ public final class StreamedDatabaseReader {
 
                 final int matcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
                 final int adderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final ImmutableIntPairMap adder = getCorrelation(adderId);
+                final ImmutableIntPairMap adder = getCorrelation(_db, adderId);
 
                 final boolean adderNonEmpty = adder.size() > 0;
                 final int rule = adderNonEmpty?
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final boolean fromStart = (adderNonEmpty || getCorrelation(matcherId).size() > 0) && ibs.readBoolean();
+                final boolean fromStart = (adderNonEmpty || getCorrelation(_db, matcherId).size() > 0) && ibs.readBoolean();
                 final int flags = fromStart? 1 : 0;
 
                 final Integer reusedBunchSetId = insertedBunchSets.get(sourceSet);
@@ -918,7 +695,7 @@ public final class StreamedDatabaseReader {
 
                 final int agentId = insertAgent(targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
 
-                final Set<Integer> diffSet = Collections.emptySet();
+                final ImmutableIntSet diffSet = new ImmutableIntSetBuilder().build();
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
 
                 lastTarget = targetBunch;
@@ -959,7 +736,7 @@ public final class StreamedDatabaseReader {
             for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
                 final int codeSymbolArrayIndex = ibs.readHuffmanSymbol(symbolArrayTable);
                 final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
-                final String code = getSymbolArray(symbolArraysIdMap[codeSymbolArrayIndex]);
+                final String code = getSymbolArray(_db, symbolArraysIdMap[codeSymbolArrayIndex]);
                 languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
 
                 nextMinAlphabet += alphabetCount;

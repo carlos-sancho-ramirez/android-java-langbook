@@ -28,6 +28,7 @@ import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
+import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.WordEditorActivity.convertText;
 import static sword.langbook3.android.WordEditorActivity.readConversion;
 
@@ -134,64 +135,6 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return builder.build();
     }
 
-    private static Integer findCorrelation(IntKeyMap<String> correlation) {
-        if (correlation.size() == 0) {
-            return StreamedDatabaseConstants.nullCorrelationId;
-        }
-        final ImmutableIntKeyMap<String> corr = correlation.toImmutable();
-
-        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
-
-        final int offset = table.columns().size();
-        final int offset2 = offset + symbolArrays.columns().size();
-        final int offset3 = offset2 + table.columns().size();
-
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(symbolArrays, table.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
-                .where(table.getAlphabetColumnIndex(), corr.keyAt(0))
-                .where(offset + symbolArrays.getStrColumnIndex(), corr.valueAt(0))
-                .join(table, table.getCorrelationIdColumnIndex(), table.getCorrelationIdColumnIndex())
-                .join(symbolArrays, offset2 + table.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
-                .select(
-                        table.getCorrelationIdColumnIndex(),
-                        offset2 + table.getAlphabetColumnIndex(),
-                        offset3 + symbolArrays.getStrColumnIndex());
-        final DbResult result = DbManager.getInstance().attach(query).iterator();
-        try {
-            if (result.hasNext()) {
-                DbResult.Row row = result.next();
-                int correlationId = row.get(0).toInt();
-                ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-                builder.put(row.get(1).toInt(), row.get(2).toText());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    int newCorrelationId = row.get(0).toInt();
-                    if (newCorrelationId != correlationId) {
-                        if (builder.build().equals(corr)) {
-                            return correlationId;
-                        }
-
-                        correlationId = newCorrelationId;
-                        builder = new ImmutableIntKeyMap.Builder<>();
-                    }
-
-                    builder.put(row.get(1).toInt(), row.get(2).toText());
-                }
-
-                if (builder.build().equals(corr)) {
-                    return correlationId;
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return null;
-    }
-
     private ImmutableIntValueMap<ImmutableIntKeyMap<String>> findExistingCorrelations() {
         final ImmutableSet.Builder<ImmutableIntKeyMap<String>> correlationsBuilder = new ImmutableSet.Builder<>();
         for (ImmutableList<ImmutableIntKeyMap<String>> option : _options) {
@@ -203,7 +146,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
         final ImmutableIntValueMap.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableIntValueMap.Builder<>();
         for (ImmutableIntKeyMap<String> correlation : correlations) {
-            final Integer id = findCorrelation(correlation);
+            final Integer id = findCorrelation(DbManager.getInstance().getDatabase(), correlation);
             if (id != null) {
                 builder.put(correlation, id);
             }
