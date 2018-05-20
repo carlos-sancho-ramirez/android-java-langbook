@@ -46,6 +46,10 @@ import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcce
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.AcceptationDetailsActivity.readConceptText;
 import static sword.langbook3.android.CorrelationPickerActivity.getAcceptationFirstAvailables;
+import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.obtainAgentSet;
+import static sword.langbook3.android.LangbookDatabase.obtainBunchSet;
+import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledConcept;
@@ -53,8 +57,6 @@ import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertCorrelationArray;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
@@ -681,29 +683,12 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         return null;
     }
 
-    private int insertBunchSet(IntSet bunchSet) {
-        if (bunchSet.isEmpty()) {
-            return EMPTY_BUNCH_SET;
-        }
-
-        final Database db = DbManager.getInstance().getDatabase();
-        final int setId = LangbookReadableDatabase.getMaxBunchSetId(db) + 1;
-        LangbookDbInserter.insertBunchSet(db, setId, bunchSet);
-        return setId;
-    }
-
-    private int obtainBunchSet(IntSet bunchSet) {
-        final Integer id = findBunchSet(DbManager.getInstance().getDatabase(), bunchSet);
-        return (id != null)? id : insertBunchSet(bunchSet);
-    }
-
-    private int obtainCorrelation(List<CorrelationEntry> entries) {
-        final Database db = DbManager.getInstance().getDatabase();
+    private static int obtainCorrelation(Database db, List<CorrelationEntry> entries) {
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         for (CorrelationEntry entry : entries) {
             builder.put(entry.alphabet, obtainSymbolArray(db, entry.text));
         }
-        return StreamedDatabaseReader.obtainCorrelation(db, builder.build());
+        return LangbookDatabase.obtainCorrelation(db, builder.build());
     }
 
     private static final class InsertAgentResult {
@@ -723,33 +708,19 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     private InsertAgentResult insertAgent() {
+        final Database db = DbManager.getInstance().getDatabase();
         final int targetBunch = _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH;
-        final int sourceBunchSetId = obtainBunchSet(_state.sourceBunches.toSet());
-        final int diffBunchSetId = obtainBunchSet(_state.diffBunches.toSet());
-        final int matcherId = obtainCorrelation(_state.matcher);
-        final int adderId = obtainCorrelation(_state.adder);
+        final int sourceBunchSetId = obtainBunchSet(db, _state.sourceBunches.toSet());
+        final int diffBunchSetId = obtainBunchSet(db, _state.diffBunches.toSet());
+        final int matcherId = obtainCorrelation(db, _state.matcher);
+        final int adderId = obtainCorrelation(db, _state.adder);
         final int rule = (matcherId != adderId)? _state.rule : NO_RULE;
         final int flags = _state.matchWordStarting? 1 : 0;
 
-        final Integer agentId = LangbookDbInserter.insertAgent(DbManager.getInstance().getDatabase(),
+        final Integer agentId = LangbookDbInserter.insertAgent(db,
                 targetBunch,  sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
         return (agentId == null)? null :
                 new InsertAgentResult(agentId, sourceBunchSetId, diffBunchSetId, matcherId, adderId);
-    }
-
-    private static int insertAgentSet(Database db, IntSet agentSet) {
-        if (agentSet.isEmpty()) {
-            return EMPTY_BUNCH_SET;
-        }
-
-        final int setId = getMaxAgentSetId(db) + 1;
-        LangbookDbInserter.insertAgentSet(db, setId, agentSet);
-        return setId;
-    }
-
-    private static int obtainAgentSet(Database db, IntSet set) {
-        final Integer setId = findAgentSet(db, set);
-        return (setId != null)? setId : insertAgentSet(db, set);
     }
 
     private void runAgent(InsertAgentResult insertData) {
@@ -876,7 +847,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
                 }
 
-                final int correlationId = StreamedDatabaseReader.obtainCorrelation(db, corrBuilder.build());
+                final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
                 final int correlationArrayId = insertCorrelationArray(db, correlationId);
 
                 final int baseConcept = conceptFromAcceptation(acc);

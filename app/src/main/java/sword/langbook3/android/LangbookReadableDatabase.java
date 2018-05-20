@@ -3,7 +3,6 @@ package sword.langbook3.android;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
-import java.util.Set;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
@@ -13,7 +12,6 @@ import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbQuery;
@@ -164,36 +162,45 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static int[] getCorrelationArray(DbExporter.Database db, int id) {
-        if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
-            return new int[0];
-        }
-
-        LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+    public static Integer findCorrelationArray(DbImporter.Database db, ImmutableIntList array) {
+        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getArrayIdColumnIndex(), id)
-                .select(table.getArrayPositionColumnIndex(), table.getCorrelationColumnIndex());
-        final DbResult dbResult = db.select(query);
-        final int[] result = new int[dbResult.getRemainingRows()];
-        final BitSet set = new BitSet();
+                .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
+                .where(table.getArrayPositionColumnIndex(), 0)
+                .where(table.getCorrelationColumnIndex(), array.get(0))
+                .select(table.getArrayIdColumnIndex(), table.columns().size() + table.getCorrelationColumnIndex());
+        final DbResult result = db.select(query);
         try {
-            while (dbResult.hasNext()) {
-                final DbResult.Row row = dbResult.next();
-                final int pos = row.get(0).toInt();
-                final int corr = row.get(1).toInt();
-                if (set.get(pos)) {
-                    throw new AssertionError("Malformed correlation array with id " + id);
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int arrayId = row.get(0).toInt();
+                ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
+                builder.add(row.get(1).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newArrayId = row.get(0).toInt();
+                    if (arrayId != newArrayId) {
+                        if (builder.build().equals(array)) {
+                            return arrayId;
+                        }
+
+                        arrayId = newArrayId;
+                        builder = new ImmutableIntList.Builder();
+                    }
+                    builder.add(row.get(1).toInt());
                 }
 
-                set.set(pos);
-                result[pos] = corr;
+                if (builder.build().equals(array)) {
+                    return arrayId;
+                }
             }
         }
         finally {
-            dbResult.close();
+            result.close();
         }
 
-        return result;
+        return null;
     }
 
     public static Integer findCorrelationArray(DbExporter.Database db, int... correlations) {
@@ -382,5 +389,37 @@ public final class LangbookReadableDatabase {
         }
 
         return corrBuilder.build();
+    }
+
+    public static int[] getCorrelationArray(DbExporter.Database db, int id) {
+        if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
+            return new int[0];
+        }
+
+        LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getArrayIdColumnIndex(), id)
+                .select(table.getArrayPositionColumnIndex(), table.getCorrelationColumnIndex());
+        final DbResult dbResult = db.select(query);
+        final int[] result = new int[dbResult.getRemainingRows()];
+        final BitSet set = new BitSet();
+        try {
+            while (dbResult.hasNext()) {
+                final DbResult.Row row = dbResult.next();
+                final int pos = row.get(0).toInt();
+                final int corr = row.get(1).toInt();
+                if (set.get(pos)) {
+                    throw new AssertionError("Malformed correlation array with id " + id);
+                }
+
+                set.set(pos);
+                result[pos] = corr;
+            }
+        }
+        finally {
+            dbResult.close();
+        }
+
+        return result;
     }
 }

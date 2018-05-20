@@ -2,16 +2,8 @@ package sword.langbook3.android;
 
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbInserter;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.sdb.StreamedDatabaseConstants;
-
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 
 public final class LangbookDbInserter {
 
@@ -19,6 +11,14 @@ public final class LangbookDbInserter {
 
     public LangbookDbInserter(DbInserter db) {
         this.db = db;
+    }
+
+    public static Integer insertSymbolArray(DbInserter db, String str) {
+        final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getStrColumnIndex(), str)
+                .build();
+        return db.insert(query);
     }
 
     public static void insertAlphabet(DbInserter db, int id, int language) {

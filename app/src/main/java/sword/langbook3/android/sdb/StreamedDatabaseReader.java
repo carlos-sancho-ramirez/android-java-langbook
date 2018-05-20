@@ -38,6 +38,9 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
 
+import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
+import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAgent;
 import static sword.langbook3.android.LangbookDbInserter.insertAlphabet;
@@ -293,67 +296,18 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private static Integer insertSymbolArray(Database db, String str) {
-        final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getStrColumnIndex(), str)
-                .build();
-        return db.insert(query);
-    }
-
-    public static int obtainSymbolArray(Database db, String str) {
-        Integer id = insertSymbolArray(db, str);
-        if (id != null) {
-            return id;
-        }
-
-        id = findSymbolArray(db, str);
-        if (id == null) {
-            throw new AssertionError("Unable to insert, and not present");
-        }
-
-        return id;
-    }
-
-    private static int insertCorrelation(DbImporter.Database db, IntPairMap correlation) {
-        if (correlation.size() == 0) {
-            return StreamedDatabaseConstants.nullCorrelationId;
-        }
-
-        final int newCorrelationId = getMaxCorrelationId(db) + 1;
-        LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation);
-        return newCorrelationId;
-    }
-
-    public static int obtainCorrelation(Database db, IntPairMap correlation) {
-        final Integer id = findCorrelation(db, correlation);
-        if (id == null) {
-            return insertCorrelation(db, correlation);
-        }
-
-        return id;
-    }
-
-    public static int insertCorrelationArray(Database db, int... correlation) {
-        final int maxArrayId = getMaxCorrelationArrayId(db);
-        final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
-        LangbookDbInserter.insertCorrelationArray(db, newArrayId, correlation);
-        return newArrayId;
-    }
-
-    private int insertBunchSet(int setId, IntSet bunches) {
-        if (bunches.isEmpty()) {
-            return LangbookDbSchema.Tables.bunchSets.nullReference();
-        }
-        else {
-            LangbookDbInserter.insertBunchSet(_db, setId, bunches);
-            return setId;
-        }
-    }
-
     private int obtainBunchSet(int setId, IntSet bunches) {
+        if (bunches.isEmpty()) {
+            return 0;
+        }
+
         final Integer foundId = findBunchSet(_db, bunches);
-        return (foundId != null)? foundId : insertBunchSet(setId, bunches);
+        if (foundId != null) {
+            return foundId;
+        }
+
+        LangbookDbInserter.insertBunchSet(_db, setId, bunches);
+        return setId;
     }
 
     private int[] readSymbolArrays(InputBitStream ibs) throws IOException {

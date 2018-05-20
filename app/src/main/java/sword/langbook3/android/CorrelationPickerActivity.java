@@ -17,9 +17,11 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
+import sword.collections.IntPairMap;
 import sword.collections.IntResultFunction;
 import sword.collections.IntSet;
 import sword.collections.MutableIntSet;
+import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
@@ -28,7 +30,12 @@ import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
+import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
+import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.WordEditorActivity.convertText;
 import static sword.langbook3.android.WordEditorActivity.readConversion;
 
@@ -170,98 +177,6 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         findViewById(R.id.nextButton).setOnClickListener(this);
     }
 
-    private int insertCorrelation(IntKeyMap<String> correlation) {
-        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final DbManager manager = DbManager.getInstance();
-        final DbImporter.Database db = manager.getDatabase();
-        final DbQuery maxQuery = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getCorrelationIdColumnIndex()));
-        final Iterator<DbResult.Row> it = db.select(maxQuery);
-        final int id = it.next().get(0).toInt() + 1;
-
-        if (it.hasNext()) {
-            throw new AssertionError();
-        }
-
-        for (IntKeyMap.Entry<String> entry : correlation.entries()) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getCorrelationIdColumnIndex(), id)
-                    .put(table.getAlphabetColumnIndex(), entry.key())
-                    .put(table.getSymbolArrayColumnIndex(), StreamedDatabaseReader.obtainSymbolArray(db, entry.value()))
-                    .build();
-            manager.insert(query);
-        }
-
-        return id;
-    }
-
-    private Integer findCorrelationArray(ImmutableIntList array) {
-        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
-                .where(table.getArrayPositionColumnIndex(), 0)
-                .where(table.getCorrelationColumnIndex(), array.get(0))
-                .select(table.getArrayIdColumnIndex(), table.columns().size() + table.getCorrelationColumnIndex());
-        final DbResult result = DbManager.getInstance().getDatabase().select(query);
-        try {
-            if (result.hasNext()) {
-                DbResult.Row row = result.next();
-                int arrayId = row.get(0).toInt();
-                ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
-                builder.add(row.get(1).toInt());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    int newArrayId = row.get(0).toInt();
-                    if (arrayId != newArrayId) {
-                        if (builder.build().equals(array)) {
-                            return arrayId;
-                        }
-
-                        arrayId = newArrayId;
-                        builder = new ImmutableIntList.Builder();
-                    }
-                    builder.add(row.get(1).toInt());
-                }
-
-                if (builder.build().equals(array)) {
-                    return arrayId;
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return null;
-    }
-
-    static int insertCorrelationArray(ImmutableIntList array) {
-        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbManager manager = DbManager.getInstance();
-        final DbImporter.Database db = manager.getDatabase();
-        final DbQuery maxQuery = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getArrayIdColumnIndex()));
-        final Iterator<DbResult.Row> it = db.select(maxQuery);
-        final int id = it.next().get(0).toInt() + 1;
-
-        if (it.hasNext()) {
-            throw new AssertionError();
-        }
-
-        int index = 0;
-        for (int value : array) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getArrayIdColumnIndex(), id)
-                    .put(table.getArrayPositionColumnIndex(), index++)
-                    .put(table.getCorrelationColumnIndex(), value)
-                    .build();
-            manager.insert(query);
-        }
-
-        return id;
-    }
-
     static final class AcceptationFirstAvailables {
         final int word;
         final int concept;
@@ -294,21 +209,14 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     private int insertAcceptation(int arrayId, int concept) {
-        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbManager manager = DbManager.getInstance();
-        final DbImporter.Database db = manager.getDatabase();
+        final DbImporter.Database db = DbManager.getInstance().getDatabase();
         final AcceptationFirstAvailables firstAvailables = getAcceptationFirstAvailables(db);
         final int word = firstAvailables.word;
         if (concept == NO_CONCEPT) {
             concept = firstAvailables.concept;
         }
 
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getWordColumnIndex(), word)
-                .put(table.getConceptColumnIndex(), concept)
-                .put(table.getCorrelationArrayColumnIndex(), arrayId)
-                .build();
-        return manager.insert(query);
+        return LangbookDbInserter.insertAcceptation(db, word, concept, arrayId);
     }
 
     private ImmutableIntPairMap findConversions(IntSet alphabets) {
@@ -381,13 +289,14 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     public void onClick(View view) {
         final int selection = _listView.getCheckedItemPosition();
         if (selection != ListView.INVALID_POSITION) {
+            final Database db = DbManager.getInstance().getDatabase();
             ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(selection);
             boolean correlationInserted = false;
             final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
             for (ImmutableIntKeyMap<String> correlation : array) {
                 int id = _knownCorrelations.get(correlation, StreamedDatabaseConstants.nullCorrelationId);
                 if (id == StreamedDatabaseConstants.nullCorrelationId) {
-                    id = insertCorrelation(correlation);
+                    id = insertCorrelation(db, correlation);
                     correlationInserted = true;
                 }
                 arrayBuilder.add(id);
@@ -396,11 +305,11 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             final ImmutableIntList idArray = arrayBuilder.build();
             final int arrayId;
             if (!correlationInserted) {
-                final Integer arrayIdOpt = findCorrelationArray(idArray);
-                arrayId = (arrayIdOpt == null)? insertCorrelationArray(idArray) : arrayIdOpt;
+                final Integer arrayIdOpt = findCorrelationArray(db, idArray);
+                arrayId = (arrayIdOpt == null)? insertCorrelationArray(db, idArray) : arrayIdOpt;
             }
             else {
-                arrayId = insertCorrelationArray(idArray);
+                arrayId = insertCorrelationArray(db, idArray);
             }
 
             final int accId = insertAcceptation(arrayId, getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT));
