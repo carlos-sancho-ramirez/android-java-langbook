@@ -29,13 +29,22 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntPairMap;
+import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
+import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbImporter.Database;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
 
+import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertAgent;
+import static sword.langbook3.android.LangbookDbInserter.insertAlphabet;
+import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
+import static sword.langbook3.android.LangbookDbInserter.insertConversion;
+import static sword.langbook3.android.LangbookDbInserter.insertLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
@@ -306,54 +315,13 @@ public final class StreamedDatabaseReader {
         return id;
     }
 
-    private void insertAlphabet(int id, int language) {
-        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), id)
-                .put(table.getLanguageColumnIndex(), language)
-                .build();
-        _db.insert(query);
-    }
-
-    private void insertLanguage(int id, String code, int mainAlphabet) {
-        final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), id)
-                .put(table.getCodeColumnIndex(), code)
-                .put(table.getMainAlphabetColumnIndex(), mainAlphabet)
-                .build();
-        _db.insert(query);
-    }
-
-    private void insertConversion(int sourceAlphabet, int targetAlphabet, int source, int target) {
-        final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
-                .put(table.getTargetAlphabetColumnIndex(), targetAlphabet)
-                .put(table.getSourceColumnIndex(), source)
-                .put(table.getTargetColumnIndex(), target)
-                .build();
-        _db.insert(query);
-    }
-
-    private static int insertCorrelation(Database db, IntPairMap correlation) {
+    private static int insertCorrelation(DbImporter.Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
 
         final int newCorrelationId = getMaxCorrelationId(db) + 1;
-        final int mapLength = correlation.size();
-
-        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        for (int i = 0; i < mapLength; i++) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getCorrelationIdColumnIndex(), newCorrelationId)
-                    .put(table.getAlphabetColumnIndex(), correlation.keyAt(i))
-                    .put(table.getSymbolArrayColumnIndex(), correlation.valueAt(i))
-                    .build();
-            db.insert(query);
-        }
-
+        LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation);
         return newCorrelationId;
     }
 
@@ -367,66 +335,18 @@ public final class StreamedDatabaseReader {
     }
 
     public static int insertCorrelationArray(Database db, int... correlation) {
-        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final int maxArrayId = getMaxCorrelationArrayId(db);
         final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
-        final int arrayLength = correlation.length;
-        for (int i = 0; i < arrayLength; i++) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getArrayIdColumnIndex(), newArrayId)
-                    .put(table.getArrayPositionColumnIndex(), i)
-                    .put(table.getCorrelationColumnIndex(), correlation[i])
-                    .build();
-            db.insert(query);
-        }
-
+        LangbookDbInserter.insertCorrelationArray(db, newArrayId, correlation);
         return newArrayId;
     }
 
-    public static int insertAcceptation(Database db, int word, int concept, int correlationArray) {
-        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getWordColumnIndex(), word)
-                .put(table.getConceptColumnIndex(), concept)
-                .put(table.getCorrelationArrayColumnIndex(), correlationArray)
-                .build();
-        return db.insert(query);
-    }
-
-    private void insertBunchConcept(int bunch, int concept) {
-        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getBunchColumnIndex(), bunch)
-                .put(table.getConceptColumnIndex(), concept)
-                .build();
-        _db.insert(query);
-    }
-
-    public static void insertBunchAcceptation(Database db, int bunch, int acceptation, int agentSet) {
-        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getBunchColumnIndex(), bunch)
-                .put(table.getAcceptationColumnIndex(), acceptation)
-                .put(table.getAgentSetColumnIndex(), agentSet)
-                .build();
-        db.insert(query);
-    }
-
     private int insertBunchSet(int setId, IntSet bunches) {
-        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-
         if (bunches.isEmpty()) {
-            return table.nullReference();
+            return LangbookDbSchema.Tables.bunchSets.nullReference();
         }
         else {
-            for (int bunch : bunches) {
-                final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                        .put(table.getSetIdColumnIndex(), setId)
-                        .put(table.getBunchColumnIndex(), bunch)
-                        .build();
-                _db.insert(query);
-            }
-
+            LangbookDbInserter.insertBunchSet(_db, setId, bunches);
             return setId;
         }
     }
@@ -434,21 +354,6 @@ public final class StreamedDatabaseReader {
     private int obtainBunchSet(int setId, IntSet bunches) {
         final Integer foundId = findBunchSet(_db, bunches);
         return (foundId != null)? foundId : insertBunchSet(setId, bunches);
-    }
-
-    private int insertAgent(int targetBunch, int sourceBunchSetId,
-            int diffBunchSetId, int matcherId, int adderId, int rule, int flags) {
-        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getTargetBunchColumnIndex(), targetBunch)
-                .put(table.getSourceBunchSetColumnIndex(), sourceBunchSetId)
-                .put(table.getDiffBunchSetColumnIndex(), diffBunchSetId)
-                .put(table.getMatcherColumnIndex(), matcherId)
-                .put(table.getAdderColumnIndex(), adderId)
-                .put(table.getRuleColumnIndex(), rule)
-                .put(table.getFlagsColumnIndex(), flags)
-                .build();
-        return _db.insert(query);
     }
 
     private int[] readSymbolArrays(InputBitStream ibs) throws IOException {
@@ -502,7 +407,7 @@ public final class StreamedDatabaseReader {
             for (int j = 0; j < pairCount; j++) {
                 final int source = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
                 final int target = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
-                insertConversion(sourceAlphabet, targetAlphabet, source, target);
+                insertConversion(_db, sourceAlphabet, targetAlphabet, source, target);
 
                 sources[j] = getSymbolArray(_db, source);
                 targets[j] = getSymbolArray(_db, target);
@@ -596,7 +501,7 @@ public final class StreamedDatabaseReader {
 
             final ImmutableIntSet concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
             for (int concept : concepts) {
-                insertBunchConcept(bunch, concept);
+                insertBunchConcept(_db, bunch, concept);
             }
         }
     }
@@ -693,7 +598,7 @@ public final class StreamedDatabaseReader {
                     throw new AssertionError("When rule is provided, modification is expected, but matcher and adder are the same");
                 }
 
-                final int agentId = insertAgent(targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+                final int agentId = insertAgent(_db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
 
                 final ImmutableIntSet diffSet = new ImmutableIntSetBuilder().build();
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
@@ -749,7 +654,7 @@ public final class StreamedDatabaseReader {
                 for (int j = 0; j < languageCount; j++) {
                     Language lang = languages[j];
                     if (lang.containsAlphabet(i)) {
-                        insertAlphabet(i, minLanguage + j);
+                        insertAlphabet(_db, i, minLanguage + j);
                         break;
                     }
                 }
@@ -757,7 +662,7 @@ public final class StreamedDatabaseReader {
 
             for (int i = 0; i < languageCount; i++) {
                 final Language lang = languages[i];
-                insertLanguage(minLanguage + i, lang.getCode(), lang.getMainAlphabet());
+                insertLanguage(_db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
             }
 
             // Read conversions

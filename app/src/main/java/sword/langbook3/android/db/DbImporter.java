@@ -4,8 +4,7 @@ public interface DbImporter {
 
     void init(Database db) throws UnableToImportException;
 
-    interface Database extends DbExporter.Database {
-        Integer insert(DbInsertQuery query);
+    interface Database extends DbExporter.Database, DbInserter {
     }
 
     class UnableToImportException extends Exception {

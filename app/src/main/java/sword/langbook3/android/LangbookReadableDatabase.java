@@ -8,9 +8,12 @@ import java.util.Set;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbQuery;
@@ -229,7 +232,7 @@ public final class LangbookReadableDatabase {
 
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
-                .where(table.getBunchColumnIndex(), bunches.iterator().next())
+                .where(table.getBunchColumnIndex(), bunches.valueAt(0))
                 .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
         final DbResult result = db.select(query);
         try {
@@ -253,6 +256,52 @@ public final class LangbookReadableDatabase {
                 }
 
                 if (set.equals(bunches)) {
+                    return setId;
+                }
+            }
+        }
+        finally {
+            result.close();
+        }
+
+        return null;
+    }
+
+    public static Integer findAgentSet(DbExporter.Database db, IntSet agentSet) {
+        if (agentSet.isEmpty()) {
+            return 0;
+        }
+
+        final ImmutableIntSet set = agentSet.toImmutable();
+        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
+                .where(table.getAgentColumnIndex(), set.valueAt(0))
+                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getAgentColumnIndex());
+
+        final DbResult result = db.select(query);
+        try {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int setId = row.get(0).toInt();
+                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+                builder.add(row.get(1).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newSetId = row.get(0).toInt();
+                    if (newSetId != setId) {
+                        if (set.equals(builder.build())) {
+                            return setId;
+                        }
+
+                        setId = newSetId;
+                        builder = new ImmutableIntSetBuilder();
+                    }
+                    builder.add(row.get(1).toInt());
+                }
+
+                if (set.equals(builder.build())) {
                     return setId;
                 }
             }
@@ -288,6 +337,11 @@ public final class LangbookReadableDatabase {
 
     public static int getMaxBunchSetId(DbExporter.Database db) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        return getColumnMax(db, table, table.getSetIdColumnIndex());
+    }
+
+    public static int getMaxAgentSetId(DbExporter.Database db) {
+        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 

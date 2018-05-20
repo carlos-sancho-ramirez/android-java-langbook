@@ -28,7 +28,6 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.IntKeyMap;
-import sword.collections.IntList;
 import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
@@ -47,8 +46,13 @@ import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcce
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.AcceptationDetailsActivity.readConceptText;
 import static sword.langbook3.android.CorrelationPickerActivity.getAcceptationFirstAvailables;
+import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertRuledConcept;
+import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
+import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertCorrelationArray;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
 
@@ -677,131 +681,20 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         return null;
     }
 
-    private Integer findBunchSet(IntSet bunchSet) {
+    private int insertBunchSet(IntSet bunchSet) {
         if (bunchSet.isEmpty()) {
             return EMPTY_BUNCH_SET;
         }
 
-        final ImmutableIntSet set = bunchSet.toImmutable();
-        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
-                .where(table.getBunchColumnIndex(), bunchSet.valueAt(0))
-                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
-
-        final DbResult result = DbManager.getInstance().getDatabase().select(query);
-        try {
-            if (result.hasNext()) {
-                DbResult.Row row = result.next();
-                int setId = row.get(0).toInt();
-                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-                builder.add(row.get(1).toInt());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    int newSetId = row.get(0).toInt();
-                    if (newSetId != setId) {
-                        if (set.equals(builder.build())) {
-                            return setId;
-                        }
-
-                        setId = newSetId;
-                        builder = new ImmutableIntSetBuilder();
-                    }
-                    builder.add(row.get(1).toInt());
-                }
-
-                if (set.equals(builder.build())) {
-                    return setId;
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return null;
-    }
-
-    private static Integer findAgentSet(Database db, IntSet agentSet) {
-        if (agentSet.isEmpty()) {
-            return EMPTY_BUNCH_SET;
-        }
-
-        final ImmutableIntSet set = agentSet.toImmutable();
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
-                .where(table.getAgentColumnIndex(), set.valueAt(0))
-                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getAgentColumnIndex());
-
-        final DbResult result = db.select(query);
-        try {
-            if (result.hasNext()) {
-                DbResult.Row row = result.next();
-                int setId = row.get(0).toInt();
-                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-                builder.add(row.get(1).toInt());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    int newSetId = row.get(0).toInt();
-                    if (newSetId != setId) {
-                        if (set.equals(builder.build())) {
-                            return setId;
-                        }
-
-                        setId = newSetId;
-                        builder = new ImmutableIntSetBuilder();
-                    }
-                    builder.add(row.get(1).toInt());
-                }
-
-                if (set.equals(builder.build())) {
-                    return setId;
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return null;
-    }
-
-    private int insertBunchSet(IntSet bunchSet) {
-        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        final DbQuery maxQuery = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getSetIdColumnIndex()));
         final Database db = DbManager.getInstance().getDatabase();
-        final DbResult maxResult = db.select(maxQuery);
-        final int setId = maxResult.hasNext()? maxResult.next().get(0).toInt() + 1 : 1;
-
-        for (int bunch : bunchSet) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getSetIdColumnIndex(), setId)
-                    .put(table.getBunchColumnIndex(), bunch)
-                    .build();
-            if (db.insert(query) == null) {
-                throw new AssertionError();
-            }
-        }
-
+        final int setId = LangbookReadableDatabase.getMaxBunchSetId(db) + 1;
+        LangbookDbInserter.insertBunchSet(db, setId, bunchSet);
         return setId;
     }
 
     private int obtainBunchSet(IntSet bunchSet) {
-        final Integer id = findBunchSet(bunchSet);
+        final Integer id = findBunchSet(DbManager.getInstance().getDatabase(), bunchSet);
         return (id != null)? id : insertBunchSet(bunchSet);
-    }
-
-    private static ImmutableIntSet toSet(IntList list) {
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        for (int value : list) {
-            builder.add(value);
-        }
-
-        return builder.build();
     }
 
     private int obtainCorrelation(List<CorrelationEntry> entries) {
@@ -830,70 +723,27 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     private InsertAgentResult insertAgent() {
-        final int sourceBunchSetId = obtainBunchSet(toSet(_state.sourceBunches));
-        final int diffBunchSetId = obtainBunchSet(toSet(_state.diffBunches));
+        final int targetBunch = _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH;
+        final int sourceBunchSetId = obtainBunchSet(_state.sourceBunches.toSet());
+        final int diffBunchSetId = obtainBunchSet(_state.diffBunches.toSet());
         final int matcherId = obtainCorrelation(_state.matcher);
         final int adderId = obtainCorrelation(_state.adder);
-
         final int rule = (matcherId != adderId)? _state.rule : NO_RULE;
         final int flags = _state.matchWordStarting? 1 : 0;
 
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final DbInsertQuery query = new DbInsertQuery.Builder(agents)
-                .put(agents.getTargetBunchColumnIndex(), _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH)
-                .put(agents.getSourceBunchSetColumnIndex(), sourceBunchSetId)
-                .put(agents.getDiffBunchSetColumnIndex(), diffBunchSetId)
-                .put(agents.getMatcherColumnIndex(), matcherId)
-                .put(agents.getAdderColumnIndex(), adderId)
-                .put(agents.getRuleColumnIndex(), rule)
-                .put(agents.getFlagsColumnIndex(), flags)
-                .build();
-
-        final Integer agentId = DbManager.getInstance().getDatabase().insert(query);
-        return (agentId != null)? new InsertAgentResult(agentId, sourceBunchSetId, diffBunchSetId, matcherId, adderId) : null;
-    }
-
-    private static void insertRuledConcept(Database db, int ruledConcept, int agent, int baseConcept) {
-        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), ruledConcept)
-                .put(table.getAgentColumnIndex(), agent)
-                .put(table.getConceptColumnIndex(), baseConcept)
-                .build();
-        if (db.insert(query) == null) {
-            throw new AssertionError();
-        }
-    }
-
-    private static void insertRuledAcceptation(Database db, int ruledAcceptation, int agent, int baseAcceptation) {
-        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), ruledAcceptation)
-                .put(table.getAgentColumnIndex(), agent)
-                .put(table.getAcceptationColumnIndex(), baseAcceptation)
-                .build();
-        if (db.insert(query) == null) {
-            throw new AssertionError();
-        }
+        final Integer agentId = LangbookDbInserter.insertAgent(DbManager.getInstance().getDatabase(),
+                targetBunch,  sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+        return (agentId == null)? null :
+                new InsertAgentResult(agentId, sourceBunchSetId, diffBunchSetId, matcherId, adderId);
     }
 
     private static int insertAgentSet(Database db, IntSet agentSet) {
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        final DbQuery maxQuery = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getSetIdColumnIndex()));
-        final DbResult maxResult = db.select(maxQuery);
-        final int setId = maxResult.hasNext()? maxResult.next().get(0).toInt() + 1 : 1;
-
-        for (int agent : agentSet) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getSetIdColumnIndex(), setId)
-                    .put(table.getAgentColumnIndex(), agent)
-                    .build();
-            if (db.insert(query) == null) {
-                throw new AssertionError();
-            }
+        if (agentSet.isEmpty()) {
+            return EMPTY_BUNCH_SET;
         }
 
+        final int setId = getMaxAgentSetId(db) + 1;
+        LangbookDbInserter.insertAgentSet(db, setId, agentSet);
         return setId;
     }
 
