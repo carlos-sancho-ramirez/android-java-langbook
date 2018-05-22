@@ -3,26 +3,25 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.util.SparseArray;
 import android.widget.TextView;
 
-import java.util.ArrayList;
-
-import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
-import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
-import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
-import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
-import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.Database;
+import sword.langbook3.android.db.DbQuery;
+import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
-import static sword.langbook3.android.db.DbIdColumn.idColumnName;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
+import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
+import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
+import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 
-public class AgentDetailsActivity extends Activity {
+public final class AgentDetailsActivity extends Activity {
 
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
@@ -43,174 +42,23 @@ public class AgentDetailsActivity extends Activity {
     int _adder;
     int _rule;
 
-    int readAgent(SQLiteDatabase db) {
-        final AgentsTable agents = Tables.agents; // J0
-        Cursor cursor = db.rawQuery(
-                "SELECT " + agents.columns().get(agents.getTargetBunchColumnIndex()).name() +
-                        "," + agents.columns().get(agents.getSourceBunchSetColumnIndex()).name() +
-                        "," + agents.columns().get(agents.getDiffBunchSetColumnIndex()).name() +
-                        "," + agents.columns().get(agents.getMatcherColumnIndex()).name() +
-                        "," + agents.columns().get(agents.getAdderColumnIndex()).name() +
-                        "," + agents.columns().get(agents.getRuleColumnIndex()).name() +
-                        " FROM " + agents.name() +
-                        " WHERE " + idColumnName + "=?",
-                new String[] { Integer.toString(_agentId) });
-
-        int concept = 0;
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    _targetBunch = cursor.getInt(0);
-                    _sourceBunchSet = cursor.getInt(1);
-                    _diffBunchSet = cursor.getInt(2);
-                    _matcher = cursor.getInt(3);
-                    _adder = cursor.getInt(4);
-                    _rule = cursor.getInt(5);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return concept;
-    }
-
-    private static final class BunchInclusionResult {
-
-        final int acceptation;
-        final String text;
-
-        BunchInclusionResult(int acceptation, String text) {
-            this.acceptation = acceptation;
-            this.text = text;
-        }
-    }
-
-    private BunchInclusionResult readBunch(SQLiteDatabase db, int bunch) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J0." + idColumnName +
-                        ",J1." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J1." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " WHERE J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=?",
-                new String[] { Integer.toString(bunch) });
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int acc = cursor.getInt(0);
-                    int alphabet = cursor.getInt(1);
-                    String text = cursor.getString(2);
-                    while (cursor.moveToNext()) {
-                        if (alphabet != preferredAlphabet && cursor.getInt(1) == preferredAlphabet) {
-                            acc = cursor.getInt(0);
-                            text = cursor.getString(2);
-                            alphabet = preferredAlphabet;
-                        }
-                    }
-
-                    return new BunchInclusionResult(acc, text);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        // Agents applying morphologies usually have null targets. This is why, it is possible to reach this code.
-        return null;
-    }
-
-    private BunchInclusionResult[] readBunchSet(SQLiteDatabase db, int bunchSet) {
-        final BunchSetsTable bunchSets = Tables.bunchSets;
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J0." + bunchSets.columns().get(bunchSets.getBunchColumnIndex()).name() +
-                        ",J1." + idColumnName +
-                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        " FROM " + bunchSets.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + bunchSets.columns().get(bunchSets.getBunchColumnIndex()).name() + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " WHERE J0." + bunchSets.columns().get(bunchSets.getSetIdColumnIndex()).name() + "=?",
-                new String[] { Integer.toString(bunchSet) });
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    ArrayList<BunchInclusionResult> result = new ArrayList<>();
-
-                    int bunch = cursor.getInt(0);
-                    int acc = cursor.getInt(1);
-                    int alphabet = cursor.getInt(2);
-                    String text = cursor.getString(3);
-                    while (cursor.moveToNext()) {
-                        if (bunch == cursor.getInt(0)) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
-                                acc = cursor.getInt(1);
-                                text = cursor.getString(3);
-                                alphabet = preferredAlphabet;
-                            }
-                        }
-                        else {
-                            result.add(new BunchInclusionResult(acc, text));
-
-                            bunch = cursor.getInt(0);
-                            acc = cursor.getInt(1);
-                            alphabet = cursor.getInt(2);
-                            text = cursor.getString(3);
-                        }
-                    }
-
-                    result.add(new BunchInclusionResult(acc, text));
-                    return result.toArray(new BunchInclusionResult[result.size()]);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new BunchInclusionResult[0];
-    }
-
-    private SparseArray<String> readCorrelation(SQLiteDatabase db, int correlationId) {
-        final CorrelationsTable correlations = Tables.correlations;
-        final SymbolArraysTable symbolArrays = Tables.symbolArrays;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J0." + correlations.columns().get(correlations.getAlphabetColumnIndex()).name() +
-                        ",J1." + symbolArrays.columns().get(symbolArrays.getStrColumnIndex()).name() +
-                        " FROM " + correlations.name() + " AS J0" +
-                        " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.columns().get(correlations.getSymbolArrayColumnIndex()).name() + "=J1." + idColumnName +
-                        " WHERE J0." + correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name() + "=?",
-                new String[] { Integer.toString(correlationId) });
-
-        final SparseArray<String> result = new SparseArray<>();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        result.put(cursor.getInt(0), cursor.getString(1));
-                    } while(cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return result;
+    void readAgent() {
+        final AgentsTable table = Tables.agents; // J0
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), _agentId)
+                .select(table.getTargetBunchColumnIndex(),
+                        table.getSourceBunchSetColumnIndex(),
+                        table.getDiffBunchSetColumnIndex(),
+                        table.getMatcherColumnIndex(),
+                        table.getAdderColumnIndex(),
+                        table.getRuleColumnIndex());
+        final DbResult.Row row = DbManager.getInstance().selectSingleRow(query);
+        _targetBunch = row.get(0).toInt();
+        _sourceBunchSet = row.get(1).toInt();
+        _diffBunchSet = row.get(2).toInt();
+        _matcher = row.get(3).toInt();
+        _adder = row.get(4).toInt();
+        _rule = row.get(5).toInt();
     }
 
     @Override
@@ -223,46 +71,54 @@ public class AgentDetailsActivity extends Activity {
         }
 
         _agentId = getIntent().getIntExtra(ArgKeys.AGENT, 0);
-        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-        readAgent(db);
+        final Database db = DbManager.getInstance().getDatabase();
+        readAgent();
 
         final StringBuilder s = new StringBuilder("Agent #").append(_agentId);
-        BunchInclusionResult targetResult = readBunch(db, _targetBunch);
-        if (targetResult != null) {
+        if (_targetBunch != NO_BUNCH) {
+            DisplayableItem targetResult = readConceptAcceptationAndText(db, _targetBunch, preferredAlphabet);
             s.append("\nTarget: ").append(targetResult.text).append(" (").append(_targetBunch).append(')');
         }
 
         s.append("\nSource Bunch Set (").append(_sourceBunchSet).append("):");
-        for (BunchInclusionResult r : readBunchSet(db, _sourceBunchSet)) {
-            s.append("\n  * ").append(r.text).append(" (").append(r.acceptation).append(')');
+        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _sourceBunchSet, preferredAlphabet)) {
+            s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
         s.append("\nDiff Bunch Set (").append(_diffBunchSet).append("):");
-        for (BunchInclusionResult r : readBunchSet(db, _diffBunchSet)) {
-            s.append("\n  * ").append(r.text).append(" (").append(r.acceptation).append(')');
+        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _diffBunchSet, preferredAlphabet)) {
+            s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
+        final MutableIntKeyMap<String> alphabetTexts = MutableIntKeyMap.empty();
         s.append("\nMatcher: ").append(_matcher);
-        SparseArray<String> matcher = readCorrelation(db, _matcher);
+        ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, _matcher);
         for (int i = 0; i < matcher.size(); i++) {
-            s.append("\n  * ").append(matcher.keyAt(i)).append(" -> ").append(matcher.valueAt(i));
+            final int alphabet = matcher.keyAt(i);
+            String alphabetText = alphabetTexts.get(alphabet, null);
+            if (alphabetText == null) {
+                alphabetText = readConceptText(db, alphabet, preferredAlphabet);
+                alphabetTexts.put(alphabet, alphabetText);
+            }
+            s.append("\n  * ").append(alphabetText).append(" -> ").append(matcher.valueAt(i));
         }
 
         s.append("\nAdder: ").append(_adder);
-        SparseArray<String> adder = readCorrelation(db, _adder);
+        ImmutableIntKeyMap<String> adder = getCorrelationWithText(db, _adder);
         for (int i = 0; i < adder.size(); i++) {
-            s.append("\n  * ").append(adder.keyAt(i)).append(" -> ").append(adder.valueAt(i));
+            final int alphabet = adder.keyAt(i);
+            String alphabetText = alphabetTexts.get(alphabet, null);
+            if (alphabetText == null) {
+                alphabetText = readConceptText(db, alphabet, preferredAlphabet);
+                alphabetTexts.put(alphabet, alphabetText);
+            }
+            s.append("\n  * ").append(alphabetText).append(" -> ").append(adder.valueAt(i));
         }
 
-        s.append("\nRule:");
-        BunchInclusionResult ruleResult = readBunch(db, _rule);
-        if (ruleResult != null) {
-            s.append(' ').append(ruleResult.text);
+        if (_rule != 0) {
+            DisplayableItem ruleResult = readConceptAcceptationAndText(db, _rule, preferredAlphabet);
+            s.append("\nRule: ").append(ruleResult.text).append(" (").append(_rule).append(')');
         }
-        else {
-            s.append(" -");
-        }
-        s.append(" (").append(_rule).append(')');
 
         final TextView tv = findViewById(R.id.textView);
         tv.setText(s.toString());

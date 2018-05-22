@@ -38,6 +38,7 @@ import static sword.langbook3.android.DbManager.findQuestionFieldSet;
 import static sword.langbook3.android.DbManager.findQuizDefinition;
 import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
 import static sword.langbook3.android.DbManager.insertQuizDefinition;
+import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -427,7 +428,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
         if (_bunch != NO_BUNCH) {
-            final String bunchText = AcceptationDetailsActivity.readConceptText(_bunch);
+            final String bunchText = readConceptText(DbManager.getInstance().getDatabase(), _bunch, preferredAlphabet);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
         }

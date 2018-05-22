@@ -17,6 +17,7 @@ import sword.langbook3.android.LangbookDbSchema.RuledConceptsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 
+import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class RuleTableActivity extends Activity {
@@ -178,7 +179,6 @@ public class RuleTableActivity extends Activity {
         SparseArray<String> acceptationSet = new SparseArray<>();
         SparseArray<String> ruleSet = new SparseArray<>();
 
-        SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
         for (Map.Entry<TableCellRef, TableCellValue> entry : tableContent.entrySet()) {
             final TableCellRef ref = entry.getKey();
             if (acceptationSet.get(ref.bunchSet) == null) {
@@ -186,7 +186,7 @@ public class RuleTableActivity extends Activity {
             }
 
             if (ruleSet.get(ref.rule) == null) {
-                ruleSet.put(ref.rule, AcceptationDetailsActivity.readConceptText(ref.rule));
+                ruleSet.put(ref.rule, readConceptText(DbManager.getInstance().getDatabase(), ref.rule, preferredAlphabet));
             }
         }
 

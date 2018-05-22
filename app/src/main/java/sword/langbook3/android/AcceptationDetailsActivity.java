@@ -57,6 +57,7 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbUpdateQuery;
 
+import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
@@ -163,37 +164,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         return result;
-    }
-
-    static String readConceptText(int concept) {
-        final AcceptationsTable acceptations = Tables.acceptations; // J0
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        final int j1Offset = acceptations.columns().size();
-        final DbQuery query = new DbQuery.Builder(acceptations)
-                .join(strings, acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .where(acceptations.getConceptColumnIndex(), concept)
-                .select(j1Offset + strings.getStringAlphabetColumnIndex(), j1Offset + strings.getStringColumnIndex());
-
-        final DbResult result = DbManager.getInstance().attach(query).iterator();
-        String text;
-        try {
-            DbResult.Row row = result.next();
-            int firstAlphabet = row.get(0).toInt();
-            text = row.get(1).toText();
-            while (firstAlphabet != preferredAlphabet && result.hasNext()) {
-                row = result.next();
-                if (row.get(0).toInt() == preferredAlphabet) {
-                    firstAlphabet = preferredAlphabet;
-                    text = row.get(1).toText();
-                }
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return text;
     }
 
     private static final class LanguageResult {
@@ -951,7 +921,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
                 String langStr = languageStrs.get(language);
                 if (langStr == null) {
-                    langStr = readConceptText(language);
+                    langStr = readConceptText(DbManager.getInstance().getDatabase(), language, preferredAlphabet);
                     languageStrs.put(language, langStr);
                 }
 

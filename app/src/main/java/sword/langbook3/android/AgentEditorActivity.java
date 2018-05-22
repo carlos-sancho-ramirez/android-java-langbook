@@ -43,7 +43,6 @@ import sword.langbook3.android.db.DbStringValue;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcceptation;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
-import static sword.langbook3.android.AcceptationDetailsActivity.readConceptText;
 import static sword.langbook3.android.CorrelationPickerActivity.getAcceptationFirstAvailables;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainAgentSet;
@@ -54,6 +53,7 @@ import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 import static sword.langbook3.android.WordEditorActivity.convertText;
 
@@ -243,10 +243,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
         _includeTargetBunchCheckBox.setOnCheckedChangeListener(this);
 
+        final Database db = DbManager.getInstance().getDatabase();
         _targetBunchChangeButton = findViewById(R.id.targetBunchChangeButton);
         if (_state.targetBunch != NO_BUNCH) {
             final TextView textView = findViewById(R.id.targetBunchText);
-            textView.setText(readConceptText(_state.targetBunch));
+            textView.setText(readConceptText(db, _state.targetBunch, preferredAlphabet));
 
             if (_state.includeTargetBunch) {
                 _targetBunchChangeButton.setEnabled(true);
@@ -294,7 +295,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
         if (_state.rule != NO_RULE) {
             final TextView textView = findViewById(R.id.ruleText);
-            textView.setText(readConceptText(_state.rule));
+            textView.setText(readConceptText(db, _state.rule, preferredAlphabet));
         }
 
         findViewById(R.id.saveButton).setOnClickListener(this);
@@ -463,7 +464,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final View view = _sourceBunchesContainer.getChildAt(_sourceBunchesContainer.getChildCount() - 1);
 
         final TextView textView = view.findViewById(R.id.textView);
-        textView.setText(readConceptText(concept));
+        textView.setText(readConceptText(DbManager.getInstance().getDatabase(), concept, preferredAlphabet));
 
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeSourceBunch(concept));
     }
@@ -483,7 +484,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final View view = _diffBunchesContainer.getChildAt(_diffBunchesContainer.getChildCount() - 1);
 
         final TextView textView = view.findViewById(R.id.textView);
-        textView.setText(readConceptText(concept));
+        textView.setText(readConceptText(DbManager.getInstance().getDatabase(), concept, preferredAlphabet));
 
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeDiffBunch(concept));
     }
@@ -585,7 +586,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 final int concept = conceptFromAcceptation(acceptation);
                 _state.targetBunch = concept;
 
-                final String text = readConceptText(concept);
+                final String text = readConceptText(DbManager.getInstance().getDatabase(), concept, preferredAlphabet);
 
                 final TextView textView = findViewById(R.id.targetBunchText);
                 textView.setText(text);
@@ -625,7 +626,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             final int concept = conceptFromAcceptation(acceptation);
             _state.rule = concept;
 
-            final String text = readConceptText(concept);
+            final String text = readConceptText(DbManager.getInstance().getDatabase(), concept, preferredAlphabet);
             final TextView textView = findViewById(R.id.ruleText);
             textView.setText(text);
         }

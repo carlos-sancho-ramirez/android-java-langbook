@@ -445,6 +445,24 @@ public final class LangbookReadableDatabase {
         return corrBuilder.build();
     }
 
+    public static ImmutableIntKeyMap<String> getCorrelationWithText(DbExporter.Database db, int correlationId) {
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
+
+        final DbQuery query = new DbQuery.Builder(correlations)
+                .join(symbolArrays, correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(correlations.getCorrelationIdColumnIndex(), correlationId)
+                .select(correlations.getAlphabetColumnIndex(), correlations.columns().size() + symbolArrays.getStrColumnIndex());
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toText());
+            }
+        }
+        return builder.build();
+    }
+
     public static int[] getCorrelationArray(DbExporter.Database db, int id) {
         if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
             return new int[0];
@@ -475,5 +493,118 @@ public final class LangbookReadableDatabase {
         }
 
         return result;
+    }
+
+    public static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int j1Offset = acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(strings, acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getConceptColumnIndex(), concept)
+                .select(j1Offset + strings.getStringAlphabetColumnIndex(), j1Offset + strings.getStringColumnIndex());
+
+        String text;
+        try (DbResult result = db.select(query)) {
+            DbResult.Row row = result.next();
+            int firstAlphabet = row.get(0).toInt();
+            text = row.get(1).toText();
+            while (firstAlphabet != preferredAlphabet && result.hasNext()) {
+                row = result.next();
+                if (row.get(0).toInt() == preferredAlphabet) {
+                    firstAlphabet = preferredAlphabet;
+                    text = row.get(1).toText();
+                }
+            }
+        }
+
+        return text;
+    }
+
+    public static DisplayableItem readConceptAcceptationAndText(DbExporter.Database db, int concept, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int j1Offset = acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(strings, acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getConceptColumnIndex(), concept)
+                .select(j1Offset + strings.getStringAlphabetColumnIndex(),
+                        acceptations.getIdColumnIndex(),
+                        j1Offset + strings.getStringColumnIndex());
+
+        int acceptation;
+        String text;
+        try (DbResult result = db.select(query)) {
+            DbResult.Row row = result.next();
+            int firstAlphabet = row.get(0).toInt();
+            acceptation = row.get(1).toInt();
+            text = row.get(2).toText();
+            while (firstAlphabet != preferredAlphabet && result.hasNext()) {
+                row = result.next();
+                if (row.get(0).toInt() == preferredAlphabet) {
+                    firstAlphabet = preferredAlphabet;
+                    acceptation = row.get(1).toInt();
+                    text = row.get(2).toText();
+                }
+            }
+        }
+
+        return new DisplayableItem(acceptation, text);
+    }
+
+    public static ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(DbExporter.Database db, int bunchSet, int preferredAlphabet) {
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = bunchSets.columns().size();
+        final int stringsOffset = accOffset + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(bunchSets)
+                .join(acceptations, bunchSets.getBunchColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(bunchSets.getSetIdColumnIndex(), bunchSet)
+                .select(
+                        bunchSets.getBunchColumnIndex(),
+                        accOffset + acceptations.getIdColumnIndex(),
+                        stringsOffset + strings.getStringAlphabetColumnIndex(),
+                        stringsOffset + strings.getStringColumnIndex()
+                );
+
+        ImmutableList.Builder<DisplayableItem> builder = new ImmutableList.Builder<>();
+        try (DbResult cursor = db.select(query)) {
+            if (cursor.hasNext()) {
+                DbResult.Row row = cursor.next();
+                int bunch = row.get(0).toInt();
+                int acc = row.get(1).toInt();
+                int alphabet = row.get(2).toInt();
+                String text = row.get(3).toText();
+
+                while (cursor.hasNext()) {
+                    row = cursor.next();
+                    if (bunch == row.get(0).toInt()) {
+                        if (alphabet != preferredAlphabet && row.get(2).toInt() == preferredAlphabet) {
+                            acc = row.get(1).toInt();
+                            text = row.get(3).toText();
+                            alphabet = preferredAlphabet;
+                        }
+                    }
+                    else {
+                        builder.add(new DisplayableItem(acc, text));
+
+                        bunch = row.get(0).toInt();
+                        acc = row.get(1).toInt();
+                        alphabet = row.get(2).toInt();
+                        text = row.get(3).toText();
+                    }
+                }
+
+                builder.add(new DisplayableItem(acc, text));
+            }
+        }
+
+        return builder.build();
     }
 }
