@@ -9,6 +9,9 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableList;
+import sword.collections.ImmutablePair;
+import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
@@ -229,6 +232,57 @@ public final class LangbookReadableDatabase {
         }
 
         return null;
+    }
+
+    public static ImmutableSet<ImmutableIntPair> findConversions(DbExporter.Database db) {
+        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
+                .select(
+                        conversions.getSourceAlphabetColumnIndex(),
+                        conversions.getTargetAlphabetColumnIndex());
+
+        final ImmutableSet.Builder<ImmutableIntPair> builder = new ImmutableSet.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int source = row.get(0).toInt();
+                final int target = row.get(1).toInt();
+                builder.add(new ImmutableIntPair(source, target));
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableList<ImmutablePair<String, String>> getConversion(DbExporter.Database db, ImmutableIntPair pair) {
+        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+        final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
+
+        final int off1Symbols = conversions.columns().size();
+        final int off2Symbols = off1Symbols + symbols.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .join(symbols, conversions.getSourceColumnIndex(), symbols.getIdColumnIndex())
+                .join(symbols, conversions.getTargetColumnIndex(), symbols.getIdColumnIndex())
+                .where(conversions.getSourceAlphabetColumnIndex(), pair.left)
+                .where(conversions.getTargetAlphabetColumnIndex(), pair.right)
+                .select(
+                        off1Symbols + symbols.getStrColumnIndex(),
+                        off2Symbols + symbols.getStrColumnIndex());
+
+        final ImmutableList.Builder<ImmutablePair<String, String>> builder = new ImmutableList.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final String sourceText = row.get(0).toText();
+                final String targetText = row.get(1).toText();
+                builder.add(new ImmutablePair<>(sourceText, targetText));
+            }
+        }
+
+        return builder.build();
     }
 
     public static Integer findBunchSet(DbExporter.Database db, IntSet bunches) {

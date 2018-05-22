@@ -15,9 +15,9 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
-import sword.collections.IntPairMap;
 import sword.collections.IntResultFunction;
 import sword.collections.IntSet;
 import sword.collections.MutableIntSet;
@@ -28,16 +28,13 @@ import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
-import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
-import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
+import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.WordEditorActivity.convertText;
-import static sword.langbook3.android.WordEditorActivity.readConversion;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -261,7 +258,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
             if (foundConversions.keySet().contains(alphabet)) {
                 final int targetAlphabet = foundConversions.get(alphabet);
-                ImmutableList<WordEditorActivity.StringPair> conversion = readConversion(alphabet, targetAlphabet);
+                ImmutableList<ImmutablePair<String, String>> conversion = getConversion(DbManager.getInstance().getDatabase(), new ImmutableIntPair(alphabet, targetAlphabet));
                 final String convertedText = convertText(conversion, text);
                 if (convertedText == null) {
                     throw new AssertionError();

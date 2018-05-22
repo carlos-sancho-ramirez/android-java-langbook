@@ -15,6 +15,7 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
@@ -26,6 +27,7 @@ import sword.langbook3.android.db.DbResult;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
+import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
@@ -129,50 +131,14 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         return builder.build();
     }
 
-    static final class StringPair {
-        final String source;
-        final String target;
-
-        StringPair(String source, String target) {
-            this.source = source;
-            this.target = target;
-        }
-    }
-
     private static final class FieldConversion {
         final int sourceField;
-        final ImmutableList<StringPair> textPairs;
+        final ImmutableList<ImmutablePair<String, String>> textPairs;
 
-        FieldConversion(int sourceField, ImmutableList<StringPair> textPairs) {
+        FieldConversion(int sourceField, ImmutableList<ImmutablePair<String, String>> textPairs) {
             this.sourceField = sourceField;
             this.textPairs = textPairs;
         }
-    }
-
-    static ImmutableList<StringPair> readConversion(int source, int target) {
-        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
-        final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
-
-        final int off1Symbols = conversions.columns().size();
-        final int off2Symbols = off1Symbols + symbols.columns().size();
-
-        final DbQuery query = new DbQuery.Builder(conversions)
-                .join(symbols, conversions.getSourceColumnIndex(), symbols.getIdColumnIndex())
-                .join(symbols, conversions.getTargetColumnIndex(), symbols.getIdColumnIndex())
-                .where(conversions.getSourceAlphabetColumnIndex(), source)
-                .where(conversions.getTargetAlphabetColumnIndex(), target)
-                .select(
-                        off1Symbols + symbols.getStrColumnIndex(),
-                        off2Symbols + symbols.getStrColumnIndex());
-
-        final ImmutableList.Builder<StringPair> builder = new ImmutableList.Builder<>();
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
-            final String sourceText = row.get(0).toText();
-            final String targetText = row.get(1).toText();
-            builder.add(new StringPair(sourceText, targetText));
-        }
-
-        return builder.build();
     }
 
     @Override
@@ -233,8 +199,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             final int alphabet = fieldNames.keyAt(fieldIndex);
             final int conversionIndex = fieldConversions.keySet().indexOf(alphabet);
             if (conversionIndex >= 0) {
-                final ImmutableList<StringPair> conversion = readConversion(
-                        fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
+                final ImmutableIntPair pair = new ImmutableIntPair(fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
+                final ImmutableList<ImmutablePair<String, String>> conversion = getConversion(DbManager.getInstance().getDatabase(), pair);
                 final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
                 builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
 
@@ -281,14 +247,14 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    static String convertText(ImmutableList<StringPair> pairs, String text) {
+    static String convertText(ImmutableList<ImmutablePair<String, String>> pairs, String text) {
         String result = "";
         while (text.length() > 0) {
             boolean found = false;
-            for (StringPair pair : pairs) {
-                if (text.startsWith(pair.source)) {
-                    result += pair.target;
-                    text = text.substring(pair.source.length());
+            for (ImmutablePair<String, String> pair : pairs) {
+                if (text.startsWith(pair.left)) {
+                    result += pair.right;
+                    text = text.substring(pair.left.length());
                     found = true;
                     break;
                 }

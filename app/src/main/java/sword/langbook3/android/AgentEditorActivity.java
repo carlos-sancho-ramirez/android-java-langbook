@@ -40,7 +40,6 @@ import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbStringValue;
-import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcceptation;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
@@ -53,10 +52,10 @@ import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledConcept;
-import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
-import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
+import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
+import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
+import static sword.langbook3.android.WordEditorActivity.convertText;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
@@ -842,47 +841,64 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     correlation.put(entry.alphabet, text);
                 }
 
-                final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
-                for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
-                    corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                boolean validConversion = true;
+                for (ImmutableIntPair pair : findConversions(db)) {
+                    final IntSet keySet = correlation.keySet();
+                    if (keySet.contains(pair.left)) {
+                        final String result = convertText(getConversion(db, pair), correlation.get(pair.left));
+                        if (result == null) {
+                            validConversion = false;
+                            break;
+                        }
+                        correlation.put(pair.right, result);
+                    }
                 }
 
-                final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
-                final int correlationArrayId = insertCorrelationArray(db, correlationId);
-
-                final int baseConcept = conceptFromAcceptation(acc);
-                insertRuledConcept(db, nextConcept, insertData.agentId, baseConcept);
-                final int newAcc = insertAcceptation(db, nextWord, nextConcept, correlationArrayId);
-                insertRuledAcceptation(db, newAcc, insertData.agentId, acc);
-
-                // TODO: Conversion is missing
-                for (IntKeyMap.Entry<String> entry : correlation.entries()) {
-                    int mainTextAlphabet = mainAlphabets.get(entry.key(), 0);
-                    if (mainTextAlphabet == 0) {
-                        final LangbookDbSchema.AlphabetsTable alpTable = LangbookDbSchema.Tables.alphabets;
-                        final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
-                        final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
-                                .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
-                                .where(alpTable.getIdColumnIndex(), entry.key())
-                                .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
-                        mainTextAlphabet = manager.selectSingleRow(mainAlphableQuery).get(0).toInt();
-                        mainAlphabets.put(entry.key(), mainTextAlphabet);
+                if (validConversion) {
+                    final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
+                    for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
+                        corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
                     }
 
-                    final String mainText = correlation.get(entry.key(), entry.value());
-                    final DbInsertQuery strInsertQuery = new DbInsertQuery.Builder(strTable)
-                            .put(strTable.getDynamicAcceptationColumnIndex(), newAcc)
-                            .put(strTable.getMainAcceptationColumnIndex(), mainAcc)
-                            .put(strTable.getMainStringColumnIndex(), mainText)
-                            .put(strTable.getStringAlphabetColumnIndex(), entry.key())
-                            .put(strTable.getStringColumnIndex(), entry.value())
-                            .build();
-                    db.insert(strInsertQuery);
-                }
-                processedAccBuilder.add(newAcc);
+                    final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
+                    final int correlationArrayId = insertCorrelationArray(db, correlationId);
 
-                nextConcept++;
-                nextWord++;
+                    final int baseConcept = conceptFromAcceptation(acc);
+                    insertRuledConcept(db, nextConcept, insertData.agentId, baseConcept);
+                    final int newAcc = insertAcceptation(db, nextWord, nextConcept, correlationArrayId);
+                    insertRuledAcceptation(db, newAcc, insertData.agentId, acc);
+
+                    for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+                        int mainTextAlphabet = mainAlphabets.get(entry.key(), 0);
+                        if (mainTextAlphabet == 0) {
+                            final LangbookDbSchema.AlphabetsTable alpTable = LangbookDbSchema.Tables.alphabets;
+                            final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
+                            final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
+                                    .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
+                                    .where(alpTable.getIdColumnIndex(), entry.key())
+                                    .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
+                            mainTextAlphabet = manager.selectSingleRow(mainAlphableQuery).get(0).toInt();
+                            mainAlphabets.put(entry.key(), mainTextAlphabet);
+                        }
+
+                        final String mainText = correlation.get(mainTextAlphabet, entry.value());
+                        final DbInsertQuery strInsertQuery = new DbInsertQuery.Builder(strTable)
+                                .put(strTable.getDynamicAcceptationColumnIndex(), newAcc)
+                                .put(strTable.getMainAcceptationColumnIndex(), mainAcc)
+                                .put(strTable.getMainStringColumnIndex(), mainText)
+                                .put(strTable.getStringAlphabetColumnIndex(), entry.key())
+                                .put(strTable.getStringColumnIndex(), entry.value())
+                                .build();
+
+                        if (db.insert(strInsertQuery) == null) {
+                            throw new AssertionError();
+                        }
+                    }
+                    processedAccBuilder.add(newAcc);
+
+                    nextConcept++;
+                    nextWord++;
+                }
             }
             processedAcceptations = processedAccBuilder.build();
         }
