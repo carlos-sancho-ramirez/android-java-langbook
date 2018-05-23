@@ -233,21 +233,19 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
     }
 
     static SparseArray<String> readAllRules(SQLiteDatabase db) {
-        final AgentsTable agents = Tables.agents;
         final AcceptationsTable acceptations = Tables.acceptations;
         final RuledConceptsTable ruledConcepts = Tables.ruledConcepts;
         final StringQueriesTable strings = Tables.stringQueries;
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
-                        " J1." + agents.columns().get(agents.getRuleColumnIndex()).name() +
-                        ",J3." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J3." + strings.columns().get(strings.getStringColumnIndex()).name() +
+                        " J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
+                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
+                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
                 " FROM " + ruledConcepts.name() + " AS J0" +
-                        " JOIN " + agents.name() + " AS J1 ON J0." + ruledConcepts.columns().get(ruledConcepts.getAgentColumnIndex()).name() + "=J1." + idColumnName +
-                        " JOIN " + acceptations.name() + " AS J2 ON J1." + agents.columns().get(agents.getRuleColumnIndex()).name() + "=J2." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " ORDER BY J1." + agents.columns().get(agents.getRuleColumnIndex()).name(), null);
+                        " JOIN " + acceptations.name() + " AS J1 ON J0." + idColumnName + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
+                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
+                        " ORDER BY J0." + ruledConcepts.columns().get(ruledConcepts.getRuleColumnIndex()).name(), null);
 
         final SparseArray<String> result = new SparseArray<>();
         if (cursor != null) {

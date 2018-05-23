@@ -64,7 +64,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private static final int REQUEST_CODE_PICK_DIFF_BUNCH = 3;
     private static final int REQUEST_CODE_PICK_RULE = 4;
 
-    private static final int EMPTY_BUNCH_SET = 0;
     private static final int NO_RULE = 0;
 
     private interface SavedKeys {
@@ -697,13 +696,15 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final int diffBunchSetId;
         final int matcherId;
         final int adderId;
+        final int rule;
 
-        InsertAgentResult(int agentId, int sourceBunchSetId, int diffBunchSetId, int matcherId, int adderId) {
+        InsertAgentResult(int agentId, int sourceBunchSetId, int diffBunchSetId, int matcherId, int adderId, int rule) {
             this.agentId = agentId;
             this.sourceBunchSetId = sourceBunchSetId;
             this.diffBunchSetId = diffBunchSetId;
             this.matcherId = matcherId;
             this.adderId = adderId;
+            this.rule = rule;
         }
     }
 
@@ -720,7 +721,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final Integer agentId = LangbookDbInserter.insertAgent(db,
                 targetBunch,  sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
         return (agentId == null)? null :
-                new InsertAgentResult(agentId, sourceBunchSetId, diffBunchSetId, matcherId, adderId);
+                new InsertAgentResult(agentId, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule);
     }
 
     private void runAgent(InsertAgentResult insertData) {
@@ -865,7 +866,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     final int correlationArrayId = insertCorrelationArray(db, correlationId);
 
                     final int baseConcept = conceptFromAcceptation(acc);
-                    insertRuledConcept(db, nextConcept, insertData.agentId, baseConcept);
+                    insertRuledConcept(db, nextConcept, insertData.rule, baseConcept);
                     final int newAcc = insertAcceptation(db, nextWord, nextConcept, correlationArrayId);
                     insertRuledAcceptation(db, newAcc, insertData.agentId, acc);
 

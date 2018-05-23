@@ -374,10 +374,10 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static Integer findRuledConcept(DbExporter.Database db, int agent, int concept) {
+    public static Integer findRuledConcept(DbExporter.Database db, int rule, int concept) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getAgentColumnIndex(), agent)
+                .where(table.getRuleColumnIndex(), rule)
                 .where(table.getConceptColumnIndex(), concept)
                 .select(table.getIdColumnIndex());
         final DbResult result = db.select(query);

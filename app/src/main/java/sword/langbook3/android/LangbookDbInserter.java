@@ -171,11 +171,11 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertRuledConcept(DbInserter db, int ruledConcept, int agent, int baseConcept) {
+    public static void insertRuledConcept(DbInserter db, int ruledConcept, int rule, int baseConcept) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), ruledConcept)
-                .put(table.getAgentColumnIndex(), agent)
+                .put(table.getRuleColumnIndex(), rule)
                 .put(table.getConceptColumnIndex(), baseConcept)
                 .build();
 

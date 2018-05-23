@@ -113,18 +113,18 @@ public final class LangbookDatabase {
         return (setId != null)? setId : insertAgentSet(db, set);
     }
 
-    public static int insertRuledConcept(DbImporter.Database db, int agent, int concept) {
+    public static int insertRuledConcept(DbImporter.Database db, int rule, int concept) {
         final int ruledConcept = LangbookReadableDatabase.getMaxConceptInAcceptations(db) + 1;
-        LangbookDbInserter.insertRuledConcept(db, ruledConcept, agent, concept);
+        LangbookDbInserter.insertRuledConcept(db, ruledConcept, rule, concept);
         return ruledConcept;
     }
 
-    public static int obtainRuledConcept(DbImporter.Database db, int agent, int concept) {
-        final Integer id = LangbookReadableDatabase.findRuledConcept(db, agent, concept);
+    public static int obtainRuledConcept(DbImporter.Database db, int rule, int concept) {
+        final Integer id = LangbookReadableDatabase.findRuledConcept(db, rule, concept);
         if (id != null) {
             return id;
         }
 
-        return insertRuledConcept(db, agent, concept);
+        return insertRuledConcept(db, rule, concept);
     }
 }

@@ -328,10 +328,10 @@ public final class LangbookDbSchema implements DbSchema {
     public static final class RuledConceptsTable extends DbTable {
 
         private RuledConceptsTable() {
-            super("RuledConcepts", new DbIntColumn("agent"), new DbIntColumn("concept"));
+            super("RuledConcepts", new DbIntColumn("rule"), new DbIntColumn("concept"));
         }
 
-        public int getAgentColumnIndex() {
+        public int getRuleColumnIndex() {
             return 1;
         }
 

@@ -168,7 +168,7 @@ public final class DatabaseInflater {
                     resultCorr.put(alphabet, resultStr);
                 }
 
-                final int newConcept = obtainRuledConcept(_db, agentId, concept);
+                final int newConcept = obtainRuledConcept(_db, rule, concept);
                 final int resultCorrLength = resultCorr.size();
                 final MutableIntPairMap resultCorrIds = MutableIntPairMap.empty();
                 for (int i = 0; i < resultCorrLength; i++) {
