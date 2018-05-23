@@ -5,7 +5,6 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
@@ -112,5 +111,20 @@ public final class LangbookDatabase {
     public static int obtainAgentSet(DbImporter.Database db, IntSet set) {
         final Integer setId = findAgentSet(db, set);
         return (setId != null)? setId : insertAgentSet(db, set);
+    }
+
+    public static int insertRuledConcept(DbImporter.Database db, int agent, int concept) {
+        final int ruledConcept = LangbookReadableDatabase.getMaxConceptInAcceptations(db) + 1;
+        LangbookDbInserter.insertRuledConcept(db, ruledConcept, agent, concept);
+        return ruledConcept;
+    }
+
+    public static int obtainRuledConcept(DbImporter.Database db, int agent, int concept) {
+        final Integer id = LangbookReadableDatabase.findRuledConcept(db, agent, concept);
+        if (id != null) {
+            return id;
+        }
+
+        return insertRuledConcept(db, agent, concept);
     }
 }

@@ -374,6 +374,25 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
+    public static Integer findRuledConcept(DbExporter.Database db, int agent, int concept) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAgentColumnIndex(), agent)
+                .where(table.getConceptColumnIndex(), concept)
+                .select(table.getIdColumnIndex());
+        final DbResult result = db.select(query);
+        try {
+            final Integer id = result.hasNext()? result.next().get(0).toInt() : null;
+            if (result.hasNext()) {
+                throw new AssertionError("There should not be repeated ruled concepts");
+            }
+            return id;
+        }
+        finally {
+            result.close();
+        }
+    }
+
     public static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(DbQuery.max(columnIndex));
@@ -394,6 +413,16 @@ public final class LangbookReadableDatabase {
     public static int getMaxCorrelationArrayId(DbExporter.Database db) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         return getColumnMax(db, table, table.getArrayIdColumnIndex());
+    }
+
+    public static int getMaxConceptInAcceptations(DbExporter.Database db) {
+        LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        return getColumnMax(db, table, table.getConceptColumnIndex());
+    }
+
+    public static int getMaxWordInAcceptations(DbExporter.Database db) {
+        LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        return getColumnMax(db, table, table.getWordColumnIndex());
     }
 
     public static int getMaxBunchSetId(DbExporter.Database db) {

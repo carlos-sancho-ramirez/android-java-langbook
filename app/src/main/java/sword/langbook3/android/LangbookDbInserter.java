@@ -196,4 +196,20 @@ public final class LangbookDbInserter {
             throw new AssertionError();
         }
     }
+
+    public static void insertStringQuery(DbInserter db, String str,
+            String mainStr, int mainAcceptation, int dynAcceptation, int strAlphabet) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getStringColumnIndex(), str)
+                .put(table.getMainStringColumnIndex(), mainStr)
+                .put(table.getMainAcceptationColumnIndex(), mainAcceptation)
+                .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
+                .put(table.getStringAlphabetColumnIndex(), strAlphabet)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
 }

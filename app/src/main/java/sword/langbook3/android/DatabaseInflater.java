@@ -19,10 +19,14 @@ import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
+import static sword.langbook3.android.LangbookDatabase.obtainRuledConcept;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.getColumnMax;
+import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxWordInAcceptations;
 import static sword.langbook3.android.db.DbQuery.concat;
 
 public final class DatabaseInflater {
@@ -41,20 +45,6 @@ public final class DatabaseInflater {
         if (_listener != null) {
             _listener.setProgress(progress, message);
         }
-    }
-
-    private void insertStringQuery(
-            String str, String mainStr, int mainAcceptation,
-            int dynAcceptation, int strAlphabet) {
-        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getStringColumnIndex(), str)
-                .put(table.getMainStringColumnIndex(), mainStr)
-                .put(table.getMainAcceptationColumnIndex(), mainAcceptation)
-                .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
-                .put(table.getStringAlphabetColumnIndex(), strAlphabet)
-                .build();
-        _db.insert(query);
     }
 
     private void fillSearchQueryTable() {
@@ -108,76 +98,12 @@ public final class DatabaseInflater {
                 // TODO: Change this to point to the dynamic acceptation in Japanese. More JOINS are required whenever agents are applied
                 final int dynAccId = accId;
 
-                insertStringQuery(str, mainStr, accId, dynAccId, alphabet);
+                insertStringQuery(_db, str, mainStr, accId, dynAccId, alphabet);
             }
         }
         finally {
             result.close();
         }
-    }
-
-    private void insertRuledAcceptation(int ruledAcceptation, int agent, int acceptation) {
-        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), ruledAcceptation)
-                .put(table.getAgentColumnIndex(), agent)
-                .put(table.getAcceptationColumnIndex(), acceptation)
-                .build();
-        _db.insert(query);
-    }
-
-    private Integer findRuledConcept(int agent, int concept) {
-        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getAgentColumnIndex(), agent)
-                .where(table.getConceptColumnIndex(), concept)
-                .select(table.getIdColumnIndex());
-        final DbResult result = _db.select(query);
-        try {
-            final Integer id = result.hasNext()? result.next().get(0).toInt() : null;
-            if (result.hasNext()) {
-                throw new AssertionError("There should not be repeated ruled concepts");
-            }
-            return id;
-        }
-        finally {
-            result.close();
-        }
-    }
-
-    private int getMaxAgentSetId() {
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        return getColumnMax(_db, table, table.getSetIdColumnIndex());
-    }
-
-    private int getMaxWord() {
-        LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        return getColumnMax(_db, table, table.getWordColumnIndex());
-    }
-
-    private int getMaxConcept() {
-        LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        return getColumnMax(_db, table, table.getConceptColumnIndex());
-    }
-
-    private int insertRuledConcept(int agent, int concept) {
-        final int ruledConcept = getMaxConcept() + 1;
-        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), ruledConcept)
-                .put(table.getAgentColumnIndex(), agent)
-                .put(table.getConceptColumnIndex(), concept)
-                .build();
-        return _db.insert(query);
-    }
-
-    private int obtainRuledConcept(int agent, int concept) {
-        final Integer id = findRuledConcept(agent, concept);
-        if (id != null) {
-            return id;
-        }
-
-        return insertRuledConcept(agent, concept);
     }
 
     private boolean agentFromStart(int flags) {
@@ -242,7 +168,7 @@ public final class DatabaseInflater {
                     resultCorr.put(alphabet, resultStr);
                 }
 
-                final int newConcept = obtainRuledConcept(agentId, concept);
+                final int newConcept = obtainRuledConcept(_db, agentId, concept);
                 final int resultCorrLength = resultCorr.size();
                 final MutableIntPairMap resultCorrIds = MutableIntPairMap.empty();
                 for (int i = 0; i < resultCorrLength; i++) {
@@ -254,10 +180,10 @@ public final class DatabaseInflater {
                 final int corrArrayId = insertCorrelationArray(_db, corrId);
                 suggestedNewWordUsed = true;
                 final int dynAccId = insertAcceptation(_db, suggestedNewWordId, newConcept, corrArrayId);
-                insertRuledAcceptation(dynAccId, agentId, accId);
+                insertRuledAcceptation(_db, dynAccId, agentId, accId);
 
                 for (int i = 0; i < resultCorrLength; i++) {
-                    insertStringQuery(resultCorr.valueAt(i), resultCorr.valueAt(0), accId, dynAccId, resultCorr.keyAt(i));
+                    insertStringQuery(_db, resultCorr.valueAt(i), resultCorr.valueAt(0), accId, dynAccId, resultCorr.keyAt(i));
                 }
 
                 targetAccId = dynAccId;
@@ -278,7 +204,7 @@ public final class DatabaseInflater {
             return table.nullReference();
         }
         else {
-            final int setId = getMaxAgentSetId() + 1;
+            final int setId = getMaxAgentSetId(_db) + 1;
             for (int agent : agents) {
                 final DbInsertQuery query = new DbInsertQuery.Builder(table)
                         .put(table.getSetIdColumnIndex(), setId)
@@ -349,7 +275,7 @@ public final class DatabaseInflater {
         LangbookDbSchema.BunchAcceptationsTable bunchAccs = LangbookDbSchema.Tables.bunchAcceptations;
         LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
-        int maxWord = getMaxWord();
+        int maxWord = getMaxWordInAcceptations(_db);
         final SparseArray<String> matcher = getCorrelation(agentId, agents.getMatcherColumnIndex());
         final SparseArray<String> adder = getCorrelation(agentId, agents.getAdderColumnIndex());
 
@@ -492,7 +418,7 @@ public final class DatabaseInflater {
                         final int mainAcc = row.get(2).toInt();
                         final int dynAcc = row.get(3).toInt();
 
-                        insertStringQuery(str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+                        insertStringQuery(_db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
                     }
                 }
             }
