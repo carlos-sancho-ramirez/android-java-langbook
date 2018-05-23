@@ -43,16 +43,16 @@ import sword.langbook3.android.db.DbStringValue;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcceptation;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
-import static sword.langbook3.android.CorrelationPickerActivity.getAcceptationFirstAvailables;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainAgentSet;
 import static sword.langbook3.android.LangbookDatabase.obtainBunchSet;
+import static sword.langbook3.android.LangbookDatabase.obtainRuledConcept;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertRuledConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxWordInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 import static sword.langbook3.android.WordEditorActivity.convertText;
@@ -785,9 +785,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             processedAcceptations = matchingAcceptations;
         }
         else {
-            final CorrelationPickerActivity.AcceptationFirstAvailables wordAndConcept = getAcceptationFirstAvailables(db);
-            int nextWord = wordAndConcept.word;
-            int nextConcept = wordAndConcept.concept;
+            int nextWord = getMaxWordInAcceptations(db) + 1;
 
             final MutableIntPairMap mainAlphabets = MutableIntPairMap.empty();
             final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
@@ -866,8 +864,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     final int correlationArrayId = insertCorrelationArray(db, correlationId);
 
                     final int baseConcept = conceptFromAcceptation(acc);
-                    insertRuledConcept(db, nextConcept, insertData.rule, baseConcept);
-                    final int newAcc = insertAcceptation(db, nextWord, nextConcept, correlationArrayId);
+                    final int ruledConcept = obtainRuledConcept(db, insertData.rule, baseConcept);
+                    final int newAcc = insertAcceptation(db, nextWord, ruledConcept, correlationArrayId);
                     insertRuledAcceptation(db, newAcc, insertData.agentId, acc);
 
                     for (IntKeyMap.Entry<String> entry : correlation.entries()) {
@@ -898,7 +896,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     }
                     processedAccBuilder.add(newAcc);
 
-                    nextConcept++;
                     nextWord++;
                 }
             }

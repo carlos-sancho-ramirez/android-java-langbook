@@ -174,7 +174,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         findViewById(R.id.nextButton).setOnClickListener(this);
     }
 
-    static final class AcceptationFirstAvailables {
+    private static final class AcceptationFirstAvailables {
         final int word;
         final int concept;
 
@@ -184,7 +184,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    static AcceptationFirstAvailables getAcceptationFirstAvailables(DbExporter.Database db) {
+    private static AcceptationFirstAvailables getAcceptationFirstAvailables(DbExporter.Database db) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery maxQuery = new DbQuery.Builder(table)
                 .select(DbQuery.max(table.getWordColumnIndex()), DbQuery.max(table.getConceptColumnIndex()));
