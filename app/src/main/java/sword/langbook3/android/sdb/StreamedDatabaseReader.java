@@ -418,22 +418,20 @@ public final class StreamedDatabaseReader {
         return result;
     }
 
-    private int[] readAcceptations(InputBitStream ibs, int[] wordIdMap, int[] conceptIdMap, int[] correlationArrayIdMap) throws IOException {
+    private int[] readAcceptations(InputBitStream ibs, int[] conceptIdMap, int[] correlationArrayIdMap) throws IOException {
         final int acceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
 
         final int[] acceptationsIdMap = new int[acceptationsLength];
         if (acceptationsLength >= 0) {
             final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
             final HuffmanTable<Integer> corrArraySetLengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
-            final RangedIntegerHuffmanTable wordTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidWord, wordIdMap.length - 1);
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, conceptIdMap.length - 1);
             for (int i = 0; i < acceptationsLength; i++) {
-                final int word = wordIdMap[ibs.readHuffmanSymbol(wordTable)];
                 final int concept = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
                 final ImmutableIntSet corrArraySet = readRangedNumberSet(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
                 for (int corrArray : corrArraySet) {
                     // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
-                    acceptationsIdMap[i] = insertAcceptation(_db, word, concept, correlationArrayIdMap[corrArray]);
+                    acceptationsIdMap[i] = insertAcceptation(_db, concept, correlationArrayIdMap[corrArray]);
                 }
             }
         }
@@ -626,13 +624,7 @@ public final class StreamedDatabaseReader {
 
             // Export the amount of words and concepts in order to range integers
             final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
-            final int maxWord = ibs.readHuffmanSymbol(naturalNumberTable) - 1;
             final int maxConcept = ibs.readHuffmanSymbol(naturalNumberTable) - 1;
-
-            int[] wordIdMap = new int[maxWord + 1];
-            for (int i = 0; i <= maxWord; i++) {
-                wordIdMap[i] = i;
-            }
 
             int[] conceptIdMap = new int[maxConcept + 1];
             for (int i = 0; i <= maxConcept; i++) {
@@ -650,7 +642,7 @@ public final class StreamedDatabaseReader {
 
             // Import acceptations
             setProgress(0.5f, "Reading acceptations");
-            int[] acceptationIdMap = readAcceptations(ibs, wordIdMap, conceptIdMap, correlationArrayIdMap);
+            int[] acceptationIdMap = readAcceptations(ibs, conceptIdMap, correlationArrayIdMap);
 
             // Import bunchConcepts
             setProgress(0.6f, "Reading bunch concepts");

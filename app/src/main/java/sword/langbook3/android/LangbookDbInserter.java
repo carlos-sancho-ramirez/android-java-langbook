@@ -92,10 +92,9 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static int insertAcceptation(DbInserter db, int word, int concept, int correlationArray) {
+    public static int insertAcceptation(DbInserter db, int concept, int correlationArray) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getWordColumnIndex(), word)
                 .put(table.getConceptColumnIndex(), concept)
                 .put(table.getCorrelationArrayColumnIndex(), correlationArray)
                 .build();

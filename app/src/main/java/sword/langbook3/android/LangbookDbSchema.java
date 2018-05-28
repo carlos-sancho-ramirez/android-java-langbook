@@ -13,19 +13,15 @@ public final class LangbookDbSchema implements DbSchema {
     public static final class AcceptationsTable extends DbTable {
 
         private AcceptationsTable() {
-            super("Acceptations", new DbIntColumn("word"), new DbIntColumn("concept"), new DbIntColumn("correlationArray"));
-        }
-
-        public int getWordColumnIndex() {
-            return 1;
+            super("Acceptations", new DbIntColumn("concept"), new DbIntColumn("correlationArray"));
         }
 
         public int getConceptColumnIndex() {
-            return 2;
+            return 1;
         }
 
         public int getCorrelationArrayColumnIndex() {
-            return 3;
+            return 2;
         }
     }
 

@@ -508,7 +508,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                         " JOIN " + alphabets.name() + " AS J3 ON J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=J3." + idColumnName +
                         " JOIN " + languages.name() + " AS J4 ON J3." + alphabets.columns().get(alphabets.getLanguageColumnIndex()).name() + "=J4." + idColumnName +
                 " WHERE J0." + idColumnName + "=?" +
-                        " AND J0." + acceptations.columns().get(acceptations.getWordColumnIndex()).name() + "!=J1." + acceptations.columns().get(acceptations.getWordColumnIndex()).name() +
                         " AND J3." + idColumnName + "=J4." + languages.columns().get(languages.getMainAlphabetColumnIndex()).name(),
                 new String[] { Integer.toString(acceptation) });
 
@@ -1419,7 +1418,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final AcceptationsTable table = Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), linkedAcceptation)
-                .select(table.getWordColumnIndex(), table.getCorrelationArrayColumnIndex());
+                .select(table.getCorrelationArrayColumnIndex());
 
         final Database db = DbManager.getInstance().getDatabase();
         final DbResult result = db.select(query);
@@ -1428,11 +1427,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             throw new AssertionError();
         }
 
-        final int word = row.get(0).toInt();
-        final int correlationArray = row.get(1).toInt();
+        final int correlationArray = row.get(0).toInt();
 
         final DbInsertQuery insertQuery = new DbInsertQuery.Builder(table)
-                .put(table.getWordColumnIndex(), word)
                 .put(table.getConceptColumnIndex(), _concept)
                 .put(table.getCorrelationArrayColumnIndex(), correlationArray)
                 .build();

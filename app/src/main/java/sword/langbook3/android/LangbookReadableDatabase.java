@@ -420,11 +420,6 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getConceptColumnIndex());
     }
 
-    public static int getMaxWordInAcceptations(DbExporter.Database db) {
-        LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        return getColumnMax(db, table, table.getWordColumnIndex());
-    }
-
     public static int getMaxBunchSetId(DbExporter.Database db) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());

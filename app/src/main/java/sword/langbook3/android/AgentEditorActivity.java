@@ -52,7 +52,6 @@ import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxWordInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 import static sword.langbook3.android.WordEditorActivity.convertText;
@@ -785,8 +784,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             processedAcceptations = matchingAcceptations;
         }
         else {
-            int nextWord = getMaxWordInAcceptations(db) + 1;
-
             final MutableIntPairMap mainAlphabets = MutableIntPairMap.empty();
             final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
             for (int acc : matchingAcceptations) {
@@ -865,7 +862,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
                     final int baseConcept = conceptFromAcceptation(acc);
                     final int ruledConcept = obtainRuledConcept(db, insertData.rule, baseConcept);
-                    final int newAcc = insertAcceptation(db, nextWord, ruledConcept, correlationArrayId);
+                    final int newAcc = insertAcceptation(db, ruledConcept, correlationArrayId);
                     insertRuledAcceptation(db, newAcc, insertData.agentId, acc);
 
                     for (IntKeyMap.Entry<String> entry : correlation.entries()) {
@@ -895,8 +892,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                         }
                     }
                     processedAccBuilder.add(newAcc);
-
-                    nextWord++;
                 }
             }
             processedAcceptations = processedAccBuilder.build();

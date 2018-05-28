@@ -34,6 +34,7 @@ import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.WordEditorActivity.convertText;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
@@ -174,46 +175,13 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         findViewById(R.id.nextButton).setOnClickListener(this);
     }
 
-    private static final class AcceptationFirstAvailables {
-        final int word;
-        final int concept;
-
-        AcceptationFirstAvailables(int word, int concept) {
-            this.word = word;
-            this.concept = concept;
-        }
-    }
-
-    private static AcceptationFirstAvailables getAcceptationFirstAvailables(DbExporter.Database db) {
-        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbQuery maxQuery = new DbQuery.Builder(table)
-                .select(DbQuery.max(table.getWordColumnIndex()), DbQuery.max(table.getConceptColumnIndex()));
-        final Iterator<DbResult.Row> it = db.select(maxQuery);
-        final AcceptationFirstAvailables result;
-        if (it.hasNext()) {
-            final DbResult.Row maxRow = it.next();
-            if (it.hasNext()) {
-                throw new AssertionError();
-            }
-
-            result = new AcceptationFirstAvailables(maxRow.get(0).toInt() + 1, maxRow.get(1).toInt() + 1);
-        }
-        else {
-            result = new AcceptationFirstAvailables(1, 1);
-        }
-
-        return result;
-    }
-
     private int insertAcceptation(int arrayId, int concept) {
         final DbImporter.Database db = DbManager.getInstance().getDatabase();
-        final AcceptationFirstAvailables firstAvailables = getAcceptationFirstAvailables(db);
-        final int word = firstAvailables.word;
         if (concept == NO_CONCEPT) {
-            concept = firstAvailables.concept;
+            concept = getMaxConceptInAcceptations(db) + 1;
         }
 
-        return LangbookDbInserter.insertAcceptation(db, word, concept, arrayId);
+        return LangbookDbInserter.insertAcceptation(db, concept, arrayId);
     }
 
     private ImmutableIntPairMap findConversions(IntSet alphabets) {

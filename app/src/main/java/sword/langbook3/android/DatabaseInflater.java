@@ -26,7 +26,6 @@ import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxWordInAcceptations;
 import static sword.langbook3.android.db.DbQuery.concat;
 
 public final class DatabaseInflater {
@@ -113,8 +112,8 @@ public final class DatabaseInflater {
     /**
      * @return True if the suggestedNewWordId has been used.
      */
-    private boolean applyAgent(int agentId, AgentSetSupplier agentSetSupplier,
-            int accId, int concept, int suggestedNewWordId, int targetBunch,
+    private void applyAgent(int agentId, AgentSetSupplier agentSetSupplier,
+            int accId, int concept, int targetBunch,
             SparseArray<String> matcher, SparseArray<String> adder, int rule,
             SparseArray<String> corr, int flags) {
         boolean suggestedNewWordUsed = false;
@@ -178,8 +177,7 @@ public final class DatabaseInflater {
 
                 final int corrId = obtainCorrelation(_db, resultCorrIds);
                 final int corrArrayId = insertCorrelationArray(_db, corrId);
-                suggestedNewWordUsed = true;
-                final int dynAccId = insertAcceptation(_db, suggestedNewWordId, newConcept, corrArrayId);
+                final int dynAccId = insertAcceptation(_db, newConcept, corrArrayId);
                 insertRuledAcceptation(_db, dynAccId, agentId, accId);
 
                 for (int i = 0; i < resultCorrLength; i++) {
@@ -193,8 +191,6 @@ public final class DatabaseInflater {
                 insertBunchAcceptation(_db, targetBunch, targetAccId, agentSetSupplier.get());
             }
         }
-
-        return suggestedNewWordUsed;
     }
 
     private int insertAgentSet(Set<Integer> agents) {
@@ -275,7 +271,6 @@ public final class DatabaseInflater {
         LangbookDbSchema.BunchAcceptationsTable bunchAccs = LangbookDbSchema.Tables.bunchAcceptations;
         LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
-        int maxWord = getMaxWordInAcceptations(_db);
         final SparseArray<String> matcher = getCorrelation(agentId, agents.getMatcherColumnIndex());
         final SparseArray<String> adder = getCorrelation(agentId, agents.getAdderColumnIndex());
 
@@ -320,10 +315,8 @@ public final class DatabaseInflater {
                     row = result.next();
                     newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
-                        if (applyAgent(agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch,
-                                matcher, adder, rule, corr, flags)) {
-                            ++maxWord;
-                        }
+                        applyAgent(agentId, agentSetSupplier, accId, concept, targetBunch,
+                                matcher, adder, rule, corr, flags);
 
                         accId = newAccId;
                         corr.clear();
@@ -338,7 +331,7 @@ public final class DatabaseInflater {
                     }
                 }
 
-                applyAgent(agentId, agentSetSupplier, accId, concept, maxWord + 1, targetBunch, matcher, adder,
+                applyAgent(agentId, agentSetSupplier, accId, concept, targetBunch, matcher, adder,
                         rule, corr, flags);
             }
         }

@@ -469,44 +469,23 @@ public final class StreamedDatabaseWriter {
         }
     }
 
-    private static final class AcceptationWordConceptRanges {
-        final ImmutableIntRange words;
-        final ImmutableIntRange concepts;
-
-        AcceptationWordConceptRanges(ImmutableIntRange words, ImmutableIntRange concepts) {
-            this.words = words;
-            this.concepts = concepts;
-        }
-    }
-
-    private AcceptationWordConceptRanges getRangesFromAcceptations() {
+    private ImmutableIntRange getConceptRangeFromAcceptations() {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getWordColumnIndex(), table.getConceptColumnIndex());
+                .select(table.getConceptColumnIndex());
         final DbResult result = _db.select(query);
-        int minWord = Integer.MAX_VALUE;
-        int maxWord = Integer.MIN_VALUE;
-        int minConcept = Integer.MAX_VALUE;
-        int maxConcept = Integer.MIN_VALUE;
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
         try {
             while (result.hasNext()) {
                 final DbResult.Row row = result.next();
-                final int word = row.get(0).toInt();
-                final int concept = row.get(1).toInt();
-                if (word < minWord) {
-                    minWord = word;
+                final int concept = row.get(0).toInt();
+                if (concept < min) {
+                    min = concept;
                 }
 
-                if (word > maxWord) {
-                    maxWord = word;
-                }
-
-                if (concept < minConcept) {
-                    minConcept = concept;
-                }
-
-                if (concept > maxConcept) {
-                    maxConcept = concept;
+                if (concept > max) {
+                    max = concept;
                 }
             }
         }
@@ -514,9 +493,7 @@ public final class StreamedDatabaseWriter {
             result.close();
         }
 
-        return new AcceptationWordConceptRanges(
-                new ImmutableIntRange(minWord, maxWord),
-                new ImmutableIntRange(minConcept, maxConcept));
+        return new ImmutableIntRange(min, max);
     }
 
     private ImmutableIntPairMap writeCorrelations(ImmutableIntSet exportable, ImmutableIntRange validAlphabets, ImmutableIntSet excludedAlphabets, ImmutableIntPairMap symbolArraysIdMap) throws IOException {
@@ -706,7 +683,7 @@ public final class StreamedDatabaseWriter {
         return idMapBuilder.build();
     }
 
-    private ImmutableIntPairMap writeAcceptations(ImmutableIntSet exportable, ImmutableIntRange validWords, ImmutableIntRange validConcepts, ImmutableIntPairMap correlationArrayIdMap) throws IOException {
+    private ImmutableIntPairMap writeAcceptations(ImmutableIntSet exportable, ImmutableIntRange validConcepts, ImmutableIntPairMap correlationArrayIdMap) throws IOException {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final int length = exportable.size();
         _obs.writeHuffmanSymbol(naturalNumberTable, length);
@@ -725,15 +702,12 @@ public final class StreamedDatabaseWriter {
 
             final DbQuery query = new DbQuery.Builder(table).select(
                     table.getIdColumnIndex(),
-                    table.getWordColumnIndex(),
                     table.getConceptColumnIndex(),
                     table.getCorrelationArrayColumnIndex());
             final DbResult result = _db.select(query);
 
             int index = 0;
             try {
-                final RangedIntegerHuffmanTable wordTable =
-                        new RangedIntegerHuffmanTable(validWords.min(), validWords.max());
                 final RangedIntegerHuffmanTable conceptTable =
                         new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
 
@@ -742,15 +716,14 @@ public final class StreamedDatabaseWriter {
                     final int accId = row.get(0).toInt();
                     if (exportable.contains(accId)) {
                         idMapBuilder.put(accId, index++);
-                        _obs.writeHuffmanSymbol(wordTable, row.get(1).toInt());
-                        _obs.writeHuffmanSymbol(conceptTable, row.get(2).toInt());
+                        _obs.writeHuffmanSymbol(conceptTable, row.get(1).toInt());
 
                         // Here the number of correlation arrays within the acceptation should be written.
                         // As length is always 1, it is expected that this will never include anything
                         // into the stream. So, it should not be required
                         final RangedIntegerHuffmanTable corrArrayTable = new RangedIntegerHuffmanTable(0,
                                 correlationArrayIdMap.size() - 1);
-                        _obs.writeHuffmanSymbol(corrArrayTable, correlationArrayIdMap.get(row.get(3).toInt()));
+                        _obs.writeHuffmanSymbol(corrArrayTable, correlationArrayIdMap.get(row.get(2).toInt()));
                     }
                 }
             } finally {
@@ -1248,12 +1221,10 @@ public final class StreamedDatabaseWriter {
         setProgress(0.2f, "Writing conversions");
         writeConversions(validAlphabets, symbolArrayIdMap);
 
-        final AcceptationWordConceptRanges accRanges = getRangesFromAcceptations();
-        _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.words.max() + 1);
-
+        final ImmutableIntRange conceptRange = getConceptRangeFromAcceptations();
         // TODO: Languages, Alphabets, Bunches and Rules are concepts as well and they
         // should be considered into the count of the maximum concept
-        _obs.writeHuffmanSymbol(naturalNumberTable, accRanges.concepts.max() + 1);
+        _obs.writeHuffmanSymbol(naturalNumberTable, conceptRange.max() + 1);
 
         setProgress(0.25f, "Writing correlations");
         final ImmutableIntPairMap correlationIdMap = writeCorrelations(exportableCorrelations, validAlphabets, exportableSymbolArrays.excludedAlphabets, symbolArrayIdMap);
@@ -1261,13 +1232,10 @@ public final class StreamedDatabaseWriter {
         setProgress(0.40f, "Writing correlation arrays");
         final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(exportable.correlationArrays, correlationIdMap);
 
-        // TODO: Check if this is already required and accRanges.words cannot be used instead
-        final ImmutableIntRange validWords = new ImmutableIntRange(StreamedDatabaseConstants.minValidWord, accRanges.words.max());
-
         // TODO: Check if this is already required and accRanges.concepts cannot be used instead
-        final ImmutableIntRange validConcepts = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, accRanges.concepts.max());
+        final ImmutableIntRange validConcepts = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, conceptRange.max());
         setProgress(0.6f, "Writing acceptations");
-        final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, validWords, validConcepts, correlationArrayIdMap);
+        final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, validConcepts, correlationArrayIdMap);
 
         setProgress(0.7f, "Writing bunch concepts");
         writeBunchConcepts(validConcepts);
