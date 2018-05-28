@@ -52,6 +52,7 @@ import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbDeleteQuery;
+import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
@@ -491,47 +492,44 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
     }
 
-    private SynonymTranslationResult[] readSynonymsAndTranslations(SQLiteDatabase db, int acceptation) {
+    private ImmutableList<SynonymTranslationResult> readSynonymsAndTranslations(DbExporter.Database db, int acceptation) {
         final AcceptationsTable acceptations = Tables.acceptations;
         final AlphabetsTable alphabets = Tables.alphabets;
         final StringQueriesTable strings = Tables.stringQueries;
         final LanguagesTable languages = Tables.languages;
 
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J1." + idColumnName +
-                        ",J4." + idColumnName +
-                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " JOIN " + alphabets.name() + " AS J3 ON J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=J3." + idColumnName +
-                        " JOIN " + languages.name() + " AS J4 ON J3." + alphabets.columns().get(alphabets.getLanguageColumnIndex()).name() + "=J4." + idColumnName +
-                " WHERE J0." + idColumnName + "=?" +
-                        " AND J3." + idColumnName + "=J4." + languages.columns().get(languages.getMainAlphabetColumnIndex()).name(),
-                new String[] { Integer.toString(acceptation) });
+        final int accOffset = acceptations.columns().size();
+        final int stringsOffset = accOffset * 2;
+        final int alphabetsOffset = stringsOffset + strings.columns().size();
+        final int languagesOffset = alphabetsOffset + alphabets.columns().size();
 
-        SynonymTranslationResult[] result = null;
-        if (cursor != null) {
-            try {
-                result = new SynonymTranslationResult[cursor.getCount()];
-                if (cursor.moveToFirst()) {
-                    int index = 0;
-                    do {
-                        result[index++] = new SynonymTranslationResult(cursor.getInt(0),
-                                cursor.getInt(1), cursor.getString(2));
-                    } while (cursor.moveToNext());
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, acceptations.columns().size() + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(alphabets, stringsOffset + strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
+                .join(languages, alphabetsOffset + alphabets.getLanguageColumnIndex(), languages.getIdColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .whereColumnValueMatch(alphabetsOffset + alphabets.getIdColumnIndex(), languagesOffset + languages.getMainAlphabetColumnIndex())
+                .select(accOffset + acceptations.getIdColumnIndex(),
+                        languagesOffset + languages.getIdColumnIndex(),
+                        stringsOffset + strings.getStringColumnIndex());
+
+        final DbResult result = db.select(query);
+        final ImmutableList.Builder<SynonymTranslationResult> builder = new ImmutableList.Builder<>(result.getRemainingRows());
+        try {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int accId = row.get(0).toInt();
+                if (accId != acceptation) {
+                    builder.add(new SynonymTranslationResult(accId,
+                            row.get(1).toInt(), row.get(2).toText()));
                 }
             }
-            finally {
-                cursor.close();
-            }
-        }
-        else {
-            result = new SynonymTranslationResult[0];
+        } finally {
+            result.close();
         }
 
-        return result;
+        return builder.build();
     }
 
     private static final class MorphologyResult {
@@ -896,7 +894,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AcceptationNavigableItem(subType.acceptation, subType.text, false));
         }
 
-        final SynonymTranslationResult[] synonymTranslationResults = readSynonymsAndTranslations(db, staticAcceptation);
+        final ImmutableList<SynonymTranslationResult> synonymTranslationResults =
+                readSynonymsAndTranslations(DbManager.getInstance().getDatabase(), staticAcceptation);
         boolean synonymFound = false;
         for (SynonymTranslationResult r : synonymTranslationResults) {
             if (r.language == languageResult.language) {
