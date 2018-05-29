@@ -1,10 +1,15 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.MutableIntKeyMap;
@@ -27,6 +32,10 @@ public final class AgentDetailsActivity extends Activity {
         String AGENT = BundleKeys.AGENT;
     }
 
+    private interface SavedKeys {
+        String DELETE_DIALOG_PRESENT = "ddp";
+    }
+
     public static void open(Context context, int agent) {
         Intent intent = new Intent(context, AgentDetailsActivity.class);
         intent.putExtra(ArgKeys.AGENT, agent);
@@ -34,6 +43,8 @@ public final class AgentDetailsActivity extends Activity {
     }
 
     int _agentId;
+
+    boolean _deleteDialogPresent;
 
     int _targetBunch;
     int _sourceBunchSet;
@@ -71,6 +82,10 @@ public final class AgentDetailsActivity extends Activity {
         }
 
         _agentId = getIntent().getIntExtra(ArgKeys.AGENT, 0);
+        if (savedInstanceState != null) {
+            _deleteDialogPresent = savedInstanceState.getBoolean(SavedKeys.DELETE_DIALOG_PRESENT);
+        }
+
         final Database db = DbManager.getInstance().getDatabase();
         readAgent();
 
@@ -122,5 +137,52 @@ public final class AgentDetailsActivity extends Activity {
 
         final TextView tv = findViewById(R.id.textView);
         tv.setText(s.toString());
+
+        if (_deleteDialogPresent) {
+            showDeleteConfirmationDialog();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.agent_details_activity, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menuItemDeleteAgent:
+                _deleteDialogPresent = true;
+                showDeleteConfirmationDialog();
+                return true;
+
+            default:
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        if (_deleteDialogPresent) {
+            outState.putBoolean(SavedKeys.DELETE_DIALOG_PRESENT, true);
+        }
+    }
+
+    private void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.deleteAgentConfirmationText)
+                .setPositiveButton(R.string.menuItemDelete, (dialog, which) -> {
+                    _deleteDialogPresent = false;
+                    deleteAgent();
+                })
+                .setOnCancelListener(dialog -> _deleteDialogPresent = false)
+                .create().show();
+    }
+
+    private void deleteAgent() {
+        Toast.makeText(this, "Not implemented yet", Toast.LENGTH_SHORT).show();
     }
 }

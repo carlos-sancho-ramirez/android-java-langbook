@@ -18,10 +18,11 @@
     <string name="menuItemNewQuizDefinition">New Quiz</string>
     <string name="menuItemLinkConcept">Link Concept</string>
     <string name="menuItemIncludeInBunch">Include in bunch</string>
-    <string name="menuItemDeleteAcceptation">Delete</string>
+    <string name="menuItemDelete">Delete</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
     <string name="deleteAcceptationFromBunchConfirmationText">Are you sure that you want to remove this acceptation from bunch %s?</string>
+    <string name="deleteAgentConfirmationText">Are you sure that you want to remove this agent? All its effects will be reverted.</string>
 
     <string name="wordEditorWrongConversionFieldText">-- Wrong --</string>
     <string name="wordEditorNextButton">Next</string>

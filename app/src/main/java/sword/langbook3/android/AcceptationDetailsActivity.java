@@ -1104,7 +1104,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _state.getDeleteBunchTarget().text);
         new AlertDialog.Builder(this)
                 .setMessage(message)
-                .setPositiveButton(R.string.menuItemDeleteAcceptation, this)
+                .setPositiveButton(R.string.menuItemDelete, this)
                 .setOnCancelListener(dialog -> _state.clearDeleteBunchTarget())
                 .create().show();
     }
@@ -1122,7 +1122,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setMessage(R.string.deleteAcceptationConfirmationText)
-                .setPositiveButton(R.string.menuItemDeleteAcceptation, this)
+                .setPositiveButton(R.string.menuItemDelete, this)
                 .setOnCancelListener(dialog -> _state.clearDeletingAcceptation())
                 .create().show();
     }
