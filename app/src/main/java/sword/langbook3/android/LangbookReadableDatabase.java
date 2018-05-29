@@ -631,4 +631,53 @@ public final class LangbookReadableDatabase {
 
         return builder.build();
     }
+
+    public static ImmutableIntSet getAllRuledAcceptationsForAgent(DbExporter.Database db, int agentId) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAgentColumnIndex(), agentId)
+                .select(table.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntKeyMap<ImmutableIntSet> getAllAgentSetsContaining(DbExporter.Database db, int agentId) {
+        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
+                .where(table.getAgentColumnIndex(), agentId)
+                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getAgentColumnIndex());
+
+        final ImmutableIntKeyMap.Builder<ImmutableIntSet> mapBuilder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult result = db.select(query)) {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int setId = row.get(0).toInt();
+                ImmutableIntSetBuilder setBuilder = new ImmutableIntSetBuilder();
+                setBuilder.add(row.get(1).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newSetId = row.get(0).toInt();
+                    if (newSetId != setId) {
+                        mapBuilder.put(setId, setBuilder.build());
+                        setId = newSetId;
+                        setBuilder = new ImmutableIntSetBuilder();
+                    }
+                    setBuilder.add(row.get(1).toInt());
+                }
+
+                mapBuilder.put(setId, setBuilder.build());
+            }
+        }
+
+        return mapBuilder.build();
+    }
 }

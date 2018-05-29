@@ -12,14 +12,27 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.IntKeyMap;
+import sword.collections.IntPairMap;
 import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
+import sword.langbook3.android.db.DbDeleteQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
+import static sword.langbook3.android.LangbookDatabase.obtainAgentSet;
+import static sword.langbook3.android.LangbookDeleter.deleteAgentSet;
+import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
+import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
+import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
+import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
+import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
@@ -183,6 +196,61 @@ public final class AgentDetailsActivity extends Activity {
     }
 
     private void deleteAgent() {
-        Toast.makeText(this, "Not implemented yet", Toast.LENGTH_SHORT).show();
+        // This implementation has lot of holes.
+        // 1. It is assuming that there is no chained agents
+        // 2. It is assuming that agents sets only contains a single agent.
+        // TODO: Improve this logic once it is centralised and better defined
+        final DbManager manager = DbManager.getInstance();
+        final Database db = manager.getDatabase();
+
+        final ImmutableIntKeyMap<ImmutableIntSet> agentSets = getAllAgentSetsContaining(db, _agentId);
+        final ImmutableIntPairMap.Builder agentSetMapBuilder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntSetBuilder removableAgentSetsBuilder = new ImmutableIntSetBuilder();
+        for (IntKeyMap.Entry<ImmutableIntSet> entry : agentSets.entries()) {
+            final int setId = obtainAgentSet(db, entry.value().remove(_agentId));
+            if (setId == 0) {
+                removableAgentSetsBuilder.add(entry.key());
+            }
+            else {
+                agentSetMapBuilder.put(entry.key(), setId);
+            }
+        }
+
+        if (!agentSetMapBuilder.build().isEmpty()) {
+            Toast.makeText(this, "Unimplemented: Multiple agents", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        for (int setId : removableAgentSetsBuilder.build()) {
+            if (!deleteBunchAcceptationsForAgentSet(db, setId)) {
+                throw new AssertionError();
+            }
+
+            if (!deleteAgentSet(db, setId)) {
+                throw new AssertionError();
+            }
+        }
+
+        final ImmutableIntSet ruledAcceptations = getAllRuledAcceptationsForAgent(db, _agentId);
+        for (int ruleAcceptation : ruledAcceptations) {
+            if (!deleteStringQueriesForDynamicAcceptation(db, ruleAcceptation)) {
+                throw new AssertionError();
+            }
+
+            if (!deleteRuledAcceptation(db, ruleAcceptation)) {
+                throw new AssertionError();
+            }
+        }
+
+        if (!LangbookDeleter.deleteAgent(db, _agentId)) {
+            throw new AssertionError();
+        }
+
+        showFeedback(getString(R.string.deleteAgentFeedback));
+        finish();
+    }
+
+    private void showFeedback(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
