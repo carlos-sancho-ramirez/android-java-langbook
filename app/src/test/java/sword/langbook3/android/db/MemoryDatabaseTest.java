@@ -91,6 +91,16 @@ public final class MemoryDatabaseTest {
             return db.insert(query);
         }
 
+        private void deleteUniqueText(int id) {
+            final DbDeleteQuery query = new DbDeleteQuery.Builder(uniqueTextTable)
+                    .where(uniqueTextTable.getIdColumnIndex(), id)
+                    .build();
+
+            if (!db.delete(query)) {
+                throw new AssertionError();
+            }
+        }
+
         private void assertText(int id, String expectedValue) {
             final int columnIndex = textTable.columns().indexOf(textColumn);
             final DbQuery selectQuery = new DbQuery.Builder(textTable)
@@ -120,6 +130,23 @@ public final class MemoryDatabaseTest {
             }
             finally {
                 result.close();
+            }
+        }
+
+        private void assertNotUniqueText(int id, String expectedValue) {
+            final DbQuery idQuery = new DbQuery.Builder(uniqueTextTable)
+                    .where(uniqueTextTable.getIdColumnIndex(), id)
+                    .select(uniqueTextTable.getIdColumnIndex());
+            if (db.select(idQuery).hasNext()) {
+                throw new AssertionError();
+            }
+
+            final int textColumnIndex = uniqueTextTable.columns().indexOf(uniqueTextColumn);
+            final DbQuery textQuery = new DbQuery.Builder(uniqueTextTable)
+                    .where(textColumnIndex, expectedValue)
+                    .select(uniqueTextTable.getIdColumnIndex());
+            if (db.select(textQuery).hasNext()) {
+                throw new AssertionError();
             }
         }
 
@@ -467,4 +494,15 @@ public final class MemoryDatabaseTest {
                 .build();
         assertEquals(expectedMap, builder.build());
     }
+
+    @Test
+    public void testDeleteText() {
+        final State state = new State();
+        final String value = "text";
+        final int textId = state.insertUniqueText(value);
+        state.assertUniqueText(textId, value);
+        state.deleteUniqueText(textId);
+        state.assertNotUniqueText(textId, value);
+    }
+
 }

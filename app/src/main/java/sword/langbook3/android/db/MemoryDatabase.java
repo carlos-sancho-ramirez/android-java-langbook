@@ -6,6 +6,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.IntKeyMap;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
@@ -18,7 +19,7 @@ import static sword.langbook3.android.EqualUtils.equal;
  * This class can be used for data that is valid while the process is still
  * alive, as a cache, or just for testing purposes.
  */
-public final class MemoryDatabase implements DbImporter.Database {
+public final class MemoryDatabase implements DbImporter.Database, Deleter {
 
     private final MutableMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableMap.empty();
     private final MutableMap<DbColumn, MutableMap<Object, Integer>> _indexes = MutableMap.empty();
@@ -167,19 +168,21 @@ public final class MemoryDatabase implements DbImporter.Database {
         // Apply id restriction if found
         final ImmutableIntKeyMap<DbQuery.Restriction> restrictions = query.restrictions();
         final MutableList<ImmutableList<Object>> unselectedResult;
+        final MutableList.Builder<ImmutableList<Object>> unselectedResultBuilder = new MutableList.Builder<>();
         if (restrictions.keySet().contains(0)) {
             final int id = restrictions.get(0).value.toInt();
-            ImmutableList<Object> register = content.get(id, ImmutableList.empty()).prepend(id);
-            unselectedResult = new MutableList.Builder<ImmutableList<Object>>().add(register).build();
+            ImmutableList<Object> rawRegister = content.get(id, null);
+            if (rawRegister != null) {
+                unselectedResultBuilder.add(rawRegister.prepend(id));
+            }
         }
         else {
-            final MutableList.Builder<ImmutableList<Object>> builder = new MutableList.Builder<>();
             for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : content.entries()) {
                 final ImmutableList<Object> register = entry.value().prepend(entry.key());
-                builder.add(register);
+                unselectedResultBuilder.add(register);
             }
-            unselectedResult = builder.build();
         }
+        unselectedResult = unselectedResultBuilder.build();
 
         applyJoins(unselectedResult, query);
         applyColumnMatchRestrictions(unselectedResult, query.columnValueMatchPairs());
@@ -337,5 +340,66 @@ public final class MemoryDatabase implements DbImporter.Database {
         }
 
         return id;
+    }
+
+    @Override
+    public boolean delete(DbDeleteQuery query) {
+        final ImmutableIntKeyMap<DbValue> constraints = query.constraints();
+        final int constraintCount = constraints.size();
+        if (constraintCount == 0) {
+            return false;
+        }
+
+        final MutableIntKeyMap<ImmutableList<Object>> table = _tableMap.get(query.table());
+        if (constraints.keyAt(0) == 0) {
+            final int id = constraints.valueAt(0).toInt();
+            final ImmutableList<Object> register = table.get(id, null);
+            if (register != null) {
+                boolean matches = true;
+                for (int i = 1; i < constraintCount; i++) {
+                    final DbValue value = constraints.valueAt(i);
+                    final Object rawValue = value.isText()? value.toText() : value.toInt();
+                    if (!equal(register.get(constraints.keyAt(i) - 1), rawValue)) {
+                        matches = false;
+                        break;
+                    }
+                }
+
+                if (matches) {
+                    if (!table.remove(id)) {
+                        throw new AssertionError();
+                    }
+                    return true;
+                }
+            }
+        }
+        else {
+            boolean removed = false;
+            int index = 0;
+            while (index < table.size()) {
+                final ImmutableList<Object> register = table.valueAt(index);
+                boolean matches = true;
+                for (IntKeyMap.Entry<DbValue> entry : constraints.entries()) {
+                    final DbValue value = entry.value();
+                    final Object rawValue = value.isText()? value.toText() : value.toInt();
+                    if (!equal(register.get(entry.key() - 1), rawValue)) {
+                        matches = false;
+                        break;
+                    }
+                }
+
+                if (matches) {
+                    table.removeAt(index);
+                    removed = true;
+                }
+                else {
+                    index++;
+                }
+            }
+
+            return removed;
+        }
+
+        return false;
     }
 }
