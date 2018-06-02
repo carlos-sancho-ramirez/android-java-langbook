@@ -3,8 +3,11 @@ package sword.langbook3.android;
 import org.junit.Test;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableList;
+import sword.collections.IntResultFunction;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.MemoryDatabase;
@@ -49,6 +52,59 @@ public final class LangbookDatabaseTest {
         assertEquals(text, stringRow.get(1).toText());
         assertEquals(alphabet, stringRow.get(2).toInt());
         assertEquals(text, stringRow.get(3).toText());
+    }
+
+    @Test
+    public void testAddJapaneseAcceptationWithoutConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int kanji = language + 1;
+        final int kana = kanji + 1;
+        final int concept = kana + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "ja", kanji);
+        LangbookDbInserter.insertAlphabet(db, kanji, language);
+        LangbookDbInserter.insertAlphabet(db, kana, language);
+
+        final ImmutableList<ImmutableIntKeyMap<String>> correlations = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+                .add(new ImmutableIntKeyMap.Builder<String>()
+                        .put(kanji, "注")
+                        .put(kana, "ちゅう")
+                        .build())
+                .add(new ImmutableIntKeyMap.Builder<String>()
+                        .put(kanji, "文")
+                        .put(kana, "もん")
+                        .build())
+                .build();
+
+        final IntResultFunction<ImmutableIntKeyMap<String>> mapFunc = corr -> insertCorrelation(db, corr);
+        final ImmutableIntList correlationIds = correlations.map(mapFunc);
+        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationIds);
+        final int acceptation = addAcceptation(db, concept, correlationArrayId);
+
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery kanjiQuery = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .where(strings.getStringAlphabetColumnIndex(), kanji)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getMainStringColumnIndex(),
+                        strings.getStringColumnIndex());
+        final DbResult.Row kanjiRow = selectSingleRow(db, kanjiQuery);
+        assertEquals(acceptation, kanjiRow.get(0).toInt());
+        assertEquals("注文", kanjiRow.get(1).toText());
+        assertEquals("注文", kanjiRow.get(2).toText());
+
+        final DbQuery kanaQuery = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .where(strings.getStringAlphabetColumnIndex(), kana)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getMainStringColumnIndex(),
+                        strings.getStringColumnIndex());
+        final DbResult.Row kanaRow = selectSingleRow(db, kanaQuery);
+        assertEquals(acceptation, kanaRow.get(0).toInt());
+        assertEquals("注文", kanaRow.get(1).toText());
+        assertEquals("ちゅうもん", kanaRow.get(2).toText());
     }
 
     @Test

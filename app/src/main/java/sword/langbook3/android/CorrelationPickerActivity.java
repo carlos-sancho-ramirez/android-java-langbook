@@ -7,8 +7,7 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import java.util.Iterator;
-
+import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -22,7 +21,6 @@ import sword.collections.IntResultFunction;
 import sword.collections.IntSet;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
@@ -221,7 +219,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         final ImmutableIntPairMap foundConversions = findConversions(alphabets);
         final ImmutableIntKeyMap.Builder<String> mapBuilder = new ImmutableIntKeyMap.Builder<>();
         for (int alphabet : alphabets) {
-            final String text = array.map(map -> map.get(alphabet)).reduce((a,b) -> a + b);
+            final Function<ImmutableIntKeyMap<String>, String> mapFunc = map -> map.get(alphabet);
+            final String text = array.map(mapFunc).reduce((a,b) -> a + b);
             mapBuilder.put(alphabet, text);
 
             if (foundConversions.keySet().contains(alphabet)) {

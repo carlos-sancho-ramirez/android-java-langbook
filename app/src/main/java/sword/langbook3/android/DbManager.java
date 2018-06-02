@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
@@ -313,8 +314,8 @@ class DbManager extends SQLiteOpenHelper {
                     .append(table.name())
                     .append(" (");
 
-            final String columns = table.columns()
-                    .map(column -> column.name() + ' ' + sqlType(column))
+            final Function<DbColumn, String> mapFunc = column -> column.name() + ' ' + sqlType(column);
+            final String columns = table.columns().map(mapFunc)
                     .reduce((left, right) -> left + ", " + right);
 
             builder.append(columns).append(')');
