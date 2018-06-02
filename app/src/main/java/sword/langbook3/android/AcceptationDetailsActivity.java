@@ -58,6 +58,7 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbUpdateQuery;
 
+import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -1011,7 +1012,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
-        _concept = conceptFromAcceptation(_staticAcceptation);
+        _concept = conceptFromAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation);
         if (_concept != 0) {
             _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(_staticAcceptation));
 
@@ -1055,7 +1056,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final AcceptationDetailsAdapter.Item item = _listAdapter.getItem(position);
         if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED) {
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
-            final int bunch = conceptFromAcceptation(it.getId());
+            final int bunch = conceptFromAcceptation(DbManager.getInstance().getDatabase(), it.getId());
             _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText().toString()));
             showDeleteFromBunchConfirmationDialog();
             return true;
@@ -1213,14 +1214,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         finish();
     }
 
-    static int conceptFromAcceptation(int accId) {
-        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), accId)
-                .select(table.getConceptColumnIndex());
-        return DbManager.getInstance().attach(query).iterator().next().get(0).toInt();
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
@@ -1234,7 +1227,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(pickedAcceptation) : 0;
+                final Database db = DbManager.getInstance().getDatabase();
+                final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
                 final int message = includeInBunch(pickedBunch)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }

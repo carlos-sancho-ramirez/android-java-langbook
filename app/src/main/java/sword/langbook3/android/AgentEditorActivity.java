@@ -24,37 +24,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntPairMap;
-import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
-import sword.collections.IntKeyMap;
-import sword.collections.IntSet;
-import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
-import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbStringValue;
 
-import static sword.langbook3.android.AcceptationDetailsActivity.conceptFromAcceptation;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
-import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
-import static sword.langbook3.android.LangbookDatabase.obtainAgentSet;
-import static sword.langbook3.android.LangbookDatabase.obtainBunchSet;
-import static sword.langbook3.android.LangbookDatabase.obtainRuledConcept;
-import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
-import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
-import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
-import static sword.langbook3.android.WordEditorActivity.convertText;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
@@ -557,14 +538,30 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
                 }
                 else {
-                    final InsertAgentResult insertionResult = insertAgent();
-                    if (insertionResult != null) {
-                        runAgent(insertionResult);
-                    }
+                    final Database db = DbManager.getInstance().getDatabase();
+                    final int targetBunch = _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH;
 
-                    final int message = (insertionResult != null) ? R.string.newAgentFeedback : R.string.newAgentError;
+                    final ImmutableIntKeyMap.Builder<String> matcherBuilder = new ImmutableIntKeyMap.Builder<>();
+                    for (CorrelationEntry corrEntry : _state.matcher) {
+                        matcherBuilder.put(corrEntry.alphabet, corrEntry.text);
+                    }
+                    final ImmutableIntKeyMap<String> matcher = matcherBuilder.build();
+
+                    final ImmutableIntKeyMap.Builder<String> adderBuilder = new ImmutableIntKeyMap.Builder<>();
+                    for (CorrelationEntry corrEntry : _state.adder) {
+                        adderBuilder.put(corrEntry.alphabet, corrEntry.text);
+                    }
+                    final ImmutableIntKeyMap<String> adder = adderBuilder.build();
+
+                    final int rule = matcher.equals(adder)? NO_RULE : _state.rule;
+                    final int flags = _state.matchWordStarting? 1 : 0;
+
+                    final Integer agentId = LangbookDatabase.addAgent(db, targetBunch,
+                            _state.sourceBunches.toImmutable().toSet(), _state.diffBunches.toImmutable().toSet(),
+                            matcher, adder, rule, flags);
+                    final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-                    if (insertionResult != null) {
+                    if (agentId != null) {
                         finish();
                     }
                 }
@@ -574,6 +571,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        final Database db = DbManager.getInstance().getDatabase();
         if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH) {
             if (resultCode == RESULT_OK) {
                 final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
@@ -581,10 +579,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     throw new AssertionError();
                 }
 
-                final int concept = conceptFromAcceptation(acceptation);
+                final int concept = conceptFromAcceptation(db, acceptation);
                 _state.targetBunch = concept;
 
-                final String text = readConceptText(DbManager.getInstance().getDatabase(), concept, preferredAlphabet);
+                final String text = readConceptText(db, concept, preferredAlphabet);
 
                 final TextView textView = findViewById(R.id.targetBunchText);
                 textView.setText(text);
@@ -601,7 +599,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = conceptFromAcceptation(acceptation);
+            final int concept = conceptFromAcceptation(db, acceptation);
             _state.sourceBunches.append(concept);
             addSourceBunch(concept);
         }
@@ -611,7 +609,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = conceptFromAcceptation(acceptation);
+            final int concept = conceptFromAcceptation(db, acceptation);
             _state.diffBunches.append(concept);
             addDiffBunch(concept);
         }
@@ -621,10 +619,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = conceptFromAcceptation(acceptation);
+            final int concept = conceptFromAcceptation(db, acceptation);
             _state.rule = concept;
 
-            final String text = readConceptText(DbManager.getInstance().getDatabase(), concept, preferredAlphabet);
+            final String text = readConceptText(db, concept, preferredAlphabet);
             final TextView textView = findViewById(R.id.ruleText);
             textView.setText(text);
         }
@@ -679,238 +677,5 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         return null;
-    }
-
-    private static int obtainCorrelation(Database db, List<CorrelationEntry> entries) {
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-        for (CorrelationEntry entry : entries) {
-            builder.put(entry.alphabet, obtainSymbolArray(db, entry.text));
-        }
-        return LangbookDatabase.obtainCorrelation(db, builder.build());
-    }
-
-    private static final class InsertAgentResult {
-        final int agentId;
-        final int sourceBunchSetId;
-        final int diffBunchSetId;
-        final int matcherId;
-        final int adderId;
-        final int rule;
-
-        InsertAgentResult(int agentId, int sourceBunchSetId, int diffBunchSetId, int matcherId, int adderId, int rule) {
-            this.agentId = agentId;
-            this.sourceBunchSetId = sourceBunchSetId;
-            this.diffBunchSetId = diffBunchSetId;
-            this.matcherId = matcherId;
-            this.adderId = adderId;
-            this.rule = rule;
-        }
-    }
-
-    private InsertAgentResult insertAgent() {
-        final Database db = DbManager.getInstance().getDatabase();
-        final int targetBunch = _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH;
-        final int sourceBunchSetId = obtainBunchSet(db, _state.sourceBunches.toSet());
-        final int diffBunchSetId = obtainBunchSet(db, _state.diffBunches.toSet());
-        final int matcherId = obtainCorrelation(db, _state.matcher);
-        final int adderId = obtainCorrelation(db, _state.adder);
-        final int rule = (matcherId != adderId)? _state.rule : NO_RULE;
-        final int flags = _state.matchWordStarting? 1 : 0;
-
-        final Integer agentId = LangbookDbInserter.insertAgent(db,
-                targetBunch,  sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
-        return (agentId == null)? null :
-                new InsertAgentResult(agentId, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule);
-    }
-
-    private void runAgent(InsertAgentResult insertData) {
-        final DbManager manager = DbManager.getInstance();
-        final ImmutableIntSetBuilder diffAccBuilder = new ImmutableIntSetBuilder();
-        for (int bunch : _state.diffBunches) {
-            final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-            final DbQuery query = new DbQuery.Builder(table)
-                    .where(table.getBunchColumnIndex(), bunch)
-                    .select(table.getAcceptationColumnIndex());
-            for (DbResult.Row row : manager.attach(query)) {
-                diffAccBuilder.add(row.get(0).toInt());
-            }
-        }
-        final ImmutableIntSet diffAcceptations = diffAccBuilder.build();
-
-        ImmutableIntSet matchingAcceptations = null;
-        if (!_state.sourceBunches.isEmpty()) {
-            final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-            for (int bunch : _state.sourceBunches) {
-                final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-                final DbQuery query = new DbQuery.Builder(table)
-                        .where(table.getBunchColumnIndex(), bunch)
-                        .select(table.getAcceptationColumnIndex());
-                for (DbResult.Row row : manager.attach(query)) {
-                    final int acc = row.get(0).toInt();
-                    if (!diffAcceptations.contains(acc)) {
-                        builder.add(acc);
-                    }
-                }
-            }
-
-            matchingAcceptations = builder.build();
-        }
-
-        final LangbookDbSchema.StringQueriesTable strTable = LangbookDbSchema.Tables.stringQueries;
-        for (CorrelationEntry entry : _state.matcher) {
-            final DbQuery matchQuery = new DbQuery.Builder(strTable)
-                    .where(strTable.getStringAlphabetColumnIndex(), entry.alphabet)
-                    .where(strTable.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(entry.text),
-                            _state.matchWordStarting? DbQuery.RestrictionStringTypes.STARTS_WITH : DbQuery.RestrictionStringTypes.ENDS_WITH))
-                    .select(strTable.getDynamicAcceptationColumnIndex());
-            final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-            for (DbResult.Row row : manager.attach(matchQuery)) {
-                final int acc = row.get(0).toInt();
-                if (matchingAcceptations == null && !diffAcceptations.contains(acc) ||
-                        matchingAcceptations != null && matchingAcceptations.contains(acc)) {
-                    builder.add(acc);
-                }
-            }
-            matchingAcceptations = builder.build();
-        }
-
-        if (matchingAcceptations == null) {
-            throw new AssertionError("Unable to select all acceptations from the database");
-        }
-
-        final Database db = manager.getDatabase();
-        final ImmutableIntSet processedAcceptations;
-        if (insertData.matcherId == insertData.adderId) {
-            processedAcceptations = matchingAcceptations;
-        }
-        else {
-            final MutableIntPairMap mainAlphabets = MutableIntPairMap.empty();
-            final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
-            for (int acc : matchingAcceptations) {
-                final DbQuery query = new DbQuery.Builder(strTable)
-                        .where(strTable.getDynamicAcceptationColumnIndex(), acc)
-                        .select(
-                                strTable.getStringAlphabetColumnIndex(),
-                                strTable.getStringColumnIndex(),
-                                strTable.getMainAcceptationColumnIndex(),
-                                strTable.getMainStringColumnIndex());
-                final MutableIntKeyMap<String> correlation = MutableIntKeyMap.empty();
-                int mainAcc = 0;
-                String mainString = null;
-                boolean firstFound = false;
-                for (DbResult.Row row : manager.attach(query)) {
-                    final int alphabet = row.get(0).toInt();
-                    final String text = row.get(1).toText();
-                    correlation.put(alphabet, text);
-
-                    if (firstFound) {
-                        if (mainAcc != row.get(2).toInt() || !mainString.equals(row.get(3).toText())) {
-                            throw new AssertionError();
-                        }
-                    }
-                    else {
-                        mainAcc = row.get(2).toInt();
-                        mainString = row.get(3).toText();
-                        firstFound = true;
-                    }
-                }
-
-                for (CorrelationEntry entry : _state.matcher) {
-                    String text = correlation.get(entry.alphabet);
-                    final int length = entry.text.length();
-                    if (_state.matchWordStarting) {
-                        text = text.substring(length);
-                    }
-                    else {
-                        text = text.substring(0, text.length() - length);
-                    }
-                    correlation.put(entry.alphabet, text);
-                }
-
-                for (CorrelationEntry entry : _state.adder) {
-                    String text = correlation.get(entry.alphabet);
-                    if (_state.matchWordStarting) {
-                        text = entry.text + text;
-                    }
-                    else {
-                        text = text + entry.text;
-                    }
-                    correlation.put(entry.alphabet, text);
-                }
-
-                boolean validConversion = true;
-                for (ImmutableIntPair pair : findConversions(db)) {
-                    final IntSet keySet = correlation.keySet();
-                    if (keySet.contains(pair.left)) {
-                        final String result = convertText(getConversion(db, pair), correlation.get(pair.left));
-                        if (result == null) {
-                            validConversion = false;
-                            break;
-                        }
-                        correlation.put(pair.right, result);
-                    }
-                }
-
-                if (validConversion) {
-                    final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
-                    for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
-                        corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
-                    }
-
-                    final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
-                    final int correlationArrayId = insertCorrelationArray(db, correlationId);
-
-                    final int baseConcept = conceptFromAcceptation(acc);
-                    final int ruledConcept = obtainRuledConcept(db, insertData.rule, baseConcept);
-                    final int newAcc = insertAcceptation(db, ruledConcept, correlationArrayId);
-                    insertRuledAcceptation(db, newAcc, insertData.agentId, acc);
-
-                    for (IntKeyMap.Entry<String> entry : correlation.entries()) {
-                        int mainTextAlphabet = mainAlphabets.get(entry.key(), 0);
-                        if (mainTextAlphabet == 0) {
-                            final LangbookDbSchema.AlphabetsTable alpTable = LangbookDbSchema.Tables.alphabets;
-                            final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
-                            final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
-                                    .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
-                                    .where(alpTable.getIdColumnIndex(), entry.key())
-                                    .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
-                            mainTextAlphabet = manager.selectSingleRow(mainAlphableQuery).get(0).toInt();
-                            mainAlphabets.put(entry.key(), mainTextAlphabet);
-                        }
-
-                        final String mainText = correlation.get(mainTextAlphabet, entry.value());
-                        final DbInsertQuery strInsertQuery = new DbInsertQuery.Builder(strTable)
-                                .put(strTable.getDynamicAcceptationColumnIndex(), newAcc)
-                                .put(strTable.getMainAcceptationColumnIndex(), mainAcc)
-                                .put(strTable.getMainStringColumnIndex(), mainText)
-                                .put(strTable.getStringAlphabetColumnIndex(), entry.key())
-                                .put(strTable.getStringColumnIndex(), entry.value())
-                                .build();
-
-                        if (db.insert(strInsertQuery) == null) {
-                            throw new AssertionError();
-                        }
-                    }
-                    processedAccBuilder.add(newAcc);
-                }
-            }
-            processedAcceptations = processedAccBuilder.build();
-        }
-
-        if (_state.includeTargetBunch) {
-            final int targetBunch = _state.targetBunch;
-            final int agentSetId = obtainAgentSet(db, new ImmutableIntSetBuilder().add(insertData.agentId).build());
-            final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-            for (int acc : processedAcceptations) {
-                final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                        .put(table.getBunchColumnIndex(), targetBunch)
-                        .put(table.getAgentSetColumnIndex(), agentSetId)
-                        .put(table.getAcceptationColumnIndex(), acc)
-                        .build();
-                if (db.insert(query) == null) {
-                    throw new AssertionError();
-                }
-            }
-        }
     }
 }

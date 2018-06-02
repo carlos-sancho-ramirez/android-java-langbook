@@ -19,7 +19,7 @@ import static sword.langbook3.android.EqualUtils.equal;
  * This class can be used for data that is valid while the process is still
  * alive, as a cache, or just for testing purposes.
  */
-public final class MemoryDatabase implements DbImporter.Database, Deleter {
+public final class MemoryDatabase implements Database {
 
     private final MutableMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableMap.empty();
     private final MutableMap<DbColumn, MutableMap<Object, Integer>> _indexes = MutableMap.empty();
@@ -129,13 +129,30 @@ public final class MemoryDatabase implements DbImporter.Database, Deleter {
             ImmutableIntKeyMap<DbQuery.Restriction> restrictions) {
         for (ImmutableIntKeyMap.Entry<DbQuery.Restriction> entry : restrictions.entries()) {
             final DbValue value = entry.value().value;
-            final Object rawValue = value.isText()? value.toText() : value.toInt();
+            if (!value.isText() || entry.value().type == DbQuery.RestrictionTypes.EXACT) {
+                final Object rawValue = value.isText()? value.toText() : value.toInt();
 
-            final Iterator<ImmutableList<Object>> it = result.iterator();
-            while (it.hasNext()) {
-                final ImmutableList<Object> register = it.next();
-                if (!rawValue.equals(register.get(entry.key()))) {
-                    it.remove();
+                final Iterator<ImmutableList<Object>> it = result.iterator();
+                while (it.hasNext()) {
+                    final ImmutableList<Object> register = it.next();
+                    if (!rawValue.equals(register.get(entry.key()))) {
+                        it.remove();
+                    }
+                }
+            }
+            else {
+                final int type = entry.value().type;
+                final Predicate2<String, String> cmpFunc =
+                        (type == DbQuery.RestrictionStringTypes.ENDS_WITH)? String::endsWith :
+                        (type == DbQuery.RestrictionStringTypes.STARTS_WITH)? String::startsWith :
+                        String::contains;
+
+                final Iterator<ImmutableList<Object>> it = result.iterator();
+                while (it.hasNext()) {
+                    final ImmutableList<Object> register = it.next();
+                    if (!cmpFunc.apply(register.get(entry.key()).toString(), value.toText())) {
+                        it.remove();
+                    }
                 }
             }
         }
@@ -340,6 +357,11 @@ public final class MemoryDatabase implements DbImporter.Database, Deleter {
         }
 
         return id;
+    }
+
+    @Override
+    public boolean update(DbUpdateQuery query) {
+        throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Override

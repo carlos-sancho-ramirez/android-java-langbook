@@ -196,56 +196,7 @@ public final class AgentDetailsActivity extends Activity {
     }
 
     private void deleteAgent() {
-        // This implementation has lot of holes.
-        // 1. It is assuming that there is no chained agents
-        // 2. It is assuming that agents sets only contains a single agent.
-        // TODO: Improve this logic once it is centralised and better defined
-        final DbManager manager = DbManager.getInstance();
-        final Database db = manager.getDatabase();
-
-        final ImmutableIntKeyMap<ImmutableIntSet> agentSets = getAllAgentSetsContaining(db, _agentId);
-        final ImmutableIntPairMap.Builder agentSetMapBuilder = new ImmutableIntPairMap.Builder();
-        final ImmutableIntSetBuilder removableAgentSetsBuilder = new ImmutableIntSetBuilder();
-        for (IntKeyMap.Entry<ImmutableIntSet> entry : agentSets.entries()) {
-            final int setId = obtainAgentSet(db, entry.value().remove(_agentId));
-            if (setId == 0) {
-                removableAgentSetsBuilder.add(entry.key());
-            }
-            else {
-                agentSetMapBuilder.put(entry.key(), setId);
-            }
-        }
-
-        if (!agentSetMapBuilder.build().isEmpty()) {
-            Toast.makeText(this, "Unimplemented: Multiple agents", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        for (int setId : removableAgentSetsBuilder.build()) {
-            if (!deleteBunchAcceptationsForAgentSet(db, setId)) {
-                throw new AssertionError();
-            }
-
-            if (!deleteAgentSet(db, setId)) {
-                throw new AssertionError();
-            }
-        }
-
-        final ImmutableIntSet ruledAcceptations = getAllRuledAcceptationsForAgent(db, _agentId);
-        for (int ruleAcceptation : ruledAcceptations) {
-            if (!deleteStringQueriesForDynamicAcceptation(db, ruleAcceptation)) {
-                throw new AssertionError();
-            }
-
-            if (!deleteRuledAcceptation(db, ruleAcceptation)) {
-                throw new AssertionError();
-            }
-        }
-
-        if (!LangbookDeleter.deleteAgent(db, _agentId)) {
-            throw new AssertionError();
-        }
-
+        LangbookDatabase.deleteAgent(DbManager.getInstance().getDatabase(), _agentId);
         showFeedback(getString(R.string.deleteAgentFeedback));
         finish();
     }

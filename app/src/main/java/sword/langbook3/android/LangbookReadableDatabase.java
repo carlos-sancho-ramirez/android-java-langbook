@@ -30,6 +30,16 @@ public final class LangbookReadableDatabase {
         this.db = db;
     }
 
+    public static DbResult.Row selectSingleRow(DbExporter.Database db, DbQuery query) {
+        try (DbResult result = db.select(query)) {
+            final DbResult.Row row = result.next();
+            if (result.hasNext()) {
+                throw new AssertionError();
+            }
+            return row;
+        }
+    }
+
     public Integer findSymbolArray(String str) {
         return findSymbolArray(db, str);
     }
@@ -517,6 +527,14 @@ public final class LangbookReadableDatabase {
         }
 
         return result;
+    }
+
+    public static int conceptFromAcceptation(DbExporter.Database db, int accId) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), accId)
+                .select(table.getConceptColumnIndex());
+        return selectSingleRow(db, query).get(0).toInt();
     }
 
     public static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
