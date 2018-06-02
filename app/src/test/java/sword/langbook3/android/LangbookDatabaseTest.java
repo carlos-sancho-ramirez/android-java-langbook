@@ -10,6 +10,7 @@ import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.MemoryDatabase;
 
 import static org.junit.Assert.assertEquals;
+import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
@@ -18,7 +19,40 @@ import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 public final class LangbookDatabaseTest {
 
     @Test
-    public void testInsertAgent() {
+    public void testAddSpanishAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int concept = alphabet + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final String text = "cantar";
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, text)
+                .build();
+        final int correlationId = insertCorrelation(db, correlation);
+        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int acceptation = addAcceptation(db, concept, correlationArrayId);
+
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery stringQuery = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getMainStringColumnIndex(),
+                        strings.getStringAlphabetColumnIndex(),
+                        strings.getStringColumnIndex());
+        final DbResult.Row stringRow = selectSingleRow(db, stringQuery);
+        assertEquals(acceptation, stringRow.get(0).toInt());
+        assertEquals(text, stringRow.get(1).toText());
+        assertEquals(alphabet, stringRow.get(2).toInt());
+        assertEquals(text, stringRow.get(3).toText());
+    }
+
+    @Test
+    public void testAddAgent() {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int language = getMaxConceptInAcceptations(db) + 1;
@@ -36,8 +70,7 @@ public final class LangbookDatabaseTest {
                 .build();
         final int correlationId = insertCorrelation(db, correlation);
         final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
-        final int acceptation = LangbookDbInserter.insertAcceptation(db, concept, correlationArrayId);
-        LangbookDbInserter.insertStringQuery(db, verbText, verbText, acceptation, acceptation, alphabet);
+        final int acceptation = addAcceptation(db, concept, correlationArrayId);
         LangbookDbInserter.insertBunchAcceptation(db, verbConcept, acceptation, 0);
 
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()

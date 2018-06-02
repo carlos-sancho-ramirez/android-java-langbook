@@ -20,6 +20,7 @@ import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.LangbookDbInserter.insertSymbolArray;
 import static sword.langbook3.android.LangbookDeleter.deleteAgentSet;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
@@ -34,6 +35,9 @@ import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationArray;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
@@ -354,6 +358,28 @@ public final class LangbookDatabase {
                 }
             }
         }
+    }
+
+    public static Integer addAcceptation(Database db, int concept, int correlationArrayId) {
+        MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
+        for (int correlationId : getCorrelationArray(db, correlationArrayId)) {
+            for (IntKeyMap.Entry<String> entry : getCorrelationWithText(db, correlationId).entries()) {
+                final String currentValue = texts.get(entry.key(), "");
+                texts.put(entry.key(), currentValue + entry.value());
+            }
+        }
+
+        if (texts.isEmpty()) {
+            return null;
+        }
+
+        final String mainStr = texts.valueAt(0);
+        final int acceptation = insertAcceptation(db, concept, correlationArrayId);
+        for (IntKeyMap.Entry<String> entry : texts.entries()) {
+            insertStringQuery(db, entry.value(), mainStr, acceptation, acceptation, entry.key());
+        }
+
+        return acceptation;
     }
 
     public static Integer addAgent(Database db, int targetBunch, ImmutableIntSet sourceBunches,
