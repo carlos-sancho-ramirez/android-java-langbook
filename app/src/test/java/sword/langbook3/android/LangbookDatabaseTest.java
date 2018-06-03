@@ -14,6 +14,7 @@ import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.MemoryDatabase;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
@@ -188,7 +189,7 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
-    public void testAddAgent() {
+    public void testAddAgentApplyingRule() {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int language = getMaxConceptInAcceptations(db) + 1;
@@ -252,5 +253,72 @@ public final class LangbookDatabaseTest {
         assertEquals("cantando", stringRow.get(1).toText());
         assertEquals(alphabet, stringRow.get(2).toInt());
         assertEquals("cantando", stringRow.get(3).toText());
+    }
+
+    @Test
+    public void testAddAgentComposingBunch() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int arVerbConcept = alphabet + 1;
+        final int erVerbConcept = arVerbConcept + 1;
+        final int verbConcept = erVerbConcept + 1;
+        final int singConcept = erVerbConcept + 1;
+        final int coughtConcept = singConcept + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final String singText = "cantar";
+        final ImmutableIntKeyMap<String> singCorrelation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, singText)
+                .build();
+        final int singCorrelationId = insertCorrelation(db, singCorrelation);
+        final int singCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, singCorrelationId);
+        final int singAcceptation = addAcceptation(db, singConcept, singCorrelationArrayId);
+        LangbookDbInserter.insertBunchAcceptation(db, verbConcept, singAcceptation, 0);
+
+        final String coughtText = "toser";
+        final ImmutableIntKeyMap<String> coughtCorrelation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, coughtText)
+                .build();
+        final int coughtCorrelationId = insertCorrelation(db, coughtCorrelation);
+        final int coughtCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, coughtCorrelationId);
+        final int coughtAcceptation = addAcceptation(db, coughtConcept, coughtCorrelationArrayId);
+        LangbookDbInserter.insertBunchAcceptation(db, verbConcept, coughtAcceptation, 0);
+
+        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ar")
+                .build();
+
+        final ImmutableIntSet sourceBunches = new ImmutableIntSetBuilder().add(verbConcept).build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().build();
+        final int agentId = addAgent(db, arVerbConcept, sourceBunches, diffBunches, arMatcher, arMatcher, 0, 0);
+
+        final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
+        final DbQuery agentSetQuery = new DbQuery.Builder(agentSets)
+                .where(agentSets.getAgentColumnIndex(), agentId)
+                .select(agentSets.getSetIdColumnIndex());
+        final int agentSetId = selectSingleRow(db, agentSetQuery).get(0).toInt();
+
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery verbBunchAccQuery = new DbQuery.Builder(bunchAcceptations)
+                .where(bunchAcceptations.getBunchColumnIndex(), verbConcept)
+                .select(bunchAcceptations.getAcceptationColumnIndex());
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult bunchAccResult = db.select(verbBunchAccQuery)) {
+            for (int i = 0; i < 2; i++) {
+                builder.add(bunchAccResult.next().get(0).toInt());
+            }
+            assertFalse(bunchAccResult.hasNext());
+        }
+        assertEquals(new ImmutableIntSetBuilder().add(singAcceptation).add(coughtAcceptation).build(), builder.build());
+
+        final DbQuery arVerbBunchAccQuery = new DbQuery.Builder(bunchAcceptations)
+                .where(bunchAcceptations.getBunchColumnIndex(), arVerbConcept)
+                .where(bunchAcceptations.getAgentSetColumnIndex(), agentSetId)
+                .select(bunchAcceptations.getAcceptationColumnIndex());
+        assertEquals(singAcceptation, selectSingleRow(db, arVerbBunchAccQuery).get(0).toInt());
     }
 }
