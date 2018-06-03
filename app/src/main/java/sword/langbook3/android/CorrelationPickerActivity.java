@@ -7,14 +7,11 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
@@ -22,18 +19,16 @@ import sword.collections.IntSet;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbImporter;
-import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
+import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
-import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
-import static sword.langbook3.android.WordEditorActivity.convertText;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -173,82 +168,6 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         findViewById(R.id.nextButton).setOnClickListener(this);
     }
 
-    private int insertAcceptation(int arrayId, int concept) {
-        final DbImporter.Database db = DbManager.getInstance().getDatabase();
-        if (concept == NO_CONCEPT) {
-            concept = getMaxConceptInAcceptations(db) + 1;
-        }
-
-        return LangbookDbInserter.insertAcceptation(db, concept, arrayId);
-    }
-
-    private ImmutableIntPairMap findConversions(IntSet alphabets) {
-        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
-
-        final DbQuery query = new DbQuery.Builder(conversions)
-                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
-                .select(
-                        conversions.getSourceAlphabetColumnIndex(),
-                        conversions.getTargetAlphabetColumnIndex());
-
-        final MutableIntSet foundAlphabets = MutableIntSet.empty();
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
-            final int source = row.get(0).toInt();
-            final int target = row.get(1).toInt();
-
-            if (foundAlphabets.contains(target)) {
-                throw new AssertionError();
-            }
-            foundAlphabets.add(target);
-
-            if (alphabets.contains(source)) {
-                builder.put(source, target);
-            }
-        }
-
-        return builder.build();
-    }
-
-    private void insertSearchQueries(int accId, ImmutableList<ImmutableIntKeyMap<String>> array) {
-        final ImmutableIntSet alphabets = array.get(0).keySet();
-        if (array.anyMatch(map -> !map.keySet().equals(alphabets))) {
-            throw new AssertionError();
-        }
-
-        final ImmutableIntPairMap foundConversions = findConversions(alphabets);
-        final ImmutableIntKeyMap.Builder<String> mapBuilder = new ImmutableIntKeyMap.Builder<>();
-        for (int alphabet : alphabets) {
-            final Function<ImmutableIntKeyMap<String>, String> mapFunc = map -> map.get(alphabet);
-            final String text = array.map(mapFunc).reduce((a,b) -> a + b);
-            mapBuilder.put(alphabet, text);
-
-            if (foundConversions.keySet().contains(alphabet)) {
-                final int targetAlphabet = foundConversions.get(alphabet);
-                ImmutableList<ImmutablePair<String, String>> conversion = getConversion(DbManager.getInstance().getDatabase(), new ImmutableIntPair(alphabet, targetAlphabet));
-                final String convertedText = convertText(conversion, text);
-                if (convertedText == null) {
-                    throw new AssertionError();
-                }
-
-                mapBuilder.put(targetAlphabet, convertedText);
-            }
-        }
-        final ImmutableIntKeyMap<String> map = mapBuilder.build();
-
-        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        for (int alphabet : map.keySet()) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getMainAcceptationColumnIndex(), accId)
-                    .put(table.getDynamicAcceptationColumnIndex(), accId)
-                    .put(table.getStringAlphabetColumnIndex(), alphabet)
-                    .put(table.getStringColumnIndex(), map.get(alphabet))
-                    .put(table.getMainStringColumnIndex(), map.valueAt(0))
-                    .build();
-            DbManager.getInstance().insert(query);
-        }
-    }
-
     @Override
     public void onClick(View view) {
         final int selection = _listView.getCheckedItemPosition();
@@ -276,8 +195,12 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                 arrayId = insertCorrelationArray(db, idArray);
             }
 
-            final int accId = insertAcceptation(arrayId, getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT));
-            insertSearchQueries(accId, array);
+            int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
+            if (concept == NO_CONCEPT) {
+                concept = getMaxConceptInAcceptations(db) + 1;
+            }
+
+            final int accId = addAcceptation(db, concept, arrayId);
             Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
 
             final Intent intent = new Intent();

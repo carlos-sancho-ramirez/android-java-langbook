@@ -4,6 +4,9 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableList;
+import sword.collections.ImmutablePair;
+import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
@@ -35,14 +38,12 @@ import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
-import static sword.langbook3.android.WordEditorActivity.convertText;
 
 public final class LangbookDatabase {
 
@@ -161,6 +162,33 @@ public final class LangbookDatabase {
         }
 
         return insertRuledConcept(db, rule, concept);
+    }
+
+    /**
+     * Apply the given conversion to the given text to generate a converted one.
+     * @param pairs sorted set of pairs to be traversed in order to convert the <pre>text</pre> string.
+     * @param text Text to be converted
+     * @return The converted text, or null if text cannot be converted.
+     */
+    public static String convertText(ImmutableList<ImmutablePair<String, String>> pairs, String text) {
+        String result = "";
+        while (text.length() > 0) {
+            boolean found = false;
+            for (ImmutablePair<String, String> pair : pairs) {
+                if (text.startsWith(pair.left)) {
+                    result += pair.right;
+                    text = text.substring(pair.left.length());
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                return null;
+            }
+        }
+
+        return result;
     }
 
     private static void runAgent(Database db, int agentId, int targetBunch, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> matcher, ImmutableIntKeyMap<String> adder, int rule, boolean matchWordStarting) {
@@ -373,10 +401,27 @@ public final class LangbookDatabase {
             return null;
         }
 
+        final ImmutableSet<ImmutableIntPair> conversions = findConversions(db);
+        for (IntKeyMap.Entry<String> entry : texts.entries().toImmutable()) {
+            for (ImmutableIntPair pair : conversions) {
+                if (pair.left == entry.key()) {
+                    final ImmutableList<ImmutablePair<String, String>> conversion = getConversion(db, pair);
+                    final String convertedText = convertText(conversion, entry.value());
+                    if (convertedText == null) {
+                        return null;
+                    }
+
+                    texts.put(pair.right, convertedText);
+                }
+            }
+        }
+
         final String mainStr = texts.valueAt(0);
         final int acceptation = insertAcceptation(db, concept, correlationArrayId);
         for (IntKeyMap.Entry<String> entry : texts.entries()) {
-            insertStringQuery(db, entry.value(), mainStr, acceptation, acceptation, entry.key());
+            final int alphabet = entry.key();
+            final String str = entry.value();
+            insertStringQuery(db, str, mainStr, acceptation, acceptation, alphabet);
         }
 
         return acceptation;

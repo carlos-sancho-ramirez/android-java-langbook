@@ -32,10 +32,15 @@ public final class LangbookReadableDatabase {
 
     public static DbResult.Row selectSingleRow(DbExporter.Database db, DbQuery query) {
         try (DbResult result = db.select(query)) {
+            if (!result.hasNext()) {
+                throw new AssertionError("Nothing found matching the given criteria");
+            }
+
             final DbResult.Row row = result.next();
             if (result.hasNext()) {
-                throw new AssertionError();
+                throw new AssertionError("Multiple rows found matching the given criteria");
             }
+
             return row;
         }
     }

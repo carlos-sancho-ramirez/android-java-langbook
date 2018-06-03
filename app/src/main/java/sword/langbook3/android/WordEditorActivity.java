@@ -27,6 +27,7 @@ import sword.langbook3.android.db.DbResult;
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
+import static sword.langbook3.android.LangbookDatabase.convertText;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
@@ -245,27 +246,6 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();
         }
-    }
-
-    static String convertText(ImmutableList<ImmutablePair<String, String>> pairs, String text) {
-        String result = "";
-        while (text.length() > 0) {
-            boolean found = false;
-            for (ImmutablePair<String, String> pair : pairs) {
-                if (text.startsWith(pair.left)) {
-                    result += pair.right;
-                    text = text.substring(pair.left.length());
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                return null;
-            }
-        }
-
-        return result;
     }
 
     private void updateText(int fieldIndex, String newText) {
