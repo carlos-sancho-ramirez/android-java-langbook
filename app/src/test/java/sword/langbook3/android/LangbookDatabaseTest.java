@@ -321,4 +321,91 @@ public final class LangbookDatabaseTest {
                 .select(bunchAcceptations.getAcceptationColumnIndex());
         assertEquals(singAcceptation, selectSingleRow(db, arVerbBunchAccQuery).get(0).toInt());
     }
+
+    private void checkAdd2ChainedAgents(boolean reversedAdditionOrder) {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int gerund = alphabet + 1;
+        final int verbConcept = gerund + 1;
+        final int arVerbConcept = verbConcept + 1;
+        final int singConcept = arVerbConcept + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final String verbText = "cantar";
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, verbText)
+                .build();
+        final int correlationId = insertCorrelation(db, correlation);
+        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int acceptation = addAcceptation(db, singConcept, correlationArrayId);
+        LangbookDbInserter.insertBunchAcceptation(db, verbConcept, acceptation, 0);
+
+        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ar")
+                .build();
+        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ando")
+                .build();
+
+        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetBuilder().add(arVerbConcept).build();
+        final ImmutableIntSet verbBunchSet = new ImmutableIntSetBuilder().add(verbConcept).build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().build();
+
+        final int agent2Id;
+        if (reversedAdditionOrder) {
+            agent2Id = addAgent(db, 0, arVerbBunchSet, diffBunches, matcher, adder, gerund, 0);
+            addAgent(db, arVerbConcept, verbBunchSet, diffBunches, matcher, matcher, 0, 0);
+        }
+        else {
+            addAgent(db, arVerbConcept, verbBunchSet, diffBunches, matcher, matcher, 0, 0);
+            agent2Id = addAgent(db, 0, arVerbBunchSet, diffBunches, matcher, adder, gerund, 0);
+        }
+
+        final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery ruledConceptQuery = new DbQuery.Builder(ruledConcepts)
+                .where(ruledConcepts.getRuleColumnIndex(), gerund)
+                .where(ruledConcepts.getConceptColumnIndex(), singConcept)
+                .select(ruledConcepts.getIdColumnIndex());
+        final int ruledConcept = selectSingleRow(db, ruledConceptQuery).get(0).toInt();
+
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery ruledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
+                .where(ruledAcceptations.getAgentColumnIndex(), agent2Id)
+                .where(ruledAcceptations.getAcceptationColumnIndex(), acceptation)
+                .select(ruledAcceptations.getIdColumnIndex());
+        final int ruledAcceptation = selectSingleRow(db, ruledAcceptationsQuery).get(0).toInt();
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
+                .where(acceptations.getIdColumnIndex(), ruledAcceptation)
+                .select(acceptations.getConceptColumnIndex());
+        assertEquals(ruledConcept, selectSingleRow(db, acceptationQuery).get(0).toInt());
+
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery stringQuery = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), ruledAcceptation)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getMainStringColumnIndex(),
+                        strings.getStringAlphabetColumnIndex(),
+                        strings.getStringColumnIndex());
+        final DbResult.Row stringRow = selectSingleRow(db, stringQuery);
+        assertEquals(acceptation, stringRow.get(0).toInt());
+        assertEquals("cantando", stringRow.get(1).toText());
+        assertEquals(alphabet, stringRow.get(2).toInt());
+        assertEquals("cantando", stringRow.get(3).toText());
+    }
+
+    @Test
+    public void testAdd2ChainedAgents() {
+        checkAdd2ChainedAgents(false);
+    }
+
+    @Test
+    public void testAdd2ChainedAgentsReversedAdditionOrder() {
+        checkAdd2ChainedAgents(true);
+    }
 }

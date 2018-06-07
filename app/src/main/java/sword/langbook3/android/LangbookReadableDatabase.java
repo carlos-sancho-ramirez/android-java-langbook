@@ -534,6 +534,22 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    public static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSetIdColumnIndex(), setId)
+                .select(table.getBunchColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public static int conceptFromAcceptation(DbExporter.Database db, int accId) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
@@ -671,6 +687,23 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntPairMap getAgentProcessedMap(DbExporter.Database db, int agentId) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAgentColumnIndex(), agentId)
+                .select(table.getAcceptationColumnIndex(), table.getIdColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public static ImmutableIntKeyMap<ImmutableIntSet> getAllAgentSetsContaining(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
         final DbQuery query = new DbQuery.Builder(table)
@@ -702,5 +735,86 @@ public final class LangbookReadableDatabase {
         }
 
         return mapBuilder.build();
+    }
+
+    public static final class AgentDetails {
+        public final int targetBunch;
+        public final ImmutableIntSet sourceBunches;
+        public final ImmutableIntSet diffBunches;
+        public final ImmutableIntKeyMap<String> matcher;
+        public final ImmutableIntKeyMap<String> adder;
+        public final int rule;
+        public final int flags;
+
+        public boolean matchWordStarting() {
+            return (flags & 1) != 0;
+        }
+
+        public AgentDetails(int targetBunch, ImmutableIntSet sourceBunches,
+                ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> matcher,
+                ImmutableIntKeyMap<String> adder, int rule, int flags) {
+            if (matcher == null) {
+                matcher = ImmutableIntKeyMap.empty();
+            }
+
+            if (adder == null) {
+                adder = ImmutableIntKeyMap.empty();
+            }
+
+            if (matcher.equals(adder)) {
+                rule = 0;
+            }
+            else if (rule == 0) {
+                throw new IllegalArgumentException();
+            }
+
+            if (sourceBunches == null) {
+                sourceBunches = new ImmutableIntSetBuilder().build();
+            }
+
+            if (diffBunches == null) {
+                diffBunches = new ImmutableIntSetBuilder().build();
+            }
+
+            if (!sourceBunches.filter(diffBunches::contains).isEmpty()) {
+                throw new IllegalArgumentException();
+            }
+
+            if (sourceBunches.contains(0)) {
+                throw new IllegalArgumentException();
+            }
+
+            if (diffBunches.contains(0)) {
+                throw new IllegalArgumentException();
+            }
+
+            this.targetBunch = targetBunch;
+            this.sourceBunches = sourceBunches;
+            this.diffBunches = diffBunches;
+            this.matcher = matcher;
+            this.adder = adder;
+            this.rule = rule;
+            this.flags = flags;
+        }
+    }
+
+    public static AgentDetails getAgentDetails(DbExporter.Database db, int agentId) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), agentId)
+                .select(table.getTargetBunchColumnIndex(),
+                        table.getSourceBunchSetColumnIndex(),
+                        table.getDiffBunchSetColumnIndex(),
+                        table.getMatcherColumnIndex(),
+                        table.getAdderColumnIndex(),
+                        table.getRuleColumnIndex(),
+                        table.getFlagsColumnIndex());
+        final DbResult.Row agentRow = selectSingleRow(db, query);
+        final ImmutableIntSet sourceBunches = getBunchSet(db, agentRow.get(1).toInt());
+        final ImmutableIntSet diffBunches = getBunchSet(db, agentRow.get(2).toInt());
+        final ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, agentRow.get(3).toInt());
+        final ImmutableIntKeyMap<String> adder = getCorrelationWithText(db, agentRow.get(4).toInt());
+        return new AgentDetails(agentRow.get(0).toInt(), sourceBunches, diffBunches,
+                matcher, adder, agentRow.get(5).toInt(), agentRow.get(6).toInt());
     }
 }
