@@ -16,6 +16,7 @@ import sword.langbook3.android.db.MemoryDatabase;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
+import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
@@ -409,8 +410,7 @@ public final class LangbookDatabaseTest {
         checkAdd2ChainedAgents(true);
     }
 
-    @Test
-    public void testAddAgentWithDiffBunch() {
+    private void checkAddAgentWithDiffBunch(boolean addAgentBeforeAcceptations) {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int language = getMaxConceptInAcceptations(db) + 1;
@@ -429,7 +429,6 @@ public final class LangbookDatabaseTest {
                 .build();
         final int singCorrelationId = insertCorrelation(db, singCorrelation);
         final int singCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, singCorrelationId);
-        final int singAcceptation = addAcceptation(db, singConcept, singCorrelationArrayId);
 
         final String palateText = "paladar";
         final ImmutableIntKeyMap<String> palateCorrelation = new ImmutableIntKeyMap.Builder<String>()
@@ -437,8 +436,6 @@ public final class LangbookDatabaseTest {
                 .build();
         final int palateCorrelationId = insertCorrelation(db, palateCorrelation);
         final int palateCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, palateCorrelationId);
-        final int palateAcceptation = addAcceptation(db, palateConcept, palateCorrelationArrayId);
-        LangbookDbInserter.insertBunchAcceptation(db, arEndingNounConcept, palateAcceptation, 0);
 
         final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, "ar")
@@ -446,7 +443,20 @@ public final class LangbookDatabaseTest {
 
         final ImmutableIntSet sourceBunches = new ImmutableIntSetBuilder().build();
         final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().add(arEndingNounConcept).build();
-        final int agentId = addAgent(db, arVerbConcept, sourceBunches, diffBunches, arMatcher, arMatcher, 0, 0);
+
+        final int singAcceptation = addAcceptation(db, singConcept, singCorrelationArrayId);
+        final int palateAcceptation;
+        final int agentId;
+        if (addAgentBeforeAcceptations) {
+            agentId = addAgent(db, arVerbConcept, sourceBunches, diffBunches, arMatcher, arMatcher, 0, 0);
+            palateAcceptation = addAcceptation(db, palateConcept, palateCorrelationArrayId);
+            addAcceptationInBunch(db, arEndingNounConcept, palateAcceptation);
+        }
+        else {
+            palateAcceptation = addAcceptation(db, palateConcept, palateCorrelationArrayId);
+            addAcceptationInBunch(db, arEndingNounConcept, palateAcceptation);
+            agentId = addAgent(db, arVerbConcept, sourceBunches, diffBunches, arMatcher, arMatcher, 0, 0);
+        }
 
         final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
         final DbQuery agentSetQuery = new DbQuery.Builder(agentSets)
@@ -461,5 +471,15 @@ public final class LangbookDatabaseTest {
         final DbResult.Row row = selectSingleRow(db, arVerbsQuery);
         assertEquals(singAcceptation, row.get(0).toInt());
         assertEquals(agentSetId, row.get(1).toInt());
+    }
+
+    @Test
+    public void testAddAcceptationBeforeAgentWithDiffBunch() {
+        checkAddAgentWithDiffBunch(false);
+    }
+
+    @Test
+    public void testAddAcceptationAfterAgentWithDiffBunch() {
+        checkAddAgentWithDiffBunch(true);
     }
 }

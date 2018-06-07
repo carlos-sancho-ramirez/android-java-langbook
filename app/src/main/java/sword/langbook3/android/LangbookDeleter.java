@@ -11,6 +11,15 @@ public final class LangbookDeleter {
         this.db = db;
     }
 
+    public static boolean deleteAcceptation(Deleter db, int acceptation) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(LangbookDbSchema.Tables.acceptations)
+                .where(table.getIdColumnIndex(), acceptation)
+                .build();
+
+        return db.delete(query);
+    }
+
     public static boolean deleteAgent(Deleter db, int id) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
@@ -24,6 +33,16 @@ public final class LangbookDeleter {
         final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getSetIdColumnIndex(), setId)
+                .build();
+
+        return db.delete(query);
+    }
+
+    public static boolean deleteBunchAcceptation(Deleter db, int bunch, int acceptation) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .where(table.getAcceptationColumnIndex(), acceptation)
                 .build();
 
         return db.delete(query);
@@ -51,6 +70,15 @@ public final class LangbookDeleter {
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
                 .build();
+        return db.delete(query);
+    }
+
+    public static boolean deleteKnowledge(Deleter db, int acceptation) {
+        final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getAcceptationColumnIndex(), acceptation)
+                .build();
+
         return db.delete(query);
     }
 }

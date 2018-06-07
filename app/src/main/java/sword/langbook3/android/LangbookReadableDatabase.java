@@ -534,6 +534,22 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    public static ImmutableIntPairMap getAcceptationsAndAgentSetsInBunch(DbExporter.Database db, int bunch) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .select(table.getAcceptationColumnIndex(), table.getAgentSetColumnIndex());
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         final DbQuery query = new DbQuery.Builder(table)
@@ -762,6 +778,9 @@ public final class LangbookReadableDatabase {
             }
 
             if (matcher.equals(adder)) {
+                if (targetBunch == 0) {
+                    throw new IllegalArgumentException();
+                }
                 rule = 0;
             }
             else if (rule == 0) {

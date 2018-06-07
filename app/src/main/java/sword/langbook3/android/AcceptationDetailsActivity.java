@@ -1146,15 +1146,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         db.delete(query);
     }
 
-    private void removeKnowledge(Database db) {
-        final LangbookDbSchema.KnowledgeTable table = Tables.knowledge;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getAcceptationColumnIndex(), _staticAcceptation)
-                .build();
-
-        db.delete(query);
-    }
-
     @Override
     public void onClick(DialogInterface dialog, int which) {
         switch (_state.getIntrinsicState()) {
@@ -1197,16 +1188,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final DbManager manager = DbManager.getInstance();
         final Database db = manager.getDatabase();
 
-        removeKnowledge(db);
+        LangbookDeleter.deleteKnowledge(db, _staticAcceptation);
         removeFromBunches(db);
         removeFromStringQueryTable(db);
-
-        final AcceptationsTable table = Tables.acceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(Tables.acceptations)
-                .where(table.getIdColumnIndex(), _staticAcceptation)
-                .build();
-
-        if (!db.delete(query)) {
+        if (!LangbookDeleter.deleteAcceptation(db, _staticAcceptation)) {
             throw new AssertionError();
         }
 
