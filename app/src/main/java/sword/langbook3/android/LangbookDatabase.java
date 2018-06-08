@@ -658,6 +658,30 @@ public final class LangbookDatabase {
         return builder.build();
     }
 
+    private static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(Database db, int bunch) {
+        if (bunch == 0) {
+            return new ImmutableIntPairMap.Builder().build();
+        }
+
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final int offset = bunchSets.columns().size();
+        final DbQuery query = new DbQuery.Builder(bunchSets)
+                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
+                .where(bunchSets.getBunchColumnIndex(), bunch)
+                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     private static ImmutableIntSet findAffectedAgentsByItsDiff(Database db, int bunch) {
         if (bunch == 0) {
             return new ImmutableIntSetBuilder().build();
@@ -710,8 +734,18 @@ public final class LangbookDatabase {
                     (flags & 1) != 0);
         }
 
-        for (int rerunAgentId : findAffectedAgentsByItsSource(db, targetBunch)) {
-            rerunAgent(db, rerunAgentId);
+        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(targetBunch).build();
+        while (!updatedBunches.isEmpty()) {
+            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            for (int bunch : updatedBunches) {
+                for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
+                    rerunAgent(db, entry.key());
+                    if (entry.value() != 0) {
+                        builder.add(entry.value());
+                    }
+                }
+            }
+            updatedBunches = builder.build();
         }
 
         return agentId;

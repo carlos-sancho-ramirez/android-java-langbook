@@ -482,4 +482,114 @@ public final class LangbookDatabaseTest {
     public void testAddAcceptationAfterAgentWithDiffBunch() {
         checkAddAgentWithDiffBunch(true);
     }
+
+    @Test
+    public void checkAdd3ChainedAgents() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int arVerbConcept = alphabet + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final String verbText = "cantar";
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, verbText)
+                .build();
+        final int correlationId = insertCorrelation(db, correlation);
+        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int acceptation = addAcceptation(db, singConcept, correlationArrayId);
+
+        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ar")
+                .build();
+        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "o")
+                .build();
+        final ImmutableIntKeyMap<String> noMatcher = new ImmutableIntKeyMap.Builder<String>()
+                .build();
+        final ImmutableIntKeyMap<String> pluralAdder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "s")
+                .build();
+
+        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetBuilder().add(arVerbConcept).build();
+        final ImmutableIntSet actionConceptBunchSet = new ImmutableIntSetBuilder().add(actionConcept).build();
+        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+
+        final int agent3Id = addAgent(db, 0, actionConceptBunchSet, noBunches, noMatcher, pluralAdder, pluralRule, 0);
+        final int agent2Id = addAgent(db, actionConcept, arVerbBunchSet, noBunches, matcher, adder, nominalizationRule, 0);
+        addAgent(db, arVerbConcept, noBunches, noBunches, matcher, matcher, 0, 0);
+
+        final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery nounRuledConceptQuery = new DbQuery.Builder(ruledConcepts)
+                .where(ruledConcepts.getRuleColumnIndex(), nominalizationRule)
+                .select(ruledConcepts.getIdColumnIndex(), ruledConcepts.getConceptColumnIndex());
+        final DbResult.Row nounRuledConceptResult = selectSingleRow(db, nounRuledConceptQuery);
+        assertEquals(singConcept, nounRuledConceptResult.get(1).toInt());
+        final int nounRuledConcept = nounRuledConceptResult.get(0).toInt();
+
+        final DbQuery pluralRuledConceptQuery = new DbQuery.Builder(ruledConcepts)
+                .where(ruledConcepts.getRuleColumnIndex(), pluralRule)
+                .select(ruledConcepts.getIdColumnIndex(), ruledConcepts.getConceptColumnIndex());
+        final DbResult.Row pluralRuledConceptResult = selectSingleRow(db, pluralRuledConceptQuery);
+        assertEquals(nounRuledConcept, pluralRuledConceptResult.get(1).toInt());
+        final int pluralRuledConcept = pluralRuledConceptResult.get(0).toInt();
+
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery nounRuledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
+                .where(ruledAcceptations.getAgentColumnIndex(), agent2Id)
+                .select(ruledAcceptations.getIdColumnIndex(), ruledAcceptations.getAcceptationColumnIndex());
+        final DbResult.Row nounRuledAcceptationResult = selectSingleRow(db, nounRuledAcceptationsQuery);
+        assertEquals(acceptation, nounRuledAcceptationResult.get(1).toInt());
+        final int nounRuledAcceptation = nounRuledAcceptationResult.get(0).toInt();
+
+        final DbQuery pluralRuledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
+                .where(ruledAcceptations.getAgentColumnIndex(), agent3Id)
+                .select(ruledAcceptations.getIdColumnIndex(), ruledAcceptations.getAcceptationColumnIndex());
+        final DbResult.Row pluralRuledAcceptationResult = selectSingleRow(db, pluralRuledAcceptationsQuery);
+        assertEquals(nounRuledAcceptation, pluralRuledAcceptationResult.get(1).toInt());
+        final int pluralRuledAcceptation = pluralRuledAcceptationResult.get(0).toInt();
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final DbQuery nounAcceptationQuery = new DbQuery.Builder(acceptations)
+                .where(acceptations.getIdColumnIndex(), nounRuledAcceptation)
+                .select(acceptations.getConceptColumnIndex());
+        assertEquals(nounRuledConcept, selectSingleRow(db, nounAcceptationQuery).get(0).toInt());
+
+        final DbQuery pluralAcceptationQuery = new DbQuery.Builder(acceptations)
+                .where(acceptations.getIdColumnIndex(), pluralRuledAcceptation)
+                .select(acceptations.getConceptColumnIndex());
+        assertEquals(pluralRuledConcept, selectSingleRow(db, pluralAcceptationQuery).get(0).toInt());
+
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        DbQuery stringQuery = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), nounRuledAcceptation)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getMainStringColumnIndex(),
+                        strings.getStringAlphabetColumnIndex(),
+                        strings.getStringColumnIndex());
+        DbResult.Row stringRow = selectSingleRow(db, stringQuery);
+        assertEquals(acceptation, stringRow.get(0).toInt());
+        assertEquals("canto", stringRow.get(1).toText());
+        assertEquals(alphabet, stringRow.get(2).toInt());
+        assertEquals("canto", stringRow.get(3).toText());
+
+        stringQuery = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), pluralRuledAcceptation)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getMainStringColumnIndex(),
+                        strings.getStringAlphabetColumnIndex(),
+                        strings.getStringColumnIndex());
+        stringRow = selectSingleRow(db, stringQuery);
+        assertEquals(acceptation, stringRow.get(0).toInt());
+        assertEquals("cantos", stringRow.get(1).toText());
+        assertEquals(alphabet, stringRow.get(2).toInt());
+        assertEquals("cantos", stringRow.get(3).toText());
+    }
 }
