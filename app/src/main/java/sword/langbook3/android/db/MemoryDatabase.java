@@ -372,54 +372,55 @@ public final class MemoryDatabase implements Database {
             return false;
         }
 
-        final MutableIntKeyMap<ImmutableList<Object>> table = _tableMap.get(query.table());
-        if (constraints.keyAt(0) == 0) {
-            final int id = constraints.valueAt(0).toInt();
-            final ImmutableList<Object> register = table.get(id, null);
-            if (register != null) {
-                boolean matches = true;
-                for (int i = 1; i < constraintCount; i++) {
-                    final DbValue value = constraints.valueAt(i);
-                    final Object rawValue = value.isText()? value.toText() : value.toInt();
-                    if (!equal(register.get(constraints.keyAt(i) - 1), rawValue)) {
-                        matches = false;
-                        break;
+        final MutableIntKeyMap<ImmutableList<Object>> table = _tableMap.get(query.table(), null);
+        if (table != null) {
+            if (constraints.keyAt(0) == 0) {
+                final int id = constraints.valueAt(0).toInt();
+                final ImmutableList<Object> register = table.get(id, null);
+                if (register != null) {
+                    boolean matches = true;
+                    for (int i = 1; i < constraintCount; i++) {
+                        final DbValue value = constraints.valueAt(i);
+                        final Object rawValue = value.isText()? value.toText() : value.toInt();
+                        if (!equal(register.get(constraints.keyAt(i) - 1), rawValue)) {
+                            matches = false;
+                            break;
+                        }
                     }
-                }
 
-                if (matches) {
-                    if (!table.remove(id)) {
-                        throw new AssertionError();
+                    if (matches) {
+                        if (!table.remove(id)) {
+                            throw new AssertionError();
+                        }
+                        return true;
                     }
-                    return true;
                 }
             }
-        }
-        else {
-            boolean removed = false;
-            int index = 0;
-            while (index < table.size()) {
-                final ImmutableList<Object> register = table.valueAt(index);
-                boolean matches = true;
-                for (IntKeyMap.Entry<DbValue> entry : constraints.entries()) {
-                    final DbValue value = entry.value();
-                    final Object rawValue = value.isText()? value.toText() : value.toInt();
-                    if (!equal(register.get(entry.key() - 1), rawValue)) {
-                        matches = false;
-                        break;
+            else {
+                boolean removed = false;
+                int index = 0;
+                while (index < table.size()) {
+                    final ImmutableList<Object> register = table.valueAt(index);
+                    boolean matches = true;
+                    for (IntKeyMap.Entry<DbValue> entry : constraints.entries()) {
+                        final DbValue value = entry.value();
+                        final Object rawValue = value.isText() ? value.toText() : value.toInt();
+                        if (!equal(register.get(entry.key() - 1), rawValue)) {
+                            matches = false;
+                            break;
+                        }
+                    }
+
+                    if (matches) {
+                        table.removeAt(index);
+                        removed = true;
+                    } else {
+                        index++;
                     }
                 }
 
-                if (matches) {
-                    table.removeAt(index);
-                    removed = true;
-                }
-                else {
-                    index++;
-                }
+                return removed;
             }
-
-            return removed;
         }
 
         return false;

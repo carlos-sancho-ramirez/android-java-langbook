@@ -42,6 +42,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentProcessedMap;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
@@ -442,6 +443,7 @@ public final class LangbookDatabase {
             for (int acc : alreadyProcessedMap) {
                 if (!matchingAcceptations.contains(acc)) {
                     deleteKnowledge(db, acc);
+                    deleteBunchAcceptation(db, agentDetails.targetBunch, acc);
                     deleteStringQueriesForDynamicAcceptation(db, acc);
                     if (!deleteAcceptation(db, acc) | !deleteRuledAcceptation(db, acc)) {
                         throw new AssertionError();
@@ -757,21 +759,16 @@ public final class LangbookDatabase {
         // 2. It is assuming that agents sets only contains a single agent.
         // TODO: Improve this logic once it is centralised and better defined
 
+        final int targetBunch = getAgentDetails(db, agentId).targetBunch;
         final ImmutableIntKeyMap<ImmutableIntSet> agentSets = getAllAgentSetsContaining(db, agentId);
-        final ImmutableIntPairMap.Builder agentSetMapBuilder = new ImmutableIntPairMap.Builder();
         final ImmutableIntSetBuilder removableAgentSetsBuilder = new ImmutableIntSetBuilder();
         for (IntKeyMap.Entry<ImmutableIntSet> entry : agentSets.entries()) {
-            final int setId = obtainAgentSet(db, entry.value().remove(agentId));
-            if (setId == 0) {
+            if (entry.value().size() == 1) {
                 removableAgentSetsBuilder.add(entry.key());
             }
             else {
-                agentSetMapBuilder.put(entry.key(), setId);
+                throw new UnsupportedOperationException("Unimplemented: Multiple agents");
             }
-        }
-
-        if (!agentSetMapBuilder.build().isEmpty()) {
-            throw new UnsupportedOperationException("Unimplemented: Multiple agents");
         }
 
         for (int setId : removableAgentSetsBuilder.build()) {
@@ -797,6 +794,20 @@ public final class LangbookDatabase {
 
         if (!LangbookDeleter.deleteAgent(db, agentId)) {
             throw new AssertionError();
+        }
+
+        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(targetBunch).build();
+        while (!updatedBunches.isEmpty()) {
+            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            for (int bunch : updatedBunches) {
+                for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
+                    rerunAgent(db, entry.key());
+                    if (entry.value() != 0) {
+                        builder.add(entry.value());
+                    }
+                }
+            }
+            updatedBunches = builder.build();
         }
     }
 }

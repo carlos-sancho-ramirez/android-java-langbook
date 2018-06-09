@@ -18,6 +18,7 @@ import static org.junit.Assert.assertFalse;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
+import static sword.langbook3.android.LangbookDatabase.deleteAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
@@ -483,28 +484,31 @@ public final class LangbookDatabaseTest {
         checkAddAgentWithDiffBunch(true);
     }
 
-    @Test
-    public void checkAdd3ChainedAgents() {
-        final MemoryDatabase db = new MemoryDatabase();
+    private static final class Add3ChainedAgentsResult {
+        final int agent1Id;
+        final int agent2Id;
+        final int agent3Id;
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int arVerbConcept = alphabet + 1;
-        final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
+        Add3ChainedAgentsResult(int agent1Id, int agent2Id, int agent3Id) {
+            this.agent1Id = agent1Id;
+            this.agent2Id = agent2Id;
+            this.agent3Id = agent3Id;
+        }
+    }
 
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
-
+    private static int addSpanishSingAcceptation(Database db, int alphabet, int concept) {
         final String verbText = "cantar";
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, verbText)
                 .build();
         final int correlationId = insertCorrelation(db, correlation);
         final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
-        final int acceptation = addAcceptation(db, singConcept, correlationArrayId);
+        return addAcceptation(db, concept, correlationArrayId);
+    }
+
+    private static Add3ChainedAgentsResult add3ChainedAgents(Database db,
+            int alphabet, int arVerbConcept, int actionConcept,
+            int nominalizationRule, int pluralRule) {
 
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, "ar")
@@ -524,7 +528,29 @@ public final class LangbookDatabaseTest {
 
         final int agent3Id = addAgent(db, 0, actionConceptBunchSet, noBunches, noMatcher, pluralAdder, pluralRule, 0);
         final int agent2Id = addAgent(db, actionConcept, arVerbBunchSet, noBunches, matcher, adder, nominalizationRule, 0);
-        addAgent(db, arVerbConcept, noBunches, noBunches, matcher, matcher, 0, 0);
+        final int agent1Id = addAgent(db, arVerbConcept, noBunches, noBunches, matcher, matcher, 0, 0);
+
+        return new Add3ChainedAgentsResult(agent1Id, agent2Id, agent3Id);
+    }
+
+    @Test
+    public void testAdd3ChainedAgents() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int arVerbConcept = alphabet + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
+        final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(db, alphabet,
+                arVerbConcept, actionConcept, nominalizationRule, pluralRule);
 
         final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery nounRuledConceptQuery = new DbQuery.Builder(ruledConcepts)
@@ -543,14 +569,14 @@ public final class LangbookDatabaseTest {
 
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery nounRuledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
-                .where(ruledAcceptations.getAgentColumnIndex(), agent2Id)
+                .where(ruledAcceptations.getAgentColumnIndex(), addAgentsResult.agent2Id)
                 .select(ruledAcceptations.getIdColumnIndex(), ruledAcceptations.getAcceptationColumnIndex());
         final DbResult.Row nounRuledAcceptationResult = selectSingleRow(db, nounRuledAcceptationsQuery);
         assertEquals(acceptation, nounRuledAcceptationResult.get(1).toInt());
         final int nounRuledAcceptation = nounRuledAcceptationResult.get(0).toInt();
 
         final DbQuery pluralRuledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
-                .where(ruledAcceptations.getAgentColumnIndex(), agent3Id)
+                .where(ruledAcceptations.getAgentColumnIndex(), addAgentsResult.agent3Id)
                 .select(ruledAcceptations.getIdColumnIndex(), ruledAcceptations.getAcceptationColumnIndex());
         final DbResult.Row pluralRuledAcceptationResult = selectSingleRow(db, pluralRuledAcceptationsQuery);
         assertEquals(nounRuledAcceptation, pluralRuledAcceptationResult.get(1).toInt());
@@ -591,5 +617,41 @@ public final class LangbookDatabaseTest {
         assertEquals("cantos", stringRow.get(1).toText());
         assertEquals(alphabet, stringRow.get(2).toInt());
         assertEquals("cantos", stringRow.get(3).toText());
+    }
+
+    @Test
+    public void testDeleteChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int arVerbConcept = alphabet + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
+        final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(db, alphabet,
+                arVerbConcept, actionConcept, nominalizationRule, pluralRule);
+
+        deleteAgent(db, addAgentsResult.agent1Id);
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery ruledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
+                .select(ruledAcceptations.getIdColumnIndex());
+        assertFalse(db.select(ruledAcceptationsQuery).hasNext());
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
+                .select(acceptations.getIdColumnIndex());
+        assertEquals(acceptation, selectSingleRow(db, acceptationQuery).get(0).toInt());
+
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery bunchAcceptationQuery = new DbQuery.Builder(bunchAcceptations)
+                .select(bunchAcceptations.getIdColumnIndex());
+        assertFalse(db.select(bunchAcceptationQuery).hasNext());
     }
 }
