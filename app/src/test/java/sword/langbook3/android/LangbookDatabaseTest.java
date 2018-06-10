@@ -18,9 +18,10 @@ import static org.junit.Assert.assertFalse;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
-import static sword.langbook3.android.LangbookDatabase.deleteAgent;
+import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
+import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
@@ -620,7 +621,7 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
-    public void testDeleteChainedAgent() {
+    public void testRemoveChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int language = getMaxConceptInAcceptations(db) + 1;
@@ -638,7 +639,7 @@ public final class LangbookDatabaseTest {
         final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(db, alphabet,
                 arVerbConcept, actionConcept, nominalizationRule, pluralRule);
 
-        deleteAgent(db, addAgentsResult.agent1Id);
+        removeAgent(db, addAgentsResult.agent1Id);
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery ruledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
                 .select(ruledAcceptations.getIdColumnIndex());
@@ -648,6 +649,41 @@ public final class LangbookDatabaseTest {
         final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
                 .select(acceptations.getIdColumnIndex());
         assertEquals(acceptation, selectSingleRow(db, acceptationQuery).get(0).toInt());
+
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery bunchAcceptationQuery = new DbQuery.Builder(bunchAcceptations)
+                .select(bunchAcceptations.getIdColumnIndex());
+        assertFalse(db.select(bunchAcceptationQuery).hasNext());
+    }
+
+    @Test
+    public void testRemoveAcceptationWithChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int arVerbConcept = alphabet + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
+        add3ChainedAgents(db, alphabet, arVerbConcept, actionConcept, nominalizationRule, pluralRule);
+
+        removeAcceptation(db, acceptation);
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery ruledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
+                .select(ruledAcceptations.getIdColumnIndex());
+        assertFalse(db.select(ruledAcceptationsQuery).hasNext());
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
+                .select(acceptations.getIdColumnIndex());
+        assertFalse(db.select(acceptationQuery).hasNext());
 
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery bunchAcceptationQuery = new DbQuery.Builder(bunchAcceptations)

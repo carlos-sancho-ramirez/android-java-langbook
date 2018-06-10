@@ -3,7 +3,6 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
@@ -12,27 +11,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntPairMap;
-import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
-import sword.collections.IntKeyMap;
-import sword.collections.IntPairMap;
 import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbDeleteQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
-import static sword.langbook3.android.LangbookDatabase.obtainAgentSet;
-import static sword.langbook3.android.LangbookDeleter.deleteAgentSet;
-import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
-import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
-import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
-import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
@@ -196,7 +182,7 @@ public final class AgentDetailsActivity extends Activity {
     }
 
     private void deleteAgent() {
-        LangbookDatabase.deleteAgent(DbManager.getInstance().getDatabase(), _agentId);
+        LangbookDatabase.removeAgent(DbManager.getInstance().getDatabase(), _agentId);
         showFeedback(getString(R.string.deleteAgentFeedback));
         finish();
     }

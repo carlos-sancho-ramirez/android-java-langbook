@@ -15,6 +15,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbQuery;
@@ -406,6 +407,107 @@ public final class LangbookReadableDatabase {
         finally {
             result.close();
         }
+    }
+
+    public static ImmutableIntSet findAffectedAgentsByItsSource(DbExporter.Database db, int bunch) {
+        if (bunch == 0) {
+            return new ImmutableIntSetBuilder().build();
+        }
+
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(bunchSets)
+                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
+                .where(bunchSets.getBunchColumnIndex(), bunch)
+                .select(bunchSets.columns().size() + agents.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(DbExporter.Database db, int bunch) {
+        if (bunch == 0) {
+            return new ImmutableIntPairMap.Builder().build();
+        }
+
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final int offset = bunchSets.columns().size();
+        final DbQuery query = new DbQuery.Builder(bunchSets)
+                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
+                .where(bunchSets.getBunchColumnIndex(), bunch)
+                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet findAffectedAgentsByItsDiff(DbExporter.Database db, int bunch) {
+        if (bunch == 0) {
+            return new ImmutableIntSetBuilder().build();
+        }
+
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(bunchSets)
+                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getDiffBunchSetColumnIndex())
+                .where(bunchSets.getBunchColumnIndex(), bunch)
+                .select(bunchSets.columns().size() + agents.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet findAffectedAgentsByAnyAcceptationChange(DbExporter.Database db) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(agents)
+                .where(agents.getSourceBunchSetColumnIndex(), 0)
+                .select(agents.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntPairMap findAffectedAgentsByAnyAcceptationChangeWithTarget(DbExporter.Database db) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(agents)
+                .where(agents.getSourceBunchSetColumnIndex(), 0)
+                .select(agents.getIdColumnIndex(), agents.getTargetBunchColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
     }
 
     public static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {

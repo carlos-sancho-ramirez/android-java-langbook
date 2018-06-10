@@ -36,6 +36,11 @@ import static sword.langbook3.android.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAnyAcceptationChange;
+import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAnyAcceptationChangeWithTarget;
+import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsDiff;
+import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsSource;
+import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
@@ -626,6 +631,58 @@ public final class LangbookDatabase {
         return acceptation;
     }
 
+    private static void removeFromStringQueryTable(Database db, int acceptation) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getMainAcceptationColumnIndex(), acceptation)
+                .build();
+
+        db.delete(query);
+    }
+
+    private static void removeFromBunches(Database db, int acceptation) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getAcceptationColumnIndex(), acceptation)
+                .build();
+
+        db.delete(query);
+    }
+
+    public static boolean removeAcceptation(Database db, int acceptation) {
+        LangbookDeleter.deleteKnowledge(db, acceptation);
+        removeFromBunches(db, acceptation);
+        removeFromStringQueryTable(db, acceptation);
+        final boolean removed = LangbookDeleter.deleteAcceptation(db, acceptation);
+
+        final ImmutableIntPairMap affectedAgents = findAffectedAgentsByAnyAcceptationChangeWithTarget(db);
+        for (int agent : affectedAgents.keySet()) {
+            rerunAgent(db, agent);
+        }
+
+        ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (int bunch : affectedAgents) {
+            if (bunch != 0) {
+                builder.add(bunch);
+            }
+        }
+
+        ImmutableIntSet updatedBunches = builder.build();
+        while (!updatedBunches.isEmpty()) {
+            builder = new ImmutableIntSetBuilder();
+            for (int bunch : updatedBunches) {
+                for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
+                    rerunAgent(db, entry.key());
+                    if (entry.value() != 0) {
+                        builder.add(entry.value());
+                    }
+                }
+            }
+            updatedBunches = builder.build();
+        }
+        return removed;
+    }
+
     public static void addAcceptationInBunch(Database db, int bunch, int acceptation) {
         LangbookDbInserter.insertBunchAcceptation(db, bunch, acceptation, 0);
 
@@ -636,90 +693,6 @@ public final class LangbookDatabase {
         for (int agentId : findAffectedAgentsByItsDiff(db, bunch)) {
             rerunAgent(db, agentId);
         }
-    }
-
-    private static ImmutableIntSet findAffectedAgentsByItsSource(Database db, int bunch) {
-        if (bunch == 0) {
-            return new ImmutableIntSetBuilder().build();
-        }
-
-        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(bunchSets)
-                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
-                .where(bunchSets.getBunchColumnIndex(), bunch)
-                .select(bunchSets.columns().size() + agents.getIdColumnIndex());
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
-    }
-
-    private static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(Database db, int bunch) {
-        if (bunch == 0) {
-            return new ImmutableIntPairMap.Builder().build();
-        }
-
-        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final int offset = bunchSets.columns().size();
-        final DbQuery query = new DbQuery.Builder(bunchSets)
-                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
-                .where(bunchSets.getBunchColumnIndex(), bunch)
-                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchColumnIndex());
-
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                DbResult.Row row = result.next();
-                builder.put(row.get(0).toInt(), row.get(1).toInt());
-            }
-        }
-
-        return builder.build();
-    }
-
-    private static ImmutableIntSet findAffectedAgentsByItsDiff(Database db, int bunch) {
-        if (bunch == 0) {
-            return new ImmutableIntSetBuilder().build();
-        }
-
-        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(bunchSets)
-                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getDiffBunchSetColumnIndex())
-                .where(bunchSets.getBunchColumnIndex(), bunch)
-                .select(bunchSets.columns().size() + agents.getIdColumnIndex());
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
-    }
-
-    private static ImmutableIntSet findAffectedAgentsByAnyAcceptationChange(Database db) {
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(agents)
-                .where(agents.getSourceBunchSetColumnIndex(), 0)
-                .select(agents.getIdColumnIndex());
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
     }
 
     public static Integer addAgent(Database db, int targetBunch, ImmutableIntSet sourceBunches,
@@ -753,7 +726,7 @@ public final class LangbookDatabase {
         return agentId;
     }
 
-    public static void deleteAgent(Database db, int agentId) {
+    public static void removeAgent(Database db, int agentId) {
         // This implementation has lot of holes.
         // 1. It is assuming that there is no chained agents
         // 2. It is assuming that agents sets only contains a single agent.

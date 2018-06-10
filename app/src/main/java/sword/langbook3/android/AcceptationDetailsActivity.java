@@ -1128,24 +1128,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 .create().show();
     }
 
-    private void removeFromStringQueryTable(Database db) {
-        final StringQueriesTable table = Tables.stringQueries;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getMainAcceptationColumnIndex(), _staticAcceptation)
-                .build();
-
-        db.delete(query);
-    }
-
-    private void removeFromBunches(Database db) {
-        final BunchAcceptationsTable table = Tables.bunchAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getAcceptationColumnIndex(), _staticAcceptation)
-                .build();
-
-        db.delete(query);
-    }
-
     @Override
     public void onClick(DialogInterface dialog, int which) {
         switch (_state.getIntrinsicState()) {
@@ -1185,13 +1167,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void deleteAcceptation() {
-        final DbManager manager = DbManager.getInstance();
-        final Database db = manager.getDatabase();
-
-        LangbookDeleter.deleteKnowledge(db, _staticAcceptation);
-        removeFromBunches(db);
-        removeFromStringQueryTable(db);
-        if (!LangbookDeleter.deleteAcceptation(db, _staticAcceptation)) {
+        if (!LangbookDatabase.removeAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation)) {
             throw new AssertionError();
         }
 
