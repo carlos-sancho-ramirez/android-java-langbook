@@ -191,13 +191,19 @@ public final class DbQuery implements DbView {
          */
         private final boolean _mustMatch;
 
-        private JoinColumnPair(int left, int right, boolean mustMatch) {
-            if (left < 0 || left >= right) {
+        private JoinColumnPair(int columnA, int columnB, boolean mustMatch) {
+            if (columnA > columnB) {
+                int temp = columnA;
+                columnA = columnB;
+                columnB = temp;
+            }
+
+            if (columnA < 0 || columnA == columnB) {
                 throw new IllegalArgumentException();
             }
 
-            _left = left;
-            _right = right;
+            _left = columnA;
+            _right = columnB;
             _mustMatch = mustMatch;
         }
 
@@ -390,19 +396,21 @@ public final class DbQuery implements DbView {
             return this;
         }
 
-        public Builder whereColumnValueMatch(int leftColumnIndex, int rightColumnIndex) {
-            if (rightColumnIndex >= _joinColumnCount) {
+        public Builder whereColumnValueMatch(int columnIndexA, int columnIndexB) {
+            final JoinColumnPair pair = new JoinColumnPair(columnIndexA, columnIndexB, true);
+            if (pair.right() >= _joinColumnCount) {
                 throw new IndexOutOfBoundsException();
             }
-            _columnValueMatchPairs.add(new JoinColumnPair(leftColumnIndex, rightColumnIndex, true));
+            _columnValueMatchPairs.add(pair);
             return this;
         }
 
-        public Builder whereColumnValueDiffer(int leftColumnIndex, int rightColumnIndex) {
-            if (rightColumnIndex >= _joinColumnCount) {
+        public Builder whereColumnValueDiffer(int columnIndexA, int columnIndexB) {
+            final JoinColumnPair pair = new JoinColumnPair(columnIndexA, columnIndexB, false);
+            if (pair.right() >= _joinColumnCount) {
                 throw new IndexOutOfBoundsException();
             }
-            _columnValueMatchPairs.add(new JoinColumnPair(leftColumnIndex, rightColumnIndex, false));
+            _columnValueMatchPairs.add(pair);
             return this;
         }
 

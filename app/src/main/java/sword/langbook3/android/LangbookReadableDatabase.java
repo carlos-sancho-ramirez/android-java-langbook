@@ -858,6 +858,41 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntSet readAllAcceptations(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getStringAlphabetColumnIndex(), alphabet)
+                .whereColumnValueMatch(strings.getMainAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .select(strings.getDynamicAcceptationColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet readAllAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .join(strings, bunchAcceptations.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(bunchAcceptations.getBunchColumnIndex(), bunch)
+                .where(bunchAcceptations.columns().size() + strings.getStringAlphabetColumnIndex(), alphabet)
+                .select(bunchAcceptations.getAcceptationColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+        return builder.build();
+    }
+
     public static ImmutableIntKeyMap<String> readAllRules(DbExporter.Database db, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;

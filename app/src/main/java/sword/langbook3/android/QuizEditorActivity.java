@@ -39,6 +39,8 @@ import static sword.langbook3.android.DbManager.findQuestionFieldSet;
 import static sword.langbook3.android.DbManager.findQuizDefinition;
 import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
 import static sword.langbook3.android.DbManager.insertQuizDefinition;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptations;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptationsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -363,58 +365,6 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
-    private ImmutableIntSet readAllAcceptations(SQLiteDatabase db, int alphabet) {
-        final StringQueriesTable strings = Tables.stringQueries;
-        final Cursor cursor = db.rawQuery("SELECT " + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " FROM " + strings.name() +
-                        " WHERE " + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?" +
-                        " AND " + strings.columns().get(strings.getMainAcceptationColumnIndex()).name() + '=' + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name(),
-                new String[]{Integer.toString(alphabet)});
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        builder.add(cursor.getInt(0));
-                    } while (cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return builder.build();
-    }
-
-    private ImmutableIntSet readAllAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
-        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-        final Cursor cursor = db.rawQuery("SELECT " + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() +
-                " FROM " + bunchAcceptations.name() + " AS J0" +
-                " JOIN " + strings.name() + " AS J1 ON J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() + "=J1." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() + "=?" +
-                " AND J1." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?",
-                new String[]{Integer.toString(_bunch), Integer.toString(alphabet)});
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        builder.add(cursor.getInt(0));
-                    } while (cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return builder.build();
-    }
-
     private ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int alphabet) {
         final AcceptationsTable acceptations = Tables.acceptations;
         final StringQueriesTable strings = Tables.stringQueries;
@@ -570,18 +520,19 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         return builder.build();
     }
 
-    private ImmutableIntSet readAllPossibleAcceptationForField(SQLiteDatabase db, FieldState field) {
+    private ImmutableIntSet readAllPossibleAcceptationForField(SQLiteDatabase sqlDb, FieldState field) {
         switch (field.type) {
             case FieldTypes.sameAcceptation:
-                return (_bunch == NO_BUNCH)? readAllAcceptations(db, field.alphabet) : readAllAcceptationsInBunch(db, field.alphabet);
+                final Database db = DbManager.getInstance().getDatabase();
+                return (_bunch == NO_BUNCH)? readAllAcceptations(db, field.alphabet) : readAllAcceptationsInBunch(db, field.alphabet, _bunch);
 
             case FieldTypes.sameConcept:
-                return (_bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(db, field.alphabet) :
-                        readAllPossibleSynonymOrTranslationAcceptationsInBunch(db, field.alphabet);
+                return (_bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(sqlDb, field.alphabet) :
+                        readAllPossibleSynonymOrTranslationAcceptationsInBunch(sqlDb, field.alphabet);
 
             case FieldTypes.appliedRule:
-                return (_bunch == NO_BUNCH)? readAllRulableAcceptations(db, field.alphabet, field.rule) :
-                        readAllRulableAcceptationsInBunch(db, field.alphabet, field.rule);
+                return (_bunch == NO_BUNCH)? readAllRulableAcceptations(sqlDb, field.alphabet, field.rule) :
+                        readAllRulableAcceptationsInBunch(sqlDb, field.alphabet, field.rule);
 
             default:
                 throw new AssertionError();
