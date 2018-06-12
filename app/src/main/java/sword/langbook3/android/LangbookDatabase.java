@@ -38,8 +38,7 @@ import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDyna
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAnyAcceptationChange;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAnyAcceptationChangeWithTarget;
-import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsDiff;
-import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsSource;
+import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
@@ -686,12 +685,50 @@ public final class LangbookDatabase {
     public static void addAcceptationInBunch(Database db, int bunch, int acceptation) {
         LangbookDbInserter.insertBunchAcceptation(db, bunch, acceptation, 0);
 
-        for (int agentId : findAffectedAgentsByItsSource(db, bunch)) {
-            rerunAgent(db, agentId);
-        }
+        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
+        while (!updatedBunches.isEmpty()) {
+            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            for (int b : updatedBunches) {
+                for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
+                    rerunAgent(db, entry.key());
+                    if (entry.value() != 0) {
+                        builder.add(entry.value());
+                    }
+                }
 
-        for (int agentId : findAffectedAgentsByItsDiff(db, bunch)) {
-            rerunAgent(db, agentId);
+                for (IntPairMap.Entry entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
+                    rerunAgent(db, entry.key());
+                    if (entry.value() != 0) {
+                        builder.add(entry.value());
+                    }
+                }
+            }
+            updatedBunches = builder.build();
+        }
+    }
+
+    public static void removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
+        LangbookDeleter.deleteBunchAcceptation(db, bunch, acceptation);
+
+        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
+        while (!updatedBunches.isEmpty()) {
+            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            for (int b : updatedBunches) {
+                for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
+                    rerunAgent(db, entry.key());
+                    if (entry.value() != 0) {
+                        builder.add(entry.value());
+                    }
+                }
+
+                for (IntPairMap.Entry entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
+                    rerunAgent(db, entry.key());
+                    if (entry.value() != 0) {
+                        builder.add(entry.value());
+                    }
+                }
+            }
+            updatedBunches = builder.build();
         }
     }
 

@@ -15,7 +15,6 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbQuery;
@@ -433,7 +432,7 @@ public final class LangbookReadableDatabase {
 
     public static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(DbExporter.Database db, int bunch) {
         if (bunch == 0) {
-            return new ImmutableIntPairMap.Builder().build();
+            return ImmutableIntPairMap.empty();
         }
 
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
@@ -471,6 +470,30 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntPairMap findAffectedAgentsByItsDiffWithTarget(DbExporter.Database db, int bunch) {
+        if (bunch == 0) {
+            return ImmutableIntPairMap.empty();
+        }
+
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final int offset = bunchSets.columns().size();
+        final DbQuery query = new DbQuery.Builder(bunchSets)
+                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getDiffBunchSetColumnIndex())
+                .where(bunchSets.getBunchColumnIndex(), bunch)
+                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
 

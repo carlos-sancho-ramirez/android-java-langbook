@@ -18,6 +18,7 @@ import static org.junit.Assert.assertFalse;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
+import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
@@ -508,7 +509,7 @@ public final class LangbookDatabaseTest {
     }
 
     private static Add3ChainedAgentsResult add3ChainedAgents(Database db,
-            int alphabet, int arVerbConcept, int actionConcept,
+            int alphabet, ImmutableIntSet sourceBunchSet, int arVerbConcept, int actionConcept,
             int nominalizationRule, int pluralRule) {
 
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
@@ -529,9 +530,17 @@ public final class LangbookDatabaseTest {
 
         final int agent3Id = addAgent(db, 0, actionConceptBunchSet, noBunches, noMatcher, pluralAdder, pluralRule, 0);
         final int agent2Id = addAgent(db, actionConcept, arVerbBunchSet, noBunches, matcher, adder, nominalizationRule, 0);
-        final int agent1Id = addAgent(db, arVerbConcept, noBunches, noBunches, matcher, matcher, 0, 0);
+        final int agent1Id = addAgent(db, arVerbConcept, sourceBunchSet, noBunches, matcher, matcher, 0, 0);
 
         return new Add3ChainedAgentsResult(agent1Id, agent2Id, agent3Id);
+    }
+
+    private static Add3ChainedAgentsResult add3ChainedAgents(Database db,
+            int alphabet, int arVerbConcept, int actionConcept,
+            int nominalizationRule, int pluralRule) {
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        return add3ChainedAgents(db, alphabet, noBunches, arVerbConcept, actionConcept, nominalizationRule, pluralRule);
     }
 
     @Test
@@ -684,6 +693,45 @@ public final class LangbookDatabaseTest {
         final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
                 .select(acceptations.getIdColumnIndex());
         assertFalse(db.select(acceptationQuery).hasNext());
+
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery bunchAcceptationQuery = new DbQuery.Builder(bunchAcceptations)
+                .select(bunchAcceptations.getIdColumnIndex());
+        assertFalse(db.select(bunchAcceptationQuery).hasNext());
+    }
+
+    @Test
+    public void testRemoveAcceptationWithBunchChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int verbConcept = alphabet + 1;
+        final int arVerbConcept = verbConcept + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
+        addAcceptationInBunch(db, verbConcept, acceptation);
+
+        final ImmutableIntSet sourceBunches = new ImmutableIntSetBuilder().add(verbConcept).build();
+        add3ChainedAgents(db, alphabet, sourceBunches, arVerbConcept, actionConcept, nominalizationRule, pluralRule);
+
+        removeAcceptationFromBunch(db, verbConcept, acceptation);
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery ruledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
+                .select(ruledAcceptations.getIdColumnIndex());
+        assertFalse(db.select(ruledAcceptationsQuery).hasNext());
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
+                .select(acceptations.getIdColumnIndex());
+        assertEquals(acceptation, selectSingleRow(db, acceptationQuery).get(0).toInt());
 
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery bunchAcceptationQuery = new DbQuery.Builder(bunchAcceptations)
