@@ -707,29 +707,32 @@ public final class LangbookDatabase {
         }
     }
 
-    public static void removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
-        LangbookDeleter.deleteBunchAcceptation(db, bunch, acceptation);
+    public static boolean removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
+        if (LangbookDeleter.deleteBunchAcceptation(db, bunch, acceptation)) {
+            ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
+            while (!updatedBunches.isEmpty()) {
+                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+                for (int b : updatedBunches) {
+                    for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
+                        rerunAgent(db, entry.key());
+                        if (entry.value() != 0) {
+                            builder.add(entry.value());
+                        }
+                    }
 
-        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
-        while (!updatedBunches.isEmpty()) {
-            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-            for (int b : updatedBunches) {
-                for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
-                    rerunAgent(db, entry.key());
-                    if (entry.value() != 0) {
-                        builder.add(entry.value());
+                    for (IntPairMap.Entry entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
+                        rerunAgent(db, entry.key());
+                        if (entry.value() != 0) {
+                            builder.add(entry.value());
+                        }
                     }
                 }
-
-                for (IntPairMap.Entry entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
-                    rerunAgent(db, entry.key());
-                    if (entry.value() != 0) {
-                        builder.add(entry.value());
-                    }
-                }
+                updatedBunches = builder.build();
             }
-            updatedBunches = builder.build();
+            return true;
         }
+
+        return false;
     }
 
     public static Integer addAgent(Database db, int targetBunch, ImmutableIntSet sourceBunches,

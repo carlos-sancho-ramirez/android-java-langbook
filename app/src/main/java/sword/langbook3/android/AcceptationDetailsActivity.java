@@ -51,13 +51,13 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbDeleteQuery;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbUpdateQuery;
 
+import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
@@ -1110,16 +1110,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 .create().show();
     }
 
-    private boolean removeFromBunch(Database db, int bunch) {
-        final BunchAcceptationsTable table = Tables.bunchAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getBunchColumnIndex(), bunch)
-                .where(table.getAcceptationColumnIndex(), _staticAcceptation)
-                .build();
-
-        return db.delete(query);
-    }
-
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setMessage(R.string.deleteAcceptationConfirmationText)
@@ -1154,7 +1144,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String bunchText = item.text;
                 _state.clearDeleteBunchTarget();
 
-                if (!removeFromBunch(DbManager.getInstance().getDatabase(), bunch)) {
+                if (!removeAcceptationFromBunch(DbManager.getInstance().getDatabase(), _staticAcceptation, bunch)) {
                     throw new AssertionError();
                 }
 
