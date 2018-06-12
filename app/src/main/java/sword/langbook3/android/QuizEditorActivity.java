@@ -17,11 +17,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
+import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.IntSet;
 import sword.langbook3.android.DbManager.QuestionField;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
@@ -459,7 +460,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
-    private Set<Integer> readAllAcceptations(SQLiteDatabase db, int alphabet) {
+    private ImmutableIntSet readAllAcceptations(SQLiteDatabase db, int alphabet) {
         final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
                         " FROM " + strings.name() +
@@ -467,14 +468,13 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                         " AND " + strings.columns().get(strings.getMainAcceptationColumnIndex()).name() + '=' + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name(),
                 new String[]{Integer.toString(alphabet)});
 
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    Set<Integer> result = new HashSet<>();
                     do {
-                        result.add(cursor.getInt(0));
+                        builder.add(cursor.getInt(0));
                     } while (cursor.moveToNext());
-                    return result;
                 }
             }
             finally {
@@ -482,10 +482,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
             }
         }
 
-        return new HashSet<>();
+        return builder.build();
     }
 
-    private Set<Integer> readAllAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
+    private ImmutableIntSet readAllAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
         final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
         final Cursor cursor = db.rawQuery("SELECT " + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() +
@@ -495,14 +495,13 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                 " AND J1." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?",
                 new String[]{Integer.toString(_bunch), Integer.toString(alphabet)});
 
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    Set<Integer> result = new HashSet<>();
                     do {
-                        result.add(cursor.getInt(0));
+                        builder.add(cursor.getInt(0));
                     } while (cursor.moveToNext());
-                    return result;
                 }
             }
             finally {
@@ -510,10 +509,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
             }
         }
 
-        return new HashSet<>();
+        return builder.build();
     }
 
-    private Set<Integer> readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int alphabet) {
+    private ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int alphabet) {
         final AcceptationsTable acceptations = Tables.acceptations;
         final StringQueriesTable strings = Tables.stringQueries;
 
@@ -530,14 +529,13 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                 new String[]{Integer.toString(alphabet)}
         );
 
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    Set<Integer> result = new HashSet<>();
                     do {
-                        result.add(cursor.getInt(0));
+                        builder.add(cursor.getInt(0));
                     } while (cursor.moveToNext());
-                    return result;
                 }
             }
             finally {
@@ -545,10 +543,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
             }
         }
 
-        return new HashSet<>();
+        return builder.build();
     }
 
-    private Set<Integer> readAllPossibleSynonymOrTranslationAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
+    private ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
         final AcceptationsTable acceptations = Tables.acceptations;
         final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
@@ -569,14 +567,13 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                 new String[]{Integer.toString(_bunch), Integer.toString(alphabet)}
         );
 
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    Set<Integer> result = new HashSet<>();
                     do {
-                        result.add(cursor.getInt(0));
+                        builder.add(cursor.getInt(0));
                     } while (cursor.moveToNext());
-                    return result;
                 }
             }
             finally {
@@ -584,10 +581,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
             }
         }
 
-        return new HashSet<>();
+        return builder.build();
     }
 
-    private Set<Integer> readAllRulableAcceptations(SQLiteDatabase db, int alphabet, int rule) {
+    private ImmutableIntSet readAllRulableAcceptations(SQLiteDatabase db, int alphabet, int rule) {
         final StringQueriesTable strings = Tables.stringQueries;
         final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
         final AgentsTable agents = Tables.agents;
@@ -603,6 +600,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                 new String[]{Integer.toString(alphabet), Integer.toString(rule)}
         );
 
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
@@ -613,12 +611,9 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                     } while (cursor.moveToNext());
 
                     final int idCount = ids.size();
-                    Set<Integer> result = new HashSet<>(idCount);
                     for (int i = 0; i < idCount; i++) {
-                        result.add(ids.keyAt(i));
+                        builder.add(ids.keyAt(i));
                     }
-
-                    return result;
                 }
             }
             finally {
@@ -626,10 +621,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
             }
         }
 
-        return new HashSet<>();
+        return builder.build();
     }
 
-    private Set<Integer> readAllRulableAcceptationsInBunch(SQLiteDatabase db, int alphabet, int rule) {
+    private ImmutableIntSet readAllRulableAcceptationsInBunch(SQLiteDatabase db, int alphabet, int rule) {
         final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
         final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
@@ -648,6 +643,7 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                 new String[]{Integer.toString(_bunch), Integer.toString(alphabet), Integer.toString(rule)}
         );
 
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
@@ -658,12 +654,9 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
                     } while (cursor.moveToNext());
 
                     final int idCount = ids.size();
-                    Set<Integer> result = new HashSet<>(idCount);
                     for (int i = 0; i < idCount; i++) {
-                        result.add(ids.keyAt(i));
+                        builder.add(ids.keyAt(i));
                     }
-
-                    return result;
                 }
             }
             finally {
@@ -671,10 +664,10 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
             }
         }
 
-        return new HashSet<>();
+        return builder.build();
     }
 
-    private Set<Integer> readAllPossibleAcceptationForField(SQLiteDatabase db, FieldState field) {
+    private ImmutableIntSet readAllPossibleAcceptationForField(SQLiteDatabase db, FieldState field) {
         switch (field.type) {
             case FieldTypes.sameAcceptation:
                 return (_bunch == NO_BUNCH)? readAllAcceptations(db, field.alphabet) : readAllAcceptationsInBunch(db, field.alphabet);
@@ -692,22 +685,24 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         }
     }
 
-    private Set<Integer> readAllPossibleAcceptations(SQLiteDatabase db) {
+    private ImmutableIntSet readAllPossibleAcceptations(SQLiteDatabase db) {
         final Iterator<FieldState> it = _questionFields.iterator();
-        final Set<Integer> result = readAllPossibleAcceptationForField(db, it.next());
+        ImmutableIntSet result = readAllPossibleAcceptationForField(db, it.next());
 
         while (it.hasNext()) {
-            result.retainAll(readAllPossibleAcceptationForField(db, it.next()));
+            final ImmutableIntSet set = readAllPossibleAcceptationForField(db, it.next());
+            result = result.filter(set::contains);
         }
 
         for (FieldState field : _answerFields) {
-            result.retainAll(readAllPossibleAcceptationForField(db, field));
+            final ImmutableIntSet set = readAllPossibleAcceptationForField(db, field);
+            result = result.filter(set::contains);
         }
 
         return result;
     }
 
-    private void insertAllPossibilities(SQLiteDatabase db, int quizId, Set<Integer> acceptations) {
+    private void insertAllPossibilities(SQLiteDatabase db, int quizId, IntSet acceptations) {
         final KnowledgeTable table = Tables.knowledge;
         final String quizDefField = table.columns().get(table.getQuizDefinitionColumnIndex()).name();
         final String accField = table.columns().get(table.getAcceptationColumnIndex()).name();
@@ -740,8 +735,8 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, _bunch, existingSetId) : null;
         Integer quizId = null;
         if (existingQuizId == null) {
-            final Set<Integer> acceptations = readAllPossibleAcceptations(db);
-            if (acceptations.size() == 0) {
+            final ImmutableIntSet acceptations = readAllPossibleAcceptations(db);
+            if (acceptations.isEmpty()) {
                 Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
             }
             else {

@@ -1,5 +1,30 @@
 apply plugin: 'com.android.application'
 
+String readCommitHash() {
+    def suffix = ''
+
+    def gitExists = exec {
+        commandLine 'which', 'git'
+        ignoreExitValue true
+    }
+
+    if (gitExists.getExitValue() == 0) {
+        def so = new ByteArrayOutputStream()
+        def gitRevParseResult = exec {
+            executable 'git'
+            args 'rev-parse', '--short', 'HEAD'
+            ignoreExitValue true
+            standardOutput = so
+        }
+
+        if (gitRevParseResult.exitValue == 0) {
+            suffix = '.' + so.toString().trim()
+        }
+    }
+
+    return suffix
+}
+
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.2"
@@ -8,7 +33,7 @@ android {
         minSdkVersion 17
         targetSdkVersion 26
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0" + readCommitHash()
     }
 
     compileOptions {
