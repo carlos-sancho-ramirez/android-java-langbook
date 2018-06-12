@@ -16,6 +16,7 @@ import android.widget.ListView;
 import java.util.HashSet;
 import java.util.Set;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.langbook3.android.DbManager.QuestionField;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
@@ -23,7 +24,10 @@ import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.Database;
 
+import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener {
@@ -57,7 +61,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     private int _bunch;
-    private SparseArray<String> _ruleTexts;
+    private ImmutableIntKeyMap<String> _ruleTexts;
 
     private boolean _finishIfEmptyWhenStarting;
     private boolean _activityStarted;
@@ -139,19 +143,20 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return new Progress(builder.build(), numberOfQuestions);
     }
 
-    private String getRuleText(SQLiteDatabase db, int rule) {
+    private String getRuleText(Database db, int rule) {
         if (_ruleTexts == null) {
-            _ruleTexts = QuizEditorActivity.readAllRules(db);
+            _ruleTexts = readAllRules(db, preferredAlphabet);
         }
 
         return _ruleTexts.get(rule);
     }
 
-    private QuizSelectorAdapter.Item[] composeAdapterItems(SQLiteDatabase db, int bunch) {
-        final SparseArray<String> allAlphabets = QuizEditorActivity.readAllAlphabets(db);
+    private QuizSelectorAdapter.Item[] composeAdapterItems(Database db, int bunch) {
+        final ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, preferredAlphabet);
         final QuizDefinitionsTable quizzes = Tables.quizDefinitions;
         final QuestionFieldSets fieldSets = Tables.questionFieldSets;
-        Cursor cursor = db.rawQuery("SELECT" +
+        final SQLiteDatabase sqlDb = DbManager.getInstance().getReadableDatabase();
+        Cursor cursor = sqlDb.rawQuery("SELECT" +
                 " J0." + idColumnName +
                 ",J1." + fieldSets.columns().get(fieldSets.getAlphabetColumnIndex()).name() +
                 ",J1." + fieldSets.columns().get(fieldSets.getRuleColumnIndex()).name() +
@@ -223,7 +228,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 sb.append(')');
             }
 
-            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString(), readProgress(db, quizId));
+            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString(), readProgress(sqlDb, quizId));
         }
 
         return items;
@@ -250,7 +255,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         _activityStarted = true;
 
         final QuizSelectorAdapter.Item[] items = composeAdapterItems(
-                DbManager.getInstance().getReadableDatabase(), _bunch);
+                DbManager.getInstance().getDatabase(), _bunch);
 
         if (items.length == 0) {
             if (!_firstActionExecuted) {

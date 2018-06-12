@@ -812,6 +812,99 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = alphabets.columns().size();
+        final int strOffset = acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(alphabets)
+                .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .select(alphabets.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex());
+
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult result = db.select(query)) {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int alphabet = row.get(0).toInt();
+                int textAlphabet = row.get(1).toInt();
+                String text = row.get(2).toText();
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    if (alphabet == row.get(0).toInt()) {
+                        if (textAlphabet != preferredAlphabet && row.get(1).toInt() == preferredAlphabet) {
+                            textAlphabet = preferredAlphabet;
+                            text = row.get(2).toText();
+                        }
+                    }
+                    else {
+                        builder.put(alphabet, text);
+
+                        alphabet = row.get(0).toInt();
+                        textAlphabet = row.get(1).toInt();
+                        text = row.get(2).toText();
+                    }
+                }
+
+                builder.put(alphabet, text);
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntKeyMap<String> readAllRules(DbExporter.Database db, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = ruledConcepts.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(ruledConcepts)
+                .join(acceptations, ruledConcepts.getIdColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .orderBy(ruledConcepts.getRuleColumnIndex())
+                .select(ruledConcepts.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex());
+
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult result = db.select(query)) {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int rule = row.get(0).toInt();
+                int textAlphabet = row.get(1).toInt();
+                String text = row.get(2).toText();
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    if (rule == row.get(0).toInt()) {
+                        if (textAlphabet != preferredAlphabet && row.get(1).toInt() == preferredAlphabet) {
+                            textAlphabet = preferredAlphabet;
+                            text = row.get(2).toText();
+                        }
+                    }
+                    else {
+                        builder.put(rule, text);
+
+                        rule = row.get(0).toInt();
+                        textAlphabet = row.get(1).toInt();
+                        text = row.get(2).toText();
+                    }
+                }
+
+                builder.put(rule, text);
+            }
+        }
+
+        return builder.build();
+    }
+
     public static ImmutableIntSet getAllRuledAcceptationsForAgent(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery query = new DbQuery.Builder(table)

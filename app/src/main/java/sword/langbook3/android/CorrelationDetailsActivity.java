@@ -13,6 +13,7 @@ import android.widget.ListView;
 
 import java.util.ArrayList;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
@@ -25,9 +26,10 @@ import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.composeCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
-public class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
+public final class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
     private interface ArgKeys {
         String CORRELATION = BundleKeys.CORRELATION;
@@ -176,8 +178,9 @@ public class CorrelationDetailsActivity extends Activity implements AdapterView.
     }
 
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int correlationId) {
-        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-        final SparseArray<String> alphabets = QuizEditorActivity.readAllAlphabets(db);
+        final DbManager manager = DbManager.getInstance();
+        final SQLiteDatabase db = manager.getReadableDatabase();
+        final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(manager.getDatabase(), preferredAlphabet);
         final SparseArray<String> correlation = readCorrelation(db, correlationId);
 
         final int entryCount = correlation.size();

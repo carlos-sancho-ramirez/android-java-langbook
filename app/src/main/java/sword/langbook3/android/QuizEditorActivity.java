@@ -20,30 +20,32 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.IntSet;
 import sword.langbook3.android.DbManager.QuestionField;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
-import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
-import sword.langbook3.android.LangbookDbSchema.RuledConceptsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.Database;
 
 import static sword.langbook3.android.DbManager.findQuestionFieldSet;
 import static sword.langbook3.android.DbManager.findQuizDefinition;
 import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
 import static sword.langbook3.android.DbManager.insertQuizDefinition;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
-public class QuizEditorActivity extends Activity implements View.OnClickListener {
+public final class QuizEditorActivity extends Activity implements View.OnClickListener {
 
     private interface ArgKeys {
         String BUNCH = BundleKeys.BUNCH;
@@ -181,106 +183,6 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
 
             return view;
         }
-    }
-
-    static SparseArray<String> readAllAlphabets(SQLiteDatabase db) {
-        final AlphabetsTable alphabets = Tables.alphabets;
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J0." + idColumnName +
-                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                " FROM " + alphabets.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + idColumnName + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " ORDER BY J0." + idColumnName, null);
-
-        final SparseArray<String> result = new SparseArray<>();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int alphabet = cursor.getInt(0);
-                    int textAlphabet = cursor.getInt(1);
-                    String text = cursor.getString(2);
-
-                    while (cursor.moveToNext()) {
-                        if (alphabet == cursor.getInt(0)) {
-                            if (textAlphabet != preferredAlphabet && cursor.getInt(1) == preferredAlphabet) {
-                                textAlphabet = preferredAlphabet;
-                                text = cursor.getString(2);
-                            }
-                        }
-                        else {
-                            result.put(alphabet, text);
-
-                            alphabet = cursor.getInt(0);
-                            textAlphabet = cursor.getInt(1);
-                            text = cursor.getString(2);
-                        }
-                    }
-
-                    result.put(alphabet, text);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return result;
-    }
-
-    static SparseArray<String> readAllRules(SQLiteDatabase db) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final RuledConceptsTable ruledConcepts = Tables.ruledConcepts;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                " FROM " + ruledConcepts.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + idColumnName + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " ORDER BY J0." + ruledConcepts.columns().get(ruledConcepts.getRuleColumnIndex()).name(), null);
-
-        final SparseArray<String> result = new SparseArray<>();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int rule = cursor.getInt(0);
-                    int textAlphabet = cursor.getInt(1);
-                    String text = cursor.getString(2);
-
-                    while (cursor.moveToNext()) {
-                        if (rule == cursor.getInt(0)) {
-                            if (textAlphabet != preferredAlphabet && cursor.getInt(1) == preferredAlphabet) {
-                                textAlphabet = preferredAlphabet;
-                                text = cursor.getString(2);
-                            }
-                        }
-                        else {
-                            result.put(rule, text);
-
-                            rule = cursor.getInt(0);
-                            textAlphabet = cursor.getInt(1);
-                            text = cursor.getString(2);
-                        }
-                    }
-
-                    result.put(rule, text);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return result;
     }
 
     static final class FieldTypes {
@@ -424,7 +326,8 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
         setContentView(R.layout.quiz_editor_activity);
 
         _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, NO_BUNCH);
-        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        final DbManager manager = DbManager.getInstance();
+        final Database db = manager.getDatabase();
 
         if (_bunch != NO_BUNCH) {
             final String bunchText = readConceptText(DbManager.getInstance().getDatabase(), _bunch, preferredAlphabet);
@@ -432,14 +335,14 @@ public class QuizEditorActivity extends Activity implements View.OnClickListener
             bunchField.setText(bunchText);
         }
 
-        SparseArray<String> allAlphabets = readAllAlphabets(db);
+        ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, preferredAlphabet);
         final int alphabetCount = allAlphabets.size();
         _alphabetItems = new AdapterItem[alphabetCount];
         for (int i = 0; i < alphabetCount; i++) {
             _alphabetItems[i] = new AdapterItem(allAlphabets.keyAt(i), allAlphabets.valueAt(i));
         }
 
-        SparseArray<String> allRules = readAllRules(db);
+        ImmutableIntKeyMap<String> allRules = readAllRules(db, preferredAlphabet);
         final int ruleCount = allRules.size();
         _ruleItems = new AdapterItem[ruleCount];
         for (int i = 0; i < ruleCount; i++) {
