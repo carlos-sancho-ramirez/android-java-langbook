@@ -940,6 +940,108 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int strOffset = acceptations.columns().size() * 2;
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, acceptations.columns().size() + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .whereColumnValueDiffer(acceptations.getIdColumnIndex(), acceptations.columns().size() + acceptations.getIdColumnIndex())
+                .select(acceptations.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset1 = bunchAcceptations.columns().size();
+        final int accOffset2 = accOffset1 + acceptations.columns().size();
+        final int strOffset = accOffset2 + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .join(acceptations, bunchAcceptations.getAcceptationColumnIndex(), acceptations.getIdColumnIndex())
+                .join(acceptations, accOffset1 + acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset2 + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(bunchAcceptations.getBunchColumnIndex(), bunch)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .whereColumnValueDiffer(accOffset1 + acceptations.getIdColumnIndex(), accOffset2 + acceptations.getIdColumnIndex())
+                .select(accOffset1 + acceptations.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet readAllRulableAcceptations(DbExporter.Database db, int alphabet, int rule) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+
+        final int agentOffset = ruledAcceptations.columns().size();
+        final int strOffset = agentOffset + agents.columns().size();
+        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
+                .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .join(strings, ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(agentOffset + agents.getRuleColumnIndex(), rule)
+                .select(ruledAcceptations.getAcceptationColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet readAllRulableAcceptationsInBunch(DbExporter.Database db, int alphabet, int rule, int bunch) {
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+
+        final int ruledAccOffset = bunchAcceptations.columns().size();
+        final int agentOffset = ruledAccOffset + ruledAcceptations.columns().size();
+        final int strOffset = agentOffset + agents.columns().size();
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .join(ruledAcceptations, bunchAcceptations.getAcceptationColumnIndex(), ruledAcceptations. getAcceptationColumnIndex())
+                .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .join(strings, ruledAccOffset + ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(bunchAcceptations.getBunchColumnIndex(), bunch)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(agentOffset + agents.getRuleColumnIndex(), rule)
+                .select(bunchAcceptations.getAcceptationColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public static ImmutableIntSet getAllRuledAcceptationsForAgent(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery query = new DbQuery.Builder(table)

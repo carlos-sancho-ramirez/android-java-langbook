@@ -3,10 +3,8 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,18 +20,13 @@ import java.util.List;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.IntSet;
 import sword.langbook3.android.DbManager.QuestionField;
-import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
-import sword.langbook3.android.LangbookDbSchema.AgentsTable;
-import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
-import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
+import sword.langbook3.android.db.DbExporter;
 
 import static sword.langbook3.android.DbManager.findQuestionFieldSet;
 import static sword.langbook3.android.DbManager.findQuizDefinition;
@@ -42,10 +35,13 @@ import static sword.langbook3.android.DbManager.insertQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptationsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleSynonymOrTranslationAcceptations;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleSynonymOrTranslationAcceptationsInBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllRulableAcceptations;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllRulableAcceptationsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
-import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class QuizEditorActivity extends Activity implements View.OnClickListener {
 
@@ -365,181 +361,25 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
-    private ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(SQLiteDatabase db, int alphabet) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
-        final String conceptField = acceptations.columns().get(acceptations.getConceptColumnIndex()).name();
-        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
-
-        final Cursor cursor = db.rawQuery("SELECT J0." + idColumnName +
-                        " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + conceptField + "=J1." + conceptField +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + dynAccField +
-                        " WHERE J2." + alphabetField + "=?" +
-                        " AND J0." + idColumnName + "!=J1." + idColumnName,
-                new String[]{Integer.toString(alphabet)}
-        );
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        builder.add(cursor.getInt(0));
-                    } while (cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return builder.build();
-    }
-
-    private ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(SQLiteDatabase db, int alphabet) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
-        final String conceptField = acceptations.columns().get(acceptations.getConceptColumnIndex()).name();
-        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
-        final String accField = bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name();
-
-        final Cursor cursor = db.rawQuery("SELECT J1." + idColumnName +
-                        " FROM " + bunchAcceptations.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + accField + "=J1." + idColumnName +
-                        " JOIN " + acceptations.name() + " AS J2 ON J1." + conceptField + "=J2." + conceptField +
-                        " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + dynAccField +
-                        " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() + "=?" +
-                        " AND J3." + alphabetField + "=?" +
-                        " AND J1." + idColumnName + "!=J2." + idColumnName,
-                new String[]{Integer.toString(_bunch), Integer.toString(alphabet)}
-        );
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        builder.add(cursor.getInt(0));
-                    } while (cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return builder.build();
-    }
-
-    private ImmutableIntSet readAllRulableAcceptations(SQLiteDatabase db, int alphabet, int rule) {
-        final StringQueriesTable strings = Tables.stringQueries;
-        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
-        final AgentsTable agents = Tables.agents;
-
-        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
-        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
-        final Cursor cursor = db.rawQuery("SELECT J0." + ruledAcceptations.columns().get(ruledAcceptations.getAcceptationColumnIndex()).name() +
-                        " FROM " + ruledAcceptations.name() + " AS J0" +
-                        " JOIN " + agents.name() + " AS J1 ON J0." + ruledAcceptations.columns().get(ruledAcceptations.getAgentColumnIndex()).name() + "=J1." + idColumnName +
-                        " JOIN " + strings.name() + " AS J2 ON J0." + idColumnName + "=J2." + dynAccField +
-                        " WHERE J2." + alphabetField + "=?" +
-                        " AND J1." + agents.columns().get(agents.getRuleColumnIndex()).name() + "=?",
-                new String[]{Integer.toString(alphabet), Integer.toString(rule)}
-        );
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    SparseArray<Object> ids = new SparseArray<>();
-                    Object dummy = new Object();
-                    do {
-                        ids.put(cursor.getInt(0), dummy);
-                    } while (cursor.moveToNext());
-
-                    final int idCount = ids.size();
-                    for (int i = 0; i < idCount; i++) {
-                        builder.add(ids.keyAt(i));
-                    }
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return builder.build();
-    }
-
-    private ImmutableIntSet readAllRulableAcceptationsInBunch(SQLiteDatabase db, int alphabet, int rule) {
-        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
-        final AgentsTable agents = Tables.agents;
-
-        final String alphabetField = strings.columns().get(strings.getStringAlphabetColumnIndex()).name();
-        final String dynAccField = strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name();
-        final Cursor cursor = db.rawQuery("SELECT J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() +
-                        " FROM " + bunchAcceptations.name() + " AS J0" +
-                        " JOIN " + ruledAcceptations.name() + " AS J1 ON J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() + "=J1." + ruledAcceptations.columns().get(ruledAcceptations.getAcceptationColumnIndex()).name() +
-                        " JOIN " + agents.name() + " AS J2 ON J1." + ruledAcceptations.columns().get(ruledAcceptations.getAgentColumnIndex()).name() + "=J2." + idColumnName +
-                        " JOIN " + strings.name() + " AS J3 ON J1." + idColumnName + "=J3." + dynAccField +
-                        " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() + "=?" +
-                        " AND J3." + alphabetField + "=?" +
-                        " AND J2." + agents.columns().get(agents.getRuleColumnIndex()).name() + "=?",
-                new String[]{Integer.toString(_bunch), Integer.toString(alphabet), Integer.toString(rule)}
-        );
-
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    SparseArray<Object> ids = new SparseArray<>();
-                    Object dummy = new Object();
-                    do {
-                        ids.put(cursor.getInt(0), dummy);
-                    } while (cursor.moveToNext());
-
-                    final int idCount = ids.size();
-                    for (int i = 0; i < idCount; i++) {
-                        builder.add(ids.keyAt(i));
-                    }
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return builder.build();
-    }
-
-    private ImmutableIntSet readAllPossibleAcceptationForField(SQLiteDatabase sqlDb, FieldState field) {
+    private ImmutableIntSet readAllPossibleAcceptationForField(DbExporter.Database db, FieldState field) {
         switch (field.type) {
             case FieldTypes.sameAcceptation:
-                final Database db = DbManager.getInstance().getDatabase();
                 return (_bunch == NO_BUNCH)? readAllAcceptations(db, field.alphabet) : readAllAcceptationsInBunch(db, field.alphabet, _bunch);
 
             case FieldTypes.sameConcept:
-                return (_bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(sqlDb, field.alphabet) :
-                        readAllPossibleSynonymOrTranslationAcceptationsInBunch(sqlDb, field.alphabet);
+                return (_bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(db, field.alphabet) :
+                        readAllPossibleSynonymOrTranslationAcceptationsInBunch(db, field.alphabet, _bunch);
 
             case FieldTypes.appliedRule:
-                return (_bunch == NO_BUNCH)? readAllRulableAcceptations(sqlDb, field.alphabet, field.rule) :
-                        readAllRulableAcceptationsInBunch(sqlDb, field.alphabet, field.rule);
+                return (_bunch == NO_BUNCH)? readAllRulableAcceptations(db, field.alphabet, field.rule) :
+                        readAllRulableAcceptationsInBunch(db, field.alphabet, field.rule, _bunch);
 
             default:
                 throw new AssertionError();
         }
     }
 
-    private ImmutableIntSet readAllPossibleAcceptations(SQLiteDatabase db) {
+    private ImmutableIntSet readAllPossibleAcceptations(DbExporter.Database db) {
         final Iterator<FieldState> it = _questionFields.iterator();
         ImmutableIntSet result = readAllPossibleAcceptationForField(db, it.next());
 
@@ -574,7 +414,8 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
     }
 
     private void startQuiz() {
-        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
+        final Database db = DbManager.getInstance().getDatabase();
+        final SQLiteDatabase sqlDb = DbManager.getInstance().getWritableDatabase();
 
         final List<QuestionField> fields = new ArrayList<>();
         for (FieldState state : _questionFields) {
@@ -585,8 +426,8 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
             fields.add(new QuestionField(state.alphabet, state.rule, QuestionFieldFlags.IS_ANSWER | (state.type - 1)));
         }
 
-        final Integer existingSetId = findQuestionFieldSet(db, fields);
-        final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, _bunch, existingSetId) : null;
+        final Integer existingSetId = findQuestionFieldSet(sqlDb, fields);
+        final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(sqlDb, _bunch, existingSetId) : null;
         Integer quizId = null;
         if (existingQuizId == null) {
             final ImmutableIntSet acceptations = readAllPossibleAcceptations(db);
@@ -594,9 +435,9 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
                 Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
             }
             else {
-                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
-                quizId = insertQuizDefinition(db, _bunch, setId);
-                insertAllPossibilities(db, quizId, acceptations);
+                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(sqlDb, fields);
+                quizId = insertQuizDefinition(sqlDb, _bunch, setId);
+                insertAllPossibilities(sqlDb, quizId, acceptations);
             }
         }
         else {
