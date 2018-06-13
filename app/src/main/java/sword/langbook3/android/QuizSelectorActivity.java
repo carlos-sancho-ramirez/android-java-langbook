@@ -18,12 +18,12 @@ import java.util.Set;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
-import sword.langbook3.android.DbManager.QuestionField;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
@@ -151,6 +151,21 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return _ruleTexts.get(rule);
     }
 
+    private static int getTypeStringResId(QuestionFieldDetails field) {
+        switch (field.getType()) {
+            case QuestionFieldFlags.TYPE_SAME_ACC:
+                return R.string.questionTypeSameAcceptation;
+
+            case QuestionFieldFlags.TYPE_SAME_CONCEPT:
+                return R.string.questionTypeSameConcept;
+
+            case QuestionFieldFlags.TYPE_APPLY_RULE:
+                return R.string.questionTypeAppliedRule;
+        }
+
+        return 0;
+    }
+
     private QuizSelectorAdapter.Item[] composeAdapterItems(Database db, int bunch) {
         final ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, preferredAlphabet);
         final QuizDefinitionsTable quizzes = Tables.quizDefinitions;
@@ -166,15 +181,15 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 " WHERE J0." + quizzes.columns().get(quizzes.getBunchColumnIndex()).name() + "=?",
                 new String[] {Integer.toString(bunch)});
 
-        final SparseArray<Set<QuestionField>> resultMap = new SparseArray<>();
+        final SparseArray<Set<QuestionFieldDetails>> resultMap = new SparseArray<>();
 
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
                     do {
                         final int quizId = cursor.getInt(0);
-                        QuestionField field = new QuestionField(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3));
-                        Set<QuestionField> set = resultMap.get(quizId);
+                        QuestionFieldDetails field = new QuestionFieldDetails(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3));
+                        Set<QuestionFieldDetails> set = resultMap.get(quizId);
                         if (set == null) {
                             set = new HashSet<>();
                         }
@@ -194,11 +209,11 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
         for (int i = 0; i < quizCount; i++) {
             final int quizId = resultMap.keyAt(i);
-            final Set<QuestionField> set = resultMap.valueAt(i);
+            final Set<QuestionFieldDetails> set = resultMap.valueAt(i);
 
             StringBuilder qsb = null;
             StringBuilder asb = null;
-            for (QuestionField field : set) {
+            for (QuestionFieldDetails field : set) {
                 final StringBuilder sb;
                 if (field.isAnswer()) {
                     if (asb == null) {
@@ -220,7 +235,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 }
                 sb.append('(')
                         .append(allAlphabets.get(field.alphabet, "?")).append(", ")
-                        .append(getString(field.getTypeStringResId()));
+                        .append(getString(getTypeStringResId(field)));
 
                 if (field.getType() == QuestionFieldFlags.TYPE_APPLY_RULE) {
                     sb.append(", ").append(getRuleText(db, field.rule));

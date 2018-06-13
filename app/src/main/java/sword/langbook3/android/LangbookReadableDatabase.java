@@ -2,7 +2,9 @@ package sword.langbook3.android;
 
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
@@ -395,16 +397,29 @@ public final class LangbookReadableDatabase {
                 .where(table.getRuleColumnIndex(), rule)
                 .where(table.getConceptColumnIndex(), concept)
                 .select(table.getIdColumnIndex());
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             final Integer id = result.hasNext()? result.next().get(0).toInt() : null;
             if (result.hasNext()) {
                 throw new AssertionError("There should not be repeated ruled concepts");
             }
             return id;
         }
-        finally {
-            result.close();
+    }
+
+    public static Integer findQuizDefinition(DbExporter.Database db, int bunch, int setId) {
+        final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .where(table.getQuestionFieldsColumnIndex(), setId)
+                .select(table.getIdColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
+            if (result.hasNext()) {
+                throw new AssertionError("Only one quiz definition expected");
+            }
+            return value;
         }
     }
 
@@ -533,6 +548,58 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static Integer findQuestionFieldSet(DbExporter.Database db, Collection<QuestionFieldDetails> collection) {
+        if (collection == null || collection.size() == 0) {
+            return null;
+        }
+
+        final Set<QuestionFieldDetails> set = new HashSet<>(collection);
+
+        final QuestionFieldDetails firstField = set.iterator().next();
+        final LangbookDbSchema.QuestionFieldSets fieldSets = LangbookDbSchema.Tables.questionFieldSets;
+        final int columnCount = fieldSets.columns().size();
+        final DbQuery query = new DbQuery.Builder(fieldSets)
+                .join(fieldSets, fieldSets.getSetIdColumnIndex(), fieldSets.getSetIdColumnIndex())
+                .where(fieldSets.getAlphabetColumnIndex(), firstField.alphabet)
+                .where(fieldSets.getRuleColumnIndex(), firstField.rule)
+                .where(fieldSets.getFlagsColumnIndex(), firstField.flags)
+                .select(
+                        fieldSets.getSetIdColumnIndex(),
+                        columnCount + fieldSets.getAlphabetColumnIndex(),
+                        columnCount + fieldSets.getRuleColumnIndex(),
+                        columnCount + fieldSets.getFlagsColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int setId = row.get(0).toInt();
+                final Set<QuestionFieldDetails> foundSet = new HashSet<>();
+                foundSet.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    if (setId != row.get(0).toInt()) {
+                        if (foundSet.equals(set)) {
+                            return setId;
+                        }
+                        else {
+                            foundSet.clear();
+                            setId = row.get(0).toInt();
+                        }
+                    }
+
+                    foundSet.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+                }
+
+                if (foundSet.equals(set)) {
+                    return setId;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(DbQuery.max(columnIndex));
@@ -567,6 +634,11 @@ public final class LangbookReadableDatabase {
 
     public static int getMaxAgentSetId(DbExporter.Database db) {
         final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
+        return getColumnMax(db, table, table.getSetIdColumnIndex());
+    }
+
+    public static int getMaxQuestionFieldSetId(DbExporter.Database db) {
+        LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
@@ -1190,5 +1262,45 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap<String> adder = getCorrelationWithText(db, agentRow.get(4).toInt());
         return new AgentDetails(agentRow.get(0).toInt(), sourceBunches, diffBunches,
                 matcher, adder, agentRow.get(5).toInt(), agentRow.get(6).toInt());
+    }
+
+    public static final class QuestionFieldDetails {
+        public final int alphabet;
+        public final int rule;
+        public final int flags;
+
+        public QuestionFieldDetails(int alphabet, int rule, int flags) {
+            this.alphabet = alphabet;
+            this.rule = rule;
+            this.flags = flags;
+        }
+
+        public int getType() {
+            return flags & LangbookDbSchema.QuestionFieldFlags.TYPE_MASK;
+        }
+
+        public boolean isAnswer() {
+            return (flags & LangbookDbSchema.QuestionFieldFlags.IS_ANSWER) != 0;
+        }
+
+        @Override
+        public int hashCode() {
+            return (flags * 37 + rule) * 37 + alphabet;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == null || !(other instanceof QuestionFieldDetails)) {
+                return false;
+            }
+
+            final QuestionFieldDetails that = (QuestionFieldDetails) other;
+            return alphabet == that.alphabet && rule == that.rule && flags == that.flags;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + '(' + alphabet + ',' + rule + ',' + flags + ')';
+        }
     }
 }

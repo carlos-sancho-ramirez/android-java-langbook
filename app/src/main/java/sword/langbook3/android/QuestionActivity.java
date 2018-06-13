@@ -15,7 +15,6 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import sword.langbook3.android.DbManager.QuestionField;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
@@ -25,6 +24,7 @@ import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -65,7 +65,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private final SparseIntArray _knowledge = new SparseIntArray();
 
     private int _quizId;
-    private QuestionField[] _fields;
+    private QuestionFieldDetails[] _fields;
     private TextView[] _fieldTextViews;
 
     private int _goodAnswerCount;
@@ -93,11 +93,11 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
         try {
             if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-                _fields = new QuestionField[cursor.getCount()];
+                _fields = new QuestionFieldDetails[cursor.getCount()];
                 _fieldTextViews = new TextView[cursor.getCount()];
                 int i = 0;
                 do {
-                    _fields[i++] = new QuestionField(cursor.getInt(0), cursor.getInt(1), cursor.getInt(2));
+                    _fields[i++] = new QuestionFieldDetails(cursor.getInt(0), cursor.getInt(1), cursor.getInt(2));
                 } while (cursor.moveToNext());
 
                 if (i != _fields.length) {

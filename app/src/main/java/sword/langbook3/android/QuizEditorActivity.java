@@ -21,17 +21,17 @@ import java.util.List;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.IntSet;
-import sword.langbook3.android.DbManager.QuestionField;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 
-import static sword.langbook3.android.DbManager.findQuestionFieldSet;
-import static sword.langbook3.android.DbManager.findQuizDefinition;
-import static sword.langbook3.android.DbManager.insertQuestionFieldSet;
-import static sword.langbook3.android.DbManager.insertQuizDefinition;
+import static sword.langbook3.android.LangbookDatabase.insertQuestionFieldSet;
+import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
+import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
+import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptationsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
@@ -417,17 +417,17 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         final Database db = DbManager.getInstance().getDatabase();
         final SQLiteDatabase sqlDb = DbManager.getInstance().getWritableDatabase();
 
-        final List<QuestionField> fields = new ArrayList<>();
+        final List<QuestionFieldDetails> fields = new ArrayList<>();
         for (FieldState state : _questionFields) {
-            fields.add(new QuestionField(state.alphabet, state.rule, state.type - 1));
+            fields.add(new QuestionFieldDetails(state.alphabet, state.rule, state.type - 1));
         }
 
         for (FieldState state : _answerFields) {
-            fields.add(new QuestionField(state.alphabet, state.rule, QuestionFieldFlags.IS_ANSWER | (state.type - 1)));
+            fields.add(new QuestionFieldDetails(state.alphabet, state.rule, QuestionFieldFlags.IS_ANSWER | (state.type - 1)));
         }
 
-        final Integer existingSetId = findQuestionFieldSet(sqlDb, fields);
-        final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(sqlDb, _bunch, existingSetId) : null;
+        final Integer existingSetId = findQuestionFieldSet(db, fields);
+        final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, _bunch, existingSetId) : null;
         Integer quizId = null;
         if (existingQuizId == null) {
             final ImmutableIntSet acceptations = readAllPossibleAcceptations(db);
@@ -435,8 +435,8 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
                 Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
             }
             else {
-                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(sqlDb, fields);
-                quizId = insertQuizDefinition(sqlDb, _bunch, setId);
+                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
+                quizId = insertQuizDefinition(db, _bunch, setId);
                 insertAllPossibilities(sqlDb, quizId, acceptations);
             }
         }

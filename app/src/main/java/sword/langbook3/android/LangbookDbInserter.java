@@ -2,6 +2,7 @@ package sword.langbook3.android;
 
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbInserter;
 
@@ -210,5 +211,31 @@ public final class LangbookDbInserter {
         if (db.insert(query) == null) {
             throw new AssertionError();
         }
+    }
+
+    public static void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails> fields) {
+        final LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
+        for (QuestionFieldDetails field : fields) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getSetIdColumnIndex(), setId)
+                    .put(table.getAlphabetColumnIndex(), field.alphabet)
+                    .put(table.getRuleColumnIndex(), field.rule)
+                    .put(table.getFlagsColumnIndex(), field.flags)
+                    .build();
+
+            if (db.insert(query) == null) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    static int insertQuizDefinition(DbInserter db, int bunch, int setId) {
+        final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getBunchColumnIndex(), bunch)
+                .put(table.getQuestionFieldsColumnIndex(), setId)
+                .build();
+
+        return db.insert(query);
     }
 }

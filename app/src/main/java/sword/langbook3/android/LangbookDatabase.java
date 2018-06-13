@@ -56,6 +56,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWit
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
 public final class LangbookDatabase {
@@ -175,6 +176,16 @@ public final class LangbookDatabase {
         }
 
         return insertRuledConcept(db, rule, concept);
+    }
+
+    public static int insertQuestionFieldSet(DbImporter.Database db, Iterable<LangbookReadableDatabase.QuestionFieldDetails> fields) {
+        if (!fields.iterator().hasNext()) {
+            return 0;
+        }
+
+        final int setId = getMaxQuestionFieldSetId(db) + 1;
+        LangbookDbInserter.insertQuestionFieldSet(db, setId, fields);
+        return setId;
     }
 
     /**
