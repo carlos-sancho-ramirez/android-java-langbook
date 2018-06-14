@@ -13,28 +13,21 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableList;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbExporter;
 
 import static sword.langbook3.android.LangbookDatabase.insertQuestionFieldSet;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptations;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllAcceptationsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleSynonymOrTranslationAcceptations;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleSynonymOrTranslationAcceptationsInBunch;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllRulableAcceptations;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllRulableAcceptationsInBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
@@ -179,10 +172,10 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    static final class FieldTypes {
-        static final int sameAcceptation = 1;
-        static final int sameConcept = 2;
-        static final int appliedRule = 3;
+    interface FieldTypes {
+        int sameAcceptation = 1;
+        int sameConcept = 2;
+        int appliedRule = 3;
     }
 
     private static final class FieldState {
@@ -357,58 +350,35 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
-    private ImmutableIntSet readAllPossibleAcceptationForField(DbExporter.Database db, FieldState field) {
-        switch (field.type) {
-            case FieldTypes.sameAcceptation:
-                return (_bunch == NO_BUNCH)? readAllAcceptations(db, field.alphabet) : readAllAcceptationsInBunch(db, field.alphabet, _bunch);
-
-            case FieldTypes.sameConcept:
-                return (_bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(db, field.alphabet) :
-                        readAllPossibleSynonymOrTranslationAcceptationsInBunch(db, field.alphabet, _bunch);
-
-            case FieldTypes.appliedRule:
-                return (_bunch == NO_BUNCH)? readAllRulableAcceptations(db, field.alphabet, field.rule) :
-                        readAllRulableAcceptationsInBunch(db, field.alphabet, field.rule, _bunch);
-
-            default:
-                throw new AssertionError();
-        }
+    private static QuestionFieldDetails composeQuestionField(FieldState field) {
+        return new QuestionFieldDetails(field.alphabet, field.rule, field.type - 1);
     }
 
-    private ImmutableIntSet readAllPossibleAcceptations(DbExporter.Database db) {
-        final Iterator<FieldState> it = _questionFields.iterator();
-        ImmutableIntSet result = readAllPossibleAcceptationForField(db, it.next());
+    private static QuestionFieldDetails composeAnswerField(FieldState field) {
+        return new QuestionFieldDetails(field.alphabet, field.rule, QuestionFieldFlags.IS_ANSWER | (field.type - 1));
+    }
 
-        while (it.hasNext()) {
-            final ImmutableIntSet set = readAllPossibleAcceptationForField(db, it.next());
-            result = result.filter(set::contains);
+    private ImmutableList<QuestionFieldDetails> composeFields() {
+        final ImmutableList.Builder<QuestionFieldDetails> builder = new ImmutableList.Builder<>();
+        for (FieldState state : _questionFields) {
+            builder.add(composeQuestionField(state));
+        }
+        for (FieldState state : _answerFields) {
+            builder.add(composeAnswerField(state));
         }
 
-        for (FieldState field : _answerFields) {
-            final ImmutableIntSet set = readAllPossibleAcceptationForField(db, field);
-            result = result.filter(set::contains);
-        }
-
-        return result;
+        return builder.build();
     }
 
     private void startQuiz() {
         final Database db = DbManager.getInstance().getDatabase();
-
-        final List<QuestionFieldDetails> fields = new ArrayList<>();
-        for (FieldState state : _questionFields) {
-            fields.add(new QuestionFieldDetails(state.alphabet, state.rule, state.type - 1));
-        }
-
-        for (FieldState state : _answerFields) {
-            fields.add(new QuestionFieldDetails(state.alphabet, state.rule, QuestionFieldFlags.IS_ANSWER | (state.type - 1)));
-        }
-
+        final ImmutableList<QuestionFieldDetails> fields = composeFields();
         final Integer existingSetId = findQuestionFieldSet(db, fields);
         final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, _bunch, existingSetId) : null;
+
         Integer quizId = null;
         if (existingQuizId == null) {
-            final ImmutableIntSet acceptations = readAllPossibleAcceptations(db);
+            final ImmutableIntSet acceptations = readAllPossibleAcceptations(db, _bunch, fields.toSet());
             if (acceptations.isEmpty()) {
                 Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
             }

@@ -247,9 +247,11 @@ public final class LangbookDbSchema implements DbSchema {
 
         /**
          * Once we have an acceptation, there are 3 kind of questions ways of retrieving the information for the question field.
+         * <ul>
          * <li>Same acceptation: We just get the acceptation form the Database.</li>
          * <li>Same concept: Other acceptation matching the origina concept must be found. Depending on the alphabet, they will be synonymous or translations.</li>
          * <li>Apply rule: The given acceptation is the dictionary form, then the ruled acceptation with the given rule should be found.</li>
+         * </ul>
          */
         int TYPE_MASK = 3;
         int TYPE_SAME_ACC = 0;

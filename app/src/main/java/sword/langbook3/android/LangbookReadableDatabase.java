@@ -2,10 +2,10 @@ package sword.langbook3.android;
 
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -23,6 +23,8 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
+
+import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 
 public final class LangbookReadableDatabase {
 
@@ -548,12 +550,19 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static Integer findQuestionFieldSet(DbExporter.Database db, Collection<QuestionFieldDetails> collection) {
-        if (collection == null || collection.size() == 0) {
+    public static Integer findQuestionFieldSet(DbExporter.Database db, Iterable<QuestionFieldDetails> collection) {
+        final Set<QuestionFieldDetails> set = new HashSet<>();
+        if (collection == null) {
             return null;
         }
 
-        final Set<QuestionFieldDetails> set = new HashSet<>(collection);
+        for (QuestionFieldDetails field : collection) {
+            set.add(field);
+        }
+
+        if (set.size() == 0) {
+            return null;
+        }
 
         final QuestionFieldDetails firstField = set.iterator().next();
         final LangbookDbSchema.QuestionFieldSets fieldSets = LangbookDbSchema.Tables.questionFieldSets;
@@ -1112,6 +1121,29 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    private static ImmutableIntSet readAllPossibleAcceptationForField(DbExporter.Database db, int bunch, QuestionFieldDetails field) {
+        switch (field.getType()) {
+            case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC:
+                return (bunch == NO_BUNCH)? readAllAcceptations(db, field.alphabet) : readAllAcceptationsInBunch(db, field.alphabet, bunch);
+
+            case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT:
+                return (bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(db, field.alphabet) :
+                        readAllPossibleSynonymOrTranslationAcceptationsInBunch(db, field.alphabet, bunch);
+
+            case LangbookDbSchema.QuestionFieldFlags.TYPE_APPLY_RULE:
+                return (bunch == NO_BUNCH)? readAllRulableAcceptations(db, field.alphabet, field.rule) :
+                        readAllRulableAcceptationsInBunch(db, field.alphabet, field.rule, bunch);
+
+            default:
+                throw new AssertionError();
+        }
+    }
+
+    public static ImmutableIntSet readAllPossibleAcceptations(DbExporter.Database db, int bunch, ImmutableSet<QuestionFieldDetails> fields) {
+        final Function<QuestionFieldDetails, ImmutableIntSet> mapFunc = field -> readAllPossibleAcceptationForField(db, bunch, field);
+        return fields.map(mapFunc).reduce((a,b) -> a.filter(b::contains));
     }
 
     public static ImmutableIntSet getAllRuledAcceptationsForAgent(DbExporter.Database db, int agentId) {
