@@ -15,19 +15,13 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 
-import static sword.langbook3.android.LangbookDatabase.insertQuestionFieldSet;
-import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
-import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
-import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
-import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
+import static sword.langbook3.android.LangbookDatabase.addQuiz;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
@@ -372,31 +366,16 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
 
     private void startQuiz() {
         final Database db = DbManager.getInstance().getDatabase();
-        final ImmutableList<QuestionFieldDetails> fields = composeFields();
-        final Integer existingSetId = findQuestionFieldSet(db, fields);
-        final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, _bunch, existingSetId) : null;
-
-        Integer quizId = null;
-        if (existingQuizId == null) {
-            final ImmutableIntSet acceptations = readAllPossibleAcceptations(db, _bunch, fields.toSet());
-            if (acceptations.isEmpty()) {
-                Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
-            }
-            else {
-                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
-                quizId = insertQuizDefinition(db, _bunch, setId);
-                insertAllPossibilities(db, quizId, acceptations);
-            }
-        }
-        else {
-            quizId = existingQuizId;
-        }
+        final Integer quizId = addQuiz(db, _bunch, composeFields());
 
         if (quizId != null) {
             final Intent intent = new Intent();
             intent.putExtra(ResultKeys.QUIZ, quizId);
             setResult(RESULT_OK, intent);
             finish();
+        }
+        else {
+            Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
         }
     }
 

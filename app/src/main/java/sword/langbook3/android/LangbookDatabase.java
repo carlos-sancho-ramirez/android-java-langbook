@@ -25,6 +25,8 @@ import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
+import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.LangbookDbInserter.insertSymbolArray;
@@ -44,6 +46,8 @@ import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
+import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
@@ -57,6 +61,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
 public final class LangbookDatabase {
@@ -833,5 +838,25 @@ public final class LangbookDatabase {
             }
             updatedBunches = builder.build();
         }
+    }
+
+    public static Integer addQuiz(Database db, int bunch, ImmutableList<LangbookReadableDatabase.QuestionFieldDetails> fields) {
+        final Integer existingSetId = findQuestionFieldSet(db, fields);
+        final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, bunch, existingSetId) : null;
+
+        Integer quizId = null;
+        if (existingQuizId == null) {
+            final ImmutableIntSet acceptations = readAllPossibleAcceptations(db, bunch, fields.toSet());
+            if (!acceptations.isEmpty()) {
+                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
+                quizId = insertQuizDefinition(db, bunch, setId);
+                insertAllPossibilities(db, quizId, acceptations);
+            }
+        }
+        else {
+            quizId = existingQuizId;
+        }
+
+        return quizId;
     }
 }

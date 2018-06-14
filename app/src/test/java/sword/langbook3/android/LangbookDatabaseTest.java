@@ -8,6 +8,8 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.IntResultFunction;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
@@ -18,6 +20,7 @@ import static org.junit.Assert.assertFalse;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
+import static sword.langbook3.android.LangbookDatabase.addQuiz;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
@@ -498,13 +501,35 @@ public final class LangbookDatabaseTest {
         }
     }
 
-    private static int addSpanishSingAcceptation(Database db, int alphabet, int concept) {
-        final String verbText = "cantar";
+    private static int addSpanishAcceptation(Database db, int alphabet, int concept, String text) {
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, verbText)
+                .put(alphabet, text)
                 .build();
         final int correlationId = insertCorrelation(db, correlation);
         final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        return addAcceptation(db, concept, correlationArrayId);
+    }
+
+    private static int addSpanishSingAcceptation(Database db, int alphabet, int concept) {
+        return addSpanishAcceptation(db, alphabet, concept, "cantar");
+    }
+
+    private static int addSpanishRunAcceptation(Database db, int alphabet, int concept) {
+        return addSpanishAcceptation(db, alphabet, concept, "correr");
+    }
+
+    private static int addJapaneseSingAcceptation(Database db, int kanjiAlphabet, int kanaAlphabet, int concept) {
+        final ImmutableIntKeyMap<String> correlation1 = new ImmutableIntKeyMap.Builder<String>()
+                .put(kanjiAlphabet, "歌")
+                .put(kanaAlphabet, "うた")
+                .build();
+        final ImmutableIntKeyMap<String> correlation2 = new ImmutableIntKeyMap.Builder<String>()
+                .put(kanjiAlphabet, "う")
+                .put(kanaAlphabet, "う")
+                .build();
+        final int correlation1Id = insertCorrelation(db, correlation1);
+        final int correlation2Id = insertCorrelation(db, correlation2);
+        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlation1Id, correlation2Id);
         return addAcceptation(db, concept, correlationArrayId);
     }
 
@@ -737,5 +762,43 @@ public final class LangbookDatabaseTest {
         final DbQuery bunchAcceptationQuery = new DbQuery.Builder(bunchAcceptations)
                 .select(bunchAcceptations.getIdColumnIndex());
         assertFalse(db.select(bunchAcceptationQuery).hasNext());
+    }
+
+    @Test
+    public void testAddQuiz() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int kanjiAlphabet = alphabet + 1;
+        final int kanaAlphabet = kanjiAlphabet + 1;
+        final int myVocabularyConcept = kanaAlphabet + 1;
+        final int arVerbConcept = myVocabularyConcept + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int esAcceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
+        addAcceptationInBunch(db, myVocabularyConcept, esAcceptation);
+
+        final int jaAcceptation = addJapaneseSingAcceptation(db, kanjiAlphabet, kanaAlphabet, singConcept);
+
+        final ImmutableList<QuestionFieldDetails> fields = new ImmutableList.Builder<QuestionFieldDetails>()
+                .add(new QuestionFieldDetails(alphabet, 0, QuestionFieldFlags.TYPE_SAME_ACC))
+                .add(new QuestionFieldDetails(kanjiAlphabet, 0, QuestionFieldFlags.IS_ANSWER | QuestionFieldFlags.TYPE_SAME_CONCEPT))
+                .build();
+
+        final int quizId = addQuiz(db, myVocabularyConcept, fields);
+
+        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
+        final DbQuery query = new DbQuery.Builder(knowledge)
+                .select(knowledge.getAcceptationColumnIndex(), knowledge.getQuizDefinitionColumnIndex());
+        final DbResult.Row row = selectSingleRow(db, query);
+        assertEquals(esAcceptation, row.get(0).toInt());
+        assertEquals(quizId, row.get(1).toInt());
     }
 }
