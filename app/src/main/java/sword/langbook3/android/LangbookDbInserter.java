@@ -238,4 +238,19 @@ public final class LangbookDbInserter {
 
         return db.insert(query);
     }
+
+    public static void insertAllPossibilities(DbInserter db, int quizId, IntSet acceptations) {
+        final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
+        for (int acceptation : acceptations) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getQuizDefinitionColumnIndex(), quizId)
+                    .put(table.getAcceptationColumnIndex(), acceptation)
+                    .put(table.getScoreColumnIndex(), QuestionActivity.NO_SCORE)
+                    .build();
+
+            if (db.insert(query) == null) {
+                throw new AssertionError();
+            }
+        }
+    }
 }

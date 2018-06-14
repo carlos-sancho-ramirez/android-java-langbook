@@ -1,9 +1,7 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,15 +18,13 @@ import java.util.List;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.IntSet;
-import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 
 import static sword.langbook3.android.LangbookDatabase.insertQuestionFieldSet;
+import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
@@ -396,26 +392,8 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         return result;
     }
 
-    private void insertAllPossibilities(SQLiteDatabase db, int quizId, IntSet acceptations) {
-        final KnowledgeTable table = Tables.knowledge;
-        final String quizDefField = table.columns().get(table.getQuizDefinitionColumnIndex()).name();
-        final String accField = table.columns().get(table.getAcceptationColumnIndex()).name();
-        final String scoreField = table.columns().get(table.getScoreColumnIndex()).name();
-
-        final ContentValues cv = new ContentValues();
-        for (int acceptation : acceptations) {
-            cv.clear();
-            cv.put(quizDefField, quizId);
-            cv.put(accField, acceptation);
-            cv.put(scoreField, QuestionActivity.NO_SCORE);
-
-            db.insert(table.name(), null, cv);
-        }
-    }
-
     private void startQuiz() {
         final Database db = DbManager.getInstance().getDatabase();
-        final SQLiteDatabase sqlDb = DbManager.getInstance().getWritableDatabase();
 
         final List<QuestionFieldDetails> fields = new ArrayList<>();
         for (FieldState state : _questionFields) {
@@ -437,7 +415,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
             else {
                 final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
                 quizId = insertQuizDefinition(db, _bunch, setId);
-                insertAllPossibilities(sqlDb, quizId, acceptations);
+                insertAllPossibilities(db, quizId, acceptations);
             }
         }
         else {
