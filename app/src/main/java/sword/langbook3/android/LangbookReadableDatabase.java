@@ -550,6 +550,22 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntSet findQuizzesByBunch(DbExporter.Database db, int bunch) {
+        final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
+        final DbQuery query = new DbQuery.Builder(quizzes)
+                .where(quizzes.getBunchColumnIndex(), bunch)
+                .select(quizzes.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public static Integer findQuestionFieldSet(DbExporter.Database db, Iterable<QuestionFieldDetails> collection) {
         final Set<QuestionFieldDetails> set = new HashSet<>();
         if (collection == null) {
@@ -1334,5 +1350,83 @@ public final class LangbookReadableDatabase {
         public String toString() {
             return getClass().getSimpleName() + '(' + alphabet + ',' + rule + ',' + flags + ')';
         }
+    }
+
+    public static final class QuizDetails {
+        public final int bunch;
+        public final ImmutableList<QuestionFieldDetails> fields;
+
+        public QuizDetails(int bunch, ImmutableList<QuestionFieldDetails> fields) {
+            if (fields == null || fields.size() < 2 || !fields.anyMatch(field -> !field.isAnswer()) || !fields.anyMatch(QuestionFieldDetails::isAnswer)) {
+                throw new IllegalArgumentException();
+            }
+
+            this.bunch = bunch;
+            this.fields = fields;
+        }
+
+        @Override
+        public int hashCode() {
+            return fields.hashCode() * 41 + bunch;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == null || !(other instanceof QuizDetails)) {
+                return false;
+            }
+
+            final QuizDetails that = (QuizDetails) other;
+            return bunch == that.bunch && fields.equals(that.fields);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + '(' + bunch + ',' + fields.toString() + ')';
+        }
+    }
+
+    public static QuizDetails getQuizDetails(DbExporter.Database db, int quizId) {
+        final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
+        final LangbookDbSchema.QuestionFieldSets questions = LangbookDbSchema.Tables.questionFieldSets;
+        final int offset = quizzes.columns().size();
+        final DbQuery query = new DbQuery.Builder(quizzes)
+                .join(questions, quizzes.getQuestionFieldsColumnIndex(), questions.getSetIdColumnIndex())
+                .where(quizzes.getIdColumnIndex(), quizId)
+                .select(quizzes.getBunchColumnIndex(),
+                        offset + questions.getAlphabetColumnIndex(),
+                        offset + questions.getRuleColumnIndex(),
+                        offset + questions.getFlagsColumnIndex());
+
+        final ImmutableList.Builder<QuestionFieldDetails> builder = new ImmutableList.Builder<>();
+        int bunch = 0;
+
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                bunch = row.get(0).toInt();
+                builder.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+            }
+        }
+
+        final ImmutableList<QuestionFieldDetails> fields = builder.build();
+        return fields.isEmpty()? null : new QuizDetails(bunch, fields);
+    }
+
+    public static ImmutableIntPairMap getCurrentKnowledge(DbExporter.Database db, int quizId) {
+        final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getQuizDefinitionColumnIndex(), quizId)
+                .select(table.getAcceptationColumnIndex(), table.getScoreColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
     }
 }

@@ -81,4 +81,14 @@ public final class LangbookDeleter {
 
         return db.delete(query);
     }
+
+    public static boolean deleteKnowledge(Deleter db, int quizId, int acceptation) {
+        final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getQuizDefinitionColumnIndex(), quizId)
+                .where(table.getAcceptationColumnIndex(), acceptation)
+                .build();
+
+        return db.delete(query);
+    }
 }

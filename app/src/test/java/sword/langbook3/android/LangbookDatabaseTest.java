@@ -765,7 +765,7 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
-    public void testAddQuiz() {
+    public void testAddAcceptationInBunchAndQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int language = getMaxConceptInAcceptations(db) + 1;
@@ -800,5 +800,47 @@ public final class LangbookDatabaseTest {
         final DbResult.Row row = selectSingleRow(db, query);
         assertEquals(esAcceptation, row.get(0).toInt());
         assertEquals(quizId, row.get(1).toInt());
+    }
+
+    @Test
+    public void testAddQuizAndAcceptationInBunch() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int kanjiAlphabet = alphabet + 1;
+        final int kanaAlphabet = kanjiAlphabet + 1;
+        final int myVocabularyConcept = kanaAlphabet + 1;
+        final int arVerbConcept = myVocabularyConcept + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int esAcceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
+        final int jaAcceptation = addJapaneseSingAcceptation(db, kanjiAlphabet, kanaAlphabet, singConcept);
+
+        final ImmutableList<QuestionFieldDetails> fields = new ImmutableList.Builder<QuestionFieldDetails>()
+                .add(new QuestionFieldDetails(alphabet, 0, QuestionFieldFlags.TYPE_SAME_ACC))
+                .add(new QuestionFieldDetails(kanjiAlphabet, 0, QuestionFieldFlags.IS_ANSWER | QuestionFieldFlags.TYPE_SAME_CONCEPT))
+                .build();
+
+        final int quizId = obtainQuiz(db, myVocabularyConcept, fields);
+        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
+        final DbQuery knowledgeQuery = new DbQuery.Builder(knowledge)
+                .select(knowledge.getAcceptationColumnIndex(), knowledge.getQuizDefinitionColumnIndex());
+        assertFalse(db.select(knowledgeQuery).hasNext());
+
+        addAcceptationInBunch(db, myVocabularyConcept, esAcceptation);
+
+        final DbResult.Row row = selectSingleRow(db, knowledgeQuery);
+        assertEquals(esAcceptation, row.get(0).toInt());
+        assertEquals(quizId, row.get(1).toInt());
+
+        removeAcceptationFromBunch(db, myVocabularyConcept, esAcceptation);
+        assertFalse(db.select(knowledgeQuery).hasNext());
     }
 }

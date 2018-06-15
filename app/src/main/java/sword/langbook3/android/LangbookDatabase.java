@@ -14,6 +14,7 @@ import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
+import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbDeleteQuery;
 import sword.langbook3.android.db.DbExporter;
@@ -48,6 +49,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
+import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
@@ -57,10 +59,12 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAccept
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
+import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
+import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
@@ -698,13 +702,28 @@ public final class LangbookDatabase {
         return removed;
     }
 
+    private static void recheckQuizzes(Database db, ImmutableIntSet updatedBunches) {
+        final ImmutableIntSetBuilder affectedQuizzesBuilder = new ImmutableIntSetBuilder();
+        for (int b : updatedBunches) {
+            for (int quizId : findQuizzesByBunch(db, b)) {
+                affectedQuizzesBuilder.add(quizId);
+            }
+        }
+
+        for (int quizId : affectedQuizzesBuilder.build()) {
+            recheckPossibleQuestions(db, quizId);
+        }
+    }
+
     public static void addAcceptationInBunch(Database db, int bunch, int acceptation) {
         LangbookDbInserter.insertBunchAcceptation(db, bunch, acceptation, 0);
 
+        final ImmutableIntSetBuilder allUpdatedBunchesBuilder = new ImmutableIntSetBuilder();
         ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
         while (!updatedBunches.isEmpty()) {
             ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
             for (int b : updatedBunches) {
+                allUpdatedBunchesBuilder.add(b);
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
                     rerunAgent(db, entry.key());
                     if (entry.value() != 0) {
@@ -721,14 +740,18 @@ public final class LangbookDatabase {
             }
             updatedBunches = builder.build();
         }
+
+        recheckQuizzes(db, allUpdatedBunchesBuilder.build());
     }
 
     public static boolean removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
         if (LangbookDeleter.deleteBunchAcceptation(db, bunch, acceptation)) {
+            final ImmutableIntSetBuilder allUpdatedBunchesBuilder = new ImmutableIntSetBuilder();
             ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
             while (!updatedBunches.isEmpty()) {
                 ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
                 for (int b : updatedBunches) {
+                    allUpdatedBunchesBuilder.add(b);
                     for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
                         rerunAgent(db, entry.key());
                         if (entry.value() != 0) {
@@ -745,6 +768,8 @@ public final class LangbookDatabase {
                 }
                 updatedBunches = builder.build();
             }
+
+            recheckQuizzes(db, allUpdatedBunchesBuilder.build());
             return true;
         }
 
@@ -856,5 +881,19 @@ public final class LangbookDatabase {
         }
 
         return quizId;
+    }
+
+    private static void recheckPossibleQuestions(Database db, int quizId) {
+        final QuizDetails quiz = getQuizDetails(db, quizId);
+        final ImmutableIntSet possibleAcceptations = readAllPossibleAcceptations(db, quiz.bunch, quiz.fields.toSet());
+        final ImmutableIntSet registeredAcceptations = getCurrentKnowledge(db, quizId).keySet();
+
+        for (int acceptation : registeredAcceptations.filterNot(possibleAcceptations::contains)) {
+            if (!deleteKnowledge(db, quizId, acceptation)) {
+                throw new AssertionError();
+            }
+        }
+
+        insertAllPossibilities(db, quizId, possibleAcceptations.filterNot(registeredAcceptations::contains));
     }
 }

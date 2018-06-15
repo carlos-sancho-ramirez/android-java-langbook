@@ -16,6 +16,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableIntPairMap;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
@@ -26,7 +27,9 @@ import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.db.DbExporter;
 
+import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
@@ -296,9 +299,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         setContentView(R.layout.question_activity);
 
         _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
-        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-        readQuizDefinition(db);
-        readCurrentKnowledge(db);
+        readQuizDefinition(DbManager.getInstance().getReadableDatabase());
+        readCurrentKnowledge(DbManager.getInstance().getDatabase());
 
         if (_possibleAcceptations.length == 0) {
             Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
@@ -347,42 +349,17 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         }
     }
 
-    private void readCurrentKnowledge(SQLiteDatabase db) {
-        final KnowledgeTable table = Tables.knowledge;
-        final Cursor cursor = db.rawQuery("SELECT " +
-                        table.columns().get(table.getAcceptationColumnIndex()).name() + ',' +
-                        table.columns().get(table.getScoreColumnIndex()).name() +
-                        " FROM " + table.name() + " WHERE " +
-                        table.columns().get(table.getQuizDefinitionColumnIndex()).name() + "=?",
-                new String[] {Integer.toString(_quizId)});
+    private void readCurrentKnowledge(DbExporter.Database db) {
+        final ImmutableIntPairMap knowledgeMap = getCurrentKnowledge(db, _quizId);
+        _possibleAcceptations = new int[knowledgeMap.size()];
+        for (ImmutableIntPairMap.Entry entry : knowledgeMap.entries()) {
+            final int acceptation = entry.key();
+            _possibleAcceptations[entry.index()] = acceptation;
 
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    _possibleAcceptations = new int[cursor.getCount()];
-                    int index = 0;
-                    do {
-                        final int acceptation = cursor.getInt(0);
-                        final int score = cursor.getInt(1);
-
-                        _possibleAcceptations[index++] = acceptation;
-                        if (score != NO_SCORE) {
-                            _knowledge.put(acceptation, score);
-                        }
-                    } while (cursor.moveToNext());
-
-                    if (index != _possibleAcceptations.length) {
-                        throw new AssertionError();
-                    }
-                }
+            final int score = entry.value();
+            if (score != NO_SCORE) {
+                _knowledge.put(acceptation, score);
             }
-            finally {
-                cursor.close();
-            }
-        }
-
-        if (_possibleAcceptations == null) {
-            throw new AssertionError();
         }
     }
 
