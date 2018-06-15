@@ -17,19 +17,20 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableList;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
-import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
+import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
@@ -69,7 +70,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private final SparseIntArray _knowledge = new SparseIntArray();
 
     private int _quizId;
-    private QuestionFieldDetails[] _fields;
+    private LangbookReadableDatabase.QuizDetails _quizDetails;
     private TextView[] _fieldTextViews;
 
     private int _goodAnswerCount;
@@ -83,35 +84,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private long _lastClickTime;
     private int[] _possibleAcceptations;
 
-    private void readQuizDefinition(SQLiteDatabase db) {
-        final QuizDefinitionsTable quizTable = Tables.quizDefinitions;
-        final QuestionFieldSets fieldTable = Tables.questionFieldSets;
-        final Cursor cursor = db.rawQuery("SELECT " +
-                        fieldTable.columns().get(fieldTable.getAlphabetColumnIndex()).name() + ',' +
-                        fieldTable.columns().get(fieldTable.getRuleColumnIndex()).name() + ',' +
-                        fieldTable.columns().get(fieldTable.getFlagsColumnIndex()).name() +
-                        " FROM " + quizTable.name() + " AS J0" +
-                        " JOIN " + fieldTable.name() + " AS J1 ON J0." + quizTable.columns().get(quizTable.getQuestionFieldsColumnIndex()).name() + "=J1." + fieldTable.columns().get(fieldTable.getSetIdColumnIndex()).name() +
-                        " WHERE J0." + idColumnName + "=?",
-                new String[] {Integer.toString(_quizId)});
-
-        try {
-            if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-                _fields = new QuestionFieldDetails[cursor.getCount()];
-                _fieldTextViews = new TextView[cursor.getCount()];
-                int i = 0;
-                do {
-                    _fields[i++] = new QuestionFieldDetails(cursor.getInt(0), cursor.getInt(1), cursor.getInt(2));
-                } while (cursor.moveToNext());
-
-                if (i != _fields.length) {
-                    throw new AssertionError();
-                }
-            }
-        }
-        finally {
-            cursor.close();
-        }
+    private void readQuizDefinition(DbExporter.Database db) {
+        _quizDetails = getQuizDetails(db, _quizId);
+        _fieldTextViews = new TextView[_quizDetails.fields.size()];
     }
 
     private String readSameAcceptationQuestionText(SQLiteDatabase db, int index) {
@@ -120,8 +95,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                             " FROM " + strings.name() +
                             " WHERE " + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() + "=?" +
                             " AND " + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?",
-                    new String[]{Integer.toString(_acceptation), Integer.toString(_fields[index].alphabet)});
-
+                    new String[]{Integer.toString(_acceptation), Integer.toString(_quizDetails.fields.get(index).alphabet)});
 
         try {
             if (!cursor.moveToFirst()) {
@@ -145,7 +119,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                         " WHERE J0." + idColumnName + "=?" +
                         " AND J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?" +
                         " AND J1." + idColumnName + "!=J0." + idColumnName,
-                        new String[]{Integer.toString(_acceptation), Integer.toString(_fields[index].alphabet)});
+                        new String[]{Integer.toString(_acceptation), Integer.toString(_quizDetails.fields.get(index).alphabet)});
 
         try {
             if (!cursor.moveToFirst()) {
@@ -168,6 +142,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final AgentsTable agents = Tables.agents;
         final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
+        final QuestionFieldDetails field = _quizDetails.fields.get(index);
         final Cursor cursor = db.rawQuery("SELECT " + strings.columns().get(strings.getStringColumnIndex()).name() +
                         " FROM " + ruledAcceptations.name() + " AS J0" +
                         " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
@@ -177,8 +152,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
                         " AND " + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?",
                 new String[]{
                         Integer.toString(_acceptation),
-                        Integer.toString(_fields[index].rule),
-                        Integer.toString(_fields[index].alphabet)});
+                        Integer.toString(field.rule),
+                        Integer.toString(field.alphabet)});
 
         try {
             if (!cursor.moveToFirst()) {
@@ -193,7 +168,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private String readFieldText(SQLiteDatabase db, int index) {
-        switch (_fields[index].getType()) {
+        switch (_quizDetails.fields.get(index).getType()) {
             case QuestionFieldFlags.TYPE_SAME_ACC:
                 return readSameAcceptationQuestionText(db, index);
 
@@ -241,9 +216,10 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     private void updateTextFields() {
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
 
-        final int fieldCount = _fields.length;
+        final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
+        final int fieldCount = fields.size();
         for (int i = 0; i < fieldCount; i++) {
-            final String text = !_fields[i].isAnswer()? readFieldText(db, i) : "?";
+            final String text = !fields.get(i).isAnswer()? readFieldText(db, i) : "?";
             _fieldTextViews[i].setText(text);
         }
 
@@ -254,10 +230,11 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final Button revealAnswerButton = findViewById(R.id.revealAnswerButton);
         final LinearLayout rateButtonBar = findViewById(R.id.rateButtonBar);
 
+        final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
         if (!_isAnswerVisible) {
             SQLiteDatabase db = null;
-            for (int i = 0; i < _fields.length; i++) {
-                if (_fields[i].isAnswer()) {
+            for (int i = 0; i < fields.size(); i++) {
+                if (fields.get(i).isAnswer()) {
                     if (db == null) {
                         db = DbManager.getInstance().getReadableDatabase();
                     }
@@ -271,8 +248,8 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
             _isAnswerVisible = true;
         }
         else {
-            for (int i = 0; i < _fields.length; i++) {
-                if (_fields[i].isAnswer()) {
+            for (int i = 0; i < fields.size(); i++) {
+                if (fields.get(i).isAnswer()) {
                     _fieldTextViews[i].setText("?");
                 }
             }
@@ -299,8 +276,9 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         setContentView(R.layout.question_activity);
 
         _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
-        readQuizDefinition(DbManager.getInstance().getReadableDatabase());
-        readCurrentKnowledge(DbManager.getInstance().getDatabase());
+        final Database db = DbManager.getInstance().getDatabase();
+        readQuizDefinition(db);
+        readCurrentKnowledge(db);
 
         if (_possibleAcceptations.length == 0) {
             Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
@@ -325,10 +303,11 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final LinearLayout fieldsPanel = findViewById(R.id.fieldsPanel);
         final LayoutInflater inflater = getLayoutInflater();
 
-        for (int i = 0; i < _fields.length; i++) {
+        final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
+        for (int i = 0; i < fields.size(); i++) {
             inflater.inflate(R.layout.question_field, fieldsPanel, true);
             _fieldTextViews[i] = (TextView) fieldsPanel.getChildAt(fieldsPanel.getChildCount() - 1);
-            if (!_fields[i].isAnswer()) {
+            if (!fields.get(i).isAnswer()) {
                 _fieldTextViews[i].setOnClickListener(mFieldClickListener);
             }
         }
