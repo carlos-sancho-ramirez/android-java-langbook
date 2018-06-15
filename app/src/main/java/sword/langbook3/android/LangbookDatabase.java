@@ -840,18 +840,16 @@ public final class LangbookDatabase {
         }
     }
 
-    public static Integer addQuiz(Database db, int bunch, ImmutableList<LangbookReadableDatabase.QuestionFieldDetails> fields) {
+    public static Integer obtainQuiz(Database db, int bunch, ImmutableList<LangbookReadableDatabase.QuestionFieldDetails> fields) {
         final Integer existingSetId = findQuestionFieldSet(db, fields);
         final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, bunch, existingSetId) : null;
 
-        Integer quizId = null;
+        final Integer quizId;
         if (existingQuizId == null) {
             final ImmutableIntSet acceptations = readAllPossibleAcceptations(db, bunch, fields.toSet());
-            if (!acceptations.isEmpty()) {
-                final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
-                quizId = insertQuizDefinition(db, bunch, setId);
-                insertAllPossibilities(db, quizId, acceptations);
-            }
+            final int setId = (existingSetId != null) ? existingSetId : insertQuestionFieldSet(db, fields);
+            quizId = insertQuizDefinition(db, bunch, setId);
+            insertAllPossibilities(db, quizId, acceptations);
         }
         else {
             quizId = existingQuizId;

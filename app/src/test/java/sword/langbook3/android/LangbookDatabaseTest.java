@@ -20,7 +20,7 @@ import static org.junit.Assert.assertFalse;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
-import static sword.langbook3.android.LangbookDatabase.addQuiz;
+import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
@@ -792,7 +792,7 @@ public final class LangbookDatabaseTest {
                 .add(new QuestionFieldDetails(kanjiAlphabet, 0, QuestionFieldFlags.IS_ANSWER | QuestionFieldFlags.TYPE_SAME_CONCEPT))
                 .build();
 
-        final int quizId = addQuiz(db, myVocabularyConcept, fields);
+        final int quizId = obtainQuiz(db, myVocabularyConcept, fields);
 
         final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
         final DbQuery query = new DbQuery.Builder(knowledge)

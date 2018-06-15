@@ -10,7 +10,6 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -20,7 +19,7 @@ import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 
-import static sword.langbook3.android.LangbookDatabase.addQuiz;
+import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -366,17 +365,12 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
 
     private void startQuiz() {
         final Database db = DbManager.getInstance().getDatabase();
-        final Integer quizId = addQuiz(db, _bunch, composeFields());
+        final int quizId = obtainQuiz(db, _bunch, composeFields());
 
-        if (quizId != null) {
-            final Intent intent = new Intent();
-            intent.putExtra(ResultKeys.QUIZ, quizId);
-            setResult(RESULT_OK, intent);
-            finish();
-        }
-        else {
-            Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
-        }
+        final Intent intent = new Intent();
+        intent.putExtra(ResultKeys.QUIZ, quizId);
+        setResult(RESULT_OK, intent);
+        finish();
     }
 
     @Override

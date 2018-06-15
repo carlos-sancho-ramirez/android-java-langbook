@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
@@ -298,6 +299,12 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
         readQuizDefinition(db);
         readCurrentKnowledge(db);
+
+        if (_possibleAcceptations.length == 0) {
+            Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
 
         boolean shouldRevealAnswer = false;
         boolean leaveDialogPresent = false;
