@@ -86,7 +86,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         assertState(IntrinsicStates.NORMAL);
         _linkedAcceptation = acceptation;
         _linkDialogCheckedOption = 0;
-        _intrinsicState = IntrinsicStates.NORMAL;
+        _intrinsicState = IntrinsicStates.LINKING_CONCEPT;
     }
 
     void setDialogCheckedOption(int option) {
