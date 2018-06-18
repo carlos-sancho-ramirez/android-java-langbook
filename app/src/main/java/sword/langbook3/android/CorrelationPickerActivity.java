@@ -15,12 +15,7 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
-import sword.collections.IntSet;
-import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbImporter;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
@@ -161,52 +156,61 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         _options = checkPossibleCorrelationArrays(getTexts());
         _knownCorrelations = findExistingCorrelations();
 
-        _listView = findViewById(R.id.listView);
-        _listView.setAdapter(new CorrelationPickerAdapter(_options, _knownCorrelations.keySet()));
-        _listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        if (_options.size() == 1) {
+            addAcceptationAndFinish(0);
+        }
+        else {
+            _listView = findViewById(R.id.listView);
+            _listView.setAdapter(new CorrelationPickerAdapter(_options, _knownCorrelations.keySet()));
+            _listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
 
-        findViewById(R.id.nextButton).setOnClickListener(this);
+            findViewById(R.id.nextButton).setOnClickListener(this);
+        }
+    }
+
+    private void addAcceptationAndFinish(int selection) {
+        final Database db = DbManager.getInstance().getDatabase();
+        ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(selection);
+        boolean correlationInserted = false;
+        final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
+        for (ImmutableIntKeyMap<String> correlation : array) {
+            int id = _knownCorrelations.get(correlation, StreamedDatabaseConstants.nullCorrelationId);
+            if (id == StreamedDatabaseConstants.nullCorrelationId) {
+                id = insertCorrelation(db, correlation);
+                correlationInserted = true;
+            }
+            arrayBuilder.add(id);
+        }
+
+        final ImmutableIntList idArray = arrayBuilder.build();
+        final int arrayId;
+        if (!correlationInserted) {
+            final Integer arrayIdOpt = findCorrelationArray(db, idArray);
+            arrayId = (arrayIdOpt == null) ? insertCorrelationArray(db, idArray) : arrayIdOpt;
+        }
+        else {
+            arrayId = insertCorrelationArray(db, idArray);
+        }
+
+        int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
+        if (concept == NO_CONCEPT) {
+            concept = getMaxConceptInAcceptations(db) + 1;
+        }
+
+        final int accId = addAcceptation(db, concept, arrayId);
+        Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
+
+        final Intent intent = new Intent();
+        intent.putExtra(ResultKeys.ACCEPTATION, accId);
+        setResult(RESULT_OK, intent);
+        finish();
     }
 
     @Override
     public void onClick(View view) {
         final int selection = _listView.getCheckedItemPosition();
         if (selection != ListView.INVALID_POSITION) {
-            final Database db = DbManager.getInstance().getDatabase();
-            ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(selection);
-            boolean correlationInserted = false;
-            final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
-            for (ImmutableIntKeyMap<String> correlation : array) {
-                int id = _knownCorrelations.get(correlation, StreamedDatabaseConstants.nullCorrelationId);
-                if (id == StreamedDatabaseConstants.nullCorrelationId) {
-                    id = insertCorrelation(db, correlation);
-                    correlationInserted = true;
-                }
-                arrayBuilder.add(id);
-            }
-
-            final ImmutableIntList idArray = arrayBuilder.build();
-            final int arrayId;
-            if (!correlationInserted) {
-                final Integer arrayIdOpt = findCorrelationArray(db, idArray);
-                arrayId = (arrayIdOpt == null)? insertCorrelationArray(db, idArray) : arrayIdOpt;
-            }
-            else {
-                arrayId = insertCorrelationArray(db, idArray);
-            }
-
-            int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
-            if (concept == NO_CONCEPT) {
-                concept = getMaxConceptInAcceptations(db) + 1;
-            }
-
-            final int accId = addAcceptation(db, concept, arrayId);
-            Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
-
-            final Intent intent = new Intent();
-            intent.putExtra(ResultKeys.ACCEPTATION, accId);
-            setResult(RESULT_OK, intent);
-            finish();
+            addAcceptationAndFinish(selection);
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();
