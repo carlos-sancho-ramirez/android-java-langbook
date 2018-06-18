@@ -182,8 +182,14 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final LayoutInflater inflater = getLayoutInflater();
         final int fieldCount = fieldNames.size();
 
+        boolean autoSelectText = false;
         if (_texts == null) {
             _texts = new String[fieldCount];
+
+            if (fieldCount == 1) {
+                _texts[0] = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
+                autoSelectText = true;
+            }
         }
 
         final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
@@ -210,6 +216,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             }
             else {
                 editText.setText(_texts[fieldIndex]);
+                if (autoSelectText) {
+                    editText.setSelection(0, _texts[fieldIndex].length());
+                }
+
                 editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
                 indexAlphabetBuilder.put(fieldIndex, alphabet);
             }
