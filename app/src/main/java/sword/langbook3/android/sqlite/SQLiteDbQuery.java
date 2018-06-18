@@ -118,7 +118,8 @@ public final class SQLiteDbQuery {
     }
 
     private String getOrderingClause(int subQueryIndex) {
-        final int count = _query.getOrderingCount();
+        final ImmutableList<DbQuery.Ordered> ordering = _query.ordering();
+        final int count = ordering.size();
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < count; i++) {
             if (i == 0) {
@@ -127,7 +128,11 @@ public final class SQLiteDbQuery {
             else {
                 sb.append(", ");
             }
-            sb.append(getSqlColumnName(subQueryIndex, _query.getOrdering(i)));
+            sb.append(getSqlColumnName(subQueryIndex, ordering.get(i).columnIndex));
+
+            if (ordering.get(i).descendantOrder) {
+                sb.append(" DESC");
+            }
         }
 
         return sb.toString();

@@ -77,6 +77,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         final int offset = history.columns().size();
         final DbQuery query = new DbQuery.Builder(history)
                 .join(strings, history.getAcceptation(), strings.getDynamicAcceptationColumnIndex())
+                .orderBy(new DbQuery.Ordered(history.getIdColumnIndex(), true))
                 .select(history.getAcceptation(),
                         offset + strings.getMainAcceptationColumnIndex(),
                         offset + strings.getStringColumnIndex(),

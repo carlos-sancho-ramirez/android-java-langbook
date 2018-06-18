@@ -168,7 +168,7 @@ public final class MemoryDatabase implements Database {
 
     @Override
     public DbResult select(DbQuery query) {
-        if (query.getOrderingCount() != 0) {
+        if (!query.ordering().isEmpty()) {
             throw new UnsupportedOperationException("Unimplemented");
         }
 

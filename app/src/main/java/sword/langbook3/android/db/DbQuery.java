@@ -21,7 +21,7 @@ public final class DbQuery implements DbView {
     private final ImmutableSet<JoinColumnPair> _columnValueMatchingPairs;
     private final ImmutableIntKeyMap<Restriction> _restrictions;
     private final int[] _groupBy;
-    private final int[] _orderBy;
+    private final Ordered[] _orderBy;
 
     // column indexes for the selection in the given order
     private final ImmutableIntList _selection;
@@ -33,7 +33,7 @@ public final class DbQuery implements DbView {
     private transient ImmutableList<DbColumn> _columns;
 
     private DbQuery(DbView[] tables, int[] joinPairs, ImmutableSet<JoinColumnPair> columnValueMatchPairs,
-            ImmutableIntKeyMap<Restriction> restrictions, int[] groupBy, int[] orderBy, int[] selection) {
+            ImmutableIntKeyMap<Restriction> restrictions, int[] groupBy, Ordered[] orderBy, int[] selection) {
 
         if (tables == null || tables.length == 0 || selection == null || selection.length == 0) {
             throw new IllegalArgumentException();
@@ -112,10 +112,15 @@ public final class DbQuery implements DbView {
         }
 
         if (orderBy == null) {
-            orderBy = new int[0];
+            orderBy = new Ordered[0];
         }
 
-        if (!hasValidSetValues(orderBy, 0, joinColumnCount - 1)) {
+        final int[] orderedColumnIndexes = new int[orderBy.length];
+        for (int i = 0; i < orderBy.length; i++) {
+            orderedColumnIndexes[i] = orderBy[i].columnIndex;
+        }
+
+        if (!hasValidSetValues(orderedColumnIndexes, 0, joinColumnCount - 1)) {
             throw new IllegalArgumentException("Invalid ordering parameters");
         }
 
@@ -249,6 +254,16 @@ public final class DbQuery implements DbView {
         }
     }
 
+    public static final class Ordered {
+        public final int columnIndex;
+        public final boolean descendantOrder;
+
+        public Ordered(int columnIndex, boolean descendantOrder) {
+            this.columnIndex = columnIndex;
+            this.descendantOrder = descendantOrder;
+        }
+    }
+
     public JoinColumnPair getJoinPair(int index) {
         final int pairCount = _joinPairs.length / 2;
         for (int j = 0; j < pairCount; j++) {
@@ -297,12 +312,12 @@ public final class DbQuery implements DbView {
         return builder.build();
     }
 
-    public int getOrderingCount() {
-        return _orderBy.length;
-    }
-
-    public int getOrdering(int index) {
-        return _orderBy[index];
+    public ImmutableList<Ordered> ordering() {
+        final ImmutableList.Builder<Ordered> builder = new ImmutableList.Builder<>();
+        for (Ordered ordered : _orderBy) {
+            builder.add(ordered);
+        }
+        return builder.build();
     }
 
     private static boolean hasValidValues(int[] values, int min, int max) {
@@ -368,7 +383,7 @@ public final class DbQuery implements DbView {
         private final MutableIntKeyMap<Restriction> _restrictions = MutableIntKeyMap.empty();
         private final MutableSet<JoinColumnPair> _columnValueMatchPairs = MutableSet.empty();
         private int[] _groupBy;
-        private int[] _orderBy;
+        private Ordered[] _orderBy;
         private int _joinColumnCount;
 
         public Builder(DbView table) {
@@ -438,11 +453,21 @@ public final class DbQuery implements DbView {
         }
 
         public Builder orderBy(int... columnIndexes) {
+            final int length = columnIndexes.length;
+            final Ordered[] ordering = new Ordered[length];
+            for (int i = 0; i < length; i++) {
+                ordering[i] = new Ordered(columnIndexes[i], false);
+            }
+
+            return orderBy(ordering);
+        }
+
+        public Builder orderBy(Ordered... ordering) {
             if (_orderBy != null) {
                 throw new UnsupportedOperationException("orderBy can only be called once per query");
             }
 
-            _orderBy = columnIndexes;
+            _orderBy = ordering;
             return this;
         }
 
