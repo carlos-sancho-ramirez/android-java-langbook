@@ -915,7 +915,7 @@ public final class LangbookReadableDatabase {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int accOffset = alphabets.columns().size();
-        final int strOffset = acceptations.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
         final DbQuery query = new DbQuery.Builder(alphabets)
                 .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
