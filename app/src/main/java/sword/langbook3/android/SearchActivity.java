@@ -40,6 +40,10 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
 
         final EditText searchField = findViewById(R.id.searchField);
         searchField.addTextChangedListener(this);
+
+        if (savedInstanceState == null) {
+            updateSearchResults(noQueryResults());
+        }
     }
 
     @Override
@@ -56,11 +60,15 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     public void afterTextChanged(Editable editable) {
         _query = editable.toString();
         if (TextUtils.isEmpty(_query)) {
-            updateSearchResults(ImmutableList.empty());
+            updateSearchResults(noQueryResults());
         }
         else {
             queryAllResults();
         }
+    }
+
+    ImmutableList<SearchResult> noQueryResults() {
+        return ImmutableList.empty();
     }
 
     private ImmutableList<SearchResult> querySearchResults() {

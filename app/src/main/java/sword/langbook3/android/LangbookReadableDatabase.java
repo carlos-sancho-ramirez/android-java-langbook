@@ -625,6 +625,20 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
+    public static Integer findSearchHistoryEntry(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.SearchHistoryTable table = LangbookDbSchema.Tables.searchHistory;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAcceptation(), acceptation)
+                .select(table.getIdColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            final Integer id = result.hasNext()? result.next().get(0).toInt() : null;
+            if (result.hasNext()) {
+                throw new AssertionError();
+            }
+            return id;
+        }
+    }
     public static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(DbQuery.max(columnIndex));

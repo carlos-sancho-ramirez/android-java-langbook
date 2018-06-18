@@ -29,6 +29,7 @@ import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.LangbookDbInserter.insertSymbolArray;
 import static sword.langbook3.android.LangbookDeleter.deleteAcceptation;
@@ -50,6 +51,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.findSearchHistoryEntry;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
@@ -895,5 +897,12 @@ public final class LangbookDatabase {
         }
 
         insertAllPossibilities(db, quizId, possibleAcceptations.filterNot(registeredAcceptations::contains));
+    }
+
+    public static void updateSearchHistory(Database db, int acceptation) {
+        final Integer id = findSearchHistoryEntry(db, acceptation);
+        if (id == null) {
+            insertSearchHistoryEntry(db, acceptation);
+        }
     }
 }

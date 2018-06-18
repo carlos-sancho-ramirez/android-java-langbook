@@ -338,6 +338,17 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    public static final class SearchHistoryTable extends DbTable {
+
+        private SearchHistoryTable() {
+            super("SearchHistory", new DbIntColumn("acceptation"));
+        }
+
+        public int getAcceptation() {
+            return 1;
+        }
+    }
+
     public static final class StringQueriesTable extends DbTable {
 
         private StringQueriesTable() {
@@ -394,6 +405,7 @@ public final class LangbookDbSchema implements DbSchema {
         QuizDefinitionsTable quizDefinitions = new QuizDefinitionsTable();
         RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
         RuledConceptsTable ruledConcepts = new RuledConceptsTable();
+        SearchHistoryTable searchHistory = new SearchHistoryTable();
         StringQueriesTable stringQueries = new StringQueriesTable();
         SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
@@ -415,6 +427,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.quizDefinitions)
             .add(Tables.ruledAcceptations)
             .add(Tables.ruledConcepts)
+            .add(Tables.searchHistory)
             .add(Tables.stringQueries)
             .add(Tables.symbolArrays)
             .build();
