@@ -184,13 +184,13 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
     private void selectAcceptation() {
         final int size = _possibleAcceptations.length;
+        final int ponderationThreshold = MIN_ALLOWED_SCORE + (MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE) * 3 / 4;
 
         final int[] ponders = new int[size];
         int ponderationCount = 0;
         for (int i = 0; i < size; i++) {
             ponders[i] = ponderationCount;
             final int score = _knowledge.get(_possibleAcceptations[i], INITIAL_SCORE);
-            final int ponderationThreshold = MIN_ALLOWED_SCORE + (MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE) * 3 / 4;
             final int diff = ponderationThreshold - score;
             ponderationCount += (diff > 0)? diff * diff : 1;
         }
@@ -202,7 +202,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         int max = size;
         do {
             int middle = min + (max - min) / 2;
-            if (ponders[middle] < randomIndex) {
+            if (ponders[middle] <= randomIndex) {
                 min = middle;
             }
             else {
