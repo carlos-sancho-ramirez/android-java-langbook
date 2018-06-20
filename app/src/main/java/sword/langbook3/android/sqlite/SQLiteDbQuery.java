@@ -94,7 +94,8 @@ public final class SQLiteDbQuery {
         }
 
         for (DbQuery.JoinColumnPair pair : _query.columnValueMatchPairs()) {
-            builder.add(getSqlColumnName(subQueryIndex, pair.left()) + "=" + getSqlColumnName(subQueryIndex, pair.right()));
+            final String operator = pair.mustMatch()? "=" : "!=";
+            builder.add(getSqlColumnName(subQueryIndex, pair.left()) + operator + getSqlColumnName(subQueryIndex, pair.right()));
         }
 
         final ImmutableList<String> conditions = builder.build();
