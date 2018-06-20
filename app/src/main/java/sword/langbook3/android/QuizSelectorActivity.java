@@ -1,23 +1,30 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseArray;
+import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntSet;
+import sword.collections.IntToIntFunction;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
@@ -30,7 +37,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
-public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener {
+public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_EDITOR = 1;
     private static final int NO_QUIZ = 0;
@@ -40,7 +47,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     private interface SavedKeys {
-        String FIRST_ACTION_EXECUTED = "fae";
+        String STATE = "cSt";
     }
 
     /**
@@ -60,13 +67,15 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         context.startActivity(intent);
     }
 
+    private QuizSelectorActivityState _state;
+
     private int _bunch;
     private ImmutableIntKeyMap<String> _ruleTexts;
 
     private boolean _finishIfEmptyWhenStarting;
     private boolean _activityStarted;
-    private boolean _firstActionExecuted;
     private ListView _listView;
+    private ActionMode _listActionMode;
 
     static final class Progress {
         private final ImmutableIntList amountPerScore;
@@ -257,7 +266,11 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, 0);
 
         if (savedInstanceState != null) {
-            _firstActionExecuted = savedInstanceState.getBoolean(SavedKeys.FIRST_ACTION_EXECUTED);
+            _state = savedInstanceState.getParcelable(SavedKeys.STATE);
+        }
+
+        if (_state == null) {
+            _state = new QuizSelectorActivityState();
         }
 
         _listView = findViewById(R.id.listView);
@@ -273,7 +286,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 DbManager.getInstance().getDatabase(), _bunch);
 
         if (items.length == 0) {
-            if (!_firstActionExecuted) {
+            if (!_state.firstActionExecuted()) {
                 QuizEditorActivity.open(this, REQUEST_CODE_EDITOR, _bunch);
             }
             else if (_finishIfEmptyWhenStarting) {
@@ -282,7 +295,23 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         }
 
         _listView.setAdapter(new QuizSelectorAdapter(items));
-        _firstActionExecuted = true;
+        _listView.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE_MODAL);
+        _listView.setMultiChoiceModeListener(this);
+
+        ImmutableIntSet selection = _state.getListSelection();
+        if (selection.isEmpty()) {
+            _state.setReady();
+        }
+        else {
+            for (int position : selection) {
+                _listView.setItemChecked(position, true);
+            }
+
+            if (_state.shouldDisplayDeleteDialog()) {
+                showDeleteConfirmationDialog();
+            }
+        }
+
         _finishIfEmptyWhenStarting = false;
     }
 
@@ -312,7 +341,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        outState.putBoolean(SavedKeys.FIRST_ACTION_EXECUTED, _firstActionExecuted);
+        outState.putParcelable(SavedKeys.STATE, _state);
     }
 
     @Override
@@ -337,5 +366,80 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     protected void onStop() {
         _activityStarted = false;
         super.onStop();
+    }
+
+    @Override
+    public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
+        _state.changeListSelection(position, checked);
+    }
+
+    @Override
+    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+        _listActionMode = mode;
+        menu.add(getString(R.string.menuItemDelete));
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+        return true;
+    }
+
+    @Override
+    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+        if (_listActionMode != mode) {
+            throw new AssertionError();
+        }
+
+        _state.setDeletingState();
+        showDeleteConfirmationDialog();
+        return true;
+    }
+
+    @Override
+    public void onDestroyActionMode(ActionMode mode) {
+        if (_listActionMode != null) {
+            _state.clearQuizSelection();
+            _listActionMode = null;
+        }
+    }
+
+    private void showDeleteConfirmationDialog() {
+        final String message = getString(R.string.deleteQuizConfirmationText);
+        new AlertDialog.Builder(this)
+                .setMessage(message)
+                .setPositiveButton(R.string.menuItemDelete, this)
+                .setOnCancelListener(dialog -> _state.clearDeleteState())
+                .create().show();
+    }
+
+    @Override
+    public void onClick(DialogInterface dialog, int which) {
+        final QuizSelectorAdapter adapter = (QuizSelectorAdapter) _listView.getAdapter();
+        final IntToIntFunction mapFunc = position -> adapter.getItem(position).getQuizId();
+        final ImmutableIntSet quizzes = _state.getListSelection().map(mapFunc);
+        _state.clearDeleteStateAndSelection();
+        final ActionMode listActionMode = _listActionMode;
+        _listActionMode = null;
+        listActionMode.finish();
+
+        final Database db = DbManager.getInstance().getDatabase();
+        for (int quizId : quizzes) {
+            LangbookDatabase.removeQuiz(db, quizId);
+        }
+        showFeedback(getString(R.string.deleteQuizzesFeedback));
+
+        final QuizSelectorAdapter.Item[] items = composeAdapterItems(
+                DbManager.getInstance().getDatabase(), _bunch);
+
+        if (items.length == 0) {
+            finish();
+        }
+
+        _listView.setAdapter(new QuizSelectorAdapter(items));
+    }
+
+    private void showFeedback(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

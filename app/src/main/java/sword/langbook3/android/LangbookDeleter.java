@@ -91,4 +91,22 @@ public final class LangbookDeleter {
 
         return db.delete(query);
     }
+
+    public static boolean deleteKnowledgeForQuiz(Deleter db, int quizId) {
+        final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getQuizDefinitionColumnIndex(), quizId)
+                .build();
+
+        return db.delete(query);
+    }
+
+    public static boolean deleteQuiz(Deleter db, int id) {
+        final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getIdColumnIndex(), id)
+                .build();
+
+        return db.delete(query);
+    }
 }

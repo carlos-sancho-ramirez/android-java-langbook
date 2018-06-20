@@ -23,6 +23,7 @@
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
     <string name="deleteAcceptationFromBunchConfirmationText">Are you sure that you want to remove this acceptation from bunch %s?</string>
     <string name="deleteAgentConfirmationText">Are you sure that you want to remove this agent? All its effects will be reverted.</string>
+    <string name="deleteQuizConfirmationText">Are you sure that you want to remove this quiz and all its related tracked knowledge?</string>
 
     <string name="wordEditorWrongConversionFieldText">-- Wrong --</string>
     <string name="wordEditorNextButton">Next</string>
@@ -89,6 +90,7 @@
     <string name="newAcceptationFeedback">Acceptation included</string>
     <string name="deleteAcceptationFeedback">Acceptation deleted</string>
     <string name="deleteAgentFeedback">Agent deleted</string>
+    <string name="deleteQuizzesFeedback">Quizzes deleted</string>
     <string name="includeInBunchOk">Acceptation included in bunch</string>
     <string name="deleteAcceptationFromBunchFeedback">Acceptation remove from bunch %s</string>
     <string name="includeInBunchKo">Unable to include acceptation in bunch</string>
