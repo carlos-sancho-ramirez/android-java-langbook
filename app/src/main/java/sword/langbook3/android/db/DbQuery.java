@@ -2,12 +2,14 @@ package sword.langbook3.android.db;
 
 import java.util.ArrayList;
 
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableSet;
 
@@ -61,7 +63,7 @@ public final class DbQuery implements DbView {
         }
 
         if (columnValueMatchPairs == null) {
-            columnValueMatchPairs = ImmutableSet.empty();
+            columnValueMatchPairs = ImmutableHashSet.empty();
         }
 
         for (JoinColumnPair pair : columnValueMatchPairs) {
@@ -381,7 +383,7 @@ public final class DbQuery implements DbView {
         private final ArrayList<DbView> _tables = new ArrayList<>();
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
         private final MutableIntKeyMap<Restriction> _restrictions = MutableIntKeyMap.empty();
-        private final MutableSet<JoinColumnPair> _columnValueMatchPairs = MutableSet.empty();
+        private final MutableSet<JoinColumnPair> _columnValueMatchPairs = MutableHashSet.empty();
         private int[] _groupBy;
         private Ordered[] _orderBy;
         private int _joinColumnCount;

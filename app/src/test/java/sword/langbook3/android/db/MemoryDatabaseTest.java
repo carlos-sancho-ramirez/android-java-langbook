@@ -2,6 +2,7 @@ package sword.langbook3.android.db;
 
 import org.junit.Test;
 
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
@@ -412,7 +413,7 @@ public final class MemoryDatabaseTest {
             final DbQuery query = queryBuilder.where(writtenColumnIndex, "big")
                     .select(wordTable.columns().size() + writtenColumnIndex);
             final DbResult result = state.db.select(query);
-            final ImmutableSet.Builder<String> builder = new ImmutableSet.Builder<>();
+            final ImmutableSet.Builder<String> builder = new ImmutableHashSet.Builder<>();
             try {
                 while (result.hasNext()) {
                     builder.add(result.next().get(0).toText());
@@ -426,7 +427,7 @@ public final class MemoryDatabaseTest {
         }
 
         void assertTranslations() {
-            final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEsBig).add(wordEsHuge).build();
+            final ImmutableSet<String> expectedWords = new ImmutableHashSet.Builder<String>().add(wordEsBig).add(wordEsHuge).build();
             performAssertion(expectedWords, builder -> {
                 final int languageColumnIndex = wordTable.columns().indexOf(languageColumn);
                 builder.whereColumnValueDiffer(languageColumnIndex, wordTable.columns().size() + languageColumnIndex);
@@ -434,7 +435,7 @@ public final class MemoryDatabaseTest {
         }
 
         void assertSynonyms() {
-            final ImmutableSet<String> expectedWords = new ImmutableSet.Builder<String>().add(wordEnHuge).build();
+            final ImmutableSet<String> expectedWords = new ImmutableHashSet.Builder<String>().add(wordEnHuge).build();
             performAssertion(expectedWords, builder -> {
                 final int languageColumnIndex = wordTable.columns().indexOf(languageColumn);
                 final int writtenColumnIndex = wordTable.columns().indexOf(writtenColumn);

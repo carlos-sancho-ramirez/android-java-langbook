@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import sword.collections.Function;
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -262,7 +263,7 @@ public final class LangbookReadableDatabase {
                         conversions.getSourceAlphabetColumnIndex(),
                         conversions.getTargetAlphabetColumnIndex());
 
-        final ImmutableSet.Builder<ImmutableIntPair> builder = new ImmutableSet.Builder<>();
+        final ImmutableSet.Builder<ImmutableIntPair> builder = new ImmutableHashSet.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final DbResult.Row row = result.next();

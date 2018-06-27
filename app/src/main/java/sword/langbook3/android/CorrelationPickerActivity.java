@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -116,10 +117,10 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         final IntResultFunction<String> lengthFunc = text -> (text == null)? 0 : text.length();
         final ImmutableIntPairMap lengths = global.map(lengthFunc);
         if (globalSize == 0 || lengths.anyMatch(length -> length <= 0)) {
-            return ImmutableSet.empty();
+            return ImmutableHashSet.empty();
         }
 
-        final ImmutableSet.Builder<ImmutableList<ImmutableIntKeyMap<String>>> builder = new ImmutableSet.Builder<>();
+        final ImmutableSet.Builder<ImmutableList<ImmutableIntKeyMap<String>>> builder = new ImmutableHashSet.Builder<>();
         builder.add(new ImmutableList.Builder<ImmutableIntKeyMap<String>>().add(global).build());
 
         if (globalSize > 1) {
@@ -129,7 +130,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     private ImmutableIntValueMap<ImmutableIntKeyMap<String>> findExistingCorrelations() {
-        final ImmutableSet.Builder<ImmutableIntKeyMap<String>> correlationsBuilder = new ImmutableSet.Builder<>();
+        final ImmutableSet.Builder<ImmutableIntKeyMap<String>> correlationsBuilder = new ImmutableHashSet.Builder<>();
         for (ImmutableList<ImmutableIntKeyMap<String>> option : _options) {
             for (ImmutableIntKeyMap<String> correlation : option) {
                 correlationsBuilder.add(correlation);
