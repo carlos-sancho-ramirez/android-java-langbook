@@ -40,6 +40,7 @@ import static sword.langbook3.android.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.LangbookDeleter.deleteQuiz;
 import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
+import static sword.langbook3.android.LangbookDeleter.deleteSearchHistoryForAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAnyAcceptationChange;
@@ -677,6 +678,7 @@ public final class LangbookDatabase {
         removeFromBunches(db, acceptation);
         removeFromStringQueryTable(db, acceptation);
         final boolean removed = LangbookDeleter.deleteAcceptation(db, acceptation);
+        deleteSearchHistoryForAcceptation(db, acceptation);
 
         final ImmutableIntPairMap affectedAgents = findAffectedAgentsByAnyAcceptationChangeWithTarget(db);
         for (int agent : affectedAgents.keySet()) {

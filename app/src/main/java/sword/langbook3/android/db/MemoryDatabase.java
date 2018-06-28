@@ -168,8 +168,10 @@ public final class MemoryDatabase implements Database {
 
     @Override
     public DbResult select(DbQuery query) {
-        if (!query.ordering().isEmpty()) {
-            throw new UnsupportedOperationException("Unimplemented");
+        for (DbQuery.Ordered ordered : query.ordering()) {
+            if (query.getJoinColumn(ordered.columnIndex).isText()) {
+                throw new UnsupportedOperationException("Unimplemented");
+            }
         }
 
         final DbView view = query.getView(0);
@@ -184,7 +186,7 @@ public final class MemoryDatabase implements Database {
 
         // Apply id restriction if found
         final ImmutableIntKeyMap<DbQuery.Restriction> restrictions = query.restrictions();
-        final MutableList<ImmutableList<Object>> unselectedResult;
+        MutableList<ImmutableList<Object>> unselectedResult;
         final MutableList.Builder<ImmutableList<Object>> unselectedResultBuilder = new MutableList.Builder<>();
         if (restrictions.keySet().contains(0)) {
             final int id = restrictions.get(0).value.toInt();
@@ -204,6 +206,25 @@ public final class MemoryDatabase implements Database {
         applyJoins(unselectedResult, query);
         applyColumnMatchRestrictions(unselectedResult, query.columnValueMatchPairs());
         applyRestrictions(unselectedResult, restrictions);
+
+        final ImmutableList<DbQuery.Ordered> ordering = query.ordering();
+        unselectedResult.sort((a,b) -> {
+            for (DbQuery.Ordered ordered : ordering) {
+                // Assumed that they are numeric fields. Other types are not supported
+                final int aValue = (Integer) a.get(ordered.columnIndex);
+                final int bValue = (Integer) b.get(ordered.columnIndex);
+
+                if (!ordered.descendantOrder && aValue < bValue || ordered.descendantOrder && bValue < aValue) {
+                    return true;
+                }
+
+                if (!ordered.descendantOrder && aValue > bValue || ordered.descendantOrder && bValue > aValue) {
+                    return false;
+                }
+            }
+
+            return false;
+        });
 
         // Apply column selection
         final int selectionCount = query.selection().size();

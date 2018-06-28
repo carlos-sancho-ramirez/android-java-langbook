@@ -17,6 +17,7 @@ import sword.langbook3.android.db.MemoryDatabase;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
@@ -26,7 +27,9 @@ import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
+import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
 public final class LangbookDatabaseTest {
@@ -842,5 +845,38 @@ public final class LangbookDatabaseTest {
 
         removeAcceptationFromBunch(db, myVocabularyConcept, esAcceptation);
         assertFalse(db.select(knowledgeQuery).hasNext());
+    }
+
+    @Test
+    public void testSearchHistory() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int concept = alphabet + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final String text = "cantar";
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, text)
+                .build();
+        final int correlationId = insertCorrelation(db, correlation);
+        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int acceptation = addAcceptation(db, concept, correlationArrayId);
+        assertTrue(getSearchHistory(db).isEmpty());
+
+        insertSearchHistoryEntry(db, acceptation);
+        final ImmutableList<SearchResult> history = getSearchHistory(db);
+        assertEquals(1, history.size());
+
+        final SearchResult expectedEntry = new SearchResult(text, text, SearchResult.Types.ACCEPTATION, acceptation, acceptation);
+        assertEquals(expectedEntry, history.get(0));
+
+        removeAcceptation(db, acceptation);
+
+        final LangbookDbSchema.SearchHistoryTable table = LangbookDbSchema.Tables.searchHistory;
+        assertFalse(db.select(new DbQuery.Builder(table).select(table.getIdColumnIndex())).hasNext());
     }
 }

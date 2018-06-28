@@ -109,4 +109,13 @@ public final class LangbookDeleter {
 
         return db.delete(query);
     }
+
+    public static boolean deleteSearchHistoryForAcceptation(Deleter db, int acceptationId) {
+        final LangbookDbSchema.SearchHistoryTable table = LangbookDbSchema.Tables.searchHistory;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getAcceptation(), acceptationId)
+                .build();
+
+        return db.delete(query);
+    }
 }
