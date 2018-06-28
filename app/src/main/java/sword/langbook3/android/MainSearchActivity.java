@@ -9,11 +9,9 @@ import android.view.View;
 import android.widget.AdapterView;
 
 import sword.collections.ImmutableList;
-import sword.collections.MutableIntSet;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.LangbookDatabase.updateSearchHistory;
+import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -72,28 +70,6 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     ImmutableList<SearchResult> noQueryResults() {
-        final LangbookDbSchema.SearchHistoryTable history = LangbookDbSchema.Tables.searchHistory;
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        final int offset = history.columns().size();
-        final DbQuery query = new DbQuery.Builder(history)
-                .join(strings, history.getAcceptation(), strings.getDynamicAcceptationColumnIndex())
-                .orderBy(new DbQuery.Ordered(history.getIdColumnIndex(), true))
-                .select(history.getAcceptation(),
-                        offset + strings.getMainAcceptationColumnIndex(),
-                        offset + strings.getStringColumnIndex(),
-                        offset + strings.getMainStringColumnIndex());
-
-        final MutableIntSet acceptations = MutableIntSet.empty();
-        final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
-
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
-            final int acceptation = row.get(0).toInt();
-            if (!acceptations.contains(acceptation)) {
-                acceptations.add(acceptation);
-                builder.add(new SearchResult(row.get(2).toText(), row.get(3).toText(), SearchResult.Types.ACCEPTATION, row.get(1).toInt(), acceptation));
-            }
-        }
-
-        return builder.build();
+        return getSearchHistory(DbManager.getInstance().getDatabase());
     }
 }

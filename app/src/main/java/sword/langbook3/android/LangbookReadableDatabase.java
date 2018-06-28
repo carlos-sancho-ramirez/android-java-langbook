@@ -18,6 +18,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbQuery;
@@ -797,6 +798,35 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableList<SearchResult> getSearchHistory(DbExporter.Database db) {
+        final LangbookDbSchema.SearchHistoryTable history = LangbookDbSchema.Tables.searchHistory;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final int offset = history.columns().size();
+        final DbQuery query = new DbQuery.Builder(history)
+                .join(strings, history.getAcceptation(), strings.getDynamicAcceptationColumnIndex())
+                .orderBy(new DbQuery.Ordered(history.getIdColumnIndex(), true))
+                .select(history.getAcceptation(),
+                        offset + strings.getMainAcceptationColumnIndex(),
+                        offset + strings.getStringColumnIndex(),
+                        offset + strings.getMainStringColumnIndex());
+
+        final MutableIntSet acceptations = MutableIntSet.empty();
+        final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
+
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int acceptation = row.get(0).toInt();
+                if (!acceptations.contains(acceptation)) {
+                    acceptations.add(acceptation);
+                    builder.add(new SearchResult(row.get(2).toText(), row.get(3).toText(), SearchResult.Types.ACCEPTATION, row.get(1).toInt(), acceptation));
+                }
             }
         }
 
