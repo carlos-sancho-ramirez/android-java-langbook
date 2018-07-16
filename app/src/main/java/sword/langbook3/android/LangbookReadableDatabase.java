@@ -1043,10 +1043,10 @@ public final class LangbookReadableDatabase {
         final int accOffset = ruledConcepts.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
         final DbQuery query = new DbQuery.Builder(ruledConcepts)
-                .join(acceptations, ruledConcepts.getIdColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(acceptations, ruledConcepts.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .orderBy(ruledConcepts.getRuleColumnIndex())
-                .select(ruledConcepts.getIdColumnIndex(),
+                .select(ruledConcepts.getRuleColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());
 
