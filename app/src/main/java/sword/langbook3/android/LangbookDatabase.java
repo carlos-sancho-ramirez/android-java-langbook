@@ -54,7 +54,6 @@ import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
-import static sword.langbook3.android.LangbookReadableDatabase.findSearchHistoryEntry;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
@@ -904,10 +903,8 @@ public final class LangbookDatabase {
     }
 
     public static void updateSearchHistory(Database db, int acceptation) {
-        final Integer id = findSearchHistoryEntry(db, acceptation);
-        if (id == null) {
-            insertSearchHistoryEntry(db, acceptation);
-        }
+        deleteSearchHistoryForAcceptation(db, acceptation);
+        insertSearchHistoryEntry(db, acceptation);
     }
 
     public static void removeQuiz(Database db, int quizId) {
