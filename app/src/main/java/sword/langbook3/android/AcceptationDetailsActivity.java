@@ -958,7 +958,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 _shouldShowBunchChildrenQuizMenuOption = true;
             }
 
-            result.add(new AcceptationNavigableItem(r.acceptation, r.text, r.dynamic));
+            result.add(new AcceptationNavigableItem(AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED, r.acceptation, r.text, r.dynamic));
         }
 
         boolean agentFound = false;
@@ -1030,6 +1030,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     showDeleteFromBunchConfirmationDialog();
                     break;
 
+                case IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH:
+                    showDeleteAcceptationFromBunchConfirmationDialog();
+                    break;
+
                 case IntrinsicStates.LINKING_CONCEPT:
                     showLinkModeSelectorDialog();
                     break;
@@ -1059,6 +1063,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             final int bunch = conceptFromAcceptation(DbManager.getInstance().getDatabase(), it.getId());
             _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText().toString()));
             showDeleteFromBunchConfirmationDialog();
+            return true;
+        }
+        else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED) {
+            AcceptationNavigableItem it = (AcceptationNavigableItem) item;
+            _state.setDeleteAcceptationFromBunch(new DisplayableItem(it.getId(), it.getText().toString()));
+            showDeleteAcceptationFromBunchConfirmationDialog();
             return true;
         }
 
@@ -1102,11 +1112,20 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void showDeleteFromBunchConfirmationDialog() {
-        final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _state.getDeleteBunchTarget().text);
+        final String message = getString(R.string.deleteFromBunchConfirmationText, _state.getDeleteTarget().text);
         new AlertDialog.Builder(this)
                 .setMessage(message)
                 .setPositiveButton(R.string.menuItemDelete, this)
-                .setOnCancelListener(dialog -> _state.clearDeleteBunchTarget())
+                .setOnCancelListener(dialog -> _state.clearDeleteTarget())
+                .create().show();
+    }
+
+    private void showDeleteAcceptationFromBunchConfirmationDialog() {
+        final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _state.getDeleteTarget().text);
+        new AlertDialog.Builder(this)
+                .setMessage(message)
+                .setPositiveButton(R.string.menuItemDelete, this)
+                .setOnCancelListener(dialog -> _state.clearDeleteTarget())
                 .create().show();
     }
 
@@ -1139,16 +1158,29 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                final DisplayableItem item = _state.getDeleteBunchTarget();
+                final DisplayableItem item = _state.getDeleteTarget();
                 final int bunch = item.id;
                 final String bunchText = item.text;
-                _state.clearDeleteBunchTarget();
+                _state.clearDeleteTarget();
 
                 if (!removeAcceptationFromBunch(DbManager.getInstance().getDatabase(), _staticAcceptation, bunch)) {
                     throw new AssertionError();
                 }
 
-                showFeedback(getString(R.string.deleteAcceptationFromBunchFeedback, bunchText));
+                showFeedback(getString(R.string.deleteFromBunchFeedback, bunchText));
+                break;
+
+            case IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH:
+                final DisplayableItem itemToDelete = _state.getDeleteTarget();
+                final int accIdToDelete = itemToDelete.id;
+                final String accToDeleteText = itemToDelete.text;
+                _state.clearDeleteTarget();
+
+                if (!removeAcceptationFromBunch(DbManager.getInstance().getDatabase(), _concept, accIdToDelete)) {
+                    throw new AssertionError();
+                }
+
+                showFeedback(getString(R.string.deleteAcceptationFromBunchFeedback, accToDeleteText));
                 break;
 
             default:

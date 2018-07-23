@@ -17,6 +17,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     public interface ItemTypes {
         int UNKNOWN = 0;
         int BUNCH_WHERE_INCLUDED = 1;
+        int ACCEPTATION_INCLUDED = 2;
     }
 
     public static abstract class Item {

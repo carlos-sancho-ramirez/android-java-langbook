@@ -8,8 +8,9 @@ public final class AcceptationDetailsActivityState implements Parcelable {
     public interface IntrinsicStates {
         int NORMAL = 0;
         int DELETE_ACCEPTATION = 1;
-        int DELETING_FROM_BUNCH = 2;
-        int LINKING_CONCEPT = 3;
+        int DELETING_ACCEPTATION_FROM_BUNCH = 2;
+        int DELETING_FROM_BUNCH = 3;
+        int LINKING_CONCEPT = 4;
     }
 
     private int _intrinsicState = IntrinsicStates.NORMAL;
@@ -18,8 +19,8 @@ public final class AcceptationDetailsActivityState implements Parcelable {
     private int _linkedAcceptation;
     private int _linkDialogCheckedOption;
 
-    // Only relevant for IntrinsicState DELETING_FROM_BUNCH
-    private DisplayableItem _deleteBunchTarget;
+    // Relevant for IntrinsicStates DELETING_FROM_BUNCH (id is bunch) and DELETING_ACCEPTATION_FROM_BUNCH (id is acceptation)
+    private DisplayableItem _deleteTarget;
 
     public AcceptationDetailsActivityState() {
     }
@@ -33,7 +34,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                _deleteBunchTarget = DisplayableItem.CREATOR.createFromParcel(in);
+                _deleteTarget = DisplayableItem.CREATOR.createFromParcel(in);
                 break;
         }
     }
@@ -48,7 +49,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                _deleteBunchTarget.writeToParcel(dest, flags);
+                _deleteTarget.writeToParcel(dest, flags);
                 break;
         }
     }
@@ -60,6 +61,13 @@ public final class AcceptationDetailsActivityState implements Parcelable {
 
     private void assertState(int intrinsicState) {
         if (_intrinsicState != intrinsicState) {
+            throw new IllegalStateException();
+        }
+    }
+
+    private void assertDeletingStateWithTarget() {
+        if (_intrinsicState != IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH &&
+                _intrinsicState != IntrinsicStates.DELETING_FROM_BUNCH) {
             throw new IllegalStateException();
         }
     }
@@ -115,17 +123,27 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         }
 
         assertState(IntrinsicStates.NORMAL);
-        _deleteBunchTarget = item;
+        _deleteTarget = item;
         _intrinsicState = IntrinsicStates.DELETING_FROM_BUNCH;
     }
 
-    DisplayableItem getDeleteBunchTarget() {
-        assertState(IntrinsicStates.DELETING_FROM_BUNCH);
-        return _deleteBunchTarget;
+    void setDeleteAcceptationFromBunch(DisplayableItem item) {
+        if (item == null) {
+            throw new IllegalArgumentException();
+        }
+
+        assertState(IntrinsicStates.NORMAL);
+        _deleteTarget = item;
+        _intrinsicState = IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH;
     }
 
-    void clearDeleteBunchTarget() {
-        assertState(IntrinsicStates.DELETING_FROM_BUNCH);
+    DisplayableItem getDeleteTarget() {
+        assertDeletingStateWithTarget();
+        return _deleteTarget;
+    }
+
+    void clearDeleteTarget() {
+        assertDeletingStateWithTarget();
         _intrinsicState = IntrinsicStates.NORMAL;
     }
 
