@@ -67,7 +67,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
-    private static final int REQUEST_CODE_PICK_BUNCH = 2;
+    private static final int REQUEST_CODE_PICK_ACCEPTATION = 2;
+    private static final int REQUEST_CODE_PICK_BUNCH = 3;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -1099,6 +1100,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _concept);
                 return true;
 
+            case R.id.menuItemIncludeAcceptation:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION);
+                return true;
+
             case R.id.menuItemIncludeInBunch:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BUNCH);
                 return true;
@@ -1208,6 +1213,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     _state.setLinkedAcceptation(data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0));
                     showLinkModeSelectorDialog();
                 }
+            }
+            else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
+                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                final Database db = DbManager.getInstance().getDatabase();
+                final int message = addAcceptationInBunch(db, _concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);

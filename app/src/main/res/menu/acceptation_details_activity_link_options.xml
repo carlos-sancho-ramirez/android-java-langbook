@@ -6,6 +6,11 @@
         android:showAsAction="never"/>
 
     <item
+        android:id="@+id/menuItemIncludeAcceptation"
+        android:title="@string/menuItemIncludeAcceptation"
+        android:showAsAction="never"/>
+
+    <item
         android:id="@+id/menuItemIncludeInBunch"
         android:title="@string/menuItemIncludeInBunch"
         android:showAsAction="never"/>
