@@ -848,6 +848,36 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
+    public void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int kanjiAlphabet = alphabet + 1;
+        final int kanaAlphabet = kanjiAlphabet + 1;
+        final int myVocabularyConcept = kanaAlphabet + 1;
+        final int arVerbConcept = myVocabularyConcept + 1;
+        final int actionConcept = arVerbConcept + 1;
+        final int nominalizationRule = actionConcept + 1;
+        final int pluralRule = nominalizationRule + 1;
+        final int singConcept = pluralRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int esAcceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
+
+        addAcceptationInBunch(db, myVocabularyConcept, esAcceptation);
+        addAcceptationInBunch(db, myVocabularyConcept, esAcceptation);
+
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), myVocabularyConcept)
+                .select(table.getAcceptationColumnIndex());
+        assertEquals(esAcceptation, selectSingleRow(db, query).get(0).toInt());
+    }
+
+    @Test
     public void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
 

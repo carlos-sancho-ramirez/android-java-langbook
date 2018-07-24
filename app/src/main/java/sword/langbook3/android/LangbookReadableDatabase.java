@@ -277,6 +277,17 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .where(table.getAcceptationColumnIndex(), acceptation)
+                .select(table.getIdColumnIndex());
+        try (DbResult result = db.select(query)) {
+            return result.hasNext();
+        }
+    }
+
     public static ImmutableList<ImmutablePair<String, String>> getConversion(DbExporter.Database db, ImmutableIntPair pair) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
         final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;

@@ -57,6 +57,7 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbUpdateQuery;
 
+import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -1212,31 +1213,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
                 final Database db = DbManager.getInstance().getDatabase();
                 final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
-                final int message = includeInBunch(pickedBunch)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                final int message = addAcceptationInBunch(db, pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }
         }
-    }
-
-    private boolean includeInBunch(int bunch) {
-        if (bunch == 0 || _bunchesWhereIncluded.contains(bunch)) {
-            return false;
-        }
-
-        final BunchAcceptationsTable table = Tables.bunchAcceptations;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getBunchColumnIndex(), bunch)
-                .put(table.getAgentSetColumnIndex(), 0)
-                .put(table.getAcceptationColumnIndex(), _staticAcceptation)
-                .build();
-
-        final boolean included = DbManager.getInstance().getDatabase().insert(query) != null;
-        if (included) {
-            _bunchesWhereIncluded = _bunchesWhereIncluded.add(bunch);
-            // TODO: UI should be updated
-        }
-
-        return included;
     }
 
     private void showLinkModeSelectorDialog() {

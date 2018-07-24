@@ -69,6 +69,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelation
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
+import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
@@ -720,7 +721,23 @@ public final class LangbookDatabase {
         }
     }
 
-    public static void addAcceptationInBunch(Database db, int bunch, int acceptation) {
+    /**
+     * Include an acceptation within a bunch in a secure way.
+     *
+     * This method will check that the given combination is not already registered in the database table,
+     * if so, it will do nothing and will return false.
+     *
+     * @param db Database to be used.
+     * @param bunch Bunch identifier.
+     * @param acceptation Acceptation identifier.
+     * @return Whether the acceptation has been properly included.
+     *         False if the acceptation is already included in the bunch.
+     */
+    public static boolean addAcceptationInBunch(Database db, int bunch, int acceptation) {
+        if (isAcceptationInBunch(db, bunch, acceptation)) {
+            return false;
+        }
+
         LangbookDbInserter.insertBunchAcceptation(db, bunch, acceptation, 0);
 
         final ImmutableIntSetBuilder allUpdatedBunchesBuilder = new ImmutableIntSetBuilder();
@@ -747,6 +764,7 @@ public final class LangbookDatabase {
         }
 
         recheckQuizzes(db, allUpdatedBunchesBuilder.build());
+        return true;
     }
 
     public static boolean removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
