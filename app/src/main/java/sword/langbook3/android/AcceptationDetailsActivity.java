@@ -1062,15 +1062,19 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final AcceptationDetailsAdapter.Item item = _listAdapter.getItem(position);
         if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED) {
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
-            final int bunch = conceptFromAcceptation(DbManager.getInstance().getDatabase(), it.getId());
-            _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText().toString()));
-            showDeleteFromBunchConfirmationDialog();
+            if (!it.isDynamic()) {
+                final int bunch = conceptFromAcceptation(DbManager.getInstance().getDatabase(), it.getId());
+                _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText().toString()));
+                showDeleteFromBunchConfirmationDialog();
+            }
             return true;
         }
         else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED) {
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
-            _state.setDeleteAcceptationFromBunch(new DisplayableItem(it.getId(), it.getText().toString()));
-            showDeleteAcceptationFromBunchConfirmationDialog();
+            if (!it.isDynamic()) {
+                _state.setDeleteAcceptationFromBunch(new DisplayableItem(it.getId(), it.getText().toString()));
+                showDeleteAcceptationFromBunchConfirmationDialog();
+            }
             return true;
         }
 

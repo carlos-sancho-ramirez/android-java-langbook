@@ -84,18 +84,18 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
     static final class AcceptationNavigableItem extends Item {
 
         private final int _id;
-        private final int _textColor;
+        private final boolean _dynamic;
 
         AcceptationNavigableItem(int id, CharSequence text, boolean dynamic) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
-            _textColor = dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
+            _dynamic = dynamic;
         }
 
         AcceptationNavigableItem(int itemType, int id, CharSequence text, boolean dynamic) {
             super(itemType, text);
             _id = id;
-            _textColor = dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
+            _dynamic = dynamic;
         }
 
         @Override
@@ -108,13 +108,17 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
             return true;
         }
 
+        boolean isDynamic() {
+            return _dynamic;
+        }
+
         int getId() {
             return _id;
         }
 
         @Override
         int getTextColorRes() {
-            return _textColor;
+            return _dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
         }
     }
 
