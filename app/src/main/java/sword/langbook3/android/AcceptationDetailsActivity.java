@@ -292,40 +292,42 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         Cursor cursor = db.rawQuery(
                 "SELECT" +
-                        " J2." + idColumnName +
+                        " J1." + bunchConcepts.columns().get(bunchConcepts.getConceptColumnIndex()).name() +
+                        ",J2." + idColumnName +
                         ",J3." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
                         ",J3." + strings.columns().get(strings.getStringColumnIndex()).name() +
                 " FROM " + acceptations.name() + " AS J0" +
                         " JOIN " + bunchConcepts.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + bunchConcepts.columns().get(bunchConcepts.getBunchColumnIndex()).name() +
                         " JOIN " + acceptations.name() + " AS J2 ON J1." + bunchConcepts.columns().get(bunchConcepts.getConceptColumnIndex()).name() + "=J2." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
                         " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " JOIN " + alphabets.name() + " AS J4 ON J3." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=J4." + idColumnName +
                 " WHERE J0." + idColumnName + "=?" +
-                        " AND J4." + alphabets.columns().get(alphabets.getLanguageColumnIndex()).name() + "=?" +
-                " ORDER BY J2." + idColumnName,
-                new String[] { Integer.toString(acceptation), Integer.toString(language) });
+                " ORDER BY J1." + bunchConcepts.columns().get(bunchConcepts.getConceptColumnIndex()).name(),
+                new String[] { Integer.toString(acceptation) });
 
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
                     final ArrayList<AcceptationResult> result = new ArrayList<>();
-                    int acc = cursor.getInt(0);
-                    int alphabet = cursor.getInt(1);
-                    String text = cursor.getString(2);
+                    int concept = cursor.getInt(0);
+                    int acc = cursor.getInt(1);
+                    int alphabet = cursor.getInt(2);
+                    String text = cursor.getString(3);
 
                     while (cursor.moveToNext()) {
-                        if (cursor.getInt(0) == acc) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(1) == preferredAlphabet) {
+                        if (cursor.getInt(0) == concept) {
+                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
+                                acc = cursor.getInt(1);
                                 alphabet = preferredAlphabet;
-                                text = cursor.getString(2);
+                                text = cursor.getString(3);
                             }
                         }
                         else {
                             result.add(new AcceptationResult(acc, text));
 
-                            acc = cursor.getInt(0);
-                            alphabet = cursor.getInt(1);
-                            text = cursor.getString(2);
+                            concept = cursor.getInt(0);
+                            acc = cursor.getInt(1);
+                            alphabet = cursor.getInt(2);
+                            text = cursor.getString(3);
                         }
                     }
 
