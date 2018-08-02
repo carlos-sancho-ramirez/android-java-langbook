@@ -8,9 +8,10 @@ public final class AcceptationDetailsActivityState implements Parcelable {
     public interface IntrinsicStates {
         int NORMAL = 0;
         int DELETE_ACCEPTATION = 1;
-        int DELETING_ACCEPTATION_FROM_BUNCH = 2;
-        int DELETING_FROM_BUNCH = 3;
-        int LINKING_CONCEPT = 4;
+        int DELETE_SUPERTYPE = 2;
+        int DELETING_ACCEPTATION_FROM_BUNCH = 3;
+        int DELETING_FROM_BUNCH = 4;
+        int LINKING_CONCEPT = 5;
     }
 
     private int _intrinsicState = IntrinsicStates.NORMAL;
@@ -83,6 +84,16 @@ public final class AcceptationDetailsActivityState implements Parcelable {
 
     void clearDeletingAcceptation() {
         assertState(IntrinsicStates.DELETE_ACCEPTATION);
+        _intrinsicState = IntrinsicStates.NORMAL;
+    }
+
+    void setDeletingSupertype() {
+        assertState(IntrinsicStates.NORMAL);
+        _intrinsicState = IntrinsicStates.DELETE_SUPERTYPE;
+    }
+
+    void clearDeletingSupertype() {
+        assertState(IntrinsicStates.DELETE_SUPERTYPE);
         _intrinsicState = IntrinsicStates.NORMAL;
     }
 

@@ -60,6 +60,7 @@ import sword.langbook3.android.db.DbUpdateQuery;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
+import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
@@ -1031,6 +1032,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     showDeleteConfirmationDialog();
                     break;
 
+                case IntrinsicStates.DELETE_SUPERTYPE:
+                    showDeleteSupertypeConfirmationDialog();
+                    break;
+
                 case IntrinsicStates.DELETING_FROM_BUNCH:
                     showDeleteFromBunchConfirmationDialog();
                     break;
@@ -1096,6 +1101,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (_definition == null) {
             inflater.inflate(R.menu.acceptation_details_activity_include_supertype, menu);
         }
+        else {
+            inflater.inflate(R.menu.acceptation_details_activity_delete_supertype, menu);
+        }
 
         inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
         return true;
@@ -1128,6 +1136,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             case R.id.menuItemIncludeSupertype:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_SUPERTYPE);
                 return true;
+
+            case R.id.menuItemDeleteSupertype:
+                _state.setDeletingSupertype();
+                showDeleteSupertypeConfirmationDialog();
+                return true;
         }
 
         return false;
@@ -1159,11 +1172,27 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 .create().show();
     }
 
+    private void showDeleteSupertypeConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.deleteSupertypeConfirmationText)
+                .setPositiveButton(R.string.menuItemDelete, this)
+                .setOnCancelListener(dialog -> _state.clearDeletingSupertype())
+                .create().show();
+    }
+
     @Override
     public void onClick(DialogInterface dialog, int which) {
         switch (_state.getIntrinsicState()) {
             case IntrinsicStates.DELETE_ACCEPTATION:
                 deleteAcceptation();
+                break;
+
+            case IntrinsicStates.DELETE_SUPERTYPE:
+                _state.clearDeletingSupertype();
+                if (!deleteBunchConceptForConcept(DbManager.getInstance().getDatabase(), _concept)) {
+                    throw new AssertionError();
+                }
+                showFeedback(getString(R.string.deleteSupertypeFeedback));
                 break;
 
             case IntrinsicStates.LINKING_CONCEPT:

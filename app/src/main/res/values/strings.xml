@@ -20,9 +20,11 @@
     <string name="menuItemIncludeAcceptation">Include acceptation</string>
     <string name="menuItemIncludeInBunch">Include in bunch</string>
     <string name="menuItemIncludeSupertype">Include supertype</string>
+    <string name="menuItemDeleteSupertype">Delete supertype</string>
     <string name="menuItemDelete">Delete</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
+    <string name="deleteSupertypeConfirmationText">Are you sure that you want to remove this acceptation for its definition type?</string>
     <string name="deleteFromBunchConfirmationText">Are you sure that you want to remove this acceptation from bunch %s?</string>
     <string name="deleteAcceptationFromBunchConfirmationText">Are you sure that you want to remove acceptation %s from this bunch?</string>
     <string name="deleteAgentConfirmationText">Are you sure that you want to remove this agent? All its effects will be reverted.</string>
@@ -96,6 +98,7 @@
     <string name="deleteQuizzesFeedback">Quizzes deleted</string>
     <string name="includeInBunchOk">Acceptation included in bunch</string>
     <string name="includeSupertypeOk">Included definition</string>
+    <string name="deleteSupertypeFeedback">Removed definition type for this acceptation</string>
     <string name="deleteFromBunchFeedback">Acceptation removed from bunch %s</string>
     <string name="deleteAcceptationFromBunchFeedback">Acceptation %s removed from this bunch</string>
     <string name="includeInBunchKo">Unable to include acceptation in bunch</string>

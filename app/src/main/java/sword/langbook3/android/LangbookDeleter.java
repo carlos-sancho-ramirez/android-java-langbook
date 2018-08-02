@@ -38,6 +38,15 @@ public final class LangbookDeleter {
         return db.delete(query);
     }
 
+    public static boolean deleteBunchConceptForConcept(Deleter db, int concept) {
+        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), concept)
+                .build();
+
+        return db.delete(query);
+    }
+
     public static boolean deleteBunchAcceptation(Deleter db, int bunch, int acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
