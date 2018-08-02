@@ -59,6 +59,7 @@ import sword.langbook3.android.db.DbUpdateQuery;
 
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
+import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
@@ -69,6 +70,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 2;
     private static final int REQUEST_CODE_PICK_BUNCH = 3;
+    private static final int REQUEST_CODE_PICK_SUPERTYPE = 4;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -87,6 +89,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private int _concept;
 
     private ImmutableIntSet _bunchesWhereIncluded;
+    private AcceptationResult _definition;
 
     private AcceptationDetailsActivityState _state;
 
@@ -882,9 +885,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final SparseArray<String> languageStrs = new SparseArray<>();
         languageStrs.put(languageResult.language, languageResult.text);
 
-        final AcceptationResult definition = readDefinition(db, staticAcceptation);
-        if (definition != null) {
-            result.add(new AcceptationNavigableItem(definition.acceptation, "Type of: " + definition.text, false));
+        _definition = readDefinition(db, staticAcceptation);
+        if (_definition != null) {
+            result.add(new AcceptationNavigableItem(_definition.acceptation, "Type of: " + _definition.text, false));
         }
 
         boolean subTypeFound = false;
@@ -1089,6 +1092,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
+
+        if (_definition == null) {
+            inflater.inflate(R.menu.acceptation_details_activity_include_supertype, menu);
+        }
+
         inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
         return true;
     }
@@ -1115,6 +1123,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             case R.id.menuItemDeleteAcceptation:
                 _state.setDeletingAcceptation();
                 showDeleteConfirmationDialog();
+                return true;
+
+            case R.id.menuItemIncludeSupertype:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_SUPERTYPE);
                 return true;
         }
 
@@ -1230,6 +1242,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
                 final int message = addAcceptationInBunch(db, pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
+            }
+            else if (requestCode == REQUEST_CODE_PICK_SUPERTYPE) {
+                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                final Database db = DbManager.getInstance().getDatabase();
+                final int pickedConcept = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
+                insertBunchConcept(db, pickedConcept, _concept);
+                showFeedback(getString(R.string.includeSupertypeOk));
             }
         }
     }
