@@ -95,6 +95,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private AcceptationDetailsActivityState _state;
 
     private boolean _shouldShowBunchChildrenQuizMenuOption;
+    private ListView _listView;
     private AcceptationDetailsAdapter _listAdapter;
 
     public static void open(Context context, int staticAcceptation, int dynamicAcceptation) {
@@ -1000,6 +1001,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         return result.toArray(new AcceptationDetailsAdapter.Item[result.size()]);
     }
 
+    private void updateAdapter() {
+        _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(_staticAcceptation));
+        _listView.setAdapter(_listAdapter);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -1019,13 +1025,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
         _concept = conceptFromAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation);
-        if (_concept != 0) {
-            _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(_staticAcceptation));
+        _listView = findViewById(R.id.listView);
 
-            ListView listView = findViewById(R.id.listView);
-            listView.setAdapter(_listAdapter);
-            listView.setOnItemClickListener(this);
-            listView.setOnItemLongClickListener(this);
+        if (_concept != 0) {
+            updateAdapter();
+            _listView.setOnItemClickListener(this);
+            _listView.setOnItemLongClickListener(this);
 
             switch (_state.getIntrinsicState()) {
                 case IntrinsicStates.DELETE_ACCEPTATION:
@@ -1192,7 +1197,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 if (!deleteBunchConceptForConcept(DbManager.getInstance().getDatabase(), _concept)) {
                     throw new AssertionError();
                 }
+                updateAdapter();
                 showFeedback(getString(R.string.deleteSupertypeFeedback));
+                invalidateOptionsMenu();
                 break;
 
             case IntrinsicStates.LINKING_CONCEPT:
@@ -1206,6 +1213,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     showFeedback("Acceptation linked");
                 }
                 _state.clearLinkedAcceptation();
+                updateAdapter();
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
@@ -1218,6 +1226,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     throw new AssertionError();
                 }
 
+                updateAdapter();
                 showFeedback(getString(R.string.deleteFromBunchFeedback, bunchText));
                 break;
 
@@ -1231,6 +1240,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     throw new AssertionError();
                 }
 
+                updateAdapter();
                 showFeedback(getString(R.string.deleteAcceptationFromBunchFeedback, accToDeleteText));
                 break;
 
@@ -1258,11 +1268,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     _state.setLinkedAcceptation(data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0));
                     showLinkModeSelectorDialog();
                 }
+                else {
+                    updateAdapter();
+                }
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
                 final Database db = DbManager.getInstance().getDatabase();
                 final int message = addAcceptationInBunch(db, _concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                updateAdapter();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
@@ -1270,6 +1284,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final Database db = DbManager.getInstance().getDatabase();
                 final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
                 final int message = addAcceptationInBunch(db, pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                updateAdapter();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_SUPERTYPE) {
@@ -1278,6 +1293,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final int pickedConcept = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
                 insertBunchConcept(db, pickedConcept, _concept);
                 showFeedback(getString(R.string.includeSupertypeOk));
+                updateAdapter();
+                invalidateOptionsMenu();
             }
         }
     }
