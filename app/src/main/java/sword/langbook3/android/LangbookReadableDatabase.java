@@ -976,6 +976,7 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(alphabets)
                 .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .orderBy(alphabets.getIdColumnIndex()) // I do not understand why, but it seems to be required to ensure order
                 .select(alphabets.getIdColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());
@@ -985,14 +986,12 @@ public final class LangbookReadableDatabase {
             if (result.hasNext()) {
                 DbResult.Row row = result.next();
                 int alphabet = row.get(0).toInt();
-                int textAlphabet = row.get(1).toInt();
                 String text = row.get(2).toText();
 
                 while (result.hasNext()) {
                     row = result.next();
                     if (alphabet == row.get(0).toInt()) {
-                        if (textAlphabet != preferredAlphabet && row.get(1).toInt() == preferredAlphabet) {
-                            textAlphabet = preferredAlphabet;
+                        if (row.get(1).toInt() == preferredAlphabet) {
                             text = row.get(2).toText();
                         }
                     }
@@ -1000,7 +999,6 @@ public final class LangbookReadableDatabase {
                         builder.put(alphabet, text);
 
                         alphabet = row.get(0).toInt();
-                        textAlphabet = row.get(1).toInt();
                         text = row.get(2).toText();
                     }
                 }
