@@ -1010,6 +1010,40 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntKeyMap<String> readAlphabetsForLanguage(DbExporter.Database db, int language, int preferredAlphabet) {
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = alphabets.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(alphabets)
+                .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(stringQueries, accOffset + acceptations.getIdColumnIndex(), stringQueries.getDynamicAcceptationColumnIndex())
+                .where(alphabets.getLanguageColumnIndex(), language)
+                .select(
+                   alphabets.getIdColumnIndex(),
+                        strOffset + stringQueries.getStringAlphabetColumnIndex(),
+                        strOffset + stringQueries.getStringColumnIndex());
+        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        try (DbResult r = db.select(query)) {
+            while (r.hasNext()) {
+                final DbResult.Row row = r.next();
+                final int id = row.get(0).toInt();
+                final int strAlphabet = row.get(1).toInt();
+
+                if (strAlphabet == preferredAlphabet || !foundAlphabets.contains(id)) {
+                    foundAlphabets.add(id);
+                    result.put(id, row.get(2).toText());
+                }
+            }
+        }
+
+        return result.toImmutable();
+    }
+
     public static ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, int preferredAlphabet) {
         final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;

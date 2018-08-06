@@ -20,6 +20,7 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntSet;
+import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
@@ -27,7 +28,7 @@ import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDatabase.convertText;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
+import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForLanguage;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
@@ -143,8 +144,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private void updateFields() {
         _formPanel.removeAllViews();
-        final ImmutableIntKeyMap<String> fieldNames = readAllAlphabets(DbManager.getInstance().getDatabase(),
-                LangbookPreferences.getInstance().getPreferredAlphabet());
+        final Database db = DbManager.getInstance().getDatabase();
+        final int language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
+        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final ImmutableIntKeyMap<String> fieldNames = readAlphabetsForLanguage(db, language, preferredAlphabet);
         final ImmutableIntPairMap fieldConversions = findConversions(fieldNames.keySet());
 
         final LayoutInflater inflater = getLayoutInflater();
