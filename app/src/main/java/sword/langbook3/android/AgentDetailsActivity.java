@@ -18,7 +18,6 @@ import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
-import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
@@ -41,6 +40,7 @@ public final class AgentDetailsActivity extends Activity {
         context.startActivity(intent);
     }
 
+    private int _preferredAlphabet;
     int _agentId;
 
     boolean _deleteDialogPresent;
@@ -80,6 +80,7 @@ public final class AgentDetailsActivity extends Activity {
             throw new IllegalArgumentException("agent identifier not provided");
         }
 
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _agentId = getIntent().getIntExtra(ArgKeys.AGENT, 0);
         if (savedInstanceState != null) {
             _deleteDialogPresent = savedInstanceState.getBoolean(SavedKeys.DELETE_DIALOG_PRESENT);
@@ -90,17 +91,17 @@ public final class AgentDetailsActivity extends Activity {
 
         final StringBuilder s = new StringBuilder("Agent #").append(_agentId);
         if (_targetBunch != NO_BUNCH) {
-            DisplayableItem targetResult = readConceptAcceptationAndText(db, _targetBunch, preferredAlphabet);
+            DisplayableItem targetResult = readConceptAcceptationAndText(db, _targetBunch, _preferredAlphabet);
             s.append("\nTarget: ").append(targetResult.text).append(" (").append(_targetBunch).append(')');
         }
 
         s.append("\nSource Bunch Set (").append(_sourceBunchSet).append("):");
-        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _sourceBunchSet, preferredAlphabet)) {
+        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _sourceBunchSet, _preferredAlphabet)) {
             s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
         s.append("\nDiff Bunch Set (").append(_diffBunchSet).append("):");
-        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _diffBunchSet, preferredAlphabet)) {
+        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _diffBunchSet, _preferredAlphabet)) {
             s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
@@ -111,7 +112,7 @@ public final class AgentDetailsActivity extends Activity {
             final int alphabet = matcher.keyAt(i);
             String alphabetText = alphabetTexts.get(alphabet, null);
             if (alphabetText == null) {
-                alphabetText = readConceptText(db, alphabet, preferredAlphabet);
+                alphabetText = readConceptText(db, alphabet, _preferredAlphabet);
                 alphabetTexts.put(alphabet, alphabetText);
             }
             s.append("\n  * ").append(alphabetText).append(" -> ").append(matcher.valueAt(i));
@@ -123,14 +124,14 @@ public final class AgentDetailsActivity extends Activity {
             final int alphabet = adder.keyAt(i);
             String alphabetText = alphabetTexts.get(alphabet, null);
             if (alphabetText == null) {
-                alphabetText = readConceptText(db, alphabet, preferredAlphabet);
+                alphabetText = readConceptText(db, alphabet, _preferredAlphabet);
                 alphabetTexts.put(alphabet, alphabetText);
             }
             s.append("\n  * ").append(alphabetText).append(" -> ").append(adder.valueAt(i));
         }
 
         if (_rule != 0) {
-            DisplayableItem ruleResult = readConceptAcceptationAndText(db, _rule, preferredAlphabet);
+            DisplayableItem ruleResult = readConceptAcceptationAndText(db, _rule, _preferredAlphabet);
             s.append("\nRule: ").append(ruleResult.text).append(" (").append(_rule).append(')');
         }
 

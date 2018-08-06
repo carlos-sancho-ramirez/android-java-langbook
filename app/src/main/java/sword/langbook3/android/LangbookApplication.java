@@ -8,5 +8,6 @@ public class LangbookApplication extends Application {
     public void onCreate() {
         super.onCreate();
         DbManager.createInstance(this);
+        LangbookPreferences.createInstance(this);
     }
 }

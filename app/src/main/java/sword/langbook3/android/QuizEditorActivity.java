@@ -35,10 +35,6 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         String QUIZ = BundleKeys.QUIZ;
     }
 
-    // Specifies the alphabet the user would like to see if possible.
-    // TODO: This should be a shared preference
-    static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
-
     public static void open(Activity activity, int requestCode, int bunch) {
         Intent intent = new Intent(activity, QuizEditorActivity.class);
         intent.putExtra(ArgKeys.BUNCH, bunch);
@@ -90,81 +86,6 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private static final class AdapterItem {
-
-        final int id;
-        final String name;
-
-        AdapterItem(int id, String name) {
-            if (name == null) {
-                throw new IllegalArgumentException();
-            }
-
-            this.id = id;
-            this.name = name;
-        }
-
-        @Override
-        public int hashCode() {
-            return id;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == null || !(other instanceof AdapterItem)) {
-                return false;
-            }
-
-            AdapterItem that = (AdapterItem) other;
-            return id == that.id && name.equals(that.name);
-        }
-    }
-
-    private static class AlphabetAdapter extends BaseAdapter {
-
-        private final AdapterItem[] _entries;
-        private LayoutInflater _inflater;
-
-        AlphabetAdapter(AdapterItem[] entries) {
-            _entries = entries;
-        }
-
-        @Override
-        public int getCount() {
-            return _entries.length;
-        }
-
-        @Override
-        public AdapterItem getItem(int position) {
-            return _entries[position];
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            final View view;
-            if (convertView == null) {
-                if (_inflater == null) {
-                    _inflater = LayoutInflater.from(parent.getContext());
-                }
-
-                view = _inflater.inflate(R.layout.quiz_type_item, parent, false);
-            }
-            else {
-                view = convertView;
-            }
-
-            final TextView textView = view.findViewById(R.id.itemTextView);
-            textView.setText(_entries[position].name);
-
-            return view;
-        }
-    }
-
     interface FieldTypes {
         int sameAcceptation = 1;
         int sameConcept = 2;
@@ -180,9 +101,10 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
     private final ArrayList<FieldState> _questionFields = new ArrayList<>(1);
     private final ArrayList<FieldState> _answerFields = new ArrayList<>(1);
     private int _bunch;
+    private int _preferredAlphabet;
 
-    private AdapterItem[] _alphabetItems;
-    private AdapterItem[] _ruleItems;
+    private AlphabetAdapter.Item[] _alphabetItems;
+    private AlphabetAdapter.Item[] _ruleItems;
 
     private final class FieldListener implements Spinner.OnItemSelectedListener, View.OnClickListener {
 
@@ -305,28 +227,29 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.quiz_editor_activity);
 
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, NO_BUNCH);
         final DbManager manager = DbManager.getInstance();
         final Database db = manager.getDatabase();
 
         if (_bunch != NO_BUNCH) {
-            final String bunchText = readConceptText(DbManager.getInstance().getDatabase(), _bunch, preferredAlphabet);
+            final String bunchText = readConceptText(DbManager.getInstance().getDatabase(), _bunch, _preferredAlphabet);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
         }
 
-        ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, preferredAlphabet);
+        ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, _preferredAlphabet);
         final int alphabetCount = allAlphabets.size();
-        _alphabetItems = new AdapterItem[alphabetCount];
+        _alphabetItems = new AlphabetAdapter.Item[alphabetCount];
         for (int i = 0; i < alphabetCount; i++) {
-            _alphabetItems[i] = new AdapterItem(allAlphabets.keyAt(i), allAlphabets.valueAt(i));
+            _alphabetItems[i] = new AlphabetAdapter.Item(allAlphabets.keyAt(i), allAlphabets.valueAt(i));
         }
 
-        ImmutableIntKeyMap<String> allRules = readAllRules(db, preferredAlphabet);
+        ImmutableIntKeyMap<String> allRules = readAllRules(db, _preferredAlphabet);
         final int ruleCount = allRules.size();
-        _ruleItems = new AdapterItem[ruleCount];
+        _ruleItems = new AlphabetAdapter.Item[ruleCount];
         for (int i = 0; i < ruleCount; i++) {
-            _ruleItems[i] = new AdapterItem(allRules.keyAt(i), allRules.valueAt(i));
+            _ruleItems[i] = new AlphabetAdapter.Item(allRules.keyAt(i), allRules.valueAt(i));
         }
 
         _questionFields.add(new FieldState());

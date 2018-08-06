@@ -82,10 +82,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         String STATE = "cSt";
     }
 
-    // Specifies the alphabet the user would like to see if possible.
-    // TODO: This should be a shared preference
-    static final int preferredAlphabet = 4;
-
+    private int _preferredAlphabet;
     private int _staticAcceptation;
     private int _concept;
 
@@ -214,11 +211,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             langAcc = cursor.getInt(1);
             int firstAlphabet = cursor.getInt(2);
             text = cursor.getString(3);
-            while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
-                if (cursor.getInt(2) == preferredAlphabet) {
+            while (firstAlphabet != _preferredAlphabet && cursor.moveToNext()) {
+                if (cursor.getInt(2) == _preferredAlphabet) {
                     lang = cursor.getInt(0);
                     langAcc = cursor.getInt(1);
-                    firstAlphabet = preferredAlphabet;
+                    firstAlphabet = _preferredAlphabet;
                     text = cursor.getString(3);
                 }
             }
@@ -265,8 +262,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     int acc = cursor.getInt(0);
                     int firstAlphabet = cursor.getInt(1);
                     String text = cursor.getString(2);
-                    while (firstAlphabet != preferredAlphabet && cursor.moveToNext()) {
-                        if (cursor.getInt(1) == preferredAlphabet) {
+                    while (firstAlphabet != _preferredAlphabet && cursor.moveToNext()) {
+                        if (cursor.getInt(1) == _preferredAlphabet) {
                             acc = cursor.getInt(0);
                             text = cursor.getString(2);
                             break;
@@ -315,9 +312,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
                     while (cursor.moveToNext()) {
                         if (cursor.getInt(0) == concept) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
+                            if (alphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
                                 acc = cursor.getInt(1);
-                                alphabet = preferredAlphabet;
+                                alphabet = _preferredAlphabet;
                                 text = cursor.getString(3);
                             }
                         }
@@ -387,10 +384,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     String text = cursor.getString(3);
                     int agentSet = cursor.getInt(4);
                     while (cursor.moveToNext()) {
-                        if (firstAlphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
+                        if (firstAlphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
                             acc = cursor.getInt(1);
                             text = cursor.getString(3);
-                            firstAlphabet = preferredAlphabet;
+                            firstAlphabet = _preferredAlphabet;
                         }
 
                         if (bunch != cursor.getInt(0)) {
@@ -462,8 +459,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     int agentSet = cursor.getInt(3);
                     while (cursor.moveToNext()) {
                         if (acc == cursor.getInt(0)) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
-                                alphabet = preferredAlphabet;
+                            if (alphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
+                                alphabet = _preferredAlphabet;
                                 text = cursor.getString(2);
                             }
                         }
@@ -599,13 +596,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
                     while (cursor.moveToNext()) {
                         if (cursor.getInt(0) == acc) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
-                                alphabet = preferredAlphabet;
+                            if (alphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
+                                alphabet = _preferredAlphabet;
                                 text = cursor.getString(3);
                             }
 
-                            if (ruleAlphabet != preferredAlphabet && cursor.getInt(4) == preferredAlphabet) {
-                                ruleAlphabet = preferredAlphabet;
+                            if (ruleAlphabet != _preferredAlphabet && cursor.getInt(4) == _preferredAlphabet) {
+                                ruleAlphabet = _preferredAlphabet;
                                 ruleText = cursor.getString(5);
                             }
                         }
@@ -929,7 +926,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
                 String langStr = languageStrs.get(language);
                 if (langStr == null) {
-                    langStr = readConceptText(DbManager.getInstance().getDatabase(), language, preferredAlphabet);
+                    langStr = readConceptText(DbManager.getInstance().getDatabase(), language, _preferredAlphabet);
                     languageStrs.put(language, langStr);
                 }
 
@@ -1025,6 +1022,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             _state = new AcceptationDetailsActivityState();
         }
 
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
         _concept = conceptFromAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation);
         _listView = findViewById(R.id.listView);

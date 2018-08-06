@@ -57,10 +57,6 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
      */
     public static final int NO_BUNCH = 0;
 
-    // Specifies the alphabet the user would like to see if possible.
-    // TODO: This should be a shared preference
-    static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
-
     public static void open(Context context, int bunch) {
         Intent intent = new Intent(context, QuizSelectorActivity.class);
         intent.putExtra(ArgKeys.BUNCH, bunch);
@@ -69,6 +65,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private QuizSelectorActivityState _state;
 
+    private int _preferredAlphabet;
     private int _bunch;
     private ImmutableIntKeyMap<String> _ruleTexts;
 
@@ -154,7 +151,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private String getRuleText(Database db, int rule) {
         if (_ruleTexts == null) {
-            _ruleTexts = readAllRules(db, preferredAlphabet);
+            _ruleTexts = readAllRules(db, _preferredAlphabet);
         }
 
         return _ruleTexts.get(rule);
@@ -176,7 +173,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     private QuizSelectorAdapter.Item[] composeAdapterItems(Database db, int bunch) {
-        final ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, preferredAlphabet);
+        final ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, _preferredAlphabet);
         final QuizDefinitionsTable quizzes = Tables.quizDefinitions;
         final QuestionFieldSets fieldSets = Tables.questionFieldSets;
         final SQLiteDatabase sqlDb = DbManager.getInstance().getReadableDatabase();
@@ -263,6 +260,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         super.onCreate(savedInstanceState);
         setContentView(R.layout.quiz_selector_activity);
 
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, 0);
 
         if (savedInstanceState != null) {

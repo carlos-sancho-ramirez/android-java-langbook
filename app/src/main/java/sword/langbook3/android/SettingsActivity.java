@@ -9,25 +9,34 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.langbook3.android.sdb.ProgressListener;
 
-public class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener, DialogInterface.OnClickListener {
+import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
+
+public final class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener,
+        DialogInterface.OnClickListener, AdapterView.OnItemSelectedListener {
 
     private static final int REQUEST_CODE_PICK = 1;
+
     private interface SavedKeys {
         String FILE_FLAGS = "ff";
     }
 
     private boolean _resumed;
     private EditText _dialogEditText;
+    private Spinner _preferredAlphabetSpinner;
+    private ImmutableIntKeyMap<String> _alphabets;
 
     private interface FileFlags {
         /**
@@ -94,6 +103,36 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
         }
     }
 
+    private void updatePreferredAlphabetAdapter() {
+        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        _alphabets = readAllAlphabets(DbManager.getInstance().getDatabase(), preferredAlphabet);
+        final int length = _alphabets.size();
+
+        final AlphabetAdapter.Item[] items = new AlphabetAdapter.Item[length];
+        for (int i = 0; i < length; i++) {
+            items[i] = new AlphabetAdapter.Item(_alphabets.keyAt(i), _alphabets.valueAt(i));
+        }
+        final AlphabetAdapter adapter = new AlphabetAdapter(items);
+        _preferredAlphabetSpinner.setAdapter(adapter);
+
+        final int position = _alphabets.keySet().indexOf(preferredAlphabet);
+        if (position >= 0) {
+            _preferredAlphabetSpinner.setSelection(position);
+        }
+
+        _preferredAlphabetSpinner.setOnItemSelectedListener(this);
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        LangbookPreferences.getInstance().setPreferredAlphabet(_alphabets.keyAt(position));
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Nothing to be done
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,6 +149,9 @@ public class SettingsActivity extends Activity implements View.OnClickListener, 
         findViewById(R.id.exportStreamedDatabaseButton).setOnClickListener(this);
         findViewById(R.id.importSqliteDatabaseButton).setOnClickListener(this);
         findViewById(R.id.exportSqliteDatabaseButton).setOnClickListener(this);
+
+        _preferredAlphabetSpinner = findViewById(R.id.preferredAlphabetSpinner);
+        updatePreferredAlphabetAdapter();
     }
 
     @Override

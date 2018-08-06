@@ -19,16 +19,15 @@ import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
-import static sword.langbook3.android.AcceptationDetailsActivity.preferredAlphabet;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDatabase.convertText;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
@@ -66,38 +65,6 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         intent.putExtra(ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.LANGUAGE, language);
         activity.startActivityForResult(intent, requestCode);
-    }
-
-    private ImmutableIntKeyMap<String> readAlphabets() {
-        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
-
-        final int accOffset = alphabets.columns().size();
-        final int strOffset = accOffset + acceptations.columns().size();
-
-        final int language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
-        final DbQuery query = new DbQuery.Builder(alphabets)
-                .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
-                .join(stringQueries, accOffset + acceptations.getIdColumnIndex(), stringQueries.getDynamicAcceptationColumnIndex())
-                .where(alphabets.getLanguageColumnIndex(), language)
-                .select(
-                        alphabets.getIdColumnIndex(),
-                        strOffset + stringQueries.getStringAlphabetColumnIndex(),
-                        strOffset + stringQueries.getStringColumnIndex());
-        final MutableIntSet foundAlphabets = MutableIntSet.empty();
-        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
-            final int id = row.get(0).toInt();
-            final int strAlphabet = row.get(1).toInt();
-
-            if (strAlphabet == preferredAlphabet || !foundAlphabets.contains(id)) {
-                foundAlphabets.add(id);
-                result.put(id, row.get(2).toText());
-            }
-        }
-
-        return result.toImmutable();
     }
 
     private ImmutableIntPairMap findConversions(IntSet alphabets) {
@@ -176,7 +143,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private void updateFields() {
         _formPanel.removeAllViews();
-        final ImmutableIntKeyMap<String> fieldNames = readAlphabets();
+        final ImmutableIntKeyMap<String> fieldNames = readAllAlphabets(DbManager.getInstance().getDatabase(),
+                LangbookPreferences.getInstance().getPreferredAlphabet());
         final ImmutableIntPairMap fieldConversions = findConversions(fieldNames.keySet());
 
         final LayoutInflater inflater = getLayoutInflater();

@@ -25,10 +25,7 @@ public class RuleTableActivity extends Activity {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
-    // Specifies the alphabet the user would like to see if possible.
-    // TODO: This should be a shared preference
-    static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
-
+    private int _preferredAlphabet;
     private int _columnCount;
     private TableCellValue[] _tableCellValues;
 
@@ -137,8 +134,8 @@ public class RuleTableActivity extends Activity {
 
                     while (cursor.moveToNext()) {
                         if (cursor.getInt(0) == cellRef.bunchSet && cursor.getInt(1) == cellRef.rule) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(2) == preferredAlphabet) {
-                                alphabet = preferredAlphabet;
+                            if (alphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
+                                alphabet = _preferredAlphabet;
                                 text = cursor.getString(3);
                             }
                         }
@@ -169,6 +166,7 @@ public class RuleTableActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.rule_table_activity);
 
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final int dynAcc = getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
         Map<TableCellRef, TableCellValue> tableContent = readTableContent(dynAcc);
 
@@ -182,7 +180,8 @@ public class RuleTableActivity extends Activity {
             }
 
             if (ruleSet.get(ref.rule) == null) {
-                ruleSet.put(ref.rule, readConceptText(DbManager.getInstance().getDatabase(), ref.rule, preferredAlphabet));
+                ruleSet.put(ref.rule, readConceptText(DbManager.getInstance().getDatabase(), ref.rule,
+                        _preferredAlphabet));
             }
         }
 

@@ -35,16 +35,13 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         String CORRELATION = BundleKeys.CORRELATION;
     }
 
-    // Specifies the alphabet the user would like to see if possible.
-    // TODO: This should be a shared preference
-    private static final int preferredAlphabet = AcceptationDetailsActivity.preferredAlphabet;
-
     public static void open(Context context, int correlationId) {
         Intent intent = new Intent(context, CorrelationDetailsActivity.class);
         intent.putExtra(ArgKeys.CORRELATION, correlationId);
         context.startActivity(intent);
     }
 
+    private int _preferredAlphabet;
     private AcceptationDetailsAdapter _listAdapter;
 
     private SparseArray<String> readCorrelation(SQLiteDatabase db, int correlation) {
@@ -100,8 +97,8 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
                     do {
                         int newAcc = cursor.getInt(0);
                         if (acc == newAcc) {
-                            if (alphabet != preferredAlphabet && cursor.getInt(1) == preferredAlphabet) {
-                                alphabet = preferredAlphabet;
+                            if (alphabet != _preferredAlphabet && cursor.getInt(1) == _preferredAlphabet) {
+                                alphabet = _preferredAlphabet;
                                 text = cursor.getString(2);
                             }
                         }
@@ -180,7 +177,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int correlationId) {
         final DbManager manager = DbManager.getInstance();
         final SQLiteDatabase db = manager.getReadableDatabase();
-        final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(manager.getDatabase(), preferredAlphabet);
+        final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(manager.getDatabase(), _preferredAlphabet);
         final SparseArray<String> correlation = readCorrelation(db, correlationId);
 
         final int entryCount = correlation.size();
@@ -223,6 +220,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_details_activity);
 
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final int correlationId = getIntent().getIntExtra(ArgKeys.CORRELATION, 0);
         _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(correlationId));
         final ListView listView = findViewById(R.id.listView);

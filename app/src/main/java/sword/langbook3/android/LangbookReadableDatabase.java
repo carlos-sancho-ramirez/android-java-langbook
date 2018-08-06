@@ -18,6 +18,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
@@ -1009,6 +1010,42 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    public static ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, int preferredAlphabet) {
+        final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = languages.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(languages)
+                .join(acceptations, languages.getIdColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(stringQueries, accOffset + acceptations.getIdColumnIndex(), stringQueries.getDynamicAcceptationColumnIndex())
+                .select(
+                        languages.getIdColumnIndex(),
+                        strOffset + stringQueries.getStringAlphabetColumnIndex(),
+                        strOffset + stringQueries.getStringColumnIndex()
+                );
+
+        MutableIntSet foundLanguages = MutableIntSet.empty();
+        MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+
+        try (DbResult r = db.select(query)) {
+            while (r.hasNext()) {
+                DbResult.Row row = r.next();
+                final int lang = row.get(0).toInt();
+                final int alphabet = row.get(1).toInt();
+
+                if (alphabet == preferredAlphabet || !foundLanguages.contains(lang)) {
+                    foundLanguages.add(lang);
+                    result.put(lang, row.get(2).toText());
+                }
+            }
+        }
+
+        return result.toImmutable();
     }
 
     public static ImmutableIntSet readAllAcceptations(DbExporter.Database db, int alphabet) {
