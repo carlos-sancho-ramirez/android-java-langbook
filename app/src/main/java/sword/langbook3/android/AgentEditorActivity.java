@@ -677,6 +677,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             return "Source bunches and matcher cannot be both empty";
         }
 
+        final boolean ruleRequired = !_state.matcher.equals(_state.adder);
+        if (ruleRequired && _state.rule == NO_RULE) {
+            return "Rule is required when matcher and adder do not match";
+        }
+
         return null;
     }
 }
