@@ -178,18 +178,14 @@ public final class LangbookDatabase {
     }
 
     public static int insertRuledConcept(DbImporter.Database db, int rule, int concept) {
-        final int ruledConcept = LangbookReadableDatabase.getMaxConceptInAcceptations(db) + 1;
+        final int ruledConcept = LangbookReadableDatabase.getMaxConcept(db) + 1;
         LangbookDbInserter.insertRuledConcept(db, ruledConcept, rule, concept);
         return ruledConcept;
     }
 
     public static int obtainRuledConcept(DbImporter.Database db, int rule, int concept) {
         final Integer id = LangbookReadableDatabase.findRuledConcept(db, rule, concept);
-        if (id != null) {
-            return id;
-        }
-
-        return insertRuledConcept(db, rule, concept);
+        return (id != null)? id : insertRuledConcept(db, rule, concept);
     }
 
     public static int insertQuestionFieldSet(DbImporter.Database db, Iterable<LangbookReadableDatabase.QuestionFieldDetails> fields) {

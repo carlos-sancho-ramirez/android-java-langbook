@@ -680,6 +680,20 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getConceptColumnIndex());
     }
 
+    public static int getMaxConceptInRuledConcepts(DbExporter.Database db) {
+        LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        return getColumnMax(db, table, table.getIdColumnIndex());
+    }
+
+    public static int getMaxConcept(DbExporter.Database db) {
+        int max = getMaxConceptInAcceptations(db);
+        int temp = getMaxConceptInRuledConcepts(db);
+        if (temp > max) {
+            max = temp;
+        }
+        return max;
+    }
+
     public static int getMaxBunchSetId(DbExporter.Database db) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());
