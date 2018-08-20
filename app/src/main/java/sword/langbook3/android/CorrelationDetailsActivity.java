@@ -121,7 +121,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         return result;
     }
 
-    private SparseArray<SparseArray<String>> readCorrelationsWithSameSymbolArray(SQLiteDatabase db, int correlation, int alphabet) {
+    private ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readCorrelationsWithSameSymbolArray(SQLiteDatabase db, int correlation, int alphabet) {
         final CorrelationsTable correlations = Tables.correlations;
         final SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
@@ -143,12 +143,12 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
                         "J1." + correlationIdField + "!=J0." + correlationIdField +
                 " ORDER BY J1." + correlationIdField, new String[] { Integer.toString(correlation), Integer.toString(alphabet) });
 
-        final SparseArray<SparseArray<String>> result = new SparseArray<>();
+        final ImmutableIntKeyMap.Builder<ImmutableIntKeyMap<String>> result = new ImmutableIntKeyMap.Builder<>();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
                     int corrId = cursor.getInt(0);
-                    SparseArray<String> corr = new SparseArray<>();
+                    ImmutableIntKeyMap.Builder<String> corr = new ImmutableIntKeyMap.Builder<>();
                     corr.put(cursor.getInt(1), cursor.getString(2));
                     do {
                         int newCorrId = cursor.getInt(0);
@@ -156,14 +156,14 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
                             corr.put(cursor.getInt(1), cursor.getString(2));
                         }
                         else {
-                            result.put(corrId, corr);
-                            corr = new SparseArray<>();
+                            result.put(corrId, corr.build());
+                            corr = new ImmutableIntKeyMap.Builder<>();
                             corrId = newCorrId;
                             corr.put(cursor.getInt(1), cursor.getString(2));
                         }
                     } while(cursor.moveToNext());
 
-                    result.put(corrId, corr);
+                    result.put(corrId, corr.build());
                 }
             }
             finally {
@@ -171,7 +171,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        return result;
+        return result.build();
     }
 
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int correlationId) {
@@ -198,13 +198,13 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
 
         for (int i = 0; i < entryCount; i++) {
             final int matchingAlphabet = correlation.keyAt(i);
-            final SparseArray<SparseArray<String>> correlations = readCorrelationsWithSameSymbolArray(db, correlationId, matchingAlphabet);
+            final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations = readCorrelationsWithSameSymbolArray(db, correlationId, matchingAlphabet);
             final int count = correlations.size();
             if (count > 0) {
                 result.add(new HeaderItem("Other correlations sharing " + alphabets.get(matchingAlphabet)));
                 for (int j = 0; j < count; j++) {
                     final int corrId = correlations.keyAt(j);
-                    final SparseArray<String> corr = correlations.valueAt(j);
+                    final ImmutableIntKeyMap<String> corr = correlations.valueAt(j);
                     final StringBuilder sb = new StringBuilder();
                     composeCorrelation(corr, sb);
                     result.add(new CorrelationNavigableItem(corrId, sb.toString()));

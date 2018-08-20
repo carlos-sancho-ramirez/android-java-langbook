@@ -11,8 +11,6 @@ import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ClickableSpan;
-import android.util.SparseArray;
-import android.util.SparseIntArray;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -22,12 +20,15 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.List;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
+import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntPairMap;
+import sword.collections.MutableList;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
@@ -102,17 +103,17 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         context.startActivity(intent);
     }
 
-    static final class CorrelationHolder {
+    private static final class CorrelationHolder {
         final int id;
-        final SparseArray<String> texts;
+        final ImmutableIntKeyMap<String> texts;
 
-        CorrelationHolder(int id, SparseArray<String> texts) {
+        CorrelationHolder(int id, ImmutableIntKeyMap<String> texts) {
             this.id = id;
             this.texts = texts;
         }
     }
 
-    private List<CorrelationHolder> readCorrelationArray(SQLiteDatabase db, int acceptation) {
+    private ImmutableList<CorrelationHolder> readCorrelationArray(SQLiteDatabase db, int acceptation) {
         final AcceptationsTable acceptations = Tables.acceptations; // J0
         final CorrelationArraysTable correlationArrays = Tables.correlationArrays; // J1
         final CorrelationsTable correlations = Tables.correlations; // J2
@@ -134,34 +135,34 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     ",J2." + correlations.columns().get(correlations.getAlphabetColumnIndex()).name()
                 , new String[] { Integer.toString(acceptation) });
 
-        final ArrayList<CorrelationHolder> result = new ArrayList<>();
+        final MutableList<CorrelationHolder> result = MutableList.empty();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    SparseArray<String> corr = new SparseArray<>();
+                    ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
                     int pos = cursor.getInt(0);
                     int correlationId = cursor.getInt(1);
                     if (pos != result.size()) {
                         throw new AssertionError("Expected position " + result.size() + ", but it was " + pos);
                     }
 
-                    corr.put(cursor.getInt(2), cursor.getString(3));
+                    builder.put(cursor.getInt(2), cursor.getString(3));
 
                     while(cursor.moveToNext()) {
                         int newPos = cursor.getInt(0);
                         if (newPos != pos) {
-                            result.add(new CorrelationHolder(correlationId, corr));
+                            result.append(new CorrelationHolder(correlationId, builder.build()));
                             correlationId = cursor.getInt(1);
-                            corr = new SparseArray<>();
+                            builder = new ImmutableIntKeyMap.Builder<>();
                         }
                         pos = newPos;
 
                         if (newPos != result.size()) {
                             throw new AssertionError("Expected position " + result.size() + ", but it was " + pos);
                         }
-                        corr.put(cursor.getInt(2), cursor.getString(3));
+                        builder.put(cursor.getInt(2), cursor.getString(3));
                     }
-                    result.add(new CorrelationHolder(correlationId, corr));
+                    result.append(new CorrelationHolder(correlationId, builder.build()));
                 }
             }
             finally {
@@ -169,7 +170,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        return result;
+        return result.toImmutable();
     }
 
     private static final class LanguageResult {
@@ -782,7 +783,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private InvolvedAgentResult[] readInvolvedAgents(SQLiteDatabase db, int staticAcceptation) {
-        final SparseIntArray flags = new SparseIntArray();
+        final MutableIntPairMap flags = MutableIntPairMap.empty();
 
         for (int agentId : readAgentsWhereAccIsTarget(db, staticAcceptation)) {
             flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.target);
@@ -833,7 +834,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
     }
 
-    static void composeCorrelation(SparseArray<String> correlation, StringBuilder sb) {
+    static void composeCorrelation(ImmutableIntKeyMap<String> correlation, StringBuilder sb) {
         final int correlationSize = correlation.size();
         for (int i = 0; i < correlationSize; i++) {
             if (i != 0) {
@@ -851,15 +852,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
 
         final StringBuilder sb = new StringBuilder("Correlation: ");
-        List<CorrelationHolder> correlationArray = readCorrelationArray(db, staticAcceptation);
-        List<CorrelationSpan> correlationSpans = new ArrayList<>();
+        ImmutableList<CorrelationHolder> correlationArray = readCorrelationArray(db, staticAcceptation);
+        ImmutableList.Builder<CorrelationSpan> correlationSpansBuilder = new ImmutableList.Builder<>();
         for (int i = 0; i < correlationArray.size(); i++) {
             if (i != 0) {
                 sb.append(" - ");
             }
 
             final CorrelationHolder holder = correlationArray.get(i);
-            final SparseArray<String> correlation = holder.texts;
+            final ImmutableIntKeyMap<String> correlation = holder.texts;
             final int correlationSize = correlation.size();
             int startIndex = -1;
             if (correlationSize > 1) {
@@ -869,12 +870,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             composeCorrelation(correlation, sb);
 
             if (startIndex >= 0) {
-                correlationSpans.add(new CorrelationSpan(holder.id, startIndex, sb.length()));
+                correlationSpansBuilder.add(new CorrelationSpan(holder.id, startIndex, sb.length()));
             }
         }
 
         SpannableString spannableCorrelations = new SpannableString(sb.toString());
-        for (CorrelationSpan span : correlationSpans) {
+        for (CorrelationSpan span : correlationSpansBuilder.build()) {
             spannableCorrelations.setSpan(span, span.start, span.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
@@ -883,7 +884,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).texts.keyAt(0));
         result.add(new NonNavigableItem("Language: " + languageResult.text));
 
-        final SparseArray<String> languageStrs = new SparseArray<>();
+        final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
         languageStrs.put(languageResult.language, languageResult.text);
 
         _definition = readDefinition(db, staticAcceptation);
@@ -924,7 +925,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     translationFound = true;
                 }
 
-                String langStr = languageStrs.get(language);
+                String langStr = languageStrs.get(language, null);
                 if (langStr == null) {
                     langStr = readConceptText(DbManager.getInstance().getDatabase(), language, _preferredAlphabet);
                     languageStrs.put(language, langStr);
