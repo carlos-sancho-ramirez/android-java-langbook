@@ -7,6 +7,8 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.util.Iterator;
+
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
@@ -112,6 +114,43 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
+    private static boolean entryLessThan(ImmutableList<ImmutableIntKeyMap<String>> a, ImmutableList<ImmutableIntKeyMap<String>> b) {
+        final Iterator<ImmutableIntKeyMap<String>> itA = a.iterator();
+        final Iterator<ImmutableIntKeyMap<String>> itB = b.iterator();
+
+        while (itA.hasNext() && itB.hasNext()) {
+            ImmutableIntKeyMap<String> headA = itA.next();
+            ImmutableIntKeyMap<String> headB = itB.next();
+
+            for (int i = 0; i < headA.size(); i++) {
+                final int alphabet = headA.keyAt(i);
+                if (headB.size() == i) {
+                    return false;
+                }
+
+                final int alphabetB = headB.keyAt(i);
+
+                if (alphabet < alphabetB) {
+                    return true;
+                }
+                else if (alphabet > alphabetB) {
+                    return false;
+                }
+
+                final String textA = headA.valueAt(i);
+                final String textB = headB.valueAt(i);
+                if (textA.length() < textB.length()) {
+                    return true;
+                }
+                else if (textA.length() > textB.length()) {
+                    return false;
+                }
+            }
+        }
+
+        return itB.hasNext();
+    }
+
     private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> checkPossibleCorrelationArrays(ImmutableIntKeyMap<String> global) {
         final int globalSize = global.size();
         final IntResultFunction<String> lengthFunc = text -> (text == null)? 0 : text.length();
@@ -126,7 +165,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         if (globalSize > 1) {
             checkPossibleCorrelationArraysRecursive(builder, global, ImmutableIntKeyMap.empty(), ImmutableIntKeyMap.empty());
         }
-        return builder.build();
+        return builder.build().sort(CorrelationPickerActivity::entryLessThan);
     }
 
     private ImmutableIntValueMap<ImmutableIntKeyMap<String>> findExistingCorrelations() {
