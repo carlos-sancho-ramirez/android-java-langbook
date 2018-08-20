@@ -188,6 +188,28 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return builder.build();
     }
 
+    private int findSuggestedPosition() {
+        final ImmutableSet<ImmutableIntKeyMap<String>> known = _knownCorrelations.keySet();
+        final IntResultFunction<ImmutableList<ImmutableIntKeyMap<String>>> func = option -> option.filter(known::contains).size();
+        final ImmutableIntList knownParity = _options.toList().map(func);
+
+        final int length = knownParity.size();
+        int max = 0;
+        int index = -1;
+        for (int i = 0; i < length; i++) {
+            int parity = knownParity.get(i);
+            if (parity > max) {
+                max = parity;
+                index = i;
+            }
+            else if (parity == max) {
+                index = -1;
+            }
+        }
+
+        return index;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -195,6 +217,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
         _options = checkPossibleCorrelationArrays(getTexts());
         _knownCorrelations = findExistingCorrelations();
+        final int suggestedPosition = findSuggestedPosition();
 
         if (_options.size() == 1) {
             addAcceptationAndFinish(0);
@@ -203,6 +226,10 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             _listView = findViewById(R.id.listView);
             _listView.setAdapter(new CorrelationPickerAdapter(_options, _knownCorrelations.keySet()));
             _listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+
+            if (suggestedPosition >= 0) {
+                _listView.setItemChecked(suggestedPosition, true);
+            }
 
             findViewById(R.id.nextButton).setOnClickListener(this);
         }
