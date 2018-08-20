@@ -63,6 +63,7 @@ import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunc
 import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -1025,6 +1026,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+        setTitle(readAcceptationText(DbManager.getInstance().getDatabase(), _staticAcceptation, _preferredAlphabet));
+
         _concept = conceptFromAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation);
         _listView = findViewById(R.id.listView);
 

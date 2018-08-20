@@ -867,6 +867,30 @@ public final class LangbookReadableDatabase {
         return selectSingleRow(db, query).get(0).toInt();
     }
 
+    public static String readAcceptationText(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(strings.getStringAlphabetColumnIndex(), strings.getStringColumnIndex());
+
+        String text;
+        try (DbResult result = db.select(query)) {
+            DbResult.Row row = result.next();
+            int alphabet = row.get(0).toInt();
+            text = row.get(1).toText();
+            while (alphabet != preferredAlphabet && result.hasNext()) {
+                row = result.next();
+                if (row.get(0).toInt() == preferredAlphabet) {
+                    alphabet = preferredAlphabet;
+                    text = row.get(1).toText();
+                }
+            }
+        }
+
+        return text;
+    }
+
     public static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
