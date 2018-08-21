@@ -787,21 +787,21 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final MutableIntPairMap flags = MutableIntPairMap.empty();
 
         for (int agentId : readAgentsWhereAccIsTarget(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.target);
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.target);
         }
 
         for (int agentId : readAgentsWhereAccIsSource(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.source);
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.source);
         }
 
         // TODO: Diff not implemented as right now it is impossible
 
         for (int agentId : readAgentsWhereAccIsRule(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.rule);
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.rule);
         }
 
         for (int agentId : readAgentsWhereAccIsProcessed(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId) | InvolvedAgentResult.Flags.processed);
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.processed);
         }
 
         final int count = flags.size();
