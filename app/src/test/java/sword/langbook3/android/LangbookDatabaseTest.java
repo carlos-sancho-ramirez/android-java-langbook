@@ -30,6 +30,7 @@ import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
+import static sword.langbook3.android.LangbookReadableDatabase.readAllMatchingBunches;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
 public final class LangbookDatabaseTest {
@@ -908,5 +909,72 @@ public final class LangbookDatabaseTest {
 
         final LangbookDbSchema.SearchHistoryTable table = LangbookDbSchema.Tables.searchHistory;
         assertFalse(db.select(new DbQuery.Builder(table).select(table.getIdColumnIndex())).hasNext());
+    }
+
+    @Test
+    public void testReadAllMatchingBunches() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int gerund = alphabet + 1;
+        final int verbArConcept = gerund + 1;
+        final int verbErConcept = verbArConcept + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final String verbArText = "verbo de primera conjugación";
+        ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, verbArText)
+                .build();
+        int correlationId = insertCorrelation(db, correlation);
+        int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        addAcceptation(db, verbArConcept, correlationArrayId);
+
+        final String verbErText = "verbo de segunda conjugación";
+        correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, verbErText)
+                .build();
+        correlationId = insertCorrelation(db, correlation);
+        correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        addAcceptation(db, verbErConcept, correlationArrayId);
+
+        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ar")
+                .build();
+        final ImmutableIntKeyMap<String> arAdder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ando")
+                .build();
+
+        final ImmutableIntSet arSourceBunches = new ImmutableIntSetBuilder().add(verbArConcept).build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().build();
+        addAgent(db, 0, arSourceBunches, diffBunches, arMatcher, arAdder, gerund, 0);
+
+        final ImmutableIntKeyMap<String> erMatcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "er")
+                .build();
+        final ImmutableIntKeyMap<String> erAdder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "iendo")
+                .build();
+
+        final ImmutableIntSet erSourceBunches = new ImmutableIntSetBuilder().add(verbErConcept).build();
+        addAgent(db, 0, erSourceBunches, diffBunches, erMatcher, erAdder, gerund, 0);
+
+        ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "jugar").build();
+        ImmutableIntKeyMap<String> result = readAllMatchingBunches(db, texts, alphabet);
+        assertEquals(1, result.size());
+        assertEquals(verbArConcept, result.keyAt(0));
+        assertEquals(verbArText, result.valueAt(0));
+
+        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();
+        result = readAllMatchingBunches(db, texts, alphabet);
+        assertEquals(1, result.size());
+        assertEquals(verbErConcept, result.keyAt(0));
+        assertEquals(verbErText, result.valueAt(0));
+
+        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "dormir").build();
+        result = readAllMatchingBunches(db, texts, alphabet);
+        assertEquals(0, result.size());
     }
 }

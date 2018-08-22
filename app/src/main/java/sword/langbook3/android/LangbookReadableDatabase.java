@@ -27,7 +27,7 @@ import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
-import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
+import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 
 public final class LangbookReadableDatabase {
 
@@ -1200,6 +1200,105 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    private static boolean checkMatching(ImmutableIntKeyMap<String> matcher, int agentFlags, ImmutableIntKeyMap<String> texts) {
+        final boolean matchWordStarting = AgentDetails.matchWordStarting(agentFlags);
+        for (IntKeyMap.Entry<String> entry : matcher.entries()) {
+            final String text = texts.get(entry.key(), null);
+            if (text == null || matchWordStarting && !text.startsWith(entry.value()) ||
+                    !matchWordStarting && !text.endsWith(entry.value())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static ImmutableIntSet readBunchesFromSetOfBunchSets(DbExporter.Database db, ImmutableIntSet bunchSets) {
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        for (int bunchSet : bunchSets) {
+            for (int bunch : getBunchSet(db, bunchSet)) {
+                builder.add(bunch);
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Check all bunches including agents that may match the given texts.
+     * For simplicity, this will only pick bunches declared as source bunches in agents that are applying a rule and has no diff bunches nor target bunch.
+     * The agent's matcher must match the given string and there must be an adder different from the matcher.
+     *
+     * @param db Database to be used
+     * @param texts Map containing the word to be matched. Keys in the map are alphabets and values are the text on those alphabets.
+     * @param preferredAlphabet User's defined alphabet.
+     * @return A map whose keys are bunches (concepts) and value are the suitable way to represent that bunch, according to the given preferred alphabet.
+     */
+    public static ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, ImmutableIntKeyMap<String> texts, int preferredAlphabet) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+
+        final int corrOffset = agents.columns().size();
+        final int symbolOffset = corrOffset + correlations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(correlations, agents.getMatcherColumnIndex(), correlations.getCorrelationIdColumnIndex())
+                .join(symbolArrays, corrOffset + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .whereColumnValueDiffer(agents.getMatcherColumnIndex(), agents.getAdderColumnIndex())
+                .where(agents.getTargetBunchColumnIndex(), NO_BUNCH)
+                .where(agents.getDiffBunchSetColumnIndex(), 0)
+                .orderBy(agents.getIdColumnIndex())
+                .select(
+                        agents.getIdColumnIndex(),
+                        agents.getSourceBunchSetColumnIndex(),
+                        agents.getFlagsColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex(),
+                        symbolOffset + symbolArrays.getStrColumnIndex());
+
+        final ImmutableIntSetBuilder validBunchSetsBuilder = new ImmutableIntSetBuilder();
+
+        try (DbResult result = db.select(query)) {
+            DbResult.Row row = result.next();
+            int agentId = row.get(0).toInt();
+            int bunchSet = row.get(1).toInt();
+            int agentFlags = row.get(2).toInt();
+            ImmutableIntKeyMap.Builder<String> matcherBuilder = new ImmutableIntKeyMap.Builder<>();
+            matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
+
+            while (result.hasNext()) {
+                row = result.next();
+                if (agentId == row.get(0).toInt()) {
+                    matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
+                }
+                else {
+                    if (checkMatching(matcherBuilder.build(), agentFlags, texts)) {
+                        validBunchSetsBuilder.add(bunchSet);
+                    }
+
+                    agentId = row.get(0).toInt();
+                    bunchSet = row.get(1).toInt();
+                    agentFlags = row.get(2).toInt();
+
+                    matcherBuilder = new ImmutableIntKeyMap.Builder<>();
+                    matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
+                }
+            }
+
+            if (checkMatching(matcherBuilder.build(), agentFlags, texts)) {
+                validBunchSetsBuilder.add(bunchSet);
+            }
+        }
+
+        final ImmutableIntSet bunches = readBunchesFromSetOfBunchSets(db, validBunchSetsBuilder.build());
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        for (int bunch : bunches) {
+            builder.put(bunch, readConceptText(db, bunch, preferredAlphabet));
+        }
+
+        return builder.build();
+    }
+
     public static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1400,8 +1499,12 @@ public final class LangbookReadableDatabase {
         public final int rule;
         public final int flags;
 
-        public boolean matchWordStarting() {
+        public static boolean matchWordStarting(int flags) {
             return (flags & 1) != 0;
+        }
+
+        public boolean matchWordStarting() {
+            return matchWordStarting(flags);
         }
 
         public AgentDetails(int targetBunch, ImmutableIntSet sourceBunches,
