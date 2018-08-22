@@ -40,6 +40,10 @@
             android:label="@string/correlationPickerActivityTitle"/>
 
         <activity
+            android:name=".MatchingBunchesPickerActivity"
+            android:label="@string/matchingBunchesPickerActivityTitle"/>
+
+        <activity
             android:name=".LanguagePickerActivity"
             android:label="@string/languagePickerActivityTitle"/>
 

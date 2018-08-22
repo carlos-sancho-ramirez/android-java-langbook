@@ -18,11 +18,11 @@ import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
+import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
-import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 
 public final class AgentDetailsActivity extends Activity {
 

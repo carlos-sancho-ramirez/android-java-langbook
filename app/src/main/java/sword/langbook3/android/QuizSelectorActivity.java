@@ -50,13 +50,6 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         String STATE = "cSt";
     }
 
-    /**
-     * Bunch identifier used within a quiz definition to denote that no bunch should be applied.
-     * When this identifier is used, questions are not coming from acceptations within an specific bunch,
-     * but it can be any acceptation within the database that matches the field restrictions.
-     */
-    public static final int NO_BUNCH = 0;
-
     public static void open(Context context, int bunch) {
         Intent intent = new Intent(context, QuizSelectorActivity.class);
         intent.putExtra(ArgKeys.BUNCH, bunch);

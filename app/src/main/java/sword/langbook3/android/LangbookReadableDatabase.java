@@ -1259,34 +1259,36 @@ public final class LangbookReadableDatabase {
         final ImmutableIntSetBuilder validBunchSetsBuilder = new ImmutableIntSetBuilder();
 
         try (DbResult result = db.select(query)) {
-            DbResult.Row row = result.next();
-            int agentId = row.get(0).toInt();
-            int bunchSet = row.get(1).toInt();
-            int agentFlags = row.get(2).toInt();
-            ImmutableIntKeyMap.Builder<String> matcherBuilder = new ImmutableIntKeyMap.Builder<>();
-            matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
+            if (result.hasNext()) {
+                DbResult.Row row = result.next();
+                int agentId = row.get(0).toInt();
+                int bunchSet = row.get(1).toInt();
+                int agentFlags = row.get(2).toInt();
+                ImmutableIntKeyMap.Builder<String> matcherBuilder = new ImmutableIntKeyMap.Builder<>();
+                matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
 
-            while (result.hasNext()) {
-                row = result.next();
-                if (agentId == row.get(0).toInt()) {
-                    matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
-                }
-                else {
-                    if (checkMatching(matcherBuilder.build(), agentFlags, texts)) {
-                        validBunchSetsBuilder.add(bunchSet);
+                while (result.hasNext()) {
+                    row = result.next();
+                    if (agentId == row.get(0).toInt()) {
+                        matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
                     }
+                    else {
+                        if (checkMatching(matcherBuilder.build(), agentFlags, texts)) {
+                            validBunchSetsBuilder.add(bunchSet);
+                        }
 
-                    agentId = row.get(0).toInt();
-                    bunchSet = row.get(1).toInt();
-                    agentFlags = row.get(2).toInt();
+                        agentId = row.get(0).toInt();
+                        bunchSet = row.get(1).toInt();
+                        agentFlags = row.get(2).toInt();
 
-                    matcherBuilder = new ImmutableIntKeyMap.Builder<>();
-                    matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
+                        matcherBuilder = new ImmutableIntKeyMap.Builder<>();
+                        matcherBuilder.put(row.get(3).toInt(), row.get(4).toText());
+                    }
                 }
-            }
 
-            if (checkMatching(matcherBuilder.build(), agentFlags, texts)) {
-                validBunchSetsBuilder.add(bunchSet);
+                if (checkMatching(matcherBuilder.build(), agentFlags, texts)) {
+                    validBunchSetsBuilder.add(bunchSet);
+                }
             }
         }
 

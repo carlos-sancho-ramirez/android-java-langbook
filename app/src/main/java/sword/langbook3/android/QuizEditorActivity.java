@@ -20,10 +20,10 @@ import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 
 import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
+import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
-import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 
 public final class QuizEditorActivity extends Activity implements View.OnClickListener {
 

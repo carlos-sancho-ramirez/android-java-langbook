@@ -11,6 +11,7 @@ import android.widget.AdapterView;
 import sword.collections.ImmutableList;
 
 import static sword.langbook3.android.LangbookDatabase.updateSearchHistory;
+import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
@@ -30,7 +31,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemQuiz:
-                QuizSelectorActivity.open(this, QuizSelectorActivity.NO_BUNCH);
+                QuizSelectorActivity.open(this, NO_BUNCH);
                 return true;
 
             case R.id.menuItemNewAgent:
@@ -54,6 +55,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         return true;
     }
 
+    @Override
     void openLanguagePicker(int requestCode, String query) {
         LanguagePickerActivity.open(this, requestCode, query);
     }

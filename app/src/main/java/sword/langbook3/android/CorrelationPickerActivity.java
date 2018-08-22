@@ -22,6 +22,7 @@ import sword.langbook3.android.db.Database;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
+import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
@@ -30,6 +31,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAc
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
+    private static final int REQUEST_CODE_PICK_BUNCHES = 1;
     static final int NO_CONCEPT = 0;
 
     interface ArgKeys {
@@ -38,9 +40,15 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         String TEXTS = BundleKeys.TEXTS;
     }
 
+    private interface SavedKeys {
+        String SELECTION = "sel";
+    }
+
     interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
+
+    private int _selection = ListView.INVALID_POSITION;
 
     private ListView _listView;
     private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> _options;
@@ -215,12 +223,18 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_picker_activity);
 
-        _options = checkPossibleCorrelationArrays(getTexts());
+        final ImmutableIntKeyMap<String> texts = getTexts();
+        _options = checkPossibleCorrelationArrays(texts);
         _knownCorrelations = findExistingCorrelations();
         final int suggestedPosition = findSuggestedPosition();
 
-        if (_options.size() == 1) {
-            addAcceptationAndFinish(0);
+        if (savedInstanceState != null) {
+            _selection = savedInstanceState.getInt(SavedKeys.SELECTION, ListView.INVALID_POSITION);
+        }
+
+        if (savedInstanceState == null && _options.size() == 1) {
+            _selection = 0;
+            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, texts);
         }
         else {
             _listView = findViewById(R.id.listView);
@@ -235,9 +249,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private void addAcceptationAndFinish(int selection) {
-        final Database db = DbManager.getInstance().getDatabase();
-        ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(selection);
+    private int addAcceptationAndFinish(Database db) {
+        ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
         boolean correlationInserted = false;
         final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
         for (ImmutableIntKeyMap<String> correlation : array) {
@@ -264,23 +277,42 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             concept = getMaxConceptInAcceptations(db) + 1;
         }
 
-        final int accId = addAcceptation(db, concept, arrayId);
-        Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
+        return addAcceptation(db, concept, arrayId);
+    }
 
-        final Intent intent = new Intent();
-        intent.putExtra(ResultKeys.ACCEPTATION, accId);
-        setResult(RESULT_OK, intent);
-        finish();
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_PICK_BUNCHES && resultCode == RESULT_OK && data != null) {
+            final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
+            final Database db = DbManager.getInstance().getDatabase();
+            final int accId = addAcceptationAndFinish(db);
+            for (int bunch : bunchSet) {
+                addAcceptationInBunch(db, bunch, accId);
+            }
+            Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
+
+            final Intent intent = new Intent();
+            intent.putExtra(ResultKeys.ACCEPTATION, accId);
+            setResult(RESULT_OK, intent);
+            finish();
+        }
     }
 
     @Override
     public void onClick(View view) {
-        final int selection = _listView.getCheckedItemPosition();
-        if (selection != ListView.INVALID_POSITION) {
-            addAcceptationAndFinish(selection);
+        _selection = _listView.getCheckedItemPosition();
+        if (_selection != ListView.INVALID_POSITION) {
+            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        if (_selection >= 0) {
+            outState.putInt(SavedKeys.SELECTION, _selection);
         }
     }
 }

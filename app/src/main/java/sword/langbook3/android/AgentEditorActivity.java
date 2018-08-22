@@ -32,9 +32,9 @@ import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
+import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
-import static sword.langbook3.android.QuizSelectorActivity.NO_BUNCH;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
