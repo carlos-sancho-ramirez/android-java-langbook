@@ -67,10 +67,20 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         final ListView listView = findViewById(R.id.listView);
         final Database db = DbManager.getInstance().getDatabase();
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _adapter = new MatchingBunchesPickerAdapter(readAllMatchingBunches(db, getTexts(), preferredAlphabet));
-        listView.setAdapter(_adapter);
+        final ImmutableIntKeyMap<String> bunches = readAllMatchingBunches(db, getTexts(), preferredAlphabet);
 
-        findViewById(R.id.nextButton).setOnClickListener(this);
+        if (bunches.isEmpty()) {
+            final Intent intent = new Intent();
+            intent.putExtra(ResultKeys.BUNCH_SET, new int[0]);
+            setResult(RESULT_OK, intent);
+            finish();
+        }
+        else {
+            _adapter = new MatchingBunchesPickerAdapter(bunches);
+            listView.setAdapter(_adapter);
+
+            findViewById(R.id.nextButton).setOnClickListener(this);
+        }
     }
 
     @Override
