@@ -13,6 +13,7 @@ import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
+import sword.collections.MutableMap;
 import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
 import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.db.Database;
@@ -465,8 +466,9 @@ public final class LangbookDatabase {
             final ImmutableIntSet alreadyProcessedAcceptations = alreadyProcessedMap.keySet();
             final ImmutableIntSet toBeProcessed = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
 
-            for (int acc : alreadyProcessedMap) {
-                if (!matchingAcceptations.contains(acc)) {
+            for (IntPairMap.Entry accPair : alreadyProcessedMap.entries()) {
+                if (!matchingAcceptations.contains(accPair.key())) {
+                    final int acc = accPair.value();
                     deleteKnowledge(db, acc);
                     deleteBunchAcceptation(db, agentDetails.targetBunch, acc);
                     deleteStringQueriesForDynamicAcceptation(db, acc);
@@ -475,6 +477,9 @@ public final class LangbookDatabase {
                     }
                 }
             }
+
+            final ImmutableSet<ImmutableIntPair> conversionsPairs = findConversions(db);
+            final MutableMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> conversions = MutableMap.empty();
 
             final MutableIntPairMap mainAlphabets = MutableIntPairMap.empty();
             final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
@@ -534,10 +539,16 @@ public final class LangbookDatabase {
                 }
 
                 boolean validConversion = true;
-                for (ImmutableIntPair pair : findConversions(db)) {
+                for (ImmutableIntPair pair : conversionsPairs) {
                     final IntSet keySet = correlation.keySet();
                     if (keySet.contains(pair.left)) {
-                        final String result = convertText(getConversion(db, pair), correlation.get(pair.left));
+                        ImmutableList<ImmutablePair<String, String>> conversion = conversions.get(pair, null);
+                        if (conversion == null) {
+                            conversion = getConversion(db, pair);
+                            conversions.put(pair, conversion);
+                        }
+
+                        final String result = convertText(conversion, correlation.get(pair.left));
                         if (result == null) {
                             validConversion = false;
                             break;
