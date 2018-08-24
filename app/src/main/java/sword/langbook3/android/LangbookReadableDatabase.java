@@ -1114,6 +1114,16 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
+    public static int readMainAlphabetFromAlphabet(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.AlphabetsTable alpTable = LangbookDbSchema.Tables.alphabets;
+        final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
+        final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
+                .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
+                .where(alpTable.getIdColumnIndex(), alphabet)
+                .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
+        return selectSingleRow(db, mainAlphableQuery).get(0).toInt();
+    }
+
     public static ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, int preferredAlphabet) {
         final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;

@@ -12,8 +12,6 @@ import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntPairMap;
-import sword.collections.MutableMap;
 import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
 import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.db.Database;
@@ -73,7 +71,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
-import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
+import static sword.langbook3.android.LangbookReadableDatabase.readMainAlphabetFromAlphabet;
 
 public final class LangbookDatabase {
 
@@ -295,14 +293,18 @@ public final class LangbookDatabase {
 
     private static void runAgent(Database db, int agentId, int targetBunch, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> matcher, ImmutableIntKeyMap<String> adder, int rule, boolean matchWordStarting) {
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptations(db, sourceBunches, diffBunches, matcher, matchWordStarting);
-        final LangbookDbSchema.StringQueriesTable strTable = LangbookDbSchema.Tables.stringQueries;
         final ImmutableIntSet processedAcceptations;
         if (matcher.equals(adder)) {
             processedAcceptations = matchingAcceptations;
         }
         else {
-            final MutableIntPairMap mainAlphabets = MutableIntPairMap.empty();
+            final ImmutableSet<ImmutableIntPair> conversionsPairs = findConversions(db);
+            final SyncCacheMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> conversions =
+                    new SyncCacheMap<>(key -> getConversion(db, key));
+
+            final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
             final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
+
             for (int acc : matchingAcceptations) {
                 final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
                 final MutableIntKeyMap<String> correlation = textsAndMain.left.mutate();
@@ -331,10 +333,10 @@ public final class LangbookDatabase {
                 }
 
                 boolean validConversion = true;
-                for (ImmutableIntPair pair : findConversions(db)) {
+                for (ImmutableIntPair pair : conversionsPairs) {
                     final IntSet keySet = correlation.keySet();
                     if (keySet.contains(pair.left)) {
-                        final String result = convertText(getConversion(db, pair), correlation.get(pair.left));
+                        final String result = convertText(conversions.get(pair), correlation.get(pair.left));
                         if (result == null) {
                             validConversion = false;
                             break;
@@ -358,19 +360,7 @@ public final class LangbookDatabase {
                     insertRuledAcceptation(db, newAcc, agentId, acc);
 
                     for (IntKeyMap.Entry<String> entry : correlation.entries()) {
-                        int mainTextAlphabet = mainAlphabets.get(entry.key(), 0);
-                        if (mainTextAlphabet == 0) {
-                            final LangbookDbSchema.AlphabetsTable alpTable = LangbookDbSchema.Tables.alphabets;
-                            final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
-                            final DbQuery mainAlphabetQuery = new DbQuery.Builder(alpTable)
-                                    .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
-                                    .where(alpTable.getIdColumnIndex(), entry.key())
-                                    .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
-                            mainTextAlphabet = selectSingleRow(db, mainAlphabetQuery).get(0).toInt();
-                            mainAlphabets.put(entry.key(), mainTextAlphabet);
-                        }
-
-                        final String mainText = correlation.get(mainTextAlphabet, entry.value());
+                        final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
                         insertStringQuery(db, entry.value(), mainText, textsAndMain.right, newAcc, entry.key());
                     }
                     processedAccBuilder.add(newAcc);
@@ -392,7 +382,6 @@ public final class LangbookDatabase {
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptations(db,
                 agentDetails.sourceBunches, agentDetails.diffBunches,
                 agentDetails.matcher, agentDetails.matchWordStarting());
-        final LangbookDbSchema.StringQueriesTable strTable = LangbookDbSchema.Tables.stringQueries;
 
         final boolean ruleApplied = !agentDetails.matcher.equals(agentDetails.adder);
         final ImmutableIntSet processedAcceptations;
@@ -434,9 +423,10 @@ public final class LangbookDatabase {
             }
 
             final ImmutableSet<ImmutableIntPair> conversionsPairs = findConversions(db);
-            final MutableMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> conversions = MutableMap.empty();
+            final SyncCacheMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> conversions =
+                    new SyncCacheMap<>(key -> getConversion(db, key));
 
-            final MutableIntPairMap mainAlphabets = MutableIntPairMap.empty();
+            final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
             final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
             for (int acc : toBeProcessed) {
                 final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
@@ -469,13 +459,7 @@ public final class LangbookDatabase {
                 for (ImmutableIntPair pair : conversionsPairs) {
                     final IntSet keySet = correlation.keySet();
                     if (keySet.contains(pair.left)) {
-                        ImmutableList<ImmutablePair<String, String>> conversion = conversions.get(pair, null);
-                        if (conversion == null) {
-                            conversion = getConversion(db, pair);
-                            conversions.put(pair, conversion);
-                        }
-
-                        final String result = convertText(conversion, correlation.get(pair.left));
+                        final String result = convertText(conversions.get(pair), correlation.get(pair.left));
                         if (result == null) {
                             validConversion = false;
                             break;
@@ -499,19 +483,7 @@ public final class LangbookDatabase {
                     insertRuledAcceptation(db, newAcc, agentId, acc);
 
                     for (IntKeyMap.Entry<String> entry : correlation.entries()) {
-                        int mainTextAlphabet = mainAlphabets.get(entry.key(), 0);
-                        if (mainTextAlphabet == 0) {
-                            final LangbookDbSchema.AlphabetsTable alpTable = LangbookDbSchema.Tables.alphabets;
-                            final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
-                            final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
-                                    .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
-                                    .where(alpTable.getIdColumnIndex(), entry.key())
-                                    .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
-                            mainTextAlphabet = selectSingleRow(db, mainAlphableQuery).get(0).toInt();
-                            mainAlphabets.put(entry.key(), mainTextAlphabet);
-                        }
-
-                        final String mainText = correlation.get(mainTextAlphabet, entry.value());
+                        final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
                         insertStringQuery(db, entry.value(), mainText, textsAndMain.right, newAcc, entry.key());
                     }
                     processedAccBuilder.add(newAcc);
