@@ -1,7 +1,6 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -16,8 +15,10 @@ import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbStringValue;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -77,37 +78,31 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return ImmutableList.empty();
     }
 
-    private ImmutableList<SearchResult> querySearchResults() {
+    private ImmutableList<SearchResult> querySearchResults(DbExporter.Database db) {
         final StringQueriesTable table = Tables.stringQueries;
-        Cursor cursor = DbManager.getInstance().getReadableDatabase().rawQuery("SELECT " +
-                table.columns().get(table.getStringColumnIndex()).name() + ',' +
-                table.columns().get(table.getMainStringColumnIndex()).name() + ',' +
-                table.columns().get(table.getMainAcceptationColumnIndex()).name() + ',' +
-                table.columns().get(table.getDynamicAcceptationColumnIndex()).name() +
-                " FROM " + table.name() + " WHERE " + table.columns().get(table.getStringColumnIndex()).name() + " LIKE '" + _query + "%'", null);
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(_query),
+                        DbQuery.RestrictionStringTypes.STARTS_WITH))
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
 
-        ImmutableList<SearchResult> results = ImmutableList.empty();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>(cursor.getCount());
-                    do {
-                        final String str = cursor.getString(0);
-                        final String mainStr = cursor.getString(1);
-                        final int acc = cursor.getInt(2);
-                        final int dynAcc = cursor.getInt(3);
+        ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final String str = row.get(0).toText();
+                final String mainStr = row.get(1).toText();
+                final int acc = row.get(2).toInt();
+                final int dynAcc = row.get(3).toInt();
 
-                        builder.add(new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
-                    } while (cursor.moveToNext());
-                    results = builder.build();
-                }
-            }
-            finally {
-                cursor.close();
+                builder.add(new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
             }
         }
 
-        return results;
+        return builder.build();
     }
 
     private ImmutableIntSet getAgentIds() {
@@ -142,7 +137,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     }
 
     private void queryAllResults() {
-        ImmutableList<SearchResult> results = querySearchResults();
+        ImmutableList<SearchResult> results = querySearchResults(DbManager.getInstance().getDatabase());
         if (includeAgentsAsResult() && _query != null && possibleString(AGENT_QUERY_PREFIX)) {
             results = results.appendAll(agentSearchResults().filter(entry -> possibleString(entry.getStr())));
         }
