@@ -21,7 +21,6 @@ import sword.collections.IntResultFunction;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
-import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
@@ -249,7 +248,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private int addAcceptationAndFinish(Database db) {
+    private int addAcceptation(Database db) {
         ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
         boolean correlationInserted = false;
         final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
@@ -277,7 +276,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             concept = getMaxConceptInAcceptations(db) + 1;
         }
 
-        return addAcceptation(db, concept, arrayId);
+        return LangbookDatabase.addAcceptation(db, concept, arrayId);
     }
 
     @Override
@@ -285,7 +284,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         if (requestCode == REQUEST_CODE_PICK_BUNCHES && resultCode == RESULT_OK && data != null) {
             final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
             final Database db = DbManager.getInstance().getDatabase();
-            final int accId = addAcceptationAndFinish(db);
+            final int accId = addAcceptation(db);
             for (int bunch : bunchSet) {
                 addAcceptationInBunch(db, bunch, accId);
             }
