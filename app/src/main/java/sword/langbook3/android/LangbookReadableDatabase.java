@@ -891,6 +891,38 @@ public final class LangbookReadableDatabase {
         return text;
     }
 
+    public static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndMain(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(
+                        table.getStringAlphabetColumnIndex(),
+                        table.getStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex());
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        boolean mainAccSet = false;
+        int mainAcc = 0;
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int alphabet = row.get(0).toInt();
+                final String text = row.get(1).toText();
+
+                if (!mainAccSet) {
+                    mainAcc = row.get(2).toInt();
+                    mainAccSet = true;
+                }
+                else if (row.get(2).toInt() != mainAcc) {
+                    throw new AssertionError();
+                }
+
+                builder.put(alphabet, text);
+            }
+        }
+
+        return new ImmutablePair<>(builder.build(), mainAcc);
+    }
+
     public static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
