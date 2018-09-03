@@ -1226,7 +1226,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String bunchText = item.text;
                 _state.clearDeleteTarget();
 
-                if (!removeAcceptationFromBunch(DbManager.getInstance().getDatabase(), _staticAcceptation, bunch)) {
+                if (!removeAcceptationFromBunch(DbManager.getInstance().getDatabase(), bunch, _staticAcceptation)) {
                     throw new AssertionError();
                 }
 
