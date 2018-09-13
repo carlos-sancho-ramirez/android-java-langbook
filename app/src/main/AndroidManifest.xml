@@ -28,7 +28,9 @@
         <activity android:name=".QuizResultActivity"/>
         <activity android:name=".QuizSelectorActivity"/>
         <activity android:name=".RuleTableActivity"/>
-        <activity android:name=".SettingsActivity"/>
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/menuItemSettings"/>
 
         <!-- Word editor wizard -->
         <activity
