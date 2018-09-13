@@ -1,10 +1,12 @@
 package sword.langbook3.android;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -28,15 +30,18 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         DialogInterface.OnClickListener, AdapterView.OnItemSelectedListener {
 
     private static final int REQUEST_CODE_PICK = 1;
+    private static final int REQUEST_CODE_ASK_PERMISSION = 2;
 
     private interface SavedKeys {
         String FILE_FLAGS = "ff";
+        String URI = "uri";
     }
 
     private boolean _resumed;
     private EditText _dialogEditText;
     private Spinner _preferredAlphabetSpinner;
     private ImmutableIntKeyMap<String> _alphabets;
+    private Uri _uri;
 
     private interface FileFlags {
         /**
@@ -140,6 +145,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
         if (savedInstanceState != null) {
             _fileFlags = savedInstanceState.getInt(SavedKeys.FILE_FLAGS);
+            _uri = savedInstanceState.getParcelable(SavedKeys.URI);
         }
 
         final View progressPanel = findViewById(R.id.progressPanel);
@@ -288,7 +294,27 @@ public final class SettingsActivity extends Activity implements View.OnClickList
                 loadSqliteDatabase(uri);
             }
             else {
-                importDatabase(uri);
+                if (ApiUtils.isAtLeastApi23() && StorageUtils.isExternalFileUri(uri) && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    _uri = uri;
+                    requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_ASK_PERMISSION);
+                }
+                else {
+                    importDatabase(uri);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == REQUEST_CODE_ASK_PERMISSION) {
+            for (int i = 0; i < permissions.length; i++) {
+                if (Manifest.permission.READ_EXTERNAL_STORAGE.equals(permissions[i])) {
+                    if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                        importDatabase(_uri);
+                    }
+                    break;
+                }
             }
         }
     }
@@ -296,5 +322,6 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putInt(SavedKeys.FILE_FLAGS, _fileFlags);
+        outState.putParcelable(SavedKeys.URI, _uri);
     }
 }
