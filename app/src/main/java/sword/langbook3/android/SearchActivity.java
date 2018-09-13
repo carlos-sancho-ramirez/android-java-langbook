@@ -22,7 +22,7 @@ import sword.langbook3.android.db.DbStringValue;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
-    private static final String AGENT_QUERY_PREFIX = "Agent ";
+    static final String AGENT_QUERY_PREFIX = "Agent ";
     private static final int REQUEST_CODE_NEW_ACCEPTATION = 1;
 
     private ListView _listView;

@@ -23,6 +23,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWit
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.SearchActivity.AGENT_QUERY_PREFIX;
 
 public final class AgentDetailsActivity extends Activity {
 
@@ -86,16 +87,18 @@ public final class AgentDetailsActivity extends Activity {
             _deleteDialogPresent = savedInstanceState.getBoolean(SavedKeys.DELETE_DIALOG_PRESENT);
         }
 
+        setTitle(AGENT_QUERY_PREFIX + '#' + _agentId);
+
         final Database db = DbManager.getInstance().getDatabase();
         readAgent();
 
-        final StringBuilder s = new StringBuilder("Agent #").append(_agentId);
+        final StringBuilder s = new StringBuilder();
         if (_targetBunch != NO_BUNCH) {
             DisplayableItem targetResult = readConceptAcceptationAndText(db, _targetBunch, _preferredAlphabet);
-            s.append("\nTarget: ").append(targetResult.text).append(" (").append(_targetBunch).append(')');
+            s.append("Target: ").append(targetResult.text).append(" (").append(_targetBunch).append(")\n");
         }
 
-        s.append("\nSource Bunch Set (").append(_sourceBunchSet).append("):");
+        s.append("Source Bunch Set (").append(_sourceBunchSet).append("):");
         for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _sourceBunchSet, _preferredAlphabet)) {
             s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
