@@ -7,6 +7,7 @@
     <string name="correlationPickerActivityTitle">Select its correlation</string>
     <string name="acceptationPickerActivityTitle">Select an acceptation</string>
     <string name="matchingBunchesPickerActivityTitle">Include in bunches</string>
+    <string name="quizEditorActivityTitle">Select quiz parameters</string>
 
     <string name="searchFieldHint">Search Here</string>
     <string name="addWordButton">Add</string>
