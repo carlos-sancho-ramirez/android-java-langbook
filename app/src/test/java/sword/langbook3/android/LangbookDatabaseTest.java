@@ -21,12 +21,13 @@ import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
-import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
-import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
-import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
+import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
+import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
+import static sword.langbook3.android.LangbookDatabase.removeAgent;
+import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
@@ -505,13 +506,16 @@ public final class LangbookDatabaseTest {
         }
     }
 
-    private static int addSpanishAcceptation(Database db, int alphabet, int concept, String text) {
+    private static int addSimpleCorrelationArray(Database db, int alphabet, String text) {
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, text)
                 .build();
         final int correlationId = insertCorrelation(db, correlation);
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
-        return addAcceptation(db, concept, correlationArrayId);
+        return LangbookDatabase.insertCorrelationArray(db, correlationId);
+    }
+
+    private static int addSpanishAcceptation(Database db, int alphabet, int concept, String text) {
+        return addAcceptation(db, concept, addSimpleCorrelationArray(db, alphabet, text));
     }
 
     private static int addSpanishSingAcceptation(Database db, int alphabet, int concept) {
@@ -976,5 +980,79 @@ public final class LangbookDatabaseTest {
         texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "dormir").build();
         result = readAllMatchingBunches(db, texts, alphabet);
         assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testUpdateAcceptationCorrelationArrayForSame() {
+        final MemoryDatabase db1 = new MemoryDatabase();
+
+        final String text = "cantar";
+        final int language = getMaxConceptInAcceptations(db1) + 1;
+        final int alphabet = language + 1;
+        final int concept = alphabet + 1;
+
+        final int correlationArrayId = addSimpleCorrelationArray(db1, alphabet, text);
+        final int acceptationId = addAcceptation(db1, concept, correlationArrayId);
+
+        final MemoryDatabase db2 = new MemoryDatabase();
+        assertEquals(correlationArrayId, addSimpleCorrelationArray(db2, alphabet, text));
+        assertEquals(acceptationId, addAcceptation(db2, concept, correlationArrayId).intValue());
+        assertEquals(db1, db2);
+
+        updateAcceptationCorrelationArray(db2, acceptationId, correlationArrayId);
+        assertEquals(db1, db2);
+    }
+
+    @Test
+    public void testUpdateAcceptationCorrelationArray() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String text1 = "cantar";
+        final String text2 = "beber";
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int concept = alphabet + 1;
+        final int secondConjugationVerbBunch = concept + 1;
+
+        final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
+        final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "er")
+                .build();
+
+        addAgent(db, secondConjugationVerbBunch, noBunches, noBunches, matcher, matcher, 0, 0);
+
+        final int correlationArrayId2 = addSimpleCorrelationArray(db, alphabet, text2);
+        updateAcceptationCorrelationArray(db, acceptationId, correlationArrayId2);
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        DbQuery query = new DbQuery.Builder(acceptations)
+                .where(acceptations.getCorrelationArrayColumnIndex(), correlationArrayId1)
+                .select(acceptations.getIdColumnIndex());
+        assertFalse(db.select(query).hasNext());
+
+        query = new DbQuery.Builder(acceptations)
+                .where(acceptations.getCorrelationArrayColumnIndex(), correlationArrayId2)
+                .select(acceptations.getIdColumnIndex());
+        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
+
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getStringAlphabetColumnIndex(),
+                        strings.getStringColumnIndex());
+        final DbResult.Row row = selectSingleRow(db, query);
+        assertEquals(acceptationId, row.get(0).toInt());
+        assertEquals(alphabet, row.get(1).toInt());
+        assertEquals(text2, row.get(2).toText());
+
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        query = new DbQuery.Builder(bunchAcceptations)
+                .where(bunchAcceptations.getBunchColumnIndex(), secondConjugationVerbBunch)
+                .select(bunchAcceptations.getAcceptationColumnIndex());
+        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
     }
 }

@@ -27,6 +27,7 @@ import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
+import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 
 public final class LangbookReadableDatabase {
@@ -865,6 +866,42 @@ public final class LangbookReadableDatabase {
                 .where(table.getIdColumnIndex(), accId)
                 .select(table.getConceptColumnIndex());
         return selectSingleRow(db, query).get(0).toInt();
+    }
+
+    private static MutableIntKeyMap<String> readCorrelationArrayTexts(DbExporter.Database db, int correlationArrayId) {
+        MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
+        for (int correlationId : getCorrelationArray(db, correlationArrayId)) {
+            for (IntKeyMap.Entry<String> entry : getCorrelationWithText(db, correlationId).entries()) {
+                final String currentValue = texts.get(entry.key(), "");
+                texts.put(entry.key(), currentValue + entry.value());
+            }
+        }
+
+        return texts;
+    }
+
+    static IntKeyMap<String> readCorrelationArrayTextAndItsAppliedConversions(DbExporter.Database db, int correlationArrayId) {
+        final MutableIntKeyMap<String> texts = readCorrelationArrayTexts(db, correlationArrayId);
+        if (texts.isEmpty()) {
+            return null;
+        }
+
+        final ImmutableSet<ImmutableIntPair> conversions = findConversions(db);
+        for (IntKeyMap.Entry<String> entry : texts.entries().toImmutable()) {
+            for (ImmutableIntPair pair : conversions) {
+                if (pair.left == entry.key()) {
+                    final ImmutableList<ImmutablePair<String, String>> conversion = getConversion(db, pair);
+                    final String convertedText = convertText(conversion, entry.value());
+                    if (convertedText == null) {
+                        return null;
+                    }
+
+                    texts.put(pair.right, convertedText);
+                }
+            }
+        }
+
+        return texts;
     }
 
     public static String readAcceptationText(DbExporter.Database db, int acceptation, int preferredAlphabet) {

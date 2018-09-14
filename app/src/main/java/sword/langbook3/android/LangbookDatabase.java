@@ -21,8 +21,10 @@ import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbStringValue;
+import sword.langbook3.android.db.DbUpdateQuery;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
+import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
@@ -60,8 +62,6 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAgentProcessed
 import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationArray;
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
@@ -71,6 +71,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
+import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationArrayTextAndItsAppliedConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.readMainAlphabetFromAlphabet;
 
 public final class LangbookDatabase {
@@ -196,33 +197,6 @@ public final class LangbookDatabase {
         final int setId = getMaxQuestionFieldSetId(db) + 1;
         LangbookDbInserter.insertQuestionFieldSet(db, setId, fields);
         return setId;
-    }
-
-    /**
-     * Apply the given conversion to the given text to generate a converted one.
-     * @param pairs sorted set of pairs to be traversed in order to convert the <pre>text</pre> string.
-     * @param text Text to be converted
-     * @return The converted text, or null if text cannot be converted.
-     */
-    public static String convertText(ImmutableList<ImmutablePair<String, String>> pairs, String text) {
-        String result = "";
-        while (text.length() > 0) {
-            boolean found = false;
-            for (ImmutablePair<String, String> pair : pairs) {
-                if (text.startsWith(pair.left)) {
-                    result += pair.right;
-                    text = text.substring(pair.left.length());
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                return null;
-            }
-        }
-
-        return result;
     }
 
     private static ImmutableIntSet findMatchingAcceptations(DbExporter.Database db,
@@ -501,31 +475,9 @@ public final class LangbookDatabase {
     }
 
     public static Integer addAcceptation(Database db, int concept, int correlationArrayId) {
-        MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
-        for (int correlationId : getCorrelationArray(db, correlationArrayId)) {
-            for (IntKeyMap.Entry<String> entry : getCorrelationWithText(db, correlationId).entries()) {
-                final String currentValue = texts.get(entry.key(), "");
-                texts.put(entry.key(), currentValue + entry.value());
-            }
-        }
-
-        if (texts.isEmpty()) {
+        final IntKeyMap<String> texts = readCorrelationArrayTextAndItsAppliedConversions(db, correlationArrayId);
+        if (texts == null) {
             return null;
-        }
-
-        final ImmutableSet<ImmutableIntPair> conversions = findConversions(db);
-        for (IntKeyMap.Entry<String> entry : texts.entries().toImmutable()) {
-            for (ImmutableIntPair pair : conversions) {
-                if (pair.left == entry.key()) {
-                    final ImmutableList<ImmutablePair<String, String>> conversion = getConversion(db, pair);
-                    final String convertedText = convertText(conversion, entry.value());
-                    if (convertedText == null) {
-                        return null;
-                    }
-
-                    texts.put(pair.right, convertedText);
-                }
-            }
         }
 
         final String mainStr = texts.valueAt(0);
@@ -541,6 +493,42 @@ public final class LangbookDatabase {
         }
 
         return acceptation;
+    }
+
+    public static boolean updateAcceptationCorrelationArray(Database db, int acceptation, int newCorrelationArrayId) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getIdColumnIndex(), acceptation)
+                .put(table.getCorrelationArrayColumnIndex(), newCorrelationArrayId)
+                .build();
+        final boolean changed = db.update(query);
+        if (changed) {
+            final IntKeyMap<String> texts = readCorrelationArrayTextAndItsAppliedConversions(db, newCorrelationArrayId);
+            if (texts == null) {
+                throw new AssertionError();
+            }
+
+            final String mainStr = texts.valueAt(0);
+            for (IntKeyMap.Entry<String> entry : texts.entries()) {
+                final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+                final DbUpdateQuery updateQuery = new DbUpdateQuery.Builder(strings)
+                        .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                        .where(strings.getStringAlphabetColumnIndex(), entry.key())
+                        .put(strings.getMainStringColumnIndex(), mainStr)
+                        .put(strings.getStringColumnIndex(), entry.value())
+                        .build();
+
+                if (!db.update(updateQuery)) {
+                    throw new AssertionError();
+                }
+            }
+
+            for (int agentId : findAffectedAgentsByAnyAcceptationChange(db)) {
+                rerunAgent(db, agentId);
+            }
+        }
+
+        return changed;
     }
 
     private static void removeFromStringQueryTable(Database db, int acceptation) {

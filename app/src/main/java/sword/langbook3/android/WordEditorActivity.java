@@ -26,7 +26,7 @@ import sword.langbook3.android.db.DbResult;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
-import static sword.langbook3.android.LangbookDatabase.convertText;
+import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForLanguage;
 

@@ -6,6 +6,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.IntKeyMap;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableList;
@@ -472,6 +473,7 @@ public final class MemoryDatabase implements Database {
                         if (!table.remove(id)) {
                             throw new AssertionError();
                         }
+
                         return true;
                     }
                 }
@@ -504,5 +506,28 @@ public final class MemoryDatabase implements Database {
         }
 
         return false;
+    }
+
+    private ImmutableMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> filteredMap() {
+        final ImmutableMap.Builder<DbView, MutableIntKeyMap<ImmutableList<Object>>> builder = new ImmutableMap.Builder<>();
+        final int thisLength = _tableMap.size();
+        for (int i = 0; i < thisLength; i++) {
+            final MutableIntKeyMap<ImmutableList<Object>> value = _tableMap.valueAt(i);
+            if (!value.isEmpty()) {
+                builder.put(_tableMap.keyAt(i), value);
+            }
+        }
+
+        return builder.build();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == null || !(other instanceof MemoryDatabase)) {
+            return false;
+        }
+
+        final MemoryDatabase that = (MemoryDatabase) other;
+        return filteredMap().equals(that.filteredMap());
     }
 }
