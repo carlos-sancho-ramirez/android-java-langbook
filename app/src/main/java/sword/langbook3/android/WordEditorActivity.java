@@ -186,9 +186,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 editText.setEnabled(false);
             }
             else {
+                final String text = _texts[fieldIndex];
                 editText.setText(_texts[fieldIndex]);
-                if (autoSelectText) {
-                    editText.setSelection(0, _texts[fieldIndex].length());
+                if (autoSelectText && text != null) {
+                    editText.setSelection(0, text.length());
                 }
 
                 editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
