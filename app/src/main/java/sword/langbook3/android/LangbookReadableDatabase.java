@@ -16,6 +16,7 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
+import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
@@ -188,7 +189,7 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static Integer findCorrelationArray(DbImporter.Database db, ImmutableIntList array) {
+    public static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
@@ -950,6 +951,40 @@ public final class LangbookReadableDatabase {
         }
 
         return text;
+    }
+
+    public static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndLanguage(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final LangbookDbSchema.AlphabetsTable alphabetsTable = LangbookDbSchema.Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(alphabetsTable, table.getStringAlphabetColumnIndex(), alphabetsTable.getIdColumnIndex())
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(
+                        table.getStringAlphabetColumnIndex(),
+                        table.getStringColumnIndex(),
+                        table.columns().size() + alphabetsTable.getLanguageColumnIndex());
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        boolean languageSet = false;
+        int language = 0;
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int alphabet = row.get(0).toInt();
+                final String text = row.get(1).toText();
+
+                if (!languageSet) {
+                    language = row.get(2).toInt();
+                    languageSet = true;
+                }
+                else if (row.get(2).toInt() != language) {
+                    throw new AssertionError();
+                }
+
+                builder.put(alphabet, text);
+            }
+        }
+
+        return new ImmutablePair<>(builder.build(), language);
     }
 
     public static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndMain(DbExporter.Database db, int acceptation) {

@@ -24,16 +24,19 @@ import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
-import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_PICK_BUNCHES = 1;
     static final int NO_CONCEPT = 0;
+    static final int NO_ACCEPTATION = 0;
 
     interface ArgKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String ALPHABETS = BundleKeys.ALPHABETS;
         String CONCEPT = BundleKeys.CONCEPT;
         String TEXTS = BundleKeys.TEXTS;
@@ -69,6 +72,30 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             intent.putExtra(ArgKeys.CONCEPT, concept);
         }
 
+        intent.putExtra(ArgKeys.TEXTS, str);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    /**
+     * Opens the correlation picker activity assuming that its editing an existing acceptation correlation array.
+     * @param activity Activity that opens this activity.
+     * @param requestCode Request code that will be used on {@link Activity#onActivityResult(int, int, android.content.Intent)}.
+     * @param texts Texts entered by the user in the WordEditorActivity.
+     * @param acceptation Identifier for an existing acceptation that will be modified after selecting the correlation array.
+     */
+    public static void open(Activity activity, int requestCode, IntKeyMap<String> texts, int acceptation) {
+        final int mapSize = texts.size();
+        final int[] alphabets = new int[mapSize];
+        final String[] str = new String[mapSize];
+
+        for (int i = 0; i < mapSize; i++) {
+            alphabets[i] = texts.keyAt(i);
+            str[i] = texts.valueAt(i);
+        }
+
+        final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
+        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
+        intent.putExtra(ArgKeys.ALPHABETS, alphabets);
         intent.putExtra(ArgKeys.TEXTS, str);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -248,7 +275,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private int addAcceptation(Database db) {
+    private int addCorrelationArray(Database db) {
         ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
         boolean correlationInserted = false;
         final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
@@ -262,21 +289,16 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
 
         final ImmutableIntList idArray = arrayBuilder.build();
-        final int arrayId;
-        if (!correlationInserted) {
-            final Integer arrayIdOpt = findCorrelationArray(db, idArray);
-            arrayId = (arrayIdOpt == null) ? insertCorrelationArray(db, idArray) : arrayIdOpt;
-        }
-        else {
-            arrayId = insertCorrelationArray(db, idArray);
-        }
+        return correlationInserted? insertCorrelationArray(db, idArray) : obtainCorrelationArray(db, idArray);
+    }
 
+    private int addAcceptation(Database db) {
         int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
         if (concept == NO_CONCEPT) {
             concept = getMaxConceptInAcceptations(db) + 1;
         }
 
-        return LangbookDatabase.addAcceptation(db, concept, arrayId);
+        return LangbookDatabase.addAcceptation(db, concept, addCorrelationArray(db));
     }
 
     @Override
@@ -301,7 +323,16 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     public void onClick(View view) {
         _selection = _listView.getCheckedItemPosition();
         if (_selection != ListView.INVALID_POSITION) {
-            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
+            final int existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
+            if (existingAcceptation == NO_ACCEPTATION) {
+                MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
+            }
+            else {
+                final Database db = DbManager.getInstance().getDatabase();
+                updateAcceptationCorrelationArray(DbManager.getInstance().getDatabase(), existingAcceptation, addCorrelationArray(db));
+                setResult(RESULT_OK);
+                finish();
+            }
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();

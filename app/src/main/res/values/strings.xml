@@ -24,6 +24,7 @@
     <string name="menuItemIncludeInBunch">Include in bunch</string>
     <string name="menuItemIncludeSupertype">Include supertype</string>
     <string name="menuItemDeleteSupertype">Delete supertype</string>
+    <string name="menuItemEdit">Edit</string>
     <string name="menuItemDelete">Delete</string>
     <string name="menuItemConfirm">Confirm</string>
 

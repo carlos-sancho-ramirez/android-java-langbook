@@ -24,10 +24,12 @@ import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 
+import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForLanguage;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
@@ -35,6 +37,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private static final int REQUEST_CODE_CORRELATION_PICKER = 1;
 
     interface ArgKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CONCEPT = BundleKeys.CONCEPT;
         String LANGUAGE = BundleKeys.LANGUAGE;
         String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
@@ -52,6 +55,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private ImmutableIntKeyMap<FieldConversion> _fieldConversions;
     private String[] _texts;
     private ImmutableIntPairMap _fieldIndexAlphabetRelationMap;
+    private int _existingAcceptation = NO_ACCEPTATION;
 
     public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
@@ -65,6 +69,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.LANGUAGE, language);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    public static void open(Activity activity, int requestCode, int acceptation) {
+        final Intent intent = new Intent(activity, WordEditorActivity.class);
+        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -145,7 +155,24 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private void updateFields() {
         _formPanel.removeAllViews();
         final Database db = DbManager.getInstance().getDatabase();
-        final int language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
+        _existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
+        final ImmutableIntKeyMap<String> existingTexts;
+        final int language;
+        if (_existingAcceptation != 0) {
+            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = readAcceptationTextsAndLanguage(db,
+                    _existingAcceptation);
+            existingTexts = result.left;
+            language = result.right;
+        }
+        else {
+            existingTexts = ImmutableIntKeyMap.empty();
+            language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
+        }
+
+        if (language == 0) {
+            throw new AssertionError();
+        }
+
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableIntKeyMap<String> fieldNames = readAlphabetsForLanguage(db, language, preferredAlphabet);
         final ImmutableIntPairMap fieldConversions = findConversions(fieldNames.keySet());
@@ -156,8 +183,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         boolean autoSelectText = false;
         if (_texts == null) {
             _texts = new String[fieldCount];
+        }
 
-            if (fieldCount == 1) {
+        for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+            _texts[fieldIndex] = existingTexts.get(fieldNames.keyAt(fieldIndex), null);
+
+            if (fieldCount == 1 && _texts[0] == null) {
                 _texts[0] = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
                 autoSelectText = true;
             }
@@ -222,8 +253,14 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 
-            CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
-                    getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT), builder.build());
+            if (_existingAcceptation == NO_ACCEPTATION) {
+                CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
+                        getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT), builder.build());
+            }
+            else {
+                CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
+                        builder.build(), _existingAcceptation);
+            }
         }
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();

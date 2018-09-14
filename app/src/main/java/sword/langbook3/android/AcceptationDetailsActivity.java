@@ -70,10 +70,11 @@ import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
 
-    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 1;
-    private static final int REQUEST_CODE_PICK_ACCEPTATION = 2;
-    private static final int REQUEST_CODE_PICK_BUNCH = 3;
-    private static final int REQUEST_CODE_PICK_SUPERTYPE = 4;
+    private static final int REQUEST_CODE_EDIT = 1;
+    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 2;
+    private static final int REQUEST_CODE_PICK_ACCEPTATION = 3;
+    private static final int REQUEST_CODE_PICK_BUNCH = 4;
+    private static final int REQUEST_CODE_PICK_SUPERTYPE = 5;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -1127,6 +1128,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             inflater.inflate(R.menu.acceptation_details_activity_confirm, menu);
         }
         else {
+            inflater.inflate(R.menu.acceptation_details_activity_edit, menu);
+
             if (_shouldShowBunchChildrenQuizMenuOption) {
                 inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
             }
@@ -1151,6 +1154,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         switch (item.getItemId()) {
             case R.id.menuItemBunchChildrenQuiz:
                 QuizSelectorActivity.open(this, _concept);
+                return true;
+
+            case R.id.menuItemEdit:
+                WordEditorActivity.open(this, REQUEST_CODE_EDIT, _staticAcceptation);
                 return true;
 
             case R.id.menuItemLinkConcept:
@@ -1334,6 +1341,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 showFeedback(getString(R.string.includeSupertypeOk));
                 updateAdapter();
                 invalidateOptionsMenu();
+            }
+            else if (requestCode == REQUEST_CODE_EDIT) {
+                updateAdapter();
             }
         }
     }

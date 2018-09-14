@@ -54,6 +54,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
@@ -140,6 +141,11 @@ public final class LangbookDatabase {
             values[index++] = value;
         }
         return insertCorrelationArray(db, values);
+    }
+
+    public static int obtainCorrelationArray(DbImporter.Database db, IntList correlations) {
+        final Integer foundId = findCorrelationArray(db, correlations);
+        return (foundId == null) ? insertCorrelationArray(db, correlations) : foundId;
     }
 
     public static int insertBunchSet(DbImporter.Database db, IntSet bunchSet) {
