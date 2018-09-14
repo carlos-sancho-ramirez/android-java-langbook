@@ -273,6 +273,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         dialog.dismiss();
     }
 
+    @SuppressWarnings("NewApi")
     private void triggerFileProcessing(Uri uri) {
         if (expectsSaveFile()) {
             if (expectsSqliteFileFormat()) {
