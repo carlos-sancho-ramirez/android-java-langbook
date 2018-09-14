@@ -5,6 +5,8 @@ import android.content.Intent;
 
 public final class AcceptationPickerActivity extends SearchActivity {
 
+    private static final int REQUEST_CODE_VIEW_DETAILS = 1;
+
     interface ArgKeys {
         String CONCEPT = BundleKeys.CONCEPT;
     }
@@ -33,18 +35,22 @@ public final class AcceptationPickerActivity extends SearchActivity {
 
     @Override
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
-        final Intent intent = new Intent();
-        intent.putExtra(ResultKeys.ACCEPTATION, staticAcceptation);
-        setResult(RESULT_OK, intent);
-        finish();
+        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, staticAcceptation, dynamicAcceptation, true);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             final Intent intent = new Intent();
-            intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0));
-            intent.putExtra(ResultKeys.CONCEPT_USED, true);
+            if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
+                intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.ACCEPTATION, 0));
+            }
+            else {
+                // When a new acceptation has been created
+                intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.CONCEPT_USED, true);
+            }
+
             setResult(RESULT_OK, intent);
             finish();
         }

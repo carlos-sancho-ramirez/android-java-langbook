@@ -78,15 +78,21 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
         String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
+        String CONFIRM_ONLY = BundleKeys.CONFIRM_ONLY;
     }
 
     private interface SavedKeys {
         String STATE = "cSt";
     }
 
+    interface ResultKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
+    }
+
     private int _preferredAlphabet;
     private int _staticAcceptation;
     private int _concept;
+    private boolean _confirmOnly;
 
     private ImmutableIntSet _bunchesWhereIncluded;
     private AcceptationResult _definition;
@@ -102,6 +108,18 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
         intent.putExtra(ArgKeys.DYNAMIC_ACCEPTATION, dynamicAcceptation);
         context.startActivity(intent);
+    }
+
+    public static void open(Activity activity, int requestCode, int staticAcceptation, int dynamicAcceptation, boolean confirmOnly) {
+        Intent intent = new Intent(activity, AcceptationDetailsActivity.class);
+        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
+        intent.putExtra(ArgKeys.DYNAMIC_ACCEPTATION, dynamicAcceptation);
+
+        if (confirmOnly) {
+            intent.putExtra(ArgKeys.CONFIRM_ONLY, true);
+        }
+
+        activity.startActivityForResult(intent, requestCode);
     }
 
     private static final class CorrelationHolder {
@@ -1026,6 +1044,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+        _confirmOnly = getIntent().getBooleanExtra(ArgKeys.CONFIRM_ONLY, false);
         setTitle(readAcceptationText(DbManager.getInstance().getDatabase(), _staticAcceptation, _preferredAlphabet));
 
         _concept = conceptFromAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation);
@@ -1033,8 +1052,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         if (_concept != 0) {
             updateAdapter();
-            _listView.setOnItemClickListener(this);
-            _listView.setOnItemLongClickListener(this);
+            if (!_confirmOnly) {
+                _listView.setOnItemClickListener(this);
+                _listView.setOnItemLongClickListener(this);
+            }
 
             switch (_state.getIntrinsicState()) {
                 case IntrinsicStates.DELETE_ACCEPTATION:
@@ -1101,20 +1122,27 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         final MenuInflater inflater = new MenuInflater(this);
-        if (_shouldShowBunchChildrenQuizMenuOption) {
-            inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
-        }
 
-        inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
-
-        if (_definition == null) {
-            inflater.inflate(R.menu.acceptation_details_activity_include_supertype, menu);
+        if (_confirmOnly) {
+            inflater.inflate(R.menu.acceptation_details_activity_confirm, menu);
         }
         else {
-            inflater.inflate(R.menu.acceptation_details_activity_delete_supertype, menu);
+            if (_shouldShowBunchChildrenQuizMenuOption) {
+                inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
+            }
+
+            inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
+
+            if (_definition == null) {
+                inflater.inflate(R.menu.acceptation_details_activity_include_supertype, menu);
+            }
+            else {
+                inflater.inflate(R.menu.acceptation_details_activity_delete_supertype, menu);
+            }
+
+            inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
         }
 
-        inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
         return true;
     }
 
@@ -1149,6 +1177,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             case R.id.menuItemDeleteSupertype:
                 _state.setDeletingSupertype();
                 showDeleteSupertypeConfirmationDialog();
+                return true;
+
+            case R.id.menuItemConfirm:
+                final Intent intent = new Intent();
+                intent.putExtra(ResultKeys.ACCEPTATION, _staticAcceptation);
+                setResult(Activity.RESULT_OK, intent);
+                finish();
                 return true;
         }
 

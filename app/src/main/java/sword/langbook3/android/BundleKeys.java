@@ -9,6 +9,7 @@ public interface BundleKeys {
     String BUNCH_SET = "bunchSet";
     String CONCEPT = "concept";
     String CONCEPT_USED = "conceptUsed";
+    String CONFIRM_ONLY = "cO";
     String CORRELATION = "cId";
     String DYNAMIC_ACCEPTATION = "da";
     String GOOD_ANSWER_COUNT = "goodAnswer";

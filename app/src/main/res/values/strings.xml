@@ -25,6 +25,7 @@
     <string name="menuItemIncludeSupertype">Include supertype</string>
     <string name="menuItemDeleteSupertype">Delete supertype</string>
     <string name="menuItemDelete">Delete</string>
+    <string name="menuItemConfirm">Confirm</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
     <string name="deleteSupertypeConfirmationText">Are you sure that you want to remove this acceptation for its definition type?</string>
