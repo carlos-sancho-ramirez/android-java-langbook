@@ -1,6 +1,7 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 
 public final class DbUpdateQuery {
@@ -30,7 +31,7 @@ public final class DbUpdateQuery {
     public static final class Builder {
         private final DbTable _table;
         private final MutableIntPairMap _constraints = MutableIntPairMap.empty();
-        private final MutableIntPairMap _values = MutableIntPairMap.empty();
+        private final MutableIntKeyMap<DbValue> _values = MutableIntKeyMap.empty();
 
         public Builder(DbTable table) {
             _table = table;
@@ -44,6 +45,17 @@ public final class DbUpdateQuery {
             final DbColumn column = _table.columns().get(columnIndex);
             if (column.isText()) {
                 throw new IllegalArgumentException("Column is not an integer value");
+            }
+        }
+
+        private void assertValidTextColumn(int columnIndex) {
+            if (columnIndex < 0 || columnIndex >= _table.columns().size()) {
+                throw new IllegalArgumentException("Wrong column index");
+            }
+
+            final DbColumn column = _table.columns().get(columnIndex);
+            if (!column.isText()) {
+                throw new IllegalArgumentException("Column is not a text value");
             }
         }
 
@@ -63,7 +75,17 @@ public final class DbUpdateQuery {
                 throw new IllegalArgumentException("Column already has value");
             }
 
-            _values.put(columnIndex, value);
+            _values.put(columnIndex, new DbIntValue(value));
+            return this;
+        }
+
+        public Builder put(int columnIndex, String value) {
+            assertValidTextColumn(columnIndex);
+            if (_values.keySet().contains(columnIndex)) {
+                throw new IllegalArgumentException("Column already has value");
+            }
+
+            _values.put(columnIndex, new DbStringValue(value));
             return this;
         }
 
@@ -74,7 +96,7 @@ public final class DbUpdateQuery {
 
             return new DbUpdateQuery(_table,
                     _constraints.toImmutable().map(DbIntValue::new),
-                    _values.toImmutable().map(DbIntValue::new));
+                    _values.toImmutable());
         }
     }
 }

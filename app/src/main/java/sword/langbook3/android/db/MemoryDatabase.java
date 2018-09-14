@@ -382,7 +382,66 @@ public final class MemoryDatabase implements Database {
 
     @Override
     public boolean update(DbUpdateQuery query) {
-        throw new UnsupportedOperationException("Unimplemented");
+        final DbTable table = query.table();
+        final MutableIntKeyMap<ImmutableList<Object>> content = obtainTableContent(table);
+
+        final ImmutableIntKeyMap.Builder<Object> rawConstraintsBuilder = new ImmutableIntKeyMap.Builder<>();
+        for (IntKeyMap.Entry<DbValue> entry : query.constraints().entries()) {
+            final DbValue value = entry.value();
+            rawConstraintsBuilder.put(entry.key(), value.isText()? value.toText() : value.toInt());
+        }
+        final ImmutableIntKeyMap<Object> rawConstraints = rawConstraintsBuilder.build();
+        final int constraintsCount = rawConstraints.size();
+
+        final ImmutableIntKeyMap.Builder<Object> rawValuesBuilder = new ImmutableIntKeyMap.Builder<>();
+        for (IntKeyMap.Entry<DbValue> entry : query.values().entries()) {
+            final DbValue value = entry.value();
+            rawValuesBuilder.put(entry.key(), value.isText()? value.toText() : value.toInt());
+        }
+        final ImmutableIntKeyMap<Object> rawValues = rawValuesBuilder.build();
+        final int valuesCount = rawValues.size();
+
+        final int tableLength = content.size();
+        for (int row = 0; row < tableLength; row++) {
+            final ImmutableList<Object> currentValues = content.valueAt(row);
+            boolean allMatches = true;
+            for (int index = 0; index < constraintsCount && allMatches; index++) {
+                final int column = rawConstraints.keyAt(index);
+                final Object columnValue = (column == 0)? content.keyAt(row) : currentValues.get(column - 1);
+                allMatches = rawConstraints.valueAt(index).equals(columnValue);
+            }
+
+            if (allMatches) {
+                final MutableList<Object> values = currentValues.mutate();
+                boolean modifyPrimeryKey = false;
+                for (int index = 0; index < valuesCount; index++) {
+                    final int column = rawValues.keyAt(index) - 1;
+                    if (column >= 0) {
+                        values.put(column, rawValues.valueAt(index));
+                    }
+                    else {
+                        modifyPrimeryKey = true;
+                    }
+                }
+
+                if (modifyPrimeryKey) {
+                    final Object newKey = rawValues.get(0);
+                    if (!(newKey instanceof Integer) || content.keySet().contains((Integer) newKey)) {
+                        // Conflict. So nothing can be done
+                        return false;
+                    }
+
+                    content.removeAt(row);
+                    content.put((Integer) newKey, values.toImmutable());
+                    return true;
+                }
+                else {
+                    content.put(content.keyAt(row), values.toImmutable());
+                }
+            }
+        }
+
+        return true;
     }
 
     @Override

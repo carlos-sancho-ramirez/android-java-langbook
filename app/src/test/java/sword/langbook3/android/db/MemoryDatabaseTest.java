@@ -102,6 +102,39 @@ public final class MemoryDatabaseTest {
             }
         }
 
+        private void updateUniqueText(int id, String newText) {
+            final DbUpdateQuery query = new DbUpdateQuery.Builder(uniqueTextTable)
+                    .where(uniqueTextTable.getIdColumnIndex(), id)
+                    .put(uniqueTextTable.columns().indexOf(uniqueTextColumn), newText)
+                    .build();
+
+            if (!db.update(query)) {
+                throw new AssertionError();
+            }
+        }
+
+        private void updateConceptWord(int id, int concept) {
+            final DbUpdateQuery query = new DbUpdateQuery.Builder(wordTable)
+                    .where(wordTable.getIdColumnIndex(), id)
+                    .put(wordTable.columns().indexOf(conceptColumn), concept)
+                    .build();
+
+            if (!db.update(query)) {
+                throw new AssertionError();
+            }
+        }
+
+        private void updateWrittenWord(int id, String newText) {
+            final DbUpdateQuery query = new DbUpdateQuery.Builder(wordTable)
+                    .where(wordTable.getIdColumnIndex(), id)
+                    .put(wordTable.columns().indexOf(writtenColumn), newText)
+                    .build();
+
+            if (!db.update(query)) {
+                throw new AssertionError();
+            }
+        }
+
         private void assertText(int id, String expectedValue) {
             final int columnIndex = textTable.columns().indexOf(textColumn);
             final DbQuery selectQuery = new DbQuery.Builder(textTable)
@@ -167,6 +200,28 @@ public final class MemoryDatabaseTest {
             }
 
             assertEquals(set, builder.build());
+        }
+
+        private void assertWord(int id, int concept, int language, String written) {
+            final int conceptIndex = wordTable.columns().indexOf(conceptColumn);
+            final int languageIndex = wordTable.columns().indexOf(languageColumn);
+            final int writtenIndex = wordTable.columns().indexOf(writtenColumn);
+
+            final DbQuery selectQuery = new DbQuery.Builder(wordTable)
+                    .where(wordTable.getIdColumnIndex(), id)
+                    .select(conceptIndex, languageIndex, writtenIndex);
+            final DbResult result = db.select(selectQuery);
+            try {
+                assertTrue(result.hasNext());
+                final DbResult.Row row = result.next();
+                assertEquals(concept, row.get(0).toInt());
+                assertEquals(language, row.get(1).toInt());
+                assertEquals(written, row.get(2).toText());
+                assertFalse(result.hasNext());
+            }
+            finally {
+                result.close();
+            }
         }
     }
 
@@ -506,4 +561,42 @@ public final class MemoryDatabaseTest {
         state.assertNotUniqueText(textId, value);
     }
 
+    @Test
+    public void testUpdateText() {
+        final State state = new State();
+        final String oldValue = "oldText";
+        final String newValue = "newText";
+        final int textId = state.insertUniqueText(oldValue);
+        state.assertUniqueText(textId, oldValue);
+        state.updateUniqueText(textId, newValue);
+        state.assertUniqueText(textId, newValue);
+    }
+
+    @Test
+    public void testUpdateWord() {
+        final State state = new State();
+        final int oldConcept = 34;
+        final int newConcept = 127;
+        final int language = 1;
+        final String wrongValue = "colection";
+        final String fixedValue = "collection";
+
+        final int wordId = state.insertWord(oldConcept, language, wrongValue);
+        state.updateWrittenWord(wordId, fixedValue);
+        state.assertWord(wordId, oldConcept, language, fixedValue);
+
+        state.updateConceptWord(wordId, newConcept);
+        state.assertWord(wordId, newConcept, language, fixedValue);
+
+        final int conceptColumnIndex = wordTable.columns().indexOf(conceptColumn);
+        final int writtenColumnIndex = wordTable.columns().indexOf(writtenColumn);
+
+        final DbUpdateQuery query = new DbUpdateQuery.Builder(wordTable)
+                .where(wordTable.getIdColumnIndex(), wordId)
+                .put(conceptColumnIndex, oldConcept)
+                .put(writtenColumnIndex, wrongValue)
+                .build();
+        assertTrue(state.db.update(query));
+        state.assertWord(wordId, oldConcept, language, wrongValue);
+    }
 }
