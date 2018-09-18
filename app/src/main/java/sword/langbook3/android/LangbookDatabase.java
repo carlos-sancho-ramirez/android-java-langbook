@@ -526,6 +526,21 @@ public final class LangbookDatabase {
             for (int agentId : findAffectedAgentsByAnyAcceptationChange(db)) {
                 rerunAgent(db, agentId);
             }
+
+            final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
+            final DbQuery knowledgeQuery = new DbQuery.Builder(knowledge)
+                    .where(knowledge.getAcceptationColumnIndex(), acceptation)
+                    .select(knowledge.getQuizDefinitionColumnIndex());
+            final ImmutableIntSetBuilder quizIdsBuilder = new ImmutableIntSetBuilder();
+            try (DbResult result = db.select(knowledgeQuery)) {
+                while (result.hasNext()) {
+                    quizIdsBuilder.add(result.next().get(0).toInt());
+                }
+            }
+
+            for (int quizId : quizIdsBuilder.build()) {
+                recheckPossibleQuestions(db, quizId);
+            }
         }
 
         return changed;
