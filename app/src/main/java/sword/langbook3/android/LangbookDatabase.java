@@ -351,12 +351,17 @@ public final class LangbookDatabase {
         }
     }
 
-    private static void rerunAgent(Database db, int agentId) {
+    /**
+     * Run again the specified agent.
+     * @return The bunch identifier in case the target bunch has changed, or null if there is no change.
+     */
+    private static Integer rerunAgent(Database db, int agentId) {
         final AgentDetails agentDetails = LangbookReadableDatabase.getAgentDetails(db, agentId);
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptations(db,
                 agentDetails.sourceBunches, agentDetails.diffBunches,
                 agentDetails.matcher, agentDetails.matchWordStarting());
 
+        boolean targetChanged = false;
         final boolean ruleApplied = !agentDetails.matcher.equals(agentDetails.adder);
         final ImmutableIntSet processedAcceptations;
         if (!ruleApplied) {
@@ -373,6 +378,7 @@ public final class LangbookDatabase {
                     if (!deleteBunchAcceptation(db, agentDetails.targetBunch, entry.key())) {
                         throw new AssertionError();
                     }
+                    targetChanged = true;
                 }
             }
             processedAcceptations = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
@@ -393,6 +399,7 @@ public final class LangbookDatabase {
                     if (!deleteAcceptation(db, acc) | !deleteRuledAcceptation(db, acc)) {
                         throw new AssertionError();
                     }
+                    targetChanged = true;
                 }
             }
 
@@ -470,8 +477,11 @@ public final class LangbookDatabase {
             final int agentSetId = obtainAgentSet(db, new ImmutableIntSetBuilder().add(agentId).build());
             for (int acc : processedAcceptations) {
                 insertBunchAcceptation(db, agentDetails.targetBunch, acc, agentSetId);
+                targetChanged = true;
             }
         }
+
+        return (targetChanged && agentDetails.targetBunch != 0)? agentDetails.targetBunch : null;
     }
 
     public static Integer addAcceptation(Database db, int concept, int correlationArrayId) {
@@ -523,18 +533,26 @@ public final class LangbookDatabase {
                 }
             }
 
+            final ImmutableIntSetBuilder touchedBunchesBuilder = new ImmutableIntSetBuilder();
             for (int agentId : findAffectedAgentsByAnyAcceptationChange(db)) {
-                rerunAgent(db, agentId);
+                final Integer touchedBunch = rerunAgent(db, agentId);
+                if (touchedBunch != null) {
+                    touchedBunchesBuilder.add(touchedBunch);
+                }
             }
+            final ImmutableIntSet touchedBunches = touchedBunchesBuilder.build();
 
-            final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-            final DbQuery knowledgeQuery = new DbQuery.Builder(knowledge)
-                    .where(knowledge.getAcceptationColumnIndex(), acceptation)
-                    .select(knowledge.getQuizDefinitionColumnIndex());
             final ImmutableIntSetBuilder quizIdsBuilder = new ImmutableIntSetBuilder();
-            try (DbResult result = db.select(knowledgeQuery)) {
+            final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
+            final DbQuery quizQuery = new DbQuery.Builder(quizzes)
+                    .select(quizzes.getIdColumnIndex(), quizzes.getBunchColumnIndex());
+            try (DbResult result = db.select(quizQuery)) {
                 while (result.hasNext()) {
-                    quizIdsBuilder.add(result.next().get(0).toInt());
+                    final DbResult.Row row = result.next();
+                    final int quizBunch = row.get(1).toInt();
+                    if (quizBunch == 0 || touchedBunches.contains(quizBunch)) {
+                        quizIdsBuilder.add(row.get(0).toInt());
+                    }
                 }
             }
 

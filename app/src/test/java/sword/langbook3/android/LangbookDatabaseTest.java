@@ -1012,56 +1012,6 @@ public final class LangbookDatabaseTest {
         assertFalse(db.select(query).hasNext());
     }
 
-    @Test
-    public void testUpdateAcceptationCorrelationArray() {
-        final MemoryDatabase db = new MemoryDatabase();
-
-        final String text1 = "cantar";
-        final String text2 = "beber";
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int concept = alphabet + 1;
-        final int secondConjugationVerbBunch = concept + 1;
-
-        final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
-        final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
-
-        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "er")
-                .build();
-
-        addAgent(db, secondConjugationVerbBunch, noBunches, noBunches, matcher, matcher, 0, 0);
-
-        final int correlationArrayId2 = addSimpleCorrelationArray(db, alphabet, text2);
-        updateAcceptationCorrelationArray(db, acceptationId, correlationArrayId2);
-
-        assertNoAcceptationWithCorrelationArray(db, correlationArrayId1);
-
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        DbQuery query = new DbQuery.Builder(acceptations)
-                .where(acceptations.getCorrelationArrayColumnIndex(), correlationArrayId2)
-                .select(acceptations.getIdColumnIndex());
-        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
-
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringAlphabetColumnIndex(),
-                        strings.getStringColumnIndex());
-        final DbResult.Row row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals(alphabet, row.get(1).toInt());
-        assertEquals(text2, row.get(2).toText());
-
-        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
-        query = new DbQuery.Builder(bunchAcceptations)
-                .where(bunchAcceptations.getBunchColumnIndex(), secondConjugationVerbBunch)
-                .select(bunchAcceptations.getAcceptationColumnIndex());
-        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
-    }
-
     private final ImmutableMap<String, String> upperCaseConversion = new ImmutableMap.Builder<String, String>()
             .put("a", "A")
             .put("b", "B")
@@ -1095,6 +1045,80 @@ public final class LangbookDatabaseTest {
         for (sword.collections.Map.Entry<String, String> entry : upperCaseConversion.entries()) {
             insertConversion(db, sourceAlphabet, destAlphabet, entry.key(), entry.value());
         }
+    }
+
+    @Test
+    public void testUpdateAcceptationCorrelationArray() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String text1 = "cantar";
+        final String text2 = "beber";
+        final String text2UpperCase = "BEBER";
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int upperCaseAlphabet = alphabet + 1;
+        final int concept = upperCaseAlphabet + 1;
+        final int secondConjugationVerbBunch = concept + 1;
+
+        addUpperCaseConversion(db, alphabet, upperCaseAlphabet);
+        final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
+        final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "er")
+                .build();
+
+        addAgent(db, secondConjugationVerbBunch, noBunches, noBunches, matcher, matcher, 0, 0);
+
+        final ImmutableList<QuestionFieldDetails> quizFields = new ImmutableList.Builder<QuestionFieldDetails>()
+                .add(new QuestionFieldDetails(alphabet, 0, QuestionFieldFlags.TYPE_SAME_ACC))
+                .add(new QuestionFieldDetails(upperCaseAlphabet, 0, QuestionFieldFlags.TYPE_SAME_ACC | QuestionFieldFlags.IS_ANSWER))
+                .build();
+        final int quizId = obtainQuiz(db, secondConjugationVerbBunch, quizFields);
+
+        final int correlationArrayId2 = addSimpleCorrelationArray(db, alphabet, text2);
+        updateAcceptationCorrelationArray(db, acceptationId, correlationArrayId2);
+
+        assertNoAcceptationWithCorrelationArray(db, correlationArrayId1);
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        DbQuery query = new DbQuery.Builder(acceptations)
+                .where(acceptations.getCorrelationArrayColumnIndex(), correlationArrayId2)
+                .select(acceptations.getIdColumnIndex());
+        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
+
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
+                .where(strings.getStringAlphabetColumnIndex(), alphabet)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getStringColumnIndex());
+        DbResult.Row row = selectSingleRow(db, query);
+        assertEquals(acceptationId, row.get(0).toInt());
+        assertEquals(text2, row.get(1).toText());
+
+        query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
+                .where(strings.getStringAlphabetColumnIndex(), upperCaseAlphabet)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getStringColumnIndex());
+        row = selectSingleRow(db, query);
+        assertEquals(acceptationId, row.get(0).toInt());
+        assertEquals(text2UpperCase, row.get(1).toText());
+
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        query = new DbQuery.Builder(bunchAcceptations)
+                .where(bunchAcceptations.getBunchColumnIndex(), secondConjugationVerbBunch)
+                .select(bunchAcceptations.getAcceptationColumnIndex());
+        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
+
+        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
+        query = new DbQuery.Builder(knowledge)
+                .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
+                .select(knowledge.getAcceptationColumnIndex());
+        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
     }
 
     @Test
