@@ -18,6 +18,7 @@ import sword.langbook3.android.db.MemoryDatabase;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
@@ -30,9 +31,11 @@ import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunc
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
+import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllMatchingBunches;
+import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationArrayTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
 public final class LangbookDatabaseTest {
@@ -1193,5 +1196,72 @@ public final class LangbookDatabaseTest {
                 .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
                 .select(knowledge.getAcceptationColumnIndex());
         assertFalse(db.select(query).hasNext());
+    }
+
+    @Test
+    public void testUpdateCorrelationArrayForAcceptationWithRuleAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String wrongText = "contar";
+        final String rightText = "cantar";
+        final String rightGerundText = "cantando";
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int alphabet = language + 1;
+        final int concept = alphabet + 1;
+        final int gerundRule = concept + 1;
+        final int firstConjugationVerbBunch = gerundRule + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        final int wrongCorrelationArrayId = addSimpleCorrelationArray(db, alphabet, wrongText);
+        final int acceptationId = addAcceptation(db, concept, wrongCorrelationArrayId);
+        addAcceptationInBunch(db, firstConjugationVerbBunch, acceptationId);
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet firstConjugationVerbBunchSet = new ImmutableIntSetBuilder().add(firstConjugationVerbBunch).build();
+        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ar")
+                .build();
+        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ando")
+                .build();
+
+        addAgent(db, NO_BUNCH, firstConjugationVerbBunchSet, noBunches, matcher, adder, gerundRule, 0);
+
+        final int rightCorrelationArrayId = addSimpleCorrelationArray(db, alphabet, rightText);
+        updateAcceptationCorrelationArray(db, acceptationId, rightCorrelationArrayId);
+
+        final LangbookDbSchema.RuledConceptsTable ruledConceptsTable = LangbookDbSchema.Tables.ruledConcepts;
+        DbQuery query = new DbQuery.Builder(ruledConceptsTable)
+                .where(ruledConceptsTable.getConceptColumnIndex(), concept)
+                .where(ruledConceptsTable.getRuleColumnIndex(), gerundRule)
+                .select(ruledConceptsTable.getIdColumnIndex());
+        final int ruledConcept = selectSingleRow(db, query).get(0).toInt();
+        assertNotEquals(concept, ruledConcept);
+
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        query = new DbQuery.Builder(acceptations)
+                .where(acceptations.getConceptColumnIndex(), ruledConcept)
+                .select(acceptations.getIdColumnIndex(), acceptations.getCorrelationArrayColumnIndex());
+        DbResult.Row row = selectSingleRow(db, query);
+        final int ruledAcceptation = row.get(0).toInt();
+        final int rightGerundCorrelationArray = row.get(1).toInt();
+
+        final ImmutableIntKeyMap<String> rightGerundTexts = readCorrelationArrayTexts(db, rightGerundCorrelationArray).toImmutable();
+        assertEquals(1, rightGerundTexts.size());
+        assertEquals(alphabet, rightGerundTexts.keyAt(0));
+        assertEquals(rightGerundText, rightGerundTexts.valueAt(0));
+
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), ruledAcceptation)
+                .where(strings.getStringAlphabetColumnIndex(), alphabet)
+                .select(strings.getMainAcceptationColumnIndex(),
+                        strings.getStringColumnIndex());
+        row = selectSingleRow(db, query);
+        assertEquals(acceptationId, row.get(0).toInt());
+        assertEquals(rightGerundText, row.get(1).toText());
     }
 }

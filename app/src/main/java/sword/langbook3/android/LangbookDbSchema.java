@@ -11,9 +11,11 @@ import sword.langbook3.android.db.DbUniqueTextColumn;
 public final class LangbookDbSchema implements DbSchema {
 
     /**
-     * Bunch identifier used within a quiz definition to denote that no bunch should be applied.
-     * When this identifier is used, questions are not coming from acceptations within an specific bunch,
-     * but it can be any acceptation within the database that matches the field restrictions.
+     * Bunch identifier used within a quiz definition, and the agent target, to denote that no bunch should be used.
+     * When this identifier is used in agent definitions as target, it indicates that its run resulting acceptations
+     * should not be stored in any bunch.
+     * When this identifier is used in a quiz definition, questions are not coming from acceptations within an
+     * specific bunch, but it can be any acceptation within the database that matches the field restrictions.
      */
     public static final int NO_BUNCH = 0;
 

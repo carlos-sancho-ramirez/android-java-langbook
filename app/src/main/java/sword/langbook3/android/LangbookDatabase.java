@@ -33,6 +33,7 @@ import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.LangbookDbInserter.insertSymbolArray;
+import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookDeleter.deleteAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteAgentSet;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptation;
@@ -44,8 +45,9 @@ import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteSearchHistoryForAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAnyAcceptationChange;
-import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAnyAcceptationChangeWithTarget;
+import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
+import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
+import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
@@ -343,7 +345,7 @@ public final class LangbookDatabase {
             processedAcceptations = processedAccBuilder.build();
         }
 
-        if (targetBunch != 0) {
+        if (targetBunch != NO_BUNCH) {
             final int agentSetId = obtainAgentSet(db, new ImmutableIntSetBuilder().add(agentId).build());
             for (int acc : processedAcceptations) {
                 insertBunchAcceptation(db, targetBunch, acc, agentSetId);
@@ -355,7 +357,7 @@ public final class LangbookDatabase {
      * Run again the specified agent.
      * @return The bunch identifier in case the target bunch has changed, or null if there is no change.
      */
-    private static Integer rerunAgent(Database db, int agentId) {
+    private static Integer rerunAgent(Database db, int agentId, boolean acceptationCorrelationChanged) {
         final AgentDetails agentDetails = LangbookReadableDatabase.getAgentDetails(db, agentId);
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptations(db,
                 agentDetails.sourceBunches, agentDetails.diffBunches,
@@ -386,12 +388,9 @@ public final class LangbookDatabase {
         else {
             // This is assuming that matcher, adder and rule and flags did not change from last run,
             // only its source and diff bunches and its contents
-            final ImmutableIntPairMap alreadyProcessedMap = getAgentProcessedMap(db, agentId);
-            final ImmutableIntSet alreadyProcessedAcceptations = alreadyProcessedMap.keySet();
-            final ImmutableIntSet toBeProcessed = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
-
-            for (IntPairMap.Entry accPair : alreadyProcessedMap.entries()) {
-                if (!matchingAcceptations.contains(accPair.key())) {
+            final ImmutableIntSet toBeProcessed;
+            if (acceptationCorrelationChanged) {
+                for (IntPairMap.Entry accPair : getAgentProcessedMap(db, agentId).entries()) {
                     final int acc = accPair.value();
                     deleteKnowledge(db, acc);
                     deleteBunchAcceptation(db, agentDetails.targetBunch, acc);
@@ -400,6 +399,26 @@ public final class LangbookDatabase {
                         throw new AssertionError();
                     }
                     targetChanged = true;
+                }
+
+                toBeProcessed = matchingAcceptations;
+            }
+            else {
+                final ImmutableIntPairMap alreadyProcessedMap = getAgentProcessedMap(db, agentId);
+                final ImmutableIntSet alreadyProcessedAcceptations = alreadyProcessedMap.keySet();
+                toBeProcessed = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
+
+                for (IntPairMap.Entry accPair : alreadyProcessedMap.entries()) {
+                    if (!matchingAcceptations.contains(accPair.key())) {
+                        final int acc = accPair.value();
+                        deleteKnowledge(db, acc);
+                        deleteBunchAcceptation(db, agentDetails.targetBunch, acc);
+                        deleteStringQueriesForDynamicAcceptation(db, acc);
+                        if (!deleteAcceptation(db, acc) | !deleteRuledAcceptation(db, acc)) {
+                            throw new AssertionError();
+                        }
+                        targetChanged = true;
+                    }
                 }
             }
 
@@ -473,7 +492,7 @@ public final class LangbookDatabase {
             processedAcceptations = processedAccBuilder.build();
         }
 
-        if (agentDetails.targetBunch != 0) {
+        if (agentDetails.targetBunch != NO_BUNCH) {
             final int agentSetId = obtainAgentSet(db, new ImmutableIntSetBuilder().add(agentId).build());
             for (int acc : processedAcceptations) {
                 insertBunchAcceptation(db, agentDetails.targetBunch, acc, agentSetId);
@@ -481,7 +500,7 @@ public final class LangbookDatabase {
             }
         }
 
-        return (targetChanged && agentDetails.targetBunch != 0)? agentDetails.targetBunch : null;
+        return (targetChanged && agentDetails.targetBunch != NO_BUNCH)? agentDetails.targetBunch : null;
     }
 
     public static Integer addAcceptation(Database db, int concept, int correlationArrayId) {
@@ -498,8 +517,8 @@ public final class LangbookDatabase {
             insertStringQuery(db, str, mainStr, acceptation, acceptation, alphabet);
         }
 
-        for (int agentId : findAffectedAgentsByAnyAcceptationChange(db)) {
-            rerunAgent(db, agentId);
+        for (int agentId : findAgentsWithoutSourceBunches(db)) {
+            rerunAgent(db, agentId, false);
         }
 
         return acceptation;
@@ -534,8 +553,18 @@ public final class LangbookDatabase {
             }
 
             final ImmutableIntSetBuilder touchedBunchesBuilder = new ImmutableIntSetBuilder();
-            for (int agentId : findAffectedAgentsByAnyAcceptationChange(db)) {
-                final Integer touchedBunch = rerunAgent(db, agentId);
+
+            final ImmutableIntSetBuilder affectedAgents = new ImmutableIntSetBuilder();
+            for (int agentId : findAgentsWithoutSourceBunches(db)) {
+                affectedAgents.add(agentId);
+            }
+
+            for (int agentId : findAffectedAgentsByAcceptationCorrelationModification(db, acceptation)) {
+                affectedAgents.add(agentId);
+            }
+
+            for (int agentId : affectedAgents.build()) {
+                final Integer touchedBunch = rerunAgent(db, agentId, true);
                 if (touchedBunch != null) {
                     touchedBunchesBuilder.add(touchedBunch);
                 }
@@ -589,9 +618,9 @@ public final class LangbookDatabase {
         final boolean removed = LangbookDeleter.deleteAcceptation(db, acceptation);
         deleteSearchHistoryForAcceptation(db, acceptation);
 
-        final ImmutableIntPairMap affectedAgents = findAffectedAgentsByAnyAcceptationChangeWithTarget(db);
+        final ImmutableIntPairMap affectedAgents = findAgentsWithoutSourceBunchesWithTarget(db);
         for (int agent : affectedAgents.keySet()) {
-            rerunAgent(db, agent);
+            rerunAgent(db, agent, false);
         }
 
         ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
@@ -606,7 +635,7 @@ public final class LangbookDatabase {
             builder = new ImmutableIntSetBuilder();
             for (int bunch : updatedBunches) {
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, entry.key());
+                    rerunAgent(db, entry.key(), false);
                     if (entry.value() != 0) {
                         builder.add(entry.value());
                     }
@@ -656,14 +685,14 @@ public final class LangbookDatabase {
             for (int b : updatedBunches) {
                 allUpdatedBunchesBuilder.add(b);
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
-                    rerunAgent(db, entry.key());
+                    rerunAgent(db, entry.key(), false);
                     if (entry.value() != 0) {
                         builder.add(entry.value());
                     }
                 }
 
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
-                    rerunAgent(db, entry.key());
+                    rerunAgent(db, entry.key(), false);
                     if (entry.value() != 0) {
                         builder.add(entry.value());
                     }
@@ -685,14 +714,14 @@ public final class LangbookDatabase {
                 for (int b : updatedBunches) {
                     allUpdatedBunchesBuilder.add(b);
                     for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
-                        rerunAgent(db, entry.key());
+                        rerunAgent(db, entry.key(), false);
                         if (entry.value() != 0) {
                             builder.add(entry.value());
                         }
                     }
 
                     for (IntPairMap.Entry entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
-                        rerunAgent(db, entry.key());
+                        rerunAgent(db, entry.key(), false);
                         if (entry.value() != 0) {
                             builder.add(entry.value());
                         }
@@ -727,7 +756,7 @@ public final class LangbookDatabase {
             ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
             for (int bunch : updatedBunches) {
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, entry.key());
+                    rerunAgent(db, entry.key(), false);
                     if (entry.value() != 0) {
                         builder.add(entry.value());
                     }
@@ -787,7 +816,7 @@ public final class LangbookDatabase {
             ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
             for (int bunch : updatedBunches) {
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, entry.key());
+                    rerunAgent(db, entry.key(), false);
                     if (entry.value() != 0) {
                         builder.add(entry.value());
                     }

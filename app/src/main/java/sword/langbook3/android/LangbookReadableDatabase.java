@@ -532,7 +532,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findAffectedAgentsByAnyAcceptationChange(DbExporter.Database db) {
+    public static ImmutableIntSet findAgentsWithoutSourceBunches(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
@@ -548,7 +548,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntPairMap findAffectedAgentsByAnyAcceptationChangeWithTarget(DbExporter.Database db) {
+    public static ImmutableIntPairMap findAgentsWithoutSourceBunchesWithTarget(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
@@ -559,6 +559,30 @@ public final class LangbookReadableDatabase {
             while (result.hasNext()) {
                 DbResult.Row row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet findAffectedAgentsByAcceptationCorrelationModification(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+
+        final int bunchSetOffset = agents.columns().size();
+        final int bunchAccOffset = bunchSetOffset + bunchSets.columns().size();
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(bunchSets, agents.getSourceBunchSetColumnIndex(), bunchSets.getSetIdColumnIndex())
+                .join(bunchAcceptations, bunchSetOffset + bunchSets.getBunchColumnIndex(), bunchAcceptations.getBunchColumnIndex())
+                .where(bunchAccOffset + bunchAcceptations.getAgentSetColumnIndex(), 0)
+                .where(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(), acceptation)
+                .select(agents.getIdColumnIndex());
+
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
             }
         }
 
@@ -868,7 +892,7 @@ public final class LangbookReadableDatabase {
         return selectSingleRow(db, query).get(0).toInt();
     }
 
-    private static MutableIntKeyMap<String> readCorrelationArrayTexts(DbExporter.Database db, int correlationArrayId) {
+    static MutableIntKeyMap<String> readCorrelationArrayTexts(DbExporter.Database db, int correlationArrayId) {
         MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
         for (int correlationId : getCorrelationArray(db, correlationArrayId)) {
             for (IntKeyMap.Entry<String> entry : getCorrelationWithText(db, correlationId).entries()) {
