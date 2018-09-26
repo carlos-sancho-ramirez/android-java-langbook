@@ -26,9 +26,9 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutablePair;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
-import sword.collections.MutableList;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
@@ -42,14 +42,11 @@ import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchConceptsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
-import sword.langbook3.android.LangbookDbSchema.CorrelationArraysTable;
-import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
 import sword.langbook3.android.LangbookDbSchema.LanguagesTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
-import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
@@ -63,6 +60,7 @@ import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunc
 import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCorrelations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
@@ -121,76 +119,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         activity.startActivityForResult(intent, requestCode);
-    }
-
-    private static final class CorrelationHolder {
-        final int id;
-        final ImmutableIntKeyMap<String> texts;
-
-        CorrelationHolder(int id, ImmutableIntKeyMap<String> texts) {
-            this.id = id;
-            this.texts = texts;
-        }
-    }
-
-    private ImmutableList<CorrelationHolder> readCorrelationArray(SQLiteDatabase db, int acceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations; // J0
-        final CorrelationArraysTable correlationArrays = Tables.correlationArrays; // J1
-        final CorrelationsTable correlations = Tables.correlations; // J2
-        final SymbolArraysTable symbolArrays = Tables.symbolArrays; // J3
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                    " J1." + correlationArrays.columns().get(correlationArrays.getArrayPositionColumnIndex()).name() +
-                    ",J2." + correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name() +
-                    ",J2." + correlations.columns().get(correlations.getAlphabetColumnIndex()).name() +
-                    ",J3." + symbolArrays.columns().get(symbolArrays.getStrColumnIndex()).name() +
-                " FROM " + acceptations.name() + " AS J0" +
-                    " JOIN " + correlationArrays.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getCorrelationArrayColumnIndex()).name() + "=J1." + correlationArrays.columns().get(correlationArrays.getArrayIdColumnIndex()).name() +
-                    " JOIN " + correlations.name() + " AS J2 ON J1." + correlationArrays.columns().get(correlationArrays.getCorrelationColumnIndex()).name() + "=J2." + correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name() +
-                    " JOIN " + symbolArrays.name() + " AS J3 ON J2." + correlations.columns().get(correlations.getSymbolArrayColumnIndex()).name() + "=J3." + idColumnName +
-                " WHERE J0." + idColumnName + "=?" +
-                " ORDER BY" +
-                    " J1." + correlationArrays.columns().get(correlationArrays.getArrayPositionColumnIndex()).name() +
-                    ",J2." + correlations.columns().get(correlations.getAlphabetColumnIndex()).name()
-                , new String[] { Integer.toString(acceptation) });
-
-        final MutableList<CorrelationHolder> result = MutableList.empty();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-                    int pos = cursor.getInt(0);
-                    int correlationId = cursor.getInt(1);
-                    if (pos != result.size()) {
-                        throw new AssertionError("Expected position " + result.size() + ", but it was " + pos);
-                    }
-
-                    builder.put(cursor.getInt(2), cursor.getString(3));
-
-                    while(cursor.moveToNext()) {
-                        int newPos = cursor.getInt(0);
-                        if (newPos != pos) {
-                            result.append(new CorrelationHolder(correlationId, builder.build()));
-                            correlationId = cursor.getInt(1);
-                            builder = new ImmutableIntKeyMap.Builder<>();
-                        }
-                        pos = newPos;
-
-                        if (newPos != result.size()) {
-                            throw new AssertionError("Expected position " + result.size() + ", but it was " + pos);
-                        }
-                        builder.put(cursor.getInt(2), cursor.getString(3));
-                    }
-                    result.append(new CorrelationHolder(correlationId, builder.build()));
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return result.toImmutable();
     }
 
     private static final class LanguageResult {
@@ -866,21 +794,24 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int staticAcceptation) {
-        SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        final DbManager dbManager = DbManager.getInstance();
+        final DbExporter.Database db = dbManager.getDatabase();
+        SQLiteDatabase sqliteDb = DbManager.getInstance().getReadableDatabase();
 
         final ArrayList<AcceptationDetailsAdapter.Item> result = new ArrayList<>();
         result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
 
         final StringBuilder sb = new StringBuilder("Correlation: ");
-        ImmutableList<CorrelationHolder> correlationArray = readCorrelationArray(db, staticAcceptation);
+        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, staticAcceptation);
         ImmutableList.Builder<CorrelationSpan> correlationSpansBuilder = new ImmutableList.Builder<>();
-        for (int i = 0; i < correlationArray.size(); i++) {
+        final int correlationArrayLength = correlationResultPair.left.size();
+        for (int i = 0; i < correlationArrayLength; i++) {
             if (i != 0) {
                 sb.append(" - ");
             }
 
-            final CorrelationHolder holder = correlationArray.get(i);
-            final ImmutableIntKeyMap<String> correlation = holder.texts;
+            final int correlationId = correlationResultPair.left.get(i);
+            final ImmutableIntKeyMap<String> correlation = correlationResultPair.right.get(correlationId);
             final int correlationSize = correlation.size();
             int startIndex = -1;
             if (correlationSize > 1) {
@@ -890,7 +821,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             composeCorrelation(correlation, sb);
 
             if (startIndex >= 0) {
-                correlationSpansBuilder.add(new CorrelationSpan(holder.id, startIndex, sb.length()));
+                correlationSpansBuilder.add(new CorrelationSpan(correlationId, startIndex, sb.length()));
             }
         }
 
@@ -901,19 +832,20 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         result.add(new NonNavigableItem(spannableCorrelations));
 
-        final LanguageResult languageResult = readLanguageFromAlphabet(db, correlationArray.get(0).texts.keyAt(0));
+        final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
+        final LanguageResult languageResult = readLanguageFromAlphabet(sqliteDb, givenAlphabet);
         result.add(new NonNavigableItem("Language: " + languageResult.text));
 
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
         languageStrs.put(languageResult.language, languageResult.text);
 
-        _definition = readDefinition(db, staticAcceptation);
+        _definition = readDefinition(sqliteDb, staticAcceptation);
         if (_definition != null) {
             result.add(new AcceptationNavigableItem(_definition.acceptation, "Type of: " + _definition.text, false));
         }
 
         boolean subTypeFound = false;
-        for (AcceptationResult subType : readSubTypes(db, staticAcceptation, languageResult.language)) {
+        for (AcceptationResult subType : readSubTypes(sqliteDb, staticAcceptation, languageResult.language)) {
             if (!subTypeFound) {
                 result.add(new HeaderItem("Subtypes"));
                 subTypeFound = true;
@@ -956,7 +888,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean parentBunchFound = false;
-        for (BunchInclusionResult r : readBunchesWhereIncluded(db, staticAcceptation)) {
+        for (BunchInclusionResult r : readBunchesWhereIncluded(sqliteDb, staticAcceptation)) {
             if (!parentBunchFound) {
                 result.add(new HeaderItem("Bunches where included"));
                 parentBunchFound = true;
@@ -967,7 +899,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        MorphologyResult[] morphologyResults = readMorphologies(db, staticAcceptation);
+        MorphologyResult[] morphologyResults = readMorphologies(sqliteDb, staticAcceptation);
         for (MorphologyResult r : morphologyResults) {
             if (!morphologyFound) {
                 result.add(new HeaderItem("Morphologies"));
@@ -978,7 +910,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean bunchChildFound = false;
-        for (BunchChildResult r : readBunchChildren(db, staticAcceptation)) {
+        for (BunchChildResult r : readBunchChildren(sqliteDb, staticAcceptation)) {
             if (!bunchChildFound) {
                 result.add(new HeaderItem("Acceptations included in this bunch"));
                 bunchChildFound = true;
@@ -989,7 +921,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean agentFound = false;
-        for (InvolvedAgentResult r : readInvolvedAgents(db, staticAcceptation)) {
+        for (InvolvedAgentResult r : readInvolvedAgents(sqliteDb, staticAcceptation)) {
             if (!agentFound) {
                 result.add(new HeaderItem("Involved agents"));
                 agentFound = true;

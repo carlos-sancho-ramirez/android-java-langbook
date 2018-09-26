@@ -20,6 +20,7 @@ import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
@@ -838,6 +839,69 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    public static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
+
+        final int corrArraysOffset = acceptations.columns().size();
+        final int corrOffset = corrArraysOffset + correlationArrays.columns().size();
+        final int symbolsOffset = corrOffset + correlations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(correlationArrays, acceptations.getCorrelationArrayColumnIndex(), correlationArrays.getArrayIdColumnIndex())
+                .join(correlations, corrArraysOffset + correlationArrays.getCorrelationColumnIndex(), correlations.getCorrelationIdColumnIndex())
+                .join(symbols, corrOffset + correlations.getSymbolArrayColumnIndex(), symbols.getIdColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .orderBy(
+                        corrArraysOffset + correlationArrays.getArrayPositionColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex())
+                .select(
+                        corrArraysOffset + correlationArrays.getArrayPositionColumnIndex(),
+                        corrOffset + correlations.getCorrelationIdColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex(),
+                        symbolsOffset + symbols.getStrColumnIndex()
+                );
+
+        final MutableIntList correlationIds = MutableIntList.empty();
+        final MutableIntKeyMap<ImmutableIntKeyMap<String>> correlationMap = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                DbResult.Row row = dbResult.next();
+                ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+                int pos = row.get(0).toInt();
+                int correlationId = row.get(1).toInt();
+                if (pos != correlationIds.size()) {
+                    throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
+                }
+
+                builder.put(row.get(2).toInt(), row.get(3).toText());
+
+                while (dbResult.hasNext()) {
+                    row = dbResult.next();
+                    int newPos = row.get(0).toInt();
+                    if (newPos != pos) {
+                        correlationMap.put(correlationId, builder.build());
+                        correlationIds.append(correlationId);
+                        correlationId = row.get(1).toInt();
+                        builder = new ImmutableIntKeyMap.Builder<>();
+                        pos = newPos;
+                    }
+
+                    if (newPos != correlationIds.size()) {
+                        throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
+                    }
+                    builder.put(row.get(2).toInt(), row.get(3).toText());
+                }
+                correlationMap.put(correlationId, builder.build());
+                correlationIds.append(correlationId);
+            }
+        }
+
+        return new ImmutablePair<>(correlationIds.toImmutable(), correlationMap.toImmutable());
     }
 
     public static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
