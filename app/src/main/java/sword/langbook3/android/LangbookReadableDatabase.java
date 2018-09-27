@@ -1017,6 +1017,55 @@ public final class LangbookReadableDatabase {
         return text;
     }
 
+    public static final class LanguageResult {
+        final int language;
+        final String text;
+
+        LanguageResult(int language, String text) {
+            this.language = language;
+            this.text = text;
+        }
+    }
+
+    public static LanguageResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = alphabets.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(alphabets)
+                .join(acceptations, alphabets.getLanguageColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(alphabets.getIdColumnIndex(), alphabet)
+                .select(
+                        accOffset + acceptations.getConceptColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex()
+                );
+
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                DbResult.Row row = dbResult.next();
+                int lang = row.get(0).toInt();
+                int firstAlphabet = row.get(1).toInt();
+                String text = row.get(2).toText();
+                while (firstAlphabet != preferredAlphabet && dbResult.hasNext()) {
+                    row = dbResult.next();
+                    if (row.get(1).toInt() == preferredAlphabet) {
+                        lang = row.get(0).toInt();
+                        firstAlphabet = preferredAlphabet;
+                        text = row.get(2).toText();
+                    }
+                }
+
+                return new LanguageResult(lang, text);
+            }
+        }
+
+        throw new IllegalArgumentException("alphabet " + alphabet + " not found");
+    }
+
     public static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndLanguage(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabetsTable = LangbookDbSchema.Tables.alphabets;

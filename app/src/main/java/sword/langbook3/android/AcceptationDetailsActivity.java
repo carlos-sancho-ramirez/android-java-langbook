@@ -63,6 +63,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAccept
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCorrelations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.LangbookReadableDatabase.readLanguageFromAlphabet;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
@@ -119,61 +120,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         activity.startActivityForResult(intent, requestCode);
-    }
-
-    private static final class LanguageResult {
-
-        final int acceptation;
-        final int language;
-        final String text;
-
-        LanguageResult(int acceptation, int language, String text) {
-            this.acceptation = acceptation;
-            this.language = language;
-            this.text = text;
-        }
-    }
-
-    private LanguageResult readLanguageFromAlphabet(SQLiteDatabase db, int alphabet) {
-        final AcceptationsTable acceptations = Tables.acceptations; // J0
-        final AlphabetsTable alphabets = Tables.alphabets;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                    " J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                    ",J1." + idColumnName +
-                    ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                    ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                " FROM " + alphabets.name() + " AS J0" +
-                    " JOIN " + acceptations.name() + " AS J1 ON J0." + alphabets.columns().get(alphabets.getLanguageColumnIndex()).name() + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                    " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                    " WHERE J0." + idColumnName + "=?",
-                new String[] { Integer.toString(alphabet) });
-
-        int lang = -1;
-        int langAcc = -1;
-        String text = null;
-        try {
-            cursor.moveToFirst();
-            lang = cursor.getInt(0);
-            langAcc = cursor.getInt(1);
-            int firstAlphabet = cursor.getInt(2);
-            text = cursor.getString(3);
-            while (firstAlphabet != _preferredAlphabet && cursor.moveToNext()) {
-                if (cursor.getInt(2) == _preferredAlphabet) {
-                    lang = cursor.getInt(0);
-                    langAcc = cursor.getInt(1);
-                    firstAlphabet = _preferredAlphabet;
-                    text = cursor.getString(3);
-                }
-            }
-        }
-        finally {
-            cursor.close();
-        }
-
-        return new LanguageResult(langAcc, lang, text);
     }
 
     private static final class AcceptationResult {
@@ -833,7 +779,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         result.add(new NonNavigableItem(spannableCorrelations));
 
         final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
-        final LanguageResult languageResult = readLanguageFromAlphabet(sqliteDb, givenAlphabet);
+        final LangbookReadableDatabase.LanguageResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, _preferredAlphabet);
         result.add(new NonNavigableItem("Language: " + languageResult.text));
 
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
