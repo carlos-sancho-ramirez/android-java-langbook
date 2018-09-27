@@ -21,6 +21,7 @@ import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
+import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbImporter;
@@ -1065,6 +1066,48 @@ public final class LangbookReadableDatabase {
         }
 
         return result;
+    }
+
+    public static ImmutableIntKeyMap<String> readSubtypesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int bunchOffset = acceptations.columns().size();
+        final int accOffset = bunchOffset + bunchConcepts.columns().size();
+        final int strOffset = accOffset + bunchOffset;
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(bunchConcepts, acceptations.getConceptColumnIndex(), bunchConcepts.getBunchColumnIndex())
+                .join(acceptations, bunchOffset + bunchConcepts.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .select(bunchOffset + bunchConcepts.getConceptColumnIndex(),
+                        accOffset + acceptations.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex());
+
+        final MutableIntKeyMap<String> conceptText = MutableIntKeyMap.empty();
+        final MutableIntPairMap conceptAccs = MutableIntPairMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final DbResult.Row row = dbResult.next();
+                final int concept = row.get(0).toInt();
+                final int alphabet = row.get(2).toInt();
+                if (alphabet == preferredAlphabet || !conceptAccs.keySet().contains(concept)) {
+                    conceptAccs.put(concept, row.get(1).toInt());
+                    conceptText.put(concept, row.get(3).toText());
+                }
+            }
+        }
+
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final int length = conceptAccs.size();
+        for (int i = 0; i < length; i++) {
+            builder.put(conceptAccs.valueAt(i), conceptText.valueAt(i));
+        }
+
+        return builder.build();
     }
 
     public static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {

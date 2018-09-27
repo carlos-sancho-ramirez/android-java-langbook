@@ -65,6 +65,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCor
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.LangbookReadableDatabase.readLanguageFromAlphabet;
+import static sword.langbook3.android.LangbookReadableDatabase.readSubtypesFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readSupertypeFromAcceptation;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
@@ -122,65 +123,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         activity.startActivityForResult(intent, requestCode);
-    }
-
-    private IdentifiableResult[] readSubTypes(SQLiteDatabase db, int acceptation, int language) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final AlphabetsTable alphabets = Tables.alphabets;
-        final BunchConceptsTable bunchConcepts = Tables.bunchConcepts;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J1." + bunchConcepts.columns().get(bunchConcepts.getConceptColumnIndex()).name() +
-                        ",J2." + idColumnName +
-                        ",J3." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J3." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + bunchConcepts.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + bunchConcepts.columns().get(bunchConcepts.getBunchColumnIndex()).name() +
-                        " JOIN " + acceptations.name() + " AS J2 ON J1." + bunchConcepts.columns().get(bunchConcepts.getConceptColumnIndex()).name() + "=J2." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                " WHERE J0." + idColumnName + "=?" +
-                " ORDER BY J1." + bunchConcepts.columns().get(bunchConcepts.getConceptColumnIndex()).name(),
-                new String[] { Integer.toString(acceptation) });
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    final ArrayList<IdentifiableResult> result = new ArrayList<>();
-                    int concept = cursor.getInt(0);
-                    int acc = cursor.getInt(1);
-                    int alphabet = cursor.getInt(2);
-                    String text = cursor.getString(3);
-
-                    while (cursor.moveToNext()) {
-                        if (cursor.getInt(0) == concept) {
-                            if (alphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
-                                acc = cursor.getInt(1);
-                                alphabet = _preferredAlphabet;
-                                text = cursor.getString(3);
-                            }
-                        }
-                        else {
-                            result.add(new IdentifiableResult(acc, text));
-
-                            concept = cursor.getInt(0);
-                            acc = cursor.getInt(1);
-                            alphabet = cursor.getInt(2);
-                            text = cursor.getString(3);
-                        }
-                    }
-
-                    result.add(new IdentifiableResult(acc, text));
-                    return result.toArray(new IdentifiableResult[result.size()]);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new IdentifiableResult[0];
     }
 
     private static final class BunchInclusionResult {
@@ -739,13 +681,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean subTypeFound = false;
-        for (IdentifiableResult subType : readSubTypes(sqliteDb, staticAcceptation, languageResult.id)) {
+        for (ImmutableIntKeyMap.Entry<String> subtype : readSubtypesFromAcceptation(db, staticAcceptation, _preferredAlphabet).entries()) {
             if (!subTypeFound) {
                 result.add(new HeaderItem("Subtypes"));
                 subTypeFound = true;
             }
 
-            result.add(new AcceptationNavigableItem(subType.id, subType.text, false));
+            result.add(new AcceptationNavigableItem(subtype.key(), subtype.value(), false));
         }
 
         final ImmutableList<SynonymTranslationResult> synonymTranslationResults =
