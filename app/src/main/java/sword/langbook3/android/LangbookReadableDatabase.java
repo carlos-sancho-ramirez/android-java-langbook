@@ -1017,17 +1017,57 @@ public final class LangbookReadableDatabase {
         return text;
     }
 
-    public static final class LanguageResult {
-        final int language;
+    public static final class IdentifiableResult {
+        final int id;
         final String text;
 
-        LanguageResult(int language, String text) {
-            this.language = language;
+        IdentifiableResult(int id, String text) {
+            this.id = id;
             this.text = text;
         }
     }
 
-    public static LanguageResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
+    public static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int bunchOffset = acceptations.columns().size();
+        final int accOffset = bunchOffset + bunchConcepts.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(bunchConcepts, acceptations.getConceptColumnIndex(), bunchConcepts.getConceptColumnIndex())
+                .join(acceptations, bunchOffset + bunchConcepts.getBunchColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .select(accOffset + acceptations.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex());
+
+        IdentifiableResult result = null;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                DbResult.Row row = dbResult.next();
+                int acc = row.get(0).toInt();
+                int firstAlphabet = row.get(1).toInt();
+                String text = row.get(2).toText();
+                while (firstAlphabet != preferredAlphabet && dbResult.hasNext()) {
+                    row = dbResult.next();
+                    if (row.get(1).toInt() == preferredAlphabet) {
+                        acc = row.get(0).toInt();
+                        text = row.get(2).toText();
+                        break;
+                    }
+                }
+
+                result = new IdentifiableResult(acc, text);
+            }
+        }
+
+        return result;
+    }
+
+    public static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1059,7 +1099,7 @@ public final class LangbookReadableDatabase {
                     }
                 }
 
-                return new LanguageResult(lang, text);
+                return new IdentifiableResult(lang, text);
             }
         }
 

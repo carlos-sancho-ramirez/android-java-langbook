@@ -48,6 +48,7 @@ import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbInsertQuery;
@@ -64,6 +65,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCor
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.LangbookReadableDatabase.readLanguageFromAlphabet;
+import static sword.langbook3.android.LangbookReadableDatabase.readSupertypeFromAcceptation;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
@@ -95,7 +97,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private boolean _confirmOnly;
 
     private ImmutableIntSet _bunchesWhereIncluded;
-    private AcceptationResult _definition;
+    private IdentifiableResult _definition;
 
     private AcceptationDetailsActivityState _state;
 
@@ -122,61 +124,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private static final class AcceptationResult {
-
-        final int acceptation;
-        final String text;
-
-        AcceptationResult(int acceptation, String text) {
-            this.acceptation = acceptation;
-            this.text = text;
-        }
-    }
-
-    private AcceptationResult readDefinition(SQLiteDatabase db, int acceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final BunchConceptsTable bunchConcepts = Tables.bunchConcepts;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J2." + idColumnName +
-                        ",J3." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J3." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                " FROM " + acceptations.name() + " AS J0" +
-                    " JOIN " + bunchConcepts.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + bunchConcepts.columns().get(bunchConcepts.getConceptColumnIndex()).name() +
-                    " JOIN " + acceptations.name() + " AS J2 ON J1." + bunchConcepts.columns().get(bunchConcepts.getBunchColumnIndex()).name() + "=J2." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                    " JOIN " + strings.name() + " AS J3 ON J2." + idColumnName + "=J3." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                " WHERE J0." + idColumnName + "=?",
-                new String[] { Integer.toString(acceptation) });
-
-        AcceptationResult result = null;
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int acc = cursor.getInt(0);
-                    int firstAlphabet = cursor.getInt(1);
-                    String text = cursor.getString(2);
-                    while (firstAlphabet != _preferredAlphabet && cursor.moveToNext()) {
-                        if (cursor.getInt(1) == _preferredAlphabet) {
-                            acc = cursor.getInt(0);
-                            text = cursor.getString(2);
-                            break;
-                        }
-                    }
-
-                    result = new AcceptationResult(acc, text);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return result;
-    }
-
-    private AcceptationResult[] readSubTypes(SQLiteDatabase db, int acceptation, int language) {
+    private IdentifiableResult[] readSubTypes(SQLiteDatabase db, int acceptation, int language) {
         final AcceptationsTable acceptations = Tables.acceptations;
         final AlphabetsTable alphabets = Tables.alphabets;
         final BunchConceptsTable bunchConcepts = Tables.bunchConcepts;
@@ -199,7 +147,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
-                    final ArrayList<AcceptationResult> result = new ArrayList<>();
+                    final ArrayList<IdentifiableResult> result = new ArrayList<>();
                     int concept = cursor.getInt(0);
                     int acc = cursor.getInt(1);
                     int alphabet = cursor.getInt(2);
@@ -214,7 +162,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                             }
                         }
                         else {
-                            result.add(new AcceptationResult(acc, text));
+                            result.add(new IdentifiableResult(acc, text));
 
                             concept = cursor.getInt(0);
                             acc = cursor.getInt(1);
@@ -223,8 +171,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                         }
                     }
 
-                    result.add(new AcceptationResult(acc, text));
-                    return result.toArray(new AcceptationResult[result.size()]);
+                    result.add(new IdentifiableResult(acc, text));
+                    return result.toArray(new IdentifiableResult[result.size()]);
                 }
             }
             finally {
@@ -232,7 +180,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        return new AcceptationResult[0];
+        return new IdentifiableResult[0];
     }
 
     private static final class BunchInclusionResult {
@@ -779,32 +727,32 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         result.add(new NonNavigableItem(spannableCorrelations));
 
         final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
-        final LangbookReadableDatabase.LanguageResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, _preferredAlphabet);
+        final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, _preferredAlphabet);
         result.add(new NonNavigableItem("Language: " + languageResult.text));
 
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
-        languageStrs.put(languageResult.language, languageResult.text);
+        languageStrs.put(languageResult.id, languageResult.text);
 
-        _definition = readDefinition(sqliteDb, staticAcceptation);
+        _definition = readSupertypeFromAcceptation(db, staticAcceptation, _preferredAlphabet);
         if (_definition != null) {
-            result.add(new AcceptationNavigableItem(_definition.acceptation, "Type of: " + _definition.text, false));
+            result.add(new AcceptationNavigableItem(_definition.id, "Type of: " + _definition.text, false));
         }
 
         boolean subTypeFound = false;
-        for (AcceptationResult subType : readSubTypes(sqliteDb, staticAcceptation, languageResult.language)) {
+        for (IdentifiableResult subType : readSubTypes(sqliteDb, staticAcceptation, languageResult.id)) {
             if (!subTypeFound) {
                 result.add(new HeaderItem("Subtypes"));
                 subTypeFound = true;
             }
 
-            result.add(new AcceptationNavigableItem(subType.acceptation, subType.text, false));
+            result.add(new AcceptationNavigableItem(subType.id, subType.text, false));
         }
 
         final ImmutableList<SynonymTranslationResult> synonymTranslationResults =
                 readSynonymsAndTranslations(DbManager.getInstance().getDatabase(), staticAcceptation);
         boolean synonymFound = false;
         for (SynonymTranslationResult r : synonymTranslationResults) {
-            if (r.language == languageResult.language) {
+            if (r.language == languageResult.id) {
                 if (!synonymFound) {
                     result.add(new HeaderItem("Synonyms"));
                     synonymFound = true;
@@ -817,7 +765,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         boolean translationFound = false;
         for (SynonymTranslationResult r : synonymTranslationResults) {
             final int language = r.language;
-            if (language != languageResult.language) {
+            if (language != languageResult.id) {
                 if (!translationFound) {
                     result.add(new HeaderItem("Translations"));
                     translationFound = true;
