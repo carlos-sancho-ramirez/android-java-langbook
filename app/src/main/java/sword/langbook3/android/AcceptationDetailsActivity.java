@@ -48,6 +48,7 @@ import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.LangbookReadableDatabase.BunchInclusionResult;
 import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
@@ -63,6 +64,7 @@ import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConce
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCorrelations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
+import static sword.langbook3.android.LangbookReadableDatabase.readBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.LangbookReadableDatabase.readLanguageFromAlphabet;
 import static sword.langbook3.android.LangbookReadableDatabase.readSubtypesFromAcceptation;
@@ -97,7 +99,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private int _concept;
     private boolean _confirmOnly;
 
-    private ImmutableIntSet _bunchesWhereIncluded;
     private IdentifiableResult _definition;
 
     private AcceptationDetailsActivityState _state;
@@ -123,82 +124,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         activity.startActivityForResult(intent, requestCode);
-    }
-
-    private static final class BunchInclusionResult {
-
-        final int acceptation;
-        final boolean dynamic;
-        final String text;
-
-        BunchInclusionResult(int acceptation, boolean dynamic, String text) {
-            this.acceptation = acceptation;
-            this.dynamic = dynamic;
-            this.text = text;
-        }
-    }
-
-    private BunchInclusionResult[] readBunchesWhereIncluded(SQLiteDatabase db, int acceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        final ImmutableIntSetBuilder bunchSetBuilder = new ImmutableIntSetBuilder();
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() +
-                        ",J1." + idColumnName +
-                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        ",J0." + bunchAcceptations.columns().get(bunchAcceptations.getAgentSetColumnIndex()).name() +
-                " FROM " + bunchAcceptations.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() + "=?",
-                new String[] { Integer.toString(acceptation) });
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    final int nullAgentSet = Tables.agentSets.nullReference();
-                    ArrayList<BunchInclusionResult> result = new ArrayList<>();
-
-                    int bunch = cursor.getInt(0);
-                    int acc = cursor.getInt(1);
-                    int firstAlphabet = cursor.getInt(2);
-                    String text = cursor.getString(3);
-                    int agentSet = cursor.getInt(4);
-                    while (cursor.moveToNext()) {
-                        if (firstAlphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
-                            acc = cursor.getInt(1);
-                            text = cursor.getString(3);
-                            firstAlphabet = _preferredAlphabet;
-                        }
-
-                        if (bunch != cursor.getInt(0)) {
-                            bunchSetBuilder.add(bunch);
-                            result.add(new BunchInclusionResult(acc, agentSet != nullAgentSet, text));
-
-                            bunch = cursor.getInt(0);
-                            agentSet = cursor.getInt(4);
-                            acc = cursor.getInt(1);
-                            firstAlphabet = cursor.getInt(2);
-                            text = cursor.getString(3);
-                        }
-                    }
-
-                    bunchSetBuilder.add(bunch);
-                    result.add(new BunchInclusionResult(acc, agentSet != nullAgentSet, text));
-                    return result.toArray(new BunchInclusionResult[result.size()]);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        _bunchesWhereIncluded = bunchSetBuilder.build();
-        return new BunchInclusionResult[0];
     }
 
     private static final class BunchChildResult {
@@ -724,7 +649,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean parentBunchFound = false;
-        for (BunchInclusionResult r : readBunchesWhereIncluded(sqliteDb, staticAcceptation)) {
+        for (BunchInclusionResult r : readBunchesWhereAcceptationIsIncluded(db, staticAcceptation, _preferredAlphabet)) {
             if (!parentBunchFound) {
                 result.add(new HeaderItem("Bunches where included"));
                 parentBunchFound = true;

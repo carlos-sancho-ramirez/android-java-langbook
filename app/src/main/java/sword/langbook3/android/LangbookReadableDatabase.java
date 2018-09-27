@@ -1328,6 +1328,63 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static final class BunchInclusionResult {
+        final int acceptation;
+        final boolean dynamic;
+        final String text;
+
+        BunchInclusionResult(int acceptation, boolean dynamic, String text) {
+            this.acceptation = acceptation;
+            this.dynamic = dynamic;
+            this.text = text;
+        }
+    }
+
+    public static ImmutableList<BunchInclusionResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = bunchAcceptations.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .join(acceptations, bunchAcceptations.getBunchColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
+                .select(bunchAcceptations.getBunchColumnIndex(),
+                        accOffset + acceptations.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex(),
+                        bunchAcceptations.getAgentSetColumnIndex());
+
+        final MutableIntKeyMap<BunchInclusionResult> resultMap = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
+            while (dbResult.hasNext()) {
+                final DbResult.Row row = dbResult.next();
+                final int bunch = row.get(0).toInt();
+                final int alphabet = row.get(2).toInt();
+
+                if (alphabet == preferredAlphabet || !resultMap.keySet().contains(bunch)) {
+                    final int acc = row.get(1).toInt();
+                    final String text = row.get(3).toText();
+                    final int agentSet = row.get(4).toInt();
+                    final boolean dynamic = agentSet != nullAgentSet;
+
+                    resultMap.put(bunch, new BunchInclusionResult(acc, dynamic, text));
+                }
+            }
+        }
+
+        final ImmutableList.Builder<BunchInclusionResult> builder = new ImmutableList.Builder<>();
+        for (BunchInclusionResult r : resultMap) {
+            builder.add(r);
+        }
+
+        return builder.build();
+    }
+
     public static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
