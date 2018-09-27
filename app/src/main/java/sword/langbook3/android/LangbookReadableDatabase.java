@@ -1028,6 +1028,18 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    public static final class DynamizableResult {
+        final int id;
+        final boolean dynamic;
+        final String text;
+
+        DynamizableResult(int id, boolean dynamic, String text) {
+            this.id = id;
+            this.dynamic = dynamic;
+            this.text = text;
+        }
+    }
+
     public static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
@@ -1328,19 +1340,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static final class BunchInclusionResult {
-        final int acceptation;
-        final boolean dynamic;
-        final String text;
-
-        BunchInclusionResult(int acceptation, boolean dynamic, String text) {
-            this.acceptation = acceptation;
-            this.dynamic = dynamic;
-            this.text = text;
-        }
-    }
-
-    public static ImmutableList<BunchInclusionResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    public static ImmutableList<DynamizableResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1358,7 +1358,7 @@ public final class LangbookReadableDatabase {
                         strOffset + strings.getStringColumnIndex(),
                         bunchAcceptations.getAgentSetColumnIndex());
 
-        final MutableIntKeyMap<BunchInclusionResult> resultMap = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<DynamizableResult> resultMap = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
             final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
             while (dbResult.hasNext()) {
@@ -1372,13 +1372,54 @@ public final class LangbookReadableDatabase {
                     final int agentSet = row.get(4).toInt();
                     final boolean dynamic = agentSet != nullAgentSet;
 
-                    resultMap.put(bunch, new BunchInclusionResult(acc, dynamic, text));
+                    resultMap.put(bunch, new DynamizableResult(acc, dynamic, text));
                 }
             }
         }
 
-        final ImmutableList.Builder<BunchInclusionResult> builder = new ImmutableList.Builder<>();
-        for (BunchInclusionResult r : resultMap) {
+        final ImmutableList.Builder<DynamizableResult> builder = new ImmutableList.Builder<>();
+        for (DynamizableResult r : resultMap) {
+            builder.add(r);
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableList<DynamizableResult> readAcceptationBunchChildren(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int bunchAccOffset = acceptations.columns().size();
+        final int strOffset = bunchAccOffset + bunchAcceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(bunchAcceptations, acceptations.getConceptColumnIndex(), bunchAcceptations.getBunchColumnIndex())
+                .join(strings, bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .select(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex(),
+                        bunchAccOffset + bunchAcceptations.getAgentSetColumnIndex());
+
+        final MutableIntKeyMap<DynamizableResult> resultMap = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
+            while (dbResult.hasNext()) {
+                final DbResult.Row row = dbResult.next();
+                final int acc = row.get(0).toInt();
+                final int alphabet = row.get(1).toInt();
+
+                if (alphabet == preferredAlphabet || !resultMap.keySet().contains(acc)) {
+                    final String text = row.get(2).toText();
+                    final int agentSet = row.get(3).toInt();
+                    final boolean dynamic = agentSet != nullAgentSet;
+                    resultMap.put(acc, new DynamizableResult(acc, dynamic, text));
+                }
+            }
+        }
+
+        final ImmutableList.Builder<DynamizableResult> builder = new ImmutableList.Builder<>();
+        for (DynamizableResult r : resultMap) {
             builder.add(r);
         }
 

@@ -48,7 +48,7 @@ import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
-import sword.langbook3.android.LangbookReadableDatabase.BunchInclusionResult;
+import sword.langbook3.android.LangbookReadableDatabase.DynamizableResult;
 import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
@@ -63,6 +63,7 @@ import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCorrelations;
+import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationBunchChildren;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -124,76 +125,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         activity.startActivityForResult(intent, requestCode);
-    }
-
-    private static final class BunchChildResult {
-
-        final int acceptation;
-        final boolean dynamic;
-        final String text;
-
-        BunchChildResult(int acceptation, boolean dynamic, String text) {
-            this.acceptation = acceptation;
-            this.dynamic = dynamic;
-            this.text = text;
-        }
-    }
-
-    private BunchChildResult[] readBunchChildren(SQLiteDatabase db, int acceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J1." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() +
-                        ",J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        ",J1." + bunchAcceptations.columns().get(bunchAcceptations.getAgentSetColumnIndex()).name() +
-                " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + bunchAcceptations.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + bunchAcceptations.columns().get(bunchAcceptations.getBunchColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                " WHERE J0." + idColumnName + "=?" +
-                " ORDER BY J1." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name(),
-                new String[] { Integer.toString(acceptation) });
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    final int nullAgentSet = Tables.agentSets.nullReference();
-                    ArrayList<BunchChildResult> result = new ArrayList<>();
-
-                    int acc = cursor.getInt(0);
-                    int alphabet = cursor.getInt(1);
-                    String text = cursor.getString(2);
-                    int agentSet = cursor.getInt(3);
-                    while (cursor.moveToNext()) {
-                        if (acc == cursor.getInt(0)) {
-                            if (alphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
-                                alphabet = _preferredAlphabet;
-                                text = cursor.getString(2);
-                            }
-                        }
-                        else {
-                            result.add(new BunchChildResult(acc, agentSet != nullAgentSet, text));
-
-                            acc = cursor.getInt(0);
-                            alphabet = cursor.getInt(1);
-                            text = cursor.getString(2);
-                            agentSet = cursor.getInt(3);
-                        }
-                    }
-
-                    result.add(new BunchChildResult(acc, agentSet != nullAgentSet, text));
-                    return result.toArray(new BunchChildResult[result.size()]);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new BunchChildResult[0];
     }
 
     private static final class SynonymTranslationResult {
@@ -649,14 +580,14 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean parentBunchFound = false;
-        for (BunchInclusionResult r : readBunchesWhereAcceptationIsIncluded(db, staticAcceptation, _preferredAlphabet)) {
+        for (DynamizableResult r : readBunchesWhereAcceptationIsIncluded(db, staticAcceptation, _preferredAlphabet)) {
             if (!parentBunchFound) {
                 result.add(new HeaderItem("Bunches where included"));
                 parentBunchFound = true;
             }
 
             result.add(new AcceptationNavigableItem(AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED,
-                    r.acceptation, r.text, r.dynamic));
+                    r.id, r.text, r.dynamic));
         }
 
         boolean morphologyFound = false;
@@ -671,14 +602,14 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean bunchChildFound = false;
-        for (BunchChildResult r : readBunchChildren(sqliteDb, staticAcceptation)) {
+        for (DynamizableResult r : readAcceptationBunchChildren(db, staticAcceptation, _preferredAlphabet)) {
             if (!bunchChildFound) {
                 result.add(new HeaderItem("Acceptations included in this bunch"));
                 bunchChildFound = true;
                 _shouldShowBunchChildrenQuizMenuOption = true;
             }
 
-            result.add(new AcceptationNavigableItem(AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED, r.acceptation, r.text, r.dynamic));
+            result.add(new AcceptationNavigableItem(AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED, r.id, r.text, r.dynamic));
         }
 
         boolean agentFound = false;
