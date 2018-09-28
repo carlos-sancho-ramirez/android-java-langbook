@@ -455,14 +455,7 @@ public final class LangbookReadableDatabase {
                 .where(bunchSets.getBunchColumnIndex(), bunch)
                 .select(bunchSets.columns().size() + agents.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(DbExporter.Database db, int bunch) {
@@ -501,14 +494,7 @@ public final class LangbookReadableDatabase {
                 .where(bunchSets.getBunchColumnIndex(), bunch)
                 .select(bunchSets.columns().size() + agents.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntPairMap findAffectedAgentsByItsDiffWithTarget(DbExporter.Database db, int bunch) {
@@ -541,14 +527,7 @@ public final class LangbookReadableDatabase {
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
                 .select(agents.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntPairMap findAgentsWithoutSourceBunchesWithTarget(DbExporter.Database db) {
@@ -582,14 +561,7 @@ public final class LangbookReadableDatabase {
                 .where(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(agents.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntSet findQuizzesByBunch(DbExporter.Database db, int bunch) {
@@ -598,14 +570,7 @@ public final class LangbookReadableDatabase {
                 .where(quizzes.getBunchColumnIndex(), bunch)
                 .select(quizzes.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static Integer findQuestionFieldSet(DbExporter.Database db, Iterable<QuestionFieldDetails> collection) {
@@ -911,14 +876,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getSetIdColumnIndex(), setId)
                 .select(table.getBunchColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableList<SearchResult> getSearchHistory(DbExporter.Database db) {
@@ -1742,14 +1700,7 @@ public final class LangbookReadableDatabase {
                 .whereColumnValueMatch(strings.getMainAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .select(strings.getDynamicAcceptationColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntSet readAllAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
@@ -1761,13 +1712,7 @@ public final class LangbookReadableDatabase {
                 .where(bunchAcceptations.columns().size() + strings.getStringAlphabetColumnIndex(), alphabet)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntKeyMap<String> readAllRules(DbExporter.Database db, int preferredAlphabet) {
@@ -1930,14 +1875,7 @@ public final class LangbookReadableDatabase {
                 .whereColumnValueDiffer(acceptations.getIdColumnIndex(), acceptations.columns().size() + acceptations.getIdColumnIndex())
                 .select(acceptations.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
@@ -1958,14 +1896,7 @@ public final class LangbookReadableDatabase {
                 .whereColumnValueDiffer(accOffset1 + acceptations.getIdColumnIndex(), accOffset2 + acceptations.getIdColumnIndex())
                 .select(accOffset1 + acceptations.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntSet readAllRulableAcceptations(DbExporter.Database db, int alphabet, int rule) {
@@ -1982,14 +1913,7 @@ public final class LangbookReadableDatabase {
                 .where(agentOffset + agents.getRuleColumnIndex(), rule)
                 .select(ruledAcceptations.getAcceptationColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntSet readAllRulableAcceptationsInBunch(DbExporter.Database db, int alphabet, int rule, int bunch) {
@@ -2010,14 +1934,7 @@ public final class LangbookReadableDatabase {
                 .where(agentOffset + agents.getRuleColumnIndex(), rule)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     private static ImmutableIntSet readAllPossibleAcceptationForField(DbExporter.Database db, int bunch, QuestionFieldDetails field) {
@@ -2049,14 +1966,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getAgentColumnIndex(), agentId)
                 .select(table.getIdColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return intSetQuery(db, query);
     }
 
     public static ImmutableIntPairMap getAgentProcessedMap(DbExporter.Database db, int agentId) {
