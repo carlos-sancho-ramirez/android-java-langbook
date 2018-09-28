@@ -1206,6 +1206,107 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    private static ImmutableIntSet intSetQuery(DbExporter.Database db, DbQuery query) {
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                builder.add(dbResult.next().get(0).toInt());
+            }
+        }
+        return builder.build();
+    }
+
+    private static ImmutableIntSet readAgentsWhereAcceptationIsTarget(DbExporter.Database db, int staticAcceptation) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(agents, acceptations.getConceptColumnIndex(), agents.getTargetBunchColumnIndex())
+                .where(acceptations.getIdColumnIndex(), staticAcceptation)
+                .select(acceptations.columns().size() + agents.getIdColumnIndex());
+
+        return intSetQuery(db, query);
+    }
+
+    private static ImmutableIntSet readAgentsWhereAcceptationIsSource(DbExporter.Database db, int staticAcceptation) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+
+        final int bunchSetsOffset = acceptations.columns().size();
+        final int agentsOffset = bunchSetsOffset + bunchSets.getSetIdColumnIndex();
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(bunchSets, acceptations.getConceptColumnIndex(), bunchSets.getBunchColumnIndex())
+                .join(agents, bunchSetsOffset + bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
+                .where(acceptations.getIdColumnIndex(), staticAcceptation)
+                .select(agentsOffset + agents.getIdColumnIndex());
+
+        return intSetQuery(db, query);
+    }
+
+    private static ImmutableIntSet readAgentsWhereAcceptationIsRule(DbExporter.Database db, int staticAcceptation) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(agents, acceptations.getConceptColumnIndex(), agents.getRuleColumnIndex())
+                .where(acceptations.getIdColumnIndex(), staticAcceptation)
+                .select(acceptations.columns().size() + agents.getIdColumnIndex());
+        return intSetQuery(db, query);
+    }
+
+    private static ImmutableIntSet readAgentsWhereAcceptationIsProcessed(DbExporter.Database db, int staticAcceptation) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
+
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .join(agentSets, bunchAcceptations.getAgentSetColumnIndex(), agentSets.getSetIdColumnIndex())
+                .where(bunchAcceptations.getAcceptationColumnIndex(), staticAcceptation)
+                .select(bunchAcceptations.columns().size() + agentSets.getAgentColumnIndex());
+
+        return intSetQuery(db, query).remove(agents.nullReference());
+    }
+
+    public interface InvolvedAgentResultFlags {
+        int target = 1;
+        int source = 2;
+        int diff = 4;
+        int rule = 8;
+        int processed = 16;
+    }
+
+    /**
+     * Return information about all agents involved with the given acceptation.
+     * @param db Readable database to be used
+     * @param staticAcceptation Identifier for the acceptation to analyze.
+     * @return a map whose keys are agent identifier and values are flags. Flags should match the values at {@link InvolvedAgentResultFlags}
+     */
+    public static ImmutableIntPairMap readAcceptationInvolvedAgents(DbExporter.Database db, int staticAcceptation) {
+        final MutableIntPairMap flags = MutableIntPairMap.empty();
+
+        for (int agentId : readAgentsWhereAcceptationIsTarget(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResultFlags.target);
+        }
+
+        for (int agentId : readAgentsWhereAcceptationIsSource(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResultFlags.source);
+        }
+
+        // TODO: Diff not implemented as right now it is impossible
+
+        for (int agentId : readAgentsWhereAcceptationIsRule(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResultFlags.rule);
+        }
+
+        for (int agentId : readAgentsWhereAcceptationIsProcessed(db, staticAcceptation)) {
+            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResultFlags.processed);
+        }
+
+        return flags.toImmutable();
+    }
+
     public static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;

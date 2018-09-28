@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.text.SpannableString;
@@ -27,8 +26,8 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
+import sword.collections.IntPairMap;
 import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
@@ -36,7 +35,6 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
-import sword.langbook3.android.LangbookDbSchema.AgentSetsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
@@ -49,6 +47,7 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.DynamizableResult;
 import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
+import sword.langbook3.android.LangbookReadableDatabase.InvolvedAgentResultFlags;
 import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
@@ -64,6 +63,7 @@ import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConce
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCorrelations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationBunchChildren;
+import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationInvolvedAgents;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -71,7 +71,6 @@ import static sword.langbook3.android.LangbookReadableDatabase.readLanguageFromA
 import static sword.langbook3.android.LangbookReadableDatabase.readMorphologiesFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readSubtypesFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readSupertypeFromAcceptation;
-import static sword.langbook3.android.db.DbIdColumn.idColumnName;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
@@ -179,186 +178,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         return builder.build();
-    }
-
-    private static class InvolvedAgentResult {
-
-        interface Flags {
-            int target = 1;
-            int source = 2;
-            int diff = 4;
-            int rule = 8;
-            int processed = 16;
-        }
-
-        final int agentId;
-        final int flags;
-
-        InvolvedAgentResult(int agentId, int flags) {
-            this.agentId = agentId;
-            this.flags = flags;
-        }
-    }
-
-    private int[] readAgentsWhereAccIsTarget(SQLiteDatabase db, int staticAcceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final AgentsTable agents = Tables.agents;
-
-        final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
-                " FROM " + acceptations.name() + " AS J0" +
-                " JOIN " + agents.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + agents.columns().get(agents.getTargetBunchColumnIndex()).name() +
-                " WHERE J0." + idColumnName + "=?",
-        new String[] { Integer.toString(staticAcceptation)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int[] result = new int[cursor.getCount()];
-                    int index = 0;
-                    do {
-                        result[index++] = cursor.getInt(0);
-                    } while (cursor.moveToNext());
-
-                    return result;
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new int[0];
-    }
-
-    private int[] readAgentsWhereAccIsSource(SQLiteDatabase db, int staticAcceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final AgentsTable agents = Tables.agents;
-        final BunchSetsTable bunchSets = Tables.bunchSets;
-
-        final Cursor cursor = db.rawQuery(" SELECT J2." + idColumnName +
-                " FROM " + acceptations.name() + " AS J0" +
-                " JOIN " + bunchSets.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + bunchSets.columns().get(bunchSets.getBunchColumnIndex()).name() +
-                " JOIN " + agents.name() + " AS J2 ON J1." + bunchSets.columns().get(bunchSets.getSetIdColumnIndex()).name() + "=J2." + agents.columns().get(agents.getSourceBunchSetColumnIndex()).name() +
-                " WHERE J0." + idColumnName + "=?",
-                new String[] { Integer.toString(staticAcceptation)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int[] result = new int[cursor.getCount()];
-                    int index = 0;
-                    do {
-                        result[index++] = cursor.getInt(0);
-                    } while (cursor.moveToNext());
-
-                    return result;
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new int[0];
-    }
-
-    private int[] readAgentsWhereAccIsRule(SQLiteDatabase db, int staticAcceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final AgentsTable agents = Tables.agents;
-
-        final Cursor cursor = db.rawQuery(" SELECT J1." + idColumnName +
-                        " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + agents.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + agents.columns().get(agents.getRuleColumnIndex()).name() +
-                        " WHERE J0." + idColumnName + "=?",
-                new String[] { Integer.toString(staticAcceptation)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int[] result = new int[cursor.getCount()];
-                    int index = 0;
-                    do {
-                        result[index++] = cursor.getInt(0);
-                    } while (cursor.moveToNext());
-
-                    return result;
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new int[0];
-    }
-
-    private int[] readAgentsWhereAccIsProcessed(SQLiteDatabase db, int staticAcceptation) {
-        final AgentsTable agents = Tables.agents;
-        final BunchAcceptationsTable bunchAcceptations = Tables.bunchAcceptations;
-        final AgentSetsTable agentSets = Tables.agentSets;
-
-        final Cursor cursor = db.rawQuery(" SELECT J1." + agentSets.columns().get(agentSets.getAgentColumnIndex()).name() +
-                        " FROM " + bunchAcceptations.name() + " AS J0" +
-                        " JOIN " + agentSets.name() + " AS J1 ON J0." + bunchAcceptations.columns().get(bunchAcceptations.getAgentSetColumnIndex()).name() + "=J1." + agentSets.columns().get(agentSets.getSetIdColumnIndex()).name() +
-                        " WHERE J0." + bunchAcceptations.columns().get(bunchAcceptations.getAcceptationColumnIndex()).name() + "=?",
-                new String[] { Integer.toString(staticAcceptation)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    ArrayList<Integer> result = new ArrayList<>();
-                    do {
-                        final int id = cursor.getInt(0);
-                        if (id != agents.nullReference()) {
-                            result.add(id);
-                        }
-                    } while (cursor.moveToNext());
-
-                    int[] intResult = new int[result.size()];
-                    int index = 0;
-                    for (int value : result) {
-                        intResult[index++] = value;
-                    }
-
-                    return intResult;
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new int[0];
-    }
-
-    private InvolvedAgentResult[] readInvolvedAgents(SQLiteDatabase db, int staticAcceptation) {
-        final MutableIntPairMap flags = MutableIntPairMap.empty();
-
-        for (int agentId : readAgentsWhereAccIsTarget(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.target);
-        }
-
-        for (int agentId : readAgentsWhereAccIsSource(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.source);
-        }
-
-        // TODO: Diff not implemented as right now it is impossible
-
-        for (int agentId : readAgentsWhereAccIsRule(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.rule);
-        }
-
-        for (int agentId : readAgentsWhereAccIsProcessed(db, staticAcceptation)) {
-            flags.put(agentId, flags.get(agentId, 0) | InvolvedAgentResult.Flags.processed);
-        }
-
-        final int count = flags.size();
-        final InvolvedAgentResult[] result = new InvolvedAgentResult[count];
-        for (int i = 0; i < count; i++) {
-            result[i] = new InvolvedAgentResult(flags.keyAt(i), flags.valueAt(i));
-        }
-
-        return result;
     }
 
     private class CorrelationSpan extends ClickableSpan {
@@ -522,22 +341,23 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean agentFound = false;
-        for (InvolvedAgentResult r : readInvolvedAgents(sqliteDb, staticAcceptation)) {
+        for (IntPairMap.Entry entry : readAcceptationInvolvedAgents(db, staticAcceptation).entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem("Involved agents"));
                 agentFound = true;
             }
 
             final StringBuilder s = new StringBuilder("Agent #");
-            s.append(r.agentId).append(" (");
-            s.append(((r.flags & InvolvedAgentResult.Flags.target) != 0)? 'T' : '-');
-            s.append(((r.flags & InvolvedAgentResult.Flags.source) != 0)? 'S' : '-');
-            s.append(((r.flags & InvolvedAgentResult.Flags.diff) != 0)? 'D' : '-');
-            s.append(((r.flags & InvolvedAgentResult.Flags.rule) != 0)? 'R' : '-');
-            s.append(((r.flags & InvolvedAgentResult.Flags.processed) != 0)? 'P' : '-');
+            s.append(entry.key()).append(" (");
+            final int flags = entry.value();
+            s.append(((flags & InvolvedAgentResultFlags.target) != 0)? 'T' : '-');
+            s.append(((flags & InvolvedAgentResultFlags.source) != 0)? 'S' : '-');
+            s.append(((flags & InvolvedAgentResultFlags.diff) != 0)? 'D' : '-');
+            s.append(((flags & InvolvedAgentResultFlags.rule) != 0)? 'R' : '-');
+            s.append(((flags & InvolvedAgentResultFlags.processed) != 0)? 'P' : '-');
             s.append(')');
 
-            result.add(new AgentNavigableItem(r.agentId, s.toString()));
+            result.add(new AgentNavigableItem(entry.key(), s.toString()));
         }
 
         for (MorphologyResult r : morphologyResults) {
