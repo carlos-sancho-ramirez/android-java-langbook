@@ -1040,6 +1040,22 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    public static final class MorphologyResult {
+        final int agent;
+        final int dynamicAcceptation;
+        final int rule;
+        final String ruleText;
+        final String text;
+
+        MorphologyResult(int agent, int dynamicAcceptation, int rule, String ruleText, String text) {
+            this.agent = agent;
+            this.dynamicAcceptation = dynamicAcceptation;
+            this.rule = rule;
+            this.ruleText = ruleText;
+            this.text = text;
+        }
+    }
+
     public static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
@@ -1117,6 +1133,74 @@ public final class LangbookReadableDatabase {
         final int length = conceptAccs.size();
         for (int i = 0; i < length; i++) {
             builder.put(conceptAccs.valueAt(i), conceptText.valueAt(i));
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableList<MorphologyResult> readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+
+        final int strOffset1 = ruledAcceptations.columns().size();
+        final int agentsOffset = strOffset1 + strings.columns().size();
+        final int accOffset = agentsOffset + agents.columns().size();
+        final int strOffset2 = accOffset + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
+                .join(strings, ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .join(acceptations, agentsOffset + agents.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(ruledAcceptations.getAcceptationColumnIndex(), acceptation)
+                .select(ruledAcceptations.getIdColumnIndex(),
+                        accOffset + acceptations.getConceptColumnIndex(),
+                        strOffset1 + strings.getStringAlphabetColumnIndex(),
+                        strOffset1 + strings.getStringColumnIndex(),
+                        strOffset2 + strings.getStringAlphabetColumnIndex(),
+                        strOffset2 + strings.getStringColumnIndex(),
+                        agentsOffset + agents.getIdColumnIndex());
+
+        final MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<String> ruleTexts = MutableIntKeyMap.empty();
+        final MutableIntPairMap ruleAgents = MutableIntPairMap.empty();
+        final MutableIntPairMap ruledAccs = MutableIntPairMap.empty();
+
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final DbResult.Row row = dbResult.next();
+                final int acc = row.get(0).toInt();
+                final int rule = row.get(1).toInt();
+                final int alphabet = row.get(2).toInt();
+                final String text = row.get(3).toText();
+                final int ruleAlphabet = row.get(4).toInt();
+                final String ruleText = row.get(5).toText();
+                final int agent = row.get(6).toInt();
+
+                if (!ruleTexts.keySet().contains(rule)) {
+                    ruleTexts.put(rule, ruleText);
+                    texts.put(rule, text);
+                    ruleAgents.put(rule, agent);
+                    ruledAccs.put(rule, acc);
+                }
+                else {
+                    if (ruleAlphabet == preferredAlphabet) {
+                        ruleTexts.put(rule, ruleText);
+                    }
+
+                    if (alphabet == preferredAlphabet) {
+                        texts.put(rule, text);
+                    }
+                }
+            }
+        }
+
+        final ImmutableList.Builder<MorphologyResult> builder = new ImmutableList.Builder<>();
+        final int length = ruleAgents.size();
+        for (int i = 0; i < length; i++) {
+            builder.add(new MorphologyResult(ruleAgents.valueAt(i), ruledAccs.valueAt(i), ruleAgents.keyAt(i), ruleTexts.valueAt(i), texts.valueAt(i)));
         }
 
         return builder.build();

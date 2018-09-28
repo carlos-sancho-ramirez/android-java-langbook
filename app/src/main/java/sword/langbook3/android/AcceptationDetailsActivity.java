@@ -45,11 +45,11 @@ import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
 import sword.langbook3.android.LangbookDbSchema.LanguagesTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
-import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.DynamizableResult;
 import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
+import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbInsertQuery;
@@ -68,6 +68,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTe
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.LangbookReadableDatabase.readLanguageFromAlphabet;
+import static sword.langbook3.android.LangbookReadableDatabase.readMorphologiesFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readSubtypesFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readSupertypeFromAcceptation;
 import static sword.langbook3.android.db.DbIdColumn.idColumnName;
@@ -178,98 +179,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         return builder.build();
-    }
-
-    private static final class MorphologyResult {
-
-        final int agent;
-        final int dynamicAcceptation;
-        final int rule;
-        final String ruleText;
-        final String text;
-
-        MorphologyResult(int agent, int dynamicAcceptation, int rule, String ruleText, String text) {
-            this.agent = agent;
-            this.dynamicAcceptation = dynamicAcceptation;
-            this.rule = rule;
-            this.ruleText = ruleText;
-            this.text = text;
-        }
-    }
-
-    private MorphologyResult[] readMorphologies(SQLiteDatabase db, int acceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final AgentsTable agents = Tables.agents;
-        final StringQueriesTable strings = Tables.stringQueries;
-        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
-
-        Cursor cursor = db.rawQuery(
-                "SELECT" +
-                        " J0." + idColumnName +
-                        ",J3." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        ",J1." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J1." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        ",J4." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() +
-                        ",J4." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        ",J2." + idColumnName +
-                " FROM " + ruledAcceptations.name() + " AS J0" +
-                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " JOIN " + agents.name() + " AS J2 ON J0." + ruledAcceptations.columns().get(ruledAcceptations.getAgentColumnIndex()).name() + "=J2." + idColumnName +
-                        " JOIN " + acceptations.name() + " AS J3 ON J2." + agents.columns().get(agents.getRuleColumnIndex()).name() + "=J3." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J4 ON J3." + idColumnName + "=J4." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                " WHERE J0." + ruledAcceptations.columns().get(ruledAcceptations.getAcceptationColumnIndex()).name() + "=?" +
-                        " AND J1." + strings.columns().get(strings.getMainAcceptationColumnIndex()).name() + "=?" +
-                " ORDER BY J0." + idColumnName,
-                new String[] { Integer.toString(acceptation) , Integer.toString(acceptation)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    ArrayList<MorphologyResult> result = new ArrayList<>();
-
-                    int acc = cursor.getInt(0);
-                    int rule = cursor.getInt(1);
-                    int alphabet = cursor.getInt(2);
-                    String text = cursor.getString(3);
-                    int ruleAlphabet = cursor.getInt(4);
-                    String ruleText = cursor.getString(5);
-                    int agent = cursor.getInt(6);
-
-                    while (cursor.moveToNext()) {
-                        if (cursor.getInt(0) == acc) {
-                            if (alphabet != _preferredAlphabet && cursor.getInt(2) == _preferredAlphabet) {
-                                alphabet = _preferredAlphabet;
-                                text = cursor.getString(3);
-                            }
-
-                            if (ruleAlphabet != _preferredAlphabet && cursor.getInt(4) == _preferredAlphabet) {
-                                ruleAlphabet = _preferredAlphabet;
-                                ruleText = cursor.getString(5);
-                            }
-                        }
-                        else {
-                            result.add(new MorphologyResult(agent, acc, rule, ruleText, text));
-
-                            acc = cursor.getInt(0);
-                            rule = cursor.getInt(1);
-                            alphabet = cursor.getInt(2);
-                            text = cursor.getString(3);
-                            ruleAlphabet = cursor.getInt(4);
-                            ruleText = cursor.getString(5);
-                            agent = cursor.getInt(6);
-                        }
-                    }
-
-                    result.add(new MorphologyResult(agent, acc, rule, ruleText, text));
-                    return result.toArray(new MorphologyResult[result.size()]);
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return new MorphologyResult[0];
     }
 
     private static class InvolvedAgentResult {
@@ -591,7 +500,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        MorphologyResult[] morphologyResults = readMorphologies(sqliteDb, staticAcceptation);
+        final ImmutableList<MorphologyResult> morphologyResults = readMorphologiesFromAcceptation(db, staticAcceptation, _preferredAlphabet);
         for (MorphologyResult r : morphologyResults) {
             if (!morphologyFound) {
                 result.add(new HeaderItem("Morphologies"));
