@@ -1014,6 +1014,56 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    public static final class SynonymTranslationResult {
+        final int language;
+        final String text;
+
+        SynonymTranslationResult(int language, String text) {
+            if (text == null) {
+                throw new IllegalArgumentException();
+            }
+
+            this.language = language;
+            this.text = text;
+        }
+    }
+
+    public static ImmutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
+
+        final int accOffset = acceptations.columns().size();
+        final int stringsOffset = accOffset * 2;
+        final int alphabetsOffset = stringsOffset + strings.columns().size();
+        final int languagesOffset = alphabetsOffset + alphabets.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(alphabets, stringsOffset + strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
+                .join(languages, alphabetsOffset + alphabets.getLanguageColumnIndex(), languages.getIdColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .whereColumnValueMatch(alphabetsOffset + alphabets.getIdColumnIndex(), languagesOffset + languages.getMainAlphabetColumnIndex())
+                .select(accOffset + acceptations.getIdColumnIndex(),
+                        languagesOffset + languages.getIdColumnIndex(),
+                        stringsOffset + strings.getStringColumnIndex());
+
+        final ImmutableIntKeyMap.Builder<SynonymTranslationResult> builder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final DbResult.Row row = result.next();
+                final int accId = row.get(0).toInt();
+                if (accId != acceptation) {
+                    builder.put(accId, new SynonymTranslationResult(row.get(1).toInt(), row.get(2).toText()));
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
     public static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;

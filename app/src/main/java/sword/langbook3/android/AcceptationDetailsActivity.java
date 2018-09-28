@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -26,6 +25,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
+import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
@@ -40,7 +40,6 @@ import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchConceptsTable;
 import sword.langbook3.android.LangbookDbSchema.BunchSetsTable;
-import sword.langbook3.android.LangbookDbSchema.LanguagesTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
@@ -49,6 +48,7 @@ import sword.langbook3.android.LangbookReadableDatabase.DynamizableResult;
 import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
 import sword.langbook3.android.LangbookReadableDatabase.InvolvedAgentResultFlags;
 import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
+import sword.langbook3.android.LangbookReadableDatabase.SynonymTranslationResult;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbInsertQuery;
@@ -64,6 +64,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAccept
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCorrelations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationBunchChildren;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationInvolvedAgents;
+import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationSynonymsAndTranslations;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -127,61 +128,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private static final class SynonymTranslationResult {
-
-        final int acceptation;
-        final int language;
-        final String text;
-
-        SynonymTranslationResult(int acceptation, int language, String text) {
-            this.acceptation = acceptation;
-            this.language = language;
-            this.text = text;
-        }
-    }
-
-    private ImmutableList<SynonymTranslationResult> readSynonymsAndTranslations(DbExporter.Database db, int acceptation) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final AlphabetsTable alphabets = Tables.alphabets;
-        final StringQueriesTable strings = Tables.stringQueries;
-        final LanguagesTable languages = Tables.languages;
-
-        final int accOffset = acceptations.columns().size();
-        final int stringsOffset = accOffset * 2;
-        final int alphabetsOffset = stringsOffset + strings.columns().size();
-        final int languagesOffset = alphabetsOffset + alphabets.columns().size();
-
-        final DbQuery query = new DbQuery.Builder(acceptations)
-                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
-                .join(strings, acceptations.columns().size() + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .join(alphabets, stringsOffset + strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
-                .join(languages, alphabetsOffset + alphabets.getLanguageColumnIndex(), languages.getIdColumnIndex())
-                .where(acceptations.getIdColumnIndex(), acceptation)
-                .whereColumnValueMatch(alphabetsOffset + alphabets.getIdColumnIndex(), languagesOffset + languages.getMainAlphabetColumnIndex())
-                .select(accOffset + acceptations.getIdColumnIndex(),
-                        languagesOffset + languages.getIdColumnIndex(),
-                        stringsOffset + strings.getStringColumnIndex());
-
-        final DbResult result = db.select(query);
-        final ImmutableList.Builder<SynonymTranslationResult> builder = new ImmutableList.Builder<>(result.getRemainingRows());
-        try {
-            while (result.hasNext()) {
-                final DbResult.Row row = result.next();
-                final int accId = row.get(0).toInt();
-                if (accId != acceptation) {
-                    builder.add(new SynonymTranslationResult(accId,
-                            row.get(1).toInt(), row.get(2).toText()));
-                }
-            }
-        } finally {
-            result.close();
-        }
-
-        return builder.build();
-    }
-
     private class CorrelationSpan extends ClickableSpan {
-
         final int id;
         final int start;
         final int end;
@@ -214,9 +161,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private AcceptationDetailsAdapter.Item[] getAdapterItems(int staticAcceptation) {
-        final DbManager dbManager = DbManager.getInstance();
-        final DbExporter.Database db = dbManager.getDatabase();
-        SQLiteDatabase sqliteDb = DbManager.getInstance().getReadableDatabase();
+        final DbExporter.Database db = DbManager.getInstance().getDatabase();
 
         final ArrayList<AcceptationDetailsAdapter.Item> result = new ArrayList<>();
         result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
@@ -274,23 +219,23 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AcceptationNavigableItem(subtype.key(), subtype.value(), false));
         }
 
-        final ImmutableList<SynonymTranslationResult> synonymTranslationResults =
-                readSynonymsAndTranslations(DbManager.getInstance().getDatabase(), staticAcceptation);
+        final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
+                readAcceptationSynonymsAndTranslations(db, staticAcceptation);
         boolean synonymFound = false;
-        for (SynonymTranslationResult r : synonymTranslationResults) {
-            if (r.language == languageResult.id) {
+        for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
+            if (entry.value().language == languageResult.id) {
                 if (!synonymFound) {
                     result.add(new HeaderItem("Synonyms"));
                     synonymFound = true;
                 }
 
-                result.add(new AcceptationNavigableItem(r.acceptation, r.text, false));
+                result.add(new AcceptationNavigableItem(entry.key(), entry.value().text, false));
             }
         }
 
         boolean translationFound = false;
-        for (SynonymTranslationResult r : synonymTranslationResults) {
-            final int language = r.language;
+        for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
+            final int language = entry.value().language;
             if (language != languageResult.id) {
                 if (!translationFound) {
                     result.add(new HeaderItem("Translations"));
@@ -303,7 +248,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     languageStrs.put(language, langStr);
                 }
 
-                result.add(new AcceptationNavigableItem(r.acceptation, "" + langStr + " -> " + r.text, false));
+                result.add(new AcceptationNavigableItem(entry.key(), "" + langStr + " -> " + entry.value().text, false));
             }
         }
 
