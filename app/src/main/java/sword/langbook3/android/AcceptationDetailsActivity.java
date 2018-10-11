@@ -22,11 +22,9 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.List;
-import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
@@ -49,7 +47,6 @@ import sword.langbook3.android.LangbookReadableDatabase.InvolvedAgentResultFlags
 import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
 import sword.langbook3.android.LangbookReadableDatabase.SynonymTranslationResult;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
@@ -61,17 +58,8 @@ import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunc
 import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationCorrelations;
-import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationBunchChildren;
-import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationInvolvedAgents;
-import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationSynonymsAndTranslations;
+import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
-import static sword.langbook3.android.LangbookReadableDatabase.readBunchesWhereAcceptationIsIncluded;
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
-import static sword.langbook3.android.LangbookReadableDatabase.readLanguageFromAlphabet;
-import static sword.langbook3.android.LangbookReadableDatabase.readMorphologiesFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.readSubtypesFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.readSupertypeFromAcceptation;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
@@ -161,22 +149,21 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems(int staticAcceptation) {
-        final DbExporter.Database db = DbManager.getInstance().getDatabase();
+        final AcceptationDetailsModel model = getAcceptationsDetails(DbManager.getInstance().getDatabase(), staticAcceptation, _preferredAlphabet);
 
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
         result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
 
         final StringBuilder sb = new StringBuilder("Correlation: ");
-        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, staticAcceptation);
         ImmutableList.Builder<CorrelationSpan> correlationSpansBuilder = new ImmutableList.Builder<>();
-        final int correlationArrayLength = correlationResultPair.left.size();
+        final int correlationArrayLength = model.correlationIds.size();
         for (int i = 0; i < correlationArrayLength; i++) {
             if (i != 0) {
                 sb.append(" - ");
             }
 
-            final int correlationId = correlationResultPair.left.get(i);
-            final ImmutableIntKeyMap<String> correlation = correlationResultPair.right.get(correlationId);
+            final int correlationId = model.correlationIds.get(i);
+            final ImmutableIntKeyMap<String> correlation = model.correlations.get(correlationId);
             final int correlationSize = correlation.size();
             int startIndex = -1;
             if (correlationSize > 1) {
@@ -196,21 +183,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         result.add(new NonNavigableItem(spannableCorrelations));
+        result.add(new NonNavigableItem("Language: " + model.language.text));
 
-        final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
-        final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, _preferredAlphabet);
-        result.add(new NonNavigableItem("Language: " + languageResult.text));
-
-        final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
-        languageStrs.put(languageResult.id, languageResult.text);
-
-        _definition = readSupertypeFromAcceptation(db, staticAcceptation, _preferredAlphabet);
-        if (_definition != null) {
-            result.add(new AcceptationNavigableItem(_definition.id, "Type of: " + _definition.text, false));
+        for (IntKeyMap.Entry<String> entry : model.supertypes.entries()) {
+            _definition = new IdentifiableResult(entry.key(), entry.value());
+            result.add(new AcceptationNavigableItem(entry.key(), "Type of: " + _definition.text, false));
         }
 
         boolean subTypeFound = false;
-        for (ImmutableIntKeyMap.Entry<String> subtype : readSubtypesFromAcceptation(db, staticAcceptation, _preferredAlphabet).entries()) {
+        for (ImmutableIntKeyMap.Entry<String> subtype : model.subtypes.entries()) {
             if (!subTypeFound) {
                 result.add(new HeaderItem("Subtypes"));
                 subTypeFound = true;
@@ -219,11 +200,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AcceptationNavigableItem(subtype.key(), subtype.value(), false));
         }
 
-        final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
-                readAcceptationSynonymsAndTranslations(db, staticAcceptation);
         boolean synonymFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
-            if (entry.value().language == languageResult.id) {
+        for (IntKeyMap.Entry<SynonymTranslationResult> entry : model.synonymsAndTranslations.entries()) {
+            if (entry.value().language == model.language.id) {
                 if (!synonymFound) {
                     result.add(new HeaderItem("Synonyms"));
                     synonymFound = true;
@@ -234,26 +213,21 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean translationFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
+        for (IntKeyMap.Entry<SynonymTranslationResult> entry : model.synonymsAndTranslations.entries()) {
             final int language = entry.value().language;
-            if (language != languageResult.id) {
+            if (language != model.language.id) {
                 if (!translationFound) {
                     result.add(new HeaderItem("Translations"));
                     translationFound = true;
                 }
 
-                String langStr = languageStrs.get(language, null);
-                if (langStr == null) {
-                    langStr = readConceptText(db, language, _preferredAlphabet);
-                    languageStrs.put(language, langStr);
-                }
-
+                final String langStr = model.languageTexts.get(language, null);
                 result.add(new AcceptationNavigableItem(entry.key(), "" + langStr + " -> " + entry.value().text, false));
             }
         }
 
         boolean parentBunchFound = false;
-        for (DynamizableResult r : readBunchesWhereAcceptationIsIncluded(db, staticAcceptation, _preferredAlphabet)) {
+        for (DynamizableResult r : model.bunchesWhereAcceptationIsIncluded) {
             if (!parentBunchFound) {
                 result.add(new HeaderItem("Bunches where included"));
                 parentBunchFound = true;
@@ -264,7 +238,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        final ImmutableList<MorphologyResult> morphologyResults = readMorphologiesFromAcceptation(db, staticAcceptation, _preferredAlphabet);
+        final ImmutableList<MorphologyResult> morphologyResults = model.morphologies;
         for (MorphologyResult r : morphologyResults) {
             if (!morphologyFound) {
                 result.add(new HeaderItem("Morphologies"));
@@ -275,7 +249,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean bunchChildFound = false;
-        for (DynamizableResult r : readAcceptationBunchChildren(db, staticAcceptation, _preferredAlphabet)) {
+        for (DynamizableResult r : model.bunchChildren) {
             if (!bunchChildFound) {
                 result.add(new HeaderItem("Acceptations included in this bunch"));
                 bunchChildFound = true;
@@ -286,7 +260,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean agentFound = false;
-        for (IntPairMap.Entry entry : readAcceptationInvolvedAgents(db, staticAcceptation).entries()) {
+        for (IntPairMap.Entry entry : model.involvedAgents.entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem("Involved agents"));
                 agentFound = true;

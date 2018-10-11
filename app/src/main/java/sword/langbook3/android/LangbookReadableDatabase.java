@@ -1030,7 +1030,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static ImmutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation) {
+    private static ImmutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1066,7 +1066,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1106,7 +1106,7 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
-    public static ImmutableIntKeyMap<String> readSubtypesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutableIntKeyMap<String> readSubtypesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1148,7 +1148,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableList<MorphologyResult> readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutableList<MorphologyResult> readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1293,7 +1293,7 @@ public final class LangbookReadableDatabase {
      * @param staticAcceptation Identifier for the acceptation to analyze.
      * @return a map whose keys are agent identifier and values are flags. Flags should match the values at {@link InvolvedAgentResultFlags}
      */
-    public static ImmutableIntPairMap readAcceptationInvolvedAgents(DbExporter.Database db, int staticAcceptation) {
+    private static ImmutableIntPairMap readAcceptationInvolvedAgents(DbExporter.Database db, int staticAcceptation) {
         final MutableIntPairMap flags = MutableIntPairMap.empty();
 
         for (int agentId : readAgentsWhereAcceptationIsTarget(db, staticAcceptation)) {
@@ -1535,7 +1535,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableList<DynamizableResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutableList<DynamizableResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1580,7 +1580,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableList<DynamizableResult> readAcceptationBunchChildren(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutableList<DynamizableResult> readAcceptationBunchChildren(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2275,5 +2275,40 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    public static AcceptationDetailsModel getAcceptationsDetails(
+            DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
+        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, staticAcceptation);
+        final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
+        final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, preferredAlphabet);
+        final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
+        languageStrs.put(languageResult.id, languageResult.text);
+
+        final IdentifiableResult definition = readSupertypeFromAcceptation(db, staticAcceptation, preferredAlphabet);
+        final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, staticAcceptation, preferredAlphabet);
+        final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
+                readAcceptationSynonymsAndTranslations(db, staticAcceptation);
+        for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
+            final int language = entry.value().language;
+            if (languageStrs.get(language, null) == null) {
+                languageStrs.put(language, readConceptText(db, language, preferredAlphabet));
+            }
+        }
+
+        final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded = readBunchesWhereAcceptationIsIncluded(db, staticAcceptation, preferredAlphabet);
+        final ImmutableList<MorphologyResult> morphologyResults = readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet);
+        final ImmutableList<DynamizableResult> bunchChildren = readAcceptationBunchChildren(db, staticAcceptation, preferredAlphabet);
+        final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(db, staticAcceptation);
+
+        final ImmutableIntKeyMap.Builder<String> supertypesBuilder = new ImmutableIntKeyMap.Builder<>();
+        if (definition != null) {
+            supertypesBuilder.put(definition.id, definition.text);
+        }
+
+        return new AcceptationDetailsModel(languageResult, correlationResultPair.left,
+                correlationResultPair.right, supertypesBuilder.build(), subtypes,
+                synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
+                morphologyResults, involvedAgents, languageStrs.toImmutable());
     }
 }
