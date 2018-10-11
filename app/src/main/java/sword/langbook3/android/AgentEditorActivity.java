@@ -24,13 +24,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
@@ -190,7 +191,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                         stringsOffset + strings.getStringAlphabetColumnIndex(),
                         stringsOffset + strings.getStringColumnIndex());
 
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+        for (List<DbValue> row : DbManager.getInstance().attach(query)) {
             final int id = row.get(0).toInt();
             final int strAlphabet = row.get(1).toInt();
 

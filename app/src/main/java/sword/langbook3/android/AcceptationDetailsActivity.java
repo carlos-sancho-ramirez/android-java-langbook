@@ -27,6 +27,7 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
@@ -55,6 +56,7 @@ import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbUpdateQuery;
+import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
@@ -679,7 +681,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 .select(table.getIdColumnIndex(), table.getLanguageColumnIndex());
 
         final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+        for (List<DbValue> row : DbManager.getInstance().attach(query)) {
             builder.add(row.get(0).toInt());
             builder.add(row.get(1).toInt());
         }
@@ -805,7 +807,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         final Database db = DbManager.getInstance().getDatabase();
         final DbResult result = db.select(query);
-        final DbResult.Row row = result.next();
+        final List<DbValue> row = result.next();
         if (result.hasNext()) {
             throw new AssertionError();
         }
@@ -829,7 +831,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final ImmutableList.Builder<String> stringsBuilder = new ImmutableList.Builder<>();
         final ImmutableList.Builder<String> mainStringsBuilder = new ImmutableList.Builder<>();
 
-        for (DbResult.Row r : DbManager.getInstance().attach(stringsQuery)) {
+        for (List<DbValue> r : DbManager.getInstance().attach(stringsQuery)) {
             alphabetsBuilder.add(r.get(0).toInt());
             stringsBuilder.add(r.get(1).toText());
             mainStringsBuilder.add(r.get(2).toText());

@@ -9,6 +9,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
+import sword.collections.List;
 import sword.collections.Procedure;
 
 import static org.junit.Assert.assertEquals;
@@ -213,7 +214,7 @@ public final class MemoryDatabaseTest {
             final DbResult result = db.select(selectQuery);
             try {
                 assertTrue(result.hasNext());
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 assertEquals(concept, row.get(0).toInt());
                 assertEquals(language, row.get(1).toInt());
                 assertEquals(written, row.get(2).toText());
@@ -535,7 +536,7 @@ public final class MemoryDatabaseTest {
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toText());
             }
         }

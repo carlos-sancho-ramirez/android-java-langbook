@@ -9,11 +9,13 @@ import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.IntResultFunction;
+import sword.collections.List;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbValue;
 import sword.langbook3.android.db.MemoryDatabase;
 
 import static org.junit.Assert.assertEquals;
@@ -66,7 +68,7 @@ public final class LangbookDatabaseTest {
                         strings.getMainStringColumnIndex(),
                         strings.getStringAlphabetColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row stringRow = selectSingleRow(db, stringQuery);
+        final List<DbValue> stringRow = selectSingleRow(db, stringQuery);
         assertEquals(acceptation, stringRow.get(0).toInt());
         assertEquals(text, stringRow.get(1).toText());
         assertEquals(alphabet, stringRow.get(2).toInt());
@@ -109,7 +111,7 @@ public final class LangbookDatabaseTest {
                 .select(strings.getMainAcceptationColumnIndex(),
                         strings.getMainStringColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row kanjiRow = selectSingleRow(db, kanjiQuery);
+        final List<DbValue> kanjiRow = selectSingleRow(db, kanjiQuery);
         assertEquals(acceptation, kanjiRow.get(0).toInt());
         assertEquals("注文", kanjiRow.get(1).toText());
         assertEquals("注文", kanjiRow.get(2).toText());
@@ -120,7 +122,7 @@ public final class LangbookDatabaseTest {
                 .select(strings.getMainAcceptationColumnIndex(),
                         strings.getMainStringColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row kanaRow = selectSingleRow(db, kanaQuery);
+        final List<DbValue> kanaRow = selectSingleRow(db, kanaQuery);
         assertEquals(acceptation, kanaRow.get(0).toInt());
         assertEquals("注文", kanaRow.get(1).toText());
         assertEquals("ちゅうもん", kanaRow.get(2).toText());
@@ -176,7 +178,7 @@ public final class LangbookDatabaseTest {
                 .select(strings.getMainAcceptationColumnIndex(),
                         strings.getMainStringColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row kanjiRow = selectSingleRow(db, kanjiQuery);
+        final List<DbValue> kanjiRow = selectSingleRow(db, kanjiQuery);
         assertEquals(acceptation, kanjiRow.get(0).toInt());
         assertEquals("注文", kanjiRow.get(1).toText());
         assertEquals("注文", kanjiRow.get(2).toText());
@@ -187,7 +189,7 @@ public final class LangbookDatabaseTest {
                 .select(strings.getMainAcceptationColumnIndex(),
                         strings.getMainStringColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row kanaRow = selectSingleRow(db, kanaQuery);
+        final List<DbValue> kanaRow = selectSingleRow(db, kanaQuery);
         assertEquals(acceptation, kanaRow.get(0).toInt());
         assertEquals("注文", kanaRow.get(1).toText());
         assertEquals("ちゅうもん", kanaRow.get(2).toText());
@@ -198,7 +200,7 @@ public final class LangbookDatabaseTest {
                 .select(strings.getMainAcceptationColumnIndex(),
                         strings.getMainStringColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row roumajiRow = selectSingleRow(db, roumajiQuery);
+        final List<DbValue> roumajiRow = selectSingleRow(db, roumajiQuery);
         assertEquals(acceptation, roumajiRow.get(0).toInt());
         assertEquals("注文", roumajiRow.get(1).toText());
         assertEquals("chuumon", roumajiRow.get(2).toText());
@@ -264,7 +266,7 @@ public final class LangbookDatabaseTest {
                         strings.getMainStringColumnIndex(),
                         strings.getStringAlphabetColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row stringRow = selectSingleRow(db, stringQuery);
+        final List<DbValue> stringRow = selectSingleRow(db, stringQuery);
         assertEquals(acceptation, stringRow.get(0).toInt());
         assertEquals("cantando", stringRow.get(1).toText());
         assertEquals(alphabet, stringRow.get(2).toInt());
@@ -408,7 +410,7 @@ public final class LangbookDatabaseTest {
                         strings.getMainStringColumnIndex(),
                         strings.getStringAlphabetColumnIndex(),
                         strings.getStringColumnIndex());
-        final DbResult.Row stringRow = selectSingleRow(db, stringQuery);
+        final List<DbValue> stringRow = selectSingleRow(db, stringQuery);
         assertEquals(acceptation, stringRow.get(0).toInt());
         assertEquals("cantando", stringRow.get(1).toText());
         assertEquals(alphabet, stringRow.get(2).toInt());
@@ -483,7 +485,7 @@ public final class LangbookDatabaseTest {
         final DbQuery arVerbsQuery = new DbQuery.Builder(bunchAcceptations)
                 .where(bunchAcceptations.getBunchColumnIndex(), arVerbConcept)
                 .select(bunchAcceptations.getAcceptationColumnIndex(), bunchAcceptations.getAgentSetColumnIndex());
-        final DbResult.Row row = selectSingleRow(db, arVerbsQuery);
+        final List<DbValue> row = selectSingleRow(db, arVerbsQuery);
         assertEquals(singAcceptation, row.get(0).toInt());
         assertEquals(agentSetId, row.get(1).toInt());
     }
@@ -603,14 +605,14 @@ public final class LangbookDatabaseTest {
         final DbQuery nounRuledConceptQuery = new DbQuery.Builder(ruledConcepts)
                 .where(ruledConcepts.getRuleColumnIndex(), nominalizationRule)
                 .select(ruledConcepts.getIdColumnIndex(), ruledConcepts.getConceptColumnIndex());
-        final DbResult.Row nounRuledConceptResult = selectSingleRow(db, nounRuledConceptQuery);
+        final List<DbValue> nounRuledConceptResult = selectSingleRow(db, nounRuledConceptQuery);
         assertEquals(singConcept, nounRuledConceptResult.get(1).toInt());
         final int nounRuledConcept = nounRuledConceptResult.get(0).toInt();
 
         final DbQuery pluralRuledConceptQuery = new DbQuery.Builder(ruledConcepts)
                 .where(ruledConcepts.getRuleColumnIndex(), pluralRule)
                 .select(ruledConcepts.getIdColumnIndex(), ruledConcepts.getConceptColumnIndex());
-        final DbResult.Row pluralRuledConceptResult = selectSingleRow(db, pluralRuledConceptQuery);
+        final List<DbValue> pluralRuledConceptResult = selectSingleRow(db, pluralRuledConceptQuery);
         assertEquals(nounRuledConcept, pluralRuledConceptResult.get(1).toInt());
         final int pluralRuledConcept = pluralRuledConceptResult.get(0).toInt();
 
@@ -618,14 +620,14 @@ public final class LangbookDatabaseTest {
         final DbQuery nounRuledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
                 .where(ruledAcceptations.getAgentColumnIndex(), addAgentsResult.agent2Id)
                 .select(ruledAcceptations.getIdColumnIndex(), ruledAcceptations.getAcceptationColumnIndex());
-        final DbResult.Row nounRuledAcceptationResult = selectSingleRow(db, nounRuledAcceptationsQuery);
+        final List<DbValue> nounRuledAcceptationResult = selectSingleRow(db, nounRuledAcceptationsQuery);
         assertEquals(acceptation, nounRuledAcceptationResult.get(1).toInt());
         final int nounRuledAcceptation = nounRuledAcceptationResult.get(0).toInt();
 
         final DbQuery pluralRuledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
                 .where(ruledAcceptations.getAgentColumnIndex(), addAgentsResult.agent3Id)
                 .select(ruledAcceptations.getIdColumnIndex(), ruledAcceptations.getAcceptationColumnIndex());
-        final DbResult.Row pluralRuledAcceptationResult = selectSingleRow(db, pluralRuledAcceptationsQuery);
+        final List<DbValue> pluralRuledAcceptationResult = selectSingleRow(db, pluralRuledAcceptationsQuery);
         assertEquals(nounRuledAcceptation, pluralRuledAcceptationResult.get(1).toInt());
         final int pluralRuledAcceptation = pluralRuledAcceptationResult.get(0).toInt();
 
@@ -647,7 +649,7 @@ public final class LangbookDatabaseTest {
                         strings.getMainStringColumnIndex(),
                         strings.getStringAlphabetColumnIndex(),
                         strings.getStringColumnIndex());
-        DbResult.Row stringRow = selectSingleRow(db, stringQuery);
+        List<DbValue> stringRow = selectSingleRow(db, stringQuery);
         assertEquals(acceptation, stringRow.get(0).toInt());
         assertEquals("canto", stringRow.get(1).toText());
         assertEquals(alphabet, stringRow.get(2).toInt());
@@ -809,7 +811,7 @@ public final class LangbookDatabaseTest {
         final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
         final DbQuery query = new DbQuery.Builder(knowledge)
                 .select(knowledge.getAcceptationColumnIndex(), knowledge.getQuizDefinitionColumnIndex());
-        final DbResult.Row row = selectSingleRow(db, query);
+        final List<DbValue> row = selectSingleRow(db, query);
         assertEquals(esAcceptation, row.get(0).toInt());
         assertEquals(quizId, row.get(1).toInt());
     }
@@ -848,7 +850,7 @@ public final class LangbookDatabaseTest {
 
         addAcceptationInBunch(db, myVocabularyConcept, esAcceptation);
 
-        final DbResult.Row row = selectSingleRow(db, knowledgeQuery);
+        final List<DbValue> row = selectSingleRow(db, knowledgeQuery);
         assertEquals(esAcceptation, row.get(0).toInt());
         assertEquals(quizId, row.get(1).toInt());
 
@@ -1098,7 +1100,7 @@ public final class LangbookDatabaseTest {
                 .where(strings.getStringAlphabetColumnIndex(), alphabet)
                 .select(strings.getMainAcceptationColumnIndex(),
                         strings.getStringColumnIndex());
-        DbResult.Row row = selectSingleRow(db, query);
+        List<DbValue> row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
         assertEquals(text2, row.get(1).toText());
 
@@ -1172,7 +1174,7 @@ public final class LangbookDatabaseTest {
                 .where(strings.getStringAlphabetColumnIndex(), alphabet)
                 .select(strings.getMainAcceptationColumnIndex(),
                         strings.getStringColumnIndex());
-        DbResult.Row row = selectSingleRow(db, query);
+        List<DbValue> row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
         assertEquals(text2, row.get(1).toText());
 
@@ -1245,7 +1247,7 @@ public final class LangbookDatabaseTest {
         query = new DbQuery.Builder(acceptations)
                 .where(acceptations.getConceptColumnIndex(), ruledConcept)
                 .select(acceptations.getIdColumnIndex(), acceptations.getCorrelationArrayColumnIndex());
-        DbResult.Row row = selectSingleRow(db, query);
+        List<DbValue> row = selectSingleRow(db, query);
         final int ruledAcceptation = row.get(0).toInt();
         final int rightGerundCorrelationArray = row.get(1).toInt();
 

@@ -13,12 +13,14 @@ import android.widget.ListView;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
+import sword.collections.List;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbExporter;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbStringValue;
+import sword.langbook3.android.db.DbValue;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -92,7 +94,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final String str = row.get(0).toText();
                 final String mainStr = row.get(1).toText();
                 final int acc = row.get(2).toInt();
@@ -110,7 +112,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex());
         final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+        for (List<DbValue> row : DbManager.getInstance().attach(query)) {
             builder.add(row.get(0).toInt());
         }
         return builder.build();

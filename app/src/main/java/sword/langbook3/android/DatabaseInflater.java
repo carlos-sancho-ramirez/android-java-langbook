@@ -8,11 +8,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 import sword.collections.IntKeyMap;
+import sword.collections.List;
 import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbValue;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
@@ -88,7 +90,7 @@ public final class DatabaseInflater {
         final DbResult result = _db.select(query);
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int accId = row.get(0).toInt();
                 final int alphabet = row.get(1).toInt();
                 final String str = row.get(2).toText();
@@ -251,7 +253,7 @@ public final class DatabaseInflater {
         final SparseArray<String> matcher = new SparseArray<>(result.getRemainingRows());
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int alphabet = row.get(0).toInt();
                 final String str = row.get(1).toText();
                 matcher.put(alphabet, str);
@@ -300,7 +302,7 @@ public final class DatabaseInflater {
         final DbResult result = _db.select(query);
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 final SparseArray<String> corr = new SparseArray<>();
                 int accId = row.get(0).toInt();
                 corr.put(row.get(1).toInt(), row.get(2).toText());
@@ -404,7 +406,7 @@ public final class DatabaseInflater {
             final DbResult result = _db.select(query);
             try {
                 while (result.hasNext()) {
-                    final DbResult.Row row = result.next();
+                    final List<DbValue> row = result.next();
                     final String str = conversion.convert(row.get(0).toText());
                     if (str != null) {
                         final String mainStr = row.get(1).toText();

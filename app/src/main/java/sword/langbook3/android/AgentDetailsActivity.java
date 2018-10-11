@@ -11,12 +11,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
@@ -63,7 +65,7 @@ public final class AgentDetailsActivity extends Activity {
                         table.getMatcherColumnIndex(),
                         table.getAdderColumnIndex(),
                         table.getRuleColumnIndex());
-        final DbResult.Row row = DbManager.getInstance().selectSingleRow(query);
+        final List<DbValue> row = DbManager.getInstance().selectSingleRow(query);
         _targetBunch = row.get(0).toInt();
         _sourceBunchSet = row.get(1).toInt();
         _diffBunchSet = row.get(2).toInt();

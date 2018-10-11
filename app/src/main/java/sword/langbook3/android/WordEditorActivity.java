@@ -19,10 +19,12 @@ import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.List;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
@@ -89,7 +91,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
         final MutableIntSet foundAlphabets = MutableIntSet.empty();
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-        for (DbResult.Row row : DbManager.getInstance().attach(query)) {
+        for (List<DbValue> row : DbManager.getInstance().attach(query)) {
             final int source = row.get(0).toInt();
             final int target = row.get(1).toInt();
 

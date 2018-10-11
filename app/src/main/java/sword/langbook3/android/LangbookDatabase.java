@@ -11,6 +11,7 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
 import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
@@ -22,6 +23,7 @@ import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbStringValue;
 import sword.langbook3.android.db.DbUpdateQuery;
+import sword.langbook3.android.db.DbValue;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
@@ -583,7 +585,7 @@ public final class LangbookDatabase {
                     .select(quizzes.getIdColumnIndex(), quizzes.getBunchColumnIndex());
             try (DbResult result = db.select(quizQuery)) {
                 while (result.hasNext()) {
-                    final DbResult.Row row = result.next();
+                    final List<DbValue> row = result.next();
                     final int quizBunch = row.get(1).toInt();
                     if (quizBunch == 0 || touchedBunches.contains(quizBunch)) {
                         quizIdsBuilder.add(row.get(0).toInt());

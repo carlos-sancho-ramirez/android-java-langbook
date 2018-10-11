@@ -7,6 +7,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
@@ -25,7 +26,6 @@ public final class MemoryDatabase implements Database {
     private final MutableMap<DbColumn, MutableMap<Object, Integer>> _indexes = MutableMap.empty();
 
     private static final class Result implements DbResult {
-
         private final ImmutableList<ImmutableList<Object>> _content;
         private int _index;
 
@@ -48,24 +48,13 @@ public final class MemoryDatabase implements Database {
             return _index < _content.size();
         }
 
-        @Override
-        public Row next() {
-            return new Row(_content.get(_index++));
+        private static DbValue rawToDbValue(Object raw) {
+            return (raw instanceof Integer)? new DbIntValue((Integer) raw) : new DbStringValue((String) raw);
         }
 
-        private static final class Row implements DbResult.Row {
-
-            private final ImmutableList<Object> _list;
-
-            Row(ImmutableList<Object> list) {
-                _list = list;
-            }
-
-            @Override
-            public DbValue get(int index) {
-                final Object raw = _list.get(index);
-                return (raw instanceof Integer)? new DbIntValue((Integer) raw) : new DbStringValue((String) raw);
-            }
+        @Override
+        public ImmutableList<DbValue> next() {
+            return _content.get(_index++).map(Result::rawToDbValue);
         }
     }
 

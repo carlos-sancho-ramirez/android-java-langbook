@@ -14,6 +14,8 @@ import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
+import sword.collections.IterableCollection;
+import sword.collections.List;
 import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbColumn;
 import sword.langbook3.android.db.DbDeleteQuery;
@@ -154,7 +156,7 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    final class DbAttachedQuery implements Iterable<DbResult.Row> {
+    final class DbAttachedQuery implements Iterable<List<DbValue>> {
 
         private final DbQuery _query;
 
@@ -187,13 +189,13 @@ class DbManager extends SQLiteOpenHelper {
      * @param query Query to be executed.
      * @return The result row on executing the query
      */
-    public DbResult.Row selectSingleRow(DbQuery query) {
-        DbResult result = attach(query).iterator();
+    public ImmutableList<DbValue> selectSingleRow(DbQuery query) {
+        SQLiteDbResult result = attach(query).iterator();
         if (!result.hasNext()) {
             throw new AssertionError();
         }
 
-        final DbResult.Row row = result.next();
+        final ImmutableList<DbValue> row = result.next();
         if (result.hasNext()) {
             throw new AssertionError();
         }
@@ -232,39 +234,28 @@ class DbManager extends SQLiteOpenHelper {
             return getRemainingRows() > 0;
         }
 
+        private DbValue cursorToDbValue(int index) {
+            return _columns.get(index).isText()? new DbStringValue(_cursor.getString(index)) : new DbIntValue(_cursor.getInt(index));
+        }
+
         @Override
-        public Row next() {
+        public ImmutableList<DbValue> next() {
             if (!hasNext()) {
                 throw new UnsupportedOperationException("End already reached");
             }
 
-            final int columnCount = _columns.size();
-            final DbValue[] values = new DbValue[columnCount];
-            for (int i = 0; i < columnCount; i++) {
-                values[i] = _columns.get(i).isText()? new DbStringValue(_cursor.getString(i)) : new DbIntValue(_cursor.getInt(i));
+            final int length = _columns.size();
+            final ImmutableList.Builder<DbValue> builder = new ImmutableList.Builder<>(length);
+            for (int i = 0; i < length; i++) {
+                builder.add(cursorToDbValue(i));
             }
-            Row row = new Row(values);
 
             if (!_cursor.moveToNext()) {
                 close();
             }
             _nextRowIndex++;
 
-            return row;
-        }
-
-        static class Row implements DbResult.Row {
-
-            private final DbValue[] _values;
-
-            Row(DbValue[] values) {
-                _values = values;
-            }
-
-            @Override
-            public DbValue get(int index) {
-                return _values[index];
-            }
+            return builder.build();
         }
     }
 

@@ -33,6 +33,7 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.IntValueMap;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
@@ -42,6 +43,7 @@ import sword.langbook3.android.db.DbExporter.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
+import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 
@@ -229,7 +231,7 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntValueMap.Builder<String> langMapBuilder = new ImmutableIntValueMap.Builder<>();
         try {
             while (langResult.hasNext()) {
-                final DbResult.Row row = langResult.next();
+                final List<DbValue> row = langResult.next();
                 final int id = row.get(0).toInt();
                 final String code = row.get(1).toText();
                 langMapBuilder.put(code, id);
@@ -263,7 +265,7 @@ public final class StreamedDatabaseWriter {
         int count = 0;
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 if (exportable.contains(row.get(0).toInt())) {
                     ++count;
                     final String str = row.get(1).toText();
@@ -303,7 +305,7 @@ public final class StreamedDatabaseWriter {
         count = 0;
         try {
             while (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 final int dbId = row.get(0).toInt();
                 if (exportable.contains(dbId)) {
                     final String str = row.get(1).toText();
@@ -336,7 +338,7 @@ public final class StreamedDatabaseWriter {
         int alphabetCount = 0;
         try {
             while (alphabetResult.hasNext()) {
-                final DbResult.Row row = alphabetResult.next();
+                final List<DbValue> row = alphabetResult.next();
                 final int alphabetDbId = row.get(0).toInt();
                 final int langDbId = row.get(1).toInt();
                 final ImmutableIntSet set = alphabetMap.get(langDbId, emptySet);
@@ -363,7 +365,7 @@ public final class StreamedDatabaseWriter {
         final DbResult result = _db.select(query);
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int langDbId = row.get(0).toInt();
                 final String code = row.get(1).toText();
                 _obs.writeHuffmanSymbol(symbolArrayTable, langMap.get(code));
@@ -411,7 +413,7 @@ public final class StreamedDatabaseWriter {
         final ImmutableMap.Builder<IntPair, ImmutableList<IntPair>> builder = new ImmutableMap.Builder<>();
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 IntPair alphabetPair = new IntPair(row.get(0).toInt(), row.get(1).toInt());
                 ImmutableList.Builder<IntPair> arrayPairs = new ImmutableList.Builder<>();
                 arrayPairs.add(new IntPair(row.get(2).toInt(), row.get(3).toInt()));
@@ -478,7 +480,7 @@ public final class StreamedDatabaseWriter {
         int max = Integer.MIN_VALUE;
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int concept = row.get(0).toInt();
                 if (concept < min) {
                     min = concept;
@@ -517,7 +519,7 @@ public final class StreamedDatabaseWriter {
 
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 ImmutableIntPairMap.Builder setBuilder = new ImmutableIntPairMap.Builder();
                 int setId = row.get(0).toInt();
                 if (setId == nullCorrelationSetId) {
@@ -614,7 +616,7 @@ public final class StreamedDatabaseWriter {
         int index = 0;
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int arrayId = row.get(0).toInt();
                 boolean isExportable = exportable.contains(arrayId);
                 ImmutableIntList.Builder arrayBuilder = isExportable? new ImmutableIntList.Builder() : null;
@@ -712,7 +714,7 @@ public final class StreamedDatabaseWriter {
                         new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
 
                 while (result.hasNext()) {
-                    final DbResult.Row row = result.next();
+                    final List<DbValue> row = result.next();
                     final int accId = row.get(0).toInt();
                     if (exportable.contains(accId)) {
                         idMapBuilder.put(accId, index++);
@@ -747,7 +749,7 @@ public final class StreamedDatabaseWriter {
         final MutableIntKeyMap<MutableIntSet> bunches = MutableIntKeyMap.empty();
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int bunchId = row.get(0).toInt();
                 final MutableIntSet set;
                 if (bunches.keySet().contains(bunchId)) {
@@ -801,7 +803,7 @@ public final class StreamedDatabaseWriter {
         try {
             final ImmutableIntSet emptySet = new ImmutableIntSetBuilder().build();
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int setId = row.get(0).toInt();
                 final int bunch = row.get(1).toInt();
 
@@ -828,7 +830,7 @@ public final class StreamedDatabaseWriter {
         int count = 0;
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int sourceBunchSet = row.get(0).toInt();
                 final int diffBunchSet = row.get(1).toInt();
 
@@ -875,7 +877,7 @@ public final class StreamedDatabaseWriter {
                 int lastTarget = StreamedDatabaseConstants.nullBunchId;
                 int minSource = StreamedDatabaseConstants.minValidConcept;
                 while (result.hasNext()) {
-                    final DbResult.Row row = result.next();
+                    final List<DbValue> row = result.next();
                     final int targetBunch = row.get(0).toInt();
                     final int sourceBunchSetId = row.get(1).toInt();
                     final int matcher = row.get(2).toInt();
@@ -947,7 +949,7 @@ public final class StreamedDatabaseWriter {
         final MutableIntKeyMap<MutableIntSet> bunches = MutableIntKeyMap.empty();
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int agentSetId = row.get(2).toInt();
                 if (!agentSetIds.contains(agentSetId)) {
                     if (agentSetId != LangbookDbSchema.Tables.agentSets.nullReference()) {
@@ -1045,7 +1047,7 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntSetBuilder correlationArrays = new ImmutableIntSetBuilder();
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int accId = row.get(0).toInt();
 
                 if (!ruledAcceptations.contains(accId)) {
@@ -1069,7 +1071,7 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntSetBuilder correlations = new ImmutableIntSetBuilder();
         try {
             while(result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 correlations.add(row.get(0).toInt());
                 correlations.add(row.get(1).toInt());
             }
@@ -1093,7 +1095,7 @@ public final class StreamedDatabaseWriter {
 
         try {
             while(result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 if (correlationArrays.contains(row.get(0).toInt())) {
                     correlations.add(row.get(1).toInt());
                 }
@@ -1114,7 +1116,7 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntSetBuilder symbolArrays = new ImmutableIntSetBuilder();
         try {
             while(result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 targetedAlphabets.add(row.get(0).toInt());
                 symbolArrays.add(row.get(1).toInt());
                 symbolArrays.add(row.get(2).toInt());
@@ -1174,7 +1176,7 @@ public final class StreamedDatabaseWriter {
 
         try {
             while(result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 if (correlations.contains(row.get(0).toInt()) && !targetedAlphabets.contains(row.get(1).toInt())) {
                     symbolArrays.add(row.get(2).toInt());
                 }

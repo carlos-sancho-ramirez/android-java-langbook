@@ -19,6 +19,7 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
@@ -28,6 +29,7 @@ import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbResult;
 import sword.langbook3.android.db.DbTable;
+import sword.langbook3.android.db.DbValue;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
@@ -41,13 +43,13 @@ public final class LangbookReadableDatabase {
         this.db = db;
     }
 
-    public static DbResult.Row selectSingleRow(DbExporter.Database db, DbQuery query) {
+    public static List<DbValue> selectSingleRow(DbExporter.Database db, DbQuery query) {
         try (DbResult result = db.select(query)) {
             if (!result.hasNext()) {
                 throw new AssertionError("Nothing found matching the given criteria");
             }
 
-            final DbResult.Row row = result.next();
+            final List<DbValue> row = result.next();
             if (result.hasNext()) {
                 throw new AssertionError("Multiple rows found matching the given criteria");
             }
@@ -109,7 +111,7 @@ public final class LangbookReadableDatabase {
         final DbResult result = db.select(query);
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int correlationId = row.get(0).toInt();
                 ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
                 builder.put(row.get(1).toInt(), row.get(2).toText());
@@ -159,7 +161,7 @@ public final class LangbookReadableDatabase {
         final DbResult result = db.select(query);
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int correlationId = row.get(0).toInt();
                 ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
                 builder.put(row.get(1).toInt(), row.get(2).toInt());
@@ -201,7 +203,7 @@ public final class LangbookReadableDatabase {
         final DbResult result = db.select(query);
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int arrayId = row.get(0).toInt();
                 ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
                 builder.add(row.get(1).toInt());
@@ -272,7 +274,7 @@ public final class LangbookReadableDatabase {
         final ImmutableSet.Builder<ImmutableIntPair> builder = new ImmutableHashSet.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int source = row.get(0).toInt();
                 final int target = row.get(1).toInt();
                 builder.add(new ImmutableIntPair(source, target));
@@ -312,7 +314,7 @@ public final class LangbookReadableDatabase {
         final ImmutableList.Builder<ImmutablePair<String, String>> builder = new ImmutableList.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final String sourceText = row.get(0).toText();
                 final String targetText = row.get(1).toText();
                 builder.add(new ImmutablePair<>(sourceText, targetText));
@@ -335,7 +337,7 @@ public final class LangbookReadableDatabase {
         final DbResult result = db.select(query);
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 final HashSet<Integer> set = new HashSet<>();
                 int setId = row.get(0).toInt();
                 set.add(row.get(1).toInt());
@@ -380,7 +382,7 @@ public final class LangbookReadableDatabase {
         final DbResult result = db.select(query);
         try {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int setId = row.get(0).toInt();
                 ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
                 builder.add(row.get(1).toInt());
@@ -474,7 +476,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
@@ -513,7 +515,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
@@ -539,7 +541,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
@@ -603,7 +605,7 @@ public final class LangbookReadableDatabase {
 
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int setId = row.get(0).toInt();
                 final Set<QuestionFieldDetails> foundSet = new HashSet<>();
                 foundSet.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
@@ -730,7 +732,7 @@ public final class LangbookReadableDatabase {
         final DbResult result = db.select(query);
         try {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 corrBuilder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
@@ -752,7 +754,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toText());
             }
         }
@@ -773,7 +775,7 @@ public final class LangbookReadableDatabase {
         final BitSet set = new BitSet();
         try {
             while (dbResult.hasNext()) {
-                final DbResult.Row row = dbResult.next();
+                final List<DbValue> row = dbResult.next();
                 final int pos = row.get(0).toInt();
                 final int corr = row.get(1).toInt();
                 if (set.get(pos)) {
@@ -799,7 +801,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
@@ -836,7 +838,7 @@ public final class LangbookReadableDatabase {
         final MutableIntKeyMap<ImmutableIntKeyMap<String>> correlationMap = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
-                DbResult.Row row = dbResult.next();
+                List<DbValue> row = dbResult.next();
                 ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
                 int pos = row.get(0).toInt();
                 int correlationId = row.get(1).toInt();
@@ -896,7 +898,7 @@ public final class LangbookReadableDatabase {
 
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int acceptation = row.get(0).toInt();
                 if (!acceptations.contains(acceptation)) {
                     acceptations.add(acceptation);
@@ -961,7 +963,7 @@ public final class LangbookReadableDatabase {
 
         String text;
         try (DbResult result = db.select(query)) {
-            DbResult.Row row = result.next();
+            List<DbValue> row = result.next();
             int alphabet = row.get(0).toInt();
             text = row.get(1).toText();
             while (alphabet != preferredAlphabet && result.hasNext()) {
@@ -1053,7 +1055,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap.Builder<SynonymTranslationResult> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int accId = row.get(0).toInt();
                 if (accId != acceptation) {
                     builder.put(accId, new SynonymTranslationResult(row.get(1).toInt(), row.get(2).toText()));
@@ -1084,7 +1086,7 @@ public final class LangbookReadableDatabase {
         IdentifiableResult result = null;
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
-                DbResult.Row row = dbResult.next();
+                List<DbValue> row = dbResult.next();
                 int acc = row.get(0).toInt();
                 int firstAlphabet = row.get(1).toInt();
                 String text = row.get(2).toText();
@@ -1127,7 +1129,7 @@ public final class LangbookReadableDatabase {
         final MutableIntPairMap conceptAccs = MutableIntPairMap.empty();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
-                final DbResult.Row row = dbResult.next();
+                final List<DbValue> row = dbResult.next();
                 final int concept = row.get(0).toInt();
                 final int alphabet = row.get(2).toInt();
                 if (alphabet == preferredAlphabet || !conceptAccs.keySet().contains(concept)) {
@@ -1178,7 +1180,7 @@ public final class LangbookReadableDatabase {
 
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
-                final DbResult.Row row = dbResult.next();
+                final List<DbValue> row = dbResult.next();
                 final int acc = row.get(0).toInt();
                 final int rule = row.get(1).toInt();
                 final int alphabet = row.get(2).toInt();
@@ -1334,7 +1336,7 @@ public final class LangbookReadableDatabase {
 
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
-                DbResult.Row row = dbResult.next();
+                List<DbValue> row = dbResult.next();
                 int lang = row.get(0).toInt();
                 int firstAlphabet = row.get(1).toInt();
                 String text = row.get(2).toText();
@@ -1369,7 +1371,7 @@ public final class LangbookReadableDatabase {
         int language = 0;
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int alphabet = row.get(0).toInt();
                 final String text = row.get(1).toText();
 
@@ -1401,7 +1403,7 @@ public final class LangbookReadableDatabase {
         int mainAcc = 0;
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 final int alphabet = row.get(0).toInt();
                 final String text = row.get(1).toText();
 
@@ -1432,7 +1434,7 @@ public final class LangbookReadableDatabase {
 
         String text;
         try (DbResult result = db.select(query)) {
-            DbResult.Row row = result.next();
+            List<DbValue> row = result.next();
             int firstAlphabet = row.get(0).toInt();
             text = row.get(1).toText();
             while (firstAlphabet != preferredAlphabet && result.hasNext()) {
@@ -1462,7 +1464,7 @@ public final class LangbookReadableDatabase {
         int acceptation;
         String text;
         try (DbResult result = db.select(query)) {
-            DbResult.Row row = result.next();
+            List<DbValue> row = result.next();
             int firstAlphabet = row.get(0).toInt();
             acceptation = row.get(1).toInt();
             text = row.get(2).toText();
@@ -1501,7 +1503,7 @@ public final class LangbookReadableDatabase {
         ImmutableList.Builder<DisplayableItem> builder = new ImmutableList.Builder<>();
         try (DbResult cursor = db.select(query)) {
             if (cursor.hasNext()) {
-                DbResult.Row row = cursor.next();
+                List<DbValue> row = cursor.next();
                 int bunch = row.get(0).toInt();
                 int acc = row.get(1).toInt();
                 int alphabet = row.get(2).toInt();
@@ -1555,7 +1557,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
             while (dbResult.hasNext()) {
-                final DbResult.Row row = dbResult.next();
+                final List<DbValue> row = dbResult.next();
                 final int bunch = row.get(0).toInt();
                 final int alphabet = row.get(2).toInt();
 
@@ -1598,7 +1600,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
             while (dbResult.hasNext()) {
-                final DbResult.Row row = dbResult.next();
+                final List<DbValue> row = dbResult.next();
                 final int acc = row.get(0).toInt();
                 final int alphabet = row.get(1).toInt();
 
@@ -1637,7 +1639,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int alphabet = row.get(0).toInt();
                 String text = row.get(2).toText();
 
@@ -1683,7 +1685,7 @@ public final class LangbookReadableDatabase {
         final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
         try (DbResult r = db.select(query)) {
             while (r.hasNext()) {
-                final DbResult.Row row = r.next();
+                final List<DbValue> row = r.next();
                 final int id = row.get(0).toInt();
                 final int strAlphabet = row.get(1).toInt();
 
@@ -1729,7 +1731,7 @@ public final class LangbookReadableDatabase {
 
         try (DbResult r = db.select(query)) {
             while (r.hasNext()) {
-                DbResult.Row row = r.next();
+                List<DbValue> row = r.next();
                 final int lang = row.get(0).toInt();
                 final int alphabet = row.get(1).toInt();
 
@@ -1783,7 +1785,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int rule = row.get(0).toInt();
                 int textAlphabet = row.get(1).toInt();
                 String text = row.get(2).toText();
@@ -1872,7 +1874,7 @@ public final class LangbookReadableDatabase {
 
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int agentId = row.get(0).toInt();
                 int bunchSet = row.get(1).toInt();
                 int agentFlags = row.get(2).toInt();
@@ -2028,7 +2030,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
@@ -2046,7 +2048,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap.Builder<ImmutableIntSet> mapBuilder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
-                DbResult.Row row = result.next();
+                List<DbValue> row = result.next();
                 int setId = row.get(0).toInt();
                 ImmutableIntSetBuilder setBuilder = new ImmutableIntSetBuilder();
                 setBuilder.add(row.get(1).toInt());
@@ -2148,7 +2150,7 @@ public final class LangbookReadableDatabase {
                         table.getAdderColumnIndex(),
                         table.getRuleColumnIndex(),
                         table.getFlagsColumnIndex());
-        final DbResult.Row agentRow = selectSingleRow(db, query);
+        final List<DbValue> agentRow = selectSingleRow(db, query);
         final ImmutableIntSet sourceBunches = getBunchSet(db, agentRow.get(1).toInt());
         final ImmutableIntSet diffBunches = getBunchSet(db, agentRow.get(2).toInt());
         final ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, agentRow.get(3).toInt());
@@ -2248,7 +2250,7 @@ public final class LangbookReadableDatabase {
 
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 bunch = row.get(0).toInt();
                 builder.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
             }
@@ -2267,7 +2269,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
-                final DbResult.Row row = result.next();
+                final List<DbValue> row = result.next();
                 builder.put(row.get(0).toInt(), row.get(1).toInt());
             }
         }
