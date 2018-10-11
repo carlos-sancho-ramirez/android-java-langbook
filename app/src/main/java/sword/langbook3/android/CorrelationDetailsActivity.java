@@ -11,9 +11,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import java.util.ArrayList;
-
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableList;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
@@ -174,14 +173,14 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         return result.build();
     }
 
-    private AcceptationDetailsAdapter.Item[] getAdapterItems(int correlationId) {
+    private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems(int correlationId) {
         final DbManager manager = DbManager.getInstance();
         final SQLiteDatabase db = manager.getReadableDatabase();
         final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(manager.getDatabase(), _preferredAlphabet);
         final SparseArray<String> correlation = readCorrelation(db, correlationId);
 
         final int entryCount = correlation.size();
-        final ArrayList<AcceptationDetailsAdapter.Item> result = new ArrayList<>();
+        final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
         result.add(new HeaderItem("Displaying details for correlation " + correlationId));
         for (int i = 0; i < entryCount; i++) {
             final String alphabetText = alphabets.get(correlation.keyAt(i));
@@ -212,7 +211,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        return result.toArray(new AcceptationDetailsAdapter.Item[result.size()]);
+        return result.build();
     }
 
     @Override

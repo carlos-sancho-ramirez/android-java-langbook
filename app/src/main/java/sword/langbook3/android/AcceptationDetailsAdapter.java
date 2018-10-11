@@ -12,7 +12,9 @@ import android.widget.TextView;
 import java.util.HashSet;
 import java.util.Set;
 
-public class AcceptationDetailsAdapter extends BaseAdapter {
+import sword.collections.ImmutableList;
+
+public final class AcceptationDetailsAdapter extends BaseAdapter {
 
     public interface ItemTypes {
         int UNKNOWN = 0;
@@ -20,7 +22,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         int ACCEPTATION_INCLUDED = 2;
     }
 
-    public static abstract class Item {
+    static abstract class Item {
 
         private final int _type;
         private CharSequence _text;
@@ -211,12 +213,12 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    private final Item[] _items;
+    private final ImmutableList<Item> _items;
     private final boolean _allItemsEnabled;
     private final int[] _viewTypes;
     private LayoutInflater _inflater;
 
-    AcceptationDetailsAdapter(Item[] items) {
+    AcceptationDetailsAdapter(ImmutableList<Item> items) {
         final Set<Integer> viewTypeSet = new HashSet<>();
         boolean allEnabled = true;
         for (Item item : items) {
@@ -237,12 +239,12 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return _items.length;
+        return _items.size();
     }
 
     @Override
     public Item getItem(int i) {
-        return _items[i];
+        return _items.get(i);
     }
 
     @Override
@@ -257,7 +259,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
 
     @Override
     public boolean isEnabled(int position) {
-        return _items[position].isEnabled();
+        return _items.get(position).isEnabled();
     }
 
     @Override
@@ -267,7 +269,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
 
     @Override
     public int getItemViewType(int position) {
-        final int layout = _items[position].getLayout();
+        final int layout = _items.get(position).getLayout();
         final int viewTypeCount = _viewTypes.length;
 
         for (int i = 0; i < viewTypeCount; i++) {
@@ -285,7 +287,7 @@ public class AcceptationDetailsAdapter extends BaseAdapter {
             _inflater = LayoutInflater.from(viewGroup.getContext());
         }
 
-        final Item item = _items[position];
+        final Item item = _items.get(position);
         final View view;
         if (convertView == null) {
             view = _inflater.inflate(item.getLayout(), viewGroup, false);

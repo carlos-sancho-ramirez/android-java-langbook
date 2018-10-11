@@ -17,8 +17,6 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
@@ -162,10 +160,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
     }
 
-    private AcceptationDetailsAdapter.Item[] getAdapterItems(int staticAcceptation) {
+    private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems(int staticAcceptation) {
         final DbExporter.Database db = DbManager.getInstance().getDatabase();
 
-        final ArrayList<AcceptationDetailsAdapter.Item> result = new ArrayList<>();
+        final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
         result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
 
         final StringBuilder sb = new StringBuilder("Correlation: ");
@@ -246,7 +244,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
                 String langStr = languageStrs.get(language, null);
                 if (langStr == null) {
-                    langStr = readConceptText(DbManager.getInstance().getDatabase(), language, _preferredAlphabet);
+                    langStr = readConceptText(db, language, _preferredAlphabet);
                     languageStrs.put(language, langStr);
                 }
 
@@ -313,12 +311,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 agentFound = true;
             }
 
-            final StringBuilder s = new StringBuilder("Agent #");
-            s.append(r.agent).append(" (").append(r.ruleText).append(')');
-            result.add(new AgentNavigableItem(r.agent, s.toString()));
+            final String text = "Agent #" + r.agent + " (" + r.ruleText + ')';
+            result.add(new AgentNavigableItem(r.agent, text));
         }
 
-        return result.toArray(new AcceptationDetailsAdapter.Item[result.size()]);
+        return result.build();
     }
 
     private void updateAdapter() {
