@@ -954,30 +954,6 @@ public final class LangbookReadableDatabase {
         return texts;
     }
 
-    public static String readAcceptationText(DbExporter.Database db, int acceptation, int preferredAlphabet) {
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-
-        final DbQuery query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .select(strings.getStringAlphabetColumnIndex(), strings.getStringColumnIndex());
-
-        String text;
-        try (DbResult result = db.select(query)) {
-            List<DbValue> row = result.next();
-            int alphabet = row.get(0).toInt();
-            text = row.get(1).toText();
-            while (alphabet != preferredAlphabet && result.hasNext()) {
-                row = result.next();
-                if (row.get(0).toInt() == preferredAlphabet) {
-                    alphabet = preferredAlphabet;
-                    text = row.get(1).toText();
-                }
-            }
-        }
-
-        return text;
-    }
-
     public static final class IdentifiableResult {
         final int id;
         final String text;
@@ -2279,6 +2255,11 @@ public final class LangbookReadableDatabase {
 
     public static AcceptationDetailsModel getAcceptationsDetails(
             DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
+        final int concept = conceptFromAcceptation(db, staticAcceptation);
+        if (concept == 0) {
+            return null;
+        }
+
         ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, staticAcceptation);
         final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
         final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, preferredAlphabet);
@@ -2306,7 +2287,7 @@ public final class LangbookReadableDatabase {
             supertypesBuilder.put(definition.id, definition.text);
         }
 
-        return new AcceptationDetailsModel(languageResult, correlationResultPair.left,
+        return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
                 correlationResultPair.right, supertypesBuilder.build(), subtypes,
                 synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
                 morphologyResults, involvedAgents, languageStrs.toImmutable());

@@ -10,6 +10,9 @@ import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
 import sword.langbook3.android.LangbookReadableDatabase.SynonymTranslationResult;
 
 public final class AcceptationDetailsModel {
+    private static AcceptationDetailsModel nonPresentInstance;
+
+    public final int concept;
     public final IdentifiableResult language;
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
@@ -27,6 +30,7 @@ public final class AcceptationDetailsModel {
     public final ImmutableIntKeyMap<String> languageTexts;
 
     public AcceptationDetailsModel(
+            int concept,
             IdentifiableResult language,
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
@@ -54,6 +58,7 @@ public final class AcceptationDetailsModel {
             throw new IllegalArgumentException();
         }
 
+        this.concept = concept;
         this.language = language;
         this.correlationIds = correlationIds;
         this.correlations = correlations;
@@ -65,5 +70,16 @@ public final class AcceptationDetailsModel {
         this.morphologies = morphologies;
         this.involvedAgents = involvedAgents;
         this.languageTexts = languageTexts;
+    }
+
+    public String getTitle(int preferredAlphabet) {
+        StringBuilder sb = new StringBuilder();
+        for (int correlationId : correlationIds) {
+            final ImmutableIntKeyMap<String> correlation = correlations.get(correlationId);
+            final String preferredText = correlation.get(preferredAlphabet, null);
+            sb.append((preferredText != null)? preferredText : correlation.valueAt(0));
+        }
+
+        return sb.toString();
     }
 }

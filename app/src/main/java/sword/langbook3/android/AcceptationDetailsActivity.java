@@ -59,7 +59,6 @@ import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchConceptForConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsDetails;
-import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationText;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
@@ -86,7 +85,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private int _preferredAlphabet;
     private int _staticAcceptation;
-    private int _concept;
+    private AcceptationDetailsModel _model;
     private boolean _confirmOnly;
 
     private IdentifiableResult _definition;
@@ -148,22 +147,20 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
     }
 
-    private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems(int staticAcceptation) {
-        final AcceptationDetailsModel model = getAcceptationsDetails(DbManager.getInstance().getDatabase(), staticAcceptation, _preferredAlphabet);
-
+    private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
-        result.add(new HeaderItem("Displaying details for acceptation " + staticAcceptation));
+        result.add(new HeaderItem("Displaying details for acceptation " + _staticAcceptation));
 
         final StringBuilder sb = new StringBuilder("Correlation: ");
         ImmutableList.Builder<CorrelationSpan> correlationSpansBuilder = new ImmutableList.Builder<>();
-        final int correlationArrayLength = model.correlationIds.size();
+        final int correlationArrayLength = _model.correlationIds.size();
         for (int i = 0; i < correlationArrayLength; i++) {
             if (i != 0) {
                 sb.append(" - ");
             }
 
-            final int correlationId = model.correlationIds.get(i);
-            final ImmutableIntKeyMap<String> correlation = model.correlations.get(correlationId);
+            final int correlationId = _model.correlationIds.get(i);
+            final ImmutableIntKeyMap<String> correlation = _model.correlations.get(correlationId);
             final int correlationSize = correlation.size();
             int startIndex = -1;
             if (correlationSize > 1) {
@@ -183,15 +180,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         result.add(new NonNavigableItem(spannableCorrelations));
-        result.add(new NonNavigableItem("Language: " + model.language.text));
+        result.add(new NonNavigableItem("Language: " + _model.language.text));
 
-        for (IntKeyMap.Entry<String> entry : model.supertypes.entries()) {
+        for (IntKeyMap.Entry<String> entry : _model.supertypes.entries()) {
             _definition = new IdentifiableResult(entry.key(), entry.value());
             result.add(new AcceptationNavigableItem(entry.key(), "Type of: " + _definition.text, false));
         }
 
         boolean subTypeFound = false;
-        for (ImmutableIntKeyMap.Entry<String> subtype : model.subtypes.entries()) {
+        for (ImmutableIntKeyMap.Entry<String> subtype : _model.subtypes.entries()) {
             if (!subTypeFound) {
                 result.add(new HeaderItem("Subtypes"));
                 subTypeFound = true;
@@ -201,8 +198,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean synonymFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult> entry : model.synonymsAndTranslations.entries()) {
-            if (entry.value().language == model.language.id) {
+        for (IntKeyMap.Entry<SynonymTranslationResult> entry : _model.synonymsAndTranslations.entries()) {
+            if (entry.value().language == _model.language.id) {
                 if (!synonymFound) {
                     result.add(new HeaderItem("Synonyms"));
                     synonymFound = true;
@@ -213,21 +210,21 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean translationFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult> entry : model.synonymsAndTranslations.entries()) {
+        for (IntKeyMap.Entry<SynonymTranslationResult> entry : _model.synonymsAndTranslations.entries()) {
             final int language = entry.value().language;
-            if (language != model.language.id) {
+            if (language != _model.language.id) {
                 if (!translationFound) {
                     result.add(new HeaderItem("Translations"));
                     translationFound = true;
                 }
 
-                final String langStr = model.languageTexts.get(language, null);
+                final String langStr = _model.languageTexts.get(language, null);
                 result.add(new AcceptationNavigableItem(entry.key(), "" + langStr + " -> " + entry.value().text, false));
             }
         }
 
         boolean parentBunchFound = false;
-        for (DynamizableResult r : model.bunchesWhereAcceptationIsIncluded) {
+        for (DynamizableResult r : _model.bunchesWhereAcceptationIsIncluded) {
             if (!parentBunchFound) {
                 result.add(new HeaderItem("Bunches where included"));
                 parentBunchFound = true;
@@ -238,7 +235,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        final ImmutableList<MorphologyResult> morphologyResults = model.morphologies;
+        final ImmutableList<MorphologyResult> morphologyResults = _model.morphologies;
         for (MorphologyResult r : morphologyResults) {
             if (!morphologyFound) {
                 result.add(new HeaderItem("Morphologies"));
@@ -249,7 +246,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean bunchChildFound = false;
-        for (DynamizableResult r : model.bunchChildren) {
+        for (DynamizableResult r : _model.bunchChildren) {
             if (!bunchChildFound) {
                 result.add(new HeaderItem("Acceptations included in this bunch"));
                 bunchChildFound = true;
@@ -260,7 +257,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean agentFound = false;
-        for (IntPairMap.Entry entry : model.involvedAgents.entries()) {
+        for (IntPairMap.Entry entry : _model.involvedAgents.entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem("Involved agents"));
                 agentFound = true;
@@ -292,9 +289,19 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         return result.build();
     }
 
-    private void updateAdapter() {
-        _listAdapter = new AcceptationDetailsAdapter(getAdapterItems(_staticAcceptation));
-        _listView.setAdapter(_listAdapter);
+    private boolean updateModelAndUi() {
+        final Database db = DbManager.getInstance().getDatabase();
+        _model = getAcceptationsDetails(db, _staticAcceptation, _preferredAlphabet);
+        if (_model != null) {
+            setTitle(_model.getTitle(_preferredAlphabet));
+            _listAdapter = new AcceptationDetailsAdapter(getAdapterItems());
+            _listView.setAdapter(_listAdapter);
+            return true;
+        }
+        else {
+            finish();
+            return false;
+        }
     }
 
     @Override
@@ -317,13 +324,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
         _confirmOnly = getIntent().getBooleanExtra(ArgKeys.CONFIRM_ONLY, false);
-        setTitle(readAcceptationText(DbManager.getInstance().getDatabase(), _staticAcceptation, _preferredAlphabet));
 
-        _concept = conceptFromAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation);
         _listView = findViewById(R.id.listView);
-
-        if (_concept != 0) {
-            updateAdapter();
+        if (updateModelAndUi()) {
             if (!_confirmOnly) {
                 _listView.setOnItemClickListener(this);
                 _listView.setOnItemLongClickListener(this);
@@ -393,28 +396,30 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        final MenuInflater inflater = new MenuInflater(this);
+        if (_model != null) {
+            final MenuInflater inflater = new MenuInflater(this);
 
-        if (_confirmOnly) {
-            inflater.inflate(R.menu.acceptation_details_activity_confirm, menu);
-        }
-        else {
-            inflater.inflate(R.menu.acceptation_details_activity_edit, menu);
-
-            if (_shouldShowBunchChildrenQuizMenuOption) {
-                inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
-            }
-
-            inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
-
-            if (_definition == null) {
-                inflater.inflate(R.menu.acceptation_details_activity_include_supertype, menu);
+            if (_confirmOnly) {
+                inflater.inflate(R.menu.acceptation_details_activity_confirm, menu);
             }
             else {
-                inflater.inflate(R.menu.acceptation_details_activity_delete_supertype, menu);
-            }
+                inflater.inflate(R.menu.acceptation_details_activity_edit, menu);
 
-            inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
+                if (_shouldShowBunchChildrenQuizMenuOption) {
+                    inflater.inflate(R.menu.acceptation_details_activity_bunch_children_quiz, menu);
+                }
+
+                inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
+
+                if (_definition == null) {
+                    inflater.inflate(R.menu.acceptation_details_activity_include_supertype, menu);
+                }
+                else {
+                    inflater.inflate(R.menu.acceptation_details_activity_delete_supertype, menu);
+                }
+
+                inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
+            }
         }
 
         return true;
@@ -424,7 +429,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemBunchChildrenQuiz:
-                QuizSelectorActivity.open(this, _concept);
+                QuizSelectorActivity.open(this, _model.concept);
                 return true;
 
             case R.id.menuItemEdit:
@@ -432,7 +437,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemLinkConcept:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _concept);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _model.concept);
                 return true;
 
             case R.id.menuItemIncludeAcceptation:
@@ -504,6 +509,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
+        final Database db = DbManager.getInstance().getDatabase();
         switch (_state.getIntrinsicState()) {
             case IntrinsicStates.DELETE_ACCEPTATION:
                 deleteAcceptation();
@@ -511,12 +517,14 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case IntrinsicStates.DELETE_SUPERTYPE:
                 _state.clearDeletingSupertype();
-                if (!deleteBunchConceptForConcept(DbManager.getInstance().getDatabase(), _concept)) {
+                if (!deleteBunchConceptForConcept(db, _model.concept)) {
                     throw new AssertionError();
                 }
-                updateAdapter();
+
+                if (updateModelAndUi()) {
+                    invalidateOptionsMenu();
+                }
                 showFeedback(getString(R.string.deleteSupertypeFeedback));
-                invalidateOptionsMenu();
                 break;
 
             case IntrinsicStates.LINKING_CONCEPT:
@@ -530,7 +538,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     showFeedback("Acceptation linked");
                 }
                 _state.clearLinkedAcceptation();
-                updateAdapter();
+                updateModelAndUi();
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
@@ -539,11 +547,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String bunchText = item.text;
                 _state.clearDeleteTarget();
 
-                if (!removeAcceptationFromBunch(DbManager.getInstance().getDatabase(), bunch, _staticAcceptation)) {
+                if (!removeAcceptationFromBunch(db, bunch, _staticAcceptation)) {
                     throw new AssertionError();
                 }
 
-                updateAdapter();
+                updateModelAndUi();
                 showFeedback(getString(R.string.deleteFromBunchFeedback, bunchText));
                 break;
 
@@ -553,11 +561,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String accToDeleteText = itemToDelete.text;
                 _state.clearDeleteTarget();
 
-                if (!removeAcceptationFromBunch(DbManager.getInstance().getDatabase(), _concept, accIdToDelete)) {
+                if (!removeAcceptationFromBunch(db, _model.concept, accIdToDelete)) {
                     throw new AssertionError();
                 }
 
-                updateAdapter();
+                updateModelAndUi();
                 showFeedback(getString(R.string.deleteAcceptationFromBunchFeedback, accToDeleteText));
                 break;
 
@@ -578,6 +586,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
+            final Database db = DbManager.getInstance().getDatabase();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 final boolean usedConcept = data
                         .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
@@ -586,35 +595,33 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     showLinkModeSelectorDialog();
                 }
                 else {
-                    updateAdapter();
+                    updateModelAndUi();
                 }
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                final Database db = DbManager.getInstance().getDatabase();
-                final int message = addAcceptationInBunch(db, _concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
-                updateAdapter();
+                final int message = addAcceptationInBunch(db, _model.concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                updateModelAndUi();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                final Database db = DbManager.getInstance().getDatabase();
                 final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
                 final int message = addAcceptationInBunch(db, pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
-                updateAdapter();
+                updateModelAndUi();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_SUPERTYPE) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                final Database db = DbManager.getInstance().getDatabase();
                 final int pickedConcept = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
-                insertBunchConcept(db, pickedConcept, _concept);
+                insertBunchConcept(db, pickedConcept, _model.concept);
                 showFeedback(getString(R.string.includeSupertypeOk));
-                updateAdapter();
-                invalidateOptionsMenu();
+                if (updateModelAndUi()) {
+                    invalidateOptionsMenu();
+                }
             }
             else if (requestCode == REQUEST_CODE_EDIT) {
-                updateAdapter();
+                updateModelAndUi();
             }
         }
     }
@@ -748,7 +755,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             return false;
         }
 
-        final int oldConcept = _concept;
+        final int oldConcept = _model.concept;
         if (oldConcept == 0 || linkedConcept == 0) {
             throw new AssertionError();
         }
@@ -765,7 +772,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void duplicateAcceptationWithThisConcept() {
-        final int concept = _concept;
+        final int concept = _model.concept;
         if (concept == 0) {
             throw new AssertionError();
         }
@@ -786,7 +793,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final int correlationArray = row.get(0).toInt();
 
         final DbInsertQuery insertQuery = new DbInsertQuery.Builder(table)
-                .put(table.getConceptColumnIndex(), _concept)
+                .put(table.getConceptColumnIndex(), concept)
                 .put(table.getCorrelationArrayColumnIndex(), correlationArray)
                 .build();
 
