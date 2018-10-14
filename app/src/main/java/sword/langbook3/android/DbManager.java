@@ -156,7 +156,7 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    final class DbAttachedQuery implements Iterable<List<DbValue>> {
+    final class DbAttachedQuery implements IterableCollection<List<DbValue>> {
 
         private final DbQuery _query;
 
@@ -190,7 +190,7 @@ class DbManager extends SQLiteOpenHelper {
      * @return The result row on executing the query
      */
     public ImmutableList<DbValue> selectSingleRow(DbQuery query) {
-        SQLiteDbResult result = attach(query).iterator();
+        SQLiteDbResult result = select(getReadableDatabase(), query);
         if (!result.hasNext()) {
             throw new AssertionError();
         }
