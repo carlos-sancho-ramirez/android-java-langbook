@@ -1578,7 +1578,7 @@ public final class LangbookReadableDatabase {
                 final int acc = row.get(0).toInt();
                 final int alphabet = row.get(1).toInt();
 
-                if (alphabet == preferredAlphabet || !resultMap.keySet().contains(acc)) {
+                if (alphabet == preferredAlphabet || resultMap.get(acc, null) == null) {
                     final String text = row.get(2).toText();
                     final int agentSet = row.get(3).toInt();
                     final boolean dynamic = agentSet != nullAgentSet;
@@ -1587,12 +1587,7 @@ public final class LangbookReadableDatabase {
             }
         }
 
-        final ImmutableList.Builder<DynamizableResult> builder = new ImmutableList.Builder<>();
-        for (DynamizableResult r : resultMap) {
-            builder.add(r);
-        }
-
-        return builder.build();
+        return resultMap.valueList().toImmutable();
     }
 
     public static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
