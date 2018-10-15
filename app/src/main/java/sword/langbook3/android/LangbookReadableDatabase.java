@@ -772,17 +772,15 @@ public final class LangbookReadableDatabase {
                 .select(table.getArrayPositionColumnIndex(), table.getCorrelationColumnIndex());
         final DbResult dbResult = db.select(query);
         final int[] result = new int[dbResult.getRemainingRows()];
-        final BitSet set = new BitSet();
         try {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int pos = row.get(0).toInt();
                 final int corr = row.get(1).toInt();
-                if (set.get(pos)) {
+                if (result[pos] != 0) {
                     throw new AssertionError("Malformed correlation array with id " + id);
                 }
 
-                set.set(pos);
                 result[pos] = corr;
             }
         }
