@@ -6,9 +6,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.style.ClickableSpan;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -28,6 +25,7 @@ import sword.collections.List;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
+import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationArrayItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
@@ -115,27 +113,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private class CorrelationSpan extends ClickableSpan {
-        final int id;
-        final int start;
-        final int end;
-
-        CorrelationSpan(int id, int start, int end) {
-            if (start < 0 || end < start) {
-                throw new IllegalArgumentException();
-            }
-
-            this.id = id;
-            this.start = start;
-            this.end = end;
-        }
-
-        @Override
-        public void onClick(View view) {
-            CorrelationDetailsActivity.open(AcceptationDetailsActivity.this, id);
-        }
-    }
-
     static void composeCorrelation(ImmutableIntKeyMap<String> correlation, StringBuilder sb) {
         final int correlationSize = correlation.size();
         for (int i = 0; i < correlationSize; i++) {
@@ -149,37 +126,17 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
+
+        final ImmutableIntSet commonAlphabets = _model.correlationIds
+                .map((int id) -> _model.correlations.get(id).keySet())
+                .reduce((set1, set2) -> set1.filter(set2::contains), new ImmutableIntSetBuilder().build());
+        if (commonAlphabets.size() > 1) {
+            final int mainAlphabet = commonAlphabets.valueAt(0);
+            final int pronunciationAlphabet = commonAlphabets.valueAt(1);
+            result.add(new CorrelationArrayItem(_model.correlationIds, _model.correlations, mainAlphabet, pronunciationAlphabet));
+        }
+
         result.add(new HeaderItem("Displaying details for acceptation " + _staticAcceptation));
-
-        final StringBuilder sb = new StringBuilder("Correlation: ");
-        ImmutableList.Builder<CorrelationSpan> correlationSpansBuilder = new ImmutableList.Builder<>();
-        final int correlationArrayLength = _model.correlationIds.size();
-        for (int i = 0; i < correlationArrayLength; i++) {
-            if (i != 0) {
-                sb.append(" - ");
-            }
-
-            final int correlationId = _model.correlationIds.get(i);
-            final ImmutableIntKeyMap<String> correlation = _model.correlations.get(correlationId);
-            final int correlationSize = correlation.size();
-            int startIndex = -1;
-            if (correlationSize > 1) {
-                startIndex = sb.length();
-            }
-
-            composeCorrelation(correlation, sb);
-
-            if (startIndex >= 0) {
-                correlationSpansBuilder.add(new CorrelationSpan(correlationId, startIndex, sb.length()));
-            }
-        }
-
-        SpannableString spannableCorrelations = new SpannableString(sb.toString());
-        for (CorrelationSpan span : correlationSpansBuilder.build()) {
-            spannableCorrelations.setSpan(span, span.start, span.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-
-        result.add(new NonNavigableItem(spannableCorrelations));
         result.add(new NonNavigableItem("Language: " + _model.language.text));
 
         for (IntKeyMap.Entry<String> entry : _model.supertypes.entries()) {

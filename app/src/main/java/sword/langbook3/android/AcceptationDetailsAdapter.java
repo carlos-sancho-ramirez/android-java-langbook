@@ -1,18 +1,18 @@
 package sword.langbook3.android;
 
 import android.content.Context;
-import android.text.SpannableString;
-import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.util.HashSet;
-import java.util.Set;
-
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.MutableIntSet;
 
 public final class AcceptationDetailsAdapter extends BaseAdapter {
 
@@ -25,9 +25,9 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
     static abstract class Item {
 
         private final int _type;
-        private CharSequence _text;
+        private String _text;
 
-        Item(int type, CharSequence text) {
+        Item(int type, String text) {
             if (text == null) {
                 throw new IllegalArgumentException();
             }
@@ -36,7 +36,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             _text = text;
         }
 
-        CharSequence getText() {
+        String getText() {
             return _text;
         }
 
@@ -65,7 +65,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      */
     static final class HeaderItem extends Item {
 
-        HeaderItem(CharSequence text) {
+        HeaderItem(String text) {
             super(ItemTypes.UNKNOWN, text);
         }
 
@@ -88,13 +88,13 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         private final int _id;
         private final boolean _dynamic;
 
-        AcceptationNavigableItem(int id, CharSequence text, boolean dynamic) {
+        AcceptationNavigableItem(int id, String text, boolean dynamic) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
             _dynamic = dynamic;
         }
 
-        AcceptationNavigableItem(int itemType, int id, CharSequence text, boolean dynamic) {
+        AcceptationNavigableItem(int itemType, int id, String text, boolean dynamic) {
             super(itemType, text);
             _id = id;
             _dynamic = dynamic;
@@ -132,7 +132,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
         private final int _id;
 
-        CorrelationNavigableItem(int id, CharSequence text) {
+        CorrelationNavigableItem(int id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
@@ -156,7 +156,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
         private final int _id;
 
-        RuleNavigableItem(int id, CharSequence text) {
+        RuleNavigableItem(int id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
@@ -181,7 +181,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
         private final int _id;
 
-        AgentNavigableItem(int id, CharSequence text) {
+        AgentNavigableItem(int id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
@@ -203,7 +203,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      */
     static final class NonNavigableItem extends Item {
 
-        NonNavigableItem(CharSequence text) {
+        NonNavigableItem(String text) {
             super(ItemTypes.UNKNOWN, text);
         }
 
@@ -213,28 +213,92 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
+    static final class CorrelationArrayItem extends Item {
+
+        private final ImmutableIntList _correlationIds;
+        private final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> _correlations;
+        private final int _mainAlphabet;
+        private final int _pronunciationAlphabet;
+
+        CorrelationArrayItem(
+                ImmutableIntList correlationIds,
+                ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
+                int mainAlphabet,
+                int pronunciationAlphabet) {
+            super(ItemTypes.UNKNOWN, "");
+
+            if (mainAlphabet == pronunciationAlphabet) {
+                throw new IllegalArgumentException();
+            }
+
+            if (correlationIds == null) {
+                correlationIds = ImmutableIntList.empty();
+            }
+            else if (correlationIds.anyMatch(id -> {
+                final ImmutableIntKeyMap<String> corr = correlations.get(id, null);
+                final ImmutableIntSet keys = (corr != null)? corr.keySet() : null;
+                return keys == null || !keys.contains(mainAlphabet) || !keys.contains(pronunciationAlphabet);
+            })) {
+                throw new IllegalArgumentException();
+            }
+
+            _correlationIds = correlationIds;
+            _correlations = correlations;
+            _mainAlphabet = mainAlphabet;
+            _pronunciationAlphabet = pronunciationAlphabet;
+        }
+
+        @Override
+        void navigate(Context context) {
+            // This item does not navigate
+        }
+
+        @Override
+        int getLayout() {
+            return R.layout.correlation_array_container;
+        }
+
+        void updateView(LinearLayout view) {
+            view.removeAllViews();
+            final LayoutInflater inflater = LayoutInflater.from(view.getContext());
+            for (int correlationId : _correlationIds) {
+                inflater.inflate(R.layout.correlation_container, view, true);
+                final LinearLayout corrLayout = (LinearLayout) view.getChildAt(view.getChildCount() - 1);
+
+                final ImmutableIntKeyMap<String> correlation = _correlations.get(correlationId);
+                final String mainText = correlation.get(_mainAlphabet);
+                final String pronunciationText = correlation.get(_pronunciationAlphabet);
+
+                final TextView mainTv = corrLayout.findViewById(R.id.mainText);
+                mainTv.setText(mainText);
+
+                final TextView pronunciationTv = corrLayout.findViewById(R.id.pronunciationText);
+                final String furiganaText = pronunciationText.equals(mainText)? "" : pronunciationText;
+                pronunciationTv.setText(furiganaText);
+
+                corrLayout.setOnClickListener(v -> {
+                    CorrelationDetailsActivity.open(v.getContext(), correlationId);
+                });
+            }
+        }
+    }
+
     private final ImmutableList<Item> _items;
     private final boolean _allItemsEnabled;
-    private final int[] _viewTypes;
+    private final ImmutableIntSet _viewTypes;
     private LayoutInflater _inflater;
 
     AcceptationDetailsAdapter(ImmutableList<Item> items) {
-        final Set<Integer> viewTypeSet = new HashSet<>();
+        final MutableIntSet viewTypeSet = MutableIntSet.empty();
         boolean allEnabled = true;
         for (Item item : items) {
             viewTypeSet.add(item.getLayout());
             allEnabled &= item.isEnabled();
         }
 
-        final int[] viewTypes = new int[viewTypeSet.size()];
-        int index = 0;
-        for (int layout : viewTypeSet) {
-            viewTypes[index++] = layout;
-        }
-
         _items = items;
         _allItemsEnabled = allEnabled;
-        _viewTypes = viewTypes;
+        _viewTypes = viewTypeSet.toImmutable();
     }
 
     @Override
@@ -264,21 +328,17 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
     @Override
     public int getViewTypeCount() {
-        return _viewTypes.length;
+        return _viewTypes.size();
     }
 
     @Override
     public int getItemViewType(int position) {
-        final int layout = _items.get(position).getLayout();
-        final int viewTypeCount = _viewTypes.length;
-
-        for (int i = 0; i < viewTypeCount; i++) {
-            if (layout == _viewTypes[i]) {
-                return i;
-            }
+        final int viewType = _viewTypes.indexOf(_items.get(position).getLayout());
+        if (viewType < 0) {
+            throw new AssertionError("Layout not found in view types");
         }
 
-        throw new AssertionError("Layout not found in view types");
+        return viewType;
     }
 
     @Override
@@ -297,13 +357,17 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         final TextView tv = view.findViewById(R.id.itemTextView);
-        final CharSequence text = item.getText();
-        tv.setText(text);
-        if (text instanceof SpannableString) {
-            // Required to make the textView clickable on its spans
-            tv.setMovementMethod(LinkMovementMethod.getInstance());
+        if (tv != null) {
+            tv.setText(item.getText());
+            tv.setTextColor(tv.getContext().getResources().getColor(item.getTextColorRes()));
         }
-        tv.setTextColor(tv.getContext().getResources().getColor(item.getTextColorRes()));
+        else if (item instanceof CorrelationArrayItem) {
+            final CorrelationArrayItem caItem = (CorrelationArrayItem) item;
+            caItem.updateView((LinearLayout) view);
+        }
+        else {
+            throw new AssertionError("Unable to handle item");
+        }
 
         return view;
     }

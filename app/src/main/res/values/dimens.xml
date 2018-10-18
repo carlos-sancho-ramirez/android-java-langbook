@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <dimen name="questionTextSize">36sp</dimen>
     <dimen name="quizSelectorEntryPadding">8dp</dimen>
     <dimen name="quizSelectorEntryTextPadding">12dp</dimen>
     <dimen name="quizSelectorEntryKnowledgeCompletenessSpacing">4dp</dimen>
@@ -10,4 +11,7 @@
 
     <dimen name="agentEditorMainPadding">4dp</dimen>
     <dimen name="agentEditorSectionPadding">8dp</dimen>
+
+    <dimen name="correlationPronunciationTextSize">16sp</dimen>
+    <dimen name="correlationMainTextSize">36sp</dimen>
 </resources>
