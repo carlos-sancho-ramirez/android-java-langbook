@@ -908,6 +908,35 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = correlationArrays.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(correlationArrays)
+                .join(acceptations, correlationArrays.getArrayIdColumnIndex(), acceptations.getCorrelationArrayColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(correlationArrays.getCorrelationColumnIndex(), correlation)
+                .select(accOffset + acceptations.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex());
+
+        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int accId = row.get(0).toInt();
+                if (row.get(1).toInt() == preferredAlphabet || result.get(accId, null) == null) {
+                    result.put(accId, row.get(2).toText());
+                }
+            }
+        }
+
+        return result.toImmutable();
+    }
+
     public static int conceptFromAcceptation(DbExporter.Database db, int accId) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
