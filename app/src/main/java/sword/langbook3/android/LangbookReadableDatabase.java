@@ -937,6 +937,41 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
+    public static ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readCorrelationsWithSameSymbolArray(DbExporter.Database db, int correlation, int alphabet) {
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
+
+        final int corrOffset2 = correlations.columns().size();
+        final int corrOffset3 = corrOffset2 + corrOffset2;
+        final int strOffset = corrOffset3 + corrOffset2;
+
+        final DbQuery query = new DbQuery.Builder(correlations)
+                .join(correlations, correlations.getSymbolArrayColumnIndex(), correlations.getSymbolArrayColumnIndex())
+                .join(correlations, corrOffset2 + correlations.getCorrelationIdColumnIndex(), correlations.getCorrelationIdColumnIndex())
+                .join(symbolArrays, corrOffset3 + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(correlations.getCorrelationIdColumnIndex(), correlation)
+                .where(correlations.getAlphabetColumnIndex(), alphabet)
+                .whereColumnValueMatch(correlations.getAlphabetColumnIndex(), corrOffset2 + correlations.getAlphabetColumnIndex())
+                .whereColumnValueDiffer(correlations.getCorrelationIdColumnIndex(), corrOffset2 + correlations.getCorrelationIdColumnIndex())
+                .select(corrOffset2 + correlations.getCorrelationIdColumnIndex(),
+                        corrOffset3 + correlations.getAlphabetColumnIndex(),
+                        strOffset + symbolArrays.getStrColumnIndex());
+
+        final MutableIntKeyMap<ImmutableIntKeyMap<String>> result = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int corrId = row.get(0).toInt();
+                final int textAlphabet = row.get(1).toInt();
+                final String text = row.get(2).toText();
+                final ImmutableIntKeyMap<String> currentCorr = result.get(corrId, ImmutableIntKeyMap.empty());
+                result.put(corrId, currentCorr.put(textAlphabet, text));
+            }
+        }
+
+        return result.toImmutable();
+    }
+
     public static int conceptFromAcceptation(DbExporter.Database db, int accId) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)

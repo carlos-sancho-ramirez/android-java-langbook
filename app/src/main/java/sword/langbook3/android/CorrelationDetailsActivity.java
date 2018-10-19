@@ -3,8 +3,6 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -16,16 +14,13 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableIte
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
-import sword.langbook3.android.LangbookDbSchema.CorrelationsTable;
-import sword.langbook3.android.LangbookDbSchema.SymbolArraysTable;
-import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbExporter;
 
 import static sword.langbook3.android.AcceptationDetailsActivity.composeCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationsIncludingCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.db.DbIdColumn.idColumnName;
+import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationsWithSameSymbolArray;
 
 public final class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
@@ -42,63 +37,9 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     private int _preferredAlphabet;
     private AcceptationDetailsAdapter _listAdapter;
 
-    private ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readCorrelationsWithSameSymbolArray(SQLiteDatabase db, int correlation, int alphabet) {
-        final CorrelationsTable correlations = Tables.correlations;
-        final SymbolArraysTable symbolArrays = Tables.symbolArrays;
-
-        final String alphabetField = correlations.columns().get(correlations.getAlphabetColumnIndex()).name();
-        final String correlationIdField = correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name();
-        final String symbolArrayField = correlations.columns().get(correlations.getSymbolArrayColumnIndex()).name();
-
-        final Cursor cursor = db.rawQuery(
-                "SELECT J1." + correlationIdField +
-                        ",J2." + alphabetField +
-                        ",J3." + symbolArrays.columns().get(symbolArrays.getStrColumnIndex()).name() +
-                " FROM " + correlations.name() + " AS J0" +
-                        " JOIN " + correlations.name() + " AS J1 ON J0." + symbolArrayField + "=J1." + symbolArrayField +
-                        " JOIN " + correlations.name() + " AS J2 ON J1." + correlationIdField + "=J2." + correlationIdField +
-                        " JOIN " + symbolArrays.name() + " AS J3 ON J2." + symbolArrayField + "=J3." + idColumnName +
-                " WHERE J0." + correlationIdField + "=? AND " +
-                        "J0." + alphabetField + "=? AND " +
-                        "J0." + alphabetField + "=J1." + alphabetField + " AND " +
-                        "J1." + correlationIdField + "!=J0." + correlationIdField +
-                " ORDER BY J1." + correlationIdField, new String[] { Integer.toString(correlation), Integer.toString(alphabet) });
-
-        final ImmutableIntKeyMap.Builder<ImmutableIntKeyMap<String>> result = new ImmutableIntKeyMap.Builder<>();
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    int corrId = cursor.getInt(0);
-                    ImmutableIntKeyMap.Builder<String> corr = new ImmutableIntKeyMap.Builder<>();
-                    corr.put(cursor.getInt(1), cursor.getString(2));
-                    do {
-                        int newCorrId = cursor.getInt(0);
-                        if (corrId == newCorrId) {
-                            corr.put(cursor.getInt(1), cursor.getString(2));
-                        }
-                        else {
-                            result.put(corrId, corr.build());
-                            corr = new ImmutableIntKeyMap.Builder<>();
-                            corrId = newCorrId;
-                            corr.put(cursor.getInt(1), cursor.getString(2));
-                        }
-                    } while(cursor.moveToNext());
-
-                    result.put(corrId, corr.build());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        return result.build();
-    }
-
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems(int correlationId) {
         final DbManager manager = DbManager.getInstance();
         final DbExporter.Database db = manager.getDatabase();
-        final SQLiteDatabase sqliteDb = manager.getReadableDatabase();
         final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(db, _preferredAlphabet);
         final ImmutableIntKeyMap<String> correlation = getCorrelationWithText(db, correlationId);
 
@@ -120,7 +61,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
 
         for (int i = 0; i < entryCount; i++) {
             final int matchingAlphabet = correlation.keyAt(i);
-            final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations = readCorrelationsWithSameSymbolArray(sqliteDb, correlationId, matchingAlphabet);
+            final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations = readCorrelationsWithSameSymbolArray(db, correlationId, matchingAlphabet);
             final int count = correlations.size();
             if (count > 0) {
                 result.add(new HeaderItem("Other correlations sharing " + alphabets.get(matchingAlphabet)));
