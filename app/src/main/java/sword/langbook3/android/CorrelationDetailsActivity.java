@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.util.SparseArray;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -43,7 +42,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     private int _preferredAlphabet;
     private AcceptationDetailsAdapter _listAdapter;
 
-    private SparseArray<String> readCorrelation(SQLiteDatabase db, int correlation) {
+    private ImmutableIntKeyMap<String> readCorrelation(SQLiteDatabase db, int correlation) {
         final CorrelationsTable correlations = Tables.correlations;
         final SymbolArraysTable symbolArrays = Tables.symbolArrays;
 
@@ -54,12 +53,12 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
                         " JOIN " + symbolArrays.name() + " AS J1 ON J0." + correlations.columns().get(correlations.getSymbolArrayColumnIndex()).name() + "=J1." + idColumnName +
                         " WHERE J0." + correlations.columns().get(correlations.getCorrelationIdColumnIndex()).name() + "=?", new String[] { Integer.toString(correlation) });
 
-        final SparseArray<String> result = new SparseArray<>();
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
                     do {
-                        result.put(cursor.getInt(0), cursor.getString(1));
+                        builder.put(cursor.getInt(0), cursor.getString(1));
                     } while(cursor.moveToNext());
                 }
             }
@@ -68,10 +67,10 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        return result;
+        return builder.build();
     }
 
-    private SparseArray<String> readAcceptationsIncludingCorrelation(SQLiteDatabase db, int correlation) {
+    private ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(SQLiteDatabase db, int correlation) {
         final AcceptationsTable acceptations = Tables.acceptations;
         final CorrelationArraysTable correlationArrays = Tables.correlationArrays;
         final StringQueriesTable strings = Tables.stringQueries;
@@ -86,7 +85,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
                 " WHERE J0." + correlationArrays.columns().get(correlationArrays.getCorrelationColumnIndex()).name() + "=?" +
                 " ORDER BY J1." + idColumnName, new String[] { Integer.toString(correlation) });
 
-        final SparseArray<String> result = new SparseArray<>();
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
@@ -102,14 +101,14 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
                             }
                         }
                         else {
-                            result.put(acc, text);
+                            builder.put(acc, text);
                             acc = newAcc;
                             alphabet = cursor.getInt(1);
                             text = cursor.getString(2);
                         }
                     } while(cursor.moveToNext());
 
-                    result.put(acc, text);
+                    builder.put(acc, text);
                 }
             }
             finally {
@@ -117,7 +116,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        return result;
+        return builder.build();
     }
 
     private ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readCorrelationsWithSameSymbolArray(SQLiteDatabase db, int correlation, int alphabet) {
@@ -177,7 +176,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         final DbManager manager = DbManager.getInstance();
         final SQLiteDatabase db = manager.getReadableDatabase();
         final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(manager.getDatabase(), _preferredAlphabet);
-        final SparseArray<String> correlation = readCorrelation(db, correlationId);
+        final ImmutableIntKeyMap<String> correlation = readCorrelation(db, correlationId);
 
         final int entryCount = correlation.size();
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
@@ -188,7 +187,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             result.add(new NonNavigableItem(alphabetText + " -> " + text));
         }
 
-        final SparseArray<String> acceptations = readAcceptationsIncludingCorrelation(db, correlationId);
+        final ImmutableIntKeyMap<String> acceptations = readAcceptationsIncludingCorrelation(db, correlationId);
         final int acceptationCount = acceptations.size();
         result.add(new HeaderItem("Acceptations where included"));
         for (int i = 0; i < acceptationCount; i++) {
