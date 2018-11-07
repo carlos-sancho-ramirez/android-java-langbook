@@ -113,17 +113,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void composeCorrelation(ImmutableIntKeyMap<String> correlation, StringBuilder sb) {
-        final int correlationSize = correlation.size();
-        for (int i = 0; i < correlationSize; i++) {
-            if (i != 0) {
-                sb.append('/');
-            }
-
-            sb.append(correlation.valueAt(i));
-        }
-    }
-
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
 

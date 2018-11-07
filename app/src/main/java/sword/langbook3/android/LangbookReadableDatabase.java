@@ -908,7 +908,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, int preferredAlphabet) {
+    private static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -937,7 +937,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    public static ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readCorrelationsWithSameSymbolArray(DbExporter.Database db, int correlation, int alphabet) {
+    private static ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readCorrelationsWithSameSymbolArray(DbExporter.Database db, int correlation, int alphabet) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
 
@@ -2348,5 +2348,39 @@ public final class LangbookReadableDatabase {
                 correlationResultPair.right, supertypesBuilder.build(), subtypes,
                 synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
                 morphologyResults, involvedAgents, languageStrs.toImmutable());
+    }
+
+    public static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {
+        final ImmutableIntKeyMap<String> correlation = getCorrelationWithText(db, correlationId);
+        if (correlation.isEmpty()) {
+            return null;
+        }
+
+        final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(db, preferredAlphabet);
+        final ImmutableIntKeyMap<String> acceptations = readAcceptationsIncludingCorrelation(db, correlationId, preferredAlphabet);
+
+        final int entryCount = correlation.size();
+        final MutableIntKeyMap<ImmutableIntSet> relatedCorrelationsByAlphabet = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<ImmutableIntKeyMap<String>> relatedCorrelations = MutableIntKeyMap.empty();
+
+        for (int i = 0; i < entryCount; i++) {
+            final int matchingAlphabet = correlation.keyAt(i);
+            final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations = readCorrelationsWithSameSymbolArray(db, correlationId, matchingAlphabet);
+
+            final int amount = correlations.size();
+            final ImmutableIntSetBuilder setBuilder = new ImmutableIntSetBuilder();
+            for (int j = 0; j < amount; j++) {
+                final int corrId = correlations.keyAt(i);
+                if (relatedCorrelations.get(corrId, null) == null) {
+                    relatedCorrelations.put(corrId, correlations.valueAt(i));
+                }
+
+                setBuilder.add(corrId);
+            }
+            relatedCorrelationsByAlphabet.put(matchingAlphabet, setBuilder.build());
+        }
+
+        return new CorrelationDetailsModel(alphabets, correlation, acceptations,
+                relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable());
     }
 }

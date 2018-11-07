@@ -57,4 +57,8 @@ public final class EqualUtils {
 
         return true;
     }
+
+    public static boolean isNull(Object reference) {
+        return reference == null;
+    }
 }

@@ -10,8 +10,6 @@ import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
 import sword.langbook3.android.LangbookReadableDatabase.SynonymTranslationResult;
 
 public final class AcceptationDetailsModel {
-    private static AcceptationDetailsModel nonPresentInstance;
-
     public final int concept;
     public final IdentifiableResult language;
     public final ImmutableIntList correlationIds;
