@@ -34,6 +34,10 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     private CorrelationDetailsModel _model;
     private AcceptationDetailsAdapter _listAdapter;
 
+    private static String composeCorrelationString(ImmutableIntKeyMap<String> correlation) {
+        return correlation.reduce((a, b) -> a + '/' + b);
+    }
+
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
         final int entryCount = _model.correlation.size();
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
@@ -58,18 +62,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
                 result.add(new HeaderItem("Other correlations sharing " + _model.alphabets.get(matchingAlphabet)));
                 for (int corrId : matchingCorrelations) {
                     final ImmutableIntKeyMap<String> corr = _model.relatedCorrelations.get(corrId);
-
-                    final StringBuilder sb = new StringBuilder();
-                    final int correlationSize = corr.size();
-                    for (int j = 0; j < correlationSize; j++) {
-                        if (j != 0) {
-                            sb.append('/');
-                        }
-
-                        sb.append(corr.valueAt(j));
-                    }
-
-                    result.add(new CorrelationNavigableItem(corrId, sb.toString()));
+                    result.add(new CorrelationNavigableItem(corrId, composeCorrelationString(corr)));
                 }
             }
         }
@@ -87,6 +80,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         _model = getCorrelationDetails(DbManager.getInstance().getDatabase(), _correlationId, preferredAlphabet);
 
         if (_model != null) {
+            setTitle(getString(R.string.correlationDetailsActivityTitle, composeCorrelationString(_model.correlation)));
             _listAdapter = new AcceptationDetailsAdapter(getAdapterItems());
             final ListView listView = findViewById(R.id.listView);
             listView.setAdapter(_listAdapter);

@@ -9,6 +9,7 @@
     <string name="matchingBunchesPickerActivityTitle">Include in bunches</string>
     <string name="quizSelectorActivityTitle">Select a quiz</string>
     <string name="quizEditorActivityTitle">Select quiz parameters</string>
+    <string name="correlationDetailsActivityTitle">Correlation %s</string>
 
     <string name="searchFieldHint">Search Here</string>
     <string name="addWordButton">Add</string>
