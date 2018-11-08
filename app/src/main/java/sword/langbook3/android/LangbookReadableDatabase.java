@@ -2370,9 +2370,9 @@ public final class LangbookReadableDatabase {
             final int amount = correlations.size();
             final ImmutableIntSetBuilder setBuilder = new ImmutableIntSetBuilder();
             for (int j = 0; j < amount; j++) {
-                final int corrId = correlations.keyAt(i);
+                final int corrId = correlations.keyAt(j);
                 if (relatedCorrelations.get(corrId, null) == null) {
-                    relatedCorrelations.put(corrId, correlations.valueAt(i));
+                    relatedCorrelations.put(corrId, correlations.valueAt(j));
                 }
 
                 setBuilder.add(corrId);
