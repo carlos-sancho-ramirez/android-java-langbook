@@ -14,6 +14,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.List;
+import sword.collections.SortUtils;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.DbExporter;
@@ -91,7 +92,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
                         table.getMainAcceptationColumnIndex(),
                         table.getDynamicAcceptationColumnIndex());
 
-        ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
+        final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
@@ -104,7 +105,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
             }
         }
 
-        return builder.build();
+        return builder.build().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
     private ImmutableIntSet getAgentIds() {
