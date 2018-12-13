@@ -1,14 +1,14 @@
 package sword.langbook3.android;
 
-import android.util.SparseArray;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
+import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
@@ -116,15 +116,14 @@ public final class DatabaseInflater {
      */
     private void applyAgent(int agentId, AgentSetSupplier agentSetSupplier,
             int accId, int concept, int targetBunch,
-            SparseArray<String> matcher, SparseArray<String> adder, int rule,
-            SparseArray<String> corr, int flags) {
-        boolean suggestedNewWordUsed = false;
+            IntKeyMap<String> matcher, IntKeyMap<String> adder, int rule,
+            IntKeyMap<String> corr, int flags) {
         boolean matching = true;
 
         final int matcherLength = matcher.size();
         for (int i = 0; i < matcherLength; i++) {
             final int alphabet = matcher.keyAt(i);
-            final String corrStr = corr.get(alphabet);
+            final String corrStr = corr.get(alphabet, null);
             final String matcherStr = matcher.valueAt(i);
             matching = corrStr != null && (
                     agentFromStart(flags) && corrStr.startsWith(matcherStr) ||
@@ -138,18 +137,14 @@ public final class DatabaseInflater {
 
         if (matching) {
             int targetAccId = accId;
-
-            // TODO: This condition should be changed with just matcher == adder.
-            // But OldDbConverter has to be updated first
-            final boolean modifyWords = rule != StreamedDatabaseConstants.nullRuleId &&
-                    matcher.size() != 0 && adder.size() != 0 && !EqualUtils.checkEqual(matcher, adder);
+            final boolean modifyWords = !matcher.equals(adder);
 
             if (modifyWords) {
-                SparseArray<String> resultCorr = new SparseArray<>();
+                MutableIntKeyMap<String> resultCorr = MutableIntKeyMap.empty();
                 final int corrLength = corr.size();
                 for (int i = 0; i < corrLength; i++) {
                     final int alphabet = corr.keyAt(i);
-                    final String matcherStr = matcher.get(alphabet);
+                    final String matcherStr = matcher.get(alphabet, null);
                     final int removeLength = (matcherStr != null) ? matcherStr.length() : 0;
 
                     final String corrStr = corr.valueAt(i);
@@ -164,7 +159,7 @@ public final class DatabaseInflater {
                 for (int i = 0; i < adderLength; i++) {
                     final int alphabet = adder.keyAt(i);
                     final String addition = adder.valueAt(i);
-                    final String currentStr = resultCorr.get(alphabet);
+                    final String currentStr = resultCorr.get(alphabet, null);
                     final String resultStr = (currentStr != null) ? currentStr + addition : addition;
                     resultCorr.put(alphabet, resultStr);
                 }
@@ -236,7 +231,7 @@ public final class DatabaseInflater {
         }
     }
 
-    private SparseArray<String> getCorrelation(int agentId, int agentColumn) {
+    private ImmutableIntKeyMap<String> getCorrelation(int agentId, int agentColumn) {
         LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
@@ -250,20 +245,20 @@ public final class DatabaseInflater {
                 .select(corrTableOffset + correlations.getAlphabetColumnIndex(), symArrayTableOffset + symbolArrays.getStrColumnIndex());
 
         final DbResult result = _db.select(query);
-        final SparseArray<String> matcher = new SparseArray<>(result.getRemainingRows());
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         try {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int alphabet = row.get(0).toInt();
                 final String str = row.get(1).toText();
-                matcher.put(alphabet, str);
+                builder.put(alphabet, str);
             }
         }
         finally {
             result.close();
         }
 
-        return matcher;
+        return builder.build();
     }
 
     private void runAgent(int agentId) {
@@ -273,8 +268,8 @@ public final class DatabaseInflater {
         LangbookDbSchema.BunchAcceptationsTable bunchAccs = LangbookDbSchema.Tables.bunchAcceptations;
         LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
-        final SparseArray<String> matcher = getCorrelation(agentId, agents.getMatcherColumnIndex());
-        final SparseArray<String> adder = getCorrelation(agentId, agents.getAdderColumnIndex());
+        final ImmutableIntKeyMap<String> matcher = getCorrelation(agentId, agents.getMatcherColumnIndex());
+        final ImmutableIntKeyMap<String> adder = getCorrelation(agentId, agents.getAdderColumnIndex());
 
         final int bunchSetsOffset = agents.columns().size();
         final int bunchAccsOffset = bunchSetsOffset + bunchSets.columns().size();
@@ -303,7 +298,7 @@ public final class DatabaseInflater {
         try {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
-                final SparseArray<String> corr = new SparseArray<>();
+                final MutableIntKeyMap<String> corr = MutableIntKeyMap.empty();
                 int accId = row.get(0).toInt();
                 corr.put(row.get(1).toInt(), row.get(2).toText());
                 int rule = row.get(3).toInt();
