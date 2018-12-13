@@ -1,7 +1,6 @@
 package sword.langbook3.android;
 
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -2104,6 +2103,56 @@ public final class LangbookReadableDatabase {
         return mapBuilder.build();
     }
 
+    public static final class AgentRegister {
+        public final int targetBunch;
+        public final int sourceBunchSetId;
+        public final int diffBunchSetId;
+        public final int matcherId;
+        public final int adderId;
+        public final int rule;
+        public final int flags;
+
+        public static boolean matchWordStarting(int flags) {
+            return (flags & 1) != 0;
+        }
+
+        public boolean matchWordStarting() {
+            return matchWordStarting(flags);
+        }
+
+        public AgentRegister(int targetBunch, int sourceBunchSetId, int diffBunchSetId,
+                int matcherId, int adderId, int rule, int flags) {
+            this.targetBunch = targetBunch;
+            this.sourceBunchSetId = sourceBunchSetId;
+            this.diffBunchSetId = diffBunchSetId;
+            this.matcherId = matcherId;
+            this.adderId = adderId;
+            this.rule = rule;
+            this.flags = flags;
+        }
+    }
+
+    public static AgentRegister getAgentRegister(DbExporter.Database db, int agentId) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), agentId)
+                .select(table.getTargetBunchColumnIndex(),
+                        table.getSourceBunchSetColumnIndex(),
+                        table.getDiffBunchSetColumnIndex(),
+                        table.getMatcherColumnIndex(),
+                        table.getAdderColumnIndex(),
+                        table.getRuleColumnIndex(),
+                        table.getFlagsColumnIndex());
+        final List<DbValue> agentRow = selectSingleRow(db, query);
+
+        final int sourceBunchSetId = agentRow.get(1).toInt();
+        final int diffBunchSetId = agentRow.get(2).toInt();
+        final int matcherId = agentRow.get(3).toInt();
+        final int adderId = agentRow.get(4).toInt();
+        return new AgentRegister(agentRow.get(0).toInt(), sourceBunchSetId, diffBunchSetId,
+                matcherId, adderId, agentRow.get(5).toInt(), agentRow.get(6).toInt());
+    }
+
     public static final class AgentDetails {
         public final int targetBunch;
         public final ImmutableIntSet sourceBunches;
@@ -2114,7 +2163,7 @@ public final class LangbookReadableDatabase {
         public final int flags;
 
         public static boolean matchWordStarting(int flags) {
-            return (flags & 1) != 0;
+            return AgentRegister.matchWordStarting(flags);
         }
 
         public boolean matchWordStarting() {
@@ -2173,23 +2222,17 @@ public final class LangbookReadableDatabase {
     }
 
     public static AgentDetails getAgentDetails(DbExporter.Database db, int agentId) {
-        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), agentId)
-                .select(table.getTargetBunchColumnIndex(),
-                        table.getSourceBunchSetColumnIndex(),
-                        table.getDiffBunchSetColumnIndex(),
-                        table.getMatcherColumnIndex(),
-                        table.getAdderColumnIndex(),
-                        table.getRuleColumnIndex(),
-                        table.getFlagsColumnIndex());
-        final List<DbValue> agentRow = selectSingleRow(db, query);
-        final ImmutableIntSet sourceBunches = getBunchSet(db, agentRow.get(1).toInt());
-        final ImmutableIntSet diffBunches = getBunchSet(db, agentRow.get(2).toInt());
-        final ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, agentRow.get(3).toInt());
-        final ImmutableIntKeyMap<String> adder = getCorrelationWithText(db, agentRow.get(4).toInt());
-        return new AgentDetails(agentRow.get(0).toInt(), sourceBunches, diffBunches,
-                matcher, adder, agentRow.get(5).toInt(), agentRow.get(6).toInt());
+        final AgentRegister register = getAgentRegister(db, agentId);
+        final ImmutableIntSet sourceBunches = getBunchSet(db, register.sourceBunchSetId);
+        final ImmutableIntSet diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
+                getBunchSet(db, register.diffBunchSetId) : sourceBunches;
+
+        final ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, register.matcherId);
+        final ImmutableIntKeyMap<String> adder = (register.matcherId != register.adderId)?
+                getCorrelationWithText(db, register.adderId) : matcher;
+
+        return new AgentDetails(register.targetBunch, sourceBunches, diffBunches,
+                matcher, adder, register.rule, register.flags);
     }
 
     public static final class QuestionFieldDetails {

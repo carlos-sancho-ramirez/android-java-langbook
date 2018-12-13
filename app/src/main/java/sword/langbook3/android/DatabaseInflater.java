@@ -10,6 +10,8 @@ import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
+import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
+import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbQuery;
@@ -27,6 +29,9 @@ import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
+import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
+import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.db.DbQuery.concat;
 
@@ -263,36 +268,32 @@ public final class DatabaseInflater {
 
     private void runAgent(int agentId) {
         LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         LangbookDbSchema.BunchAcceptationsTable bunchAccs = LangbookDbSchema.Tables.bunchAcceptations;
         LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
-        final ImmutableIntKeyMap<String> matcher = getCorrelation(agentId, agents.getMatcherColumnIndex());
-        final ImmutableIntKeyMap<String> adder = getCorrelation(agentId, agents.getAdderColumnIndex());
+        final AgentRegister register = getAgentRegister(_db, agentId);
+        final ImmutableIntKeyMap<String> matcher = getCorrelationWithText(_db, register.matcherId);
+        final ImmutableIntKeyMap<String> adder = (register.matcherId != register.adderId)?
+                getCorrelationWithText(_db, register.adderId) : matcher;
 
-        final int bunchSetsOffset = agents.columns().size();
-        final int bunchAccsOffset = bunchSetsOffset + bunchSets.columns().size();
+        final int bunchAccsOffset = bunchSets.columns().size();
         final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
         final int acceptationsOffset = stringsOffset + strings.columns().size();
 
         // TODO: This query does not manage the case where sourceSet is null
         // TODO: This query does not manage the case where diff is different from null
-        final DbQuery query = new DbQuery.Builder(agents)
-                .join(bunchSets, agents.getSourceBunchSetColumnIndex(), bunchSets.getSetIdColumnIndex())
-                .join(bunchAccs, bunchSetsOffset + bunchSets.getBunchColumnIndex(), bunchAccs.getBunchColumnIndex())
+        final DbQuery query = new DbQuery.Builder(bunchSets)
+                .join(bunchAccs, bunchSets.getBunchColumnIndex(), bunchAccs.getBunchColumnIndex())
                 .join(strings, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .join(acceptations, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), acceptations.getIdColumnIndex())
-                .where(agents.getIdColumnIndex(), agentId)
+                .where(bunchSets.getSetIdColumnIndex(), register.sourceBunchSetId)
                 .orderBy(bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), stringsOffset + strings.getStringAlphabetColumnIndex())
                 .select(
                         bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(),
                         stringsOffset + strings.getStringAlphabetColumnIndex(),
                         stringsOffset + strings.getStringColumnIndex(),
-                        agents.getRuleColumnIndex(),
-                        agents.getFlagsColumnIndex(),
-                        acceptationsOffset + acceptations.getConceptColumnIndex(),
-                        agents.getTargetBunchColumnIndex());
+                        acceptationsOffset + acceptations.getConceptColumnIndex());
 
         final DbResult result = _db.select(query);
         try {
@@ -301,10 +302,7 @@ public final class DatabaseInflater {
                 final MutableIntKeyMap<String> corr = MutableIntKeyMap.empty();
                 int accId = row.get(0).toInt();
                 corr.put(row.get(1).toInt(), row.get(2).toText());
-                int rule = row.get(3).toInt();
-                int flags = row.get(4).toInt();
-                int concept = row.get(5).toInt();
-                int targetBunch = row.get(6).toInt();
+                int concept = row.get(3).toInt();
 
                 final AgentSetSupplier agentSetSupplier = new AgentSetSupplier(agentId);
                 int newAccId;
@@ -312,24 +310,21 @@ public final class DatabaseInflater {
                     row = result.next();
                     newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
-                        applyAgent(agentId, agentSetSupplier, accId, concept, targetBunch,
-                                matcher, adder, rule, corr, flags);
+                        applyAgent(agentId, agentSetSupplier, accId, concept, register.targetBunch,
+                                matcher, adder, register.rule, corr, register.flags);
 
                         accId = newAccId;
                         corr.clear();
                         corr.put(row.get(1).toInt(), row.get(2).toText());
-                        rule = row.get(3).toInt();
-                        flags = row.get(4).toInt();
-                        concept = row.get(5).toInt();
-                        targetBunch = row.get(6).toInt();
+                        concept = row.get(3).toInt();
                     }
                     else {
                         corr.put(row.get(1).toInt(), row.get(2).toText());
                     }
                 }
 
-                applyAgent(agentId, agentSetSupplier, accId, concept, targetBunch, matcher, adder,
-                        rule, corr, flags);
+                applyAgent(agentId, agentSetSupplier, accId, concept, register.targetBunch,
+                        matcher, adder, register.rule, corr, register.flags);
             }
         }
         finally {
