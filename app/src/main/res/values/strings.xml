@@ -41,11 +41,12 @@
     <string name="wordEditorWrongTextError">Invalid values present</string>
 
     <string name="agentEditorIncludeTargetBunchCheckBoxText">Include target bunch</string>
-    <string name="agentEditorMatchWordStartingCheckBoxText">Match word starting</string>
     <string name="agentEditorSourceBunchesHeader">Source bunches</string>
     <string name="agentEditorDiffBunchesHeader">Differential bunches</string>
-    <string name="agentEditorMatchersHeader">Matchers</string>
-    <string name="agentEditorAddersHeader">Adders</string>
+    <string name="agentEditorStartMatchersHeader">Start Matchers</string>
+    <string name="agentEditorStartAddersHeader">Start Adders</string>
+    <string name="agentEditorEndMatchersHeader">End Matchers</string>
+    <string name="agentEditorEndAddersHeader">End Adders</string>
     <string name="agentEditorRuleHeader">Rule</string>
     <string name="agentEditorChangeButton">Change</string>
     <string name="agentEditorAddButton">Add</string>

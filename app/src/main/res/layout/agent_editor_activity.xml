@@ -90,28 +90,21 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/agentEditorMatchersHeader"/>
+                android:text="@string/agentEditorStartMatchersHeader"/>
 
             <Button
-                android:id="@+id/addMatcherButton"
+                android:id="@+id/addStartMatcherButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/agentEditorAddButton"/>
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/matchersContainer"
+            android:id="@+id/startMatchersContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingLeft="@dimen/agentEditorSectionPadding"
             android:orientation="vertical"/>
-
-        <CheckBox
-            android:id="@+id/matchWordStarting"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/agentEditorMatchWordStartingCheckBoxText"
-            android:enabled="false"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -121,17 +114,65 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/agentEditorAddersHeader"/>
+                android:text="@string/agentEditorStartAddersHeader"/>
 
             <Button
-                android:id="@+id/addAdderButton"
+                android:id="@+id/addStartAdderButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/agentEditorAddButton"/>
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/addersContainer"
+            android:id="@+id/startAddersContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/agentEditorSectionPadding"
+            android:orientation="vertical"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/agentEditorEndMatchersHeader"/>
+
+            <Button
+                android:id="@+id/addEndMatcherButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/agentEditorAddButton"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/endMatchersContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/agentEditorSectionPadding"
+            android:orientation="vertical"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/agentEditorEndAddersHeader"/>
+
+            <Button
+                android:id="@+id/addEndAdderButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/agentEditorAddButton"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/endAddersContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingLeft="@dimen/agentEditorSectionPadding"

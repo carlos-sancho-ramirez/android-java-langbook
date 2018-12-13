@@ -33,6 +33,7 @@ import sword.langbook3.android.db.Database;
 import sword.langbook3.android.db.DbQuery;
 import sword.langbook3.android.db.DbValue;
 
+import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -63,6 +64,30 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             this.alphabet = alphabet;
             this.text = text;
         }
+
+        @Override
+        public String toString() {
+            return "CorrelationEntry("+ alphabet + ", " + text + ')';
+        }
+
+        @Override
+        public int hashCode() {
+            return alphabet * 37 + ((text == null)? 0 : text.hashCode());
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == this) {
+                return true;
+            }
+
+            if (other == null || !(other instanceof CorrelationEntry)) {
+                return false;
+            }
+
+            final CorrelationEntry that = (CorrelationEntry) other;
+            return alphabet == that.alphabet && equal(text, that.text);
+        }
     }
 
     public static final class State implements Parcelable {
@@ -70,18 +95,17 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         int targetBunch;
         MutableIntList sourceBunches = MutableIntList.empty();
         MutableIntList diffBunches = MutableIntList.empty();
-        MutableList<CorrelationEntry> matcher = MutableList.empty();
-        MutableList<CorrelationEntry> adder = MutableList.empty();
-        boolean matchWordStarting;
+        MutableList<CorrelationEntry> startMatcher = MutableList.empty();
+        MutableList<CorrelationEntry> startAdder = MutableList.empty();
+        MutableList<CorrelationEntry> endMatcher = MutableList.empty();
+        MutableList<CorrelationEntry> endAdder = MutableList.empty();
         int rule;
 
         State() {
         }
 
         private State(Parcel in) {
-            final int booleans = in.readByte();
-            includeTargetBunch = (booleans & 1) != 0;
-            matchWordStarting = (booleans & 2) != 0;
+            includeTargetBunch = (in.readByte() & 1) != 0;
             targetBunch = in.readInt();
 
             final int sourceBunchesCount = in.readInt();
@@ -94,14 +118,24 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 diffBunches.append(in.readInt());
             }
 
-            final int matcherLength = in.readInt();
-            for (int i = 0; i < matcherLength; i++) {
-                matcher.append(new CorrelationEntry(in.readInt(), in.readString()));
+            final int startMatcherLength = in.readInt();
+            for (int i = 0; i < startMatcherLength; i++) {
+                startMatcher.append(new CorrelationEntry(in.readInt(), in.readString()));
             }
 
-            final int adderLength = in.readInt();
-            for (int i = 0; i < adderLength; i++) {
-                adder.append(new CorrelationEntry(in.readInt(), in.readString()));
+            final int startAdderLength = in.readInt();
+            for (int i = 0; i < startAdderLength; i++) {
+                startAdder.append(new CorrelationEntry(in.readInt(), in.readString()));
+            }
+
+            final int endMatcherLength = in.readInt();
+            for (int i = 0; i < endMatcherLength; i++) {
+                endMatcher.append(new CorrelationEntry(in.readInt(), in.readString()));
+            }
+
+            final int endAdderLength = in.readInt();
+            for (int i = 0; i < endAdderLength; i++) {
+                endAdder.append(new CorrelationEntry(in.readInt(), in.readString()));
             }
 
             rule = in.readInt();
@@ -109,11 +143,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
         @Override
         public void writeToParcel(Parcel dest, int flags) {
-            int booleans = includeTargetBunch? 1 : 0;
-            if (matchWordStarting) {
-                booleans |= 2;
-            }
-            dest.writeByte((byte) booleans);
+            dest.writeByte((byte) (includeTargetBunch? 1 : 0));
             dest.writeInt(targetBunch);
 
             dest.writeInt(sourceBunches.size());
@@ -126,14 +156,26 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 dest.writeInt(value);
             }
 
-            dest.writeInt(matcher.size());
-            for (CorrelationEntry entry : matcher) {
+            dest.writeInt(startMatcher.size());
+            for (CorrelationEntry entry : startMatcher) {
                 dest.writeInt(entry.alphabet);
                 dest.writeString(entry.text);
             }
 
-            dest.writeInt(adder.size());
-            for (CorrelationEntry entry : adder) {
+            dest.writeInt(startAdder.size());
+            for (CorrelationEntry entry : startAdder) {
+                dest.writeInt(entry.alphabet);
+                dest.writeString(entry.text);
+            }
+
+            dest.writeInt(endMatcher.size());
+            for (CorrelationEntry entry : endMatcher) {
+                dest.writeInt(entry.alphabet);
+                dest.writeString(entry.text);
+            }
+
+            dest.writeInt(endAdder.size());
+            for (CorrelationEntry entry : endAdder) {
                 dest.writeInt(entry.alphabet);
                 dest.writeString(entry.text);
             }
@@ -169,9 +211,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private Button _targetBunchChangeButton;
     private LinearLayout _sourceBunchesContainer;
     private LinearLayout _diffBunchesContainer;
-    private LinearLayout _matchersContainer;
-    private LinearLayout _addersContainer;
-    private CheckBox _matchWordStartingCheckBox;
+    private LinearLayout _startMatchersContainer;
+    private LinearLayout _startAddersContainer;
+    private LinearLayout _endMatchersContainer;
+    private LinearLayout _endAddersContainer;
 
     private void updateAlphabets() {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
@@ -248,29 +291,37 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addDiffBunch(concept);
         }
 
-        _matchersContainer = findViewById(R.id.matchersContainer);
-        for (CorrelationEntry entry : _state.matcher) {
-            addMatcherEntry(entry);
+        _startMatchersContainer = findViewById(R.id.startMatchersContainer);
+        for (CorrelationEntry entry : _state.startMatcher) {
+            addEntry(entry, _startMatchersContainer, _state.startMatcher);
         }
-        findViewById(R.id.addMatcherButton).setOnClickListener(this);
+        findViewById(R.id.addStartMatcherButton).setOnClickListener(this);
 
-        _addersContainer = findViewById(R.id.addersContainer);
-        for (CorrelationEntry entry : _state.adder) {
-            addAdderEntry(entry);
+        _startAddersContainer = findViewById(R.id.startAddersContainer);
+        for (CorrelationEntry entry : _state.startAdder) {
+            addEntry(entry, _startAddersContainer, _state.startAdder);
         }
-        findViewById(R.id.addAdderButton).setOnClickListener(this);
+        findViewById(R.id.addStartAdderButton).setOnClickListener(this);
 
-        _matchWordStartingCheckBox = findViewById(R.id.matchWordStarting);
-        if (_state.matchWordStarting ||
-                _state.matcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
-                _state.adder.anyMatch(entry -> !TextUtils.isEmpty(entry.text))) {
+        _endMatchersContainer = findViewById(R.id.endMatchersContainer);
+        for (CorrelationEntry entry : _state.endMatcher) {
+            addEntry(entry, _endMatchersContainer, _state.endMatcher);
+        }
+        findViewById(R.id.addEndMatcherButton).setOnClickListener(this);
+
+        _endAddersContainer = findViewById(R.id.endAddersContainer);
+        for (CorrelationEntry entry : _state.endAdder) {
+            addEntry(entry, _endAddersContainer, _state.endAdder);
+        }
+        findViewById(R.id.addEndAdderButton).setOnClickListener(this);
+
+        if (_state.startMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
+                _state.startAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
+                _state.endMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
+                _state.endAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text))) {
 
             enableFlagAndRuleFields();
-            if (_state.matchWordStarting) {
-                _matchWordStartingCheckBox.setChecked(true);
-            }
         }
-        _matchWordStartingCheckBox.setOnCheckedChangeListener(this);
 
         findViewById(R.id.ruleChangeButton).setOnClickListener(this);
 
@@ -282,9 +333,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         findViewById(R.id.saveButton).setOnClickListener(this);
     }
 
-    private void addMatcherEntry(CorrelationEntry entry) {
-        getLayoutInflater().inflate(R.layout.agent_editor_correlation_entry, _matchersContainer, true);
-        final View view = _matchersContainer.getChildAt(_matchersContainer.getChildCount() - 1);
+    private void addEntry(CorrelationEntry entry, LinearLayout container, MutableList<CorrelationEntry> entries) {
+        getLayoutInflater().inflate(R.layout.agent_editor_correlation_entry, container, true);
+        final View view = container.getChildAt(container.getChildCount() - 1);
 
         final Spinner alphabetSpinner = view.findViewById(R.id.alphabet);
         alphabetSpinner.setAdapter(new AlphabetAdapter());
@@ -300,48 +351,17 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
         textField.addTextChangedListener(new CorrelationTextWatcher(entry));
 
-        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeMatcherEntry(entry));
+        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeEntry(entry, container, entries));
     }
 
-    private void removeMatcherEntry(CorrelationEntry entry) {
-        final int position = _state.matcher.indexOf(entry);
+    private static void removeEntry(CorrelationEntry entry, LinearLayout container, MutableList<CorrelationEntry> entries) {
+        final int position = entries.indexOf(entry);
         if (position < 0) {
             throw new AssertionError();
         }
 
-        _matchersContainer.removeViewAt(position);
-        _state.matcher.removeAt(position);
-    }
-
-    private void addAdderEntry(CorrelationEntry entry) {
-        getLayoutInflater().inflate(R.layout.agent_editor_correlation_entry, _addersContainer, true);
-        final View view = _addersContainer.getChildAt(_addersContainer.getChildCount() - 1);
-
-        final Spinner alphabetSpinner = view.findViewById(R.id.alphabet);
-        alphabetSpinner.setAdapter(new AlphabetAdapter());
-        final int position = _alphabets.keySet().indexOf(entry.alphabet);
-        if (position >= 0) {
-            alphabetSpinner.setSelection(position);
-        }
-        alphabetSpinner.setOnItemSelectedListener(new AlphabetSelectedListener(entry));
-
-        final EditText textField = view.findViewById(R.id.text);
-        if (entry.text != null) {
-            textField.setText(entry.text);
-        }
-        textField.addTextChangedListener(new CorrelationTextWatcher(entry));
-
-        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeAdderEntry(entry));
-    }
-
-    private void removeAdderEntry(CorrelationEntry entry) {
-        final int position = _state.adder.indexOf(entry);
-        if (position < 0) {
-            throw new AssertionError();
-        }
-
-        _addersContainer.removeViewAt(position);
-        _state.adder.removeAt(position);
+        container.removeViewAt(position);
+        entries.removeAt(position);
     }
 
     private final class AlphabetSelectedListener implements AdapterView.OnItemSelectedListener {
@@ -394,7 +414,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private void enableFlagAndRuleFields() {
         if (!_enabledFlagAndRuleFields) {
-            _matchWordStartingCheckBox.setEnabled(true);
             findViewById(R.id.rulePickerPanel).setVisibility(View.VISIBLE);
             _enabledFlagAndRuleFields = true;
         }
@@ -482,25 +501,27 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     @Override
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        switch (buttonView.getId()) {
-            case R.id.includeTargetBunch:
-                if (isChecked) {
-                    if (_state.targetBunch == NO_BUNCH) {
-                        AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH);
-                    }
-                    else {
-                        _targetBunchChangeButton.setEnabled(true);
-                    }
-                }
-                else {
-                    _targetBunchChangeButton.setEnabled(false);
-                }
-                _state.includeTargetBunch = isChecked;
-                break;
-
-            case R.id.matchWordStarting:
-                _state.matchWordStarting = isChecked;
+        if (isChecked) {
+            if (_state.targetBunch == NO_BUNCH) {
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH);
+            }
+            else {
+                _targetBunchChangeButton.setEnabled(true);
+            }
         }
+        else {
+            _targetBunchChangeButton.setEnabled(false);
+        }
+
+        _state.includeTargetBunch = isChecked;
+    }
+
+    private static ImmutableIntKeyMap<String> buildCorrelation(List<CorrelationEntry> entries) {
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        for (CorrelationEntry corrEntry : entries) {
+            builder.put(corrEntry.alphabet, corrEntry.text);
+        }
+        return builder.build();
     }
 
     @Override
@@ -518,16 +539,28 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_DIFF_BUNCH);
                 break;
 
-            case R.id.addMatcherButton:
+            case R.id.addStartMatcherButton:
                 CorrelationEntry entry = new CorrelationEntry(_alphabets.keyAt(0), null);
-                _state.matcher.append(entry);
-                addMatcherEntry(entry);
+                _state.startMatcher.append(entry);
+                addEntry(entry, _startMatchersContainer, _state.startMatcher);
                 break;
 
-            case R.id.addAdderButton:
+            case R.id.addStartAdderButton:
                 entry = new CorrelationEntry(_alphabets.keyAt(0), null);
-                _state.adder.append(entry);
-                addAdderEntry(entry);
+                _state.startAdder.append(entry);
+                addEntry(entry, _startAddersContainer, _state.startAdder);
+                break;
+
+            case R.id.addEndMatcherButton:
+                entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                _state.endMatcher.append(entry);
+                addEntry(entry, _endMatchersContainer, _state.endMatcher);
+                break;
+
+            case R.id.addEndAdderButton:
+                entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                _state.endAdder.append(entry);
+                addEntry(entry, _endAddersContainer, _state.endAdder);
                 break;
 
             case R.id.ruleChangeButton:
@@ -543,24 +576,16 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     final Database db = DbManager.getInstance().getDatabase();
                     final int targetBunch = _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH;
 
-                    final ImmutableIntKeyMap.Builder<String> matcherBuilder = new ImmutableIntKeyMap.Builder<>();
-                    for (CorrelationEntry corrEntry : _state.matcher) {
-                        matcherBuilder.put(corrEntry.alphabet, corrEntry.text);
-                    }
-                    final ImmutableIntKeyMap<String> matcher = matcherBuilder.build();
+                    final ImmutableIntKeyMap<String> startMatcher = buildCorrelation(_state.startMatcher);
+                    final ImmutableIntKeyMap<String> startAdder = buildCorrelation(_state.startAdder);
+                    final ImmutableIntKeyMap<String> endMatcher = buildCorrelation(_state.endMatcher);
+                    final ImmutableIntKeyMap<String> endAdder = buildCorrelation(_state.endAdder);
 
-                    final ImmutableIntKeyMap.Builder<String> adderBuilder = new ImmutableIntKeyMap.Builder<>();
-                    for (CorrelationEntry corrEntry : _state.adder) {
-                        adderBuilder.put(corrEntry.alphabet, corrEntry.text);
-                    }
-                    final ImmutableIntKeyMap<String> adder = adderBuilder.build();
-
-                    final int rule = matcher.equals(adder)? NO_RULE : _state.rule;
-                    final int flags = _state.matchWordStarting? 1 : 0;
+                    final int rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? NO_RULE : _state.rule;
 
                     final Integer agentId = LangbookDatabase.addAgent(db, targetBunch,
                             _state.sourceBunches.toImmutable().toSet(), _state.diffBunches.toImmutable().toSet(),
-                            matcher, adder, rule, flags);
+                            startMatcher, startAdder, endMatcher, endAdder, rule);
                     final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     if (agentId != null) {
@@ -654,31 +679,51 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         final MutableIntSet alphabets = MutableIntSet.empty();
-        for (CorrelationEntry entry : _state.matcher) {
+        for (CorrelationEntry entry : _state.startMatcher) {
             if (alphabets.contains(entry.alphabet)) {
-                return "Unable to duplicate alphabet in matcher";
+                return "Unable to duplicate alphabet in start matcher";
             }
             alphabets.add(entry.alphabet);
 
             if (TextUtils.isEmpty(entry.text)) {
-                return "Matcher entries cannot be empty";
+                return "Start matcher entries cannot be empty";
             }
         }
 
         alphabets.clear();
-        for (CorrelationEntry entry : _state.adder) {
+        for (CorrelationEntry entry : _state.startAdder) {
             if (alphabets.contains(entry.alphabet)) {
-                return "Unable to duplicate alphabet in adder";
+                return "Unable to duplicate alphabet in start adder";
             }
             alphabets.add(entry.alphabet);
         }
 
-        if (_state.sourceBunches.isEmpty() && _state.matcher.isEmpty()) {
-            // This would select all acceptations from the database, which has no sense
-            return "Source bunches and matcher cannot be both empty";
+        alphabets.clear();
+        for (CorrelationEntry entry : _state.endMatcher) {
+            if (alphabets.contains(entry.alphabet)) {
+                return "Unable to duplicate alphabet in end matcher";
+            }
+            alphabets.add(entry.alphabet);
+
+            if (TextUtils.isEmpty(entry.text)) {
+                return "End matcher entries cannot be empty";
+            }
         }
 
-        final boolean ruleRequired = !_state.matcher.equals(_state.adder);
+        alphabets.clear();
+        for (CorrelationEntry entry : _state.endAdder) {
+            if (alphabets.contains(entry.alphabet)) {
+                return "Unable to duplicate alphabet in end adder";
+            }
+            alphabets.add(entry.alphabet);
+        }
+
+        if (_state.sourceBunches.isEmpty() && _state.startMatcher.isEmpty() && _state.endMatcher.isEmpty()) {
+            // This would select all acceptations from the database, which has no sense
+            return "Source bunches and matchers cannot be both empty";
+        }
+
+        final boolean ruleRequired = !_state.startMatcher.equals(_state.startAdder) || !_state.endMatcher.equals(_state.endAdder);
         if (ruleRequired && _state.rule == NO_RULE) {
             return "Rule is required when matcher and adder do not match";
         }

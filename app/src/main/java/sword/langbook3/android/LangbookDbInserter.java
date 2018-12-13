@@ -3,6 +3,7 @@ package sword.langbook3.android;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.langbook3.android.db.DbInsertQuery;
 import sword.langbook3.android.db.DbInserter;
@@ -143,17 +144,17 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static Integer insertAgent(DbInserter db, int targetBunch, int sourceBunchSetId,
-                            int diffBunchSetId, int matcherId, int adderId, int rule, int flags) {
+    public static Integer insertAgent(DbInserter db, AgentRegister register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getTargetBunchColumnIndex(), targetBunch)
-                .put(table.getSourceBunchSetColumnIndex(), sourceBunchSetId)
-                .put(table.getDiffBunchSetColumnIndex(), diffBunchSetId)
-                .put(table.getMatcherColumnIndex(), matcherId)
-                .put(table.getAdderColumnIndex(), adderId)
-                .put(table.getRuleColumnIndex(), rule)
-                .put(table.getFlagsColumnIndex(), flags)
+                .put(table.getTargetBunchColumnIndex(), register.targetBunch)
+                .put(table.getSourceBunchSetColumnIndex(), register.sourceBunchSetId)
+                .put(table.getDiffBunchSetColumnIndex(), register.diffBunchSetId)
+                .put(table.getStartMatcherColumnIndex(), register.startMatcherId)
+                .put(table.getStartAdderColumnIndex(), register.startAdderId)
+                .put(table.getEndMatcherColumnIndex(), register.endMatcherId)
+                .put(table.getEndAdderColumnIndex(), register.endAdderId)
+                .put(table.getRuleColumnIndex(), register.rule)
                 .build();
         return db.insert(query);
     }

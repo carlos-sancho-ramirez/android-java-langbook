@@ -29,8 +29,11 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntPairMap;
+import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
+import sword.langbook3.android.LangbookReadableDatabase;
+import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbImporter.Database;
 import sword.langbook3.android.db.DbInsertQuery;
@@ -494,7 +497,7 @@ public final class StreamedDatabaseReader {
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = StreamedDatabaseConstants.minValidConcept;
             int desiredSetId = getMaxBunchSetId(_db) + 1;
-            final Map<ImmutableIntSet, Integer> insertedBunchSets = new HashMap<>();
+            final MutableIntValueMap<ImmutableIntSet> insertedBunchSets = MutableIntValueMap.empty();
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, maxConcept);
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 
@@ -519,21 +522,20 @@ public final class StreamedDatabaseReader {
                     minSource = min;
                 }
 
-                final int matcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final int adderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final ImmutableIntPairMap adder = getCorrelation(_db, adderId);
+                final int startMatcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                final int startAdderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                final int endMatcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                final int endAdderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
 
-                final boolean adderNonEmpty = adder.size() > 0;
-                final int rule = adderNonEmpty?
+                final boolean hasRule = startMatcherId != startAdderId || endMatcherId != endAdderId;
+                final int rule = hasRule?
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final boolean fromStart = (adderNonEmpty || getCorrelation(_db, matcherId).size() > 0) && ibs.readBoolean();
-                final int flags = fromStart? 1 : 0;
-
-                final Integer reusedBunchSetId = insertedBunchSets.get(sourceSet);
+                final int noPresent = -1;
+                final int reusedBunchSetId = insertedBunchSets.get(sourceSet, noPresent);
                 final int sourceBunchSetId;
-                if (reusedBunchSetId != null) {
+                if (reusedBunchSetId != noPresent) {
                     sourceBunchSetId = reusedBunchSetId;
                 }
                 else {
@@ -546,11 +548,8 @@ public final class StreamedDatabaseReader {
 
                 final int diffBunchSetId = 0;
 
-                if (rule != StreamedDatabaseConstants.nullRuleId && matcherId == adderId) {
-                    throw new AssertionError("When rule is provided, modification is expected, but matcher and adder are the same");
-                }
-
-                final int agentId = insertAgent(_db, targetBunch, sourceBunchSetId, diffBunchSetId, matcherId, adderId, rule, flags);
+                final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
+                final int agentId = insertAgent(_db, register);
 
                 final ImmutableIntSet diffSet = new ImmutableIntSetBuilder().build();
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));

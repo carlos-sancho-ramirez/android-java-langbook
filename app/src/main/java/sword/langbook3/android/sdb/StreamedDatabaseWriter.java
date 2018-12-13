@@ -867,10 +867,11 @@ public final class StreamedDatabaseWriter {
             query = new DbQuery.Builder(table).select(
                     table.getTargetBunchColumnIndex(),
                     table.getSourceBunchSetColumnIndex(),
-                    table.getMatcherColumnIndex(),
-                    table.getAdderColumnIndex(),
-                    table.getRuleColumnIndex(),
-                    table.getFlagsColumnIndex());
+                    table.getStartMatcherColumnIndex(),
+                    table.getStartAdderColumnIndex(),
+                    table.getEndMatcherColumnIndex(),
+                    table.getEndAdderColumnIndex(),
+                    table.getRuleColumnIndex());
             result = _db.select(query);
             try {
                 final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
@@ -880,10 +881,11 @@ public final class StreamedDatabaseWriter {
                     final List<DbValue> row = result.next();
                     final int targetBunch = row.get(0).toInt();
                     final int sourceBunchSetId = row.get(1).toInt();
-                    final int matcher = row.get(2).toInt();
-                    final int adder = row.get(3).toInt();
-                    final int rule = row.get(4).toInt();
-                    final int flags = row.get(5).toInt();
+                    final int startMatcher = row.get(2).toInt();
+                    final int startAdder = row.get(3).toInt();
+                    final int endMatcher = row.get(4).toInt();
+                    final int endAdder = row.get(5).toInt();
+                    final int rule = row.get(6).toInt();
 
                     final RangedIntegerHuffmanTable targetBunchTable = new RangedIntegerHuffmanTable(lastTarget, maxConcept);
                     _obs.writeHuffmanSymbol(targetBunchTable, targetBunch);
@@ -900,16 +902,14 @@ public final class StreamedDatabaseWriter {
                         minSource = sourceBunchSet.min();
                     }
 
-                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(matcher));
-                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(adder));
+                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(startMatcher));
+                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(startAdder));
+                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(endMatcher));
+                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(endAdder));
 
-                    if (adder != nullCorrelationSetId) {
+                    final boolean hasRule = startMatcher != startAdder || endMatcher != endAdder;
+                    if (hasRule) {
                         _obs.writeHuffmanSymbol(conceptTable, rule);
-                    }
-
-                    if (matcher != nullCorrelationSetId || adder != nullCorrelationSetId) {
-                        final boolean fromStart = (flags & 1) != 0;
-                        _obs.writeBoolean(fromStart);
                     }
 
                     lastTarget = targetBunch;
@@ -1065,15 +1065,18 @@ public final class StreamedDatabaseWriter {
 
     private ImmutableIntSet listAgentCorrelations() {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(table).select(table.getMatcherColumnIndex(), table.getAdderColumnIndex());
+        final DbQuery query = new DbQuery.Builder(table).select(table.getStartMatcherColumnIndex(),
+                table.getStartAdderColumnIndex(), table.getEndMatcherColumnIndex(), table.getEndAdderColumnIndex());
         final DbResult result = _db.select(query);
 
         final ImmutableIntSetBuilder correlations = new ImmutableIntSetBuilder();
         try {
-            while(result.hasNext()) {
+            while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 correlations.add(row.get(0).toInt());
                 correlations.add(row.get(1).toInt());
+                correlations.add(row.get(2).toInt());
+                correlations.add(row.get(3).toInt());
             }
         }
         finally {

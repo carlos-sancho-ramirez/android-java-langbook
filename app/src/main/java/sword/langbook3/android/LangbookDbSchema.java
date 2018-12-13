@@ -43,7 +43,9 @@ public final class LangbookDbSchema implements DbSchema {
 
         private AgentsTable() {
             super("Agents", new DbIntColumn("target"), new DbIntColumn("sourceSet"), new DbIntColumn("diffSet"),
-                    new DbIntColumn("matcher"), new DbIntColumn("adder"), new DbIntColumn("rule"), new DbIntColumn("flags"));
+                    new DbIntColumn("startMatcher"), new DbIntColumn("startAdder"),
+                    new DbIntColumn("endMatcher"), new DbIntColumn("endAdder"),
+                    new DbIntColumn("rule"));
         }
 
         public int getTargetBunchColumnIndex() {
@@ -58,20 +60,24 @@ public final class LangbookDbSchema implements DbSchema {
             return 3;
         }
 
-        public int getMatcherColumnIndex() {
+        public int getStartMatcherColumnIndex() {
             return 4;
         }
 
-        public int getAdderColumnIndex() {
+        public int getStartAdderColumnIndex() {
             return 5;
         }
 
-        public int getRuleColumnIndex() {
+        public int getEndMatcherColumnIndex() {
             return 6;
         }
 
-        public int getFlagsColumnIndex() {
+        public int getEndAdderColumnIndex() {
             return 7;
+        }
+
+        public int getRuleColumnIndex() {
+            return 8;
         }
 
         public int nullReference() {

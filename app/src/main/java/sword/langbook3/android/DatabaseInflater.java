@@ -112,60 +112,69 @@ public final class DatabaseInflater {
         }
     }
 
-    private boolean agentFromStart(int flags) {
-        return (flags & 1) != 0;
-    }
-
     /**
      * @return True if the suggestedNewWordId has been used.
      */
-    private void applyAgent(int agentId, AgentSetSupplier agentSetSupplier,
-            int accId, int concept, int targetBunch,
-            IntKeyMap<String> matcher, IntKeyMap<String> adder, int rule,
-            IntKeyMap<String> corr, int flags) {
+    private void applyAgent(int agentId, AgentSetSupplier agentSetSupplier, int accId, int concept,
+            int targetBunch, IntKeyMap<String> startMatcher, IntKeyMap<String> startAdder,
+            IntKeyMap<String> endMatcher, IntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr) {
         boolean matching = true;
 
-        final int matcherLength = matcher.size();
-        for (int i = 0; i < matcherLength; i++) {
-            final int alphabet = matcher.keyAt(i);
+        final int startMatcherLength = startMatcher.size();
+        for (int i = 0; matching && i < startMatcherLength; i++) {
+            final int alphabet = startMatcher.keyAt(i);
             final String corrStr = corr.get(alphabet, null);
-            final String matcherStr = matcher.valueAt(i);
-            matching = corrStr != null && (
-                    agentFromStart(flags) && corrStr.startsWith(matcherStr) ||
-                            !agentFromStart(flags) && corrStr.endsWith(matcherStr)
-            );
+            final String matcherStr = startMatcher.valueAt(i);
+            matching = corrStr != null && corrStr.startsWith(matcherStr);
+        }
 
-            if (!matching) {
-                break;
-            }
+        final int endMatcherLength = endMatcher.size();
+        for (int i = 0; matching && i < endMatcherLength; i++) {
+            final int alphabet = endMatcher.keyAt(i);
+            final String corrStr = corr.get(alphabet, null);
+            final String matcherStr = endMatcher.valueAt(i);
+            matching = corrStr != null && corrStr.endsWith(matcherStr);
         }
 
         if (matching) {
             int targetAccId = accId;
-            final boolean modifyWords = !matcher.equals(adder);
+            final boolean modifyWords = !startMatcher.equals(startAdder) || !endMatcher.equals(endAdder);
 
             if (modifyWords) {
-                MutableIntKeyMap<String> resultCorr = MutableIntKeyMap.empty();
+                final MutableIntKeyMap<String> resultCorr = MutableIntKeyMap.empty();
                 final int corrLength = corr.size();
                 for (int i = 0; i < corrLength; i++) {
                     final int alphabet = corr.keyAt(i);
-                    final String matcherStr = matcher.get(alphabet, null);
-                    final int removeLength = (matcherStr != null) ? matcherStr.length() : 0;
+
+                    final String startMatcherStr = startMatcher.get(alphabet, null);
+                    final int startRemoveLength = (startMatcherStr != null) ? startMatcherStr.length() : 0;
+
+                    final String endMatcherStr = endMatcher.get(alphabet, null);
+                    final int endRemoveLength = (endMatcherStr != null) ? endMatcherStr.length() : 0;
 
                     final String corrStr = corr.valueAt(i);
-                    final String resultStr = agentFromStart(flags) ?
-                            corrStr.substring(removeLength) :
-                            corrStr.substring(0, corrStr.length() - removeLength);
+                    final int endSubstringIndex = corrStr.length() - endRemoveLength;
+                    if (endSubstringIndex > startRemoveLength) {
+                        final String resultStr = corrStr.substring(startRemoveLength, corrStr.length() - endRemoveLength);
+                        resultCorr.put(alphabet, resultStr);
+                    }
+                }
 
+                final int startAdderLength = startAdder.size();
+                for (int i = 0; i < startAdderLength; i++) {
+                    final int alphabet = startAdder.keyAt(i);
+                    final String prefix = startAdder.valueAt(i);
+                    final String currentStr = resultCorr.get(alphabet, null);
+                    final String resultStr = (currentStr != null) ? prefix + currentStr : prefix;
                     resultCorr.put(alphabet, resultStr);
                 }
 
-                final int adderLength = adder.size();
-                for (int i = 0; i < adderLength; i++) {
-                    final int alphabet = adder.keyAt(i);
-                    final String addition = adder.valueAt(i);
+                final int endAdderLength = endAdder.size();
+                for (int i = 0; i < endAdderLength; i++) {
+                    final int alphabet = endAdder.keyAt(i);
+                    final String suffix = endAdder.valueAt(i);
                     final String currentStr = resultCorr.get(alphabet, null);
-                    final String resultStr = (currentStr != null) ? currentStr + addition : addition;
+                    final String resultStr = (currentStr != null) ? currentStr + suffix : suffix;
                     resultCorr.put(alphabet, resultStr);
                 }
 
@@ -273,9 +282,12 @@ public final class DatabaseInflater {
         LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final AgentRegister register = getAgentRegister(_db, agentId);
-        final ImmutableIntKeyMap<String> matcher = getCorrelationWithText(_db, register.matcherId);
-        final ImmutableIntKeyMap<String> adder = (register.matcherId != register.adderId)?
-                getCorrelationWithText(_db, register.adderId) : matcher;
+        final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> correlationCache =
+                new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelationWithText(_db, id));
+        final ImmutableIntKeyMap<String> startMatcher = correlationCache.get(register.startMatcherId);
+        final ImmutableIntKeyMap<String> startAdder = correlationCache.get(register.startAdderId);
+        final ImmutableIntKeyMap<String> endMatcher = correlationCache.get(register.endMatcherId);
+        final ImmutableIntKeyMap<String> endAdder = correlationCache.get(register.endAdderId);
 
         final int bunchAccsOffset = bunchSets.columns().size();
         final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
@@ -311,7 +323,7 @@ public final class DatabaseInflater {
                     newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
                         applyAgent(agentId, agentSetSupplier, accId, concept, register.targetBunch,
-                                matcher, adder, register.rule, corr, register.flags);
+                                startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
 
                         accId = newAccId;
                         corr.clear();
@@ -324,7 +336,7 @@ public final class DatabaseInflater {
                 }
 
                 applyAgent(agentId, agentSetSupplier, accId, concept, register.targetBunch,
-                        matcher, adder, register.rule, corr, register.flags);
+                        startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
             }
         }
         finally {

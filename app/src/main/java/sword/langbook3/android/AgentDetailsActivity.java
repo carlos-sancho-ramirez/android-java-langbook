@@ -11,16 +11,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.List;
-import sword.collections.MutableIntKeyMap;
-import sword.langbook3.android.LangbookDbSchema.AgentsTable;
-import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
@@ -48,30 +43,15 @@ public final class AgentDetailsActivity extends Activity {
 
     boolean _deleteDialogPresent;
 
-    int _targetBunch;
-    int _sourceBunchSet;
-    int _diffBunchSet;
-    int _matcher;
-    int _adder;
-    int _rule;
+    AgentRegister _register;
 
-    void readAgent() {
-        final AgentsTable table = Tables.agents; // J0
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), _agentId)
-                .select(table.getTargetBunchColumnIndex(),
-                        table.getSourceBunchSetColumnIndex(),
-                        table.getDiffBunchSetColumnIndex(),
-                        table.getMatcherColumnIndex(),
-                        table.getAdderColumnIndex(),
-                        table.getRuleColumnIndex());
-        final List<DbValue> row = DbManager.getInstance().selectSingleRow(query);
-        _targetBunch = row.get(0).toInt();
-        _sourceBunchSet = row.get(1).toInt();
-        _diffBunchSet = row.get(2).toInt();
-        _matcher = row.get(3).toInt();
-        _adder = row.get(4).toInt();
-        _rule = row.get(5).toInt();
+    private void dumpCorrelation(Database db, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, StringBuilder sb) {
+        ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, correlationId);
+        for (int i = 0; i < matcher.size(); i++) {
+            final int alphabet = matcher.keyAt(i);
+            final String alphabetText = alphabetTexts.get(alphabet);
+            sb.append("\n  * ").append(alphabetText).append(" -> ").append(matcher.valueAt(i));
+        }
     }
 
     @Override
@@ -92,52 +72,40 @@ public final class AgentDetailsActivity extends Activity {
         setTitle(AGENT_QUERY_PREFIX + '#' + _agentId);
 
         final Database db = DbManager.getInstance().getDatabase();
-        readAgent();
+        _register = getAgentRegister(DbManager.getInstance().getDatabase(), _agentId);
 
         final StringBuilder s = new StringBuilder();
-        if (_targetBunch != NO_BUNCH) {
-            DisplayableItem targetResult = readConceptAcceptationAndText(db, _targetBunch, _preferredAlphabet);
-            s.append("Target: ").append(targetResult.text).append(" (").append(_targetBunch).append(")\n");
+        if (_register.targetBunch != NO_BUNCH) {
+            DisplayableItem targetResult = readConceptAcceptationAndText(db, _register.targetBunch, _preferredAlphabet);
+            s.append("Target: ").append(targetResult.text).append(" (").append(_register.targetBunch).append(")\n");
         }
 
-        s.append("Source Bunch Set (").append(_sourceBunchSet).append("):");
-        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _sourceBunchSet, _preferredAlphabet)) {
+        s.append("Source Bunch Set (").append(_register.sourceBunchSetId).append("):");
+        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _register.sourceBunchSetId, _preferredAlphabet)) {
             s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
-        s.append("\nDiff Bunch Set (").append(_diffBunchSet).append("):");
-        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _diffBunchSet, _preferredAlphabet)) {
+        s.append("\nDiff Bunch Set (").append(_register.diffBunchSetId).append("):");
+        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _register.diffBunchSetId, _preferredAlphabet)) {
             s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
-        final MutableIntKeyMap<String> alphabetTexts = MutableIntKeyMap.empty();
-        s.append("\nMatcher: ").append(_matcher);
-        ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, _matcher);
-        for (int i = 0; i < matcher.size(); i++) {
-            final int alphabet = matcher.keyAt(i);
-            String alphabetText = alphabetTexts.get(alphabet, null);
-            if (alphabetText == null) {
-                alphabetText = readConceptText(db, alphabet, _preferredAlphabet);
-                alphabetTexts.put(alphabet, alphabetText);
-            }
-            s.append("\n  * ").append(alphabetText).append(" -> ").append(matcher.valueAt(i));
-        }
+        final SyncCacheIntKeyNonNullValueMap<String> alphabetTexts = new SyncCacheIntKeyNonNullValueMap<>(alphabet -> readConceptText(db, alphabet, _preferredAlphabet));
+        s.append("\nStart Matcher: ").append(_register.startMatcherId);
+        dumpCorrelation(db, _register.startMatcherId, alphabetTexts, s);
 
-        s.append("\nAdder: ").append(_adder);
-        ImmutableIntKeyMap<String> adder = getCorrelationWithText(db, _adder);
-        for (int i = 0; i < adder.size(); i++) {
-            final int alphabet = adder.keyAt(i);
-            String alphabetText = alphabetTexts.get(alphabet, null);
-            if (alphabetText == null) {
-                alphabetText = readConceptText(db, alphabet, _preferredAlphabet);
-                alphabetTexts.put(alphabet, alphabetText);
-            }
-            s.append("\n  * ").append(alphabetText).append(" -> ").append(adder.valueAt(i));
-        }
+        s.append("\nStart Adder: ").append(_register.startAdderId);
+        dumpCorrelation(db, _register.startAdderId, alphabetTexts, s);
 
-        if (_rule != 0) {
-            DisplayableItem ruleResult = readConceptAcceptationAndText(db, _rule, _preferredAlphabet);
-            s.append("\nRule: ").append(ruleResult.text).append(" (").append(_rule).append(')');
+        s.append("\nEnd Matcher: ").append(_register.endMatcherId);
+        dumpCorrelation(db, _register.endMatcherId, alphabetTexts, s);
+
+        s.append("\nEnd Adder: ").append(_register.endAdderId);
+        dumpCorrelation(db, _register.endAdderId, alphabetTexts, s);
+
+        if (_register.rule != 0) {
+            DisplayableItem ruleResult = readConceptAcceptationAndText(db, _register.rule, _preferredAlphabet);
+            s.append("\nRule: ").append(ruleResult.text).append(" (").append(_register.rule).append(')');
         }
 
         final TextView tv = findViewById(R.id.textView);
