@@ -202,6 +202,16 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AcceptationNavigableItem(AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED, r.id, r.text, r.dynamic));
         }
 
+        boolean sentenceFound = false;
+        for (String sentence : _model.sampleSentences) {
+            if (!sentenceFound) {
+                result.add(new HeaderItem("Sample sentences"));
+                sentenceFound = true;
+            }
+
+            result.add(new NonNavigableItem(sentence));
+        }
+
         boolean agentFound = false;
         for (IntPairMap.Entry entry : _model.involvedAgents.entries()) {
             if (!agentFound) {

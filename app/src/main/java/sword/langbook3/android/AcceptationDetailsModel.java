@@ -21,6 +21,7 @@ public final class AcceptationDetailsModel {
     public final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded;
     public final ImmutableList<MorphologyResult> morphologies;
     public final ImmutableIntPairMap involvedAgents;
+    public final ImmutableList<String> sampleSentences;
 
     /**
      * Maps languages (concepts) with the suitable representation text.
@@ -39,12 +40,14 @@ public final class AcceptationDetailsModel {
             ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded,
             ImmutableList<MorphologyResult> morphologies,
             ImmutableIntPairMap involvedAgents,
-            ImmutableIntKeyMap<String> languageTexts
+            ImmutableIntKeyMap<String> languageTexts,
+            ImmutableList<String> sampleSentences
     ) {
         if (language == null || correlationIds == null || correlations == null ||
                 supertypes == null || subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
-                morphologies == null || involvedAgents == null || languageTexts == null) {
+                morphologies == null || involvedAgents == null || languageTexts == null ||
+                sampleSentences == null) {
             throw new IllegalArgumentException();
         }
 
@@ -68,6 +71,7 @@ public final class AcceptationDetailsModel {
         this.morphologies = morphologies;
         this.involvedAgents = involvedAgents;
         this.languageTexts = languageTexts;
+        this.sampleSentences = sampleSentences;
     }
 
     public String getTitle(int preferredAlphabet) {

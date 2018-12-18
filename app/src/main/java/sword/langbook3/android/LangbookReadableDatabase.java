@@ -2346,6 +2346,23 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    private static ImmutableList<String> getSampleSentences(DbExporter.Database db, int staticAcceptation) {
+        final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
+        final DbQuery query = new DbQuery.Builder(spans)
+                .where(spans.getAcceptation(), staticAcceptation)
+                .select(spans.getSymbolArray());
+
+        final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final int symbolArrayId = dbResult.next().get(0).toInt();
+                builder.add(getSymbolArray(db, symbolArrayId));
+            }
+        }
+
+        return builder.build();
+    }
+
     public static AcceptationDetailsModel getAcceptationsDetails(
             DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
         final int concept = conceptFromAcceptation(db, staticAcceptation);
@@ -2380,10 +2397,11 @@ public final class LangbookReadableDatabase {
             supertypesBuilder.put(definition.id, definition.text);
         }
 
+        final ImmutableList<String> sampleSentences = getSampleSentences(db, staticAcceptation);
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
                 correlationResultPair.right, supertypesBuilder.build(), subtypes,
                 synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
-                morphologyResults, involvedAgents, languageStrs.toImmutable());
+                morphologyResults, involvedAgents, languageStrs.toImmutable(), sampleSentences);
     }
 
     public static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {

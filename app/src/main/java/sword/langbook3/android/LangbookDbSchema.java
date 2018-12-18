@@ -369,6 +369,30 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    public static final class SpanTable extends DbTable {
+
+        private SpanTable() {
+            super("SpanTable", new DbIntColumn("symbolArray"), new DbIntColumn("start"),
+                    new DbIntColumn("end"), new DbIntColumn("acceptation"));
+        }
+
+        public int getSymbolArray() {
+            return 1;
+        }
+
+        public int getStart() {
+            return 2;
+        }
+
+        public int getEnd() {
+            return 3;
+        }
+
+        public int getAcceptation() {
+            return 4;
+        }
+    }
+
     public static final class StringQueriesTable extends DbTable {
 
         private StringQueriesTable() {
@@ -426,6 +450,7 @@ public final class LangbookDbSchema implements DbSchema {
         RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
         RuledConceptsTable ruledConcepts = new RuledConceptsTable();
         SearchHistoryTable searchHistory = new SearchHistoryTable();
+        SpanTable spans = new SpanTable();
         StringQueriesTable stringQueries = new StringQueriesTable();
         SymbolArraysTable symbolArrays = new SymbolArraysTable();
     }
@@ -448,6 +473,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.ruledAcceptations)
             .add(Tables.ruledConcepts)
             .add(Tables.searchHistory)
+            .add(Tables.spans)
             .add(Tables.stringQueries)
             .add(Tables.symbolArrays)
             .build();
