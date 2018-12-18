@@ -61,11 +61,12 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsDe
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
 
-    private static final int REQUEST_CODE_EDIT = 1;
-    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 2;
-    private static final int REQUEST_CODE_PICK_ACCEPTATION = 3;
-    private static final int REQUEST_CODE_PICK_BUNCH = 4;
-    private static final int REQUEST_CODE_PICK_SUPERTYPE = 5;
+    private static final int REQUEST_CODE_CREATE_SENTENCE = 1;
+    private static final int REQUEST_CODE_EDIT = 2;
+    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 3;
+    private static final int REQUEST_CODE_PICK_ACCEPTATION = 4;
+    private static final int REQUEST_CODE_PICK_BUNCH = 5;
+    private static final int REQUEST_CODE_PICK_SUPERTYPE = 6;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -374,7 +375,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     inflater.inflate(R.menu.acceptation_details_activity_delete_supertype, menu);
                 }
 
-                inflater.inflate(R.menu.acceptation_details_activity_delete_acceptation, menu);
+                inflater.inflate(R.menu.acceptation_details_activity_common_actions, menu);
             }
         }
 
@@ -423,6 +424,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 intent.putExtra(ResultKeys.ACCEPTATION, _staticAcceptation);
                 setResult(Activity.RESULT_OK, intent);
                 finish();
+                return true;
+
+            case R.id.menuItemNewSentence:
+                SentenceEditorActivity.open(this, REQUEST_CODE_CREATE_SENTENCE);
                 return true;
         }
 

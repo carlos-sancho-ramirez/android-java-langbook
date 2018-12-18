@@ -4,6 +4,7 @@
 
     <string name="languagePickerActivityTitle">Select a language</string>
     <string name="wordEditorActivityTitle">Fill representations</string>
+    <string name="sentenceEditorActivityTitle">Type your sentence</string>
     <string name="correlationPickerActivityTitle">Select its correlation</string>
     <string name="acceptationPickerActivityTitle">Select an acceptation</string>
     <string name="matchingBunchesPickerActivityTitle">Include in bunches</string>
@@ -16,6 +17,7 @@
 
     <string name="menuItemQuiz">Start quiz</string>
     <string name="menuItemNewAgent">New agent</string>
+    <string name="menuItemNewSentence">New Sentence</string>
     <string name="menuItemSettings">Preferences</string>
     <string name="menuItemAbout">About</string>
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
@@ -55,6 +57,8 @@
     <string name="agentEditorRuleDefaultText">Select a Rule</string>
 
     <string name="correlationPickerNextButton">Next</string>
+
+    <string name="sentenceEditorNextButton">Next</string>
 
     <string name="linkDialogTitle">Choose a link option</string>
     <string name="linkDialogShareConceptOption">Share concept</string>

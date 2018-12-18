@@ -58,6 +58,9 @@
         <activity
             android:name=".WordEditorActivity"
             android:label="@string/wordEditorActivityTitle"/>
+        <activity
+            android:name=".SentenceEditorActivity"
+            android:label="@string/sentenceEditorActivityTitle"/>
     </application>
 
 </manifest>
