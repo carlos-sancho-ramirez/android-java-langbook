@@ -4,9 +4,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
+import android.widget.EditText;
 
 public final class SentenceEditorActivity extends Activity implements View.OnClickListener {
+
+    private static final int REQUEST_CODE_ADD_SPAN = 1;
 
     static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
@@ -23,6 +25,15 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     @Override
     public void onClick(View v) {
-        Toast.makeText(this, "Button clicked", Toast.LENGTH_SHORT).show();
+        final EditText textField = findViewById(R.id.textField);
+        final String text = textField.getText().toString();
+        SpanEditorActivity.open(this, REQUEST_CODE_ADD_SPAN, text);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            finish();
+        }
     }
 }

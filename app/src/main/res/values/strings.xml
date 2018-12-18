@@ -5,6 +5,7 @@
     <string name="languagePickerActivityTitle">Select a language</string>
     <string name="wordEditorActivityTitle">Fill representations</string>
     <string name="sentenceEditorActivityTitle">Type your sentence</string>
+    <string name="spanEditorActivityTitle">Add spans</string>
     <string name="correlationPickerActivityTitle">Select its correlation</string>
     <string name="acceptationPickerActivityTitle">Select an acceptation</string>
     <string name="matchingBunchesPickerActivityTitle">Include in bunches</string>
@@ -30,6 +31,7 @@
     <string name="menuItemEdit">Edit</string>
     <string name="menuItemDelete">Delete</string>
     <string name="menuItemConfirm">Confirm</string>
+    <string name="menuItemAddSpan">Add</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
     <string name="deleteSupertypeConfirmationText">Are you sure that you want to remove this acceptation for its definition type?</string>
