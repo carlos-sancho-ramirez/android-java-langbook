@@ -66,6 +66,10 @@
         <activity
             android:name=".SpanEditorActivity"
             android:label="@string/spanEditorActivityTitle"/>
+
+        <activity
+            android:name=".FixedTextAcceptationPickerActivity"
+            android:label="@string/acceptationPickerActivityTitle"/>
     </application>
 
 </manifest>

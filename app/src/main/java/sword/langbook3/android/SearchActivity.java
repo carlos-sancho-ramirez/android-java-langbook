@@ -32,6 +32,10 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     private SearchResultAdapter _listAdapter;
     private String _query;
 
+    interface ArgKeys {
+        String TEXT = BundleKeys.TEXT;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,9 +45,22 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         _listView.setOnItemClickListener(this);
 
         findViewById(R.id.addWordButton).setOnClickListener(this);
+        _query = getIntent().getStringExtra(ArgKeys.TEXT);
 
-        final EditText searchField = findViewById(R.id.searchField);
-        searchField.addTextChangedListener(this);
+        prepareSearchField(findViewById(R.id.searchField));
+    }
+
+    private void prepareSearchField(EditText searchField) {
+        if (_query != null) {
+            searchField.setText(_query);
+        }
+
+        if (isQueryModifiable()) {
+            searchField.addTextChangedListener(this);
+        }
+        else {
+            searchField.setEnabled(false);
+        }
     }
 
     @Override
@@ -81,11 +98,23 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return ImmutableList.empty();
     }
 
+    boolean isQueryModifiable() {
+        return true;
+    }
+
+    int getSearchRestrictionType() {
+        return DbQuery.RestrictionStringTypes.STARTS_WITH;
+    }
+
+    boolean includeAgentsAsResult() {
+        return false;
+    }
+
     private ImmutableList<SearchResult> querySearchResults(DbExporter.Database db) {
         final StringQueriesTable table = Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(_query),
-                        DbQuery.RestrictionStringTypes.STARTS_WITH))
+                        getSearchRestrictionType()))
                 .select(
                         table.getStringColumnIndex(),
                         table.getMainStringColumnIndex(),
@@ -129,17 +158,13 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return builder.build();
     }
 
-    boolean includeAgentsAsResult() {
-        return false;
-    }
-
     private boolean possibleString(String str) {
         return str != null && _query != null && ((str.length() > _query.length())?
                 str.toLowerCase().startsWith(_query.toLowerCase()) :
                 _query.toLowerCase().startsWith(str.toLowerCase()));
     }
 
-    private void queryAllResults() {
+    final void queryAllResults() {
         ImmutableList<SearchResult> results = querySearchResults(DbManager.getInstance().getDatabase());
         if (includeAgentsAsResult() && _query != null && possibleString(AGENT_QUERY_PREFIX)) {
             results = results.appendAll(agentSearchResults().filter(entry -> possibleString(entry.getStr())));

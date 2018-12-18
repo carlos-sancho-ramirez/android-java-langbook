@@ -11,6 +11,8 @@ import android.widget.Toast;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
+    private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
+
     private interface ArgKeys {
         String TEXT = BundleKeys.TEXT;
     }
@@ -89,6 +91,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private void addSpan() {
         final int start = _sentenceText.getSelectionStart();
         final int end = _sentenceText.getSelectionEnd();
-        Toast.makeText(this, "Selection is " + start + '-' + end, Toast.LENGTH_SHORT).show();
+        if (start >= 0 && start < end) {
+            final String query = _sentenceText.getText().toString().substring(start, end);
+            FixedTextAcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION, query);
+        }
     }
 }
