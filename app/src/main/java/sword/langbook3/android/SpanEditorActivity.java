@@ -6,8 +6,11 @@ import android.os.Bundle;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import sword.collections.ImmutableIntRange;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
@@ -17,8 +20,15 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         String TEXT = BundleKeys.TEXT;
     }
 
+    private interface SavedKeys {
+        String STATE = "cSt";
+    }
+
     private TextView _sentenceText;
+    private ListView _listView;
     private ActionMode _selectionActionMode;
+
+    private SpanEditorActivityState _state = new SpanEditorActivityState();
 
     static void open(Activity activity, int requestCode, String text) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
@@ -31,9 +41,15 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         super.onCreate(savedInstanceState);
         setContentView(R.layout.span_editor_activity);
 
+        if (savedInstanceState != null) {
+            _state = savedInstanceState.getParcelable(SavedKeys.STATE);
+        }
+
         _sentenceText = findViewById(R.id.sentenceText);
         _sentenceText.setText(getIntent().getStringExtra(ArgKeys.TEXT));
         _sentenceText.setCustomSelectionActionModeCallback(this);
+
+        _listView = findViewById(R.id.listView);
     }
 
     @Override
@@ -91,9 +107,33 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private void addSpan() {
         final int start = _sentenceText.getSelectionStart();
         final int end = _sentenceText.getSelectionEnd();
-        if (start >= 0 && start < end) {
+        if (start >= 0 && start < end - 1) {
+            final ImmutableIntRange range = new ImmutableIntRange(start, end - 1);
             final String query = _sentenceText.getText().toString().substring(start, end);
+            _state.setSelection(range);
             FixedTextAcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION, query);
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_PICK_ACCEPTATION && resultCode == RESULT_OK && data != null) {
+            final int acceptation = data.getIntExtra(FixedTextAcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            if (acceptation != 0) {
+                _state.composeSpanWithCurrentSelection(acceptation);
+            }
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        _listView.setAdapter(new SpanEditorAdapter(_state.getSpans()));
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable(SavedKeys.STATE, _state);
     }
 }
