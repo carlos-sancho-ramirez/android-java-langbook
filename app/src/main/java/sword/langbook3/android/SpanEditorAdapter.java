@@ -10,10 +10,12 @@ import sword.collections.ImmutableSet;
 
 final class SpanEditorAdapter extends BaseAdapter {
 
+    private final String sentenceText;
     private final ImmutableSet<SpanEditorActivityState.SentenceSpan> spans;
     private LayoutInflater inflater;
 
-    SpanEditorAdapter(ImmutableSet<SpanEditorActivityState.SentenceSpan> spans) {
+    SpanEditorAdapter(String sentenceText, ImmutableSet<SpanEditorActivityState.SentenceSpan> spans) {
+        this.sentenceText = sentenceText;
         this.spans = spans;
     }
 
@@ -43,7 +45,7 @@ final class SpanEditorAdapter extends BaseAdapter {
 
         final SpanEditorActivityState.SentenceSpan span = getItem(position);
         final TextView textView = convertView.findViewById(R.id.text);
-        textView.setText(span.range.toString() + " - " + span.acceptation);
+        textView.setText(sentenceText.substring(span.range.min(), span.range.max() + 1));
         return convertView;
     }
 }

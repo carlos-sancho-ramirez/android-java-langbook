@@ -14,4 +14,7 @@
 
     <dimen name="correlationPronunciationTextSize">16sp</dimen>
     <dimen name="correlationMainTextSize">36sp</dimen>
+
+    <dimen name="spanEditorSentencePadding">16dp</dimen>
+    <dimen name="spanEditorEntryPadding">16dp</dimen>
 </resources>

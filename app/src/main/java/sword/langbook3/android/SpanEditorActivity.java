@@ -3,16 +3,22 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntRange;
+import sword.langbook3.android.SpanEditorActivityState.SentenceSpan;
 
-public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
+public final class SpanEditorActivity extends Activity implements ActionMode.Callback, AdapterView.OnItemClickListener {
 
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
 
@@ -36,6 +42,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         activity.startActivityForResult(intent, requestCode);
     }
 
+    private String getText() {
+        return getIntent().getStringExtra(ArgKeys.TEXT);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,10 +56,22 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
 
         _sentenceText = findViewById(R.id.sentenceText);
-        _sentenceText.setText(getIntent().getStringExtra(ArgKeys.TEXT));
+        _sentenceText.setText(getText());
         _sentenceText.setCustomSelectionActionModeCallback(this);
 
         _listView = findViewById(R.id.listView);
+        _listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        _listView.setOnItemClickListener(this);
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        final SentenceSpan span = _state.getSpans().valueAt(position);
+        final SpannableString string = new SpannableString(getText());
+        final int highlightColor = getResources().getColor(R.color.agentDynamicTextColor);
+        string.setSpan(new ForegroundColorSpan(highlightColor), span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+        _sentenceText.setText(string);
+        _listView.setSelection(position);
     }
 
     @Override
@@ -128,7 +150,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     @Override
     public void onResume() {
         super.onResume();
-        _listView.setAdapter(new SpanEditorAdapter(_state.getSpans()));
+        _listView.setAdapter(new SpanEditorAdapter(getText(), _state.getSpans()));
     }
 
     @Override

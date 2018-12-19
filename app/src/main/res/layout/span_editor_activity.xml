@@ -8,6 +8,7 @@
         android:id="@+id/sentenceText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="@dimen/spanEditorSentencePadding"
         android:textIsSelectable="true"/>
 
     <ListView
