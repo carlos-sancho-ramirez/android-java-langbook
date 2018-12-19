@@ -197,6 +197,26 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
+    static final class SentenceNavigableItem extends Item {
+
+        private final int _id;
+
+        SentenceNavigableItem(int id, String text) {
+            super(ItemTypes.UNKNOWN, text);
+            _id = id;
+        }
+
+        @Override
+        void navigate(Context context) {
+            SentenceDetailsActivity.open(context, _id);
+        }
+
+        @Override
+        boolean isEnabled() {
+            return true;
+        }
+    }
+
     /**
      * Item that is displayed as a navigable item but that does not implement the navigate method,
      * preventing any navigation.

@@ -16,7 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntRange;
-import sword.langbook3.android.SpanEditorActivityState.SentenceSpan;
+import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.langbook3.android.db.Database;
 
 import static sword.langbook3.android.LangbookDbInserter.insertSpan;

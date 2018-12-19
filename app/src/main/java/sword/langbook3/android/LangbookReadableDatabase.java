@@ -1,5 +1,7 @@
 package sword.langbook3.android;
 
+import android.os.Parcel;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -9,6 +11,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
@@ -2346,17 +2349,17 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static ImmutableList<String> getSampleSentences(DbExporter.Database db, int staticAcceptation) {
+    private static ImmutableIntKeyMap<String> getSampleSentences(DbExporter.Database db, int staticAcceptation) {
         final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(spans)
                 .where(spans.getAcceptation(), staticAcceptation)
                 .select(spans.getSymbolArray());
 
-        final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final int symbolArrayId = dbResult.next().get(0).toInt();
-                builder.add(getSymbolArray(db, symbolArrayId));
+                builder.put(symbolArrayId, getSymbolArray(db, symbolArrayId));
             }
         }
 
@@ -2397,7 +2400,7 @@ public final class LangbookReadableDatabase {
             supertypesBuilder.put(definition.id, definition.text);
         }
 
-        final ImmutableList<String> sampleSentences = getSampleSentences(db, staticAcceptation);
+        final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, staticAcceptation);
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
                 correlationResultPair.right, supertypesBuilder.build(), subtypes,
                 synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
@@ -2436,5 +2439,76 @@ public final class LangbookReadableDatabase {
 
         return new CorrelationDetailsModel(alphabets, correlation, acceptations,
                 relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable());
+    }
+
+    public static class SentenceSpan {
+        final ImmutableIntRange range;
+        final int acceptation;
+
+        SentenceSpan(ImmutableIntRange range, int acceptation) {
+            if (range == null || range.min() < 0 || acceptation == 0) {
+                throw new IllegalArgumentException();
+            }
+
+            this.range = range;
+            this.acceptation = acceptation;
+        }
+
+        void writeToParcel(Parcel dest) {
+            dest.writeInt(range.min());
+            dest.writeInt(range.max());
+            dest.writeInt(acceptation);
+        }
+
+        static SentenceSpan fromParcel(Parcel in) {
+            final int start = in.readInt();
+            final int end = in.readInt();
+            final int acc = in.readInt();
+            return new SentenceSpan(new ImmutableIntRange(start, end), acc);
+        }
+    }
+
+    public static ImmutableSet<SentenceSpan> getSentenceSpans(DbExporter.Database db, int symbolArray) {
+        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSymbolArray(), symbolArray)
+                .select(table.getStart(), table.getLength(), table.getAcceptation());
+        final ImmutableHashSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int start = row.get(0).toInt();
+                final int length = row.get(1).toInt();
+                final int acc = row.get(2).toInt();
+                final ImmutableIntRange range = new ImmutableIntRange(start, start + length - 1);
+                builder.add(new SentenceSpan(range, acc));
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static Integer getStaticAcceptationFromDynamic(DbExporter.Database db, int dynamicAcceptation) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
+                .select(table.getMainAcceptationColumnIndex());
+
+        boolean found = false;
+        int value = 0;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final int newValue = dbResult.next().get(0).toInt();
+                if (!found) {
+                    found = true;
+                    value = newValue;
+                }
+                else if (value != newValue) {
+                    throw new AssertionError();
+                }
+            }
+        }
+
+        return found? value : null;
     }
 }

@@ -7,14 +7,15 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 
 final class SpanEditorAdapter extends BaseAdapter {
 
     private final String sentenceText;
-    private final ImmutableSet<SpanEditorActivityState.SentenceSpan> spans;
+    private final ImmutableSet<SentenceSpan> spans;
     private LayoutInflater inflater;
 
-    SpanEditorAdapter(String sentenceText, ImmutableSet<SpanEditorActivityState.SentenceSpan> spans) {
+    SpanEditorAdapter(String sentenceText, ImmutableSet<SentenceSpan> spans) {
         this.sentenceText = sentenceText;
         this.spans = spans;
     }
@@ -25,7 +26,7 @@ final class SpanEditorAdapter extends BaseAdapter {
     }
 
     @Override
-    public SpanEditorActivityState.SentenceSpan getItem(int position) {
+    public SentenceSpan getItem(int position) {
         return spans.valueAt(position);
     }
 
@@ -43,7 +44,7 @@ final class SpanEditorAdapter extends BaseAdapter {
             convertView = inflater.inflate(R.layout.span_editor_span_entry, parent, false);
         }
 
-        final SpanEditorActivityState.SentenceSpan span = getItem(position);
+        final SentenceSpan span = getItem(position);
         final TextView textView = convertView.findViewById(R.id.text);
         textView.setText(sentenceText.substring(span.range.min(), span.range.max() + 1));
         return convertView;

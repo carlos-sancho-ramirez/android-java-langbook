@@ -17,4 +17,5 @@
 
     <dimen name="spanEditorSentencePadding">16dp</dimen>
     <dimen name="spanEditorEntryPadding">16dp</dimen>
+    <dimen name="sentenceDetailsSentenceTextSize">16sp</dimen>
 </resources>

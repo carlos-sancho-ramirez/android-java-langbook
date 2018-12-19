@@ -17,6 +17,7 @@ public interface BundleKeys {
     String QUIZ = "quiz";
     String SEARCH_QUERY = "searchQuery";
     String STATIC_ACCEPTATION = "sa";
+    String SYMBOL_ARRAY = "saId";
     String TEXT = "text";
     String TEXTS = "texts";
 }

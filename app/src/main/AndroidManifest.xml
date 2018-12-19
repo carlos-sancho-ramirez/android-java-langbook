@@ -70,6 +70,10 @@
         <activity
             android:name=".FixedTextAcceptationPickerActivity"
             android:label="@string/acceptationPickerActivityTitle"/>
+
+        <activity
+            android:name=".SentenceDetailsActivity"
+            android:label="@string/sentenceDetailsActivityTitle"/>
     </application>
 
 </manifest>

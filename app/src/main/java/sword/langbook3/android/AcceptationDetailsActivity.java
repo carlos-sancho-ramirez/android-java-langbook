@@ -29,6 +29,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationArrayItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
+import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.AlphabetsTable;
@@ -204,13 +205,17 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean sentenceFound = false;
-        for (String sentence : _model.sampleSentences) {
+        final int sampleSentenceCount = _model.sampleSentences.size();
+        for (int i = 0; i < sampleSentenceCount; i++) {
+            final int symbolArray = _model.sampleSentences.keyAt(i);
+            final String sentence = _model.sampleSentences.valueAt(i);
+
             if (!sentenceFound) {
                 result.add(new HeaderItem("Sample sentences"));
                 sentenceFound = true;
             }
 
-            result.add(new NonNavigableItem(sentence));
+            result.add(new SentenceNavigableItem(symbolArray, sentence));
         }
 
         boolean agentFound = false;

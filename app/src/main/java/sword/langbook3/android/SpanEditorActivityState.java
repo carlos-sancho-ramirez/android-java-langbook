@@ -6,6 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 
 public final class SpanEditorActivityState implements Parcelable {
 
@@ -72,33 +73,6 @@ public final class SpanEditorActivityState implements Parcelable {
         }
 
         writeSentenceSpanSetToParcel(dest);
-    }
-
-    static class SentenceSpan {
-        final ImmutableIntRange range;
-        final int acceptation;
-
-        SentenceSpan(ImmutableIntRange range, int acceptation) {
-            if (range == null || range.min() < 0 || acceptation == 0) {
-                throw new IllegalArgumentException();
-            }
-
-            this.range = range;
-            this.acceptation = acceptation;
-        }
-
-        void writeToParcel(Parcel dest) {
-            dest.writeInt(range.min());
-            dest.writeInt(range.max());
-            dest.writeInt(acceptation);
-        }
-
-        static SentenceSpan fromParcel(Parcel in) {
-            final int start = in.readInt();
-            final int end = in.readInt();
-            final int acc = in.readInt();
-            return new SentenceSpan(new ImmutableIntRange(start, end), acc);
-        }
     }
 
     private static ImmutableSet<SentenceSpan> sentenceSpanSetFromParcel(Parcel in) {
