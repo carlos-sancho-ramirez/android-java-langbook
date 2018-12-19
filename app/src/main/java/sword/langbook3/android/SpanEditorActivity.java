@@ -17,6 +17,9 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntRange;
 import sword.langbook3.android.SpanEditorActivityState.SentenceSpan;
+import sword.langbook3.android.db.Database;
+
+import static sword.langbook3.android.LangbookDbInserter.insertSpan;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback, AdapterView.OnItemClickListener {
 
@@ -116,7 +119,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemConfirm:
-                Toast.makeText(this, "Confirmed", Toast.LENGTH_SHORT).show();
+                evaluateSpans();
                 break;
 
             default:
@@ -124,6 +127,23 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
 
         return true;
+    }
+
+    private void evaluateSpans() {
+        if (_state.getSpans().isEmpty()) {
+            Toast.makeText(this, R.string.spanEditorNoSpanPresentError, Toast.LENGTH_SHORT).show();
+        }
+        else {
+            final Database db = DbManager.getInstance().getDatabase();
+            final int symbolArray = LangbookDatabase.obtainSymbolArray(db, getText());
+            for (SentenceSpan span : _state.getSpans()) {
+                insertSpan(db, symbolArray, span.range, span.acceptation);
+            }
+
+            Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
+            setResult(RESULT_OK);
+            finish();
+        }
     }
 
     private void addSpan() {

@@ -33,6 +33,7 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
+            setResult(RESULT_OK);
             finish();
         }
     }

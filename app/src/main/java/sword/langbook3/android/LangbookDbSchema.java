@@ -373,18 +373,26 @@ public final class LangbookDbSchema implements DbSchema {
 
         private SpanTable() {
             super("SpanTable", new DbIntColumn("symbolArray"), new DbIntColumn("start"),
-                    new DbIntColumn("end"), new DbIntColumn("acceptation"));
+                    new DbIntColumn("length"), new DbIntColumn("acceptation"));
         }
 
         public int getSymbolArray() {
             return 1;
         }
 
+        /**
+         * Index within the symbol array where this span starts.
+         * It's inclusive, which means that the char at the given index is also included within the span.
+         */
         public int getStart() {
             return 2;
         }
 
-        public int getEnd() {
+        /**
+         * The amount of characters included in this span.
+         * This should always be a positive number, never zero.
+         */
+        public int getLength() {
             return 3;
         }
 

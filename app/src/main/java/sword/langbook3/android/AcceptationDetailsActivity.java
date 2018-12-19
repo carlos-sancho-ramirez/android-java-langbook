@@ -581,7 +581,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     invalidateOptionsMenu();
                 }
             }
-            else if (requestCode == REQUEST_CODE_EDIT) {
+            else if (requestCode == REQUEST_CODE_EDIT || requestCode == REQUEST_CODE_CREATE_SENTENCE) {
                 updateModelAndUi();
             }
         }
