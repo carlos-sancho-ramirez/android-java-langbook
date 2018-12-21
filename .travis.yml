@@ -3,8 +3,8 @@ android:
   components:
   - tools
   - platform-tools
-  - build-tools-26.0.2
-  - android-26
+  - build-tools-28.0.3
+  - android-28
 before_install:
 - openssl aes-256-cbc -K $encrypted_16d6b8e331d6_key -iv $encrypted_16d6b8e331d6_iv
   -in keystore.tar.gz.enc -out keystore.tar.gz -d
