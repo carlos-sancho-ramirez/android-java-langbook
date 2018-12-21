@@ -875,4 +875,13 @@ public final class LangbookDatabase {
         deleteKnowledgeForQuiz(db, quizId);
         deleteQuiz(db, quizId);
     }
+
+    public static boolean updateSymbolArray(Database db, int symbolArrayId, String text) {
+        final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
+        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getIdColumnIndex(), symbolArrayId)
+                .put(table.getStrColumnIndex(), text)
+                .build();
+        return db.update(query);
+    }
 }

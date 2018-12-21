@@ -15,17 +15,28 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableIntValueMap;
+import sword.collections.ImmutableSet;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.langbook3.android.db.Database;
 
 import static sword.langbook3.android.LangbookDbInserter.insertSpan;
+import static sword.langbook3.android.LangbookDeleter.deleteSpan;
+import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpans;
+import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpansWithIds;
+import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
+import static sword.langbook3.android.SentenceEditorActivity.NO_SYMBOL_ARRAY;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback, AdapterView.OnItemClickListener {
 
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
 
     private interface ArgKeys {
+        String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
         String TEXT = BundleKeys.TEXT;
     }
 
@@ -45,8 +56,47 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         activity.startActivityForResult(intent, requestCode);
     }
 
+    static void open(Activity activity, int requestCode, String text, int symbolArrayId) {
+        final Intent intent = new Intent(activity, SpanEditorActivity.class);
+        intent.putExtra(ArgKeys.TEXT, text);
+        intent.putExtra(ArgKeys.SYMBOL_ARRAY, symbolArrayId);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     private String getText() {
         return getIntent().getStringExtra(ArgKeys.TEXT);
+    }
+
+    private int getSymbolArrayId() {
+        return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, NO_SYMBOL_ARRAY);
+    }
+
+    private void insertInitialSpans(int symbolArrayId) {
+        final Database db = DbManager.getInstance().getDatabase();
+        final String sentence = getText();
+        final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, symbolArrayId);
+        final ImmutableSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
+        for (SentenceSpan span : spans) {
+            final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, span.acceptation);
+            final int mapSize = texts.size();
+            int index = 0;
+            int mapIndex;
+            for (mapIndex = 0; mapIndex < mapSize; mapIndex++) {
+                final String text = texts.valueAt(mapIndex);
+                index = sentence.indexOf(text);
+                if (index >= 0) {
+                    break;
+                }
+            }
+
+            if (mapIndex < mapSize) {
+                final ImmutableIntRange range = new ImmutableIntRange(index, index + texts.valueAt(mapIndex).length() - 1);
+                final SentenceSpan newSpan = range.equals(span.range)? span : new SentenceSpan(range, span.acceptation);
+                builder.add(newSpan);
+            }
+        }
+
+        _state.setSpans(builder.build());
     }
 
     @Override
@@ -65,6 +115,11 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         _listView = findViewById(R.id.listView);
         _listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
         _listView.setOnItemClickListener(this);
+
+        final int symbolArrayId = getSymbolArrayId();
+        if (symbolArrayId != NO_SYMBOL_ARRAY) {
+            insertInitialSpans(symbolArrayId);
+        }
     }
 
     @Override
@@ -130,17 +185,56 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void evaluateSpans() {
-        if (_state.getSpans().isEmpty()) {
+        final ImmutableSet<SentenceSpan> spans = _state.getSpans();
+        if (spans.isEmpty()) {
             Toast.makeText(this, R.string.spanEditorNoSpanPresentError, Toast.LENGTH_SHORT).show();
         }
         else {
+            final String newText = getText();
             final Database db = DbManager.getInstance().getDatabase();
-            final int symbolArray = LangbookDatabase.obtainSymbolArray(db, getText());
-            for (SentenceSpan span : _state.getSpans()) {
-                insertSpan(db, symbolArray, span.range, span.acceptation);
+            final int symbolArrayId = getSymbolArrayId();
+            if (symbolArrayId == NO_SYMBOL_ARRAY) {
+                final int newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
+                for (SentenceSpan span : spans) {
+                    insertSpan(db, newSymbolArray, span.range, span.acceptation);
+                }
+
+                Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
+            }
+            else {
+                if (isSymbolArrayMerelyASentence(db, symbolArrayId)) {
+                    if (!LangbookDatabase.updateSymbolArray(db, symbolArrayId, newText)) {
+                        throw new AssertionError();
+                    }
+
+                    final ImmutableIntValueMap<SentenceSpan> dbSpanMap = getSentenceSpansWithIds(db, symbolArrayId);
+                    final ImmutableSet<SentenceSpan> dbSpanSet = dbSpanMap.keySet();
+                    for (SentenceSpan span : dbSpanSet.filterNot(spans::contains)) {
+                        if (!deleteSpan(db, dbSpanMap.get(span))) {
+                            throw new AssertionError();
+                        }
+                    }
+
+                    for (SentenceSpan span : spans.filterNot(dbSpanSet::contains)) {
+                        insertSpan(db, symbolArrayId, span.range, span.acceptation);
+                    }
+                }
+                else {
+                    final int newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
+                    for (int spanId : getSentenceSpansWithIds(db, symbolArrayId)) {
+                        if (!deleteSpan(db, spanId)) {
+                            throw new AssertionError();
+                        }
+                    }
+
+                    for (SentenceSpan span : spans) {
+                        insertSpan(db, newSymbolArray, span.range, span.acceptation);
+                    }
+                }
+
+                Toast.makeText(this, R.string.updateSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
 
-            Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
             setResult(RESULT_OK);
             finish();
         }

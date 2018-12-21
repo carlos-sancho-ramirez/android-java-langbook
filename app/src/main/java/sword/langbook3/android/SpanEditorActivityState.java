@@ -6,6 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableSet;
+import sword.collections.Set;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 
 public final class SpanEditorActivityState implements Parcelable {
@@ -27,6 +28,10 @@ public final class SpanEditorActivityState implements Parcelable {
 
     ImmutableSet<SentenceSpan> getSpans() {
         return spans;
+    }
+
+    void setSpans(Set<SentenceSpan> spans) {
+        this.spans = spans.toImmutable().sort(SpanEditorActivityState::sentenceSpanSortFunction);
     }
 
     void composeSpanWithCurrentSelection(int acceptation) {

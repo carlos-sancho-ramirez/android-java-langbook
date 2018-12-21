@@ -6,13 +6,35 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 
+import sword.langbook3.android.db.Database;
+
+import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
+
 public final class SentenceEditorActivity extends Activity implements View.OnClickListener {
 
+    static final int NO_SYMBOL_ARRAY = 0;
+
     private static final int REQUEST_CODE_ADD_SPAN = 1;
+
+    interface ArgKeys {
+        String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
+    }
 
     static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
         activity.startActivityForResult(intent, requestCode);
+    }
+
+    static void open(Activity activity, int requestCode, int symbolArrayId) {
+        final Intent intent = new Intent(activity, SentenceEditorActivity.class);
+        intent.putExtra(ArgKeys.SYMBOL_ARRAY, symbolArrayId);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    private EditText _textField;
+
+    private int getSymbolArrayId() {
+        return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, NO_SYMBOL_ARRAY);
     }
 
     @Override
@@ -21,13 +43,27 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         setContentView(R.layout.sentence_editor_activity);
 
         findViewById(R.id.nextButton).setOnClickListener(this);
+        _textField = findViewById(R.id.textField);
+
+        final int symbolArrayId = getSymbolArrayId();
+        if (symbolArrayId != NO_SYMBOL_ARRAY) {
+            final Database db = DbManager.getInstance().getDatabase();
+            final String text = getSymbolArray(db, symbolArrayId);
+            _textField.setText(text);
+        }
     }
 
     @Override
     public void onClick(View v) {
-        final EditText textField = findViewById(R.id.textField);
-        final String text = textField.getText().toString();
-        SpanEditorActivity.open(this, REQUEST_CODE_ADD_SPAN, text);
+        final int symbolArrayId = getSymbolArrayId();
+        final String text = _textField.getText().toString();
+
+        if (symbolArrayId == NO_SYMBOL_ARRAY) {
+            SpanEditorActivity.open(this, REQUEST_CODE_ADD_SPAN, text);
+        }
+        else {
+            SpanEditorActivity.open(this, REQUEST_CODE_ADD_SPAN, text, symbolArrayId);
+        }
     }
 
     @Override

@@ -8,6 +8,8 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -22,7 +24,8 @@ import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
 
 public final class SentenceDetailsActivity extends Activity {
 
-    private static final int REQUEST_CODE_OPEN_ACCEPTATION = 1;
+    private static final int REQUEST_CODE_EDIT = 1;
+    private static final int REQUEST_CODE_OPEN_ACCEPTATION = 2;
 
     interface ArgKeys {
         String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
@@ -36,6 +39,7 @@ public final class SentenceDetailsActivity extends Activity {
 
     private TextView _sentenceTextView;
     private ListView _listView;
+    private boolean justCreated;
 
     private class ClickableSentenceSpan extends ClickableSpan {
         private final int staticAcceptation;
@@ -53,20 +57,30 @@ public final class SentenceDetailsActivity extends Activity {
         }
     }
 
+    private int getSymbolArrayId() {
+        return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, 0);
+    }
+
     private void updateSentenceTextView() {
-        final int symbolArrayId = getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, 0);
+        final int symbolArrayId = getSymbolArrayId();
         final Database db = DbManager.getInstance().getDatabase();
         final String text = getSymbolArray(db, symbolArrayId);
-        final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, symbolArrayId);
 
-        final SpannableString string = new SpannableString(text);
-        for (SentenceSpan span : spans) {
-            final int staticAcceptation = getStaticAcceptationFromDynamic(db, span.acceptation);
-            string.setSpan(new ClickableSentenceSpan(staticAcceptation, span.acceptation),
-                    span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+        if (text == null) {
+            finish();
         }
-        _sentenceTextView.setText(string);
-        _sentenceTextView.setMovementMethod(LinkMovementMethod.getInstance());
+        else {
+            final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, symbolArrayId);
+
+            final SpannableString string = new SpannableString(text);
+            for (SentenceSpan span : spans) {
+                final int staticAcceptation = getStaticAcceptationFromDynamic(db, span.acceptation);
+                string.setSpan(new ClickableSentenceSpan(staticAcceptation, span.acceptation),
+                        span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+            }
+            _sentenceTextView.setText(string);
+            _sentenceTextView.setMovementMethod(LinkMovementMethod.getInstance());
+        }
     }
 
     @Override
@@ -78,5 +92,37 @@ public final class SentenceDetailsActivity extends Activity {
         _listView = findViewById(R.id.listView);
 
         updateSentenceTextView();
+        justCreated = true;
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.sentence_details_activity, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menuItemEdit:
+                SentenceEditorActivity.open(this, REQUEST_CODE_EDIT, getSymbolArrayId());
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        justCreated = false;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK && !justCreated) {
+            updateSentenceTextView();
+        }
     }
 }

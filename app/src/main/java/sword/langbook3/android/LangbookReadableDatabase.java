@@ -14,6 +14,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
@@ -2454,6 +2455,29 @@ public final class LangbookReadableDatabase {
             this.acceptation = acceptation;
         }
 
+        @Override
+        public int hashCode() {
+            return range.hashCode() * 37 + acceptation;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == this) {
+                return true;
+            }
+            else if (other == null || !(other instanceof SentenceSpan)) {
+                return false;
+            }
+
+            final SentenceSpan that = (SentenceSpan) other;
+            return acceptation == that.acceptation && range.equals(that.range);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + '(' + range + ", " + acceptation + ')';
+        }
+
         void writeToParcel(Parcel dest) {
             dest.writeInt(range.min());
             dest.writeInt(range.max());
@@ -2488,6 +2512,27 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntValueMap<SentenceSpan> getSentenceSpansWithIds(DbExporter.Database db, int symbolArray) {
+        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSymbolArray(), symbolArray)
+                .select(table.getIdColumnIndex(), table.getStart(), table.getLength(), table.getAcceptation());
+        final ImmutableIntValueMap.Builder<SentenceSpan> builder = new ImmutableIntValueMap.Builder<>();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int id = row.get(0).toInt();
+                final int start = row.get(1).toInt();
+                final int length = row.get(2).toInt();
+                final int acc = row.get(3).toInt();
+                final ImmutableIntRange range = new ImmutableIntRange(start, start + length - 1);
+                builder.put(new SentenceSpan(range, acc), id);
+            }
+        }
+
+        return builder.build();
+    }
+
     public static Integer getStaticAcceptationFromDynamic(DbExporter.Database db, int dynamicAcceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
@@ -2510,5 +2555,60 @@ public final class LangbookReadableDatabase {
         }
 
         return found? value : null;
+    }
+
+    public static ImmutableIntKeyMap<String> getAcceptationTexts(DbExporter.Database db, int acceptations) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptations)
+                .select(table.getStringAlphabetColumnIndex(), table.getStringColumnIndex());
+
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.put(row.get(0).toInt(), row.get(1).toText());
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Checks if the given symbolArray is not used neither as a correlation nor as a conversion,
+     * and then it is merely a sentence.
+     */
+    public static boolean isSymbolArrayMerelyASentence(DbExporter.Database db, int symbolArrayId) {
+        final LangbookDbSchema.CorrelationsTable corrTable = LangbookDbSchema.Tables.correlations;
+
+        DbQuery query = new DbQuery.Builder(corrTable)
+                .where(corrTable.getSymbolArrayColumnIndex(), symbolArrayId)
+                .select(corrTable.getIdColumnIndex());
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                return false;
+            }
+        }
+
+        final LangbookDbSchema.ConversionsTable convTable = LangbookDbSchema.Tables.conversions;
+        query = new DbQuery.Builder(convTable)
+                .where(convTable.getSourceColumnIndex(), symbolArrayId)
+                .select(convTable.getIdColumnIndex());
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                return false;
+            }
+        }
+
+        query = new DbQuery.Builder(convTable)
+                .where(convTable.getTargetColumnIndex(), symbolArrayId)
+                .select(convTable.getIdColumnIndex());
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

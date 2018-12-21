@@ -117,6 +117,7 @@
     <string name="deleteFromBunchFeedback">Acceptation removed from bunch %s</string>
     <string name="deleteAcceptationFromBunchFeedback">Acceptation %s removed from this bunch</string>
     <string name="includeSentenceFeedback">Sentence included</string>
+    <string name="updateSentenceFeedback">Sentence updated</string>
     <string name="includeInBunchKo">Unable to include acceptation in bunch</string>
     <string name="newAgentError">Unable to include agent</string>
     <string name="spanEditorNoSpanPresentError">No span present</string>
