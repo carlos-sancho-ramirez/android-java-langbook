@@ -40,6 +40,7 @@
     <string name="deleteAcceptationFromBunchConfirmationText">Are you sure that you want to remove acceptation %s from this bunch?</string>
     <string name="deleteAgentConfirmationText">Are you sure that you want to remove this agent? All its effects will be reverted.</string>
     <string name="deleteQuizConfirmationText">Are you sure that you want to remove this quiz and all its related tracked knowledge?</string>
+    <string name="deleteSentenceConfirmationText">Are you sure that you want to remove this sentence?</string>
 
     <string name="wordEditorWrongConversionFieldText">-- Wrong --</string>
     <string name="wordEditorNextButton">Next</string>

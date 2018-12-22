@@ -1,7 +1,9 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Spannable;
@@ -24,13 +26,17 @@ import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpans;
 import static sword.langbook3.android.LangbookReadableDatabase.getStaticAcceptationFromDynamic;
 import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
 
-public final class SentenceDetailsActivity extends Activity {
+public final class SentenceDetailsActivity extends Activity implements DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_EDIT = 1;
     private static final int REQUEST_CODE_OPEN_ACCEPTATION = 2;
 
     interface ArgKeys {
         String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
+    }
+
+    private interface SavedKeys {
+        String DISPLAYING_DELETE_DIALOG = "dd";
     }
 
     static void open(Context context, int symbolArray) {
@@ -41,7 +47,9 @@ public final class SentenceDetailsActivity extends Activity {
 
     private TextView _sentenceTextView;
     private ListView _listView;
-    private boolean justCreated;
+    private boolean _justCreated;
+
+    private boolean _displayingDeleteDialog;
 
     private class ClickableSentenceSpan extends ClickableSpan {
         private final int staticAcceptation;
@@ -93,8 +101,16 @@ public final class SentenceDetailsActivity extends Activity {
         _sentenceTextView = findViewById(R.id.sentenceText);
         _listView = findViewById(R.id.listView);
 
+        if (savedInstanceState != null) {
+            _displayingDeleteDialog = savedInstanceState.getBoolean(SavedKeys.DISPLAYING_DELETE_DIALOG);
+        }
+
         updateSentenceTextView();
-        justCreated = true;
+        _justCreated = true;
+
+        if (_displayingDeleteDialog) {
+            showDeleteConfirmationDialog();
+        }
     }
 
     @Override
@@ -111,12 +127,8 @@ public final class SentenceDetailsActivity extends Activity {
                 SentenceEditorActivity.open(this, REQUEST_CODE_EDIT, getSymbolArrayId());
                 return true;
             case R.id.menuItemDelete:
-                if (!removeSentence(DbManager.getInstance().getDatabase(), getSymbolArrayId())) {
-                    throw new AssertionError();
-                }
-                showFeedback(getString(R.string.deleteSentenceFeedback));
-                setResult(RESULT_OK);
-                finish();
+                _displayingDeleteDialog = true;
+                showDeleteConfirmationDialog();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -126,17 +138,44 @@ public final class SentenceDetailsActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
-        justCreated = false;
+        _justCreated = false;
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK && !justCreated) {
+        if (resultCode == RESULT_OK && !_justCreated) {
             updateSentenceTextView();
         }
     }
 
+    private void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.deleteSentenceConfirmationText)
+                .setPositiveButton(R.string.menuItemDelete, this)
+                .setOnCancelListener(dialog -> _displayingDeleteDialog = false)
+                .create().show();
+    }
+
+    @Override
+    public void onClick(DialogInterface dialogInterface, int i) {
+        if (!removeSentence(DbManager.getInstance().getDatabase(), getSymbolArrayId())) {
+            throw new AssertionError();
+        }
+
+        showFeedback(getString(R.string.deleteSentenceFeedback));
+        setResult(RESULT_OK);
+        finish();
+    }
+
     private void showFeedback(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outBundle) {
+        super.onSaveInstanceState(outBundle);
+        if (_displayingDeleteDialog) {
+            outBundle.putBoolean(SavedKeys.DISPLAYING_DELETE_DIALOG, true);
+        }
     }
 }
