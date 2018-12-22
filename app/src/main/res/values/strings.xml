@@ -111,6 +111,7 @@
     <string name="deleteAcceptationFeedback">Acceptation deleted</string>
     <string name="deleteAgentFeedback">Agent deleted</string>
     <string name="deleteQuizzesFeedback">Quizzes deleted</string>
+    <string name="deleteSentenceFeedback">Sentence deteled</string>
     <string name="includeInBunchOk">Acceptation included in bunch</string>
     <string name="includeSupertypeOk">Included definition</string>
     <string name="deleteSupertypeFeedback">Removed definition type for this acceptation</string>

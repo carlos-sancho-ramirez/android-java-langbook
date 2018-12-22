@@ -4,4 +4,9 @@
         android:id="@+id/menuItemEdit"
         android:title="@string/menuItemEdit"
         android:icon="@android:drawable/ic_menu_edit"/>
+
+    <item
+        android:id="@+id/menuItemDelete"
+        android:title="@string/menuItemDelete"
+        android:icon="@android:drawable/ic_menu_delete"/>
 </menu>

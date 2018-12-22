@@ -13,11 +13,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.langbook3.android.db.Database;
 
+import static sword.langbook3.android.LangbookDatabase.removeSentence;
 import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpans;
 import static sword.langbook3.android.LangbookReadableDatabase.getStaticAcceptationFromDynamic;
 import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
@@ -108,6 +110,14 @@ public final class SentenceDetailsActivity extends Activity {
             case R.id.menuItemEdit:
                 SentenceEditorActivity.open(this, REQUEST_CODE_EDIT, getSymbolArrayId());
                 return true;
+            case R.id.menuItemDelete:
+                if (!removeSentence(DbManager.getInstance().getDatabase(), getSymbolArrayId())) {
+                    throw new AssertionError();
+                }
+                showFeedback(getString(R.string.deleteSentenceFeedback));
+                setResult(RESULT_OK);
+                finish();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -124,5 +134,9 @@ public final class SentenceDetailsActivity extends Activity {
         if (resultCode == RESULT_OK && !justCreated) {
             updateSentenceTextView();
         }
+    }
+
+    private void showFeedback(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

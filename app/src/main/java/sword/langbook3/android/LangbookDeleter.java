@@ -1,6 +1,5 @@
 package sword.langbook3.android;
 
-import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.langbook3.android.db.DbDeleteQuery;
 import sword.langbook3.android.db.Deleter;
 
@@ -12,6 +11,13 @@ public final class LangbookDeleter {
         this.db = db;
     }
 
+    public static boolean deleteSymbolArray(Deleter db, int id) {
+        final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getIdColumnIndex(), id)
+                .build();
+        return db.delete(query);
+    }
     public static boolean deleteAcceptation(Deleter db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(LangbookDbSchema.Tables.acceptations)
@@ -135,6 +141,14 @@ public final class LangbookDeleter {
                 .where(table.getIdColumnIndex(), id)
                 .build();
 
+        return db.delete(query);
+    }
+
+    public static boolean deleteSpanBySymbolArrayId(Deleter db, int symbolArray) {
+        final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
+        DbDeleteQuery query = new DbDeleteQuery.Builder(spans)
+                .where(spans.getSymbolArray(), symbolArray)
+                .build();
         return db.delete(query);
     }
 }

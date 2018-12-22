@@ -45,7 +45,9 @@ import static sword.langbook3.android.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.LangbookDeleter.deleteQuiz;
 import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteSearchHistoryForAcceptation;
+import static sword.langbook3.android.LangbookDeleter.deleteSpanBySymbolArrayId;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
+import static sword.langbook3.android.LangbookDeleter.deleteSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
@@ -74,6 +76,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelation
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationArrayTextAndItsAppliedConversions;
@@ -883,5 +886,10 @@ public final class LangbookDatabase {
                 .put(table.getStrColumnIndex(), text)
                 .build();
         return db.update(query);
+    }
+
+    public static boolean removeSentence(Database db, int symbolArrayId) {
+        deleteSpanBySymbolArrayId(db, symbolArrayId);
+        return isSymbolArrayMerelyASentence(db, symbolArrayId) && deleteSymbolArray(db, symbolArrayId);
     }
 }
