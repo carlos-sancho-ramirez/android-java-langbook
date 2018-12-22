@@ -9,17 +9,15 @@ import android.text.style.ForegroundColorSpan;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableSet;
+import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.langbook3.android.db.Database;
 
@@ -31,7 +29,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpansW
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.SentenceEditorActivity.NO_SYMBOL_ARRAY;
 
-public final class SpanEditorActivity extends Activity implements ActionMode.Callback, AdapterView.OnItemClickListener {
+public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
 
@@ -67,6 +65,22 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return getIntent().getStringExtra(ArgKeys.TEXT);
     }
 
+    private SpannableString getRichText() {
+        final SpannableString string = new SpannableString(getText());
+        final int highlightColor = getResources().getColor(R.color.agentDynamicTextColor);
+
+        final MutableIntValueMap<SentenceSpan> spans = _state.getSpans();
+        final int spanCount = _state.getSpans().size();
+        for (int spanIndex = 0; spanIndex < spanCount; spanIndex++) {
+            if (spans.valueAt(spanIndex) != 0) {
+                final SentenceSpan span = spans.keyAt(spanIndex);
+                string.setSpan(new ForegroundColorSpan(highlightColor), span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+            }
+        }
+
+        return string;
+    }
+
     private int getSymbolArrayId() {
         return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, NO_SYMBOL_ARRAY);
     }
@@ -75,7 +89,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final Database db = DbManager.getInstance().getDatabase();
         final String sentence = getText();
         final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, symbolArrayId);
-        final ImmutableSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
+        final MutableIntValueMap<SentenceSpan> builder = _state.getSpans();
         for (SentenceSpan span : spans) {
             final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, span.acceptation);
             final int mapSize = texts.size();
@@ -92,11 +106,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             if (mapIndex < mapSize) {
                 final ImmutableIntRange range = new ImmutableIntRange(index, index + texts.valueAt(mapIndex).length() - 1);
                 final SentenceSpan newSpan = range.equals(span.range)? span : new SentenceSpan(range, span.acceptation);
-                builder.add(newSpan);
+                builder.put(newSpan, 1);
             }
         }
-
-        _state.setSpans(builder.build());
     }
 
     @Override
@@ -109,27 +121,15 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
 
         _sentenceText = findViewById(R.id.sentenceText);
-        _sentenceText.setText(getText());
+        _sentenceText.setText(getRichText());
         _sentenceText.setCustomSelectionActionModeCallback(this);
 
         _listView = findViewById(R.id.listView);
-        _listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
-        _listView.setOnItemClickListener(this);
 
         final int symbolArrayId = getSymbolArrayId();
         if (symbolArrayId != NO_SYMBOL_ARRAY) {
             insertInitialSpans(symbolArrayId);
         }
-    }
-
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        final SentenceSpan span = _state.getSpans().valueAt(position);
-        final SpannableString string = new SpannableString(getText());
-        final int highlightColor = getResources().getColor(R.color.agentDynamicTextColor);
-        string.setSpan(new ForegroundColorSpan(highlightColor), span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
-        _sentenceText.setText(string);
-        _listView.setSelection(position);
     }
 
     @Override
@@ -185,7 +185,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void evaluateSpans() {
-        final ImmutableSet<SentenceSpan> spans = _state.getSpans();
+        final ImmutableSet<SentenceSpan> spans = _state.getSpans().keySet().toImmutable();
         if (spans.isEmpty()) {
             Toast.makeText(this, R.string.spanEditorNoSpanPresentError, Toast.LENGTH_SHORT).show();
         }
@@ -256,7 +256,8 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         if (requestCode == REQUEST_CODE_PICK_ACCEPTATION && resultCode == RESULT_OK && data != null) {
             final int acceptation = data.getIntExtra(FixedTextAcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
             if (acceptation != 0) {
-                _state.composeSpanWithCurrentSelection(acceptation);
+                _state.getSpans().put(new SentenceSpan(_state.getSelection(), acceptation), 1);
+                _sentenceText.setText(getRichText());
             }
         }
     }
@@ -264,7 +265,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     @Override
     public void onResume() {
         super.onResume();
-        _listView.setAdapter(new SpanEditorAdapter(getText(), _state.getSpans()));
+        _listView.setAdapter(new SpanEditorAdapter(getText(), _state.getSpans(), map -> {
+            _sentenceText.setText(getRichText());
+        }));
     }
 
     @Override

@@ -3,15 +3,13 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntRange;
-import sword.collections.ImmutableSet;
-import sword.collections.Set;
+import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 
 public final class SpanEditorActivityState implements Parcelable {
 
-    private ImmutableSet<SentenceSpan> spans = ImmutableHashSet.empty();
+    private final MutableIntValueMap<SentenceSpan> spans = MutableIntValueMap.empty();
     private ImmutableIntRange selection;
 
     ImmutableIntRange getSelection() {
@@ -26,20 +24,8 @@ public final class SpanEditorActivityState implements Parcelable {
         selection = range;
     }
 
-    ImmutableSet<SentenceSpan> getSpans() {
+    MutableIntValueMap<SentenceSpan> getSpans() {
         return spans;
-    }
-
-    void setSpans(Set<SentenceSpan> spans) {
-        this.spans = spans.toImmutable().sort(SpanEditorActivityState::sentenceSpanSortFunction);
-    }
-
-    void composeSpanWithCurrentSelection(int acceptation) {
-        spans = spans.add(new SentenceSpan(selection, acceptation));
-
-        if (spans.size() > 1) {
-            spans = spans.sort(SpanEditorActivityState::sentenceSpanSortFunction);
-        }
     }
 
     public static final Creator<SpanEditorActivityState> CREATOR = new Creator<SpanEditorActivityState>() {
@@ -52,7 +38,7 @@ public final class SpanEditorActivityState implements Parcelable {
                 state.setSelection(new ImmutableIntRange(start, end));
             }
 
-            state.spans = sentenceSpanSetFromParcel(in);
+            sentenceSpanSetFromParcel(state.getSpans(), in);
             return state;
         }
 
@@ -80,21 +66,19 @@ public final class SpanEditorActivityState implements Parcelable {
         writeSentenceSpanSetToParcel(dest);
     }
 
-    private static ImmutableSet<SentenceSpan> sentenceSpanSetFromParcel(Parcel in) {
+    private static void sentenceSpanSetFromParcel(MutableIntValueMap<SentenceSpan> builder, Parcel in) {
         final int size = in.readInt();
-        final ImmutableHashSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
         for (int i = 0; i < size; i++) {
-            builder.add(SentenceSpan.fromParcel(in));
+            builder.put(SentenceSpan.fromParcel(in), in.readInt());
         }
-
-        return builder.build().sort(SpanEditorActivityState::sentenceSpanSortFunction);
     }
 
     private void writeSentenceSpanSetToParcel(Parcel dest) {
         final int size = spans.size();
         dest.writeInt(size);
         for (int i = 0; i < size; i++) {
-            spans.valueAt(i).writeToParcel(dest);
+            spans.keyAt(i).writeToParcel(dest);
+            dest.writeInt(spans.valueAt(i));
         }
     }
 

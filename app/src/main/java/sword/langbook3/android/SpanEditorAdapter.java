@@ -4,20 +4,24 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.TextView;
+import android.widget.CheckBox;
 
-import sword.collections.ImmutableSet;
+import sword.collections.IntValueMap;
+import sword.collections.MutableIntValueMap;
+import sword.collections.Procedure;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 
 final class SpanEditorAdapter extends BaseAdapter {
 
     private final String sentenceText;
-    private final ImmutableSet<SentenceSpan> spans;
+    private final MutableIntValueMap<SentenceSpan> spans;
+    private final Procedure<IntValueMap<SentenceSpan>> observer;
     private LayoutInflater inflater;
 
-    SpanEditorAdapter(String sentenceText, ImmutableSet<SentenceSpan> spans) {
+    SpanEditorAdapter(String sentenceText, MutableIntValueMap<SentenceSpan> spans, Procedure<IntValueMap<SentenceSpan>> observer) {
         this.sentenceText = sentenceText;
         this.spans = spans;
+        this.observer = observer;
     }
 
     @Override
@@ -27,7 +31,7 @@ final class SpanEditorAdapter extends BaseAdapter {
 
     @Override
     public SentenceSpan getItem(int position) {
-        return spans.valueAt(position);
+        return spans.keyAt(position);
     }
 
     @Override
@@ -45,8 +49,20 @@ final class SpanEditorAdapter extends BaseAdapter {
         }
 
         final SentenceSpan span = getItem(position);
-        final TextView textView = convertView.findViewById(R.id.text);
-        textView.setText(sentenceText.substring(span.range.min(), span.range.max() + 1));
+        final CheckBox checkBox = convertView.findViewById(R.id.checkBox);
+        checkBox.setText(sentenceText.substring(span.range.min(), span.range.max() + 1));
+        checkBox.setChecked(spans.valueAt(position) != 0);
+        checkBox.setOnCheckedChangeListener((v, state) -> {
+            spans.put(span, state? 1 : 0);
+            observer.apply(spans);
+        });
+
+        convertView.findViewById(R.id.removeButton).setOnClickListener(v -> {
+            spans.removeAt(position);
+            observer.apply(spans);
+            notifyDataSetChanged();
+        });
+
         return convertView;
     }
 }

@@ -2457,7 +2457,7 @@ public final class LangbookReadableDatabase {
 
         @Override
         public int hashCode() {
-            return range.hashCode() * 37 + acceptation;
+            return ((range.min() * 37) + range.size() * 37) + acceptation;
         }
 
         @Override
