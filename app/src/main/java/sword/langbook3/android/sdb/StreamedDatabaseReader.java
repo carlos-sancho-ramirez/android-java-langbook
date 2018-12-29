@@ -2,13 +2,7 @@ package sword.langbook3.android.sdb;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import sword.bitstream.FunctionWithIOException;
 import sword.bitstream.InputBitStream;
@@ -21,25 +15,17 @@ import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.IntKeyMap;
-import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableIntPairMap;
-import sword.collections.MutableIntValueMap;
+import sword.collections.MutableIntValueHashMap;
 import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
-import sword.langbook3.android.LangbookReadableDatabase;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.db.DbImporter;
 import sword.langbook3.android.db.DbImporter.Database;
-import sword.langbook3.android.db.DbInsertQuery;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbTable;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
@@ -52,12 +38,7 @@ import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookDbInserter.insertConversion;
 import static sword.langbook3.android.LangbookDbInserter.insertLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
-import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
-import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxBunchSetId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
 
 public final class StreamedDatabaseReader {
@@ -497,7 +478,7 @@ public final class StreamedDatabaseReader {
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = StreamedDatabaseConstants.minValidConcept;
             int desiredSetId = getMaxBunchSetId(_db) + 1;
-            final MutableIntValueMap<ImmutableIntSet> insertedBunchSets = MutableIntValueMap.empty();
+            final MutableIntValueHashMap<ImmutableIntSet> insertedBunchSets = MutableIntValueHashMap.empty();
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, maxConcept);
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 

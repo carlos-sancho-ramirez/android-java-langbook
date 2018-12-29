@@ -1,16 +1,16 @@
 package sword.langbook3.android;
 
 import sword.collections.IntResultFunction;
-import sword.collections.MutableIntValueMap;
+import sword.collections.MutableIntValueHashMap;
 
 public final class SyncCacheIntValueMap<T> {
 
     private final IntResultFunction<T> _supplier;
-    private final MutableIntValueMap<T> _map;
+    private final MutableIntValueHashMap<T> _map;
 
     public SyncCacheIntValueMap(IntResultFunction<T> supplier) {
         _supplier = supplier;
-        _map = MutableIntValueMap.empty();
+        _map = MutableIntValueHashMap.empty();
     }
 
     public int get(T key) {

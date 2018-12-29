@@ -4,12 +4,13 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import sword.collections.ImmutableIntRange;
+import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 
 public final class SpanEditorActivityState implements Parcelable {
 
-    private final MutableIntValueMap<SentenceSpan> spans = MutableIntValueMap.empty();
+    private final MutableIntValueMap<SentenceSpan> spans = MutableIntValueHashMap.empty();
     private ImmutableIntRange selection;
 
     ImmutableIntRange getSelection() {

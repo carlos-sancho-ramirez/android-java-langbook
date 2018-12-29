@@ -14,6 +14,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
@@ -2517,7 +2518,7 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSymbolArray(), symbolArray)
                 .select(table.getIdColumnIndex(), table.getStart(), table.getLength(), table.getAcceptation());
-        final ImmutableIntValueMap.Builder<SentenceSpan> builder = new ImmutableIntValueMap.Builder<>();
+        final ImmutableIntValueHashMap.Builder<SentenceSpan> builder = new ImmutableIntValueHashMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();

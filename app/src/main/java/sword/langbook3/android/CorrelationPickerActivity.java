@@ -13,6 +13,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
@@ -211,7 +212,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
         final ImmutableSet<ImmutableIntKeyMap<String>> correlations = correlationsBuilder.build();
 
-        final ImmutableIntValueMap.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableIntValueMap.Builder<>();
+        final ImmutableIntValueHashMap.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableIntValueHashMap.Builder<>();
         for (ImmutableIntKeyMap<String> correlation : correlations) {
             final Integer id = findCorrelation(DbManager.getInstance().getDatabase(), correlation);
             if (id != null) {

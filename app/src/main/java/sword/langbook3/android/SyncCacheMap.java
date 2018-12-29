@@ -1,21 +1,16 @@
 package sword.langbook3.android;
 
 import sword.collections.Function;
-import sword.collections.Map;
-import sword.collections.MutableMap;
+import sword.collections.MutableHashMap;
 
 public final class SyncCacheMap<K, V> {
 
     private final Function<K, V> _supplier;
-    private final MutableMap<K, V> _map;
+    private final MutableHashMap<K, V> _map;
 
     public SyncCacheMap(Function<K, V> supplier) {
         _supplier = supplier;
-        _map = MutableMap.empty();
-    }
-
-    public Map<K, V> innerMap() {
-        return _map;
+        _map = MutableHashMap.empty();
     }
 
     public V get(K key) {

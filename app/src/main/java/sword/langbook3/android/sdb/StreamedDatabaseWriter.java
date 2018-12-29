@@ -19,12 +19,14 @@ import sword.bitstream.huffman.DefinedHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
@@ -37,7 +39,7 @@ import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
-import sword.collections.MutableIntValueMap;
+import sword.collections.MutableIntValueHashMap;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.db.DbExporter.Database;
 import sword.langbook3.android.db.DbQuery;
@@ -228,7 +230,7 @@ public final class StreamedDatabaseWriter {
     private ImmutableIntValueMap<String> readLanguageCodes() {
         final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
         final DbResult langResult = _db.select(new DbQuery.Builder(langTable).select(langTable.getIdColumnIndex(), langTable.getCodeColumnIndex()));
-        final ImmutableIntValueMap.Builder<String> langMapBuilder = new ImmutableIntValueMap.Builder<>();
+        final ImmutableIntValueHashMap.Builder<String> langMapBuilder = new ImmutableIntValueHashMap.Builder<>();
         try {
             while (langResult.hasNext()) {
                 final List<DbValue> row = langResult.next();
@@ -260,7 +262,7 @@ public final class StreamedDatabaseWriter {
                 .select(table.getIdColumnIndex(), table.getStrColumnIndex());
 
         DbResult result = _db.select(query);
-        final MutableIntValueMap<Character> charFrequency = MutableIntValueMap.empty();
+        final MutableIntValueHashMap<Character> charFrequency = MutableIntValueHashMap.empty();
         final MutableIntPairMap lengthFrequency = MutableIntPairMap.empty();
         int count = 0;
         try {
@@ -299,7 +301,7 @@ public final class StreamedDatabaseWriter {
 
         query = new DbQuery.Builder(table).select(table.getIdColumnIndex(), table.getStrColumnIndex());
         result = _db.select(query);
-        final ImmutableIntValueMap.Builder<String> langCodeSymbolArrayBuilder = new ImmutableIntValueMap.Builder<>();
+        final ImmutableIntValueHashMap.Builder<String> langCodeSymbolArrayBuilder = new ImmutableIntValueHashMap.Builder<>();
         final ImmutableSet<String> languageKeys = languageCodes.keySet();
         final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
         count = 0;
@@ -410,7 +412,7 @@ public final class StreamedDatabaseWriter {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getSourceAlphabetColumnIndex(), table.getTargetAlphabetColumnIndex(), table.getSourceColumnIndex(), table.getTargetColumnIndex());
         final DbResult result = _db.select(query);
-        final ImmutableMap.Builder<IntPair, ImmutableList<IntPair>> builder = new ImmutableMap.Builder<>();
+        final ImmutableHashMap.Builder<IntPair, ImmutableList<IntPair>> builder = new ImmutableHashMap.Builder<>();
         try {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();

@@ -2,6 +2,7 @@ package sword.langbook3.android;
 
 import org.junit.Test;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
@@ -1022,7 +1023,7 @@ public final class LangbookDatabaseTest {
         assertFalse(db.select(query).hasNext());
     }
 
-    private final ImmutableMap<String, String> upperCaseConversion = new ImmutableMap.Builder<String, String>()
+    private final ImmutableHashMap<String, String> upperCaseConversion = new ImmutableHashMap.Builder<String, String>()
             .put("a", "A")
             .put("b", "B")
             .put("c", "C")

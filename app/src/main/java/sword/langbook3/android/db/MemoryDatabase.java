@@ -7,7 +7,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
-import sword.collections.List;
+import sword.collections.MutableHashMap;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
@@ -22,8 +22,8 @@ import static sword.langbook3.android.EqualUtils.equal;
  */
 public final class MemoryDatabase implements Database {
 
-    private final MutableMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableMap.empty();
-    private final MutableMap<DbColumn, MutableMap<Object, Integer>> _indexes = MutableMap.empty();
+    private final MutableHashMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableHashMap.empty();
+    private final MutableHashMap<DbColumn, MutableHashMap<Object, Integer>> _indexes = MutableHashMap.empty();
 
     private static final class Result implements DbResult {
         private final ImmutableList<ImmutableList<Object>> _content;
@@ -228,7 +228,7 @@ public final class MemoryDatabase implements Database {
         }
 
         if (groupedSelection) {
-            final MutableMap<ImmutableList<Object>, Integer> groups = MutableMap.empty();
+            final MutableHashMap<ImmutableList<Object>, Integer> groups = MutableHashMap.empty();
             for (int resultRow = 0; resultRow < unselectedResult.size(); resultRow++) {
                 final ImmutableList<Object> reg = unselectedResult.get(resultRow);
                 final ImmutableList<Object> group = getGroup(reg, query.grouping());
@@ -302,7 +302,7 @@ public final class MemoryDatabase implements Database {
         final ImmutableList<DbColumn> columns = table.columns();
 
         final ImmutableList.Builder<Object> builder = new ImmutableList.Builder<>(columns.size());
-        final MutableMap<DbColumn, Object> uniqueMap = MutableMap.empty();
+        final MutableHashMap<DbColumn, Object> uniqueMap = MutableHashMap.empty();
         Integer id = null;
         for (DbColumn column : columns) {
             boolean found = false;
@@ -354,12 +354,12 @@ public final class MemoryDatabase implements Database {
         content.put(id, register);
 
         for (MutableMap.Entry<DbColumn, Object> entry : uniqueMap.entries()) {
-            final MutableMap<Object, Integer> map;
+            final MutableHashMap<Object, Integer> map;
             if (_indexes.containsKey(entry.key())) {
                 map = _indexes.get(entry.key());
             }
             else {
-                map = MutableMap.empty();
+                map = MutableHashMap.empty();
                 _indexes.put(entry.key(), map);
             }
 
