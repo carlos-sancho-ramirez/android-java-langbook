@@ -506,7 +506,6 @@ public final class StreamedDatabaseWriter {
                 table.getCorrelationIdColumnIndex(),
                 table.getAlphabetColumnIndex(),
                 table.getSymbolArrayColumnIndex());
-        final DbResult result = _db.select(query);
         final ImmutableIntKeyMap.Builder<ImmutableIntPairMap> builder = new ImmutableIntKeyMap.Builder<>();
         final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
         final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
@@ -519,7 +518,7 @@ public final class StreamedDatabaseWriter {
             lengthFrequencies.put(0, 1);
         }
 
-        try {
+        try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 ImmutableIntPairMap.Builder setBuilder = new ImmutableIntPairMap.Builder();
@@ -552,9 +551,9 @@ public final class StreamedDatabaseWriter {
                             idMapBuilder.put(setId, setCount++);
                         }
 
-                        setBuilder = isSetExportable? new ImmutableIntPairMap.Builder() : null;
                         setId = newSetId;
                         isSetExportable = exportable.contains(setId);
+                        setBuilder = isSetExportable? new ImmutableIntPairMap.Builder() : null;
                     }
 
                     alphabet = row.get(1).toInt();
@@ -573,9 +572,6 @@ public final class StreamedDatabaseWriter {
                     idMapBuilder.put(setId, setCount++);
                 }
             }
-        }
-        finally {
-            result.close();
         }
 
         final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(
