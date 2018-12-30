@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
@@ -28,7 +29,9 @@ import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
+import static sword.langbook3.android.LangbookDbInserter.insertSpan;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
+import static sword.langbook3.android.LangbookReadableDatabase.findRuledAcceptationByRuleAndMainAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
@@ -425,17 +428,35 @@ public final class DatabaseInflater {
         }
     }
 
+    private void insertSentences(StreamedDatabaseReader.SentenceSpan[] spans, int[] accIdMap, StreamedDatabaseReader.RuleAcceptationPair[] ruleAcceptationPairs) {
+        for (StreamedDatabaseReader.SentenceSpan span : spans) {
+            final ImmutableIntRange range = new ImmutableIntRange(span.start, span.start + span.length - 1);
+            final int acc;
+            if (span.acceptationFileIndex < accIdMap.length) {
+                acc = accIdMap[span.acceptationFileIndex];
+            }
+            else {
+                StreamedDatabaseReader.RuleAcceptationPair pair = ruleAcceptationPairs[span.acceptationFileIndex - accIdMap.length];
+                acc = findRuledAcceptationByRuleAndMainAcceptation(_db, pair.rule, pair.acceptation);
+            }
+            insertSpan(_db, span.symbolArray, range, acc);
+        }
+    }
+
     public void read() throws IOException {
         final StreamedDatabaseReader.Result result = _dbReader.read();
 
-        setProgress(0.3f, "Indexing strings");
+        setProgress(0.2f, "Indexing strings");
         fillSearchQueryTable();
 
-        setProgress(0.4f, "Running agents");
+        setProgress(0.3f, "Running agents");
         runAgents(result.agents);
 
         setProgress(0.8f, "Applying conversions");
         applyConversions(result.conversions);
+
+        setProgress(0.9f, "Inserting sentence spans");
+        insertSentences(result.spans, result.accIdMap, result.ruleAcceptationPairs);
     }
 
     private static final class Listener implements ProgressListener {

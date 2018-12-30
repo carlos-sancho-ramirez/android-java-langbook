@@ -14,18 +14,26 @@ import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
+import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.List;
 import sword.collections.MutableIntPairMap;
+import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.db.DbImporter.Database;
+import sword.langbook3.android.db.DbQuery;
+import sword.langbook3.android.db.DbResult;
+import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
@@ -294,7 +302,17 @@ public final class StreamedDatabaseReader {
         return setId;
     }
 
-    private int[] readSymbolArrays(InputBitStream ibs) throws IOException {
+    private static final class SymbolArrayReadResult {
+        final int[] idMap;
+        final int[] lengths;
+
+        SymbolArrayReadResult(int[] idMap, int[] lengths) {
+            this.idMap = idMap;
+            this.lengths = lengths;
+        }
+    }
+
+    private SymbolArrayReadResult readSymbolArrays(InputBitStream ibs) throws IOException {
         final int symbolArraysLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
         final NaturalNumberHuffmanTable nat4Table = new NaturalNumberHuffmanTable(4);
@@ -306,6 +324,7 @@ public final class StreamedDatabaseReader {
                 ibs.readHuffmanTable(new IntReader(ibs), new IntHuffmanSymbolDiffReader(ibs, nat3Table));
 
         final int[] idMap = new int[symbolArraysLength];
+        final int[] lengths = new int[symbolArraysLength];
         for (int index = 0; index < symbolArraysLength; index++) {
             final int length = ibs.readHuffmanSymbol(symbolArraysLengthTable);
             final StringBuilder builder = new StringBuilder();
@@ -314,9 +333,10 @@ public final class StreamedDatabaseReader {
             }
 
             idMap[index] = obtainSymbolArray(_db, builder.toString());
+            lengths[index] = length;
         }
 
-        return idMap;
+        return new SymbolArrayReadResult(idMap, lengths);
     }
 
     private Conversion[] readConversions(InputBitStream ibs, int minValidAlphabet, int maxValidAlphabet, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
@@ -464,11 +484,12 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private ImmutableIntKeyMap<AgentBunches> readAgents(
+    private AgentReadResult readAgents(
             InputBitStream ibs, int maxConcept, int[] correlationIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
+        final MutableIntSet presentRules = MutableIntSet.empty();
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -535,20 +556,143 @@ public final class StreamedDatabaseReader {
                 final ImmutableIntSet diffSet = new ImmutableIntSetBuilder().build();
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
 
+                if (hasRule) {
+                    presentRules.add(rule);
+                }
                 lastTarget = targetBunch;
             }
         }
 
-        return builder.build();
+        return new AgentReadResult(builder.build(), presentRules.toImmutable());
+    }
+
+    public static class RuleAcceptationPair {
+        public final int rule;
+        public final int acceptation;
+
+        RuleAcceptationPair(int rule, int acceptation) {
+            this.rule = rule;
+            this.acceptation = acceptation;
+        }
+    }
+
+    private RuleAcceptationPair[] readRelevantRuledAcceptations(InputBitStream ibs, int[] accIdMap, ImmutableIntSet presentRules) throws IOException {
+        final int pairsCount = ibs.readHuffmanSymbol(naturalNumberTable);
+        final RuleAcceptationPair[] pairs = new RuleAcceptationPair[pairsCount];
+        if (pairsCount > 0) {
+            final int maxMainAcc = accIdMap.length - 1;
+            final int maxPresentRule = presentRules.size() - 1;
+            int previousRuleIndex = 0;
+            int firstPossibleAcc = 0;
+            for (int pairIndex = 0; pairIndex < pairsCount; pairIndex++) {
+                final RangedIntegerHuffmanTable rulesTable = new RangedIntegerHuffmanTable(previousRuleIndex, maxPresentRule);
+                final int ruleIndex = ibs.readHuffmanSymbol(rulesTable);
+                final int rule = presentRules.valueAt(ruleIndex);
+                if (ruleIndex != previousRuleIndex) {
+                    firstPossibleAcc = 0;
+                }
+
+                final RangedIntegerHuffmanTable mainAcceptationTable = new RangedIntegerHuffmanTable(firstPossibleAcc, maxMainAcc);
+                int mainAccIndex = ibs.readHuffmanSymbol(mainAcceptationTable);
+                int mainAcc = accIdMap[mainAccIndex];
+
+                previousRuleIndex = ruleIndex;
+                firstPossibleAcc = mainAccIndex + 1;
+
+                pairs[pairIndex] = new RuleAcceptationPair(rule, mainAcc);
+            }
+        }
+
+        return pairs;
+    }
+
+    public static final class SentenceSpan {
+        public final int symbolArray;
+        public final int start;
+        public final int length;
+        public final int acceptationFileIndex;
+
+        SentenceSpan(int symbolArray, int start, int length, int acceptationFileIndex) {
+            this.symbolArray = symbolArray;
+            this.start = start;
+            this.length = length;
+            this.acceptationFileIndex = acceptationFileIndex;
+        }
+
+        @Override
+        public int hashCode() {
+            return symbolArray * 41 + start;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof SentenceSpan)) {
+                return false;
+            }
+
+            final SentenceSpan that = (SentenceSpan) other;
+            return symbolArray == that.symbolArray && start == that.start && length == that.length && acceptationFileIndex == that.acceptationFileIndex;
+        }
+    }
+
+    private SentenceSpan[] readSentenceSpans(InputBitStream ibs, int extendedAccCount, int[] symbolArrayIdMap, int[] symbolArrayLengths) throws IOException {
+        final int maxSymbolArray = symbolArrayLengths.length - 1;
+        final int spanCount = ibs.readHuffmanSymbol(naturalNumberTable);
+        final SentenceSpan[] spans = new SentenceSpan[spanCount];
+        if (spanCount > 0) {
+            final RangedIntegerHuffmanTable accTable = new RangedIntegerHuffmanTable(0, extendedAccCount - 1);
+            int previousSymbolArray = 0;
+            int previousStart = 0;
+
+            for (int spanIndex = 0; spanIndex < spanCount; spanIndex++) {
+                final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(previousSymbolArray, maxSymbolArray);
+                final int symbolArrayFileId = ibs.readHuffmanSymbol(symbolArrayTable);
+                final int symbolArray = symbolArrayIdMap[symbolArrayFileId];
+                if (symbolArrayFileId != previousSymbolArray) {
+                    previousStart = 0;
+                }
+
+                final int sentenceLength = symbolArrayLengths[symbolArrayFileId];
+                final RangedIntegerHuffmanTable startTable = new RangedIntegerHuffmanTable(previousStart, sentenceLength - 1);
+                final int start = ibs.readHuffmanSymbol(startTable);
+
+                final RangedIntegerHuffmanTable lengthTable = new RangedIntegerHuffmanTable(1, sentenceLength - start);
+                final int length = ibs.readHuffmanSymbol(lengthTable);
+
+                final int accIndex = ibs.readHuffmanSymbol(accTable);
+
+                spans[spanIndex] = new SentenceSpan(symbolArray, start, length, accIndex);
+                previousSymbolArray = symbolArrayFileId;
+                previousStart = start;
+            }
+        }
+
+        return spans;
     }
 
     public static final class Result {
         public final Conversion[] conversions;
         public final IntKeyMap<AgentBunches> agents;
+        public final int[] accIdMap;
+        public final RuleAcceptationPair[] ruleAcceptationPairs;
+        public final SentenceSpan[] spans;
 
-        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents) {
+        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, RuleAcceptationPair[] ruleAcceptationPairs, SentenceSpan[] spans) {
             this.conversions = conversions;
             this.agents = agents;
+            this.accIdMap = accIdMap;
+            this.ruleAcceptationPairs = ruleAcceptationPairs;
+            this.spans = spans;
+        }
+    }
+
+    private static final class AgentReadResult {
+        final ImmutableIntKeyMap<AgentBunches> agents;
+        final ImmutableIntSet presentRules;
+
+        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet presentRules) {
+            this.agents = agents;
+            this.presentRules = presentRules;
         }
     }
 
@@ -556,7 +700,8 @@ public final class StreamedDatabaseReader {
         try {
             setProgress(0, "Reading symbol arrays");
             final InputBitStream ibs = new InputBitStream(_is);
-            final int[] symbolArraysIdMap = readSymbolArrays(ibs);
+            final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs);
+            final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;
             final int minSymbolArrayIndex = 0;
             final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
             final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex,
@@ -635,15 +780,17 @@ public final class StreamedDatabaseReader {
 
             // Import agents
             setProgress(0.8f, "Reading agents");
-            ImmutableIntKeyMap<AgentBunches> agents = readAgents(ibs, maxConcept, correlationIdMap);
+            final AgentReadResult agentReadResult = readAgents(ibs, maxConcept, correlationIdMap);
 
-            // Import ruleConcepts
-            setProgress(0.99f, "Reading rule concepts");
-            if (ibs.readHuffmanSymbol(naturalNumberTable) != 0) {
-                throw new UnsupportedOperationException("For now, this should always be an empty table");
-            }
+            // Import relevant dynamic acceptations
+            setProgress(0.9f, "Writing dynamic acceptations");
+            final RuleAcceptationPair[] ruleAcceptationPairs = readRelevantRuledAcceptations(ibs, acceptationIdMap, agentReadResult.presentRules);
 
-            return new Result(conversions, agents);
+            // Import sentence spans
+            setProgress(0.93f, "Writing sentence spans");
+            final SentenceSpan[] spans = readSentenceSpans(ibs, acceptationIdMap.length + ruleAcceptationPairs.length, symbolArraysIdMap, symbolArraysReadResult.lengths);
+
+            return new Result(conversions, agentReadResult.agents, acceptationIdMap, ruleAcceptationPairs, spans);
         }
         finally {
             try {

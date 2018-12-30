@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.widget.Toast;
 
+import sword.collections.AbstractTransformer;
 import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
@@ -202,7 +203,7 @@ class DbManager extends SQLiteOpenHelper {
         return row;
     }
 
-    static class SQLiteDbResult implements DbResult {
+    static class SQLiteDbResult extends AbstractTransformer<List<DbValue>> implements DbResult {
         private final ImmutableList<DbColumn> _columns;
         private final Cursor _cursor;
         private final int _rowCount;

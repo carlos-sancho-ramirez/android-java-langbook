@@ -288,6 +288,23 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static Integer findRuledAcceptationByRuleAndMainAcceptation(DbExporter.Database db, int rule, int mainAcceptation) {
+        final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(ruledAccs)
+                .join(agents, ruledAccs.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .where(ruledAccs.getAcceptationColumnIndex(), mainAcceptation)
+                .where(ruledAccs.columns().size() + agents.getRuleColumnIndex(), rule)
+                .select(ruledAccs.getIdColumnIndex());
+        final DbResult dbResult = db.select(query);
+        final Integer result = dbResult.hasNext()? dbResult.next().get(0).toInt() : null;
+        if (dbResult.hasNext()) {
+            throw new AssertionError();
+        }
+
+        return result;
+    }
+
     public static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)

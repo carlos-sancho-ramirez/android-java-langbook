@@ -20,6 +20,7 @@ import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableHashMap;
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -40,6 +41,7 @@ import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
+import sword.collections.MutableIntValueSortedMap;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.db.DbExporter.Database;
 import sword.langbook3.android.db.DbQuery;
@@ -249,10 +251,12 @@ public final class StreamedDatabaseWriter {
     private static final class SymbolArrayWriterResult {
         final ImmutableIntPairMap idMap;
         final ImmutableIntValueMap<String> langMap;
+        final ImmutableIntPairMap lengths;
 
-        SymbolArrayWriterResult(ImmutableIntPairMap idMap, ImmutableIntValueMap<String> langMap) {
+        SymbolArrayWriterResult(ImmutableIntPairMap idMap, ImmutableIntValueMap<String> langMap, ImmutableIntPairMap lengths) {
             this.idMap = idMap;
             this.langMap = langMap;
+            this.lengths = lengths;
         }
     }
 
@@ -261,11 +265,10 @@ public final class StreamedDatabaseWriter {
         DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex(), table.getStrColumnIndex());
 
-        DbResult result = _db.select(query);
         final MutableIntValueHashMap<Character> charFrequency = MutableIntValueHashMap.empty();
         final MutableIntPairMap lengthFrequency = MutableIntPairMap.empty();
         int count = 0;
-        try {
+        try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 if (exportable.contains(row.get(0).toInt())) {
@@ -283,9 +286,7 @@ public final class StreamedDatabaseWriter {
                 }
             }
         }
-        finally {
-            result.close();
-        }
+
         final int length = count;
 
         _obs.writeHuffmanSymbol(naturalNumberTable, length);
@@ -300,12 +301,13 @@ public final class StreamedDatabaseWriter {
         _obs.writeHuffmanTable(symbolArraysLengthTable, new IntWriter(), new IntHuffmanSymbolDiffWriter(_obs, nat3Table));
 
         query = new DbQuery.Builder(table).select(table.getIdColumnIndex(), table.getStrColumnIndex());
-        result = _db.select(query);
         final ImmutableIntValueHashMap.Builder<String> langCodeSymbolArrayBuilder = new ImmutableIntValueHashMap.Builder<>();
         final ImmutableSet<String> languageKeys = languageCodes.keySet();
         final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntPairMap.Builder lengthMapBuilder = new ImmutableIntPairMap.Builder();
+
         count = 0;
-        try {
+        try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 List<DbValue> row = result.next();
                 final int dbId = row.get(0).toInt();
@@ -318,6 +320,7 @@ public final class StreamedDatabaseWriter {
 
                     final int strLength = str.length();
                     _obs.writeHuffmanSymbol(symbolArraysLengthTable, strLength);
+                    lengthMapBuilder.put(dbId, strLength);
 
                     for (int i = 0; i < strLength; i++) {
                         _obs.writeHuffmanSymbol(charHuffmanTable, str.charAt(i));
@@ -325,11 +328,8 @@ public final class StreamedDatabaseWriter {
                 }
             }
         }
-        finally {
-            result.close();
-        }
 
-        return new SymbolArrayWriterResult(idMapBuilder.build(), langCodeSymbolArrayBuilder.build());
+        return new SymbolArrayWriterResult(idMapBuilder.build(), langCodeSymbolArrayBuilder.build(), lengthMapBuilder.build());
     }
 
     private ImmutableIntRange writeLanguages(ImmutableIntPairMap symbolArraysIdMap, ImmutableIntValueMap<String> langMap) throws IOException {
@@ -506,6 +506,7 @@ public final class StreamedDatabaseWriter {
                 table.getCorrelationIdColumnIndex(),
                 table.getAlphabetColumnIndex(),
                 table.getSymbolArrayColumnIndex());
+
         final ImmutableIntKeyMap.Builder<ImmutableIntPairMap> builder = new ImmutableIntKeyMap.Builder<>();
         final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
         final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
@@ -562,7 +563,7 @@ public final class StreamedDatabaseWriter {
                     }
                 }
 
-                if (exportable.contains(setId)) {
+                if (isSetExportable) {
                     final ImmutableIntPairMap set = setBuilder.build();
                     final int setLength = set.size();
                     final int amount = lengthFrequencies.get(setLength, 0);
@@ -816,7 +817,7 @@ public final class StreamedDatabaseWriter {
         return bunchSets.toImmutable();
     }
 
-    private void writeAgents(int maxConcept, ImmutableIntPairMap correlationIdMap) throws IOException {
+    private ImmutableIntSet writeAgents(int maxConcept, ImmutableIntPairMap correlationIdMap) throws IOException {
         final ImmutableIntKeyMap<ImmutableIntSet> bunchSets = getBunchSets();
 
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
@@ -853,6 +854,7 @@ public final class StreamedDatabaseWriter {
         final int agentCount = count;
         _obs.writeHuffmanSymbol(naturalNumberTable, agentCount);
 
+        final MutableIntSet presentRules = MutableIntSet.empty();
         if (agentCount != 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntWriter intWriter = new IntWriter(nat3Table);
@@ -908,6 +910,7 @@ public final class StreamedDatabaseWriter {
                     final boolean hasRule = startMatcher != startAdder || endMatcher != endAdder;
                     if (hasRule) {
                         _obs.writeHuffmanSymbol(conceptTable, rule);
+                        presentRules.add(rule);
                     }
 
                     lastTarget = targetBunch;
@@ -917,6 +920,8 @@ public final class StreamedDatabaseWriter {
                 result.close();
             }
         }
+
+        return presentRules.toImmutable();
     }
 
     private ImmutableIntSet getCorrelationSetIds() {
@@ -1008,19 +1013,7 @@ public final class StreamedDatabaseWriter {
     private ImmutableIntSet listRuledAcceptations() {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery query = new DbQuery.Builder(table).select(table.getIdColumnIndex());
-        final DbResult result = _db.select(query);
-
-        final ImmutableIntSetBuilder acceptations = new ImmutableIntSetBuilder();
-        try {
-            while(result.hasNext()) {
-                acceptations.add(result.next().get(0).toInt());
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return acceptations.build();
+        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static class ExportableAcceptationsAndCorrelationArrays {
@@ -1160,6 +1153,19 @@ public final class StreamedDatabaseWriter {
         return builder.build();
     }
 
+    private ImmutableIntSet listSymbolArraysForSentenceSpans() {
+        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getSymbolArray());
+        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        try (DbResult result = _db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+        return builder.build();
+    }
+
     private ExportableSymbolArraysResult listExportableSymbolArrays(ImmutableIntSet correlations) {
         final MutableIntSet targetedAlphabets = MutableIntSet.empty();
         final ImmutableIntSetBuilder symbolArrays = new ImmutableIntSetBuilder();
@@ -1173,18 +1179,18 @@ public final class StreamedDatabaseWriter {
 
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(table).select(table.getCorrelationIdColumnIndex(), table.getAlphabetColumnIndex(), table.getSymbolArrayColumnIndex());
-        final DbResult result = _db.select(query);
 
-        try {
-            while(result.hasNext()) {
+        try (DbResult result = _db.select(query)) {
+            while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 if (correlations.contains(row.get(0).toInt()) && !targetedAlphabets.contains(row.get(1).toInt())) {
                     symbolArrays.add(row.get(2).toInt());
                 }
             }
         }
-        finally {
-            result.close();
+
+        for (int arrayId : listSymbolArraysForSentenceSpans()) {
+            symbolArrays.add(arrayId);
         }
 
         return new ExportableSymbolArraysResult(symbolArrays.build(), targetedAlphabets.toImmutable());
@@ -1208,6 +1214,182 @@ public final class StreamedDatabaseWriter {
         return setIds.build();
     }
 
+    private static class RuleAcceptationPair {
+        final int rule;
+        final int acceptation;
+
+        RuleAcceptationPair(int rule, int acceptation) {
+            this.rule = rule;
+            this.acceptation = acceptation;
+        }
+
+        @Override
+        public int hashCode() {
+            return rule * 37 + acceptation;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof RuleAcceptationPair)) {
+                return false;
+            }
+
+            RuleAcceptationPair that = (RuleAcceptationPair) other;
+            return rule == that.rule && acceptation == that.acceptation;
+        }
+
+        static boolean lessThan(RuleAcceptationPair a, RuleAcceptationPair b) {
+            return b != null && (a == null || a.rule < b.rule || a.rule == b.rule && a.acceptation < b.acceptation);
+        }
+    }
+
+    private void writeRelevantRuledAcceptations(MutableIntPairMap accIdMap, ImmutableIntSet presentRules) throws IOException {
+        final ImmutableIntSet originalAccKeys = accIdMap.keySet().toImmutable();
+        if (accIdMap.max() + 1 != accIdMap.size()) {
+            throw new AssertionError();
+        }
+
+        final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final int ruledAccOffset = spans.columns().size();
+        final int agentOffset = ruledAccOffset + ruledAcceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(spans)
+                .join(ruledAcceptations, spans.getAcceptation(), ruledAcceptations.getIdColumnIndex())
+                .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .select(spans.getAcceptation(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), agentOffset + agents.getRuleColumnIndex());
+
+        final MutableIntValueSortedMap<RuleAcceptationPair> pairs = MutableIntValueSortedMap.empty(RuleAcceptationPair::lessThan);
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int dynamicAcc = row.get(0).toInt();
+                final int mainAcc = row.get(1).toInt();
+                final int ruleIndex = presentRules.indexOf(row.get(2).toInt());
+
+                if (ruleIndex < 0 || ruleIndex >= presentRules.size()) {
+                    throw new AssertionError();
+                }
+                if (originalAccKeys.contains(dynamicAcc)) {
+                    throw new AssertionError();
+                }
+                if (!originalAccKeys.contains(mainAcc)) {
+                    throw new AssertionError();
+                }
+
+                pairs.put(new RuleAcceptationPair(ruleIndex, accIdMap.get(mainAcc)), dynamicAcc);
+            }
+        }
+
+        final int pairsCount = pairs.size();
+        _obs.writeHuffmanSymbol(naturalNumberTable, pairsCount);
+        if (pairsCount > 0) {
+            final int mainAccCount = originalAccKeys.size();
+            final int maxPresentRule = presentRules.size() - 1;
+            int accIdMapSize = accIdMap.size();
+            int previousRule = 0;
+            int firstPossibleAcc = 0;
+            for (int pairIndex = 0; pairIndex < pairsCount; pairIndex++) {
+                final RuleAcceptationPair pair = pairs.keyAt(pairIndex);
+                final RangedIntegerHuffmanTable rulesTable = new RangedIntegerHuffmanTable(previousRule, maxPresentRule);
+                _obs.writeHuffmanSymbol(rulesTable, pair.rule);
+                if (pair.rule != previousRule) {
+                    firstPossibleAcc = 0;
+                }
+
+                final RangedIntegerHuffmanTable mainAcceptationTable = new RangedIntegerHuffmanTable(firstPossibleAcc, mainAccCount - 1);
+                _obs.writeHuffmanSymbol(mainAcceptationTable, pair.acceptation);
+
+                previousRule = pair.rule;
+                firstPossibleAcc = pair.acceptation + 1;
+
+                accIdMap.put(pairs.valueAt(pairIndex), accIdMapSize++);
+            }
+        }
+    }
+
+    private static final class SentenceSpan {
+        final int symbolArray;
+        final int start;
+        final int length;
+        final int acceptation;
+
+        SentenceSpan(int symbolArray, int start, int length, int acceptation) {
+            this.symbolArray = symbolArray;
+            this.start = start;
+            this.length = length;
+            this.acceptation = acceptation;
+        }
+
+        @Override
+        public int hashCode() {
+            return symbolArray * 41 + start;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof SentenceSpan)) {
+                return false;
+            }
+
+            final SentenceSpan that = (SentenceSpan) other;
+            return symbolArray == that.symbolArray && start == that.start && length == that.length && acceptation == that.acceptation;
+        }
+
+        static boolean lessThan(SentenceSpan a, SentenceSpan b) {
+            return b != null && (a == null || a.symbolArray < b.symbolArray || a.symbolArray == b.symbolArray && (
+                    a.start < b.start || a.start == b.start && (a.length < b.length || a.length == b.length && a.acceptation < b.acceptation)));
+        }
+    }
+
+    private void writeSentenceSpans(IntPairMap accIdMap, IntPairMap symbolArrayIdMap, IntPairMap symbolArrayLengths) throws IOException {
+        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getSymbolArray(), table.getStart(), table.getLength(), table.getAcceptation());
+
+        final ImmutableSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int symbolArray = row.get(0).toInt();
+                final int start = row.get(1).toInt();
+                final int length = row.get(2).toInt();
+                final int acc = row.get(3).toInt();
+                builder.add(new SentenceSpan(symbolArray, start, length, acc));
+            }
+        }
+
+        final int symbolArrayCount = symbolArrayLengths.size();
+        final ImmutableSet<SentenceSpan> spans = builder.build().sort(SentenceSpan::lessThan);
+        _obs.writeHuffmanSymbol(naturalNumberTable, spans.size());
+        if (!spans.isEmpty()) {
+            final RangedIntegerHuffmanTable accTable = new RangedIntegerHuffmanTable(0, accIdMap.size() - 1);
+            int previousSymbolArray = 0;
+            int previousStart = 0;
+
+            for (SentenceSpan span : spans) {
+                final int symbolArray = span.symbolArray;
+                final int symbolArrayFileId = symbolArrayIdMap.get(symbolArray);
+                final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(previousSymbolArray, symbolArrayCount - 1);
+                _obs.writeHuffmanSymbol(symbolArrayTable, symbolArrayFileId);
+                if (symbolArrayFileId != previousSymbolArray) {
+                    previousStart = 0;
+                }
+
+                final int sentenceLength = symbolArrayLengths.get(symbolArray);
+                final RangedIntegerHuffmanTable startTable = new RangedIntegerHuffmanTable(previousStart, sentenceLength - 1);
+                _obs.writeHuffmanSymbol(startTable, span.start);
+
+                final RangedIntegerHuffmanTable lengthTable = new RangedIntegerHuffmanTable(1, sentenceLength - span.start);
+                _obs.writeHuffmanSymbol(lengthTable, span.length);
+
+                _obs.writeHuffmanSymbol(accTable, accIdMap.get(span.acceptation));
+                previousSymbolArray = symbolArrayFileId;
+                previousStart = span.start;
+            }
+        }
+    }
+
     public void write() throws IOException {
         setProgress(0.0f, "Filtering database");
         final ExportableAcceptationsAndCorrelationArrays exportable = listExportableAcceptationsAndCorrelationArrays();
@@ -1220,6 +1402,7 @@ public final class StreamedDatabaseWriter {
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(exportableSymbolArrays.symbolArrays, langCodes);
         final ImmutableIntPairMap symbolArrayIdMap = symbolArrayWriterResult.idMap;
         final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayIdMap, symbolArrayWriterResult.langMap);
+        final ImmutableIntPairMap symbolArrayLengths = symbolArrayWriterResult.lengths;
 
         setProgress(0.2f, "Writing conversions");
         writeConversions(validAlphabets, symbolArrayIdMap);
@@ -1232,26 +1415,30 @@ public final class StreamedDatabaseWriter {
         setProgress(0.25f, "Writing correlations");
         final ImmutableIntPairMap correlationIdMap = writeCorrelations(exportableCorrelations, validAlphabets, exportableSymbolArrays.excludedAlphabets, symbolArrayIdMap);
 
-        setProgress(0.40f, "Writing correlation arrays");
+        setProgress(0.35f, "Writing correlation arrays");
         final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(exportable.correlationArrays, correlationIdMap);
 
         // TODO: Check if this is already required and accRanges.concepts cannot be used instead
         final ImmutableIntRange validConcepts = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, conceptRange.max());
-        setProgress(0.6f, "Writing acceptations");
+        setProgress(0.5f, "Writing acceptations");
         final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, validConcepts, correlationArrayIdMap);
 
-        setProgress(0.7f, "Writing bunch concepts");
+        setProgress(0.6f, "Writing bunch concepts");
         writeBunchConcepts(validConcepts);
 
-        setProgress(0.8f, "Writing bunch acceptations");
+        setProgress(0.7f, "Writing bunch acceptations");
         writeBunchAcceptations(validConcepts, agentSetIds, accIdMap);
 
-        setProgress(0.9f, "Writing agents");
-        writeAgents(validConcepts.max(), correlationIdMap);
+        setProgress(0.8f, "Writing agents");
+        final ImmutableIntSet presentRules = writeAgents(validConcepts.max(), correlationIdMap);
 
-        // Export ruleConcepts
-        // Unimplemented. So far let's confirm that this table is always empty
-        _obs.writeHuffmanSymbol(naturalNumberTable, 0);
+        setProgress(0.9f, "Writing dynamic acceptations");
+        final MutableIntPairMap extendedAccIdMap = accIdMap.mutate();
+        writeRelevantRuledAcceptations(extendedAccIdMap, presentRules);
+
+        setProgress(0.93f, "Writing sentence spans");
+        writeSentenceSpans(extendedAccIdMap, symbolArrayIdMap, symbolArrayLengths);
+
         _obs.close();
     }
 }

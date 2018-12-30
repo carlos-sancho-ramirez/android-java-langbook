@@ -2,11 +2,13 @@ package sword.langbook3.android.db;
 
 import java.util.Iterator;
 
+import sword.collections.AbstractTransformer;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
+import sword.collections.List;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableList;
@@ -25,7 +27,7 @@ public final class MemoryDatabase implements Database {
     private final MutableHashMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableHashMap.empty();
     private final MutableHashMap<DbColumn, MutableHashMap<Object, Integer>> _indexes = MutableHashMap.empty();
 
-    private static final class Result implements DbResult {
+    private static final class Result extends AbstractTransformer<List<DbValue>> implements DbResult {
         private final ImmutableList<ImmutableList<Object>> _content;
         private int _index;
 
