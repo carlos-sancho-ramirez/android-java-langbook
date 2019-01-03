@@ -74,7 +74,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
     private void pickFile() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("file/*");
+        intent.setType("*/*");
         if (!getPackageManager().queryIntentActivities(intent, 0).isEmpty()) {
             startActivityForResult(intent, REQUEST_CODE_PICK);
         }
