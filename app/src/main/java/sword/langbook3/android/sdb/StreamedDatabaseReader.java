@@ -11,19 +11,16 @@ import sword.bitstream.NaturalDecoder;
 import sword.bitstream.RangedIntegerSetDecoder;
 import sword.bitstream.SupplierWithIOException;
 import sword.bitstream.huffman.CharHuffmanTable;
+import sword.bitstream.huffman.DefinedHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
-import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
-import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
-import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.collections.List;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
@@ -31,9 +28,6 @@ import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.db.DbImporter.Database;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbValue;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
@@ -45,6 +39,7 @@ import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
 import static sword.langbook3.android.LangbookDbInserter.insertConversion;
 import static sword.langbook3.android.LangbookDbInserter.insertLanguage;
+import static sword.langbook3.android.LangbookDbInserter.insertSentenceMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxBunchSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
@@ -670,6 +665,23 @@ public final class StreamedDatabaseReader {
         return spans;
     }
 
+    private void readSentenceMeanings(InputBitStream ibs, int[] symbolArrayIdMap) throws IOException {
+        final int meaningCount = ibs.readHuffmanSymbol(naturalNumberTable);
+        if (meaningCount > 0) {
+            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
+            DefinedHuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
+
+            int previousMin = 0;
+            for (int meaningIndex = 0; meaningIndex < meaningCount; meaningIndex++) {
+                final ImmutableIntSet set = readRangedNumberSet(ibs, lengthTable, previousMin, symbolArrayIdMap.length - 1);
+                previousMin = set.min();
+                for (int symbolArrayFileId : set) {
+                    insertSentenceMeaning(_db, symbolArrayIdMap[symbolArrayFileId], meaningIndex + 1);
+                }
+            }
+        }
+    }
+
     public static final class Result {
         public final Conversion[] conversions;
         public final IntKeyMap<AgentBunches> agents;
@@ -789,6 +801,9 @@ public final class StreamedDatabaseReader {
             // Import sentence spans
             setProgress(0.93f, "Writing sentence spans");
             final SentenceSpan[] spans = readSentenceSpans(ibs, acceptationIdMap.length + ruleAcceptationPairs.length, symbolArraysIdMap, symbolArraysReadResult.lengths);
+
+            setProgress(0.98f, "Writing sentence meanings");
+            readSentenceMeanings(ibs, symbolArraysIdMap);
 
             return new Result(conversions, agentReadResult.agents, acceptationIdMap, ruleAcceptationPairs, spans);
         }

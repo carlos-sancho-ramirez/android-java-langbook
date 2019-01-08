@@ -189,7 +189,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> checkPossibleCorrelationArrays(ImmutableIntKeyMap<String> global) {
         final int globalSize = global.size();
         final IntResultFunction<String> lengthFunc = text -> (text == null)? 0 : text.length();
-        final ImmutableIntPairMap lengths = global.map(lengthFunc);
+        final ImmutableIntPairMap lengths = global.mapToInt(lengthFunc);
         if (globalSize == 0 || lengths.anyMatch(length -> length <= 0)) {
             return ImmutableHashSet.empty();
         }
@@ -226,7 +226,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private int findSuggestedPosition() {
         final ImmutableSet<ImmutableIntKeyMap<String>> known = _knownCorrelations.keySet();
         final IntResultFunction<ImmutableList<ImmutableIntKeyMap<String>>> func = option -> option.filter(known::contains).size();
-        final ImmutableIntList knownParity = _options.toList().map(func);
+        final ImmutableIntList knownParity = _options.toList().mapToInt(func);
 
         final int length = knownParity.size();
         int max = 0;

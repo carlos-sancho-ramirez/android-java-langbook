@@ -42,6 +42,8 @@ import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueSortedMap;
+import sword.collections.MutableSet;
+import sword.collections.MutableSortedSet;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.db.DbExporter.Database;
 import sword.langbook3.android.db.DbQuery;
@@ -1390,6 +1392,74 @@ public final class StreamedDatabaseWriter {
         }
     }
 
+    private static boolean sentenceSetLessThan(ImmutableIntSet a, ImmutableIntSet b) {
+        if (b == null) {
+            return false;
+        }
+
+        if (a == null) {
+            return true;
+        }
+
+        final int aLength = a.size();
+        final int bLength = b.size();
+
+        for (int index = 0; index < aLength && index < bLength; index++) {
+            final int aValue = a.valueAt(index);
+            final int bValue = b.valueAt(index);
+            if (aValue < bValue) {
+                return true;
+            }
+
+            if (bValue < aValue) {
+                return false;
+            }
+        }
+
+        return aLength < bLength;
+    }
+
+    private void writeSentenceMeanings(IntPairMap symbolArrayIdMap) throws IOException {
+        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getIdColumnIndex(), table.getMeaning());
+
+        final MutableIntKeyMap<ImmutableIntSet> map = MutableIntKeyMap.empty();
+        final ImmutableIntSet emptySet = new ImmutableIntSetBuilder().build();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int symbolArray = row.get(0).toInt();
+                final int meaning = row.get(1).toInt();
+
+                final ImmutableIntSet current = map.get(meaning, emptySet);
+                map.put(meaning, current.add(symbolArrayIdMap.get(symbolArray)));
+            }
+        }
+
+        final MutableSet<ImmutableIntSet> meaningBuilder = MutableSortedSet.empty(StreamedDatabaseWriter::sentenceSetLessThan);
+        for (ImmutableIntSet set : map.toImmutable().filter(set -> set.size() >= 2)) {
+            meaningBuilder.add(set);
+        }
+
+        final ImmutableSet<ImmutableIntSet> meanings = meaningBuilder.toImmutable();
+        final int meaningCount = meanings.size();
+        _obs.writeHuffmanSymbol(naturalNumberTable, meaningCount);
+        if (meaningCount > 0) {
+            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
+            DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.from(meanings.mapToInt(ImmutableIntSet::size), intEncoder);
+            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+
+            int previousMin = 0;
+            for (ImmutableIntSet set : meanings) {
+                RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, previousMin,
+                        symbolArrayIdMap.size() - 1);
+                writeRangedNumberSet(encoder, set);
+                previousMin = set.min();
+            }
+        }
+    }
+
     public void write() throws IOException {
         setProgress(0.0f, "Filtering database");
         final ExportableAcceptationsAndCorrelationArrays exportable = listExportableAcceptationsAndCorrelationArrays();
@@ -1438,6 +1508,9 @@ public final class StreamedDatabaseWriter {
 
         setProgress(0.93f, "Writing sentence spans");
         writeSentenceSpans(extendedAccIdMap, symbolArrayIdMap, symbolArrayLengths);
+
+        setProgress(0.98f, "Writing sentence meanings");
+        writeSentenceMeanings(symbolArrayIdMap);
 
         _obs.close();
     }

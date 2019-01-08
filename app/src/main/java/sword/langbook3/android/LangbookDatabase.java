@@ -745,7 +745,7 @@ public final class LangbookDatabase {
         final int diffBunchSetId = obtainBunchSet(db, diffBunches);
 
         final SyncCacheIntValueMap<ImmutableIntKeyMap<String>> cachedCorrelationIds =
-                new SyncCacheIntValueMap<>(corr -> obtainCorrelation(db, corr.map((String str) -> obtainSymbolArray(db, str))));
+                new SyncCacheIntValueMap<>(corr -> obtainCorrelation(db, corr.mapToInt(str -> obtainSymbolArray(db, str))));
         final int startMatcherId = cachedCorrelationIds.get(startMatcher);
         final int startAdderId = cachedCorrelationIds.get(startAdder);
         final int endMatcherId = cachedCorrelationIds.get(endMatcher);

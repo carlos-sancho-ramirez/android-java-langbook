@@ -8,8 +8,6 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
-import sword.collections.IntResultFunction;
 import sword.collections.List;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
@@ -100,8 +98,7 @@ public final class LangbookDatabaseTest {
                         .build())
                 .build();
 
-        final IntResultFunction<ImmutableIntKeyMap<String>> mapFunc = corr -> insertCorrelation(db, corr);
-        final ImmutableIntList correlationIds = correlations.map(mapFunc);
+        final ImmutableIntList correlationIds = correlations.mapToInt(corr -> insertCorrelation(db, corr));
         final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationIds);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
 
@@ -167,8 +164,7 @@ public final class LangbookDatabaseTest {
                         .build())
                 .build();
 
-        final IntResultFunction<ImmutableIntKeyMap<String>> mapFunc = corr -> insertCorrelation(db, corr);
-        final ImmutableIntList correlationIds = correlations.map(mapFunc);
+        final ImmutableIntList correlationIds = correlations.mapToInt(corr -> insertCorrelation(db, corr));
         final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationIds);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
 
