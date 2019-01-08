@@ -151,4 +151,12 @@ public final class LangbookDeleter {
                 .build();
         return db.delete(query);
     }
+
+    public static boolean deleteSentenceMeaning(Deleter db, int symbolArray) {
+        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
+        DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getIdColumnIndex(), symbolArray)
+                .build();
+        return db.delete(query);
+    }
 }

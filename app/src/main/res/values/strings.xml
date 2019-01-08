@@ -25,6 +25,7 @@
     <string name="menuItemBunchChildrenQuiz">Quiz as bunch</string>
     <string name="menuItemNewQuizDefinition">New Quiz</string>
     <string name="menuItemLinkConcept">Link Concept</string>
+    <string name="menuItemLinkSentence">Link Sentence</string>
     <string name="menuItemIncludeAcceptation">Include acceptation</string>
     <string name="menuItemIncludeInBunch">Include in bunch</string>
     <string name="menuItemIncludeSupertype">Include supertype</string>

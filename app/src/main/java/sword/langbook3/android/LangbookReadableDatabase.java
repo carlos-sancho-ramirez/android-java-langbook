@@ -669,6 +669,18 @@ public final class LangbookReadableDatabase {
             return id;
         }
     }
+
+    public static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int symbolArrayId) {
+        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
+        final int offset = table.columns().size();
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getMeaning(), table.getMeaning())
+                .where(table.getIdColumnIndex(), symbolArrayId)
+                .whereColumnValueDiffer(table.getIdColumnIndex(), offset + table.getIdColumnIndex())
+                .select(offset + table.getIdColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     public static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(DbQuery.max(columnIndex));
@@ -723,6 +735,11 @@ public final class LangbookReadableDatabase {
     public static int getMaxQuestionFieldSetId(DbExporter.Database db) {
         LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());
+    }
+
+    public static int getMaxSentenceMeaning(DbExporter.Database db) {
+        LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
+        return getColumnMax(db, table, table.getMeaning());
     }
 
     public static String getSymbolArray(DbExporter.Database db, int id) {
@@ -927,6 +944,27 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    public static Integer getSentenceMeaning(DbExporter.Database db, int symbolArrayId) {
+        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
+
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), symbolArrayId)
+                .select(table.getMeaning());
+
+        Integer result = null;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                result = dbResult.next().get(0).toInt();
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError();
+            }
+        }
+
+        return result;
     }
 
     private static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, int preferredAlphabet) {

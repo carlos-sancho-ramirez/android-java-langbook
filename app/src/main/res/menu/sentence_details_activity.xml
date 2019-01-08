@@ -9,4 +9,9 @@
         android:id="@+id/menuItemDelete"
         android:title="@string/menuItemDelete"
         android:icon="@android:drawable/ic_menu_delete"/>
+
+    <item
+        android:id="@+id/menuItemLinkSentence"
+        android:title="@string/menuItemLinkSentence"
+        android:showAsAction="never"/>
 </menu>

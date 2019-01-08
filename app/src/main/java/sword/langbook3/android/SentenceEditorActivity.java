@@ -20,6 +20,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
     }
 
+    interface ResultKeys {
+        String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
+    }
+
     static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
         activity.startActivityForResult(intent, requestCode);
@@ -68,8 +72,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            setResult(RESULT_OK);
+        if (resultCode == RESULT_OK && data != null) {
+            final Intent resultIntent = new Intent();
+            resultIntent.putExtra(ResultKeys.SYMBOL_ARRAY, data.getIntExtra(SpanEditorActivity.ResultKeys.SYMBOL_ARRAY, 0));
+            setResult(RESULT_OK, resultIntent);
             finish();
         }
     }

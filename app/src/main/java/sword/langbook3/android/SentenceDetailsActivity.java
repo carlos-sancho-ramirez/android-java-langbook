@@ -13,10 +13,13 @@ import android.text.style.ClickableSpan;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.langbook3.android.db.Database;
@@ -26,10 +29,11 @@ import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpans;
 import static sword.langbook3.android.LangbookReadableDatabase.getStaticAcceptationFromDynamic;
 import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
 
-public final class SentenceDetailsActivity extends Activity implements DialogInterface.OnClickListener {
+public final class SentenceDetailsActivity extends Activity implements DialogInterface.OnClickListener, AdapterView.OnItemClickListener {
 
     private static final int REQUEST_CODE_EDIT = 1;
     private static final int REQUEST_CODE_OPEN_ACCEPTATION = 2;
+    private static final int REQUEST_CODE_NEW = 3;
 
     interface ArgKeys {
         String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
@@ -93,6 +97,14 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         }
     }
 
+    private void updateOtherSentences() {
+        final Database db = DbManager.getInstance().getDatabase();
+        final ImmutableIntSet others = LangbookReadableDatabase.findSentenceIdsMatchingMeaning(db, getSymbolArrayId());
+        final ImmutableIntKeyMap<String> sentences = others.mapTo(id -> getSymbolArray(db, id));
+        _listView.setAdapter(new SentenceDetailsAdapter(sentences));
+        _listView.setOnItemClickListener(this);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,6 +118,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         }
 
         updateSentenceTextView();
+        updateOtherSentences();
         _justCreated = true;
 
         if (_displayingDeleteDialog) {
@@ -130,9 +143,17 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
                 _displayingDeleteDialog = true;
                 showDeleteConfirmationDialog();
                 return true;
+            case R.id.menuItemLinkSentence:
+                SentenceEditorActivity.open(this, REQUEST_CODE_NEW);
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        SentenceDetailsActivity.open(this, (int) id);
     }
 
     @Override
@@ -143,6 +164,15 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_NEW && resultCode == RESULT_OK) {
+            final int pickedSentence = data.getIntExtra(SentenceEditorActivity.ResultKeys.SYMBOL_ARRAY, 0);
+            final int thisSentence = getSymbolArrayId();
+            if (pickedSentence != 0 && pickedSentence != thisSentence) {
+                LangbookDatabase.copySentenceMeaning(DbManager.getInstance().getDatabase(), thisSentence, pickedSentence);
+                updateOtherSentences();
+            }
+        }
+
         if (resultCode == RESULT_OK && !_justCreated) {
             updateSentenceTextView();
         }

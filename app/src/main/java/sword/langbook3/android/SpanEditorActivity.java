@@ -42,6 +42,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         String STATE = "cSt";
     }
 
+    interface ResultKeys {
+        String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
+    }
+
     private TextView _sentenceText;
     private ListView _listView;
     private ActionMode _selectionActionMode;
@@ -193,8 +197,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             final String newText = getText();
             final Database db = DbManager.getInstance().getDatabase();
             final int symbolArrayId = getSymbolArrayId();
+            final int newSymbolArray;
             if (symbolArrayId == NO_SYMBOL_ARRAY) {
-                final int newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
+                newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
                 for (SentenceSpan span : spans) {
                     insertSpan(db, newSymbolArray, span.range, span.acceptation);
                 }
@@ -203,6 +208,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             }
             else {
                 if (isSymbolArrayMerelyASentence(db, symbolArrayId)) {
+                    newSymbolArray = symbolArrayId;
                     if (!LangbookDatabase.updateSymbolArray(db, symbolArrayId, newText)) {
                         throw new AssertionError();
                     }
@@ -220,7 +226,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
                     }
                 }
                 else {
-                    final int newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
+                    newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
                     for (int spanId : getSentenceSpansWithIds(db, symbolArrayId)) {
                         if (!deleteSpan(db, spanId)) {
                             throw new AssertionError();
@@ -235,7 +241,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
                 Toast.makeText(this, R.string.updateSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
 
-            setResult(RESULT_OK);
+            final Intent resultIntent = new Intent();
+            resultIntent.putExtra(ResultKeys.SYMBOL_ARRAY, newSymbolArray);
+            setResult(RESULT_OK, resultIntent);
             finish();
         }
     }

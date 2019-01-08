@@ -369,6 +369,17 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    public static final class SentenceMeaningTable extends DbTable {
+
+        private SentenceMeaningTable() {
+            super("SentenceMeaning", new DbIntColumn("meaning"));
+        }
+
+        public int getMeaning() {
+            return 1;
+        }
+    }
+
     public static final class SpanTable extends DbTable {
 
         private SpanTable() {
@@ -458,6 +469,7 @@ public final class LangbookDbSchema implements DbSchema {
         RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
         RuledConceptsTable ruledConcepts = new RuledConceptsTable();
         SearchHistoryTable searchHistory = new SearchHistoryTable();
+        SentenceMeaningTable sentenceMeaning = new SentenceMeaningTable();
         SpanTable spans = new SpanTable();
         StringQueriesTable stringQueries = new StringQueriesTable();
         SymbolArraysTable symbolArrays = new SymbolArraysTable();
@@ -481,6 +493,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.ruledAcceptations)
             .add(Tables.ruledConcepts)
             .add(Tables.searchHistory)
+            .add(Tables.sentenceMeaning)
             .add(Tables.spans)
             .add(Tables.stringQueries)
             .add(Tables.symbolArrays)

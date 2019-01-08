@@ -33,6 +33,7 @@ import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
+import static sword.langbook3.android.LangbookDbInserter.insertSentenceMeaning;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.LangbookDbInserter.insertSymbolArray;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
@@ -45,16 +46,17 @@ import static sword.langbook3.android.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.LangbookDeleter.deleteQuiz;
 import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteSearchHistoryForAcceptation;
+import static sword.langbook3.android.LangbookDeleter.deleteSentenceMeaning;
 import static sword.langbook3.android.LangbookDeleter.deleteSpanBySymbolArrayId;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
-import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
-import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
+import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
+import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
@@ -62,6 +64,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationAr
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.findSentenceIdsMatchingMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
@@ -74,7 +77,9 @@ import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxSentenceMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
+import static sword.langbook3.android.LangbookReadableDatabase.getSentenceMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
@@ -888,8 +893,61 @@ public final class LangbookDatabase {
         return db.update(query);
     }
 
+    public static boolean removeSentenceMeaning(Database db, int symbolArrayId) {
+        final ImmutableIntSet others = findSentenceIdsMatchingMeaning(db, symbolArrayId);
+        final boolean result = deleteSentenceMeaning(db, symbolArrayId);
+        if (result && others.size() == 1) {
+            deleteSentenceMeaning(db, others.valueAt(0));
+        }
+
+        return result;
+    }
+
     public static boolean removeSentence(Database db, int symbolArrayId) {
+        removeSentenceMeaning(db, symbolArrayId);
         deleteSpanBySymbolArrayId(db, symbolArrayId);
         return isSymbolArrayMerelyASentence(db, symbolArrayId) && deleteSymbolArray(db, symbolArrayId);
+    }
+
+    /**
+     * Replaces copies the meaning assigned to the one symbol array to another.
+     *
+     * This will ensure that both sentences share the same meaning after
+     * calling this method.
+     *
+     * This will override any meaning in the target and will remove any meaning
+     * from other symbol arrays if required in order to keep clean the table.
+     *
+     * In case the source symbol array is not found in the sentence-meaning
+     * table, a new one will be assigned to both source and target, in order to
+     * ensure that both share the same meaning.
+     *
+     * @param db Database to be updated
+     * @param sourceSymbolArray Source identifier for the symbol array.
+     * @param targetSymbolArray Target identifier for the symbol array.
+     * @return True if any update has been performed in the database, false if
+     * source and target already were sharing its meaning.
+     */
+    public static boolean copySentenceMeaning(Database db, int sourceSymbolArray, int targetSymbolArray) {
+        final Integer foundMeaning = getSentenceMeaning(db, sourceSymbolArray);
+        final int meaning;
+        boolean dbUpdated = false;
+        if (foundMeaning == null) {
+            meaning = getMaxSentenceMeaning(db) + 1;
+            insertSentenceMeaning(db, sourceSymbolArray, meaning);
+            dbUpdated = true;
+        }
+        else {
+            meaning = foundMeaning;
+        }
+
+        final Integer foundTargetMeaning = getSentenceMeaning(db, targetSymbolArray);
+        if (foundTargetMeaning == null || foundTargetMeaning != meaning) {
+            removeSentenceMeaning(db, meaning);
+            insertSentenceMeaning(db, targetSymbolArray, meaning);
+            dbUpdated = true;
+        }
+
+        return dbUpdated;
     }
 }

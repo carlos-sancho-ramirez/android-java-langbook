@@ -285,4 +285,16 @@ public final class LangbookDbInserter {
             throw new AssertionError();
         }
     }
+
+    public static void insertSentenceMeaning(DbInserter db, int symbolArray, int meaning) {
+        final LangbookDbSchema.SentenceMeaningTable table = Tables.sentenceMeaning;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), symbolArray)
+                .put(table.getMeaning(), meaning)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
 }
