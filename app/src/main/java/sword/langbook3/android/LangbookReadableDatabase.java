@@ -670,6 +670,41 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    public static ImmutableIntPairMap findConversions(DbExporter.Database db, IntSet alphabets) {
+        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
+                .select(
+                        conversions.getSourceAlphabetColumnIndex(),
+                        conversions.getTargetAlphabetColumnIndex());
+
+        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int source = row.get(0).toInt();
+                final int target = row.get(1).toInt();
+
+                if (foundAlphabets.contains(target)) {
+                    throw new AssertionError();
+                }
+                foundAlphabets.add(target);
+
+                if (alphabets.contains(target)) {
+                    if (!alphabets.contains(source)) {
+                        throw new AssertionError();
+                    }
+
+                    builder.put(target, source);
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
     public static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int symbolArrayId) {
         final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
         final int offset = table.columns().size();
