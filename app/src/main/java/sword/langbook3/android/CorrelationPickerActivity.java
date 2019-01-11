@@ -261,7 +261,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
         if (savedInstanceState == null && _options.size() == 1) {
             _selection = 0;
-            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, texts);
+            completeCorrelationPickingTask();
         }
         else {
             _listView = findViewById(R.id.listView);
@@ -320,20 +320,24 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
+    private void completeCorrelationPickingTask() {
+        final int existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
+        if (existingAcceptation == NO_ACCEPTATION) {
+            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
+        }
+        else {
+            final Database db = DbManager.getInstance().getDatabase();
+            updateAcceptationCorrelationArray(db, existingAcceptation, addCorrelationArray(db));
+            setResult(RESULT_OK);
+            finish();
+        }
+    }
+
     @Override
     public void onClick(View view) {
         _selection = _listView.getCheckedItemPosition();
         if (_selection != ListView.INVALID_POSITION) {
-            final int existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
-            if (existingAcceptation == NO_ACCEPTATION) {
-                MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
-            }
-            else {
-                final Database db = DbManager.getInstance().getDatabase();
-                updateAcceptationCorrelationArray(DbManager.getInstance().getDatabase(), existingAcceptation, addCorrelationArray(db));
-                setResult(RESULT_OK);
-                finish();
-            }
+            completeCorrelationPickingTask();
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();

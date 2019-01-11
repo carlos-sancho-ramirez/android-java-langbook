@@ -98,6 +98,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         _formPanel = findViewById(R.id.formPanel);
         findViewById(R.id.nextButton).setOnClickListener(this);
 
+        _existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
+
         if (savedInstanceState != null) {
             _texts = savedInstanceState.getStringArray(SavedKeys.TEXTS);
         }
@@ -125,7 +127,6 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private void updateFields() {
         _formPanel.removeAllViews();
         final Database db = DbManager.getInstance().getDatabase();
-        _existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
         final ImmutableIntKeyMap<String> existingTexts;
         final int language;
         if (_existingAcceptation != 0) {
