@@ -17,6 +17,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
+import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.MutableIntKeyMap;
@@ -27,6 +28,7 @@ import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
+import static sword.langbook3.android.LangbookDatabaseUtils.findSourceTextsForConvertedText;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndLanguage;
@@ -124,6 +126,65 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
+    private ImmutableIntSet findFieldsWhereStringQueryIsValid(String queryText,
+            ImmutableIntPairMap conversions, ImmutableIntPairMap fieldIndexAlphabetRelationMap,
+            MutableIntKeyMap<String> queryConvertedTexts) {
+        final MutableIntSet queryTextIsValid = MutableIntSet.empty();
+
+        if (queryText != null) {
+            final int editableFieldCount = fieldIndexAlphabetRelationMap.size();
+            final int fieldConversionCount = conversions.size();
+
+            for (int editableFieldIndex = 0; editableFieldIndex < editableFieldCount; editableFieldIndex++) {
+                final int alphabet = fieldIndexAlphabetRelationMap.valueAt(editableFieldIndex);
+
+                boolean isValid = true;
+                final MutableIntKeyMap<String> localQueryConvertedTexts = MutableIntKeyMap.empty();
+
+                ImmutableSet<String> sourceTexts = null;
+                final MutableIntSet sourceTextAlphabets = MutableIntSet.empty();
+
+                for (int conversionIndex = 0; conversionIndex < fieldConversionCount; conversionIndex++) {
+                    if (conversions.valueAt(conversionIndex) == alphabet) {
+                        final ImmutableIntPair pair = new ImmutableIntPair(alphabet, conversions.keyAt(conversionIndex));
+                        final ImmutableList<ImmutablePair<String, String>> conversion = _conversions.get(pair);
+
+                        final String convertedText = convertText(conversion, queryText);
+                        if (convertedText == null) {
+                            isValid = false;
+                        }
+                        else {
+                            localQueryConvertedTexts.put(conversions.keyAt(conversionIndex), convertedText);
+                        }
+
+                        if (sourceTexts == null || !sourceTexts.isEmpty()) {
+                            final ImmutableSet<String> possibleTexts = findSourceTextsForConvertedText(conversion, queryText);
+                            sourceTexts = (sourceTexts == null)? possibleTexts : sourceTexts.filter(possibleTexts::contains);
+                            sourceTextAlphabets.add(conversions.keyAt(conversionIndex));
+                        }
+                    }
+                }
+
+                if (isValid) {
+                    final int fieldIndex = fieldIndexAlphabetRelationMap.keyAt(editableFieldIndex);
+                    queryTextIsValid.add(fieldIndex);
+
+                    for (IntKeyMap.Entry<String> entry : localQueryConvertedTexts.entries()) {
+                        queryConvertedTexts.put(entry.key(), entry.value());
+                    }
+                }
+                else if (sourceTexts != null && !sourceTexts.isEmpty()) {
+                    for (int targetAlphabet : sourceTextAlphabets) {
+                        queryConvertedTexts.put(targetAlphabet, queryText);
+                    }
+                    queryConvertedTexts.put(alphabet, sourceTexts.valueAt(0));
+                }
+            }
+        }
+
+        return queryTextIsValid.toImmutable();
+    }
+
     private void updateFields() {
         _formPanel.removeAllViews();
         final Database db = DbManager.getInstance().getDatabase();
@@ -170,46 +231,13 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
 
         final ImmutableIntPairMap fieldIndexAlphabetRelationMap = indexAlphabetBuilder.build();
-        final int editableFieldCount = fieldIndexAlphabetRelationMap.size();
         final MutableIntKeyMap<String> queryConvertedTexts = MutableIntKeyMap.empty();
 
         boolean autoSelectText = false;
         if (_texts == null) {
             _texts = new String[fieldCount];
 
-            final MutableIntSet queryTextIsValid = MutableIntSet.empty();
-
-            if (queryText != null) {
-                final int fieldConversionCount = fieldConversions.size();
-                for (int editableFieldIndex = 0; editableFieldIndex < editableFieldCount; editableFieldIndex++) {
-                    final int alphabet = fieldIndexAlphabetRelationMap.valueAt(editableFieldIndex);
-                    boolean isValid = true;
-                    final MutableIntKeyMap<String> localQueryConvertedTexts = MutableIntKeyMap.empty();
-                    for (int conversionIndex = 0; conversionIndex < fieldConversionCount; conversionIndex++) {
-                        if (fieldConversions.valueAt(conversionIndex) == alphabet) {
-                            final ImmutableIntPair pair = new ImmutableIntPair(fieldConversions.valueAt(conversionIndex),
-                                    fieldConversions.keyAt(conversionIndex));
-                            final ImmutableList<ImmutablePair<String, String>> conversion = _conversions.get(pair);
-                            final String convertedText = convertText(conversion, queryText);
-                            if (convertedText == null) {
-                                isValid = false;
-                            }
-                            else {
-                                localQueryConvertedTexts.put(fieldConversions.keyAt(conversionIndex), convertedText);
-                            }
-                        }
-                    }
-
-                    if (isValid) {
-                        final int fieldIndex = fieldIndexAlphabetRelationMap.keyAt(editableFieldIndex);
-                        queryTextIsValid.add(fieldIndex);
-
-                        for (IntKeyMap.Entry<String> entry : localQueryConvertedTexts.entries()) {
-                            queryConvertedTexts.put(entry.key(), entry.value());
-                        }
-                    }
-                }
-            }
+            final ImmutableIntSet queryTextIsValid = findFieldsWhereStringQueryIsValid(queryText, fieldConversions, fieldIndexAlphabetRelationMap, queryConvertedTexts);
 
             for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
                 final String existingText = existingTexts.get(fieldNames.keyAt(fieldIndex), null);
