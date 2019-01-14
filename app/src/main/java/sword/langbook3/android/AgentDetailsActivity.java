@@ -12,7 +12,7 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;

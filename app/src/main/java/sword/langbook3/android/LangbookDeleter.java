@@ -1,7 +1,7 @@
 package sword.langbook3.android;
 
-import sword.langbook3.android.db.DbDeleteQuery;
-import sword.langbook3.android.db.Deleter;
+import sword.database.DbDeleteQuery;
+import sword.database.Deleter;
 
 public final class LangbookDeleter {
 

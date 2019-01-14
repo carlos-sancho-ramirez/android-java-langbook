@@ -22,7 +22,7 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;

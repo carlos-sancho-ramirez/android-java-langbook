@@ -28,12 +28,12 @@ import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
-import sword.langbook3.android.db.DbExporter;
-import sword.langbook3.android.db.DbImporter;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbTable;
-import sword.langbook3.android.db.DbValue;
+import sword.database.DbExporter;
+import sword.database.DbImporter;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbTable;
+import sword.database.DbValue;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;

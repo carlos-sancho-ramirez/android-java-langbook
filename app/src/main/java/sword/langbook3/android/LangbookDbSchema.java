@@ -1,12 +1,12 @@
 package sword.langbook3.android;
 
 import sword.collections.ImmutableList;
-import sword.langbook3.android.db.DbIndex;
-import sword.langbook3.android.db.DbIntColumn;
-import sword.langbook3.android.db.DbSchema;
-import sword.langbook3.android.db.DbTable;
-import sword.langbook3.android.db.DbTextColumn;
-import sword.langbook3.android.db.DbUniqueTextColumn;
+import sword.database.DbIndex;
+import sword.database.DbIntColumn;
+import sword.database.DbSchema;
+import sword.database.DbTable;
+import sword.database.DbTextColumn;
+import sword.database.DbUniqueTextColumn;
 
 public final class LangbookDbSchema implements DbSchema {
 

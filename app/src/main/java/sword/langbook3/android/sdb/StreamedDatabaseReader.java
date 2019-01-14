@@ -27,7 +27,7 @@ import sword.collections.MutableIntValueHashMap;
 import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.db.DbImporter.Database;
+import sword.database.DbImporter.Database;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;

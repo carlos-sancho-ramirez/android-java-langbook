@@ -6,8 +6,8 @@ import sword.collections.IntSet;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
-import sword.langbook3.android.db.DbInsertQuery;
-import sword.langbook3.android.db.DbInserter;
+import sword.database.DbInsertQuery;
+import sword.database.DbInserter;
 
 public final class LangbookDbInserter {
 

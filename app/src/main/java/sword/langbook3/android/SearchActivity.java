@@ -17,11 +17,11 @@ import sword.collections.List;
 import sword.collections.SortUtils;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
-import sword.langbook3.android.db.DbExporter;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbStringValue;
-import sword.langbook3.android.db.DbValue;
+import sword.database.DbExporter;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbStringValue;
+import sword.database.DbValue;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 

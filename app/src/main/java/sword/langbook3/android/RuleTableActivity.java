@@ -17,7 +17,7 @@ import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
-import static sword.langbook3.android.db.DbIdColumn.idColumnName;
+import static sword.database.DbIdColumn.idColumnName;
 
 public class RuleTableActivity extends Activity {
 

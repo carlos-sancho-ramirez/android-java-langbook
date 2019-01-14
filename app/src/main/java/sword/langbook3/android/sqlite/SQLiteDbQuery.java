@@ -2,9 +2,9 @@ package sword.langbook3.android.sqlite;
 
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbTable;
-import sword.langbook3.android.db.DbView;
+import sword.database.DbQuery;
+import sword.database.DbTable;
+import sword.database.DbView;
 
 public final class SQLiteDbQuery {
 

@@ -17,7 +17,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 
 import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;

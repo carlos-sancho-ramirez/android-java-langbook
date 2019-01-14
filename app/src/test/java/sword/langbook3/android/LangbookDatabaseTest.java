@@ -11,11 +11,11 @@ import sword.collections.ImmutableList;
 import sword.collections.List;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
-import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbValue;
-import sword.langbook3.android.db.MemoryDatabase;
+import sword.database.Database;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbValue;
+import sword.database.MemoryDatabase;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

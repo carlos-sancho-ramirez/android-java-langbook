@@ -7,7 +7,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllLanguages;

@@ -22,7 +22,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 
 import static sword.langbook3.android.LangbookDatabase.removeSentence;
 import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpans;

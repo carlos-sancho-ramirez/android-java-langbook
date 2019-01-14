@@ -1,7 +1,7 @@
 package sword.langbook3.android.sqlite;
 
-import sword.langbook3.android.db.DbColumn;
-import sword.langbook3.android.db.DbValue;
+import sword.database.DbColumn;
+import sword.database.DbValue;
 
 public final class SqliteUtils {
 

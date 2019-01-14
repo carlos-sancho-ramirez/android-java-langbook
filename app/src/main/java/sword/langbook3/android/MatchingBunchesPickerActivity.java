@@ -9,7 +9,7 @@ import android.widget.ListView;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 
 import static sword.langbook3.android.LangbookReadableDatabase.readAllMatchingBunches;
 

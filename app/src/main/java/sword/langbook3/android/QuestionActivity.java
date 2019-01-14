@@ -26,12 +26,12 @@ import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
-import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbExporter;
+import sword.database.Database;
+import sword.database.DbExporter;
 
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
-import static sword.langbook3.android.db.DbIdColumn.idColumnName;
+import static sword.database.DbIdColumn.idColumnName;
 
 public class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 

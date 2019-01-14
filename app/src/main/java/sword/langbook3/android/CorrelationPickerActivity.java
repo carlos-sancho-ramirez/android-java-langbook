@@ -19,7 +19,7 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;

@@ -45,11 +45,11 @@ import sword.collections.MutableIntValueSortedMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
 import sword.langbook3.android.LangbookDbSchema;
-import sword.langbook3.android.db.DbExporter.Database;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbTable;
-import sword.langbook3.android.db.DbValue;
+import sword.database.DbExporter.Database;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbTable;
+import sword.database.DbValue;
 
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 

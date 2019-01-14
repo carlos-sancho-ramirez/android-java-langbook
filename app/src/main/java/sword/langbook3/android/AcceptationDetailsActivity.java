@@ -45,12 +45,12 @@ import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
 import sword.langbook3.android.LangbookReadableDatabase.InvolvedAgentResultFlags;
 import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
 import sword.langbook3.android.LangbookReadableDatabase.SynonymTranslationResult;
-import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbInsertQuery;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbUpdateQuery;
-import sword.langbook3.android.db.DbValue;
+import sword.database.Database;
+import sword.database.DbInsertQuery;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbUpdateQuery;
+import sword.database.DbValue;
 
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;

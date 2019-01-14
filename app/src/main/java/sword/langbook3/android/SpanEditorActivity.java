@@ -19,7 +19,7 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
-import sword.langbook3.android.db.Database;
+import sword.database.Database;
 
 import static sword.langbook3.android.LangbookDbInserter.insertSpan;
 import static sword.langbook3.android.LangbookDeleter.deleteSpan;

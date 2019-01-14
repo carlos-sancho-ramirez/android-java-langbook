@@ -11,13 +11,12 @@ import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
-import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.db.DbImporter;
-import sword.langbook3.android.db.DbInsertQuery;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbResult;
-import sword.langbook3.android.db.DbValue;
+import sword.database.DbImporter;
+import sword.database.DbInsertQuery;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbValue;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
@@ -32,11 +31,10 @@ import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertSpan;
 import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.LangbookReadableDatabase.findRuledAcceptationByRuleAndMainAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
-import static sword.langbook3.android.db.DbQuery.concat;
+import static sword.database.DbQuery.concat;
 
 public final class DatabaseInflater {
 

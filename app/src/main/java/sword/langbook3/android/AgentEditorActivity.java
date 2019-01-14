@@ -29,9 +29,9 @@ import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
-import sword.langbook3.android.db.Database;
-import sword.langbook3.android.db.DbQuery;
-import sword.langbook3.android.db.DbValue;
+import sword.database.Database;
+import sword.database.DbQuery;
+import sword.database.DbValue;
 
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;

@@ -11,7 +11,7 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import sword.langbook3.android.db.DbExporter;
+import sword.database.DbExporter;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseWriter;
 

@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import sword.collections.ImmutableIntList;
-import sword.langbook3.android.db.MemoryDatabase;
+import sword.database.MemoryDatabase;
 
 public final class StreamedDatabaseTest {
 

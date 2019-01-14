@@ -2,7 +2,7 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.content.Intent;
-import sword.langbook3.android.db.DbQuery;
+import sword.database.DbQuery;
 
 public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
