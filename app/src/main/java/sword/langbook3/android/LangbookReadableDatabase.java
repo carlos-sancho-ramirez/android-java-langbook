@@ -1956,7 +1956,7 @@ public final class LangbookReadableDatabase {
             }
         }
 
-        return true;
+        return !startMatcher.isEmpty() || !endMatcher.isEmpty();
     }
 
     public static ImmutableIntSet readBunchesFromSetOfBunchSets(DbExporter.Database db, ImmutableIntSet bunchSets) {
@@ -1972,8 +1972,14 @@ public final class LangbookReadableDatabase {
 
     /**
      * Check all bunches including agents that may match the given texts.
-     * For simplicity, this will only pick bunches declared as source bunches in agents that are applying a rule and has no diff bunches nor target bunch.
-     * The agent's matcher must match the given string and there must be an adder different from the matcher.
+     *
+     * For simplicity, this will only pick bunches declared as source bunches
+     * in agents that are applying a rule and has no diff bunches nor target bunch.
+     *
+     * Required conditions are:
+     * <li>The agent's matchers must match the given string</li>
+     * <li>Start or end matcher must not be empty</li>
+     * <li>There must be an adder different from the matcher</li>
      *
      * @param db Database to be used
      * @param texts Map containing the word to be matched. Keys in the map are alphabets and values are the text on those alphabets.
