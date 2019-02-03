@@ -28,6 +28,7 @@ import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
+import sword.collections.MutableIntValueMap;
 import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
@@ -318,7 +319,7 @@ public final class LangbookReadableDatabase {
                         table.getMainAcceptationColumnIndex(),
                         table.getDynamicAcceptationColumnIndex());
 
-        final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
+        final MutableIntKeyMap<SearchResult> map = MutableIntKeyMap.empty();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
@@ -327,11 +328,11 @@ public final class LangbookReadableDatabase {
                 final int acc = row.get(2).toInt();
                 final int dynAcc = row.get(3).toInt();
 
-                builder.add(new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
+                map.put(acc, new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
             }
         }
 
-        return builder.build().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
+        return map.valueList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
     public static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {

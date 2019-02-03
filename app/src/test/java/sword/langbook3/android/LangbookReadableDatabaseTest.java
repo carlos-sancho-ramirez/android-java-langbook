@@ -72,8 +72,11 @@ public final class LangbookReadableDatabaseTest {
         assertTrue(LangbookReadableDatabase.readAllMatchingBunches(db, texts2, alphabet).isEmpty());
     }
 
-    @Test
-    public void testFindAcceptationFromTextForOneAlphabetLanguageWord() {
+    private interface CorrelationObtainer {
+        ImmutableIntKeyMap<String> obtain(int firstAlphabet, String text);
+    }
+
+    public void checkFindAcceptationFromText(CorrelationObtainer corrObtainer) {
         final ImmutableSet<String> texts = new ImmutableHashSet.Builder<String>()
                 .add("hello")
                 .add("Hi")
@@ -98,15 +101,16 @@ public final class LangbookReadableDatabaseTest {
 
             final MemoryDatabase db = new MemoryDatabase();
             final int language = getMaxConceptInAcceptations(db) + 1;
-            final int alphabet = language + 1;
-            final int concept1 = alphabet + 1;
+            final int alphabet1 = language + 1;
+            final int alphabet2 = alphabet1 + 1;
+            final int concept1 = alphabet2 + 1;
             final int concept2 = concept1 + 1;
             final int concept3 = concept2 + 1;
 
             final ImmutableIntList.Builder accListBuilder = new ImmutableIntList.Builder();
             for (int i = 0; i < textList.size(); i++) {
-                final int symbolArrayId = obtainSymbolArray(db, textList.valueAt(i));
-                final int correlationId = obtainCorrelation(db, new ImmutableIntPairMap.Builder().put(alphabet, symbolArrayId).build());
+                final ImmutableIntKeyMap<String> correlation = corrObtainer.obtain(alphabet1, textList.valueAt(i));
+                final int correlationId = obtainCorrelation(db, correlation.mapToInt(text -> obtainSymbolArray(db, text)));
                 final int corrArrayId = obtainCorrelationArray(db, new ImmutableIntList.Builder().add(correlationId).build());
                 accListBuilder.append(addAcceptation(db, concept1 + i, corrArrayId));
             }
@@ -115,7 +119,7 @@ public final class LangbookReadableDatabaseTest {
             final int restrictionStringType = DbQuery.RestrictionStringTypes.STARTS_WITH;
             for (int length = 1; length <= text1.length(); length++) {
                 final String queryText = text1.substring(0, length);
-                final ImmutableSet<SearchResult> results = findAcceptationFromText(db, queryText, restrictionStringType).toSet();
+                final ImmutableList<SearchResult> results = findAcceptationFromText(db, queryText, restrictionStringType);
                 final ImmutableIntSetBuilder matchingIndexesBuilder = new ImmutableIntSetBuilder();
                 for (int i = 0; i < textList.size(); i++) {
                     if (textList.valueAt(i).startsWith(queryText)) {
@@ -132,5 +136,22 @@ public final class LangbookReadableDatabaseTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void testFindAcceptationFromTextForOneAlphabetLanguageWord() {
+        checkFindAcceptationFromText((firstAlphabet, text) ->
+                new ImmutableIntKeyMap.Builder<String>().put(firstAlphabet, text).build()
+        );
+    }
+
+    @Test
+    public void testFindAcceptationFromTextForTwoAlphabetLanguageWord() {
+        checkFindAcceptationFromText((firstAlphabet, text) ->
+                new ImmutableIntKeyMap.Builder<String>()
+                        .put(firstAlphabet, text)
+                        .put(firstAlphabet + 1, text)
+                        .build()
+        );
     }
 }
