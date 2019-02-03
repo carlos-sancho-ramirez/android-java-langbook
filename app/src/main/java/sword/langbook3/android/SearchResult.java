@@ -56,7 +56,7 @@ class SearchResult {
 
     @Override
     public boolean equals(Object other) {
-        if (other == null || !(other instanceof SearchResult)) {
+        if (!(other instanceof SearchResult)) {
             return false;
         }
 

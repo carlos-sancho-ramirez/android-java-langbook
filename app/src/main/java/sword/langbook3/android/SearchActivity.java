@@ -14,14 +14,12 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetBuilder;
 import sword.collections.ImmutableList;
 import sword.collections.List;
-import sword.collections.SortUtils;
-import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
+import sword.database.Database;
 import sword.langbook3.android.LangbookDbSchema.Tables;
-import sword.database.DbExporter;
 import sword.database.DbQuery;
-import sword.database.DbResult;
-import sword.database.DbStringValue;
 import sword.database.DbValue;
+
+import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationFromText;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -110,33 +108,6 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return false;
     }
 
-    private ImmutableList<SearchResult> querySearchResults(DbExporter.Database db) {
-        final StringQueriesTable table = Tables.stringQueries;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(_query),
-                        getSearchRestrictionType()))
-                .select(
-                        table.getStringColumnIndex(),
-                        table.getMainStringColumnIndex(),
-                        table.getMainAcceptationColumnIndex(),
-                        table.getDynamicAcceptationColumnIndex());
-
-        final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final String str = row.get(0).toText();
-                final String mainStr = row.get(1).toText();
-                final int acc = row.get(2).toInt();
-                final int dynAcc = row.get(3).toInt();
-
-                builder.add(new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
-            }
-        }
-
-        return builder.build().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
-    }
-
     private ImmutableIntSet getAgentIds() {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
@@ -165,7 +136,8 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     }
 
     final void queryAllResults() {
-        ImmutableList<SearchResult> results = querySearchResults(DbManager.getInstance().getDatabase());
+        final Database db = DbManager.getInstance().getDatabase();
+        ImmutableList<SearchResult> results = findAcceptationFromText(db, _query, getSearchRestrictionType());
         if (includeAgentsAsResult() && _query != null && possibleString(AGENT_QUERY_PREFIX)) {
             results = results.appendAll(agentSearchResults().filter(entry -> possibleString(entry.getStr())));
         }

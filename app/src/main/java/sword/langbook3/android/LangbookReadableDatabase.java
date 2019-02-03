@@ -28,10 +28,12 @@ import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
+import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
 import sword.database.DbQuery;
 import sword.database.DbResult;
+import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
@@ -303,6 +305,33 @@ public final class LangbookReadableDatabase {
         }
 
         return result;
+    }
+
+    public static ImmutableList<SearchResult> findAcceptationFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(queryText),
+                        restrictionStringType))
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
+
+        final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final String str = row.get(0).toText();
+                final String mainStr = row.get(1).toText();
+                final int acc = row.get(2).toInt();
+                final int dynAcc = row.get(3).toInt();
+
+                builder.add(new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
+            }
+        }
+
+        return builder.build().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
     public static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
