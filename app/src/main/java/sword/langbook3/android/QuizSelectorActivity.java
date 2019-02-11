@@ -24,18 +24,17 @@ import java.util.Set;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
-import sword.collections.IntToIntFunction;
+import sword.database.Database;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
-import sword.database.Database;
 
+import static sword.database.DbIdColumn.idColumnName;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
-import static sword.database.DbIdColumn.idColumnName;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
 
@@ -407,8 +406,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     @Override
     public void onClick(DialogInterface dialog, int which) {
         final QuizSelectorAdapter adapter = (QuizSelectorAdapter) _listView.getAdapter();
-        final IntToIntFunction mapFunc = position -> adapter.getItem(position).getQuizId();
-        final ImmutableIntSet quizzes = _state.getListSelection().map(mapFunc);
+        final ImmutableIntList quizzes = _state.getListSelection().mapToInt(position -> adapter.getItem(position).getQuizId());
         _state.clearDeleteStateAndSelection();
         final ActionMode listActionMode = _listActionMode;
         _listActionMode = null;
