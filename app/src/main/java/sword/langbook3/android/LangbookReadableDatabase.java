@@ -28,7 +28,6 @@ import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
-import sword.collections.MutableIntValueMap;
 import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
@@ -328,7 +327,7 @@ public final class LangbookReadableDatabase {
                 final int acc = row.get(2).toInt();
                 final int dynAcc = row.get(3).toInt();
 
-                map.put(acc, new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
+                map.put(dynAcc, new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
             }
         }
 
