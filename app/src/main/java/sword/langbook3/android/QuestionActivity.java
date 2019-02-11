@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseIntArray;
@@ -18,6 +17,9 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
+import sword.database.Database;
+import sword.database.DbExporter;
+import sword.database.DbQuery;
 import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
@@ -26,14 +28,12 @@ import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
-import sword.database.Database;
-import sword.database.DbExporter;
 
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
-import static sword.database.DbIdColumn.idColumnName;
+import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
-public class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
+public final class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 
     static final int NO_SCORE = 0;
     static final int MIN_ALLOWED_SCORE = 1;
@@ -89,85 +89,55 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
         _fieldTextViews = new TextView[_quizDetails.fields.size()];
     }
 
-    private String readSameAcceptationQuestionText(SQLiteDatabase db, int index) {
+    private String readSameAcceptationQuestionText(DbExporter.Database db, int index) {
         final StringQueriesTable strings = Tables.stringQueries;
-        final Cursor cursor = db.rawQuery("SELECT " + strings.columns().get(strings.getStringColumnIndex()).name() +
-                            " FROM " + strings.name() +
-                            " WHERE " + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() + "=?" +
-                            " AND " + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?",
-                    new String[]{Integer.toString(_acceptation), Integer.toString(_quizDetails.fields.get(index).alphabet)});
-
-        try {
-            if (!cursor.moveToFirst()) {
-                throw new AssertionError();
-            }
-
-            return cursor.getString(0);
-        }
-        finally {
-            cursor.close();
-        }
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), _acceptation)
+                .where(strings.getStringAlphabetColumnIndex(), _quizDetails.fields.get(index).alphabet)
+                .select(strings.getStringColumnIndex());
+        return selectSingleRow(db, query).get(0).toText();
     }
 
-    private String readSameConceptQuestionText(SQLiteDatabase db, int index) {
+    private String readSameConceptQuestionText(DbExporter.Database db, int index) {
         final AcceptationsTable acceptations = Tables.acceptations;
         final StringQueriesTable strings = Tables.stringQueries;
-        final Cursor cursor = db.rawQuery("SELECT J2." + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        " FROM " + acceptations.name() + " AS J0" +
-                        " JOIN " + acceptations.name() + " AS J1 ON J0." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() + "=J1." + acceptations.columns().get(acceptations.getConceptColumnIndex()).name() +
-                        " JOIN " + strings.name() + " AS J2 ON J1." + idColumnName + "=J2." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " WHERE J0." + idColumnName + "=?" +
-                        " AND J2." + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?" +
-                        " AND J1." + idColumnName + "!=J0." + idColumnName,
-                        new String[]{Integer.toString(_acceptation), Integer.toString(_quizDetails.fields.get(index).alphabet)});
 
-        try {
-            if (!cursor.moveToFirst()) {
-                throw new AssertionError();
-            }
+        final int accOffset = acceptations.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
 
-            final StringBuilder sb = new StringBuilder(cursor.getString(0));
-            while (cursor.moveToNext()) {
-                sb.append(", ").append(cursor.getString(0));
-            }
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getIdColumnIndex(), _acceptation)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), _quizDetails.fields.get(index).alphabet)
+                .whereColumnValueDiffer(acceptations.getIdColumnIndex(), accOffset + acceptations.getIdColumnIndex())
+                .select(strOffset + strings.getStringColumnIndex());
 
-            return sb.toString();
-        }
-        finally {
-            cursor.close();
-        }
+        return db.select(query)
+                .map(row -> row.get(0).toText())
+                .reduce((a, b) -> a + ", " + b);
     }
 
-    private String readApplyRuleQuestionText(SQLiteDatabase db, int index) {
+    private String readApplyRuleQuestionText(DbExporter.Database db, int index) {
         final AgentsTable agents = Tables.agents;
         final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
         final StringQueriesTable strings = Tables.stringQueries;
+
         final QuestionFieldDetails field = _quizDetails.fields.get(index);
-        final Cursor cursor = db.rawQuery("SELECT " + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        " FROM " + ruledAcceptations.name() + " AS J0" +
-                        " JOIN " + strings.name() + " AS J1 ON J0." + idColumnName + "=J1." + strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() +
-                        " JOIN " + agents.name() + " AS J2 ON J0." + ruledAcceptations.columns().get(ruledAcceptations.getAgentColumnIndex()).name() + "=J2." + idColumnName +
-                        " WHERE " + ruledAcceptations.columns().get(ruledAcceptations.getAcceptationColumnIndex()).name() + "=?" +
-                        " AND " + agents.columns().get(agents.getRuleColumnIndex()).name() + "=?" +
-                        " AND " + strings.columns().get(strings.getStringAlphabetColumnIndex()).name() + "=?",
-                new String[]{
-                        Integer.toString(_acceptation),
-                        Integer.toString(field.rule),
-                        Integer.toString(field.alphabet)});
+        final int strOffset = ruledAcceptations.columns().size();
+        final int agentsOffset = strOffset + strings.columns().size();
 
-        try {
-            if (!cursor.moveToFirst()) {
-                throw new AssertionError();
-            }
-
-            return cursor.getString(0);
-        }
-        finally {
-            cursor.close();
-        }
+        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
+                .join(strings, ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .where(ruledAcceptations.getAcceptationColumnIndex(), _acceptation)
+                .where(agentsOffset + agents.getRuleColumnIndex(), field.rule)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), field.alphabet)
+                .select(strOffset + strings.getStringColumnIndex());
+        return selectSingleRow(db, query).get(0).toText();
     }
 
-    private String readFieldText(SQLiteDatabase db, int index) {
+    private String readFieldText(DbExporter.Database db, int index) {
         switch (_quizDetails.fields.get(index).getType()) {
             case QuestionFieldFlags.TYPE_SAME_ACC:
                 return readSameAcceptationQuestionText(db, index);
@@ -214,7 +184,7 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
     }
 
     private void updateTextFields() {
-        final SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
+        final Database db = DbManager.getInstance().getDatabase();
 
         final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
         final int fieldCount = fields.size();
@@ -232,11 +202,11 @@ public class QuestionActivity extends Activity implements View.OnClickListener, 
 
         final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
         if (!_isAnswerVisible) {
-            SQLiteDatabase db = null;
+            Database db = null;
             for (int i = 0; i < fields.size(); i++) {
                 if (fields.get(i).isAnswer()) {
                     if (db == null) {
-                        db = DbManager.getInstance().getReadableDatabase();
+                        db = DbManager.getInstance().getDatabase();
                     }
 
                     _fieldTextViews[i].setText(readFieldText(db, i));
