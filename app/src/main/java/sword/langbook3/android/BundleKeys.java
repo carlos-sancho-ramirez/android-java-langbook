@@ -16,8 +16,10 @@ public interface BundleKeys {
     String LANGUAGE = "language";
     String QUIZ = "quiz";
     String SEARCH_QUERY = "searchQuery";
+    String SOURCE_ALPHABET = "sAlph";
     String STATIC_ACCEPTATION = "sa";
     String SYMBOL_ARRAY = "saId";
+    String TARGET_ALPHABET = "tAlph";
     String TEXT = "text";
     String TEXTS = "texts";
 }

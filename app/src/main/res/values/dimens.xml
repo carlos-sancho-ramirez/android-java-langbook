@@ -20,4 +20,5 @@
     <dimen name="sentenceDetailsSentenceTextSize">16sp</dimen>
 
     <dimen name="conversionSelectorEntryPadding">8dp</dimen>
+    <dimen name="conversionDetailsEntryPadding">8dp</dimen>
 </resources>

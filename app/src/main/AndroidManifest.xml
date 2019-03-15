@@ -78,6 +78,9 @@
         <activity
             android:name=".ConversionSelectorActivity"
             android:label="@string/conversionSelectorActivityTitle"/>
+
+        <activity
+            android:name=".ConversionDetailsActivity"/>
     </application>
 
 </manifest>

@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import sword.collections.ImmutableSet;
@@ -13,7 +15,7 @@ import sword.database.Database;
 
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 
-public final class ConversionSelectorActivity extends Activity {
+public final class ConversionSelectorActivity extends Activity implements ListView.OnItemClickListener {
 
     public static void open(Context context) {
         Intent intent = new Intent(context, ConversionSelectorActivity.class);
@@ -45,5 +47,13 @@ public final class ConversionSelectorActivity extends Activity {
         final SortFunction<ImmutableIntPair> sorting = (a, b) -> a.left < b.left || a.left == b.left && a.right < b.right;
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new ConversionSelectorAdapter(conversions.sort(sorting), alphabetTexts.toImmutable()));
+        listView.setOnItemClickListener(this);
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        final ConversionSelectorAdapter adapter = (ConversionSelectorAdapter) parent.getAdapter();
+        final ImmutableIntPair pair = adapter.getItem(position);
+        ConversionDetailsActivity.open(this, pair.left, pair.right);
     }
 }
