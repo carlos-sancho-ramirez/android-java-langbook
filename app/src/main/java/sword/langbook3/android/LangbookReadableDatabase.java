@@ -278,17 +278,7 @@ public final class LangbookReadableDatabase {
                         conversions.getSourceAlphabetColumnIndex(),
                         conversions.getTargetAlphabetColumnIndex());
 
-        final ImmutableSet.Builder<ImmutableIntPair> builder = new ImmutableHashSet.Builder<>();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final int source = row.get(0).toInt();
-                final int target = row.get(1).toInt();
-                builder.add(new ImmutableIntPair(source, target));
-            }
-        }
-
-        return builder.build();
+        return db.select(query).map(row -> new ImmutableIntPair(row.get(0).toInt(), row.get(1).toInt())).toSet().toImmutable();
     }
 
     public static Integer findRuledAcceptationByRuleAndMainAcceptation(DbExporter.Database db, int rule, int mainAcceptation) {

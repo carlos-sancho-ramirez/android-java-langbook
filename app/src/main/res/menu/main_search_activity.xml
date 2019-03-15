@@ -13,6 +13,11 @@
         android:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/menuItemCheckConversions"
+        android:title="@string/menuItemCheckConversions"
+        android:showAsAction="ifRoom"/>
+
+    <item
         android:id="@+id/menuItemSettings"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="@string/menuItemSettings"

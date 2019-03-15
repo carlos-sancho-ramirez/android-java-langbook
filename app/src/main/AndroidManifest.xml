@@ -74,6 +74,10 @@
         <activity
             android:name=".SentenceDetailsActivity"
             android:label="@string/sentenceDetailsActivityTitle"/>
+
+        <activity
+            android:name=".ConversionSelectorActivity"
+            android:label="@string/conversionSelectorActivityTitle"/>
     </application>
 
 </manifest>
