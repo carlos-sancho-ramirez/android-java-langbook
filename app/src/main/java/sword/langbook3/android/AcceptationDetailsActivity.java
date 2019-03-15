@@ -17,7 +17,7 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
@@ -120,7 +120,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         final ImmutableIntSet commonAlphabets = _model.correlationIds
                 .map((int id) -> _model.correlations.get(id).keySet())
-                .reduce((set1, set2) -> set1.filter(set2::contains), new ImmutableIntSetBuilder().build());
+                .reduce((set1, set2) -> set1.filter(set2::contains), new ImmutableIntSetCreator().build());
         if (commonAlphabets.size() > 1) {
             final int mainAlphabet = commonAlphabets.valueAt(0);
             final int pronunciationAlphabet = commonAlphabets.valueAt(1);
@@ -624,7 +624,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex(), table.getLanguageColumnIndex());
 
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (List<DbValue> row : DbManager.getInstance().attach(query)) {
             builder.add(row.get(0).toInt());
             builder.add(row.get(1).toInt());

@@ -7,7 +7,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.database.Database;
@@ -35,7 +35,7 @@ public final class LangbookReadableDatabaseTest {
     }
 
     private void addAgent(Database db, int sourceBunch, int alphabet, String endMatcherText, String endAdderText, int rule) {
-        final ImmutableIntSet emptyBunchSet = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
         final ImmutableIntSet verbBunchSet = emptyBunchSet.add(sourceBunch);
 
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
@@ -120,7 +120,7 @@ public final class LangbookReadableDatabaseTest {
             for (int length = 1; length <= text1.length(); length++) {
                 final String queryText = text1.substring(0, length);
                 final ImmutableList<SearchResult> results = findAcceptationFromText(db, queryText, restrictionStringType);
-                final ImmutableIntSetBuilder matchingIndexesBuilder = new ImmutableIntSetBuilder();
+                final ImmutableIntSet.Builder matchingIndexesBuilder = new ImmutableIntSetCreator();
                 for (int i = 0; i < textList.size(); i++) {
                     if (textList.valueAt(i).startsWith(queryText)) {
                         matchingIndexesBuilder.add(i);

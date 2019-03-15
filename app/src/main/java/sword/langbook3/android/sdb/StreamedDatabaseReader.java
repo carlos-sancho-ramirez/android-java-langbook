@@ -18,16 +18,17 @@ import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.IntKeyMap;
 import sword.collections.IntSet;
+import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
+import sword.database.DbImporter.Database;
 import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.database.DbImporter.Database;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
@@ -177,7 +178,7 @@ public final class StreamedDatabaseReader {
 
     private ImmutableIntSet readRangedNumberSet(InputBitStream ibs, HuffmanTable<Integer> lengthTable, int min, int max) throws IOException {
         final RangedIntegerSetDecoder decoder = new RangedIntegerSetDecoder(ibs, lengthTable, min, max);
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (int value : ibs.readSet(decoder, decoder, decoder)) {
             builder.add(value);
         }
@@ -484,7 +485,7 @@ public final class StreamedDatabaseReader {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
-        final MutableIntSet presentRules = MutableIntSet.empty();
+        final MutableIntSet presentRules = MutableIntArraySet.empty();
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -548,7 +549,7 @@ public final class StreamedDatabaseReader {
                 final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 final int agentId = insertAgent(_db, register);
 
-                final ImmutableIntSet diffSet = new ImmutableIntSetBuilder().build();
+                final ImmutableIntSet diffSet = new ImmutableIntSetCreator().build();
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
 
                 if (hasRule) {

@@ -8,13 +8,13 @@ import android.widget.CheckBox;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
-import sword.collections.MutableIntSet;
+import sword.collections.ImmutableIntSetCreator;
+import sword.collections.MutableIntArraySet;
 
 final class MatchingBunchesPickerAdapter extends BaseAdapter {
 
     private final ImmutableIntKeyMap<String> _entries;
-    private final MutableIntSet _checked = MutableIntSet.empty();
+    private final MutableIntArraySet _checked = MutableIntArraySet.empty();
     private LayoutInflater _inflater;
 
     MatchingBunchesPickerAdapter(ImmutableIntKeyMap<String> entries) {
@@ -64,7 +64,7 @@ final class MatchingBunchesPickerAdapter extends BaseAdapter {
     }
 
     public ImmutableIntSet getCheckedBunches() {
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (int position : _checked) {
             builder.add(_entries.keyAt(position));
         }

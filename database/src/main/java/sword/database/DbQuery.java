@@ -6,7 +6,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableHashSet;
@@ -306,7 +306,7 @@ public final class DbQuery implements DbView {
     }
 
     public ImmutableIntSet grouping() {
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (int columnIndex : _groupBy) {
             builder.add(columnIndex);
         }

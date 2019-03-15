@@ -12,6 +12,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
 
 public final class AcceptationDetailsAdapter extends BaseAdapter {
@@ -309,7 +310,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
     private LayoutInflater _inflater;
 
     AcceptationDetailsAdapter(ImmutableList<Item> items) {
-        final MutableIntSet viewTypeSet = MutableIntSet.empty();
+        final MutableIntSet viewTypeSet = MutableIntArraySet.empty();
         boolean allEnabled = true;
         for (Item item : items) {
             viewTypeSet.add(item.getLayout());

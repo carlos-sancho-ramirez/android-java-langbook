@@ -11,13 +11,13 @@ import android.widget.EditText;
 import android.widget.ListView;
 
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.List;
 import sword.database.Database;
-import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.database.DbQuery;
 import sword.database.DbValue;
+import sword.langbook3.android.LangbookDbSchema.Tables;
 
 import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationFromText;
 
@@ -112,7 +112,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex());
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (List<DbValue> row : DbManager.getInstance().attach(query)) {
             builder.add(row.get(0).toInt());
         }

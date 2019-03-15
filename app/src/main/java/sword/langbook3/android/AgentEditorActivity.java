@@ -25,6 +25,7 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.List;
+import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
@@ -224,7 +225,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final int acceptationsOffset = alphabets.columns().size();
         final int stringsOffset = acceptationsOffset + acceptations.columns().size();
 
-        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
         final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
         final DbQuery query = new DbQuery.Builder(alphabets)
                 .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
@@ -678,7 +679,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
         }
 
-        final MutableIntSet alphabets = MutableIntSet.empty();
+        final MutableIntSet alphabets = MutableIntArraySet.empty();
         for (CorrelationEntry entry : _state.startMatcher) {
             if (alphabets.contains(entry.alphabet)) {
                 return "Unable to duplicate alphabet in start matcher";

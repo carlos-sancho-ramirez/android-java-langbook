@@ -15,8 +15,8 @@ import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
-import sword.collections.IterableCollection;
 import sword.collections.List;
+import sword.collections.Traversable;
 import sword.database.Database;
 import sword.database.DbColumn;
 import sword.database.DbDeleteQuery;
@@ -157,7 +157,7 @@ class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    final class DbAttachedQuery implements IterableCollection<List<DbValue>> {
+    final class DbAttachedQuery implements Traversable<List<DbValue>> {
 
         private final DbQuery _query;
 

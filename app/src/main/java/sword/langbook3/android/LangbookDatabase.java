@@ -3,7 +3,7 @@ package sword.langbook3.android;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
@@ -13,8 +13,6 @@ import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
-import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
-import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.database.Database;
 import sword.database.DbDeleteQuery;
 import sword.database.DbExporter;
@@ -24,6 +22,8 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
+import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
+import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
@@ -169,7 +169,7 @@ public final class LangbookDatabase {
     }
 
     public static int insertBunchSet(DbImporter.Database db, int... bunches) {
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (int bunch : bunches) {
             builder.add(bunch);
         }
@@ -221,7 +221,7 @@ public final class LangbookDatabase {
             ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
             ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> endMatcher) {
 
-        final ImmutableIntSetBuilder diffAccBuilder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder diffAccBuilder = new ImmutableIntSetCreator();
         for (int bunch : diffBunches) {
             final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
             final DbQuery query = new DbQuery.Builder(table)
@@ -237,7 +237,7 @@ public final class LangbookDatabase {
 
         ImmutableIntSet matchingAcceptations = null;
         if (!sourceBunches.isEmpty()) {
-            final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int bunch : sourceBunches) {
                 final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
                 final DbQuery query = new DbQuery.Builder(table)
@@ -270,7 +270,7 @@ public final class LangbookDatabase {
                     .where(strTable.getStringColumnIndex(), new DbQuery.Restriction(
                             new DbStringValue(queryValue), restrictionType))
                     .select(strTable.getDynamicAcceptationColumnIndex());
-            final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             try (DbResult result = db.select(matchQuery)) {
                 while (result.hasNext()) {
                     final int acc = result.next().get(0).toInt();
@@ -349,7 +349,7 @@ public final class LangbookDatabase {
                     new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
-            final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder processedAccBuilder = new ImmutableIntSetCreator();
 
             for (int acc : matchingAcceptations) {
                 final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
@@ -381,7 +381,7 @@ public final class LangbookDatabase {
         }
 
         if (details.targetBunch != NO_BUNCH) {
-            final int agentSetId = obtainAgentSet(db, new ImmutableIntSetBuilder().add(agentId).build());
+            final int agentSetId = obtainAgentSet(db, new ImmutableIntSetCreator().add(agentId).build());
             for (int acc : processedAcceptations) {
                 insertBunchAcceptation(db, details.targetBunch, acc, agentSetId);
             }
@@ -462,7 +462,7 @@ public final class LangbookDatabase {
                     new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
-            final ImmutableIntSetBuilder processedAccBuilder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder processedAccBuilder = new ImmutableIntSetCreator();
             for (int acc : toBeProcessed) {
                 final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
                 final MutableIntKeyMap<String> correlation = textsAndMain.left.mutate();
@@ -493,7 +493,7 @@ public final class LangbookDatabase {
         }
 
         if (agentDetails.targetBunch != NO_BUNCH) {
-            final int agentSetId = obtainAgentSet(db, new ImmutableIntSetBuilder().add(agentId).build());
+            final int agentSetId = obtainAgentSet(db, new ImmutableIntSetCreator().add(agentId).build());
             for (int acc : processedAcceptations) {
                 insertBunchAcceptation(db, agentDetails.targetBunch, acc, agentSetId);
                 targetChanged = true;
@@ -552,9 +552,9 @@ public final class LangbookDatabase {
                 }
             }
 
-            final ImmutableIntSetBuilder touchedBunchesBuilder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder touchedBunchesBuilder = new ImmutableIntSetCreator();
 
-            final ImmutableIntSetBuilder affectedAgents = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder affectedAgents = new ImmutableIntSetCreator();
             for (int agentId : findAgentsWithoutSourceBunches(db)) {
                 affectedAgents.add(agentId);
             }
@@ -571,7 +571,7 @@ public final class LangbookDatabase {
             }
             final ImmutableIntSet touchedBunches = touchedBunchesBuilder.build();
 
-            final ImmutableIntSetBuilder quizIdsBuilder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder quizIdsBuilder = new ImmutableIntSetCreator();
             final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
             final DbQuery quizQuery = new DbQuery.Builder(quizzes)
                     .select(quizzes.getIdColumnIndex(), quizzes.getBunchColumnIndex());
@@ -623,7 +623,7 @@ public final class LangbookDatabase {
             rerunAgent(db, agent, false);
         }
 
-        ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (int bunch : affectedAgents) {
             if (bunch != 0) {
                 builder.add(bunch);
@@ -632,7 +632,7 @@ public final class LangbookDatabase {
 
         ImmutableIntSet updatedBunches = builder.build();
         while (!updatedBunches.isEmpty()) {
-            builder = new ImmutableIntSetBuilder();
+            builder = new ImmutableIntSetCreator();
             for (int bunch : updatedBunches) {
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
                     rerunAgent(db, entry.key(), false);
@@ -647,7 +647,7 @@ public final class LangbookDatabase {
     }
 
     private static void recheckQuizzes(Database db, ImmutableIntSet updatedBunches) {
-        final ImmutableIntSetBuilder affectedQuizzesBuilder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder affectedQuizzesBuilder = new ImmutableIntSetCreator();
         for (int b : updatedBunches) {
             for (int quizId : findQuizzesByBunch(db, b)) {
                 affectedQuizzesBuilder.add(quizId);
@@ -678,10 +678,10 @@ public final class LangbookDatabase {
 
         LangbookDbInserter.insertBunchAcceptation(db, bunch, acceptation, 0);
 
-        final ImmutableIntSetBuilder allUpdatedBunchesBuilder = new ImmutableIntSetBuilder();
-        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
+        final ImmutableIntSet.Builder allUpdatedBunchesBuilder = new ImmutableIntSetCreator();
+        ImmutableIntSet updatedBunches = new ImmutableIntSetCreator().add(bunch).build();
         while (!updatedBunches.isEmpty()) {
-            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int b : updatedBunches) {
                 allUpdatedBunchesBuilder.add(b);
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
@@ -707,10 +707,10 @@ public final class LangbookDatabase {
 
     public static boolean removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
         if (LangbookDeleter.deleteBunchAcceptation(db, bunch, acceptation)) {
-            final ImmutableIntSetBuilder allUpdatedBunchesBuilder = new ImmutableIntSetBuilder();
-            ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(bunch).build();
+            final ImmutableIntSet.Builder allUpdatedBunchesBuilder = new ImmutableIntSetCreator();
+            ImmutableIntSet updatedBunches = new ImmutableIntSetCreator().add(bunch).build();
             while (!updatedBunches.isEmpty()) {
-                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+                final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
                 for (int b : updatedBunches) {
                     allUpdatedBunchesBuilder.add(b);
                     for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
@@ -767,9 +767,9 @@ public final class LangbookDatabase {
             runAgent(db, agentId, details);
         }
 
-        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(targetBunch).build();
+        ImmutableIntSet updatedBunches = new ImmutableIntSetCreator().add(targetBunch).build();
         while (!updatedBunches.isEmpty()) {
-            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int bunch : updatedBunches) {
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
                     rerunAgent(db, entry.key(), false);
@@ -792,7 +792,7 @@ public final class LangbookDatabase {
 
         final int targetBunch = getAgentDetails(db, agentId).targetBunch;
         final ImmutableIntKeyMap<ImmutableIntSet> agentSets = getAllAgentSetsContaining(db, agentId);
-        final ImmutableIntSetBuilder removableAgentSetsBuilder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder removableAgentSetsBuilder = new ImmutableIntSetCreator();
         for (IntKeyMap.Entry<ImmutableIntSet> entry : agentSets.entries()) {
             if (entry.value().size() == 1) {
                 removableAgentSetsBuilder.add(entry.key());
@@ -827,9 +827,9 @@ public final class LangbookDatabase {
             throw new AssertionError();
         }
 
-        ImmutableIntSet updatedBunches = new ImmutableIntSetBuilder().add(targetBunch).build();
+        ImmutableIntSet updatedBunches = new ImmutableIntSetCreator().add(targetBunch).build();
         while (!updatedBunches.isEmpty()) {
-            ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int bunch : updatedBunches) {
                 for (IntPairMap.Entry entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
                     rerunAgent(db, entry.key(), false);

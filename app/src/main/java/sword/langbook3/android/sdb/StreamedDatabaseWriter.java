@@ -26,7 +26,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
@@ -37,6 +37,7 @@ import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.IntValueMap;
 import sword.collections.List;
+import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
@@ -44,12 +45,12 @@ import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueSortedMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
-import sword.langbook3.android.LangbookDbSchema;
 import sword.database.DbExporter.Database;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
+import sword.langbook3.android.LangbookDbSchema;
 
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 
@@ -338,7 +339,7 @@ public final class StreamedDatabaseWriter {
         final LangbookDbSchema.AlphabetsTable alphabetsTable = LangbookDbSchema.Tables.alphabets;
         final DbResult alphabetResult = _db.select(new DbQuery.Builder(alphabetsTable).select(alphabetsTable.getIdColumnIndex(), alphabetsTable.getLanguageColumnIndex()));
         final MutableIntKeyMap<ImmutableIntSet> alphabetMap = MutableIntKeyMap.empty();
-        final ImmutableIntSet emptySet = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet emptySet = new ImmutableIntSetCreator().build();
         int alphabetCount = 0;
         try {
             while (alphabetResult.hasNext()) {
@@ -757,7 +758,7 @@ public final class StreamedDatabaseWriter {
                     set = bunches.get(bunchId);
                 }
                 else {
-                    set = MutableIntSet.empty();
+                    set = MutableIntArraySet.empty();
                     bunches.put(bunchId, set);
                 }
                 set.add(row.get(1).toInt());
@@ -802,7 +803,7 @@ public final class StreamedDatabaseWriter {
         final DbResult result = _db.select(query);
         final MutableIntKeyMap<ImmutableIntSet> bunchSets = MutableIntKeyMap.empty();
         try {
-            final ImmutableIntSet emptySet = new ImmutableIntSetBuilder().build();
+            final ImmutableIntSet emptySet = new ImmutableIntSetCreator().build();
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int setId = row.get(0).toInt();
@@ -856,7 +857,7 @@ public final class StreamedDatabaseWriter {
         final int agentCount = count;
         _obs.writeHuffmanSymbol(naturalNumberTable, agentCount);
 
-        final MutableIntSet presentRules = MutableIntSet.empty();
+        final MutableIntSet presentRules = MutableIntArraySet.empty();
         if (agentCount != 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntWriter intWriter = new IntWriter(nat3Table);
@@ -931,7 +932,7 @@ public final class StreamedDatabaseWriter {
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getCorrelationIdColumnIndex());
         final DbResult result = _db.select(query);
-        final ImmutableIntSetBuilder setIdBuilder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder setIdBuilder = new ImmutableIntSetCreator();
         try {
             while (result.hasNext()) {
                 setIdBuilder.add(result.next().get(0).toInt());
@@ -967,7 +968,7 @@ public final class StreamedDatabaseWriter {
                         set = bunches.get(bunchId);
                     }
                     else {
-                        set = MutableIntSet.empty();
+                        set = MutableIntArraySet.empty();
                         bunches.put(bunchId, set);
                     }
 
@@ -1036,8 +1037,8 @@ public final class StreamedDatabaseWriter {
                 table.getIdColumnIndex(), table.getCorrelationArrayColumnIndex());
         final DbResult result = _db.select(query);
 
-        final ImmutableIntSetBuilder acceptations = new ImmutableIntSetBuilder();
-        final ImmutableIntSetBuilder correlationArrays = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder acceptations = new ImmutableIntSetCreator();
+        final ImmutableIntSet.Builder correlationArrays = new ImmutableIntSetCreator();
         try {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
@@ -1062,7 +1063,7 @@ public final class StreamedDatabaseWriter {
                 table.getStartAdderColumnIndex(), table.getEndMatcherColumnIndex(), table.getEndAdderColumnIndex());
         final DbResult result = _db.select(query);
 
-        final ImmutableIntSetBuilder correlations = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder correlations = new ImmutableIntSetCreator();
         try {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
@@ -1080,7 +1081,7 @@ public final class StreamedDatabaseWriter {
     }
 
     private ImmutableIntSet listExportableCorrelations(ImmutableIntSet correlationArrays) {
-        final ImmutableIntSetBuilder correlations = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder correlations = new ImmutableIntSetCreator();
         for (int corrId : listAgentCorrelations()) {
             correlations.add(corrId);
         }
@@ -1109,7 +1110,7 @@ public final class StreamedDatabaseWriter {
         final DbQuery query = new DbQuery.Builder(table).select(table.getTargetAlphabetColumnIndex(), table.getSourceColumnIndex(), table.getTargetColumnIndex());
         final DbResult result = _db.select(query);
 
-        final ImmutableIntSetBuilder symbolArrays = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder symbolArrays = new ImmutableIntSetCreator();
         try {
             while(result.hasNext()) {
                 final List<DbValue> row = result.next();
@@ -1142,7 +1143,7 @@ public final class StreamedDatabaseWriter {
                 .join(symbolArraysTable, langTable.getCodeColumnIndex(), symbolArraysTable.getStrColumnIndex())
                 .select(langTable.columns().size() + symbolArraysTable.getIdColumnIndex());
         final DbResult result = _db.select(query);
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         try {
             while (result.hasNext()) {
                 builder.add(result.next().get(0).toInt());
@@ -1159,7 +1160,7 @@ public final class StreamedDatabaseWriter {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getSymbolArray());
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 builder.add(result.next().get(0).toInt());
@@ -1169,8 +1170,8 @@ public final class StreamedDatabaseWriter {
     }
 
     private ExportableSymbolArraysResult listExportableSymbolArrays(ImmutableIntSet correlations) {
-        final MutableIntSet targetedAlphabets = MutableIntSet.empty();
-        final ImmutableIntSetBuilder symbolArrays = new ImmutableIntSetBuilder();
+        final MutableIntSet targetedAlphabets = MutableIntArraySet.empty();
+        final ImmutableIntSet.Builder symbolArrays = new ImmutableIntSetCreator();
         for (int arrayId : listConversionSymbolArrays(targetedAlphabets)) {
             symbolArrays.add(arrayId);
         }
@@ -1203,7 +1204,7 @@ public final class StreamedDatabaseWriter {
         final DbQuery query = new DbQuery.Builder(table).select(table.getSetIdColumnIndex());
         final DbResult result = _db.select(query);
 
-        final ImmutableIntSetBuilder setIds = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder setIds = new ImmutableIntSetCreator();
         try {
             while (result.hasNext()) {
                 setIds.add(result.next().get(0).toInt());
@@ -1425,7 +1426,7 @@ public final class StreamedDatabaseWriter {
                 .select(table.getIdColumnIndex(), table.getMeaning());
 
         final MutableIntKeyMap<ImmutableIntSet> map = MutableIntKeyMap.empty();
-        final ImmutableIntSet emptySet = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet emptySet = new ImmutableIntSetCreator().build();
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();

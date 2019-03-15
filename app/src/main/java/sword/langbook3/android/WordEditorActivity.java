@@ -20,6 +20,7 @@ import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
+import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
 import sword.database.Database;
@@ -129,7 +130,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private ImmutableIntSet findFieldsWhereStringQueryIsValid(String queryText,
             ImmutableIntPairMap conversions, ImmutableIntPairMap fieldIndexAlphabetRelationMap,
             MutableIntKeyMap<String> queryConvertedTexts) {
-        final MutableIntSet queryTextIsValid = MutableIntSet.empty();
+        final MutableIntSet queryTextIsValid = MutableIntArraySet.empty();
 
         if (queryText != null) {
             final int editableFieldCount = fieldIndexAlphabetRelationMap.size();
@@ -142,7 +143,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 final MutableIntKeyMap<String> localQueryConvertedTexts = MutableIntKeyMap.empty();
 
                 ImmutableSet<String> sourceTexts = null;
-                final MutableIntSet sourceTextAlphabets = MutableIntSet.empty();
+                final MutableIntSet sourceTextAlphabets = MutableIntArraySet.empty();
 
                 for (int conversionIndex = 0; conversionIndex < fieldConversionCount; conversionIndex++) {
                     if (conversions.valueAt(conversionIndex) == alphabet) {

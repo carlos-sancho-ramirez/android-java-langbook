@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import sword.collections.ImmutableIntSet;
-import sword.collections.MutableIntSet;
+import sword.collections.MutableIntArraySet;
 
 public final class QuizSelectorActivityState implements Parcelable {
 
@@ -18,7 +18,7 @@ public final class QuizSelectorActivityState implements Parcelable {
     private int _intrinsicState = IntrinsicStates.INIT;
 
     // Only relevant for SELECTING_ON_LIST and DELETING
-    private MutableIntSet _selectedQuizzes = MutableIntSet.empty();
+    private MutableIntArraySet _selectedQuizzes = MutableIntArraySet.empty();
 
     public QuizSelectorActivityState() {
     }

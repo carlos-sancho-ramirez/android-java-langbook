@@ -6,16 +6,16 @@ import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.List;
-import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
 import sword.database.MemoryDatabase;
+import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -233,8 +233,8 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, "ando")
                 .build();
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetBuilder().add(verbConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
         final int agentId = addAgent(db, 0, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerund);
 
         final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
@@ -309,8 +309,8 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, "ar")
                 .build();
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetBuilder().add(verbConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
         final int agentId = addAgent(db, arVerbConcept, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
 
         final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
@@ -323,14 +323,14 @@ public final class LangbookDatabaseTest {
         final DbQuery verbBunchAccQuery = new DbQuery.Builder(bunchAcceptations)
                 .where(bunchAcceptations.getBunchColumnIndex(), verbConcept)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         try (DbResult bunchAccResult = db.select(verbBunchAccQuery)) {
             for (int i = 0; i < 2; i++) {
                 builder.add(bunchAccResult.next().get(0).toInt());
             }
             assertFalse(bunchAccResult.hasNext());
         }
-        assertEquals(new ImmutableIntSetBuilder().add(singAcceptation).add(coughtAcceptation).build(), builder.build());
+        assertEquals(new ImmutableIntSetCreator().add(singAcceptation).add(coughtAcceptation).build(), builder.build());
 
         final DbQuery arVerbBunchAccQuery = new DbQuery.Builder(bunchAcceptations)
                 .where(bunchAcceptations.getBunchColumnIndex(), arVerbConcept)
@@ -369,9 +369,9 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, "ando")
                 .build();
 
-        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetBuilder().add(arVerbConcept).build();
-        final ImmutableIntSet verbBunchSet = new ImmutableIntSetBuilder().add(verbConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
+        final ImmutableIntSet verbBunchSet = new ImmutableIntSetCreator().add(verbConcept).build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
 
         final int agent2Id;
         if (reversedAdditionOrder) {
@@ -459,8 +459,8 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, "ar")
                 .build();
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetBuilder().build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().add(arEndingNounConcept).build();
+        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().add(arEndingNounConcept).build();
 
         final int singAcceptation = addAcceptation(db, singConcept, singCorrelationArrayId);
         final int palateAcceptation;
@@ -564,9 +564,9 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, "s")
                 .build();
 
-        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetBuilder().add(arVerbConcept).build();
-        final ImmutableIntSet actionConceptBunchSet = new ImmutableIntSetBuilder().add(actionConcept).build();
-        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
+        final ImmutableIntSet actionConceptBunchSet = new ImmutableIntSetCreator().add(actionConcept).build();
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
 
         final int agent3Id = addAgent(db, 0, actionConceptBunchSet, noBunches, noMatcher, noMatcher, noMatcher, pluralAdder, pluralRule);
         final int agent2Id = addAgent(db, actionConcept, arVerbBunchSet, noBunches, noMatcher, noMatcher, matcher, adder, nominalizationRule);
@@ -579,7 +579,7 @@ public final class LangbookDatabaseTest {
             int alphabet, int arVerbConcept, int actionConcept,
             int nominalizationRule, int pluralRule) {
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
         return add3ChainedAgents(db, alphabet, noBunches, arVerbConcept, actionConcept, nominalizationRule, pluralRule);
     }
 
@@ -759,7 +759,7 @@ public final class LangbookDatabaseTest {
         final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
         addAcceptationInBunch(db, verbConcept, acceptation);
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetBuilder().add(verbConcept).build();
+        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
         add3ChainedAgents(db, alphabet, sourceBunches, arVerbConcept, actionConcept, nominalizationRule, pluralRule);
 
         removeAcceptationFromBunch(db, verbConcept, acceptation);
@@ -959,8 +959,8 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, "ando")
                 .build();
 
-        final ImmutableIntSet arSourceBunches = new ImmutableIntSetBuilder().add(verbArConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet arSourceBunches = new ImmutableIntSetCreator().add(verbArConcept).build();
+        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
         addAgent(db, 0, arSourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arAdder, gerund);
 
         final ImmutableIntKeyMap<String> erMatcher = new ImmutableIntKeyMap.Builder<String>()
@@ -970,7 +970,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, "iendo")
                 .build();
 
-        final ImmutableIntSet erSourceBunches = new ImmutableIntSetBuilder().add(verbErConcept).build();
+        final ImmutableIntSet erSourceBunches = new ImmutableIntSetCreator().add(verbErConcept).build();
         addAgent(db, 0, erSourceBunches, diffBunches, nullCorrelation, nullCorrelation, erMatcher, erAdder, gerund);
 
         ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "jugar").build();
@@ -1072,7 +1072,7 @@ public final class LangbookDatabaseTest {
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, "er")
@@ -1147,7 +1147,7 @@ public final class LangbookDatabaseTest {
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, "ar")
@@ -1225,8 +1225,8 @@ public final class LangbookDatabaseTest {
         final int acceptationId = addAcceptation(db, concept, wrongCorrelationArrayId);
         addAcceptationInBunch(db, firstConjugationVerbBunch, acceptationId);
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetBuilder().build();
-        final ImmutableIntSet firstConjugationVerbBunchSet = new ImmutableIntSetBuilder().add(firstConjugationVerbBunch).build();
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet firstConjugationVerbBunchSet = new ImmutableIntSetCreator().add(firstConjugationVerbBunch).build();
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, "ar")

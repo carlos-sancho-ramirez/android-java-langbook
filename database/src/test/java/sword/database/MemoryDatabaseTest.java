@@ -6,7 +6,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.List;
@@ -190,7 +190,7 @@ public final class MemoryDatabaseTest {
                     .where(setTable.columns().indexOf(setIdColumn), setId)
                     .select(setTable.columns().indexOf(itemIdColumn));
             final DbResult result = db.select(query);
-            final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             try {
                 while (result.hasNext()) {
                     builder.add(result.next().get(0).toInt());
@@ -277,16 +277,16 @@ public final class MemoryDatabaseTest {
     public void testInsertAndRetrieveSets() {
         final State state = new State();
 
-        final ImmutableIntSet primes = new ImmutableIntSetBuilder()
+        final ImmutableIntSet primes = new ImmutableIntSetCreator()
                 .add(2).add(3).add(5).add(7).build();
         final int primesSetId = state.insertIntIterable(primes);
 
-        final ImmutableIntSet fibonacci = new ImmutableIntSetBuilder()
+        final ImmutableIntSet fibonacci = new ImmutableIntSetCreator()
                 .add(1).add(2).add(3).add(5).add(8).build();
         final int fibonacciSetId = state.insertIntIterable(fibonacci);
         assertNotEquals(primesSetId, fibonacciSetId);
 
-        final ImmutableIntSet even = new ImmutableIntSetBuilder()
+        final ImmutableIntSet even = new ImmutableIntSetCreator()
                 .add(2).add(4).add(6).add(8).add(10).build();
         final int evenSetId = state.insertIntIterable(even);
         assertNotEquals(primesSetId, evenSetId);
@@ -313,11 +313,11 @@ public final class MemoryDatabaseTest {
         final int robertId = state.insertText(name4);
         final int jillId = state.insertText(name5);
 
-        final ImmutableIntSet males = new ImmutableIntSetBuilder()
+        final ImmutableIntSet males = new ImmutableIntSetCreator()
                 .add(johnId).add(robertId).build();
-        final ImmutableIntSet females = new ImmutableIntSetBuilder()
+        final ImmutableIntSet females = new ImmutableIntSetCreator()
                 .add(sarahId).add(marieId).add(jillId).build();
-        final ImmutableIntSet developers = new ImmutableIntSetBuilder()
+        final ImmutableIntSet developers = new ImmutableIntSetCreator()
                 .add(sarahId).add(robertId).build();
         state.insertIntIterable(males);
         state.insertIntIterable(females);
@@ -359,11 +359,11 @@ public final class MemoryDatabaseTest {
         final int robertId = state.insertText(name4);
         final int jillId = state.insertText(name5);
 
-        final ImmutableIntSet males = new ImmutableIntSetBuilder()
+        final ImmutableIntSet males = new ImmutableIntSetCreator()
                 .add(johnId).add(robertId).build();
-        final ImmutableIntSet females = new ImmutableIntSetBuilder()
+        final ImmutableIntSet females = new ImmutableIntSetCreator()
                 .add(sarahId).add(marieId).add(jillId).build();
-        final ImmutableIntSet developers = new ImmutableIntSetBuilder()
+        final ImmutableIntSet developers = new ImmutableIntSetCreator()
                 .add(sarahId).add(robertId).build();
         state.insertIntIterable(males);
         final int femalesSetId = state.insertIntIterable(females);
@@ -374,7 +374,7 @@ public final class MemoryDatabaseTest {
                 .where(textTable.columns().indexOf(textColumn), name2)
                 .select(textTable.columns().size() + setTable.columns().indexOf(setIdColumn));
         final DbResult result = state.db.select(query);
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         try {
             while (result.hasNext()) {
                 builder.add(result.next().get(0).toInt());
@@ -384,7 +384,7 @@ public final class MemoryDatabaseTest {
             result.close();
         }
 
-        final ImmutableIntSet sarahGroups = new ImmutableIntSetBuilder()
+        final ImmutableIntSet sarahGroups = new ImmutableIntSetCreator()
                 .add(femalesSetId).add(developersSetId).build();
         assertEquals(sarahGroups, builder.build());
     }
@@ -407,11 +407,11 @@ public final class MemoryDatabaseTest {
         final int jillId = state.insertText(name5);
         state.insertText(name6);
 
-        final ImmutableIntSet males = new ImmutableIntSetBuilder()
+        final ImmutableIntSet males = new ImmutableIntSetCreator()
                 .add(johnId).add(robertId).build();
-        final ImmutableIntSet females = new ImmutableIntSetBuilder()
+        final ImmutableIntSet females = new ImmutableIntSetCreator()
                 .add(sarahId).add(marieId).add(jillId).build();
-        final ImmutableIntSet developers = new ImmutableIntSetBuilder()
+        final ImmutableIntSet developers = new ImmutableIntSetCreator()
                 .add(sarahId).add(robertId).build();
         state.insertIntIterable(males);
         state.insertIntIterable(females);

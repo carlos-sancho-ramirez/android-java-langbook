@@ -13,7 +13,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetBuilder;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
@@ -24,6 +24,7 @@ import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
+import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
@@ -331,7 +332,7 @@ public final class LangbookReadableDatabase {
             }
         }
 
-        return map.valueList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
+        return map.toList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
     public static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
@@ -434,7 +435,7 @@ public final class LangbookReadableDatabase {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int setId = row.get(0).toInt();
-                ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+                ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
                 builder.add(row.get(1).toInt());
 
                 while (result.hasNext()) {
@@ -446,7 +447,7 @@ public final class LangbookReadableDatabase {
                         }
 
                         setId = newSetId;
-                        builder = new ImmutableIntSetBuilder();
+                        builder = new ImmutableIntSetCreator();
                     }
                     builder.add(row.get(1).toInt());
                 }
@@ -497,7 +498,7 @@ public final class LangbookReadableDatabase {
 
     public static ImmutableIntSet findAffectedAgentsByItsSource(DbExporter.Database db, int bunch) {
         if (bunch == 0) {
-            return new ImmutableIntSetBuilder().build();
+            return new ImmutableIntSetCreator().build();
         }
 
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
@@ -536,7 +537,7 @@ public final class LangbookReadableDatabase {
 
     public static ImmutableIntSet findAffectedAgentsByItsDiff(DbExporter.Database db, int bunch) {
         if (bunch == 0) {
-            return new ImmutableIntSetBuilder().build();
+            return new ImmutableIntSetCreator().build();
         }
 
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
@@ -708,7 +709,7 @@ public final class LangbookReadableDatabase {
                         conversions.getSourceAlphabetColumnIndex(),
                         conversions.getTargetAlphabetColumnIndex());
 
-        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
@@ -993,7 +994,7 @@ public final class LangbookReadableDatabase {
                         offset + strings.getStringColumnIndex(),
                         offset + strings.getMainStringColumnIndex());
 
-        final MutableIntSet acceptations = MutableIntSet.empty();
+        final MutableIntSet acceptations = MutableIntArraySet.empty();
         final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
 
         try (DbResult result = db.select(query)) {
@@ -1378,7 +1379,7 @@ public final class LangbookReadableDatabase {
     }
 
     private static ImmutableIntSet intSetQuery(DbExporter.Database db, DbQuery query) {
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 builder.add(dbResult.next().get(0).toInt());
@@ -1774,7 +1775,7 @@ public final class LangbookReadableDatabase {
             }
         }
 
-        return resultMap.valueList().toImmutable();
+        return resultMap.toList().toImmutable();
     }
 
     public static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
@@ -1837,7 +1838,7 @@ public final class LangbookReadableDatabase {
                    alphabets.getIdColumnIndex(),
                         strOffset + stringQueries.getStringAlphabetColumnIndex(),
                         strOffset + stringQueries.getStringColumnIndex());
-        final MutableIntSet foundAlphabets = MutableIntSet.empty();
+        final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
         final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
         try (DbResult r = db.select(query)) {
             while (r.hasNext()) {
@@ -1882,7 +1883,7 @@ public final class LangbookReadableDatabase {
                         strOffset + stringQueries.getStringColumnIndex()
                 );
 
-        MutableIntSet foundLanguages = MutableIntSet.empty();
+        MutableIntSet foundLanguages = MutableIntArraySet.empty();
         MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
 
         try (DbResult r = db.select(query)) {
@@ -1989,7 +1990,7 @@ public final class LangbookReadableDatabase {
     }
 
     public static ImmutableIntSet readBunchesFromSetOfBunchSets(DbExporter.Database db, ImmutableIntSet bunchSets) {
-        final ImmutableIntSetBuilder builder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (int bunchSet : bunchSets) {
             for (int bunch : getBunchSet(db, bunchSet)) {
                 builder.add(bunch);
@@ -2026,7 +2027,7 @@ public final class LangbookReadableDatabase {
 
         final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> cachedCorrelations =
                 new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelationWithText(db, id));
-        final ImmutableIntSetBuilder validBunchSetsBuilder = new ImmutableIntSetBuilder();
+        final ImmutableIntSet.Builder validBunchSetsBuilder = new ImmutableIntSetCreator();
 
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
@@ -2187,7 +2188,7 @@ public final class LangbookReadableDatabase {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int setId = row.get(0).toInt();
-                ImmutableIntSetBuilder setBuilder = new ImmutableIntSetBuilder();
+                ImmutableIntSet.Builder setBuilder = new ImmutableIntSetCreator();
                 setBuilder.add(row.get(1).toInt());
 
                 while (result.hasNext()) {
@@ -2196,7 +2197,7 @@ public final class LangbookReadableDatabase {
                     if (newSetId != setId) {
                         mapBuilder.put(setId, setBuilder.build());
                         setId = newSetId;
-                        setBuilder = new ImmutableIntSetBuilder();
+                        setBuilder = new ImmutableIntSetCreator();
                     }
                     setBuilder.add(row.get(1).toInt());
                 }
@@ -2307,11 +2308,11 @@ public final class LangbookReadableDatabase {
             }
 
             if (sourceBunches == null) {
-                sourceBunches = new ImmutableIntSetBuilder().build();
+                sourceBunches = new ImmutableIntSetCreator().build();
             }
 
             if (diffBunches == null) {
-                diffBunches = new ImmutableIntSetBuilder().build();
+                diffBunches = new ImmutableIntSetCreator().build();
             }
 
             if (!sourceBunches.filter(diffBunches::contains).isEmpty()) {
@@ -2552,7 +2553,7 @@ public final class LangbookReadableDatabase {
             final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations = readCorrelationsWithSameSymbolArray(db, correlationId, matchingAlphabet);
 
             final int amount = correlations.size();
-            final ImmutableIntSetBuilder setBuilder = new ImmutableIntSetBuilder();
+            final ImmutableIntSet.Builder setBuilder = new ImmutableIntSetCreator();
             for (int j = 0; j < amount; j++) {
                 final int corrId = correlations.keyAt(j);
                 if (relatedCorrelations.get(corrId, null) == null) {
