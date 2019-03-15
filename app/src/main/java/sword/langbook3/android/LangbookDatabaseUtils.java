@@ -16,7 +16,7 @@ public final class LangbookDatabaseUtils {
      * @param text Text to be converted
      * @return The converted text, or null if text cannot be converted.
      */
-    public static String convertText(ImmutableList<ImmutablePair<String, String>> pairs, String text) {
+    public static String convertText(ImmutableSet<ImmutablePair<String, String>> pairs, String text) {
         String result = "";
         while (text.length() > 0) {
             boolean found = false;
@@ -45,7 +45,7 @@ public final class LangbookDatabaseUtils {
      * @param text Converted text to be analyzed
      * @return A set with all source texts that results in the given text once the conversion is applied. This will be empty is none, but never null.
      */
-    public static ImmutableSet<String> findSourceTextsForConvertedText(ImmutableList<ImmutablePair<String, String>> pairs, String text) {
+    public static ImmutableSet<String> findSourceTextsForConvertedText(ImmutableSet<ImmutablePair<String, String>> pairs, String text) {
         final ImmutableSet.Builder<String> builder = new ImmutableHashSet.Builder<>();
         if (text == null) {
             return builder.build();

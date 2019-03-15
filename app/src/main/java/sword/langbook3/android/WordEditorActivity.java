@@ -15,7 +15,6 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
@@ -59,7 +58,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private String[] _texts;
     private ImmutableIntPairMap _fieldIndexAlphabetRelationMap;
     private int _existingAcceptation = NO_ACCEPTATION;
-    private final SyncCacheMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> _conversions =
+    private final SyncCacheMap<ImmutableIntPair, ImmutableSet<ImmutablePair<String, String>>> _conversions =
             new SyncCacheMap<>(pair -> getConversion(DbManager.getInstance().getDatabase(), pair));
 
     public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
@@ -85,9 +84,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private static final class FieldConversion {
         final int sourceField;
-        final ImmutableList<ImmutablePair<String, String>> textPairs;
+        final ImmutableSet<ImmutablePair<String, String>> textPairs;
 
-        FieldConversion(int sourceField, ImmutableList<ImmutablePair<String, String>> textPairs) {
+        FieldConversion(int sourceField, ImmutableSet<ImmutablePair<String, String>> textPairs) {
             this.sourceField = sourceField;
             this.textPairs = textPairs;
         }
@@ -148,7 +147,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 for (int conversionIndex = 0; conversionIndex < fieldConversionCount; conversionIndex++) {
                     if (conversions.valueAt(conversionIndex) == alphabet) {
                         final ImmutableIntPair pair = new ImmutableIntPair(alphabet, conversions.keyAt(conversionIndex));
-                        final ImmutableList<ImmutablePair<String, String>> conversion = _conversions.get(pair);
+                        final ImmutableSet<ImmutablePair<String, String>> conversion = _conversions.get(pair);
 
                         final String convertedText = convertText(conversion, queryText);
                         if (convertedText == null) {
@@ -222,7 +221,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             final int conversionIndex = fieldConversions.keySet().indexOf(alphabet);
             if (conversionIndex >= 0) {
                 final ImmutableIntPair pair = new ImmutableIntPair(fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
-                final ImmutableList<ImmutablePair<String, String>> conversion = _conversions.get(pair);
+                final ImmutableSet<ImmutablePair<String, String>> conversion = _conversions.get(pair);
                 final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
                 builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
             }

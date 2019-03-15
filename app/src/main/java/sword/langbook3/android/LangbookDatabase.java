@@ -297,7 +297,7 @@ public final class LangbookDatabase {
 
     private static boolean applyMatchersAddersAndConversions(MutableIntKeyMap<String> correlation,
             AgentDetails details, ImmutableSet<ImmutableIntPair> conversionPairs,
-            SyncCacheMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> conversions) {
+            SyncCacheMap<ImmutableIntPair, ImmutableSet<ImmutablePair<String, String>>> conversions) {
         for (IntKeyMap.Entry<String> entry : details.startMatcher.entries()) {
             final int length = entry.value().length();
             final String text = correlation.get(entry.key()).substring(length);
@@ -345,7 +345,7 @@ public final class LangbookDatabase {
         }
         else {
             final ImmutableSet<ImmutableIntPair> conversionPairs = findConversions(db);
-            final SyncCacheMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> conversions =
+            final SyncCacheMap<ImmutableIntPair, ImmutableSet<ImmutablePair<String, String>>> conversions =
                     new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
@@ -458,7 +458,7 @@ public final class LangbookDatabase {
             }
 
             final ImmutableSet<ImmutableIntPair> conversionPairs = findConversions(db);
-            final SyncCacheMap<ImmutableIntPair, ImmutableList<ImmutablePair<String, String>>> conversions =
+            final SyncCacheMap<ImmutableIntPair, ImmutableSet<ImmutablePair<String, String>>> conversions =
                     new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));

@@ -8,6 +8,7 @@ import android.widget.ListView;
 
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
+import sword.collections.ImmutableSet;
 import sword.database.Database;
 
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
@@ -41,7 +42,7 @@ public final class ConversionDetailsActivity extends Activity {
         final String targetText = readConceptText(db, targetAlphabet, preferredAlphabet);
         setTitle(sourceText + " -> " + targetText);
 
-        final ImmutableList<ImmutablePair<String, String>> conversion = getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet));
+        final ImmutableSet<ImmutablePair<String, String>> conversion = getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet));
 
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new ConversionDetailsAdapter(conversion));

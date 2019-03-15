@@ -6,15 +6,15 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
+import sword.collections.ImmutableSet;
 
 final class ConversionDetailsAdapter extends BaseAdapter {
 
-    private final ImmutableList<ImmutablePair<String, String>> _conversion;
+    private final ImmutableSet<ImmutablePair<String, String>> _conversion;
     private LayoutInflater _inflater;
 
-    ConversionDetailsAdapter(ImmutableList<ImmutablePair<String, String>> conversion) {
+    ConversionDetailsAdapter(ImmutableSet<ImmutablePair<String, String>> conversion) {
         _conversion = conversion;
     }
 
@@ -24,7 +24,7 @@ final class ConversionDetailsAdapter extends BaseAdapter {
     }
 
     @Override
-    public ImmutablePair getItem(int position) {
+    public ImmutablePair<String, String> getItem(int position) {
         return _conversion.valueAt(position);
     }
 
@@ -42,7 +42,7 @@ final class ConversionDetailsAdapter extends BaseAdapter {
             convertView = _inflater.inflate(R.layout.conversion_details_entry, parent, false);
         }
 
-        final ImmutablePair<String, String> pair = _conversion.valueAt(position);
+        final ImmutablePair<String, String> pair = getItem(position);
         final String text = pair.left + " -> " + pair.right;
 
         final TextView textView = convertView.findViewById(R.id.textView);

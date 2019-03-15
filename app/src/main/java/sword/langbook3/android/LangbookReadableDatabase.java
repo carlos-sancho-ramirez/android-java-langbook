@@ -19,16 +19,20 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
+import sword.collections.ImmutableSortedSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
+import sword.collections.MutableSortedSet;
+import sword.collections.SortFunction;
 import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
@@ -336,7 +340,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static ImmutableList<ImmutablePair<String, String>> getConversion(DbExporter.Database db, ImmutableIntPair pair) {
+    public static ImmutableSet<ImmutablePair<String, String>> getConversion(DbExporter.Database db, ImmutableIntPair pair) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
         final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
 
@@ -352,17 +356,20 @@ public final class LangbookReadableDatabase {
                         off1Symbols + symbols.getStrColumnIndex(),
                         off2Symbols + symbols.getStrColumnIndex());
 
-        final ImmutableList.Builder<ImmutablePair<String, String>> builder = new ImmutableList.Builder<>();
+        final SortFunction<ImmutablePair<String, String>> sortFunction = (a, b) ->
+                SortUtils.compareCharSequenceByUnicode(b.left, a.left);
+
+        final MutableSortedSet<ImmutablePair<String, String>> resultSet = MutableSortedSet.empty(sortFunction);
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final String sourceText = row.get(0).toText();
                 final String targetText = row.get(1).toText();
-                builder.add(new ImmutablePair<>(sourceText, targetText));
+                resultSet.add(new ImmutablePair<>(sourceText, targetText));
             }
         }
 
-        return builder.build();
+        return resultSet.toImmutable();
     }
 
     public static Integer findBunchSet(DbExporter.Database db, IntSet bunches) {
@@ -1116,7 +1123,7 @@ public final class LangbookReadableDatabase {
         for (IntKeyMap.Entry<String> entry : texts.entries().toImmutable()) {
             for (ImmutableIntPair pair : conversions) {
                 if (pair.left == entry.key()) {
-                    final ImmutableList<ImmutablePair<String, String>> conversion = getConversion(db, pair);
+                    final ImmutableSet<ImmutablePair<String, String>> conversion = getConversion(db, pair);
                     final String convertedText = convertText(conversion, entry.value());
                     if (convertedText == null) {
                         return null;
