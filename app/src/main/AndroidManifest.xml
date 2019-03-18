@@ -81,6 +81,9 @@
 
         <activity
             android:name=".ConversionDetailsActivity"/>
+
+        <activity
+            android:name=".ConversionEditorActivity"/>
     </application>
 
 </manifest>
