@@ -100,7 +100,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     private void updateOtherSentences() {
         final Database db = DbManager.getInstance().getDatabase();
         final ImmutableIntSet others = LangbookReadableDatabase.findSentenceIdsMatchingMeaning(db, getSymbolArrayId());
-        final ImmutableIntKeyMap<String> sentences = others.mapTo(id -> getSymbolArray(db, id));
+        final ImmutableIntKeyMap<String> sentences = others.assign(id -> getSymbolArray(db, id));
         _listView.setAdapter(new SentenceDetailsAdapter(sentences));
         _listView.setOnItemClickListener(this);
     }
