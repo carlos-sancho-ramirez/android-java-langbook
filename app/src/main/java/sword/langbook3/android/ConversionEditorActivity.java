@@ -1,11 +1,16 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ListView;
 
 import sword.collections.ImmutablePair;
@@ -15,7 +20,7 @@ import sword.database.Database;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 
-public final class ConversionEditorActivity extends Activity implements ListView.OnItemClickListener {
+public final class ConversionEditorActivity extends Activity implements ListView.OnItemClickListener, ListView.OnItemLongClickListener {
 
     private interface ArgKeys {
         String SOURCE_ALPHABET = BundleKeys.SOURCE_ALPHABET;
@@ -28,6 +33,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
 
     private ImmutableSet<ImmutablePair<String, String>> _conversion;
     private ConversionEditorActivityState _state;
+    private ConversionEditorAdapter _adapter;
 
     public static void open(Context context, int sourceAlphabet, int targetAlphabet) {
         final Intent intent = new Intent(context, ConversionEditorActivity.class);
@@ -60,8 +66,73 @@ public final class ConversionEditorActivity extends Activity implements ListView
         }
 
         final ListView listView = findViewById(R.id.listView);
-        listView.setAdapter(new ConversionEditorAdapter(_conversion, _state.getRemoved(), _state.getAdded()));
+        _adapter = new ConversionEditorAdapter(_conversion, _state.getRemoved(), _state.getAdded());
+        listView.setAdapter(_adapter);
         listView.setOnItemClickListener(this);
+        listView.setOnItemLongClickListener(this);
+
+        if (_state.beingModified() >= 0) {
+            openModificationDialog();
+        }
+    }
+
+    private void openModificationDialog() {
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setPositiveButton(android.R.string.ok, (d, w) -> {
+                    _state.applyModification();
+                    _adapter.notifyDataSetChanged();
+                })
+                .setOnCancelListener(d -> _state.cancelModification())
+                .create();
+
+        final View view = LayoutInflater.from(dialog.getContext()).inflate(R.layout.conversion_editor_modification, null);
+        final EditText source = view.findViewById(R.id.sourceEditText);
+        source.setText(_state.getSourceModificationText());
+        source.setEnabled(false); // TODO: remove this restriction
+        source.addTextChangedListener(new SourceTextListener());
+
+        final EditText target = view.findViewById(R.id.targetEditText);
+        target.setText(_state.getTargetModificationText());
+        target.addTextChangedListener(new TargetTextListener());
+
+        dialog.setView(view);
+        dialog.show();
+    }
+
+    private final class SourceTextListener implements TextWatcher {
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            _state.updateSourceModificationText(s.toString());
+        }
+    }
+
+    private final class TargetTextListener implements TextWatcher {
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // Nothing to be done
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            _state.updateTargetModificationText(s.toString());
+        }
     }
 
     @Override
@@ -73,6 +144,22 @@ public final class ConversionEditorActivity extends Activity implements ListView
             _state.toggleRemoved(convPos);
             adapter.notifyDataSetChanged();
         }
+    }
+
+    @Override
+    public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+        final ConversionEditorAdapter adapter = (ConversionEditorAdapter) parent.getAdapter();
+        final ConversionEditorAdapter.Entry entry = adapter.getItem(position);
+        final int convPos = entry.getConversionPosition();
+        if (convPos >= 0) {
+            _state.startModificationAt(convPos);
+            final ImmutablePair<String, String> pair = _conversion.valueAt(position);
+            _state.updateSourceModificationText(pair.left);
+            _state.updateTargetModificationText(pair.right);
+            openModificationDialog();
+        }
+
+        return true;
     }
 
     @Override

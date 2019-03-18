@@ -42,24 +42,30 @@ final class ConversionEditorAdapter extends BaseAdapter {
         int convIndex = 0;
         for (int i = 0; i < keyCount; i++) {
             final String key = keys.valueAt(i);
-            final boolean added = !conversionKeys.contains(key);
+            final boolean added = _added.containsKey(key);
             final boolean removed = _removed.contains(convIndex);
+            final boolean modified = removed && added;
 
             final String text;
-            if (!added) {
+            if (added) {
+                text = key + " -> " + _added.get(key);
+            }
+            else {
                 final ImmutablePair<String, String> pair = _conversion.valueAt(convIndex);
                 if (pair.left != key) {
                     throw new AssertionError("conversion not properly sorted");
                 }
                 text = key + " -> " + pair.right;
-                convIndex++;
-            }
-            else {
-                text = key + " -> " + _added.get(key);
             }
 
-            final Entry entry = added? new AddedEntry(text) :
-                    removed? new RemovedEntry(convIndex - 1, text) : new NormalEntry(convIndex - 1, text);
+            final Entry entry = modified? new ModifiedEntry(convIndex, text) :
+                    added? new AddedEntry(text) :
+                    removed? new RemovedEntry(convIndex, text) : new NormalEntry(convIndex, text);
+
+            if (conversionKeys.contains(key)) {
+                convIndex++;
+            }
+
             builder.add(entry);
         }
 
@@ -104,98 +110,67 @@ final class ConversionEditorAdapter extends BaseAdapter {
         super.notifyDataSetChanged();
     }
 
-    public interface Entry {
-        int getBackgroundColor();
-        int getConversionPosition();
-        String getText();
-        boolean isRemoved();
-    }
-
-    private static final class NormalEntry implements Entry {
+    public static abstract class Entry {
         final int mPosition;
         final String mText;
 
-        NormalEntry(int position, String text) {
+        Entry(int position, String text) {
             mPosition = position;
             mText = text;
+        }
+
+        abstract int getBackgroundColor();
+
+        int getConversionPosition() {
+            return mPosition;
+        }
+
+        String getText() {
+            return mText;
+        }
+    }
+
+    private static final class NormalEntry extends Entry {
+        NormalEntry(int position, String text) {
+            super(position, text);
         }
 
         @Override
         public int getBackgroundColor() {
             return 0;
         }
-
-        @Override
-        public int getConversionPosition() {
-            return mPosition;
-        }
-
-        @Override
-        public String getText() {
-            return mText;
-        }
-
-        @Override
-        public boolean isRemoved() {
-            return false;
-        }
     }
 
-    private static final class RemovedEntry implements Entry {
-        final int mPosition;
-        final String mText;
-
+    private static final class RemovedEntry extends Entry {
         RemovedEntry(int position, String text) {
-            mPosition = position;
-            mText = text;
-        }
-
-        @Override
-        public int getConversionPosition() {
-            return mPosition;
+            super(position, text);
         }
 
         @Override
         public int getBackgroundColor() {
             return 0x40FF0000;
         }
-
-        @Override
-        public String getText() {
-            return mText;
-        }
-
-        @Override
-        public boolean isRemoved() {
-            return true;
-        }
     }
 
-    private static final class AddedEntry implements Entry {
-        final String mText;
-
+    private static final class AddedEntry extends Entry {
         AddedEntry(String text) {
-            mText = text;
+            super(-1, text);
         }
 
         @Override
         public int getBackgroundColor() {
             return 0x4000FF00;
         }
+    }
 
-        @Override
-        public int getConversionPosition() {
-            return -1;
+    private static final class ModifiedEntry extends Entry {
+        ModifiedEntry(int position, String text) {
+            super(position, text);
         }
 
         @Override
-        public String getText() {
-            return mText;
-        }
-
-        @Override
-        public boolean isRemoved() {
-            return false;
+        public int getBackgroundColor() {
+            return 0x400088FF;
         }
     }
 }

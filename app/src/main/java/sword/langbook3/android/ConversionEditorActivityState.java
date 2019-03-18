@@ -15,14 +15,21 @@ public final class ConversionEditorActivityState implements Parcelable {
 
     private final MutableIntSet _removed;
     private final MutableMap<String, String> _added;
+    private int _beingModified;
+    private String _sourceModificationText;
+    private String _targetModificationText;
 
-    private ConversionEditorActivityState(MutableIntSet removed, MutableMap<String, String> added) {
+    private ConversionEditorActivityState(MutableIntSet removed, MutableMap<String, String> added,
+            int beingModified, String sourceModificationText, String targetModificationText) {
         _removed = removed;
         _added = added;
+        _beingModified = beingModified;
+        _sourceModificationText = sourceModificationText;
+        _targetModificationText = targetModificationText;
     }
 
     ConversionEditorActivityState() {
-        this(MutableIntArraySet.empty(), MutableSortedMap.empty((a, b) -> SortUtils.compareCharSequenceByUnicode(b, a)));
+        this(MutableIntArraySet.empty(), MutableSortedMap.empty((a, b) -> SortUtils.compareCharSequenceByUnicode(b, a)), -1, null, null);
     }
 
     IntSet getRemoved() {
@@ -40,6 +47,77 @@ public final class ConversionEditorActivityState implements Parcelable {
         else {
             _removed.add(position);
         }
+    }
+
+    int beingModified() {
+        return _beingModified;
+    }
+
+    void startModificationAt(int position) {
+        if (position < 0) {
+            throw new IllegalArgumentException();
+        }
+
+        if (_beingModified >= 0) {
+            throw new UnsupportedOperationException();
+        }
+
+        _beingModified = position;
+    }
+
+    String getSourceModificationText() {
+        if (_beingModified < 0) {
+            throw new UnsupportedOperationException();
+        }
+
+        return _sourceModificationText;
+    }
+
+    void updateSourceModificationText(String text) {
+        if (_beingModified < 0) {
+            throw new UnsupportedOperationException();
+        }
+
+        _sourceModificationText = text;
+    }
+
+    String getTargetModificationText() {
+        if (_beingModified < 0) {
+            throw new UnsupportedOperationException();
+        }
+
+        return _targetModificationText;
+    }
+
+    void updateTargetModificationText(String text) {
+        if (_beingModified < 0) {
+            throw new UnsupportedOperationException();
+        }
+
+        _targetModificationText = text;
+    }
+
+    void cancelModification() {
+        if (_beingModified < 0) {
+            throw new UnsupportedOperationException();
+        }
+
+        _beingModified = -1;
+        _sourceModificationText = null;
+        _targetModificationText = null;
+    }
+
+    void applyModification() {
+        if (_beingModified < 0) {
+            throw new UnsupportedOperationException();
+        }
+
+        _removed.add(_beingModified);
+        _added.put(_sourceModificationText, _targetModificationText);
+
+        _beingModified = -1;
+        _sourceModificationText = null;
+        _targetModificationText = null;
     }
 
     @Override
@@ -75,6 +153,12 @@ public final class ConversionEditorActivityState implements Parcelable {
             dest.writeString(_added.keyAt(i));
             dest.writeString(_added.valueAt(i));
         }
+
+        dest.writeInt(_beingModified);
+        if (_beingModified >= 0) {
+            dest.writeString(_sourceModificationText);
+            dest.writeString(_targetModificationText);
+        }
     }
 
     public static final Creator<ConversionEditorActivityState> CREATOR = new Creator<ConversionEditorActivityState>() {
@@ -100,7 +184,10 @@ public final class ConversionEditorActivityState implements Parcelable {
                 added.put(key, value);
             }
 
-            return new ConversionEditorActivityState(removed, added);
+            final int beingModified = in.readInt();
+            final String sourceModificationText = (beingModified >= 0)? in.readString() : null;
+            final String targetModificationText = (beingModified >= 0)? in.readString() : null;
+            return new ConversionEditorActivityState(removed, added, beingModified, sourceModificationText, targetModificationText);
         }
 
         @Override
