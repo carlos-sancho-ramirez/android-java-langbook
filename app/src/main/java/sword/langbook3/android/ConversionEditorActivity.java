@@ -69,7 +69,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         }
 
         final ListView listView = findViewById(R.id.listView);
-        _adapter = new ConversionEditorAdapter(_conversion, _state.getRemoved(), _state.getAdded());
+        _adapter = new ConversionEditorAdapter(_conversion, _state.getRemoved(), _state.getAdded(), _state.getDisabled());
         listView.setAdapter(_adapter);
         listView.setOnItemClickListener(this);
         listView.setOnItemLongClickListener(this);
@@ -164,10 +164,17 @@ public final class ConversionEditorActivity extends Activity implements ListView
         final ConversionEditorAdapter adapter = (ConversionEditorAdapter) parent.getAdapter();
         final ConversionEditorAdapter.Entry entry = adapter.getItem(position);
         final int convPos = entry.getConversionPosition();
-        if (convPos >= 0) {
-            _state.toggleRemoved(convPos);
-            adapter.notifyDataSetChanged();
+        if (entry.toggleDisabledOnClick()) {
+            _state.toggleEnabled(entry.getSource());
         }
+        else {
+            if (convPos < 0) {
+                throw new AssertionError();
+            }
+
+            _state.toggleRemoved(convPos);
+        }
+        adapter.notifyDataSetChanged();
     }
 
     @Override

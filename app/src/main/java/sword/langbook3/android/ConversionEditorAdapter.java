@@ -11,6 +11,7 @@ import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
+import sword.collections.Set;
 import sword.collections.SortFunction;
 import sword.collections.SortUtils;
 
@@ -21,14 +22,16 @@ final class ConversionEditorAdapter extends BaseAdapter {
     private final ImmutableSet<ImmutablePair<String, String>> _conversion;
     private final IntSet _removed;
     private final Map<String, String> _added;
+    private final Set<String> _disabled;
 
     private ImmutableList<Entry> _entries;
     private LayoutInflater _inflater;
 
-    ConversionEditorAdapter(ImmutableSet<ImmutablePair<String, String>> conversion, IntSet removed, Map<String, String> added) {
+    ConversionEditorAdapter(ImmutableSet<ImmutablePair<String, String>> conversion, IntSet removed, Map<String, String> added, Set<String> disabled) {
         _conversion = conversion;
         _removed = removed;
         _added = added;
+        _disabled = disabled;
 
         updateEntries();
     }
@@ -45,22 +48,25 @@ final class ConversionEditorAdapter extends BaseAdapter {
             final boolean added = _added.containsKey(key);
             final boolean removed = _removed.contains(convIndex);
             final boolean modified = removed && added;
+            final boolean disabled = _disabled.contains(key);
 
-            final String text;
+            final String target;
             if (added) {
-                text = key + " -> " + _added.get(key);
+                target = _added.get(key);
             }
             else {
                 final ImmutablePair<String, String> pair = _conversion.valueAt(convIndex);
                 if (pair.left != key) {
                     throw new AssertionError("conversion not properly sorted");
                 }
-                text = key + " -> " + pair.right;
+                target = pair.right;
             }
 
-            final Entry entry = modified? new ModifiedEntry(convIndex, text) :
-                    added? new AddedEntry(text) :
-                    removed? new RemovedEntry(convIndex, text) : new NormalEntry(convIndex, text);
+            final Entry entry = (modified && disabled)? new ModifiedDisabledEntry(convIndex, key, target) :
+                    modified? new ModifiedEntry(convIndex, key, target) :
+                    (added && disabled)? new AddedDisabledEntry(key, target) :
+                    added? new AddedEntry(key, target) :
+                    removed? new RemovedEntry(convIndex, key, target) : new NormalEntry(convIndex, key, target);
 
             if (conversionKeys.contains(key)) {
                 convIndex++;
@@ -112,65 +118,124 @@ final class ConversionEditorAdapter extends BaseAdapter {
 
     public static abstract class Entry {
         final int mPosition;
-        final String mText;
+        final String mSource;
+        final String mTarget;
 
-        Entry(int position, String text) {
+        Entry(int position, String source, String target) {
             mPosition = position;
-            mText = text;
+            mSource = source;
+            mTarget = target;
         }
 
         abstract int getBackgroundColor();
+        public abstract boolean toggleDisabledOnClick();
 
         int getConversionPosition() {
             return mPosition;
         }
 
+        String getSource() {
+            return mSource;
+        }
+
         String getText() {
-            return mText;
+            return mSource + " -> " + mTarget;
         }
     }
 
     private static final class NormalEntry extends Entry {
-        NormalEntry(int position, String text) {
-            super(position, text);
+        NormalEntry(int position, String source, String target) {
+            super(position, source, target);
         }
 
         @Override
         public int getBackgroundColor() {
             return 0;
         }
+
+        @Override
+        public boolean toggleDisabledOnClick() {
+            return false;
+        }
     }
 
     private static final class RemovedEntry extends Entry {
-        RemovedEntry(int position, String text) {
-            super(position, text);
+        RemovedEntry(int position, String source, String target) {
+            super(position, source, target);
         }
 
         @Override
         public int getBackgroundColor() {
             return 0x40FF0000;
         }
+
+        @Override
+        public boolean toggleDisabledOnClick() {
+            return false;
+        }
     }
 
     private static final class AddedEntry extends Entry {
-        AddedEntry(String text) {
-            super(-1, text);
+        AddedEntry(String source, String target) {
+            super(-1, source, target);
         }
 
         @Override
         public int getBackgroundColor() {
             return 0x4000FF00;
         }
+
+        @Override
+        public boolean toggleDisabledOnClick() {
+            return true;
+        }
+    }
+
+    private static final class AddedDisabledEntry extends Entry {
+        AddedDisabledEntry(String source, String target) {
+            super(-1, source, target);
+        }
+
+        @Override
+        public int getBackgroundColor() {
+            return 0x40666666;
+        }
+
+        @Override
+        public boolean toggleDisabledOnClick() {
+            return true;
+        }
     }
 
     private static final class ModifiedEntry extends Entry {
-        ModifiedEntry(int position, String text) {
-            super(position, text);
+        ModifiedEntry(int position, String source, String target) {
+            super(position, source, target);
         }
 
         @Override
         public int getBackgroundColor() {
             return 0x400088FF;
+        }
+
+        @Override
+        public boolean toggleDisabledOnClick() {
+            return true;
+        }
+    }
+
+    private static final class ModifiedDisabledEntry extends Entry {
+        ModifiedDisabledEntry(int position, String source, String target) {
+            super(position, source, target);
+        }
+
+        @Override
+        public int getBackgroundColor() {
+            return 0x40660066;
+        }
+
+        @Override
+        public boolean toggleDisabledOnClick() {
+            return true;
         }
     }
 }

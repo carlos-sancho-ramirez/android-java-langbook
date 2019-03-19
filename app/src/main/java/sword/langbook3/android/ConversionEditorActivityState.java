@@ -7,10 +7,13 @@ import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
+import sword.collections.MutableSet;
 import sword.collections.MutableSortedMap;
+import sword.collections.Set;
 import sword.collections.SortUtils;
 
 import static sword.langbook3.android.EqualUtils.equal;
@@ -19,21 +22,24 @@ public final class ConversionEditorActivityState implements Parcelable {
 
     private final MutableIntSet _removed;
     private final MutableMap<String, String> _added;
+    private final MutableSet<String> _disabled;
+
     private boolean _modifying;
     private String _sourceModificationText;
     private String _targetModificationText;
 
-    private ConversionEditorActivityState(MutableIntSet removed, MutableMap<String, String> added,
+    private ConversionEditorActivityState(MutableIntSet removed, MutableMap<String, String> added, MutableSet<String> disabled,
             boolean modifying, String sourceModificationText, String targetModificationText) {
         _removed = removed;
         _added = added;
+        _disabled = disabled;
         _modifying = modifying;
         _sourceModificationText = sourceModificationText;
         _targetModificationText = targetModificationText;
     }
 
     ConversionEditorActivityState() {
-        this(MutableIntArraySet.empty(), MutableSortedMap.empty(ConversionEditorAdapter.sortFunc), false, null, null);
+        this(MutableIntArraySet.empty(), MutableSortedMap.empty(ConversionEditorAdapter.sortFunc), MutableHashSet.empty(), false, null, null);
     }
 
     IntSet getRemoved() {
@@ -44,12 +50,28 @@ public final class ConversionEditorActivityState implements Parcelable {
         return _added;
     }
 
+    Set<String> getDisabled() {
+        return _disabled;
+    }
+
     void toggleRemoved(int position) {
         if (_removed.contains(position)) {
             _removed.remove(position);
         }
         else {
             _removed.add(position);
+        }
+    }
+
+    void toggleEnabled(String key) {
+        if (!_disabled.remove(key)) {
+            if (!_added.containsKey(key)) {
+                throw new IllegalArgumentException();
+            }
+
+            if (!_disabled.add(key)) {
+                throw new AssertionError();
+            }
         }
     }
 
@@ -186,6 +208,17 @@ public final class ConversionEditorActivityState implements Parcelable {
         final int mapSize = _added.size();
         dest.writeInt(mapSize);
         for (int i = 0; i < mapSize; i++) {
+            if ((i % 32) == 0) {
+                int word = 0;
+                for (int j = i; j < i + 32 && j < mapSize; j++) {
+                    final String key = _added.keyAt(j);
+                    if (_disabled.contains(key)) {
+                        word |= 1 << (j % 32);
+                    }
+                }
+                dest.writeInt(word);
+            }
+
             dest.writeString(_added.keyAt(i));
             dest.writeString(_added.valueAt(i));
         }
@@ -213,17 +246,32 @@ public final class ConversionEditorActivityState implements Parcelable {
             }
 
             final int mapSize = in.readInt();
+            final MutableHashSet<String> disabled = MutableHashSet.empty();
             final MutableSortedMap<String, String> added = MutableSortedMap.empty((a, b) -> SortUtils.compareCharSequenceByUnicode(b, a));
+
+            int word = 0;
+            int bitCount = 0;
             for (int mapIndex = 0; mapIndex < mapSize; mapIndex++) {
+                if (bitCount == 0) {
+                    word = in.readInt();
+                    bitCount = 32;
+                }
+
                 final String key = in.readString();
                 final String value = in.readString();
                 added.put(key, value);
+
+                if ((word & 1) != 0) {
+                    disabled.add(key);
+                }
+                word >>>= 1;
+                --bitCount;
             }
 
             final boolean modifying = in.readInt() != 0;
             final String sourceModificationText = modifying? in.readString() : null;
             final String targetModificationText = modifying? in.readString() : null;
-            return new ConversionEditorActivityState(removed, added, modifying, sourceModificationText, targetModificationText);
+            return new ConversionEditorActivityState(removed, added, disabled, modifying, sourceModificationText, targetModificationText);
         }
 
         @Override
