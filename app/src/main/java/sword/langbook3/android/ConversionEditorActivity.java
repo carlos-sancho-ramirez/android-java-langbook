@@ -8,10 +8,13 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
@@ -71,16 +74,38 @@ public final class ConversionEditorActivity extends Activity implements ListView
         listView.setOnItemClickListener(this);
         listView.setOnItemLongClickListener(this);
 
-        if (_state.beingModified() >= 0) {
+        if (_state.shouldDisplayModificationDialog()) {
             openModificationDialog();
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.conversion_editor_activity, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menuItemAdd:
+                _state.startModification();
+                openModificationDialog();
+                return true;
+        }
+
+        return false;
     }
 
     private void openModificationDialog() {
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setPositiveButton(android.R.string.ok, (d, w) -> {
-                    _state.applyModification();
-                    _adapter.notifyDataSetChanged();
+                    if (_state.applyModification(_conversion)) {
+                        _adapter.notifyDataSetChanged();
+                    }
+                    else {
+                        Toast.makeText(ConversionEditorActivity.this, R.string.noChangeRequired, Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .setOnCancelListener(d -> _state.cancelModification())
                 .create();
@@ -88,7 +113,6 @@ public final class ConversionEditorActivity extends Activity implements ListView
         final View view = LayoutInflater.from(dialog.getContext()).inflate(R.layout.conversion_editor_modification, null);
         final EditText source = view.findViewById(R.id.sourceEditText);
         source.setText(_state.getSourceModificationText());
-        source.setEnabled(false); // TODO: remove this restriction
         source.addTextChangedListener(new SourceTextListener());
 
         final EditText target = view.findViewById(R.id.targetEditText);
@@ -152,8 +176,8 @@ public final class ConversionEditorActivity extends Activity implements ListView
         final ConversionEditorAdapter.Entry entry = adapter.getItem(position);
         final int convPos = entry.getConversionPosition();
         if (convPos >= 0) {
-            _state.startModificationAt(convPos);
             final ImmutablePair<String, String> pair = _conversion.valueAt(position);
+            _state.startModification();
             _state.updateSourceModificationText(pair.left);
             _state.updateTargetModificationText(pair.right);
             openModificationDialog();

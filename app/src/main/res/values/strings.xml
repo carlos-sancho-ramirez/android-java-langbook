@@ -18,6 +18,7 @@
     <string name="searchFieldHint">Search Here</string>
     <string name="addWordButton">Add</string>
 
+    <string name="menuItemAdd">Add</string>
     <string name="menuItemCheckConversions">Check conversions</string>
     <string name="menuItemQuiz">Start quiz</string>
     <string name="menuItemNewAgent">New agent</string>
@@ -129,4 +130,5 @@
 
     <string name="conversionEditorSourceLabel">From</string>
     <string name="conversionEditorTargetLabel">To</string>
+    <string name="noChangeRequired">Nothing to change</string>
 </resources>

@@ -3,6 +3,8 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import sword.collections.ImmutablePair;
+import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
 import sword.collections.MutableIntArraySet;
@@ -11,25 +13,27 @@ import sword.collections.MutableMap;
 import sword.collections.MutableSortedMap;
 import sword.collections.SortUtils;
 
+import static sword.langbook3.android.EqualUtils.equal;
+
 public final class ConversionEditorActivityState implements Parcelable {
 
     private final MutableIntSet _removed;
     private final MutableMap<String, String> _added;
-    private int _beingModified;
+    private boolean _modifying;
     private String _sourceModificationText;
     private String _targetModificationText;
 
     private ConversionEditorActivityState(MutableIntSet removed, MutableMap<String, String> added,
-            int beingModified, String sourceModificationText, String targetModificationText) {
+            boolean modifying, String sourceModificationText, String targetModificationText) {
         _removed = removed;
         _added = added;
-        _beingModified = beingModified;
+        _modifying = modifying;
         _sourceModificationText = sourceModificationText;
         _targetModificationText = targetModificationText;
     }
 
     ConversionEditorActivityState() {
-        this(MutableIntArraySet.empty(), MutableSortedMap.empty((a, b) -> SortUtils.compareCharSequenceByUnicode(b, a)), -1, null, null);
+        this(MutableIntArraySet.empty(), MutableSortedMap.empty(ConversionEditorAdapter.sortFunc), false, null, null);
     }
 
     IntSet getRemoved() {
@@ -49,24 +53,20 @@ public final class ConversionEditorActivityState implements Parcelable {
         }
     }
 
-    int beingModified() {
-        return _beingModified;
+    boolean shouldDisplayModificationDialog() {
+        return _modifying;
     }
 
-    void startModificationAt(int position) {
-        if (position < 0) {
-            throw new IllegalArgumentException();
-        }
-
-        if (_beingModified >= 0) {
+    void startModification() {
+        if (_modifying) {
             throw new UnsupportedOperationException();
         }
 
-        _beingModified = position;
+        _modifying = true;
     }
 
     String getSourceModificationText() {
-        if (_beingModified < 0) {
+        if (!_modifying) {
             throw new UnsupportedOperationException();
         }
 
@@ -74,7 +74,7 @@ public final class ConversionEditorActivityState implements Parcelable {
     }
 
     void updateSourceModificationText(String text) {
-        if (_beingModified < 0) {
+        if (!_modifying) {
             throw new UnsupportedOperationException();
         }
 
@@ -82,7 +82,7 @@ public final class ConversionEditorActivityState implements Parcelable {
     }
 
     String getTargetModificationText() {
-        if (_beingModified < 0) {
+        if (!_modifying) {
             throw new UnsupportedOperationException();
         }
 
@@ -90,7 +90,7 @@ public final class ConversionEditorActivityState implements Parcelable {
     }
 
     void updateTargetModificationText(String text) {
-        if (_beingModified < 0) {
+        if (!_modifying) {
             throw new UnsupportedOperationException();
         }
 
@@ -98,26 +98,62 @@ public final class ConversionEditorActivityState implements Parcelable {
     }
 
     void cancelModification() {
-        if (_beingModified < 0) {
+        if (!_modifying) {
             throw new UnsupportedOperationException();
         }
 
-        _beingModified = -1;
+        _modifying = false;
         _sourceModificationText = null;
         _targetModificationText = null;
     }
 
-    void applyModification() {
-        if (_beingModified < 0) {
+    boolean applyModification(ImmutableSet<ImmutablePair<String, String>> conversion) {
+        if (!_modifying) {
             throw new UnsupportedOperationException();
         }
 
-        _removed.add(_beingModified);
-        _added.put(_sourceModificationText, _targetModificationText);
+        final boolean changed;
+        final String source = _sourceModificationText;
+        final String target = _targetModificationText;
+        if (_added.containsKey(source)) {
+            if (equal(_added.get(source), target)) {
+                changed = false;
+            }
+            else {
+                _added.put(source, target);
+                changed = true;
+            }
+        }
+        else {
+            final int conversionSize = conversion.size();
+            int conversionIndex;
+            for (conversionIndex = 0; conversionIndex < conversionSize; conversionIndex++) {
+                if (equal(conversion.valueAt(conversionIndex).left, source)) {
+                    break;
+                }
+            }
 
-        _beingModified = -1;
+            if (conversionIndex < conversionSize) {
+                final String oldTarget = conversion.valueAt(conversionIndex).right;
+                if (equal(oldTarget, target)) {
+                    changed = false;
+                }
+                else {
+                    _removed.add(conversionIndex);
+                    _added.put(source, target);
+                    changed = true;
+                }
+            }
+            else {
+                _added.put(source, target);
+                changed = true;
+            }
+        }
+
+        _modifying = false;
         _sourceModificationText = null;
         _targetModificationText = null;
+        return changed;
     }
 
     @Override
@@ -154,8 +190,8 @@ public final class ConversionEditorActivityState implements Parcelable {
             dest.writeString(_added.valueAt(i));
         }
 
-        dest.writeInt(_beingModified);
-        if (_beingModified >= 0) {
+        dest.writeInt(_modifying? 1 : 0);
+        if (_modifying) {
             dest.writeString(_sourceModificationText);
             dest.writeString(_targetModificationText);
         }
@@ -184,10 +220,10 @@ public final class ConversionEditorActivityState implements Parcelable {
                 added.put(key, value);
             }
 
-            final int beingModified = in.readInt();
-            final String sourceModificationText = (beingModified >= 0)? in.readString() : null;
-            final String targetModificationText = (beingModified >= 0)? in.readString() : null;
-            return new ConversionEditorActivityState(removed, added, beingModified, sourceModificationText, targetModificationText);
+            final boolean modifying = in.readInt() != 0;
+            final String sourceModificationText = modifying? in.readString() : null;
+            final String targetModificationText = modifying? in.readString() : null;
+            return new ConversionEditorActivityState(removed, added, modifying, sourceModificationText, targetModificationText);
         }
 
         @Override
