@@ -46,7 +46,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
         for (int i = 0; i < keyCount; i++) {
             final String key = keys.valueAt(i);
             final boolean added = _added.containsKey(key);
-            final boolean removed = _removed.contains(convIndex);
+            final boolean removed = conversionKeys.contains(key) && _removed.contains(convIndex);
             final boolean modified = removed && added;
             final boolean disabled = _disabled.contains(key);
 

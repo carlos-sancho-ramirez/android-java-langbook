@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
+import sword.collections.Map;
 import sword.database.Database;
 
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
@@ -163,11 +164,11 @@ public final class ConversionEditorActivity extends Activity implements ListView
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         final ConversionEditorAdapter adapter = (ConversionEditorAdapter) parent.getAdapter();
         final ConversionEditorAdapter.Entry entry = adapter.getItem(position);
-        final int convPos = entry.getConversionPosition();
         if (entry.toggleDisabledOnClick()) {
             _state.toggleEnabled(entry.getSource());
         }
         else {
+            final int convPos = entry.getConversionPosition();
             if (convPos < 0) {
                 throw new AssertionError();
             }
@@ -181,13 +182,23 @@ public final class ConversionEditorActivity extends Activity implements ListView
     public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
         final ConversionEditorAdapter adapter = (ConversionEditorAdapter) parent.getAdapter();
         final ConversionEditorAdapter.Entry entry = adapter.getItem(position);
-        final int convPos = entry.getConversionPosition();
-        if (convPos >= 0) {
-            final ImmutablePair<String, String> pair = _conversion.valueAt(position);
+        final Map<String, String> added = _state.getAdded();
+        final String key = entry.getSource();
+        if (added.containsKey(key)) {
             _state.startModification();
-            _state.updateSourceModificationText(pair.left);
-            _state.updateTargetModificationText(pair.right);
+            _state.updateSourceModificationText(key);
+            _state.updateTargetModificationText(added.get(key));
             openModificationDialog();
+        }
+        else {
+            final int convPos = entry.getConversionPosition();
+            if (convPos >= 0) {
+                final ImmutablePair<String, String> pair = _conversion.valueAt(position);
+                _state.startModification();
+                _state.updateSourceModificationText(pair.left);
+                _state.updateTargetModificationText(pair.right);
+                openModificationDialog();
+            }
         }
 
         return true;
