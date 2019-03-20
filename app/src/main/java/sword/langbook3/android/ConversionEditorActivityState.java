@@ -2,6 +2,7 @@ package sword.langbook3.android;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.TextUtils;
 
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
@@ -141,7 +142,10 @@ public final class ConversionEditorActivityState implements Parcelable {
         final boolean changed;
         final String source = _sourceModificationText;
         final String target = _targetModificationText;
-        if (_added.containsKey(source)) {
+        if (TextUtils.isEmpty(source)) {
+            changed = false;
+        }
+        else if (_added.containsKey(source)) {
             if (equal(_added.get(source), target)) {
                 changed = false;
             }
