@@ -16,12 +16,19 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
+import sword.collections.List;
 import sword.collections.Map;
 import sword.database.Database;
 import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbUpdateQuery;
+import sword.database.DbValue;
 
+import static sword.langbook3.android.EqualUtils.equal;
+import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -105,7 +112,11 @@ public final class ConversionEditorActivity extends Activity implements ListView
                 return true;
 
             case R.id.menuItemSave:
-                checkConflicts();
+                if (checkConflicts()) {
+                    insertConversionInDatabase();
+                    updateStringQueryTable();
+                    Toast.makeText(this, "Database updated", Toast.LENGTH_SHORT).show();
+                }
                 return true;
         }
 
@@ -223,7 +234,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 
-    private void checkConflicts() {
+    private boolean checkConflicts() {
         final ImmutableSet<ImmutablePair<String, String>> newConversion = _state.getResultingConversion(_conversion);
         final Database db = DbManager.getInstance().getDatabase();
         final int sourceAlphabet = getSourceAlphabet();
@@ -239,9 +250,77 @@ public final class ConversionEditorActivity extends Activity implements ListView
 
         if (failingWord == null) {
             Toast.makeText(this, "All text can be converted", Toast.LENGTH_SHORT).show();
+            return true;
         }
         else {
             Toast.makeText(this, "Failing to convert word " + failingWord, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
+
+    private void insertConversionInDatabase() {
+        final Database db = DbManager.getInstance().getDatabase();
+        final ImmutableIntPair alphabetPair = new ImmutableIntPair(getSourceAlphabet(), getTargetAlphabet());
+        final ImmutableSet<ImmutablePair<String, String>> oldConversion = LangbookReadableDatabase.getConversion(db, alphabetPair);
+        final ImmutableSet<ImmutablePair<String, String>> newConversion = _state.getResultingConversion(_conversion);
+
+        final ImmutableSet<ImmutablePair<String, String>> pairsToRemove = oldConversion.filterNot(newConversion::contains);
+        final ImmutableSet<ImmutablePair<String, String>> pairsToInclude = newConversion.filterNot(oldConversion::contains);
+
+        for (ImmutablePair<String, String> pair : pairsToRemove) {
+            // TODO: SymbolArrays should also be removed if not used by any other, just to avoid dirty databases
+            final int sourceId = LangbookReadableDatabase.findSymbolArray(db, pair.left);
+            final int targetId = LangbookReadableDatabase.findSymbolArray(db, pair.right);
+            if (!LangbookDeleter.deleteConversionRegister(db, alphabetPair, sourceId, targetId)) {
+                throw new AssertionError();
+            }
+        }
+
+        for (ImmutablePair<String, String> pair : pairsToInclude) {
+            final int sourceId = obtainSymbolArray(db, pair.left);
+            final int targetId = obtainSymbolArray(db, pair.right);
+            LangbookDbInserter.insertConversion(db, alphabetPair.left, alphabetPair.right, sourceId, targetId);
+        }
+    }
+
+    private void updateStringQueryTable() {
+        final ImmutableSet<ImmutablePair<String, String>> newConversion = _state.getResultingConversion(_conversion);
+
+        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+
+        final int offset = table.columns().size();
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getDynamicAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex())
+                .where(table.getStringAlphabetColumnIndex(), getTargetAlphabet())
+                .where(offset + table.getStringAlphabetColumnIndex(), getSourceAlphabet())
+                .select(table.getDynamicAcceptationColumnIndex(), table.getStringColumnIndex(), offset + table.getStringColumnIndex());
+
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final DbResult dbResult = db.select(query);
+        while (dbResult.hasNext()) {
+            final List<DbValue> row = dbResult.next();
+            final int dynAcc = row.get(0).toInt();
+            final String source = row.get(2).toText();
+            final String currentTarget = row.get(1).toText();
+            final String newTarget = convertText(newConversion, source);
+            if (!equal(currentTarget, newTarget)) {
+                builder.put(dynAcc, newTarget);
+            }
+        }
+
+        final ImmutableIntKeyMap<String> updateMap = builder.build();
+        final int updateCount = updateMap.size();
+        for (int i = 0; i < updateCount; i++) {
+            final DbUpdateQuery upQuery = new DbUpdateQuery.Builder(table)
+                    .where(table.getStringAlphabetColumnIndex(), getTargetAlphabet())
+                    .where(table.getDynamicAcceptationColumnIndex(), updateMap.keyAt(i))
+                    .put(table.getStringColumnIndex(), updateMap.valueAt(i))
+                    .build();
+
+            if (!db.update(upQuery)) {
+                throw new AssertionError();
+            }
         }
     }
 }

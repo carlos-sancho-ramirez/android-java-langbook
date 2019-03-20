@@ -12,13 +12,8 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
 import sword.collections.Set;
-import sword.collections.SortFunction;
-import sword.collections.SortUtils;
 
 final class ConversionEditorAdapter extends BaseAdapter {
-
-    public static final SortFunction<String> sortFunc = (a, b) -> SortUtils.compareCharSequenceByUnicode(b, a);
-    public static final SortFunction<ImmutablePair<String, String>> pairSortFunc = (a, b) -> SortUtils.compareCharSequenceByUnicode(b.left, a.left);
 
     private final ImmutableSet<ImmutablePair<String, String>> _conversion;
     private final IntSet _removed;
@@ -39,7 +34,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
 
     private void updateEntries() {
         final ImmutableSet<String> conversionKeys = _conversion.map(pair -> pair.left).toSet();
-        final ImmutableSet<String> keys = conversionKeys.addAll(_added.keySet()).sort(sortFunc);
+        final ImmutableSet<String> keys = conversionKeys.addAll(_added.keySet()).sort(LangbookReadableDatabase.conversionKeySortFunction);
 
         final ImmutableList.Builder<Entry> builder = new ImmutableList.Builder<>();
         final int keyCount = keys.size();

@@ -20,8 +20,9 @@ import sword.collections.MutableSortedSet;
 import sword.collections.Set;
 import sword.collections.SortUtils;
 
-import static sword.langbook3.android.ConversionEditorAdapter.sortFunc;
 import static sword.langbook3.android.EqualUtils.equal;
+import static sword.langbook3.android.LangbookReadableDatabase.conversionKeySortFunction;
+import static sword.langbook3.android.LangbookReadableDatabase.conversionPairSortFunction;
 
 public final class ConversionEditorActivityState implements Parcelable {
 
@@ -44,7 +45,7 @@ public final class ConversionEditorActivityState implements Parcelable {
     }
 
     ConversionEditorActivityState() {
-        this(MutableIntArraySet.empty(), MutableSortedMap.empty(sortFunc), MutableHashSet.empty(), false, null, null);
+        this(MutableIntArraySet.empty(), MutableSortedMap.empty(conversionKeySortFunction), MutableHashSet.empty(), false, null, null);
     }
 
     IntSet getRemoved() {
@@ -252,7 +253,7 @@ public final class ConversionEditorActivityState implements Parcelable {
         final Set<String> enabledAddedKeys = _added.keySet().filterNot(_disabled::contains);
         final ImmutableSet<String> keys = nonRemovedMap.keySet().addAll(enabledAddedKeys);
 
-        final MutableSortedSet<ImmutablePair<String, String>> result = MutableSortedSet.empty(ConversionEditorAdapter.pairSortFunc);
+        final MutableSortedSet<ImmutablePair<String, String>> result = MutableSortedSet.empty(conversionPairSortFunction);
         for (String key : keys) {
             final Map<String, String> map = (enabledAddedKeys.contains(key))? _added : nonRemovedMap;
             result.add(new ImmutablePair<>(key, map.get(key)));

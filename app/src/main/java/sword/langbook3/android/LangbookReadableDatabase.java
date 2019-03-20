@@ -19,13 +19,11 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
-import sword.collections.ImmutableSortedSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
-import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
@@ -47,6 +45,10 @@ import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 
 public final class LangbookReadableDatabase {
+
+    public static final SortFunction<String> conversionKeySortFunction = (a, b) -> SortUtils.compareCharSequenceByUnicode(b, a);
+    public static final SortFunction<ImmutablePair<String, String>> conversionPairSortFunction = (a, b) ->
+            SortUtils.compareCharSequenceByUnicode(b.left, a.left);
 
     private final DbExporter.Database db;
 
@@ -285,6 +287,23 @@ public final class LangbookReadableDatabase {
         return db.select(query).map(row -> new ImmutableIntPair(row.get(0).toInt(), row.get(1).toInt())).toSet().toImmutable();
     }
 
+    public static Integer findConversionRegister(DbExporter.Database db, ImmutableIntPair alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
+        final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSourceAlphabetColumnIndex(), alphabets.left)
+                .where(table.getTargetAlphabetColumnIndex(), alphabets.right)
+                .where(table.getSourceColumnIndex(), sourceSymbolArrayId)
+                .where(table.getTargetColumnIndex(), targetSymbolArrayId)
+                .select(table.getIdColumnIndex());
+        final DbResult dbResult = db.select(query);
+        final Integer result = dbResult.hasNext()? dbResult.next().get(0).toInt() : null;
+        if (dbResult.hasNext()) {
+            throw new AssertionError();
+        }
+
+        return result;
+    }
+
     public static Integer findRuledAcceptationByRuleAndMainAcceptation(DbExporter.Database db, int rule, int mainAcceptation) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -356,10 +375,7 @@ public final class LangbookReadableDatabase {
                         off1Symbols + symbols.getStrColumnIndex(),
                         off2Symbols + symbols.getStrColumnIndex());
 
-        final SortFunction<ImmutablePair<String, String>> sortFunction = (a, b) ->
-                SortUtils.compareCharSequenceByUnicode(b.left, a.left);
-
-        final MutableSortedSet<ImmutablePair<String, String>> resultSet = MutableSortedSet.empty(sortFunction);
+        final MutableSortedSet<ImmutablePair<String, String>> resultSet = MutableSortedSet.empty(LangbookReadableDatabase.conversionPairSortFunction);
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();

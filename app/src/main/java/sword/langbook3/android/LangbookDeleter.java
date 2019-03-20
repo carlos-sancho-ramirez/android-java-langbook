@@ -159,4 +159,15 @@ public final class LangbookDeleter {
                 .build();
         return db.delete(query);
     }
+
+    public static boolean deleteConversionRegister(Deleter db, ImmutableIntPair alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
+        final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
+        DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getSourceAlphabetColumnIndex(), alphabets.left)
+                .where(table.getTargetAlphabetColumnIndex(), alphabets.right)
+                .where(table.getSourceColumnIndex(), sourceSymbolArrayId)
+                .where(table.getTargetColumnIndex(), targetSymbolArrayId)
+                .build();
+        return db.delete(query);
+    }
 }
