@@ -3,6 +3,8 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import sword.collections.ImmutableHashMap;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
@@ -13,9 +15,11 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedMap;
+import sword.collections.MutableSortedSet;
 import sword.collections.Set;
 import sword.collections.SortUtils;
 
+import static sword.langbook3.android.ConversionEditorAdapter.sortFunc;
 import static sword.langbook3.android.EqualUtils.equal;
 
 public final class ConversionEditorActivityState implements Parcelable {
@@ -39,7 +43,7 @@ public final class ConversionEditorActivityState implements Parcelable {
     }
 
     ConversionEditorActivityState() {
-        this(MutableIntArraySet.empty(), MutableSortedMap.empty(ConversionEditorAdapter.sortFunc), MutableHashSet.empty(), false, null, null);
+        this(MutableIntArraySet.empty(), MutableSortedMap.empty(sortFunc), MutableHashSet.empty(), false, null, null);
     }
 
     IntSet getRemoved() {
@@ -228,6 +232,29 @@ public final class ConversionEditorActivityState implements Parcelable {
             dest.writeString(_sourceModificationText);
             dest.writeString(_targetModificationText);
         }
+    }
+
+    ImmutableSet<ImmutablePair<String, String>> getResultingConversion(ImmutableSet<ImmutablePair<String, String>> originalConversion) {
+        final int originalSize = originalConversion.size();
+        final ImmutableMap.Builder<String, String> nonRemovedMapBuilder = new ImmutableHashMap.Builder<>();
+        for (int i = 0; i < originalSize; i++) {
+            if (!_removed.contains(i)) {
+                final ImmutablePair<String, String> pair = originalConversion.valueAt(i);
+                nonRemovedMapBuilder.put(pair.left, pair.right);
+            }
+        }
+        final ImmutableMap<String, String> nonRemovedMap = nonRemovedMapBuilder.build();
+
+        final Set<String> enabledAddedKeys = _added.keySet().filterNot(_disabled::contains);
+        final ImmutableSet<String> keys = nonRemovedMap.keySet().addAll(enabledAddedKeys);
+
+        final MutableSortedSet<ImmutablePair<String, String>> result = MutableSortedSet.empty(ConversionEditorAdapter.pairSortFunc);
+        for (String key : keys) {
+            final Map<String, String> map = (enabledAddedKeys.contains(key))? _added : nonRemovedMap;
+            result.add(new ImmutablePair<>(key, map.get(key)));
+        }
+
+        return result.toImmutable();
     }
 
     public static final Creator<ConversionEditorActivityState> CREATOR = new Creator<ConversionEditorActivityState>() {

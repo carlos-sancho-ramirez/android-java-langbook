@@ -20,7 +20,9 @@ import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.database.Database;
+import sword.database.DbQuery;
 
+import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 
@@ -46,6 +48,14 @@ public final class ConversionEditorActivity extends Activity implements ListView
         context.startActivity(intent);
     }
 
+    private int getSourceAlphabet() {
+        return getIntent().getIntExtra(ArgKeys.SOURCE_ALPHABET, 0);
+    }
+
+    private int getTargetAlphabet() {
+        return getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,8 +63,8 @@ public final class ConversionEditorActivity extends Activity implements ListView
 
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final Database db = DbManager.getInstance().getDatabase();
-        final int sourceAlphabet = getIntent().getIntExtra(ArgKeys.SOURCE_ALPHABET, 0);
-        final int targetAlphabet = getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
+        final int sourceAlphabet = getSourceAlphabet();
+        final int targetAlphabet = getTargetAlphabet();
 
         final String sourceText = readConceptText(db, sourceAlphabet, preferredAlphabet);
         final String targetText = readConceptText(db, targetAlphabet, preferredAlphabet);
@@ -92,6 +102,10 @@ public final class ConversionEditorActivity extends Activity implements ListView
             case R.id.menuItemAdd:
                 _state.startModification();
                 openModificationDialog();
+                return true;
+
+            case R.id.menuItemSave:
+                checkConflicts();
                 return true;
         }
 
@@ -207,5 +221,27 @@ public final class ConversionEditorActivity extends Activity implements ListView
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putParcelable(SavedKeys.STATE, _state);
+    }
+
+    private void checkConflicts() {
+        final ImmutableSet<ImmutablePair<String, String>> newConversion = _state.getResultingConversion(_conversion);
+        final Database db = DbManager.getInstance().getDatabase();
+        final int sourceAlphabet = getSourceAlphabet();
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(table.getStringColumnIndex());
+
+        final String failingWord = db.select(query)
+                .map(row -> row.get(0).toText())
+                .findFirst(str -> convertText(newConversion, str) == null, null);
+
+        if (failingWord == null) {
+            Toast.makeText(this, "All text can be converted", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Toast.makeText(this, "Failing to convert word " + failingWord, Toast.LENGTH_SHORT).show();
+        }
     }
 }

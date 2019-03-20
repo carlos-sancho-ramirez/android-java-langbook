@@ -18,6 +18,7 @@ import sword.collections.SortUtils;
 final class ConversionEditorAdapter extends BaseAdapter {
 
     public static final SortFunction<String> sortFunc = (a, b) -> SortUtils.compareCharSequenceByUnicode(b, a);
+    public static final SortFunction<ImmutablePair<String, String>> pairSortFunc = (a, b) -> SortUtils.compareCharSequenceByUnicode(b.left, a.left);
 
     private final ImmutableSet<ImmutablePair<String, String>> _conversion;
     private final IntSet _removed;

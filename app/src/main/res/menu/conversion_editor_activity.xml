@@ -3,6 +3,12 @@
     <item
         android:id="@+id/menuItemAdd"
         android:icon="@android:drawable/ic_menu_add"
-        android:title="@string/menuItemNewAgent"
+        android:title="@string/menuItemAdd"
+        android:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/menuItemSave"
+        android:icon="@android:drawable/ic_menu_save"
+        android:title="@string/menuItemSave"
         android:showAsAction="ifRoom"/>
 </menu>
