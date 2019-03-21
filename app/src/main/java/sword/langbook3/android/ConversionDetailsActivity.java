@@ -17,6 +17,8 @@ import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 
 public final class ConversionDetailsActivity extends Activity {
 
+    private static final int REQUEST_CODE_EDITION = 1;
+
     private interface ArgKeys {
         String SOURCE_ALPHABET = BundleKeys.SOURCE_ALPHABET;
         String TARGET_ALPHABET = BundleKeys.TARGET_ALPHABET;
@@ -29,6 +31,8 @@ public final class ConversionDetailsActivity extends Activity {
         context.startActivity(intent);
     }
 
+    private boolean _dataJustLoaded;
+
     private int getSourceAlphabet() {
         return getIntent().getIntExtra(ArgKeys.SOURCE_ALPHABET, 0);
     }
@@ -37,11 +41,7 @@ public final class ConversionDetailsActivity extends Activity {
         return getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.conversion_details_activity);
-
+    private void updateUi() {
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final Database db = DbManager.getInstance().getDatabase();
         final int sourceAlphabet = getSourceAlphabet();
@@ -58,16 +58,38 @@ public final class ConversionDetailsActivity extends Activity {
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.conversion_details_activity);
+
+        updateUi();
+        _dataJustLoaded = true;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_EDITION && resultCode == RESULT_OK && !_dataJustLoaded) {
+            updateUi();
+        }
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.conversion_details_activity, menu);
         return true;
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        _dataJustLoaded = false;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemEdit:
-                ConversionEditorActivity.open(this, getSourceAlphabet(), getTargetAlphabet());
+                ConversionEditorActivity.open(this, REQUEST_CODE_EDITION, getSourceAlphabet(), getTargetAlphabet());
                 return true;
         }
 

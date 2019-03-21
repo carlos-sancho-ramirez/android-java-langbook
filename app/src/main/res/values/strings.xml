@@ -128,6 +128,7 @@
     <string name="includeInBunchKo">Unable to include acceptation in bunch</string>
     <string name="newAgentError">Unable to include agent</string>
     <string name="spanEditorNoSpanPresentError">No span present</string>
+    <string name="updateConversionFeedback">Conversion updated</string>
 
     <string name="conversionEditorSourceLabel">From</string>
     <string name="conversionEditorTargetLabel">To</string>

@@ -2,7 +2,6 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -41,11 +40,11 @@ public final class ConversionEditorActivity extends Activity implements ListView
     private ConversionEditorActivityState _state;
     private ConversionEditorAdapter _adapter;
 
-    public static void open(Context context, int sourceAlphabet, int targetAlphabet) {
-        final Intent intent = new Intent(context, ConversionEditorActivity.class);
+    public static void open(Activity activity, int requestCode, int sourceAlphabet, int targetAlphabet) {
+        final Intent intent = new Intent(activity, ConversionEditorActivity.class);
         intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
         intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet);
-        context.startActivity(intent);
+        activity.startActivityForResult(intent, requestCode);
     }
 
     private int getSourceAlphabet() {
@@ -116,7 +115,10 @@ public final class ConversionEditorActivity extends Activity implements ListView
                         throw new AssertionError();
                     }
 
-                    Toast.makeText(this, "Database updated", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, R.string.updateConversionFeedback, Toast.LENGTH_SHORT).show();
+
+                    setResult(RESULT_OK);
+                    finish();
                 }
                 return true;
         }
