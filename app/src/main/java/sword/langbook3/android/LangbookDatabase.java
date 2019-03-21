@@ -26,6 +26,7 @@ import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
 import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
+import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
@@ -50,6 +51,7 @@ import static sword.langbook3.android.LangbookDeleter.deleteSentenceMeaning;
 import static sword.langbook3.android.LangbookDeleter.deleteSpanBySymbolArrayId;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteSymbolArray;
+import static sword.langbook3.android.LangbookReadableDatabase.checkConversionConflicts;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
@@ -949,5 +951,75 @@ public final class LangbookDatabase {
         }
 
         return dbUpdated;
+    }
+
+    private static void updateJustConversion(Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
+        final ImmutableSet<ImmutablePair<String, String>> oldConversion = getConversion(db, alphabets);
+
+        final ImmutableSet<ImmutablePair<String, String>> pairsToRemove = oldConversion.filterNot(newConversion::contains);
+        final ImmutableSet<ImmutablePair<String, String>> pairsToInclude = newConversion.filterNot(oldConversion::contains);
+
+        for (ImmutablePair<String, String> pair : pairsToRemove) {
+            // TODO: SymbolArrays should also be removed if not used by any other, just to avoid dirty databases
+            final int sourceId = findSymbolArray(db, pair.left);
+            final int targetId = findSymbolArray(db, pair.right);
+            if (!LangbookDeleter.deleteConversionRegister(db, alphabets, sourceId, targetId)) {
+                throw new AssertionError();
+            }
+        }
+
+        for (ImmutablePair<String, String> pair : pairsToInclude) {
+            final int sourceId = obtainSymbolArray(db, pair.left);
+            final int targetId = obtainSymbolArray(db, pair.right);
+            LangbookDbInserter.insertConversion(db, alphabets.left, alphabets.right, sourceId, targetId);
+        }
+    }
+
+    private static void updateStringQueryTableDueToConversionUpdate(Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+
+        final int offset = table.columns().size();
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getDynamicAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex())
+                .where(table.getStringAlphabetColumnIndex(), alphabets.right)
+                .where(offset + table.getStringAlphabetColumnIndex(), alphabets.left)
+                .select(table.getDynamicAcceptationColumnIndex(), table.getStringColumnIndex(), offset + table.getStringColumnIndex());
+
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final DbResult dbResult = db.select(query);
+        while (dbResult.hasNext()) {
+            final List<DbValue> row = dbResult.next();
+            final int dynAcc = row.get(0).toInt();
+            final String source = row.get(2).toText();
+            final String currentTarget = row.get(1).toText();
+            final String newTarget = convertText(newConversion, source);
+            if (!equal(currentTarget, newTarget)) {
+                builder.put(dynAcc, newTarget);
+            }
+        }
+
+        final ImmutableIntKeyMap<String> updateMap = builder.build();
+        final int updateCount = updateMap.size();
+        for (int i = 0; i < updateCount; i++) {
+            final DbUpdateQuery upQuery = new DbUpdateQuery.Builder(table)
+                    .where(table.getStringAlphabetColumnIndex(), alphabets.right)
+                    .where(table.getDynamicAcceptationColumnIndex(), updateMap.keyAt(i))
+                    .put(table.getStringColumnIndex(), updateMap.valueAt(i))
+                    .build();
+
+            if (!db.update(upQuery)) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    public static boolean updateConversion(Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> conversion) {
+        if (checkConversionConflicts(db, alphabets, conversion)) {
+            updateJustConversion(db, alphabets, conversion);
+            updateStringQueryTableDueToConversionUpdate(db, alphabets, conversion);
+            return true;
+        }
+
+        return false;
     }
 }

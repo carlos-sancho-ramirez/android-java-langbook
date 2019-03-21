@@ -388,6 +388,35 @@ public final class LangbookReadableDatabase {
         return resultSet.toImmutable();
     }
 
+    static boolean checkConversionConflicts(DbExporter.Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
+        final int sourceAlphabet = alphabets.left;
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(table.getStringColumnIndex());
+
+        return !db.select(query)
+                .map(row -> row.get(0).toText())
+                .anyMatch(str -> convertText(newConversion, str) == null);
+    }
+
+    public static ImmutableSet<String> findConversionConflictWords(DbExporter.Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
+        // TODO: Logic in the word should be somehow centralised with #checkConversionConflicts method
+        final int sourceAlphabet = alphabets.left;
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(table.getStringColumnIndex());
+
+        return db.select(query)
+                .map(row -> row.get(0).toText())
+                .filter(str -> convertText(newConversion, str) == null)
+                .toSet()
+                .toImmutable();
+    }
+
     public static Integer findBunchSet(DbExporter.Database db, IntSet bunches) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         if (bunches.isEmpty()) {
