@@ -8,9 +8,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
 
-import sword.collections.ImmutablePair;
-import sword.collections.ImmutableSet;
 import sword.database.Database;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
@@ -51,7 +50,7 @@ public final class ConversionDetailsActivity extends Activity {
         final String targetText = readConceptText(db, targetAlphabet, preferredAlphabet);
         setTitle(sourceText + " -> " + targetText);
 
-        final ImmutableSet<ImmutablePair<String, String>> conversion = getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet));
+        final Conversion conversion = getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet));
 
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new ConversionDetailsAdapter(conversion));

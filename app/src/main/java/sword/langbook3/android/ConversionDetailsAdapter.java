@@ -7,25 +7,27 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import sword.collections.ImmutablePair;
-import sword.collections.ImmutableSet;
+import sword.collections.Map;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 final class ConversionDetailsAdapter extends BaseAdapter {
 
-    private final ImmutableSet<ImmutablePair<String, String>> _conversion;
+    private final Conversion _conversion;
     private LayoutInflater _inflater;
 
-    ConversionDetailsAdapter(ImmutableSet<ImmutablePair<String, String>> conversion) {
+    ConversionDetailsAdapter(Conversion conversion) {
         _conversion = conversion;
     }
 
     @Override
     public int getCount() {
-        return _conversion.size();
+        return _conversion.getMap().size();
     }
 
     @Override
     public ImmutablePair<String, String> getItem(int position) {
-        return _conversion.valueAt(position);
+        final Map<String, String> map = _conversion.getMap();
+        return new ImmutablePair<>(map.keyAt(position), map.valueAt(position));
     }
 
     @Override

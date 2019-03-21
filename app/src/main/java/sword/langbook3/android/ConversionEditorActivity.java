@@ -15,11 +15,11 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.database.Database;
 import sword.database.DbExporter;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 import static sword.langbook3.android.LangbookReadableDatabase.findConversionConflictWords;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
@@ -36,7 +36,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         String STATE = "st";
     }
 
-    private ImmutableSet<ImmutablePair<String, String>> _conversion;
+    private Conversion _conversion;
     private ConversionEditorActivityState _state;
     private ConversionEditorAdapter _adapter;
 
@@ -53,10 +53,6 @@ public final class ConversionEditorActivity extends Activity implements ListView
 
     private int getTargetAlphabet() {
         return getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
-    }
-
-    private ImmutableIntPair getConversionAlphabetPair() {
-        return new ImmutableIntPair(getSourceAlphabet(), getTargetAlphabet());
     }
 
     @Override
@@ -108,10 +104,10 @@ public final class ConversionEditorActivity extends Activity implements ListView
                 return true;
 
             case R.id.menuItemSave:
-                final ImmutableSet<ImmutablePair<String, String>> newConversion = _state.getResultingConversion(_conversion);
+                final Conversion newConversion = _state.getResultingConversion(_conversion);
                 final Database db = DbManager.getInstance().getDatabase();
                 if (checkConflicts(db, newConversion)) {
-                    if (!LangbookDatabase.updateConversion(db, getConversionAlphabetPair(), newConversion)) {
+                    if (!LangbookDatabase.updateConversion(db, newConversion)) {
                         throw new AssertionError();
                     }
 
@@ -221,10 +217,10 @@ public final class ConversionEditorActivity extends Activity implements ListView
         else {
             final int convPos = entry.getConversionPosition();
             if (convPos >= 0) {
-                final ImmutablePair<String, String> pair = _conversion.valueAt(position);
+                final Map<String, String> map = _conversion.getMap();
                 _state.startModification();
-                _state.updateSourceModificationText(pair.left);
-                _state.updateTargetModificationText(pair.right);
+                _state.updateSourceModificationText(map.keyAt(position));
+                _state.updateTargetModificationText(map.valueAt(position));
                 openModificationDialog();
             }
         }
@@ -237,8 +233,8 @@ public final class ConversionEditorActivity extends Activity implements ListView
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 
-    private boolean checkConflicts(DbExporter.Database db, ImmutableSet<ImmutablePair<String, String>> newConversion) {
-        final ImmutableSet<String> wordsInConflict = findConversionConflictWords(db, getConversionAlphabetPair(), newConversion);
+    private boolean checkConflicts(DbExporter.Database db, Conversion newConversion) {
+        final ImmutableSet<String> wordsInConflict = findConversionConflictWords(db, newConversion);
 
         if (wordsInConflict.isEmpty()) {
             return true;

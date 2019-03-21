@@ -11,16 +11,18 @@ import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
-import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.database.DbImporter;
 import sword.database.DbInsertQuery;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
+import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
+import static sword.database.DbQuery.concat;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainRuledConcept;
@@ -34,7 +36,6 @@ import static sword.langbook3.android.LangbookReadableDatabase.findRuledAcceptat
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
-import static sword.database.DbQuery.concat;
 
 public final class DatabaseInflater {
 
@@ -393,8 +394,8 @@ public final class DatabaseInflater {
         }
     }
 
-    private void applyConversions(StreamedDatabaseReader.Conversion[] conversions) {
-        for (StreamedDatabaseReader.Conversion conversion : conversions) {
+    private void applyConversions(Conversion[] conversions) {
+        for (Conversion conversion : conversions) {
             final int sourceAlphabet = conversion.getSourceAlphabet();
 
             final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;

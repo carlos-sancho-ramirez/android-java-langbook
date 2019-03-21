@@ -12,6 +12,7 @@ import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
+import sword.collections.Map;
 import sword.collections.MutableIntKeyMap;
 import sword.database.Database;
 import sword.database.DbDeleteQuery;
@@ -23,11 +24,11 @@ import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
 import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.EqualUtils.equal;
-import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
@@ -299,7 +300,7 @@ public final class LangbookDatabase {
 
     private static boolean applyMatchersAddersAndConversions(MutableIntKeyMap<String> correlation,
             AgentDetails details, ImmutableSet<ImmutableIntPair> conversionPairs,
-            SyncCacheMap<ImmutableIntPair, ImmutableSet<ImmutablePair<String, String>>> conversions) {
+            SyncCacheMap<ImmutableIntPair, Conversion> conversions) {
         for (IntKeyMap.Entry<String> entry : details.startMatcher.entries()) {
             final int length = entry.value().length();
             final String text = correlation.get(entry.key()).substring(length);
@@ -327,7 +328,7 @@ public final class LangbookDatabase {
         for (ImmutableIntPair pair : conversionPairs) {
             final IntSet keySet = correlation.keySet();
             if (keySet.contains(pair.left)) {
-                final String result = convertText(conversions.get(pair), correlation.get(pair.left));
+                final String result = conversions.get(pair).convert(correlation.get(pair.left));
                 if (result == null) {
                     validConversion = false;
                     break;
@@ -347,8 +348,7 @@ public final class LangbookDatabase {
         }
         else {
             final ImmutableSet<ImmutableIntPair> conversionPairs = findConversions(db);
-            final SyncCacheMap<ImmutableIntPair, ImmutableSet<ImmutablePair<String, String>>> conversions =
-                    new SyncCacheMap<>(key -> getConversion(db, key));
+            final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
             final ImmutableIntSet.Builder processedAccBuilder = new ImmutableIntSetCreator();
@@ -460,8 +460,7 @@ public final class LangbookDatabase {
             }
 
             final ImmutableSet<ImmutableIntPair> conversionPairs = findConversions(db);
-            final SyncCacheMap<ImmutableIntPair, ImmutableSet<ImmutablePair<String, String>>> conversions =
-                    new SyncCacheMap<>(key -> getConversion(db, key));
+            final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
             final ImmutableIntSet.Builder processedAccBuilder = new ImmutableIntSetCreator();
@@ -953,36 +952,39 @@ public final class LangbookDatabase {
         return dbUpdated;
     }
 
-    private static void updateJustConversion(Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
-        final ImmutableSet<ImmutablePair<String, String>> oldConversion = getConversion(db, alphabets);
+    private static void updateJustConversion(Database db, Conversion newConversion) {
+        final Conversion oldConversion = getConversion(db, newConversion.getAlphabets());
 
-        final ImmutableSet<ImmutablePair<String, String>> pairsToRemove = oldConversion.filterNot(newConversion::contains);
-        final ImmutableSet<ImmutablePair<String, String>> pairsToInclude = newConversion.filterNot(oldConversion::contains);
+        final ImmutableSet<Map.Entry<String, String>> oldPairs = oldConversion.getMap().entries();
+        final ImmutableSet<Map.Entry<String, String>> newPairs = newConversion.getMap().entries();
 
-        for (ImmutablePair<String, String> pair : pairsToRemove) {
+        final ImmutableSet<Map.Entry<String, String>> pairsToRemove = oldPairs.filterNot(newPairs::contains);
+        final ImmutableSet<Map.Entry<String, String>> pairsToInclude = newPairs.filterNot(oldPairs::contains);
+
+        for (Map.Entry<String, String> pair : pairsToRemove) {
             // TODO: SymbolArrays should also be removed if not used by any other, just to avoid dirty databases
-            final int sourceId = findSymbolArray(db, pair.left);
-            final int targetId = findSymbolArray(db, pair.right);
-            if (!LangbookDeleter.deleteConversionRegister(db, alphabets, sourceId, targetId)) {
+            final int sourceId = findSymbolArray(db, pair.key());
+            final int targetId = findSymbolArray(db, pair.value());
+            if (!LangbookDeleter.deleteConversionRegister(db, newConversion.getAlphabets(), sourceId, targetId)) {
                 throw new AssertionError();
             }
         }
 
-        for (ImmutablePair<String, String> pair : pairsToInclude) {
-            final int sourceId = obtainSymbolArray(db, pair.left);
-            final int targetId = obtainSymbolArray(db, pair.right);
-            LangbookDbInserter.insertConversion(db, alphabets.left, alphabets.right, sourceId, targetId);
+        for (Map.Entry<String, String> pair : pairsToInclude) {
+            final int sourceId = obtainSymbolArray(db, pair.key());
+            final int targetId = obtainSymbolArray(db, pair.value());
+            LangbookDbInserter.insertConversion(db, newConversion.getSourceAlphabet(), newConversion.getTargetAlphabet(), sourceId, targetId);
         }
     }
 
-    private static void updateStringQueryTableDueToConversionUpdate(Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
+    private static void updateStringQueryTableDueToConversionUpdate(Database db, Conversion newConversion) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
 
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getDynamicAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex())
-                .where(table.getStringAlphabetColumnIndex(), alphabets.right)
-                .where(offset + table.getStringAlphabetColumnIndex(), alphabets.left)
+                .where(table.getStringAlphabetColumnIndex(), newConversion.getTargetAlphabet())
+                .where(offset + table.getStringAlphabetColumnIndex(), newConversion.getSourceAlphabet())
                 .select(table.getDynamicAcceptationColumnIndex(), table.getStringColumnIndex(), offset + table.getStringColumnIndex());
 
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
@@ -992,7 +994,7 @@ public final class LangbookDatabase {
             final int dynAcc = row.get(0).toInt();
             final String source = row.get(2).toText();
             final String currentTarget = row.get(1).toText();
-            final String newTarget = convertText(newConversion, source);
+            final String newTarget = newConversion.convert(source);
             if (!equal(currentTarget, newTarget)) {
                 builder.put(dynAcc, newTarget);
             }
@@ -1002,7 +1004,7 @@ public final class LangbookDatabase {
         final int updateCount = updateMap.size();
         for (int i = 0; i < updateCount; i++) {
             final DbUpdateQuery upQuery = new DbUpdateQuery.Builder(table)
-                    .where(table.getStringAlphabetColumnIndex(), alphabets.right)
+                    .where(table.getStringAlphabetColumnIndex(), newConversion.getTargetAlphabet())
                     .where(table.getDynamicAcceptationColumnIndex(), updateMap.keyAt(i))
                     .put(table.getStringColumnIndex(), updateMap.valueAt(i))
                     .build();
@@ -1013,10 +1015,10 @@ public final class LangbookDatabase {
         }
     }
 
-    public static boolean updateConversion(Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> conversion) {
-        if (checkConversionConflicts(db, alphabets, conversion)) {
-            updateJustConversion(db, alphabets, conversion);
-            updateStringQueryTableDueToConversionUpdate(db, alphabets, conversion);
+    public static boolean updateConversion(Database db, Conversion conversion) {
+        if (checkConversionConflicts(db, conversion)) {
+            updateJustConversion(db, conversion);
+            updateStringQueryTableDueToConversionUpdate(db, conversion);
             return true;
         }
 

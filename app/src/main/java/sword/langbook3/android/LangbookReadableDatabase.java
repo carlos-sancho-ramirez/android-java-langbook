@@ -17,6 +17,7 @@ import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
@@ -24,12 +25,13 @@ import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
+import sword.collections.MutableHashMap;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
-import sword.collections.MutableSortedSet;
+import sword.collections.MutableMap;
 import sword.collections.SortFunction;
 import sword.collections.SortUtils;
 import sword.database.DbExporter;
@@ -41,7 +43,6 @@ import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
-import static sword.langbook3.android.LangbookDatabaseUtils.convertText;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 
 public final class LangbookReadableDatabase {
@@ -359,7 +360,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static ImmutableSet<ImmutablePair<String, String>> getConversion(DbExporter.Database db, ImmutableIntPair pair) {
+    public static Conversion getConversion(DbExporter.Database db, ImmutableIntPair pair) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
         final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
 
@@ -375,44 +376,40 @@ public final class LangbookReadableDatabase {
                         off1Symbols + symbols.getStrColumnIndex(),
                         off2Symbols + symbols.getStrColumnIndex());
 
-        final MutableSortedSet<ImmutablePair<String, String>> resultSet = MutableSortedSet.empty(LangbookReadableDatabase.conversionPairSortFunction);
+        final MutableMap<String, String> resultMap = MutableHashMap.empty();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final String sourceText = row.get(0).toText();
                 final String targetText = row.get(1).toText();
-                resultSet.add(new ImmutablePair<>(sourceText, targetText));
+                resultMap.put(sourceText, targetText);
             }
         }
 
-        return resultSet.toImmutable();
+        return new Conversion(pair.left, pair.right, resultMap);
     }
 
-    static boolean checkConversionConflicts(DbExporter.Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
-        final int sourceAlphabet = alphabets.left;
-
+    static boolean checkConversionConflicts(DbExporter.Database db, Conversion conversion) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet())
                 .select(table.getStringColumnIndex());
 
         return !db.select(query)
                 .map(row -> row.get(0).toText())
-                .anyMatch(str -> convertText(newConversion, str) == null);
+                .anyMatch(str -> conversion.convert(str) == null);
     }
 
-    public static ImmutableSet<String> findConversionConflictWords(DbExporter.Database db, ImmutableIntPair alphabets, ImmutableSet<ImmutablePair<String, String>> newConversion) {
+    public static ImmutableSet<String> findConversionConflictWords(DbExporter.Database db, Conversion conversion) {
         // TODO: Logic in the word should be somehow centralised with #checkConversionConflicts method
-        final int sourceAlphabet = alphabets.left;
-
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet())
                 .select(table.getStringColumnIndex());
 
         return db.select(query)
                 .map(row -> row.get(0).toText())
-                .filter(str -> convertText(newConversion, str) == null)
+                .filter(str -> conversion.convert(str) == null)
                 .toSet()
                 .toImmutable();
     }
@@ -1168,8 +1165,7 @@ public final class LangbookReadableDatabase {
         for (IntKeyMap.Entry<String> entry : texts.entries().toImmutable()) {
             for (ImmutableIntPair pair : conversions) {
                 if (pair.left == entry.key()) {
-                    final ImmutableSet<ImmutablePair<String, String>> conversion = getConversion(db, pair);
-                    final String convertedText = convertText(conversion, entry.value());
+                    final String convertedText = getConversion(db, pair).convert(entry.value());
                     if (convertedText == null) {
                         return null;
                     }
@@ -2779,5 +2775,91 @@ public final class LangbookReadableDatabase {
         }
 
         return true;
+    }
+
+    public static final class Conversion {
+        private final int _sourceAlphabet;
+        private final int _targetAlphabet;
+        private final ImmutableMap<String, String> _map;
+
+        public Conversion(int sourceAlphabet, int targetAlphabet, sword.collections.Map<String, String> map) {
+            _sourceAlphabet = sourceAlphabet;
+            _targetAlphabet = targetAlphabet;
+            _map = map.toImmutable().sort(LangbookReadableDatabase.conversionKeySortFunction);
+        }
+
+        public int getSourceAlphabet() {
+            return _sourceAlphabet;
+        }
+
+        public int getTargetAlphabet() {
+            return _targetAlphabet;
+        }
+
+        public ImmutableIntPair getAlphabets() {
+            return new ImmutableIntPair(_sourceAlphabet, _targetAlphabet);
+        }
+
+        public ImmutableMap<String, String> getMap() {
+            return _map;
+        }
+
+        /**
+         * Apply this conversion to the given text and returns its converted text.
+         * @param text Text to be converted
+         * @return The converted text, or null if text cannot be converted.
+         */
+        public String convert(String text) {
+            final int mapSize = _map.size();
+            String result = "";
+            while (text.length() > 0) {
+                boolean found = false;
+                for (int i = 0; i < mapSize; i++) {
+                    final String source = _map.keyAt(i);
+                    if (text.startsWith(source)) {
+                        result += _map.valueAt(i);
+                        text = text.substring(source.length());
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    return null;
+                }
+            }
+
+            return result;
+        }
+
+        /**
+         * Apply the given conversion in the inverse order to find all original
+         * strings that can be converted to the given text.
+         *
+         * @param text Converted text to be analyzed
+         * @return A set with all source texts that results in the given text once the conversion is applied. This will be empty is none, but never null.
+         */
+        public ImmutableSet<String> findSourceTexts(String text) {
+            final ImmutableSet.Builder<String> builder = new ImmutableHashSet.Builder<>();
+            if (text == null) {
+                return builder.build();
+            }
+
+            final int mapSize = _map.size();
+            for (int i = 0; i < mapSize; i++) {
+                final String source = _map.keyAt(i);
+                final String target = _map.valueAt(i);
+                if (target.equals(text)) {
+                    builder.add(source);
+                }
+                else if (text.startsWith(target)) {
+                    for (String result : findSourceTexts(text.substring(target.length()))) {
+                        builder.add(source + result);
+                    }
+                }
+            }
+
+            return builder.build();
+        }
     }
 }

@@ -21,14 +21,17 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.IntKeyMap;
 import sword.collections.IntSet;
+import sword.collections.MutableHashMap;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
+import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
 import sword.langbook3.android.LangbookDbInserter;
 import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
@@ -224,48 +227,6 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    public static final class Conversion {
-
-        private final int _sourceAlphabet;
-        private final int _targetAlphabet;
-        private final String[] _sources;
-        private final String[] _targets;
-
-        Conversion(int sourceAlphabet, int targetAlphabet, String[] sources, String[] targets) {
-            _sourceAlphabet = sourceAlphabet;
-            _targetAlphabet = targetAlphabet;
-            _sources = sources;
-            _targets = targets;
-        }
-
-        public int getSourceAlphabet() {
-            return _sourceAlphabet;
-        }
-
-        public int getTargetAlphabet() {
-            return _targetAlphabet;
-        }
-
-        private String convert(String text, int index, String acc) {
-            final int length = _sources.length;
-            if (index == text.length()) {
-                return acc;
-            }
-
-            for (int i = 0; i < length; i++) {
-                if (text.startsWith(_sources[i], index)) {
-                    return convert(text, index + _sources[i].length(), acc + _targets[i]);
-                }
-            }
-
-            return null;
-        }
-
-        public String convert(String text) {
-            return (text != null)? convert(text, 0, "") : null;
-        }
-    }
-
     public static class AgentBunches {
 
         private final int _target;
@@ -356,18 +317,16 @@ public final class StreamedDatabaseReader {
             minTargetAlphabet = targetAlphabet + 1;
 
             final int pairCount = ibs.readHuffmanSymbol(naturalNumberTable);
-            final String[] sources = new String[pairCount];
-            final String[] targets = new String[pairCount];
+            final MutableMap<String, String> conversionMap = MutableHashMap.empty();
             for (int j = 0; j < pairCount; j++) {
                 final int source = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
                 final int target = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
                 insertConversion(_db, sourceAlphabet, targetAlphabet, source, target);
 
-                sources[j] = getSymbolArray(_db, source);
-                targets[j] = getSymbolArray(_db, target);
+                conversionMap.put(getSymbolArray(_db, source), getSymbolArray(_db, target));
             }
 
-            conversions[i] = new Conversion(sourceAlphabet, targetAlphabet, sources, targets);
+            conversions[i] = new Conversion(sourceAlphabet, targetAlphabet, conversionMap);
         }
 
         return conversions;

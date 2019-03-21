@@ -6,23 +6,22 @@ import android.text.TextUtils;
 
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
-import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
+import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedMap;
-import sword.collections.MutableSortedSet;
 import sword.collections.Set;
 import sword.collections.SortUtils;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookReadableDatabase.conversionKeySortFunction;
-import static sword.langbook3.android.LangbookReadableDatabase.conversionPairSortFunction;
 
 public final class ConversionEditorActivityState implements Parcelable {
 
@@ -135,7 +134,7 @@ public final class ConversionEditorActivityState implements Parcelable {
         _targetModificationText = null;
     }
 
-    boolean applyModification(ImmutableSet<ImmutablePair<String, String>> conversion) {
+    boolean applyModification(Conversion conversion) {
         if (!_modifying) {
             throw new UnsupportedOperationException();
         }
@@ -156,16 +155,17 @@ public final class ConversionEditorActivityState implements Parcelable {
             }
         }
         else {
-            final int conversionSize = conversion.size();
+            final Map<String, String> map = conversion.getMap();
+            final int conversionSize = map.size();
             int conversionIndex;
             for (conversionIndex = 0; conversionIndex < conversionSize; conversionIndex++) {
-                if (equal(conversion.valueAt(conversionIndex).left, source)) {
+                if (equal(map.keyAt(conversionIndex), source)) {
                     break;
                 }
             }
 
             if (conversionIndex < conversionSize) {
-                final String oldTarget = conversion.valueAt(conversionIndex).right;
+                final String oldTarget = map.valueAt(conversionIndex);
                 if (equal(oldTarget, target)) {
                     changed = false;
                 }
@@ -239,13 +239,13 @@ public final class ConversionEditorActivityState implements Parcelable {
         }
     }
 
-    ImmutableSet<ImmutablePair<String, String>> getResultingConversion(ImmutableSet<ImmutablePair<String, String>> originalConversion) {
-        final int originalSize = originalConversion.size();
+    Conversion getResultingConversion(Conversion originalConversion) {
+        Map<String, String> origMap = originalConversion.getMap();
+        final int originalSize = origMap.size();
         final ImmutableMap.Builder<String, String> nonRemovedMapBuilder = new ImmutableHashMap.Builder<>();
         for (int i = 0; i < originalSize; i++) {
             if (!_removed.contains(i)) {
-                final ImmutablePair<String, String> pair = originalConversion.valueAt(i);
-                nonRemovedMapBuilder.put(pair.left, pair.right);
+                nonRemovedMapBuilder.put(origMap.keyAt(i), origMap.valueAt(i));
             }
         }
         final ImmutableMap<String, String> nonRemovedMap = nonRemovedMapBuilder.build();
@@ -253,13 +253,13 @@ public final class ConversionEditorActivityState implements Parcelable {
         final Set<String> enabledAddedKeys = _added.keySet().filterNot(_disabled::contains);
         final ImmutableSet<String> keys = nonRemovedMap.keySet().addAll(enabledAddedKeys);
 
-        final MutableSortedSet<ImmutablePair<String, String>> result = MutableSortedSet.empty(conversionPairSortFunction);
+        final MutableHashMap<String, String> result = MutableHashMap.empty();
         for (String key : keys) {
             final Map<String, String> map = (enabledAddedKeys.contains(key))? _added : nonRemovedMap;
-            result.add(new ImmutablePair<>(key, map.get(key)));
+            result.put(key, map.get(key));
         }
 
-        return result.toImmutable();
+        return new Conversion(originalConversion.getSourceAlphabet(), originalConversion.getTargetAlphabet(), result);
     }
 
     public static final Creator<ConversionEditorActivityState> CREATOR = new Creator<ConversionEditorActivityState>() {

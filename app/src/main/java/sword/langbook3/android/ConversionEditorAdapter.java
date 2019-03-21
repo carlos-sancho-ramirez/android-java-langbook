@@ -7,15 +7,15 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import sword.collections.ImmutableList;
-import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
 import sword.collections.Set;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 final class ConversionEditorAdapter extends BaseAdapter {
 
-    private final ImmutableSet<ImmutablePair<String, String>> _conversion;
+    private final Conversion _conversion;
     private final IntSet _removed;
     private final Map<String, String> _added;
     private final Set<String> _disabled;
@@ -23,7 +23,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
     private ImmutableList<Entry> _entries;
     private LayoutInflater _inflater;
 
-    ConversionEditorAdapter(ImmutableSet<ImmutablePair<String, String>> conversion, IntSet removed, Map<String, String> added, Set<String> disabled) {
+    ConversionEditorAdapter(Conversion conversion, IntSet removed, Map<String, String> added, Set<String> disabled) {
         _conversion = conversion;
         _removed = removed;
         _added = added;
@@ -33,7 +33,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
     }
 
     private void updateEntries() {
-        final ImmutableSet<String> conversionKeys = _conversion.map(pair -> pair.left).toSet();
+        final ImmutableSet<String> conversionKeys = _conversion.getMap().keySet();
         final ImmutableSet<String> keys = conversionKeys.addAll(_added.keySet()).sort(LangbookReadableDatabase.conversionKeySortFunction);
 
         final ImmutableList.Builder<Entry> builder = new ImmutableList.Builder<>();
@@ -51,11 +51,10 @@ final class ConversionEditorAdapter extends BaseAdapter {
                 target = _added.get(key);
             }
             else {
-                final ImmutablePair<String, String> pair = _conversion.valueAt(convIndex);
-                if (pair.left != key) {
+                if (_conversion.getMap().keyAt(convIndex) != key) {
                     throw new AssertionError("conversion not properly sorted");
                 }
-                target = pair.right;
+                target = _conversion.getMap().valueAt(i);
             }
 
             final Entry entry = (modified && disabled)? new ModifiedDisabledEntry(convIndex, key, target) :
