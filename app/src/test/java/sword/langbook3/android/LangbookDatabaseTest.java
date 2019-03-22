@@ -1267,7 +1267,7 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
-    public void testUpdateConversion() {
+    public void testUpdateConversionAfterAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
 
         final String kanaText = "ねこ";
@@ -1312,5 +1312,44 @@ public final class LangbookDatabaseTest {
         assertEquals(2, texts2.size());
         assertEquals(kanaText, texts2.get(kanaAlphabet));
         assertEquals("neko", texts2.get(roumajiAlphabet));
+    }
+
+    @Test
+    public void testUpdateConversionBeforeAddingAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String kanaText = "ねこ";
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int kanaAlphabet = language + 1;
+        final int roumajiAlphabet = kanaAlphabet + 1;
+        final int concept = roumajiAlphabet + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "ja", kanaAlphabet);
+        LangbookDbInserter.insertAlphabet(db, kanaAlphabet, language);
+        LangbookDbInserter.insertAlphabet(db, roumajiAlphabet, language);
+
+        final int correlationArrayId = addSimpleCorrelationArray(db, kanaAlphabet, kanaText);
+        final int acceptationId = addAcceptation(db, concept, correlationArrayId);
+
+        final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("く", "ku")
+                .put("け", "ke")
+                .put("こ", "ko")
+                .put("な", "na")
+                .put("に", "ni")
+                .put("ぬ", "nu")
+                .put("ね", "ne")
+                .put("の", "no")
+                .build();
+        final Conversion conversion = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
+        assertTrue(updateConversion(db, conversion));
+
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptationId);
+        assertEquals(2, texts.size());
+        assertEquals(kanaText, texts.get(kanaAlphabet));
+        assertEquals("neko", texts.get(roumajiAlphabet));
     }
 }

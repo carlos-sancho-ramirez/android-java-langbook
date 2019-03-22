@@ -28,6 +28,7 @@ import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
+import static sword.langbook3.android.DatabaseInflater.applyConversion;
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
@@ -952,7 +953,7 @@ public final class LangbookDatabase {
         return dbUpdated;
     }
 
-    private static void updateJustConversion(Database db, Conversion newConversion) {
+    private static Conversion updateJustConversion(Database db, Conversion newConversion) {
         final Conversion oldConversion = getConversion(db, newConversion.getAlphabets());
 
         final ImmutableSet<Map.Entry<String, String>> oldPairs = oldConversion.getMap().entries();
@@ -975,6 +976,8 @@ public final class LangbookDatabase {
             final int targetId = obtainSymbolArray(db, pair.value());
             LangbookDbInserter.insertConversion(db, newConversion.getSourceAlphabet(), newConversion.getTargetAlphabet(), sourceId, targetId);
         }
+
+        return oldConversion;
     }
 
     private static void updateStringQueryTableDueToConversionUpdate(Database db, Conversion newConversion) {
@@ -1017,8 +1020,13 @@ public final class LangbookDatabase {
 
     public static boolean updateConversion(Database db, Conversion conversion) {
         if (checkConversionConflicts(db, conversion)) {
-            updateJustConversion(db, conversion);
-            updateStringQueryTableDueToConversionUpdate(db, conversion);
+            final Conversion oldConversion = updateJustConversion(db, conversion);
+            if (oldConversion.getMap().isEmpty()) {
+                applyConversion(db, conversion);
+            }
+            else {
+                updateStringQueryTableDueToConversionUpdate(db, conversion);
+            }
             return true;
         }
 

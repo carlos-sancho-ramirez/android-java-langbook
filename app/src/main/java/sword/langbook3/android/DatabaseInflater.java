@@ -394,36 +394,40 @@ public final class DatabaseInflater {
         }
     }
 
-    private void applyConversions(Conversion[] conversions) {
-        for (Conversion conversion : conversions) {
-            final int sourceAlphabet = conversion.getSourceAlphabet();
+    static void applyConversion(DbImporter.Database db, Conversion conversion) {
+        final int sourceAlphabet = conversion.getSourceAlphabet();
 
-            final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-            final DbQuery query = new DbQuery.Builder(table)
-                    .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
-                    .select(
-                            table.getStringColumnIndex(),
-                            table.getMainStringColumnIndex(),
-                            table.getMainAcceptationColumnIndex(),
-                            table.getDynamicAcceptationColumnIndex());
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
 
-            final DbResult result = _db.select(query);
-            try {
-                while (result.hasNext()) {
-                    final List<DbValue> row = result.next();
-                    final String str = conversion.convert(row.get(0).toText());
-                    if (str != null) {
-                        final String mainStr = row.get(1).toText();
-                        final int mainAcc = row.get(2).toInt();
-                        final int dynAcc = row.get(3).toInt();
+        final DbResult result = db.select(query);
+        try {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final String str = conversion.convert(row.get(0).toText());
+                if (str != null) {
+                    final String mainStr = row.get(1).toText();
+                    final int mainAcc = row.get(2).toInt();
+                    final int dynAcc = row.get(3).toInt();
 
-                        insertStringQuery(_db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
-                    }
+                    insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
                 }
             }
-            finally {
-                result.close();
-            }
+        }
+        finally {
+            result.close();
+        }
+    }
+
+    private void applyConversions(Conversion[] conversions) {
+        for (Conversion conversion : conversions) {
+            applyConversion(_db, conversion);
         }
     }
 
