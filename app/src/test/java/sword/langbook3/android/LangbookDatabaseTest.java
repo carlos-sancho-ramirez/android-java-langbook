@@ -28,7 +28,6 @@ import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
-import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
@@ -130,12 +129,6 @@ public final class LangbookDatabaseTest {
         assertEquals("ちゅうもん", kanaRow.get(2).toText());
     }
 
-    private static void insertConversion(Database db, int sourceAlphabet, int targetAlphabet,
-            String sourceText, String targetText) {
-        LangbookDbInserter.insertConversion(db, sourceAlphabet, targetAlphabet,
-                obtainSymbolArray(db, sourceText), obtainSymbolArray(db, targetText));
-    }
-
     @Test
     public void testAddJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
@@ -150,12 +143,15 @@ public final class LangbookDatabaseTest {
         LangbookDbInserter.insertAlphabet(db, kanji, language);
         LangbookDbInserter.insertAlphabet(db, kana, language);
 
-        insertConversion(db, kana, roumaji, "あ", "a");
-        insertConversion(db, kana, roumaji, "も", "mo");
-        insertConversion(db, kana, roumaji, "ん", "n");
-        insertConversion(db, kana, roumaji, "う", "u");
-        insertConversion(db, kana, roumaji, "ちゅ", "chu");
-        insertConversion(db, kana, roumaji, "ち", "chi");
+        final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
+                .put("あ", "a")
+                .put("も", "mo")
+                .put("ん", "n")
+                .put("う", "u")
+                .put("ちゅ", "chu")
+                .put("ち", "chi")
+                .build();
+        updateConversion(db, new Conversion(kana, roumaji, convMap));
 
         final ImmutableList<ImmutableIntKeyMap<String>> correlations = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
                 .add(new ImmutableIntKeyMap.Builder<String>()
@@ -1052,12 +1048,6 @@ public final class LangbookDatabaseTest {
             .put("z", "Z")
             .build();
 
-    private void addUpperCaseConversion(Database db, int sourceAlphabet, int destAlphabet) {
-        for (sword.collections.Map.Entry<String, String> entry : upperCaseConversion.entries()) {
-            insertConversion(db, sourceAlphabet, destAlphabet, entry.key(), entry.value());
-        }
-    }
-
     @Test
     public void testUpdateAcceptationCorrelationArray() {
         final MemoryDatabase db = new MemoryDatabase();
@@ -1072,7 +1062,7 @@ public final class LangbookDatabaseTest {
         final int concept = upperCaseAlphabet + 1;
         final int secondConjugationVerbBunch = concept + 1;
 
-        addUpperCaseConversion(db, alphabet, upperCaseAlphabet);
+        updateConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
@@ -1147,7 +1137,7 @@ public final class LangbookDatabaseTest {
         final int concept = upperCaseAlphabet + 1;
         final int firstConjugationVerbBunch = concept + 1;
 
-        addUpperCaseConversion(db, alphabet, upperCaseAlphabet);
+        updateConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
