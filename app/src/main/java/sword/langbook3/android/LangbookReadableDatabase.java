@@ -2722,10 +2722,10 @@ public final class LangbookReadableDatabase {
         return found? value : null;
     }
 
-    public static ImmutableIntKeyMap<String> getAcceptationTexts(DbExporter.Database db, int acceptations) {
+    public static ImmutableIntKeyMap<String> getAcceptationTexts(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getDynamicAcceptationColumnIndex(), acceptations)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
                 .select(table.getStringAlphabetColumnIndex(), table.getStringColumnIndex());
 
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();

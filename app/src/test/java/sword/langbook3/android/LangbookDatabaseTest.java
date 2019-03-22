@@ -9,12 +9,14 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.List;
+import sword.collections.MutableHashMap;
 import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 
 import static org.junit.Assert.assertEquals;
@@ -31,8 +33,10 @@ import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.updateConversion;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllMatchingBunches;
@@ -1270,5 +1274,53 @@ public final class LangbookDatabaseTest {
         row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
         assertEquals(rightGerundText, row.get(1).toText());
+    }
+
+    @Test
+    public void testUpdateConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String kanaText = "ねこ";
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int kanaAlphabet = language + 1;
+        final int roumajiAlphabet = kanaAlphabet + 1;
+        final int concept = roumajiAlphabet + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "ja", kanaAlphabet);
+        LangbookDbInserter.insertAlphabet(db, kanaAlphabet, language);
+        LangbookDbInserter.insertAlphabet(db, roumajiAlphabet, language);
+
+        final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("く", "ku")
+                .put("け", "ke")
+                .put("こ", "o")
+                .put("な", "na")
+                .put("に", "ni")
+                .put("ぬ", "nu")
+                .put("ね", "ne")
+                .put("の", "no")
+                .build();
+        final Conversion conversion1 = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
+        assertTrue(updateConversion(db, conversion1));
+
+        final int correlationArrayId = addSimpleCorrelationArray(db, kanaAlphabet, kanaText);
+        final int acceptationId = addAcceptation(db, concept, correlationArrayId);
+
+        final ImmutableIntKeyMap<String> texts1 = getAcceptationTexts(db, acceptationId);
+        assertEquals(2, texts1.size());
+        assertEquals(kanaText, texts1.get(kanaAlphabet));
+        assertEquals("neo", texts1.get(roumajiAlphabet));
+
+        convMap.put("こ", "ko");
+        final Conversion conversion2 = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
+        assertTrue(updateConversion(db, conversion2));
+
+        final ImmutableIntKeyMap<String> texts2 = getAcceptationTexts(db, acceptationId);
+        assertEquals(2, texts2.size());
+        assertEquals(kanaText, texts2.get(kanaAlphabet));
+        assertEquals("neko", texts2.get(roumajiAlphabet));
     }
 }
