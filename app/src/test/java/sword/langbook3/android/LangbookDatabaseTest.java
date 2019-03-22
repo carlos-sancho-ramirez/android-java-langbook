@@ -31,8 +31,8 @@ import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
-import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.replaceConversion;
+import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
@@ -1351,5 +1351,45 @@ public final class LangbookDatabaseTest {
         assertEquals(2, texts.size());
         assertEquals(kanaText, texts.get(kanaAlphabet));
         assertEquals("neko", texts.get(roumajiAlphabet));
+    }
+
+    @Test
+    public void testReplaceConversionToRemoveConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String kanaText = "ねこ";
+
+        final int language = getMaxConceptInAcceptations(db) + 1;
+        final int kanaAlphabet = language + 1;
+        final int roumajiAlphabet = kanaAlphabet + 1;
+        final int concept = roumajiAlphabet + 1;
+
+        LangbookDbInserter.insertLanguage(db, language, "ja", kanaAlphabet);
+        LangbookDbInserter.insertAlphabet(db, kanaAlphabet, language);
+        LangbookDbInserter.insertAlphabet(db, roumajiAlphabet, language);
+
+        final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("く", "ku")
+                .put("け", "ke")
+                .put("こ", "ko")
+                .put("な", "na")
+                .put("に", "ni")
+                .put("ぬ", "nu")
+                .put("ね", "ne")
+                .put("の", "no")
+                .build();
+        final Conversion conversion = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
+        assertTrue(replaceConversion(db, conversion));
+
+        final int correlationArrayId = addSimpleCorrelationArray(db, kanaAlphabet, kanaText);
+        final int acceptationId = addAcceptation(db, concept, correlationArrayId);
+
+        assertTrue(replaceConversion(db, new Conversion(kanaAlphabet, roumajiAlphabet, MutableHashMap.empty())));
+
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptationId);
+        assertEquals(1, texts.size());
+        assertEquals(kanaText, texts.get(kanaAlphabet));
     }
 }

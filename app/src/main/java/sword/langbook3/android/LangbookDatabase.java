@@ -29,6 +29,7 @@ import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.DatabaseInflater.applyConversion;
+import static sword.langbook3.android.DatabaseInflater.unapplyConversion;
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
@@ -1019,7 +1020,7 @@ public final class LangbookDatabase {
     }
 
     /**
-     * Replace a conversion in the database, or insert a new one if non existing.
+     * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.
      * This will trigger the update of any word where this conversion may apply.
      *
      * @param db Database where the conversion has to be replaces and where words related must be adjusted.
@@ -1027,6 +1028,16 @@ public final class LangbookDatabase {
      * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
      */
     public static boolean replaceConversion(Database db, Conversion conversion) {
+        if (conversion.getMap().isEmpty()) {
+            final Conversion oldConversion = getConversion(db, conversion.getAlphabets());
+            if (oldConversion.getMap().isEmpty()) {
+                return false;
+            }
+            else {
+                unapplyConversion(db, oldConversion);
+                return true;
+            }
+        }
         if (checkConversionConflicts(db, conversion)) {
             final Conversion oldConversion = updateJustConversion(db, conversion);
             if (oldConversion.getMap().isEmpty()) {

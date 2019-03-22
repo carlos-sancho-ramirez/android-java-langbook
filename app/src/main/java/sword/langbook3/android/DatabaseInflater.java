@@ -11,11 +11,13 @@ import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
+import sword.database.DbDeleteQuery;
 import sword.database.DbImporter;
 import sword.database.DbInsertQuery;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
+import sword.database.Deleter;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 import sword.langbook3.android.sdb.ProgressListener;
@@ -423,6 +425,17 @@ public final class DatabaseInflater {
         finally {
             result.close();
         }
+    }
+
+    static void unapplyConversion(Deleter db, Conversion conversion) {
+        final int targetAlphabet = conversion.getTargetAlphabet();
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), targetAlphabet)
+                .build();
+
+        db.delete(query);
     }
 
     private void applyConversions(Conversion[] conversions) {
