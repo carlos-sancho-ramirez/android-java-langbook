@@ -54,7 +54,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
                 if (_conversion.getMap().keyAt(convIndex) != key) {
                     throw new AssertionError("conversion not properly sorted");
                 }
-                target = _conversion.getMap().valueAt(i);
+                target = _conversion.getMap().valueAt(convIndex);
             }
 
             final Entry entry = (modified && disabled)? new ModifiedDisabledEntry(convIndex, key, target) :
