@@ -32,7 +32,7 @@ import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
 import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
-import static sword.langbook3.android.LangbookDatabase.updateConversion;
+import static sword.langbook3.android.LangbookDatabase.replaceConversion;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
@@ -151,7 +151,7 @@ public final class LangbookDatabaseTest {
                 .put("ちゅ", "chu")
                 .put("ち", "chi")
                 .build();
-        updateConversion(db, new Conversion(kana, roumaji, convMap));
+        replaceConversion(db, new Conversion(kana, roumaji, convMap));
 
         final ImmutableList<ImmutableIntKeyMap<String>> correlations = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
                 .add(new ImmutableIntKeyMap.Builder<String>()
@@ -1062,7 +1062,7 @@ public final class LangbookDatabaseTest {
         final int concept = upperCaseAlphabet + 1;
         final int secondConjugationVerbBunch = concept + 1;
 
-        updateConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
+        replaceConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
@@ -1137,7 +1137,7 @@ public final class LangbookDatabaseTest {
         final int concept = upperCaseAlphabet + 1;
         final int firstConjugationVerbBunch = concept + 1;
 
-        updateConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
+        replaceConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
@@ -1267,7 +1267,7 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
-    public void testUpdateConversionAfterAddingAcceptation() {
+    public void testReplaceConversionAfterAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
 
         final String kanaText = "ねこ";
@@ -1294,7 +1294,7 @@ public final class LangbookDatabaseTest {
                 .put("の", "no")
                 .build();
         final Conversion conversion1 = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
-        assertTrue(updateConversion(db, conversion1));
+        assertTrue(replaceConversion(db, conversion1));
 
         final int correlationArrayId = addSimpleCorrelationArray(db, kanaAlphabet, kanaText);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId);
@@ -1306,7 +1306,7 @@ public final class LangbookDatabaseTest {
 
         convMap.put("こ", "ko");
         final Conversion conversion2 = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
-        assertTrue(updateConversion(db, conversion2));
+        assertTrue(replaceConversion(db, conversion2));
 
         final ImmutableIntKeyMap<String> texts2 = getAcceptationTexts(db, acceptationId);
         assertEquals(2, texts2.size());
@@ -1315,7 +1315,7 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
-    public void testUpdateConversionBeforeAddingAcceptation() {
+    public void testReplaceConversionBeforeAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
 
         final String kanaText = "ねこ";
@@ -1345,7 +1345,7 @@ public final class LangbookDatabaseTest {
                 .put("の", "no")
                 .build();
         final Conversion conversion = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
-        assertTrue(updateConversion(db, conversion));
+        assertTrue(replaceConversion(db, conversion));
 
         final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptationId);
         assertEquals(2, texts.size());

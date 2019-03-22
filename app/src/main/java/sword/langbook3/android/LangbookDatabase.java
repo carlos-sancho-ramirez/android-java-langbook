@@ -1018,7 +1018,15 @@ public final class LangbookDatabase {
         }
     }
 
-    public static boolean updateConversion(Database db, Conversion conversion) {
+    /**
+     * Replace a conversion in the database, or insert a new one if non existing.
+     * This will trigger the update of any word where this conversion may apply.
+     *
+     * @param db Database where the conversion has to be replaces and where words related must be adjusted.
+     * @param conversion New conversion to be included.
+     * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
+     */
+    public static boolean replaceConversion(Database db, Conversion conversion) {
         if (checkConversionConflicts(db, conversion)) {
             final Conversion oldConversion = updateJustConversion(db, conversion);
             if (oldConversion.getMap().isEmpty()) {

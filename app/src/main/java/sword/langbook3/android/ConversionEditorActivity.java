@@ -107,7 +107,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
                 final Conversion newConversion = _state.getResultingConversion(_conversion);
                 final Database db = DbManager.getInstance().getDatabase();
                 if (checkConflicts(db, newConversion)) {
-                    if (!LangbookDatabase.updateConversion(db, newConversion)) {
+                    if (!LangbookDatabase.replaceConversion(db, newConversion)) {
                         throw new AssertionError();
                     }
 
