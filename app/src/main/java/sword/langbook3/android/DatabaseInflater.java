@@ -413,13 +413,15 @@ public final class DatabaseInflater {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final String str = conversion.convert(row.get(0).toText());
-                if (str != null) {
-                    final String mainStr = row.get(1).toText();
-                    final int mainAcc = row.get(2).toInt();
-                    final int dynAcc = row.get(3).toInt();
-
-                    insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+                if (str == null) {
+                    throw new AssertionError("Unable to convert word " + row.get(0).toText());
                 }
+
+                final String mainStr = row.get(1).toText();
+                final int mainAcc = row.get(2).toInt();
+                final int dynAcc = row.get(3).toInt();
+
+                insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
             }
         }
         finally {
