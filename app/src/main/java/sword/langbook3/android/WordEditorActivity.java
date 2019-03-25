@@ -251,16 +251,19 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
         final ImmutableIntSet editableFields = fieldIndexAlphabetRelationMap.keySet();
         for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
-            inflater.inflate(R.layout.word_editor_field_entry, _formPanel, true);
+            final boolean isEditable = editableFields.contains(fieldIndex);
+            final int layoutId = isEditable? R.layout.word_editor_field_entry : R.layout.word_editor_converted_entry;
+            inflater.inflate(layoutId, _formPanel, true);
             View fieldEntry = _formPanel.getChildAt(fieldIndex);
 
             final TextView textView = fieldEntry.findViewById(R.id.fieldName);
             textView.setText(fieldNames.valueAt(fieldIndex));
 
             final EditText editText = fieldEntry.findViewById(R.id.fieldValue);
-            if (editableFields.contains(fieldIndex)) {
-                final String text = _texts[fieldIndex];
-                editText.setText(text);
+            final String text = _texts[fieldIndex];
+            editText.setText(text);
+
+            if (isEditable) {
                 if (autoSelectText && text != null) {
                     editText.setSelection(0, text.length());
                 }
@@ -268,9 +271,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
             }
             else {
-                final String text = _texts[fieldIndex];
-                editText.setText(text);
-                editText.setEnabled(false);
+                final int target = fieldNames.keyAt(fieldIndex);
+                final int source = fieldConversions.get(target);
+                fieldEntry.findViewById(R.id.checkConversionButton).setOnClickListener(view ->
+                        ConversionDetailsActivity.open(this, source, target));
             }
         }
 
