@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/text"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingLeft="@dimen/alphabetEntryLeftPadding"
-    android:paddingTop="@dimen/alphabetEntryPadding"
-    android:paddingRight="@dimen/alphabetEntryPadding"
-    android:paddingBottom="@dimen/alphabetEntryPadding"/>
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:paddingLeft="@dimen/alphabetEntryLeftPadding"
+        android:paddingTop="@dimen/alphabetEntryPadding"
+        android:paddingRight="@dimen/alphabetEntryPadding"
+        android:paddingBottom="@dimen/alphabetEntryPadding"/>
+
+    <Button
+        android:id="@+id/checkConversionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/checkConversionButtonText"/>
+</LinearLayout>

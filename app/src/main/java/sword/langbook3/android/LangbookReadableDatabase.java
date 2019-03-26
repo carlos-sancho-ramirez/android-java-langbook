@@ -288,6 +288,26 @@ public final class LangbookReadableDatabase {
         return db.select(query).map(row -> new ImmutableIntPair(row.get(0).toInt(), row.get(1).toInt())).toSet().toImmutable();
     }
 
+    public static ImmutableIntPairMap getConversionsMap(DbExporter.Database db) {
+        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
+                .select(
+                        conversions.getSourceAlphabetColumnIndex(),
+                        conversions.getTargetAlphabetColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.put(row.get(1).toInt(), row.get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public static Integer findConversionRegister(DbExporter.Database db, ImmutableIntPair alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbQuery query = new DbQuery.Builder(table)

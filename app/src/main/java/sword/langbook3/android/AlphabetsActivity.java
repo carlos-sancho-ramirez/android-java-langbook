@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.widget.ListView;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
 
@@ -38,6 +39,7 @@ public final class AlphabetsActivity extends Activity {
             }
         }
 
-        listView.setAdapter(new AlphabetsAdapter(langAlphabetMap, languages, alphabetsBuilder.build()));
+        final ImmutableIntPairMap conversions = LangbookReadableDatabase.getConversionsMap(db);
+        listView.setAdapter(new AlphabetsAdapter(langAlphabetMap, languages, alphabetsBuilder.build(), conversions, pair -> ConversionDetailsActivity.open(this, pair.left, pair.right)));
     }
 }
