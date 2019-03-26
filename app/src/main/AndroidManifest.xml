@@ -76,6 +76,9 @@
             android:label="@string/sentenceDetailsActivityTitle"/>
 
         <activity
+            android:name=".AlphabetsActivity"/>
+
+        <activity
             android:name=".ConversionSelectorActivity"
             android:label="@string/conversionSelectorActivityTitle"/>
 

@@ -19,6 +19,10 @@
     <dimen name="spanEditorEntryPadding">8dp</dimen>
     <dimen name="sentenceDetailsSentenceTextSize">16sp</dimen>
 
+    <dimen name="alphabetEntryPadding">8dp</dimen>
+    <dimen name="alphabetEntryLeftPadding">12dp</dimen>
+    <dimen name="languageEntryPadding">8dp</dimen>
+
     <dimen name="conversionSelectorEntryPadding">8dp</dimen>
     <dimen name="conversionDetailsEntryPadding">8dp</dimen>
 </resources>

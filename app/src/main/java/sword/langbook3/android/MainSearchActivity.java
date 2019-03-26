@@ -30,6 +30,10 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.menuItemCheckAlphabets:
+                AlphabetsActivity.open(this);
+                return true;
+
             case R.id.menuItemCheckConversions:
                 ConversionSelectorActivity.open(this);
                 return true;

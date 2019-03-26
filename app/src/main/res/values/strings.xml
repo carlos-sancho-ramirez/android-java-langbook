@@ -19,6 +19,7 @@
     <string name="addWordButton">Add</string>
 
     <string name="menuItemAdd">Add</string>
+    <string name="menuItemCheckAlphabets">Check alphabets</string>
     <string name="menuItemCheckConversions">Check conversions</string>
     <string name="menuItemQuiz">Start quiz</string>
     <string name="menuItemNewAgent">New agent</string>
