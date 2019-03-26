@@ -34,10 +34,6 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 AlphabetsActivity.open(this);
                 return true;
 
-            case R.id.menuItemCheckConversions:
-                ConversionSelectorActivity.open(this);
-                return true;
-
             case R.id.menuItemQuiz:
                 QuizSelectorActivity.open(this, NO_BUNCH);
                 return true;
