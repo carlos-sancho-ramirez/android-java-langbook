@@ -129,9 +129,12 @@
     <string name="newAgentError">Unable to include agent</string>
     <string name="spanEditorNoSpanPresentError">No span present</string>
     <string name="updateConversionFeedback">Conversion updated</string>
+    <string name="includeAlphabetFeedback">Alphabet included</string>
+    <string name="includeAlphabetKo">Unable to include alphabet</string>
 
     <string name="conversionEditorSourceLabel">From</string>
     <string name="conversionEditorTargetLabel">To</string>
     <string name="noChangeRequired">Nothing to change</string>
     <string name="checkConversionButtonText">Check</string>
+    <string name="addAlphabetButtonText">Add</string>
 </resources>

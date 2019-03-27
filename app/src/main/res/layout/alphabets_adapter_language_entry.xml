@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/text"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="@dimen/languageEntryPadding"
-    android:textColor="@color/alphabets_adapter_language_text_color"
-    android:background="@color/alphabets_adapter_language_entry"/>
+    android:background="@color/alphabets_adapter_language_entry"
+    android:padding="@dimen/languageEntryPadding">
+
+    <TextView
+        android:id="@+id/text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/alphabets_adapter_language_text_color"/>
+
+    <Button
+        android:id="@+id/addAlphabetButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/addAlphabetButtonText"/>
+</LinearLayout>

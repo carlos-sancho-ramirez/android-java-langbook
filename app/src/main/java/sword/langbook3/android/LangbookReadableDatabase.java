@@ -1537,6 +1537,47 @@ public final class LangbookReadableDatabase {
         return flags.toImmutable();
     }
 
+    public static boolean isAlphabetPresent(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), alphabet)
+                .select(table.getIdColumnIndex());
+
+        boolean result = false;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                dbResult.next();
+                result = true;
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError();
+            }
+        }
+
+        return result;
+    }
+
+    public static Integer getLanguageFromAlphabet(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), alphabet)
+                .select(table.getLanguageColumnIndex());
+
+        Integer result = null;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                result = dbResult.next().get(0).toInt();
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError();
+            }
+        }
+
+        return result;
+    }
+
     public static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;

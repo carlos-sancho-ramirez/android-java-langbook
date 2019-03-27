@@ -12,12 +12,14 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
+import sword.collections.IntProcedure;
 import sword.collections.Procedure;
 
 final class AlphabetsAdapter extends BaseAdapter {
     private final ImmutableIntKeyMap<String> _languages;
     private final ImmutableIntKeyMap<String> _alphabets;
     private final ImmutableIntPairMap _conversions;
+    private final IntProcedure _addAlphabetProcedure;
     private final Procedure<ImmutableIntPair> _checkConversionProcedure;
 
     private final ImmutableIntSet _nextSectionHeader;
@@ -30,10 +32,12 @@ final class AlphabetsAdapter extends BaseAdapter {
             ImmutableIntKeyMap<String> languages,
             ImmutableIntKeyMap<String> alphabets,
             ImmutableIntPairMap conversions,
+            IntProcedure addAlphabetProcedure,
             Procedure<ImmutableIntPair> checkConversionProcedure) {
         _languages = languages;
         _alphabets = alphabets;
         _conversions = conversions;
+        _addAlphabetProcedure = addAlphabetProcedure;
         _checkConversionProcedure = checkConversionProcedure;
 
         final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
@@ -103,7 +107,7 @@ final class AlphabetsAdapter extends BaseAdapter {
 
         if (viewType == ViewTypes.ALPHABET) {
             final Button checkConversionButton = convertView.findViewById(R.id.checkConversionButton);
-            if (_conversions.keySet().contains(position)) {
+            if (_conversions.keySet().contains(id)) {
                 final ImmutableIntPair conversionPair = new ImmutableIntPair(_conversions.get(id), id);
                 checkConversionButton.setOnClickListener(view -> _checkConversionProcedure.apply(conversionPair));
                 checkConversionButton.setVisibility(View.VISIBLE);
@@ -111,6 +115,10 @@ final class AlphabetsAdapter extends BaseAdapter {
             else {
                 checkConversionButton.setVisibility(View.GONE);
             }
+        }
+        else {
+            final Button addAlphabetButton = convertView.findViewById(R.id.addAlphabetButton);
+            addAlphabetButton.setOnClickListener(v -> _addAlphabetProcedure.apply(id));
         }
 
         return convertView;

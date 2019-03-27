@@ -1051,4 +1051,13 @@ public final class LangbookDatabase {
 
         return false;
     }
+
+    public static boolean addAlphabet(Database db, int alphabet, int language) {
+        if (LangbookReadableDatabase.isAlphabetPresent(db, alphabet)) {
+            return false;
+        }
+
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+        return true;
+    }
 }
