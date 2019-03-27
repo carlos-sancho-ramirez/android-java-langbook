@@ -1558,6 +1558,24 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    public static ImmutableIntSet alphabetsWithinLanguage(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final int offset = table.columns().size();
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getLanguageColumnIndex(), table.getLanguageColumnIndex())
+                .where(table.getIdColumnIndex(), alphabet)
+                .select(offset + table.getIdColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                builder.add(dbResult.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public static Integer getLanguageFromAlphabet(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbQuery query = new DbQuery.Builder(table)
@@ -2921,6 +2939,35 @@ public final class LangbookReadableDatabase {
             }
 
             return builder.build();
+        }
+    }
+
+    public static boolean checkAlphabetCanBeRemoved(DbExporter.Database db, int alphabet) {
+        // There must be at least another alphabet in the same language to avoid leaving the language without alphabets
+        if (alphabetsWithinLanguage(db, alphabet).size() < 2) {
+            return false;
+        }
+
+        // For now, let's assume that a source alphabet cannot be removed while the conversion already exists
+        if (getConversionsMap(db).contains(alphabet)) {
+            return false;
+        }
+
+        // First, quizzes using this alphabet should be removed
+        if (isAlphabetUsedInQuestions(db, alphabet)) {
+            return false;
+        }
+        return true;
+    }
+
+    static boolean isAlphabetUsedInQuestions(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAlphabetColumnIndex(), alphabet)
+                .select(table.getIdColumnIndex());
+
+        try (DbResult dbResult = db.select(query)) {
+            return dbResult.hasNext();
         }
     }
 }

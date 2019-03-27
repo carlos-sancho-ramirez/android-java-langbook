@@ -46,6 +46,7 @@
     <string name="deleteAgentConfirmationText">Are you sure that you want to remove this agent? All its effects will be reverted.</string>
     <string name="deleteQuizConfirmationText">Are you sure that you want to remove this quiz and all its related tracked knowledge?</string>
     <string name="deleteSentenceConfirmationText">Are you sure that you want to remove this sentence?</string>
+    <string name="deleteAlphabetConfirmationText">Are you sure that you want to remove this alphabet?</string>
 
     <string name="wordEditorWrongConversionFieldText">-- Wrong --</string>
     <string name="wordEditorNextButton">Next</string>
@@ -131,6 +132,7 @@
     <string name="updateConversionFeedback">Conversion updated</string>
     <string name="includeAlphabetFeedback">Alphabet included</string>
     <string name="includeAlphabetKo">Unable to include alphabet</string>
+    <string name="removeAlphabetFeedback">Alphabet removed</string>
 
     <string name="conversionEditorSourceLabel">From</string>
     <string name="conversionEditorTargetLabel">To</string>

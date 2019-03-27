@@ -43,8 +43,12 @@ import static sword.langbook3.android.LangbookDbInserter.insertSymbolArray;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookDeleter.deleteAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteAgentSet;
+import static sword.langbook3.android.LangbookDeleter.deleteAlphabet;
+import static sword.langbook3.android.LangbookDeleter.deleteAlphabetFromCorrelations;
+import static sword.langbook3.android.LangbookDeleter.deleteAlphabetFromStringQueries;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
+import static sword.langbook3.android.LangbookDeleter.deleteConversion;
 import static sword.langbook3.android.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.LangbookDeleter.deleteQuiz;
@@ -54,6 +58,7 @@ import static sword.langbook3.android.LangbookDeleter.deleteSentenceMeaning;
 import static sword.langbook3.android.LangbookDeleter.deleteSpanBySymbolArrayId;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteSymbolArray;
+import static sword.langbook3.android.LangbookReadableDatabase.alphabetsWithinLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.checkConversionConflicts;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
@@ -77,6 +82,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAgentProcessed
 import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
 import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
@@ -86,6 +92,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getMaxSentenceMea
 import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.getSentenceMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
@@ -1059,5 +1066,34 @@ public final class LangbookDatabase {
 
         LangbookDbInserter.insertAlphabet(db, alphabet, language);
         return true;
+    }
+
+    public static boolean removeAlphabet(Database db, int alphabet) {
+        // There must be at least another alphabet in the same language to avoid leaving the language without alphabets
+        if (alphabetsWithinLanguage(db, alphabet).size() < 2) {
+            return false;
+        }
+
+        final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+        if (conversionMap.contains(alphabet)) {
+            return false;
+        }
+
+        if (isAlphabetUsedInQuestions(db, alphabet)) {
+            return false;
+        }
+
+        boolean changed = false;
+        if (conversionMap.keySet().contains(alphabet)) {
+            if (!deleteConversion(db, conversionMap.get(alphabet), alphabet)) {
+                throw new AssertionError();
+            }
+            changed = true;
+        }
+
+        changed |= deleteAlphabetFromStringQueries(db, alphabet);
+        changed |= deleteAlphabetFromCorrelations(db, alphabet);
+        changed |= deleteAlphabet(db, alphabet);
+        return changed;
     }
 }

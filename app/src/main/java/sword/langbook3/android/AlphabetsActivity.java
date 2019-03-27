@@ -1,9 +1,13 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -12,13 +16,15 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
 
+import static sword.langbook3.android.LangbookReadableDatabase.checkAlphabetCanBeRemoved;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 
-public final class AlphabetsActivity extends Activity {
+public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener {
 
     private static final int REQUEST_CODE_NEW_ALPHABET = 1;
 
     private interface SavedKeys {
+        String ALPHABET_TO_REMOVE = "atr";
         String NEW_ALPHABET_LANGUAGE = "nal";
     }
 
@@ -28,6 +34,9 @@ public final class AlphabetsActivity extends Activity {
     }
 
     private int _newAlphabetLanguage;
+    private int _alphabetToRemove;
+
+    private AlphabetsAdapter _adapter;
 
     private void updateUi() {
         final ListView listView = findViewById(R.id.listView);
@@ -47,8 +56,10 @@ public final class AlphabetsActivity extends Activity {
         }
 
         final ImmutableIntPairMap conversions = LangbookReadableDatabase.getConversionsMap(db);
-        listView.setAdapter(new AlphabetsAdapter(langAlphabetMap, languages, alphabetsBuilder.build(), conversions,
-                this::addAlphabet, pair -> ConversionDetailsActivity.open(this, pair.left, pair.right)));
+        _adapter = new AlphabetsAdapter(langAlphabetMap, languages, alphabetsBuilder.build(), conversions,
+                this::addAlphabet, pair -> ConversionDetailsActivity.open(this, pair.left, pair.right));
+        listView.setAdapter(_adapter);
+        listView.setOnItemLongClickListener(this);
     }
 
     @Override
@@ -59,7 +70,47 @@ public final class AlphabetsActivity extends Activity {
         updateUi();
         if (savedInstanceState != null) {
             _newAlphabetLanguage = savedInstanceState.getInt(SavedKeys.NEW_ALPHABET_LANGUAGE);
+            _alphabetToRemove = savedInstanceState.getInt(SavedKeys.ALPHABET_TO_REMOVE);
         }
+
+        if (_alphabetToRemove != 0) {
+            showDeleteConfirmationDialog();
+        }
+    }
+
+    private void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.deleteAcceptationConfirmationText)
+                .setPositiveButton(R.string.menuItemDelete, this)
+                .setOnCancelListener(dialog -> _alphabetToRemove = 0)
+                .create().show();
+    }
+
+    @Override
+    public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+        if (_adapter.getItemViewType(position) == AlphabetsAdapter.ViewTypes.ALPHABET) {
+            final int alphabet = _adapter.getItem(position);
+            if (checkAlphabetCanBeRemoved(DbManager.getInstance().getDatabase(), alphabet)) {
+                _alphabetToRemove = alphabet;
+                showDeleteConfirmationDialog();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public void onClick(DialogInterface dialog, int which) {
+        final int alphabet = _alphabetToRemove;
+        _alphabetToRemove = 0;
+
+        if (!LangbookDatabase.removeAlphabet(DbManager.getInstance().getDatabase(), alphabet)) {
+            throw new AssertionError();
+        }
+
+        Toast.makeText(this, R.string.removeAlphabetFeedback, Toast.LENGTH_SHORT).show();
+        updateUi();
     }
 
     private void addAlphabet(int languageId) {
@@ -89,5 +140,6 @@ public final class AlphabetsActivity extends Activity {
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(SavedKeys.NEW_ALPHABET_LANGUAGE, _newAlphabetLanguage);
+        outState.putInt(SavedKeys.ALPHABET_TO_REMOVE, _alphabetToRemove);
     }
 }

@@ -1,5 +1,6 @@
 package sword.langbook3.android;
 
+import sword.database.Database;
 import sword.database.DbDeleteQuery;
 import sword.database.Deleter;
 
@@ -167,6 +168,39 @@ public final class LangbookDeleter {
                 .where(table.getTargetAlphabetColumnIndex(), alphabets.right)
                 .where(table.getSourceColumnIndex(), sourceSymbolArrayId)
                 .where(table.getTargetColumnIndex(), targetSymbolArrayId)
+                .build();
+        return db.delete(query);
+    }
+
+    public static boolean deleteConversion(Database db, int sourceAlphabet, int targetAlphabet) {
+        final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
+                .where(table.getTargetAlphabetColumnIndex(), targetAlphabet)
+                .build();
+        return db.delete(query);
+    }
+
+    public static boolean deleteAlphabet(Database db, int alphabet) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getIdColumnIndex(), alphabet)
+                .build();
+        return db.delete(query);
+    }
+
+    public static boolean deleteAlphabetFromCorrelations(Database db, int alphabet) {
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getAlphabetColumnIndex(), alphabet)
+                .build();
+        return db.delete(query);
+    }
+
+    public static boolean deleteAlphabetFromStringQueries(Database db, int alphabet) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), alphabet)
                 .build();
         return db.delete(query);
     }
