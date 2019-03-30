@@ -72,6 +72,21 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    private static Integer selectOptionalFirstIntColumn(DbExporter.Database db, DbQuery query) {
+        Integer result = null;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                result = dbResult.next().get(0).toInt();
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError("Only 0 or 1 row was expected");
+            }
+        }
+
+        return result;
+    }
+
     public Integer findSymbolArray(String str) {
         return findSymbolArray(db, str);
     }
@@ -286,6 +301,25 @@ public final class LangbookReadableDatabase {
                         conversions.getTargetAlphabetColumnIndex());
 
         return db.select(query).map(row -> new ImmutableIntPair(row.get(0).toInt(), row.get(1).toInt())).toSet().toImmutable();
+    }
+
+    public static Integer findLanguageByCode(DbExporter.Database db, String code) {
+        final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getCodeColumnIndex(), code)
+                .select(table.getIdColumnIndex());
+
+        return selectOptionalFirstIntColumn(db, query);
+    }
+
+    public static ImmutableIntSet findAlphabetsByLanguage(DbExporter.Database db, int language) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getLanguageColumnIndex(), language)
+                .select(table.getIdColumnIndex());
+
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     public static ImmutableIntPairMap getConversionsMap(DbExporter.Database db) {

@@ -22,6 +22,7 @@ import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
@@ -43,6 +44,33 @@ import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationAr
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
 public final class LangbookDatabaseTest {
+
+    @Test
+    public void testAddFirstLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+        assertNotEquals(langPair.left, langPair.right);
+
+        assertEquals(langPair.left, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(1, alphabetSet.size());
+        assertEquals(langPair.right, alphabetSet.valueAt(0));
+    }
+
+    @Test
+    public void testAddSameLanguageTwice() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+        assertNull(LangbookDatabase.addLanguage(db, code));
+        assertNotEquals(langPair.left, langPair.right);
+
+        assertEquals(langPair.left, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(1, alphabetSet.size());
+        assertEquals(langPair.right, alphabetSet.valueAt(0));
+    }
 
     @Test
     public void testAddSpanishAcceptation() {

@@ -1096,4 +1096,27 @@ public final class LangbookDatabase {
         changed |= deleteAlphabet(db, alphabet);
         return changed;
     }
+
+    /**
+     * Add a new language for the given code.
+     *
+     * This method can return null if the language cannot be added,
+     * Usually because the code provided is not valid or already exists in the database.
+     *
+     * @param db Database where the language has to be included.
+     * @param code 2-char lowercase language code. Such as "es" for Spanish, "en" for English of "ja" for Japanese.
+     * @return A pair containing the language created concept in the left and its main alphabet on its right, or null if it cannot be added.
+     */
+    public static ImmutableIntPair addLanguage(Database db, String code) {
+        if (LangbookReadableDatabase.findLanguageByCode(db, code) != null) {
+            return null;
+        }
+
+        final int language = LangbookReadableDatabase.getMaxConcept(db) + 1;
+        final int alphabet = language + 1;
+        LangbookDbInserter.insertLanguage(db, language, code, alphabet);
+        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+
+        return new ImmutableIntPair(language, alphabet);
+    }
 }
