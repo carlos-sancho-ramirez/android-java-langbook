@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
+import static sword.langbook3.android.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
@@ -76,12 +77,9 @@ public final class LangbookDatabaseTest {
     public void testAddSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int concept = alphabet + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+        final ImmutableIntPair langPair = addLanguage(db, "es");
+        final int alphabet = langPair.right;
+        final int concept = getMaxConceptInAcceptations(db) + 1;
 
         final String text = "cantar";
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
@@ -235,14 +233,10 @@ public final class LangbookDatabaseTest {
     public void testAddAgentApplyingRule() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int gerund = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int gerund = getMaxConceptInAcceptations(db) + 1;
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final String verbText = "cantar";
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
@@ -303,16 +297,12 @@ public final class LangbookDatabaseTest {
     public void testAddAgentComposingBunch() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int arVerbConcept = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
         final int erVerbConcept = arVerbConcept + 1;
         final int verbConcept = erVerbConcept + 1;
         final int singConcept = erVerbConcept + 1;
         final int coughtConcept = singConcept + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final String singText = "cantar";
         final ImmutableIntKeyMap<String> singCorrelation = new ImmutableIntKeyMap.Builder<String>()
@@ -370,15 +360,11 @@ public final class LangbookDatabaseTest {
     private void checkAdd2ChainedAgents(boolean reversedAdditionOrder) {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int gerund = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int gerund = getMaxConceptInAcceptations(db) + 1;
         final int verbConcept = gerund + 1;
         final int arVerbConcept = verbConcept + 1;
         final int singConcept = arVerbConcept + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final String verbText = "cantar";
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
@@ -458,15 +444,11 @@ public final class LangbookDatabaseTest {
     private void checkAddAgentWithDiffBunch(boolean addAgentBeforeAcceptations) {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int arVerbConcept = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
         final int arEndingNounConcept = arVerbConcept + 1;
         final int singConcept = arEndingNounConcept + 1;
         final int palateConcept = singConcept + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final String singText = "cantar";
         final ImmutableIntKeyMap<String> singCorrelation = new ImmutableIntKeyMap.Builder<String>()
@@ -615,16 +597,12 @@ public final class LangbookDatabaseTest {
     public void testAdd3ChainedAgents() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int arVerbConcept = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
         final int singConcept = pluralRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
         final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(db, alphabet,
@@ -701,16 +679,12 @@ public final class LangbookDatabaseTest {
     public void testRemoveChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int arVerbConcept = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
         final int singConcept = pluralRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
         final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(db, alphabet,
@@ -737,16 +711,12 @@ public final class LangbookDatabaseTest {
     public void testRemoveAcceptationWithChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int arVerbConcept = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
         final int singConcept = pluralRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
         add3ChainedAgents(db, alphabet, arVerbConcept, actionConcept, nominalizationRule, pluralRule);
@@ -772,17 +742,13 @@ public final class LangbookDatabaseTest {
     public void testRemoveAcceptationWithBunchChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int verbConcept = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int verbConcept = getMaxConceptInAcceptations(db) + 1;
         final int arVerbConcept = verbConcept + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
         final int singConcept = pluralRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int acceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
         addAcceptationInBunch(db, verbConcept, acceptation);
@@ -811,9 +777,8 @@ public final class LangbookDatabaseTest {
     public void testAddAcceptationInBunchAndQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int kanjiAlphabet = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int kanjiAlphabet = getMaxConceptInAcceptations(db) + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -821,9 +786,6 @@ public final class LangbookDatabaseTest {
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
         final int singConcept = pluralRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int esAcceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
         addAcceptationInBunch(db, myVocabularyConcept, esAcceptation);
@@ -849,9 +811,8 @@ public final class LangbookDatabaseTest {
     public void testAddQuizAndAcceptationInBunch() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int kanjiAlphabet = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int kanjiAlphabet = getMaxConceptInAcceptations(db) + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -859,9 +820,6 @@ public final class LangbookDatabaseTest {
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
         final int singConcept = pluralRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int esAcceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
         final int jaAcceptation = addJapaneseSingAcceptation(db, kanjiAlphabet, kanaAlphabet, singConcept);
@@ -891,9 +849,8 @@ public final class LangbookDatabaseTest {
     public void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int kanjiAlphabet = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int kanjiAlphabet = getMaxConceptInAcceptations(db) + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -901,9 +858,6 @@ public final class LangbookDatabaseTest {
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
         final int singConcept = pluralRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int esAcceptation = addSpanishSingAcceptation(db, alphabet, singConcept);
 
@@ -921,12 +875,8 @@ public final class LangbookDatabaseTest {
     public void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int concept = alphabet + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+        final int alphabet = addLanguage(db, "es").right;
+        final int concept = getMaxConceptInAcceptations(db) + 1;
 
         final String text = "cantar";
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
@@ -954,14 +904,10 @@ public final class LangbookDatabaseTest {
     public void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int gerund = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int gerund = getMaxConceptInAcceptations(db) + 1;
         final int verbArConcept = gerund + 1;
         final int verbErConcept = verbArConcept + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final String verbArText = "verbo de primera conjugación";
         ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
@@ -1234,14 +1180,10 @@ public final class LangbookDatabaseTest {
         final String rightText = "cantar";
         final String rightGerundText = "cantando";
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int concept = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int concept = getMaxConceptInAcceptations(db) + 1;
         final int gerundRule = concept + 1;
         final int firstConjugationVerbBunch = gerundRule + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "es", alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
 
         final int wrongCorrelationArrayId = addSimpleCorrelationArray(db, alphabet, wrongText);
         final int acceptationId = addAcceptation(db, concept, wrongCorrelationArrayId);
