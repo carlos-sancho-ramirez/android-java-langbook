@@ -1650,18 +1650,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getIdColumnIndex(), alphabet)
                 .select(table.getLanguageColumnIndex());
 
-        Integer result = null;
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                result = dbResult.next().get(0).toInt();
-            }
-
-            if (dbResult.hasNext()) {
-                throw new AssertionError();
-            }
-        }
-
-        return result;
+        return selectOptionalFirstIntColumn(db, query);
     }
 
     public static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
@@ -2930,6 +2919,10 @@ public final class LangbookReadableDatabase {
         private final ImmutableMap<String, String> _map;
 
         public Conversion(int sourceAlphabet, int targetAlphabet, sword.collections.Map<String, String> map) {
+            if (sourceAlphabet == targetAlphabet) {
+                throw new IllegalArgumentException();
+            }
+
             _sourceAlphabet = sourceAlphabet;
             _targetAlphabet = targetAlphabet;
             _map = map.toImmutable().sort(LangbookReadableDatabase.conversionKeySortFunction);

@@ -85,6 +85,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAccept
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
+import static sword.langbook3.android.LangbookReadableDatabase.getLanguageFromAlphabet;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
@@ -1032,12 +1033,25 @@ public final class LangbookDatabase {
     /**
      * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.
      * This will trigger the update of any word where this conversion may apply.
+     * This will fail if the alphabets for the conversions are not existing or they do not belong to the same language.
      *
      * @param db Database where the conversion has to be replaces and where words related must be adjusted.
      * @param conversion New conversion to be included.
      * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
      */
     public static boolean replaceConversion(Database db, Conversion conversion) {
+        final int sourceAlphabet = conversion.getSourceAlphabet();
+        final int targetAlphabet = conversion.getTargetAlphabet();
+        final Integer languageObj = getLanguageFromAlphabet(db, sourceAlphabet);
+        if (languageObj == null) {
+            return false;
+        }
+
+        final Integer languageObj2 = getLanguageFromAlphabet(db, targetAlphabet);
+        if (languageObj2 == null || languageObj2.intValue() != languageObj.intValue()) {
+            return false;
+        }
+
         if (conversion.getMap().isEmpty()) {
             final Conversion oldConversion = getConversion(db, conversion.getAlphabets());
             if (oldConversion.getMap().isEmpty()) {
@@ -1048,6 +1062,7 @@ public final class LangbookDatabase {
                 return true;
             }
         }
+
         if (checkConversionConflicts(db, conversion)) {
             final Conversion oldConversion = updateJustConversion(db, conversion);
             if (oldConversion.getMap().isEmpty()) {

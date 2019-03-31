@@ -1067,10 +1067,10 @@ public final class LangbookDatabaseTest {
         final String text2 = "beber";
         final String text2UpperCase = "BEBER";
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int upperCaseAlphabet = alphabet + 1;
-        final int concept = upperCaseAlphabet + 1;
+        final ImmutableIntPair langPair = addLanguage(db, "es");
+        final int alphabet = langPair.right;
+        final int upperCaseAlphabet = addAlphabet(db, langPair.left);
+        final int concept = getMaxConcept(db) + 1;
         final int secondConjugationVerbBunch = concept + 1;
 
         replaceConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
@@ -1142,10 +1142,10 @@ public final class LangbookDatabaseTest {
         final String text2 = "beber";
         final String text2UpperCase = "BEBER";
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int upperCaseAlphabet = alphabet + 1;
-        final int concept = upperCaseAlphabet + 1;
+        final ImmutableIntPair langPair = addLanguage(db, "es");
+        final int alphabet = langPair.right;
+        final int upperCaseAlphabet = addAlphabet(db, langPair.left);
+        final int concept = getMaxConcept(db) + 1;
         final int firstConjugationVerbBunch = concept + 1;
 
         replaceConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
