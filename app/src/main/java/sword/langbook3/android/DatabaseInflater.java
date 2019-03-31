@@ -25,9 +25,9 @@ import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.database.DbQuery.concat;
-import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainRuledConcept;
+import static sword.langbook3.android.LangbookDatabase.obtainSimpleCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
@@ -191,7 +191,7 @@ public final class DatabaseInflater {
                 }
 
                 final int corrId = obtainCorrelation(_db, resultCorrIds);
-                final int corrArrayId = insertCorrelationArray(_db, corrId);
+                final int corrArrayId = obtainSimpleCorrelationArray(_db, corrId);
                 final int dynAccId = insertAcceptation(_db, newConcept, corrArrayId);
                 insertRuledAcceptation(_db, dynAccId, agentId, accId);
 

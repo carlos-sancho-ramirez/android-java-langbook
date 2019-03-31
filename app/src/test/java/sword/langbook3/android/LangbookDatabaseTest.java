@@ -8,6 +8,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
+import sword.collections.IntList;
 import sword.collections.List;
 import sword.collections.MutableHashMap;
 import sword.database.Database;
@@ -30,7 +31,9 @@ import static sword.langbook3.android.LangbookDatabase.addAgent;
 import static sword.langbook3.android.LangbookDatabase.addAlphabet;
 import static sword.langbook3.android.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
+import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
+import static sword.langbook3.android.LangbookDatabase.obtainSimpleCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
@@ -129,7 +132,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, text)
                 .build();
         final int correlationId = obtainCorrelation(db, correlation);
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
 
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -168,7 +171,7 @@ public final class LangbookDatabaseTest {
                 .build();
 
         final ImmutableIntList correlationIds = correlations.mapToInt(corr -> obtainCorrelation(db, corr));
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationIds);
+        final int correlationArrayId = obtainCorrelationArray(db, correlationIds);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
 
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -228,7 +231,7 @@ public final class LangbookDatabaseTest {
                 .build();
 
         final ImmutableIntList correlationIds = correlations.mapToInt(corr -> obtainCorrelation(db, corr));
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationIds);
+        final int correlationArrayId = obtainCorrelationArray(db, correlationIds);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
 
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -280,7 +283,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, verbText)
                 .build();
         final int correlationId = obtainCorrelation(db, correlation);
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
         LangbookDbInserter.insertBunchAcceptation(db, verbConcept, acceptation, 0);
 
@@ -346,7 +349,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, singText)
                 .build();
         final int singCorrelationId = obtainCorrelation(db, singCorrelation);
-        final int singCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, singCorrelationId);
+        final int singCorrelationArrayId = obtainSimpleCorrelationArray(db, singCorrelationId);
         final int singAcceptation = addAcceptation(db, singConcept, singCorrelationArrayId);
         LangbookDbInserter.insertBunchAcceptation(db, verbConcept, singAcceptation, 0);
 
@@ -355,7 +358,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, coughtText)
                 .build();
         final int coughtCorrelationId = obtainCorrelation(db, coughtCorrelation);
-        final int coughtCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, coughtCorrelationId);
+        final int coughtCorrelationArrayId = obtainSimpleCorrelationArray(db, coughtCorrelationId);
         final int coughtAcceptation = addAcceptation(db, coughtConcept, coughtCorrelationArrayId);
         LangbookDbInserter.insertBunchAcceptation(db, verbConcept, coughtAcceptation, 0);
 
@@ -408,7 +411,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, verbText)
                 .build();
         final int correlationId = obtainCorrelation(db, correlation);
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         final int acceptation = addAcceptation(db, singConcept, correlationArrayId);
         LangbookDbInserter.insertBunchAcceptation(db, verbConcept, acceptation, 0);
 
@@ -492,14 +495,14 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, singText)
                 .build();
         final int singCorrelationId = obtainCorrelation(db, singCorrelation);
-        final int singCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, singCorrelationId);
+        final int singCorrelationArrayId = obtainSimpleCorrelationArray(db, singCorrelationId);
 
         final String palateText = "paladar";
         final ImmutableIntKeyMap<String> palateCorrelation = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, palateText)
                 .build();
         final int palateCorrelationId = obtainCorrelation(db, palateCorrelation);
-        final int palateCorrelationArrayId = LangbookDatabase.insertCorrelationArray(db, palateCorrelationId);
+        final int palateCorrelationArrayId = obtainSimpleCorrelationArray(db, palateCorrelationId);
 
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
@@ -565,7 +568,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, text)
                 .build();
         final int correlationId = obtainCorrelation(db, correlation);
-        return LangbookDatabase.insertCorrelationArray(db, correlationId);
+        return obtainSimpleCorrelationArray(db, correlationId);
     }
 
     private static int addSpanishAcceptation(Database db, int alphabet, int concept, String text) {
@@ -591,7 +594,8 @@ public final class LangbookDatabaseTest {
                 .build();
         final int correlation1Id = obtainCorrelation(db, correlation1);
         final int correlation2Id = obtainCorrelation(db, correlation2);
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlation1Id, correlation2Id);
+        final ImmutableIntList array = new ImmutableIntList.Builder().append(correlation1Id).append(correlation2Id).build();
+        final int correlationArrayId = obtainCorrelationArray(db, array);
         return addAcceptation(db, concept, correlationArrayId);
     }
 
@@ -923,7 +927,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, text)
                 .build();
         final int correlationId = obtainCorrelation(db, correlation);
-        final int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
         assertTrue(getSearchHistory(db).isEmpty());
 
@@ -954,7 +958,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, verbArText)
                 .build();
         int correlationId = obtainCorrelation(db, correlation);
-        int correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         addAcceptation(db, verbArConcept, correlationArrayId);
 
         final String verbErText = "verbo de segunda conjugación";
@@ -962,7 +966,7 @@ public final class LangbookDatabaseTest {
                 .put(alphabet, verbErText)
                 .build();
         correlationId = obtainCorrelation(db, correlation);
-        correlationArrayId = LangbookDatabase.insertCorrelationArray(db, correlationId);
+        correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         addAcceptation(db, verbErConcept, correlationArrayId);
 
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();

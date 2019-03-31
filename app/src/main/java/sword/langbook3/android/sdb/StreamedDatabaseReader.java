@@ -16,6 +16,7 @@ import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
@@ -33,8 +34,8 @@ import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
-import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
+import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAgent;
@@ -366,11 +367,11 @@ public final class StreamedDatabaseReader {
             for (int i = 0; i < arraysLength; i++) {
                 final int arrayLength = ibs.readHuffmanSymbol(lengthTable);
 
-                int[] corrArray = new int[arrayLength];
+                final ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
                 for (int j = 0; j < arrayLength; j++) {
-                    corrArray[j] = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                    builder.add(correlationIdMap[ibs.readHuffmanSymbol(correlationTable)]);
                 }
-                result[i] = insertCorrelationArray(_db, corrArray);
+                result[i] = obtainCorrelationArray(_db, builder.build());
             }
         }
 

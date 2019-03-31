@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
@@ -85,6 +86,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsCo
 import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversionsMap;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.LangbookReadableDatabase.getLanguageFromAlphabet;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
@@ -129,27 +131,6 @@ public final class LangbookDatabase {
         }
 
         return id;
-    }
-
-    public static int insertCorrelationArray(DbImporter.Database db, int... correlation) {
-        final int maxArrayId = getMaxCorrelationArrayId(db);
-        final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
-        LangbookDbInserter.insertCorrelationArray(db, newArrayId, correlation);
-        return newArrayId;
-    }
-
-    public static int insertCorrelationArray(DbImporter.Database db, IntList correlations) {
-        final int[] values = new int[correlations.size()];
-        int index = 0;
-        for (int value : correlations) {
-            values[index++] = value;
-        }
-        return insertCorrelationArray(db, values);
-    }
-
-    public static int obtainCorrelationArray(DbImporter.Database db, IntList correlations) {
-        final Integer foundId = findCorrelationArray(db, correlations);
-        return (foundId == null) ? insertCorrelationArray(db, correlations) : foundId;
     }
 
     public static int insertBunchSet(DbImporter.Database db, IntSet bunchSet) {
@@ -356,7 +337,7 @@ public final class LangbookDatabase {
                     }
 
                     final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
-                    final int correlationArrayId = insertCorrelationArray(db, correlationId);
+                    final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
 
                     final int baseConcept = conceptFromAcceptation(db, acc);
                     final int ruledConcept = obtainRuledConcept(db, details.rule, baseConcept);
@@ -467,7 +448,7 @@ public final class LangbookDatabase {
                     }
 
                     final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
-                    final int correlationArrayId = insertCorrelationArray(db, correlationId);
+                    final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
 
                     final int baseConcept = conceptFromAcceptation(db, acc);
                     final int ruledConcept = obtainRuledConcept(db, agentDetails.rule, baseConcept);
@@ -1185,5 +1166,72 @@ public final class LangbookDatabase {
         }
 
         return obtainCorrelation(db, correlation.mapToInt(str -> obtainSymbolArray(db, str)));
+    }
+
+    /**
+     * Add a new correlation array to the database.
+     *
+     * Correlations composing a correlation array:
+     * <li>must contain alphabets from the same language in relation with other correlations.</li>
+     * <li>must not include alphabets that are target of a conversion.</li>
+     *
+     * In addition the resulting string of concatenating all symbol arrays must be fully convertible
+     * if its alphabets matches the source alphabet of an already entered conversion.
+     *
+     * This method will return null if any of the conditions said before cannot be achieved.
+     *
+     * @param db Database where the correlation array will be stored.
+     * @param correlations list of correlations to be entered.
+     * @return An identifier for the correlation array, or null if it cannot be inserted into the database.
+     */
+    public static Integer obtainCorrelationArray(DbImporter.Database db, IntList correlations) {
+        final Integer foundId = findCorrelationArray(db, correlations);
+        if (foundId != null) {
+            return foundId;
+        }
+
+        if (correlations.isEmpty()) {
+            return null;
+        }
+
+        final List<ImmutableIntKeyMap<String>> array = correlations.map(id -> getCorrelationWithText(db, id));
+        if (array.anyMatch(ImmutableIntKeyMap::isEmpty)) {
+            return null;
+        }
+
+        final ImmutableIntSet alphabets = array.map(ImmutableIntKeyMap::keySet).reduce(ImmutableIntSet::addAll);
+        if (!areAllAlphabetsFromSameLanguage(db, alphabets)) {
+            return null;
+        }
+
+        final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+        if (alphabets.anyMatch(conversionMap.keySet()::contains)) {
+            return null;
+        }
+
+        for (int alphabet : alphabets) {
+            final int index = conversionMap.indexOf(alphabet);
+            if (index >= 0) {
+                final int targetAlphabet = conversionMap.keyAt(index);
+                final Conversion conversion = getConversion(db, new ImmutableIntPair(alphabet, targetAlphabet));
+                final String sourceText = array.map(c -> c.get(alphabet, "")).reduce((a, b) -> a + b);
+                final String targetText = conversion.convert(sourceText);
+                if (targetText == null) {
+                    return null;
+                }
+            }
+        }
+
+        final int maxArrayId = getMaxCorrelationArrayId(db);
+        final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
+        LangbookDbInserter.insertCorrelationArray(db, newArrayId, correlations);
+        return newArrayId;
+    }
+
+    /**
+     * Shortcut for {@link #obtainCorrelationArray(DbImporter.Database, IntList)}.
+     */
+    public static Integer obtainSimpleCorrelationArray(DbImporter.Database db, int correlationId) {
+        return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 }

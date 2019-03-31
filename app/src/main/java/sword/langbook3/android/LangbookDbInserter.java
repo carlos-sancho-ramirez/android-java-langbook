@@ -1,8 +1,12 @@
 package sword.langbook3.android;
 
+import java.util.Iterator;
+
 import sword.collections.ImmutableIntRange;
+import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.IntTraverser;
 import sword.langbook3.android.LangbookDbSchema.Tables;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
@@ -77,19 +81,21 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertCorrelationArray(DbInserter db, int arrayId, int... correlation) {
-        if (correlation.length == 0) {
+    static void insertCorrelationArray(DbInserter db, int arrayId, IntList array) {
+        final IntTraverser iterator = array.iterator();
+        if (!array.iterator().hasNext()) {
             throw new IllegalArgumentException();
         }
 
         final LangbookDbSchema.CorrelationArraysTable table = Tables.correlationArrays;
-        final int arrayLength = correlation.length;
-        for (int i = 0; i < arrayLength; i++) {
+        for (int i = 0; iterator.hasNext(); i++) {
+            final int correlation = iterator.next();
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
                     .put(table.getArrayIdColumnIndex(), arrayId)
                     .put(table.getArrayPositionColumnIndex(), i)
-                    .put(table.getCorrelationColumnIndex(), correlation[i])
+                    .put(table.getCorrelationColumnIndex(), correlation)
                     .build();
+
             if (db.insert(query) == null) {
                 throw new AssertionError();
             }
