@@ -1626,6 +1626,23 @@ public final class LangbookReadableDatabase {
         return selectExistingRow(db, query);
     }
 
+    static boolean areAllAlphabetsFromSameLanguage(DbExporter.Database db, IntSet alphabets) {
+        final Integer language = getLanguageFromAlphabet(db, alphabets.valueAt(0));
+        if (language == null) {
+            return false;
+        }
+
+        final int size = alphabets.size();
+        for (int i = 1; i < size; i++) {
+            final Integer lang = getLanguageFromAlphabet(db, alphabets.valueAt(i));
+            if (lang == null || language.intValue() != lang.intValue()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static ImmutableIntSet alphabetsWithinLanguage(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final int offset = table.columns().size();

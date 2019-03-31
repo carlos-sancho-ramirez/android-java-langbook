@@ -18,11 +18,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
+import static sword.langbook3.android.LangbookDatabase.addAlphabet;
+import static sword.langbook3.android.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationFromText;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 
 public final class LangbookReadableDatabaseTest {
@@ -48,9 +51,8 @@ public final class LangbookReadableDatabaseTest {
     @Test
     public void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int alphabet = language + 1;
-        final int gerundRule = alphabet + 1;
+        final int alphabet = addLanguage(db, "es").right;
+        final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
         final int verbBunchId = pluralRule + 1;
         final int femaleNounBunchId = verbBunchId + 1;
@@ -100,10 +102,10 @@ public final class LangbookReadableDatabaseTest {
             final ImmutableList<String> textList = textListBuilder.build();
 
             final MemoryDatabase db = new MemoryDatabase();
-            final int language = getMaxConceptInAcceptations(db) + 1;
-            final int alphabet1 = language + 1;
-            final int alphabet2 = alphabet1 + 1;
-            final int concept1 = alphabet2 + 1;
+            final ImmutableIntPair langPair = addLanguage(db, "xx");
+            final int alphabet1 = langPair.right;
+            final int alphabet2 = addAlphabet(db, langPair.left);
+            final int concept1 = getMaxConcept(db) + 1;
             final int concept2 = concept1 + 1;
             final int concept3 = concept2 + 1;
 

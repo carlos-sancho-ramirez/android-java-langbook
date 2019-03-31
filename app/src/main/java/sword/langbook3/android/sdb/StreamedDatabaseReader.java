@@ -33,8 +33,8 @@ import sword.langbook3.android.LangbookDbSchema;
 import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
-import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAgent;
@@ -348,7 +348,7 @@ public final class StreamedDatabaseReader {
                 for (Map.Entry<Integer, Integer> entry : corrMap.entrySet()) {
                     corr.put(entry.getKey(), symbolArraysIdMap[entry.getValue()]);
                 }
-                result[i] = insertCorrelation(_db, corr);
+                result[i] = obtainCorrelation(_db, corr);
             }
         }
 

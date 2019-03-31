@@ -60,6 +60,7 @@ import static sword.langbook3.android.LangbookDeleter.deleteSpanBySymbolArrayId;
 import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.LangbookDeleter.deleteSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.alphabetsWithinLanguage;
+import static sword.langbook3.android.LangbookReadableDatabase.areAllAlphabetsFromSameLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.checkConversionConflicts;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
@@ -127,30 +128,6 @@ public final class LangbookDatabase {
         }
 
         return id;
-    }
-
-    public static int insertCorrelation(DbImporter.Database db, IntPairMap correlation) {
-        if (correlation.size() == 0) {
-            return StreamedDatabaseConstants.nullCorrelationId;
-        }
-
-        final int newCorrelationId = getMaxCorrelationId(db) + 1;
-        LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation);
-        return newCorrelationId;
-    }
-
-    public static int obtainCorrelation(DbImporter.Database db, IntPairMap correlation) {
-        final Integer id = findCorrelation(db, correlation);
-        return (id != null)? id : insertCorrelation(db, correlation);
-    }
-
-    public static int insertCorrelation(DbImporter.Database db, IntKeyMap<String> correlation) {
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-        for (IntKeyMap.Entry<String> entry : correlation.entries()) {
-            builder.put(entry.key(), obtainSymbolArray(db, entry.value()));
-        }
-
-        return insertCorrelation(db, builder.build());
     }
 
     public static int insertCorrelationArray(DbImporter.Database db, int... correlation) {
@@ -1030,53 +1007,6 @@ public final class LangbookDatabase {
         }
     }
 
-    /**
-     * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.
-     * This will trigger the update of any word where this conversion may apply.
-     * This will fail if the alphabets for the conversions are not existing or they do not belong to the same language.
-     *
-     * @param db Database where the conversion has to be replaces and where words related must be adjusted.
-     * @param conversion New conversion to be included.
-     * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
-     */
-    public static boolean replaceConversion(Database db, Conversion conversion) {
-        final int sourceAlphabet = conversion.getSourceAlphabet();
-        final int targetAlphabet = conversion.getTargetAlphabet();
-        final Integer languageObj = getLanguageFromAlphabet(db, sourceAlphabet);
-        if (languageObj == null) {
-            return false;
-        }
-
-        final Integer languageObj2 = getLanguageFromAlphabet(db, targetAlphabet);
-        if (languageObj2 == null || languageObj2.intValue() != languageObj.intValue()) {
-            return false;
-        }
-
-        if (conversion.getMap().isEmpty()) {
-            final Conversion oldConversion = getConversion(db, conversion.getAlphabets());
-            if (oldConversion.getMap().isEmpty()) {
-                return false;
-            }
-            else {
-                unapplyConversion(db, oldConversion);
-                return true;
-            }
-        }
-
-        if (checkConversionConflicts(db, conversion)) {
-            final Conversion oldConversion = updateJustConversion(db, conversion);
-            if (oldConversion.getMap().isEmpty()) {
-                applyConversion(db, conversion);
-            }
-            else {
-                updateStringQueryTableDueToConversionUpdate(db, conversion);
-            }
-            return true;
-        }
-
-        return false;
-    }
-
     public static boolean addAlphabet(Database db, int alphabet, int language) {
         if (LangbookReadableDatabase.isAlphabetPresent(db, alphabet)) {
             return false;
@@ -1154,5 +1084,101 @@ public final class LangbookDatabase {
         final int alphabet = getMaxConcept(db) + 1;
         insertAlphabet(db, alphabet, language);
         return alphabet;
+    }
+
+    /**
+     * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.
+     * This will trigger the update of any word where this conversion may apply.
+     * This will fail if the alphabets for the conversions are not existing or they do not belong to the same language.
+     *
+     * @param db Database where the conversion has to be replaces and where words related must be adjusted.
+     * @param conversion New conversion to be included.
+     * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
+     */
+    public static boolean replaceConversion(Database db, Conversion conversion) {
+        final int sourceAlphabet = conversion.getSourceAlphabet();
+        final int targetAlphabet = conversion.getTargetAlphabet();
+        final Integer languageObj = getLanguageFromAlphabet(db, sourceAlphabet);
+        if (languageObj == null) {
+            return false;
+        }
+
+        final Integer languageObj2 = getLanguageFromAlphabet(db, targetAlphabet);
+        if (languageObj2 == null || languageObj2.intValue() != languageObj.intValue()) {
+            return false;
+        }
+
+        if (conversion.getMap().isEmpty()) {
+            final Conversion oldConversion = getConversion(db, conversion.getAlphabets());
+            if (oldConversion.getMap().isEmpty()) {
+                return false;
+            }
+            else {
+                unapplyConversion(db, oldConversion);
+                return true;
+            }
+        }
+
+        if (checkConversionConflicts(db, conversion)) {
+            final Conversion oldConversion = updateJustConversion(db, conversion);
+            if (oldConversion.getMap().isEmpty()) {
+                applyConversion(db, conversion);
+            }
+            else {
+                updateStringQueryTableDueToConversionUpdate(db, conversion);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Add a new correlation to the database.
+     *
+     * This method will fail if the keys within the correlation map does not match valid alphabets,
+     * or alphabets are not from the same language.
+     *
+     * @param db Database where the correlation should be included.
+     * @param correlation IntPairMap whose keys are alphabets and values are symbol arrays identifiers.
+     * @return An identifier for the new correlation included, or null in case of error.
+     */
+    public static Integer obtainCorrelation(DbImporter.Database db, IntPairMap correlation) {
+        final Integer foundId = findCorrelation(db, correlation);
+        if (foundId != null) {
+            return foundId;
+        }
+
+        if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
+            return null;
+        }
+
+        final int newCorrelationId = getMaxCorrelationId(db) + 1;
+        LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation);
+        return newCorrelationId;
+    }
+
+    /**
+     * Add a new correlation to the database.
+     *
+     * This method will fail if the keys within the correlation map does not match valid alphabets,
+     * or alphabets are not from the same language.
+     *
+     * @param db Database where the correlation should be included.
+     * @param correlation IntKeyMap whose keys are alphabets and values are symbol arrays to be included as well.
+     * @return An identifier for the new correlation included, or null in case of error.
+     */
+    public static Integer obtainCorrelation(DbImporter.Database db, IntKeyMap<String> correlation) {
+        if (correlation.anyMatch(str -> findSymbolArray(db, str) == null)) {
+            if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
+                return null;
+            }
+
+            final int newCorrelationId = getMaxCorrelationId(db) + 1;
+            LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation.mapToInt(str -> obtainSymbolArray(db, str)));
+            return newCorrelationId;
+        }
+
+        return obtainCorrelation(db, correlation.mapToInt(str -> obtainSymbolArray(db, str)));
     }
 }

@@ -23,8 +23,8 @@ import sword.database.Database;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
-import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
@@ -283,7 +283,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         for (ImmutableIntKeyMap<String> correlation : array) {
             int id = _knownCorrelations.get(correlation, StreamedDatabaseConstants.nullCorrelationId);
             if (id == StreamedDatabaseConstants.nullCorrelationId) {
-                id = insertCorrelation(db, correlation);
+                id = obtainCorrelation(db, correlation);
                 correlationInserted = true;
             }
             arrayBuilder.add(id);

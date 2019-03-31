@@ -58,7 +58,7 @@ public final class LangbookDbInserter {
         db.insert(query);
     }
 
-    public static void insertCorrelation(DbInserter db, int correlationId, IntPairMap correlation) {
+    static void insertCorrelation(DbInserter db, int correlationId, IntPairMap correlation) {
         final int mapLength = correlation.size();
         if (mapLength == 0) {
             throw new IllegalArgumentException();
