@@ -33,6 +33,7 @@ import static sword.langbook3.android.DatabaseInflater.unapplyConversion;
 import static sword.langbook3.android.EqualUtils.equal;
 import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
+import static sword.langbook3.android.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
@@ -85,6 +86,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
@@ -93,6 +95,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.getSentenceMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetUsedInQuestions;
+import static sword.langbook3.android.LangbookReadableDatabase.isLanguagePresent;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
@@ -209,7 +212,7 @@ public final class LangbookDatabase {
     }
 
     public static int insertRuledConcept(DbImporter.Database db, int rule, int concept) {
-        final int ruledConcept = LangbookReadableDatabase.getMaxConcept(db) + 1;
+        final int ruledConcept = getMaxConcept(db) + 1;
         LangbookDbInserter.insertRuledConcept(db, ruledConcept, rule, concept);
         return ruledConcept;
     }
@@ -1064,7 +1067,7 @@ public final class LangbookDatabase {
             return false;
         }
 
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+        insertAlphabet(db, alphabet, language);
         return true;
     }
 
@@ -1112,11 +1115,29 @@ public final class LangbookDatabase {
             return null;
         }
 
-        final int language = LangbookReadableDatabase.getMaxConcept(db) + 1;
+        final int language = getMaxConcept(db) + 1;
         final int alphabet = language + 1;
         LangbookDbInserter.insertLanguage(db, language, code, alphabet);
-        LangbookDbInserter.insertAlphabet(db, alphabet, language);
+        insertAlphabet(db, alphabet, language);
 
         return new ImmutableIntPair(language, alphabet);
+    }
+
+    /**
+     * Add a new alphabet in the given database for the given language.
+     *
+     * @param db Database where the alphabet has to be included.
+     * @param language Language for the alphabet to be included.
+     * @return The new alphabet identifier, or null if the alphabet cannot be created,
+     *         usually due to a wrong language reference.
+     */
+    public static Integer addAlphabet(Database db, int language) {
+        if (!isLanguagePresent(db, language)) {
+            return null;
+        }
+
+        final int alphabet = getMaxConcept(db) + 1;
+        insertAlphabet(db, alphabet, language);
+        return alphabet;
     }
 }

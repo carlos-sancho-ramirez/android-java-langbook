@@ -87,6 +87,22 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    private static boolean selectExistingRow(DbExporter.Database db, DbQuery query) {
+        boolean result = false;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                dbResult.next();
+                result = true;
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError();
+            }
+        }
+
+        return result;
+    }
+
     public Integer findSymbolArray(String str) {
         return findSymbolArray(db, str);
     }
@@ -871,12 +887,33 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getIdColumnIndex());
     }
 
+    private static int getMaxLanguage(DbExporter.Database db) {
+        LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
+        return getColumnMax(db, table, table.getIdColumnIndex());
+    }
+
+    private static int getMaxAlphabet(DbExporter.Database db) {
+        LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        return getColumnMax(db, table, table.getIdColumnIndex());
+    }
+
     public static int getMaxConcept(DbExporter.Database db) {
         int max = getMaxConceptInAcceptations(db);
         int temp = getMaxConceptInRuledConcepts(db);
         if (temp > max) {
             max = temp;
         }
+
+        temp = getMaxLanguage(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxAlphabet(db);
+        if (temp > max) {
+            max = temp;
+        }
+
         return max;
     }
 
@@ -1571,25 +1608,22 @@ public final class LangbookReadableDatabase {
         return flags.toImmutable();
     }
 
+    static boolean isLanguagePresent(DbExporter.Database db, int language) {
+        final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), language)
+                .select(table.getIdColumnIndex());
+
+        return selectExistingRow(db, query);
+    }
+
     public static boolean isAlphabetPresent(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), alphabet)
                 .select(table.getIdColumnIndex());
 
-        boolean result = false;
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                dbResult.next();
-                result = true;
-            }
-
-            if (dbResult.hasNext()) {
-                throw new AssertionError();
-            }
-        }
-
-        return result;
+        return selectExistingRow(db, query);
     }
 
     public static ImmutableIntSet alphabetsWithinLanguage(DbExporter.Database db, int alphabet) {

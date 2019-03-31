@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
+import static sword.langbook3.android.LangbookDatabase.addAlphabet;
 import static sword.langbook3.android.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.LangbookDatabase.insertCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
@@ -71,6 +72,47 @@ public final class LangbookDatabaseTest {
         final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
         assertEquals(1, alphabetSet.size());
         assertEquals(langPair.right, alphabetSet.valueAt(0));
+    }
+
+    @Test
+    public void testAddAlphabet() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+        final int secondAlphabet = addAlphabet(db, language);
+        assertNotEquals(language, secondAlphabet);
+        assertNotEquals(mainAlphabet, secondAlphabet);
+
+        assertEquals(langPair.left, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(2, alphabetSet.size());
+        assertTrue(alphabetSet.contains(mainAlphabet));
+        assertTrue(alphabetSet.contains(secondAlphabet));
+    }
+
+    @Test
+    public void testAddAlphabetTwice() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+        final int secondAlphabet = addAlphabet(db, language);
+        final int thirdAlphabet = addAlphabet(db, language);
+        assertNotEquals(language, thirdAlphabet);
+        assertNotEquals(mainAlphabet, thirdAlphabet);
+        assertNotEquals(secondAlphabet, thirdAlphabet);
+
+        assertEquals(langPair.left, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(3, alphabetSet.size());
+        assertTrue(alphabetSet.contains(mainAlphabet));
+        assertTrue(alphabetSet.contains(secondAlphabet));
+        assertTrue(alphabetSet.contains(thirdAlphabet));
     }
 
     @Test
