@@ -39,6 +39,7 @@ import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelat
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllMatchingBunches;
@@ -121,7 +122,7 @@ public final class LangbookDatabaseTest {
 
         final ImmutableIntPair langPair = addLanguage(db, "es");
         final int alphabet = langPair.right;
-        final int concept = getMaxConceptInAcceptations(db) + 1;
+        final int concept = getMaxConcept(db) + 1;
 
         final String text = "cantar";
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
@@ -149,14 +150,11 @@ public final class LangbookDatabaseTest {
     public void testAddJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int kanji = language + 1;
-        final int kana = kanji + 1;
-        final int concept = kana + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "ja", kanji);
-        LangbookDbInserter.insertAlphabet(db, kanji, language);
-        LangbookDbInserter.insertAlphabet(db, kana, language);
+        final ImmutableIntPair langPair = addLanguage(db, "ja");
+        final int language = langPair.left;
+        final int kanji = langPair.right;
+        final int kana = addAlphabet(db, language);
+        final int concept = getMaxConcept(db) + 1;
 
         final ImmutableList<ImmutableIntKeyMap<String>> correlations = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
                 .add(new ImmutableIntKeyMap.Builder<String>()
@@ -201,15 +199,12 @@ public final class LangbookDatabaseTest {
     public void testAddJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final int language = getMaxConceptInAcceptations(db) + 1;
-        final int kanji = language + 1;
-        final int kana = kanji + 1;
-        final int roumaji = kana + 1;
-        final int concept = roumaji + 1;
-
-        LangbookDbInserter.insertLanguage(db, language, "ja", kanji);
-        LangbookDbInserter.insertAlphabet(db, kanji, language);
-        LangbookDbInserter.insertAlphabet(db, kana, language);
+        final ImmutableIntPair langPair = addLanguage(db, "ja");
+        final int language = langPair.left;
+        final int kanji = langPair.right;
+        final int kana = addAlphabet(db, language);
+        final int roumaji = addAlphabet(db, language);
+        final int concept = getMaxConcept(db) + 1;
 
         final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
                 .put("あ", "a")
@@ -276,7 +271,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int gerund = getMaxConceptInAcceptations(db) + 1;
+        final int gerund = getMaxConcept(db) + 1;
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
 
@@ -640,7 +635,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
+        final int arVerbConcept = getMaxConcept(db) + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
@@ -722,7 +717,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
+        final int arVerbConcept = getMaxConcept(db) + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
@@ -754,7 +749,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int arVerbConcept = getMaxConceptInAcceptations(db) + 1;
+        final int arVerbConcept = getMaxConcept(db) + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
         final int pluralRule = nominalizationRule + 1;
@@ -785,7 +780,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int verbConcept = getMaxConceptInAcceptations(db) + 1;
+        final int verbConcept = getMaxConcept(db) + 1;
         final int arVerbConcept = verbConcept + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -820,7 +815,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int kanjiAlphabet = getMaxConceptInAcceptations(db) + 1;
+        final int kanjiAlphabet = getMaxConcept(db) + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -854,7 +849,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int kanjiAlphabet = getMaxConceptInAcceptations(db) + 1;
+        final int kanjiAlphabet = getMaxConcept(db) + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -892,7 +887,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int kanjiAlphabet = getMaxConceptInAcceptations(db) + 1;
+        final int kanjiAlphabet = getMaxConcept(db) + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -918,7 +913,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int concept = getMaxConceptInAcceptations(db) + 1;
+        final int concept = getMaxConcept(db) + 1;
 
         final String text = "cantar";
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
@@ -947,7 +942,7 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final int gerund = getMaxConceptInAcceptations(db) + 1;
+        final int gerund = getMaxConcept(db) + 1;
         final int verbArConcept = gerund + 1;
         final int verbErConcept = verbArConcept + 1;
 
