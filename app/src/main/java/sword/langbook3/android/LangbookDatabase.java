@@ -99,6 +99,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBu
 import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.LangbookReadableDatabase.isLanguagePresent;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
+import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayPresent;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
 import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationArrayTextAndItsAppliedConversions;
@@ -1137,7 +1138,7 @@ public final class LangbookDatabase {
      * Add a new correlation to the database.
      *
      * This method will fail if the keys within the correlation map does not match valid alphabets,
-     * or alphabets are not from the same language.
+     * alphabets are not from the same language, or any of the symbol array reference is wrong.
      *
      * @param db Database where the correlation should be included.
      * @param correlation IntPairMap whose keys are alphabets and values are symbol arrays identifiers.
@@ -1150,6 +1151,10 @@ public final class LangbookDatabase {
         }
 
         if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
+            return null;
+        }
+
+        if (correlation.anyMatch(strId -> !isSymbolArrayPresent(db, strId))) {
             return null;
         }
 

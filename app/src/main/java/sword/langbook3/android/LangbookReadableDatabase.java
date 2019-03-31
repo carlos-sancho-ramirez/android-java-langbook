@@ -1608,6 +1608,15 @@ public final class LangbookReadableDatabase {
         return flags.toImmutable();
     }
 
+    static boolean isSymbolArrayPresent(DbExporter.Database db, int symbolArray) {
+        final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), symbolArray)
+                .select(table.getIdColumnIndex());
+
+        return selectExistingRow(db, query);
+    }
+
     static boolean isLanguagePresent(DbExporter.Database db, int language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbQuery query = new DbQuery.Builder(table)
