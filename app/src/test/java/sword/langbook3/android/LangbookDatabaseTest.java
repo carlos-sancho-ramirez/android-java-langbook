@@ -5,10 +5,10 @@ import org.junit.Test;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
-import sword.collections.IntList;
 import sword.collections.List;
 import sword.collections.MutableHashMap;
 import sword.database.Database;
@@ -42,6 +42,8 @@ import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelat
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
+import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
@@ -117,6 +119,68 @@ public final class LangbookDatabaseTest {
         assertTrue(alphabetSet.contains(mainAlphabet));
         assertTrue(alphabetSet.contains(secondAlphabet));
         assertTrue(alphabetSet.contains(thirdAlphabet));
+    }
+
+    @Test
+    public void testObtainCorrelationWithTextForSingleAlphabetLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final int alphabet = LangbookDatabase.addLanguage(db, "es").right;
+
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "casa")
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        final ImmutableIntKeyMap<String> given = getCorrelationWithText(db, correlationId);
+        assertTrue(correlation.equalMap(given));
+    }
+
+    @Test
+    public void testObtainCorrelationWithTextForSingleAlphabetLanguageTwice() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final int alphabet = LangbookDatabase.addLanguage(db, "es").right;
+
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "casa")
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        assertEquals(correlationId, obtainCorrelation(db, correlation).intValue());
+
+        final ImmutableIntKeyMap<String> given = getCorrelationWithText(db, correlationId);
+        assertTrue(correlation.equalMap(given));
+    }
+
+    @Test
+    public void testObtainCorrelationWithTextForMultipleAlphabetLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
+        final int kanji = langPair.right;
+        final int kana = addAlphabet(db, langPair.left);
+
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(kanji, "心")
+                .put(kana, "こころ")
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        final ImmutableIntKeyMap<String> given = getCorrelationWithText(db, correlationId);
+        assertTrue(correlation.equalMap(given));
+    }
+
+    @Test
+    public void testObtainCorrelationWithTextForMultipleAlphabetLanguageTwice() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
+        final int kanji = langPair.right;
+        final int kana = addAlphabet(db, langPair.left);
+
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(kanji, "心")
+                .put(kana, "こころ")
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        assertEquals(correlationId, obtainCorrelation(db, correlation).intValue());
+
+        final ImmutableIntKeyMap<String> given = getCorrelationWithText(db, correlationId);
+        assertTrue(correlation.equalMap(given));
     }
 
     @Test
