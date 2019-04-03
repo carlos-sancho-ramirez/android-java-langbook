@@ -83,6 +83,10 @@
 
         <activity
             android:name=".ConversionEditorActivity"/>
+
+        <activity
+            android:name=".LanguageAdderActivity"
+            android:label="@string/languageAdderActivityTitle"/>
     </application>
 
 </manifest>

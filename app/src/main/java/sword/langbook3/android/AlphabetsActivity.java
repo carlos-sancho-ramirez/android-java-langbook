@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -22,6 +24,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAccept
 public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener {
 
     private static final int REQUEST_CODE_NEW_ALPHABET = 1;
+    private static final int REQUEST_CODE_NEW_LANGUAGE = 2;
 
     private interface SavedKeys {
         String ALPHABET_TO_REMOVE = "atr";
@@ -76,6 +79,24 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         if (_alphabetToRemove != 0) {
             showDeleteConfirmationDialog();
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.alphabets_activity, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menuItemAdd:
+                LanguageAdderActivity.open(this, REQUEST_CODE_NEW_LANGUAGE);
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     private void showDeleteConfirmationDialog() {

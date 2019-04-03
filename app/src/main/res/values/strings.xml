@@ -139,4 +139,14 @@
     <string name="noChangeRequired">Nothing to change</string>
     <string name="checkConversionButtonText">Check</string>
     <string name="addAlphabetButtonText">Add</string>
+
+    <!-- Language adder -->
+    <string name="languageCodeLabel">Language code</string>
+    <string name="languageCodeHint">\'es\' for Spanish or \'en\' for English</string>
+    <string name="languageAlphabetCountLabel">Number of alphabets</string>
+    <string name="languageAdderNextButton">Next</string>
+    <string name="languageAdderBadLanguageCode">Wrong language code</string>
+    <string name="languageAdderBadAlphabetCount">Wrong number of alphabets</string>
+    <string name="languageAdderActivityTitle">New language details</string>
+    <string name="languageAdderLanguageCodeInUse">Language code already in use</string>
 </resources>

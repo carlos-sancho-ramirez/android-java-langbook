@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/languageCodeLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/languageCodeLabel"/>
+
+    <EditText
+        android:id="@+id/languageCodeValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/languageCodeLabel"
+        android:maxLines="1"
+        android:inputType="textNoSuggestions"
+        android:hint="@string/languageCodeHint"/>
+
+    <TextView
+        android:id="@+id/languageAlphabetCountLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/languageAlphabetCountLabel"/>
+
+    <EditText
+        android:id="@+id/languageAlphabetCountValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/languageAlphabetCountLabel"
+        android:maxLines="1"
+        android:inputType="number"
+        android:text="1"
+        android:selectAllOnFocus="true"/>
+
+    <Button
+        android:id="@+id/nextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/languageAdderNextButton"/>
+</LinearLayout>
