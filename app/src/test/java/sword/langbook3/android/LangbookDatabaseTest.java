@@ -34,6 +34,7 @@ import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
 import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.LangbookDatabase.obtainSimpleCorrelationArray;
+import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
@@ -119,6 +120,68 @@ public final class LangbookDatabaseTest {
         assertTrue(alphabetSet.contains(mainAlphabet));
         assertTrue(alphabetSet.contains(secondAlphabet));
         assertTrue(alphabetSet.contains(thirdAlphabet));
+    }
+
+    @Test
+    public void testObtainCorrelationForSingleAlphabetLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final int alphabet = LangbookDatabase.addLanguage(db, "es").right;
+
+        final ImmutableIntPairMap correlation = new ImmutableIntPairMap.Builder()
+                .put(alphabet, obtainSymbolArray(db, "casa"))
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        final ImmutableIntPairMap given = getCorrelation(db, correlationId);
+        assertTrue(correlation.equalMap(given));
+    }
+
+    @Test
+    public void testObtainCorrelationForSingleAlphabetLanguageTwice() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final int alphabet = LangbookDatabase.addLanguage(db, "es").right;
+
+        final ImmutableIntPairMap correlation = new ImmutableIntPairMap.Builder()
+                .put(alphabet, obtainSymbolArray(db, "casa"))
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        assertEquals(correlationId, obtainCorrelation(db, correlation).intValue());
+
+        final ImmutableIntPairMap given = getCorrelation(db, correlationId);
+        assertTrue(correlation.equalMap(given));
+    }
+
+    @Test
+    public void testObtainCorrelationForMultipleAlphabetLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
+        final int kanji = langPair.right;
+        final int kana = addAlphabet(db, langPair.left);
+
+        final ImmutableIntPairMap correlation = new ImmutableIntPairMap.Builder()
+                .put(kanji, obtainSymbolArray(db, "心"))
+                .put(kana, obtainSymbolArray(db, "こころ"))
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        final ImmutableIntPairMap given = getCorrelation(db, correlationId);
+        assertTrue(correlation.equalMap(given));
+    }
+
+    @Test
+    public void testObtainCorrelationForMultipleAlphabetLanguageTwice() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
+        final int kanji = langPair.right;
+        final int kana = addAlphabet(db, langPair.left);
+
+        final ImmutableIntPairMap correlation = new ImmutableIntPairMap.Builder()
+                .put(kanji, obtainSymbolArray(db, "心"))
+                .put(kana, obtainSymbolArray(db, "こころ"))
+                .build();
+        final int correlationId = obtainCorrelation(db, correlation);
+        assertEquals(correlationId, obtainCorrelation(db, correlation).intValue());
+
+        final ImmutableIntPairMap given = getCorrelation(db, correlationId);
+        assertTrue(correlation.equalMap(given));
     }
 
     @Test
