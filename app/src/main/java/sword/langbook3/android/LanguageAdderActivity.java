@@ -7,9 +7,12 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import sword.collections.ImmutableIntRange;
 import sword.database.Database;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
+
+    private static final int REQUEST_CODE_NAME_LANGUAGE = 1;
 
     public static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, LanguageAdderActivity.class);
@@ -43,7 +46,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         }
 
         final Database db = DbManager.getInstance().getDatabase();
-        final String errorMessage;
+        String errorMessage = null;
         if (!code.matches("[a-z][a-z]")) {
             errorMessage = getString(R.string.languageAdderBadLanguageCode);
         }
@@ -53,10 +56,15 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         else if (LangbookReadableDatabase.findLanguageByCode(db, code) != null) {
             errorMessage = getString(R.string.languageAdderLanguageCodeInUse);
         }
-        else {
-            errorMessage = "Unimplemented";
-        }
 
-        Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+        final int languageId = LangbookReadableDatabase.getMaxConcept(db) + 1;
+        final ImmutableIntRange alphabets = new ImmutableIntRange(languageId + 1, languageId + alphabetCount);
+
+        if (errorMessage == null) {
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, alphabets, languageId);
+        }
+        else {
+            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+        }
     }
 }

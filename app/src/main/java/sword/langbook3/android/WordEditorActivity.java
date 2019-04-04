@@ -15,10 +15,12 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
+import sword.collections.IntSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
@@ -39,6 +41,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     interface ArgKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
+        String ALPHABETS = BundleKeys.ALPHABETS;
         String CONCEPT = BundleKeys.CONCEPT;
         String LANGUAGE = BundleKeys.LANGUAGE;
         String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
@@ -75,6 +78,20 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         activity.startActivityForResult(intent, requestCode);
     }
 
+    public static void open(Activity activity, int requestCode, IntSet alphabets, int concept) {
+        final Intent intent = new Intent(activity, WordEditorActivity.class);
+        intent.putExtra(ArgKeys.CONCEPT, concept);
+
+        final int alphabetCount = alphabets.size();
+        final int[] alphabetArray = new int[alphabetCount];
+        for (int i = 0; i < alphabetCount; i++) {
+            alphabetArray[i] = alphabets.valueAt(i);
+        }
+
+        intent.putExtra(ArgKeys.ALPHABETS, alphabetArray);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     public static void open(Activity activity, int requestCode, int acceptation) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
@@ -89,6 +106,16 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             this.sourceField = sourceField;
             this.conversion = conversion;
         }
+    }
+
+    private ImmutableIntSet getAlphabets() {
+        final int[] alphabets = getIntent().getIntArrayExtra(ArgKeys.ALPHABETS);
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        for (int alphabet : alphabets) {
+            builder.add(alphabet);
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -200,13 +227,17 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
         }
 
-        if (language == 0) {
-            throw new AssertionError();
-        }
-
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableIntKeyMap<String> fieldNames = readAlphabetsForLanguage(db, language, preferredAlphabet);
-        final ImmutableIntPairMap fieldConversions = findConversions(db, fieldNames.keySet());
+        final ImmutableIntKeyMap<String> fieldNames;
+        final ImmutableIntPairMap fieldConversions;
+        if (language == 0) {
+            fieldNames = getAlphabets().assign(alphabet -> "");
+            fieldConversions = ImmutableIntPairMap.empty();
+        }
+        else {
+            fieldNames = readAlphabetsForLanguage(db, language, preferredAlphabet);
+            fieldConversions = findConversions(db, fieldNames.keySet());
+        }
 
         final LayoutInflater inflater = getLayoutInflater();
         final int fieldCount = fieldNames.size();

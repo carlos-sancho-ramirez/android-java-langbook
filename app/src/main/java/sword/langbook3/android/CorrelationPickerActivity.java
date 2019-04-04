@@ -56,6 +56,20 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> _options;
     private ImmutableIntValueMap<ImmutableIntKeyMap<String>> _knownCorrelations;
 
+    /**
+     * Opens the correlation picker in order to build a new correlation array.
+     *
+     * This will open a {@link MatchingBunchesPickerActivity} as the following step.
+     * This activity takes the responsibility to insert into the database a new acceptation with the concept provided, or a new concept if none was provided.
+     * The resulting new acceptation identifier will be returned.
+     *
+     * This activity will also take responsibility to insert the resulting acceptation into any bunch selected on {@link sword.langbook3.android.MatchingBunchesPickerActivity}.
+     *
+     * @param activity Activity that opens this activity.
+     * @param requestCode Request code that will be used on {@link Activity#onActivityResult(int, int, android.content.Intent)}.
+     * @param concept Optional concept where this correlation array will be attached to, or {@link #NO_CONCEPT} if none.
+     * @param texts Texts entered by the user in the WordEditorActivity.
+     */
     public static void open(Activity activity, int requestCode, int concept, IntKeyMap<String> texts) {
         final int mapSize = texts.size();
         final int[] alphabets = new int[mapSize];
@@ -78,6 +92,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     /**
      * Opens the correlation picker activity assuming that its editing an existing acceptation correlation array.
+     *
+     * This class will take the responsibility to update the array into the database for the given acceptation before returning back.
      * @param activity Activity that opens this activity.
      * @param requestCode Request code that will be used on {@link Activity#onActivityResult(int, int, android.content.Intent)}.
      * @param texts Texts entered by the user in the WordEditorActivity.
