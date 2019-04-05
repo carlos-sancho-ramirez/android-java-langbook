@@ -181,6 +181,22 @@ public final class LangbookDeleter {
         return db.delete(query);
     }
 
+    public static boolean deleteLanguage(Database db, int language) {
+        final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getIdColumnIndex(), language)
+                .build();
+        return db.delete(query);
+    }
+
+    public static boolean deleteAlphabetsForLanguage(Database db, int language) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getLanguageColumnIndex(), language)
+                .build();
+        return db.delete(query);
+    }
+
     public static boolean deleteAlphabet(Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)

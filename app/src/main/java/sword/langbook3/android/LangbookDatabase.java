@@ -1050,6 +1050,30 @@ public final class LangbookDatabase {
         return new ImmutableIntPair(language, alphabet);
     }
 
+    // TODO: Test this method
+    public static boolean removeLanguage(Database db, int language) {
+        final ImmutableIntSet correlationIds = LangbookReadableDatabase.findCorrelationsByLanguage(db, language);
+        final ImmutableIntSet correlationUsedInAgents = LangbookReadableDatabase.findCorrelationsUsedInAgents(db);
+
+        // For now, if there are agents using affected correlations. This rejects to remove the language
+        if (!correlationIds.filter(correlationUsedInAgents::contains).isEmpty()) {
+            return false;
+        }
+
+        final ImmutableIntSet acceptationIds = LangbookReadableDatabase.findAcceptationsByLanguage(db, language);
+        for (int acceptation : acceptationIds) {
+            if (!removeAcceptation(db, acceptation)) {
+                throw new AssertionError();
+            }
+        }
+
+        if (!LangbookDeleter.deleteAlphabetsForLanguage(db, language) || !LangbookDeleter.deleteLanguage(db, language)) {
+            throw new AssertionError();
+        }
+
+        return true;
+    }
+
     /**
      * Add a new alphabet in the given database for the given language.
      *

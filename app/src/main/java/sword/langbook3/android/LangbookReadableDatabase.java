@@ -103,6 +103,56 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    public static ImmutableIntSet findCorrelationsByLanguage(DbExporter.Database db, int language) {
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final int offset = correlations.columns().size();
+        final DbQuery query = new DbQuery.Builder(correlations)
+                .join(alphabets, correlations.getAlphabetColumnIndex(), alphabets.getIdColumnIndex())
+                .where(offset + alphabets.getLanguageColumnIndex(), language)
+                .select(correlations.getCorrelationIdColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    public static ImmutableIntSet findCorrelationsUsedInAgents(DbExporter.Database db) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(agents)
+                .select(agents.getStartMatcherColumnIndex(), agents.getEndMatcherColumnIndex(),
+                        agents.getStartAdderColumnIndex(), agents.getEndAdderColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                List<DbValue> row = dbResult.next();
+                for (int i = 0; i < 4; i++) {
+                    builder.add(row.get(i).toInt());
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
+    public static ImmutableIntSet findAcceptationsByLanguage(DbExporter.Database db, int language) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final int offset = strings.columns().size();
+        final DbQuery query = new DbQuery.Builder(strings)
+                .join(alphabets, strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
+                .where(offset + alphabets.getLanguageColumnIndex(), language)
+                .select(strings.getDynamicAcceptationColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                builder.add(dbResult.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     public Integer findSymbolArray(String str) {
         return findSymbolArray(db, str);
     }

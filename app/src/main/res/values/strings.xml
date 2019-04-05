@@ -134,6 +134,8 @@
     <string name="includeAlphabetFeedback">Alphabet included</string>
     <string name="includeAlphabetKo">Unable to include alphabet</string>
     <string name="removeAlphabetFeedback">Alphabet removed</string>
+    <string name="removeLanguageFeedback">Language removed</string>
+    <string name="removeLanguageKo">Unable to remove</string>
 
     <string name="conversionEditorSourceLabel">From</string>
     <string name="conversionEditorTargetLabel">To</string>

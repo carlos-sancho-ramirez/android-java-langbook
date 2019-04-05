@@ -202,20 +202,29 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
+        final Database db = DbManager.getInstance().getDatabase();
         if (_alphabetToRemove != 0) {
             final int alphabet = _alphabetToRemove;
             _alphabetToRemove = 0;
 
-            if (!LangbookDatabase.removeAlphabet(DbManager.getInstance().getDatabase(), alphabet)) {
+            if (!LangbookDatabase.removeAlphabet(db, alphabet)) {
                 throw new AssertionError();
             }
 
             Toast.makeText(this, R.string.removeAlphabetFeedback, Toast.LENGTH_SHORT).show();
             updateUi();
         }
-        else {
+        else if (_languageToRemove != 0) {
+            final int language = _languageToRemove;
             _languageToRemove = 0;
-            Toast.makeText(this, "Unimplemented", Toast.LENGTH_SHORT).show();
+
+            if (LangbookDatabase.removeLanguage(db, language)) {
+                Toast.makeText(this, R.string.removeLanguageFeedback, Toast.LENGTH_SHORT).show();
+                updateUi();
+            }
+            else {
+                Toast.makeText(this, R.string.removeLanguageKo, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
