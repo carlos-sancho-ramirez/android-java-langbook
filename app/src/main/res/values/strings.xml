@@ -149,4 +149,5 @@
     <string name="languageAdderBadAlphabetCount">Wrong number of alphabets</string>
     <string name="languageAdderActivityTitle">New language details</string>
     <string name="languageAdderLanguageCodeInUse">Language code already in use</string>
+    <string name="addLanguageFeedback">Language added</string>
 </resources>

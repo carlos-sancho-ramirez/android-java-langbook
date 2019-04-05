@@ -11,6 +11,7 @@ public interface BundleKeys {
     String CONCEPT_USED = "conceptUsed";
     String CONFIRM_ONLY = "cO";
     String CORRELATION = "cId";
+    String CORRELATION_ARRAY = "cArray";
     String DYNAMIC_ACCEPTATION = "da";
     String GOOD_ANSWER_COUNT = "goodAnswer";
     String LANGUAGE = "language";

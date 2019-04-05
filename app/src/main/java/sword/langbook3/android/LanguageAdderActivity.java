@@ -7,20 +7,26 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntRange;
 import sword.database.Database;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_NAME_LANGUAGE = 1;
+    private static final int REQUEST_CODE_NAME_ALPHABET = 2;
 
     public static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, LanguageAdderActivity.class);
         activity.startActivityForResult(intent, requestCode);
     }
 
+    private interface SavedKeys {
+        String STATE = "st";
+    }
+
     private EditText _codeField;
     private EditText _alphabetCountField;
+
+    private LanguageAdderActivityState _state;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -30,6 +36,38 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         _codeField = findViewById(R.id.languageCodeValue);
         _alphabetCountField = findViewById(R.id.languageAlphabetCountValue);
         findViewById(R.id.nextButton).setOnClickListener(this);
+
+        if (savedInstanceState != null) {
+            _state = savedInstanceState.getParcelable(SavedKeys.STATE);
+        }
+        else {
+            _state = new LanguageAdderActivityState();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_NAME_LANGUAGE && resultCode == RESULT_OK) {
+            final ParcelableCorrelationArray parcelableArray = data.getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
+            _state.setLanguageCorrelationArray(parcelableArray.get());
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, _state.getAlphabets(), _state.getCurrentConcept());
+        }
+        else if (requestCode == REQUEST_CODE_NAME_ALPHABET && resultCode == RESULT_OK) {
+            final ParcelableCorrelationArray parcelableArray = data.getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
+            _state.setNextAlphabetCorrelationArray(parcelableArray.get());
+
+            if (_state.missingAlphabetCorrelationArray()) {
+                WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, _state.getAlphabets(), _state.getCurrentConcept());
+            }
+            else {
+                final Database db = DbManager.getInstance().getDatabase();
+                _state.storeIntoDatabase(db);
+
+                Toast.makeText(this, R.string.addLanguageFeedback, Toast.LENGTH_SHORT).show();
+                setResult(RESULT_OK);
+                finish();
+            }
+        }
     }
 
     @Override
@@ -58,13 +96,18 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         }
 
         final int languageId = LangbookReadableDatabase.getMaxConcept(db) + 1;
-        final ImmutableIntRange alphabets = new ImmutableIntRange(languageId + 1, languageId + alphabetCount);
 
         if (errorMessage == null) {
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, alphabets, languageId);
+            _state.setBasicDetails(code, languageId, alphabetCount);
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, _state.getAlphabets(), languageId);
         }
         else {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putParcelable(SavedKeys.STATE, _state);
     }
 }

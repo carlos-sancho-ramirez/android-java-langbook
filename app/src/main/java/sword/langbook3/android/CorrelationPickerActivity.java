@@ -48,6 +48,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
+        String CORRELATION_ARRAY = BundleKeys.CORRELATION_ARRAY;
     }
 
     private int _selection = ListView.INVALID_POSITION;
@@ -291,6 +292,11 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
+    private boolean allValidAlphabets(Database db, IntKeyMap<String> texts) {
+        final ImmutableSet<Integer> languages = texts.toImmutable().keySet().map(alphabet -> LangbookReadableDatabase.getLanguageFromAlphabet(db, alphabet)).toSet();
+        return !languages.anyMatch(lang -> lang == null) && languages.size() == 1;
+    }
+
     private int addCorrelationArray(Database db) {
         ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
         final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
@@ -320,16 +326,26 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         if (requestCode == REQUEST_CODE_PICK_BUNCHES && resultCode == RESULT_OK && data != null) {
             final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
             final Database db = DbManager.getInstance().getDatabase();
-            final int accId = addAcceptation(db);
-            for (int bunch : bunchSet) {
-                addAcceptationInBunch(db, bunch, accId);
-            }
-            Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
+            if (allValidAlphabets(db, getTexts())) {
+                final int accId = addAcceptation(db);
+                for (int bunch : bunchSet) {
+                    addAcceptationInBunch(db, bunch, accId);
+                }
+                Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
 
-            final Intent intent = new Intent();
-            intent.putExtra(ResultKeys.ACCEPTATION, accId);
-            setResult(RESULT_OK, intent);
-            finish();
+                final Intent intent = new Intent();
+                intent.putExtra(ResultKeys.ACCEPTATION, accId);
+                setResult(RESULT_OK, intent);
+                finish();
+            }
+            else {
+                final ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
+
+                final Intent intent = new Intent();
+                intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));
+                setResult(RESULT_OK, intent);
+                finish();
+            }
         }
     }
 
