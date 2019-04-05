@@ -47,6 +47,7 @@
     <string name="deleteQuizConfirmationText">Are you sure that you want to remove this quiz and all its related tracked knowledge?</string>
     <string name="deleteSentenceConfirmationText">Are you sure that you want to remove this sentence?</string>
     <string name="deleteAlphabetConfirmationText">Are you sure that you want to remove this alphabet?</string>
+    <string name="deleteLanguageConfirmationText">Are you sure that you want to remove this language?</string>
 
     <string name="wordEditorWrongConversionFieldText">-- Wrong --</string>
     <string name="wordEditorNextButton">Next</string>

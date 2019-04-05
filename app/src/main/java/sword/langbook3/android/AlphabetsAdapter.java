@@ -4,23 +4,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.TextView;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
-import sword.collections.IntProcedure;
-import sword.collections.Procedure;
 
 final class AlphabetsAdapter extends BaseAdapter {
     private final ImmutableIntKeyMap<String> _languages;
     private final ImmutableIntKeyMap<String> _alphabets;
-    private final ImmutableIntPairMap _conversions;
-    private final IntProcedure _addAlphabetProcedure;
-    private final Procedure<ImmutableIntPair> _checkConversionProcedure;
 
     private final ImmutableIntSet _nextSectionHeader;
     private final ImmutableIntList _keyList;
@@ -30,15 +23,9 @@ final class AlphabetsAdapter extends BaseAdapter {
     AlphabetsAdapter(
             ImmutableIntKeyMap<ImmutableIntSet> map,
             ImmutableIntKeyMap<String> languages,
-            ImmutableIntKeyMap<String> alphabets,
-            ImmutableIntPairMap conversions,
-            IntProcedure addAlphabetProcedure,
-            Procedure<ImmutableIntPair> checkConversionProcedure) {
+            ImmutableIntKeyMap<String> alphabets) {
         _languages = languages;
         _alphabets = alphabets;
-        _conversions = conversions;
-        _addAlphabetProcedure = addAlphabetProcedure;
-        _checkConversionProcedure = checkConversionProcedure;
 
         final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
         final ImmutableIntList.Builder keyListBuilder = new ImmutableIntList.Builder();
@@ -104,22 +91,6 @@ final class AlphabetsAdapter extends BaseAdapter {
         final int id = _keyList.valueAt(position);
         final String text = (viewType == ViewTypes.LANGUAGE)? _languages.get(id) : _alphabets.get(id);
         tv.setText(text);
-
-        if (viewType == ViewTypes.ALPHABET) {
-            final Button checkConversionButton = convertView.findViewById(R.id.checkConversionButton);
-            if (_conversions.keySet().contains(id)) {
-                final ImmutableIntPair conversionPair = new ImmutableIntPair(_conversions.get(id), id);
-                checkConversionButton.setOnClickListener(view -> _checkConversionProcedure.apply(conversionPair));
-                checkConversionButton.setVisibility(View.VISIBLE);
-            }
-            else {
-                checkConversionButton.setVisibility(View.GONE);
-            }
-        }
-        else {
-            final Button addAlphabetButton = convertView.findViewById(R.id.addAlphabetButton);
-            addAlphabetButton.setOnClickListener(v -> _addAlphabetProcedure.apply(id));
-        }
 
         return convertView;
     }
