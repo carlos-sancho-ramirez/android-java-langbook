@@ -62,22 +62,26 @@ public final class LangbookDbInserter {
         db.insert(query);
     }
 
+    static void insertCorrelationEntry(DbInserter db, int correlationId, int alphabet, int symbolArray) {
+        final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getCorrelationIdColumnIndex(), correlationId)
+                .put(table.getAlphabetColumnIndex(), alphabet)
+                .put(table.getSymbolArrayColumnIndex(), symbolArray)
+                .build();
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
     static void insertCorrelation(DbInserter db, int correlationId, IntPairMap correlation) {
         final int mapLength = correlation.size();
         if (mapLength == 0) {
             throw new IllegalArgumentException();
         }
 
-        final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
         for (int i = 0; i < mapLength; i++) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getCorrelationIdColumnIndex(), correlationId)
-                    .put(table.getAlphabetColumnIndex(), correlation.keyAt(i))
-                    .put(table.getSymbolArrayColumnIndex(), correlation.valueAt(i))
-                    .build();
-            if (db.insert(query) == null) {
-                throw new AssertionError();
-            }
+            insertCorrelationEntry(db, correlationId, correlation.keyAt(i), correlation.valueAt(i));
         }
     }
 

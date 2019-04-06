@@ -1093,6 +1093,69 @@ public final class LangbookDatabase {
     }
 
     /**
+     * Add a new alphabet to this database as a copy of the given sourceAlphabet.
+     *
+     * This method will check for any correlation using the sourceAlphabet and will
+     * create within the same correlation a new entry for the new created alphabet,
+     * pointing to the same symbol array.
+     *
+     * The new alphabet will be linked to the same language that the sourceAlphabet is.
+     *
+     * @param db Database where the new alphabet has to be included.
+     * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
+     * @return A new alphabet identifier if all went fine, or null if the alphabet cannot be added.
+     */
+    public static Integer addAlphabetCopyingFromOther(Database db, int sourceAlphabet) {
+        final Integer languageOpt = getLanguageFromAlphabet(db, sourceAlphabet);
+        if (languageOpt == null) {
+            return null;
+        }
+
+        if (LangbookReadableDatabase.getConversionsMap(db).keySet().contains(sourceAlphabet)) {
+            return null;
+        }
+
+        final int language = languageOpt;
+        final int alphabet = getMaxConcept(db) + 1;
+        insertAlphabet(db, alphabet, language);
+
+        final ImmutableIntPairMap correlations = LangbookReadableDatabase.findCorrelationsAndSymbolArrayForAlphabet(db, sourceAlphabet);
+        final int correlationCount = correlations.size();
+        for (int i = 0; i < correlationCount; i++) {
+            LangbookDbInserter.insertCorrelationEntry(db, correlations.keyAt(i), alphabet, correlations.valueAt(i));
+        }
+
+        // Some kind of query for duplicating rows should be valuable. The following logic will be broken if a new column is added or removed for the table.
+        //TODO: Change this logic
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(table.getMainAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex(),
+                        table.getStringColumnIndex(), table.getMainStringColumnIndex());
+
+        final List<StringQueryTableRow> rows = db.select(query).map(row -> new StringQueryTableRow(row.get(0).toInt(), row.get(1).toInt(), row.get(2).toText(), row.get(3).toText())).toList();
+        for (StringQueryTableRow row : rows) {
+            LangbookDbInserter.insertStringQuery(db, row.text, row.mainText, row.mainAcceptation, row.dynamicAcceptation, alphabet);
+        }
+
+        return alphabet;
+    }
+
+    private static final class StringQueryTableRow {
+        final int mainAcceptation;
+        final int dynamicAcceptation;
+        final String text;
+        final String mainText;
+
+        StringQueryTableRow(int mainAcceptation, int dynamicAcceptation, String text, String mainText) {
+            this.mainAcceptation = mainAcceptation;
+            this.dynamicAcceptation = dynamicAcceptation;
+            this.text = text;
+            this.mainText = mainText;
+        }
+    }
+
+    /**
      * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.
      * This will trigger the update of any word where this conversion may apply.
      * This will fail if the alphabets for the conversions are not existing or they do not belong to the same language.

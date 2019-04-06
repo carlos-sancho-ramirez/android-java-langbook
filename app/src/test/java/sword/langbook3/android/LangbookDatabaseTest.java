@@ -9,6 +9,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
+import sword.collections.IntList;
 import sword.collections.List;
 import sword.collections.MutableHashMap;
 import sword.database.Database;
@@ -23,12 +24,14 @@ import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
 import static sword.langbook3.android.LangbookDatabase.addAlphabet;
+import static sword.langbook3.android.LangbookDatabase.addAlphabetCopyingFromOther;
 import static sword.langbook3.android.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
@@ -120,6 +123,60 @@ public final class LangbookDatabaseTest {
         assertTrue(alphabetSet.contains(mainAlphabet));
         assertTrue(alphabetSet.contains(secondAlphabet));
         assertTrue(alphabetSet.contains(thirdAlphabet));
+    }
+
+    @Test
+    public void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+        final int secondAlphabet = addAlphabetCopyingFromOther(db, mainAlphabet);
+        assertNotEquals(language, secondAlphabet);
+        assertNotEquals(mainAlphabet, secondAlphabet);
+
+        assertEquals(language, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(2, alphabetSet.size());
+        assertTrue(alphabetSet.contains(mainAlphabet));
+        assertTrue(alphabetSet.contains(secondAlphabet));
+    }
+
+    @Test
+    public void testAddAlphabetCopyingFromOtherWithCorrelations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "ja";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+
+        final ImmutableIntKeyMap<String> langCorrelation = new ImmutableIntKeyMap.Builder<String>()
+                .put(mainAlphabet, "日本語")
+                .build();
+
+        final IntList langCorrelations = new ImmutableIntList.Builder()
+                .append(obtainCorrelation(db, langCorrelation))
+                .build();
+
+        final int acceptation = addAcceptation(db, language, obtainCorrelationArray(db, langCorrelations));
+;
+        final int secondAlphabet = addAlphabetCopyingFromOther(db, mainAlphabet);
+        assertNotEquals(language, secondAlphabet);
+        assertNotEquals(mainAlphabet, secondAlphabet);
+
+        assertEquals(language, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(2, alphabetSet.size());
+        assertTrue(alphabetSet.contains(mainAlphabet));
+        assertTrue(alphabetSet.contains(secondAlphabet));
+
+        final ImmutableIntKeyMap<String> acceptationTexts = LangbookReadableDatabase.getAcceptationTexts(db, acceptation);
+        assertEquals(2, acceptationTexts.size());
+        assertEquals(acceptationTexts.valueAt(0), acceptationTexts.valueAt(1));
+        assertTrue(alphabetSet.equalSet(acceptationTexts.keySet()));
     }
 
     @Test
