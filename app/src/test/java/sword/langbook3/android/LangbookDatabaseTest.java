@@ -24,13 +24,13 @@ import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
 import static sword.langbook3.android.LangbookDatabase.addAlphabet;
+import static sword.langbook3.android.LangbookDatabase.addAlphabetAsConversionTarget;
 import static sword.langbook3.android.LangbookDatabase.addAlphabetCopyingFromOther;
 import static sword.langbook3.android.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
@@ -46,6 +46,7 @@ import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelat
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
@@ -56,6 +57,35 @@ import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationAr
 import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
 
 public final class LangbookDatabaseTest {
+
+    private final ImmutableHashMap<String, String> upperCaseConversion = new ImmutableHashMap.Builder<String, String>()
+            .put("a", "A")
+            .put("b", "B")
+            .put("c", "C")
+            .put("d", "D")
+            .put("e", "E")
+            .put("f", "F")
+            .put("g", "G")
+            .put("h", "H")
+            .put("i", "I")
+            .put("j", "J")
+            .put("k", "K")
+            .put("l", "L")
+            .put("m", "M")
+            .put("n", "N")
+            .put("o", "O")
+            .put("p", "P")
+            .put("q", "Q")
+            .put("r", "R")
+            .put("s", "S")
+            .put("t", "T")
+            .put("u", "U")
+            .put("v", "V")
+            .put("w", "W")
+            .put("x", "X")
+            .put("y", "Y")
+            .put("z", "Z")
+            .build();
 
     @Test
     public void testAddFirstLanguage() {
@@ -177,6 +207,73 @@ public final class LangbookDatabaseTest {
         assertEquals(2, acceptationTexts.size());
         assertEquals(acceptationTexts.valueAt(0), acceptationTexts.valueAt(1));
         assertTrue(alphabetSet.equalSet(acceptationTexts.keySet()));
+    }
+
+    @Test
+    public void testAddAlphabetAsConversionTargetWithoutCorrelations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+        final int secondAlphabet = addAlphabetAsConversionTarget(db, mainAlphabet, upperCaseConversion);
+        assertNotEquals(language, secondAlphabet);
+        assertNotEquals(mainAlphabet, secondAlphabet);
+
+        assertEquals(language, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(2, alphabetSet.size());
+        assertTrue(alphabetSet.contains(mainAlphabet));
+        assertTrue(alphabetSet.contains(secondAlphabet));
+
+        final String text = "casa";
+        final String convertedText = getConversion(db, new ImmutableIntPair(mainAlphabet, secondAlphabet)).convert(text);
+
+        final int correlationId = obtainCorrelation(db, new ImmutableIntKeyMap.Builder<String>().put(mainAlphabet, text).build());
+        final int correlationArrayId = obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
+
+        final int concept = getMaxConcept(db) + 1;
+        final int acceptationId = addAcceptation(db, concept, correlationArrayId);
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptationId);
+        assertEquals(2, texts.size());
+        assertEquals(text, texts.get(mainAlphabet));
+        assertEquals(convertedText, texts.get(secondAlphabet));
+    }
+
+    @Test
+    public void testAddAlphabetAsConversionTargetWithCorrelations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+
+        final String text = "casa";
+        final int correlationId = obtainCorrelation(db, new ImmutableIntKeyMap.Builder<String>().put(mainAlphabet, text).build());
+        final int correlationArrayId = obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
+
+        final int concept = getMaxConcept(db) + 1;
+        final int acceptationId = addAcceptation(db, concept, correlationArrayId);
+
+        final int secondAlphabet = addAlphabetAsConversionTarget(db, mainAlphabet, upperCaseConversion);
+        assertNotEquals(language, secondAlphabet);
+        assertNotEquals(mainAlphabet, secondAlphabet);
+        assertNotEquals(concept, secondAlphabet);
+
+        assertEquals(language, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
+        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
+        assertEquals(2, alphabetSet.size());
+        assertTrue(alphabetSet.contains(mainAlphabet));
+        assertTrue(alphabetSet.contains(secondAlphabet));
+
+        final String convertedText = getConversion(db, new ImmutableIntPair(mainAlphabet, secondAlphabet)).convert(text);
+
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptationId);
+        assertEquals(2, texts.size());
+        assertEquals(text, texts.get(mainAlphabet));
+        assertEquals(convertedText, texts.get(secondAlphabet));
     }
 
     @Test
@@ -1221,35 +1318,6 @@ public final class LangbookDatabaseTest {
                 .select(acceptations.getIdColumnIndex());
         assertFalse(db.select(query).hasNext());
     }
-
-    private final ImmutableHashMap<String, String> upperCaseConversion = new ImmutableHashMap.Builder<String, String>()
-            .put("a", "A")
-            .put("b", "B")
-            .put("c", "C")
-            .put("d", "D")
-            .put("e", "E")
-            .put("f", "F")
-            .put("g", "G")
-            .put("h", "H")
-            .put("i", "I")
-            .put("j", "J")
-            .put("k", "K")
-            .put("l", "L")
-            .put("m", "M")
-            .put("n", "N")
-            .put("o", "O")
-            .put("p", "P")
-            .put("q", "Q")
-            .put("r", "R")
-            .put("s", "S")
-            .put("t", "T")
-            .put("u", "U")
-            .put("v", "V")
-            .put("w", "W")
-            .put("x", "X")
-            .put("y", "Y")
-            .put("z", "Z")
-            .build();
 
     @Test
     public void testUpdateAcceptationCorrelationArray() {

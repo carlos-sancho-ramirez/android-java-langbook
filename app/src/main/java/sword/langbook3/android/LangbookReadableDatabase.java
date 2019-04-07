@@ -526,7 +526,7 @@ public final class LangbookReadableDatabase {
         return new Conversion(pair.left, pair.right, resultMap);
     }
 
-    static boolean checkConversionConflicts(DbExporter.Database db, Conversion conversion) {
+    static boolean checkConversionConflicts(DbExporter.Database db, ConversionProposal conversion) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet())
@@ -3006,7 +3006,22 @@ public final class LangbookReadableDatabase {
         return true;
     }
 
-    public static final class Conversion {
+    public interface ConversionProposal {
+
+        /**
+         * Alphabet from where the conversion will be applied.
+         */
+        int getSourceAlphabet();
+
+        /**
+         * Apply this conversion to the given text and returns its converted text.
+         * @param text Text to be converted
+         * @return The converted text, or null if text cannot be converted.
+         */
+        String convert(String text);
+    }
+
+    public static final class Conversion implements ConversionProposal {
         private final int _sourceAlphabet;
         private final int _targetAlphabet;
         private final ImmutableMap<String, String> _map;
@@ -3021,6 +3036,7 @@ public final class LangbookReadableDatabase {
             _map = map.toImmutable().sort(LangbookReadableDatabase.conversionKeySortFunction);
         }
 
+        @Override
         public int getSourceAlphabet() {
             return _sourceAlphabet;
         }
@@ -3037,11 +3053,7 @@ public final class LangbookReadableDatabase {
             return _map;
         }
 
-        /**
-         * Apply this conversion to the given text and returns its converted text.
-         * @param text Text to be converted
-         * @return The converted text, or null if text cannot be converted.
-         */
+        @Override
         public String convert(String text) {
             final int mapSize = _map.size();
             String result = "";

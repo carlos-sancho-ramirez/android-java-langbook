@@ -1156,6 +1156,36 @@ public final class LangbookDatabase {
     }
 
     /**
+     * Add a new alphabet and a new conversion at once, being the resulting alphabet the target of the given conversion.
+     * @param db Database wher the alphabet and conversion will be included.
+     * @param sourceAlphabet Source alphabet for the given conversion.
+     * @param conversionPairs All pair of the conversion to be stored and applied. No specific order is required, as it will be resorted before applying it.
+     * @return The identifier for the new alphabet, or null if it is not possible to add them.
+     */
+    public static Integer addAlphabetAsConversionTarget(Database db, int sourceAlphabet, Map<String, String> conversionPairs) {
+        final Integer languageOpt = getLanguageFromAlphabet(db, sourceAlphabet);
+        if (languageOpt == null) {
+            return null;
+        }
+
+        final int language = languageOpt;
+        final int alphabet = getMaxConcept(db) + 1;
+        final Conversion conversion = new Conversion(sourceAlphabet, alphabet, conversionPairs);
+        if (!checkConversionConflicts(db, conversion)) {
+            return null;
+        }
+
+        insertAlphabet(db, alphabet, language);
+
+        if (!updateJustConversion(db, conversion).getMap().isEmpty()) {
+            throw new AssertionError();
+        }
+
+        applyConversion(db, conversion);
+        return alphabet;
+    }
+
+    /**
      * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.
      * This will trigger the update of any word where this conversion may apply.
      * This will fail if the alphabets for the conversions are not existing or they do not belong to the same language.
