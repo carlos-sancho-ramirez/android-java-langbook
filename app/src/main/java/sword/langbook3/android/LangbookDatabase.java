@@ -1075,24 +1075,6 @@ public final class LangbookDatabase {
     }
 
     /**
-     * Add a new alphabet in the given database for the given language.
-     *
-     * @param db Database where the alphabet has to be included.
-     * @param language Language for the alphabet to be included.
-     * @return The new alphabet identifier, or null if the alphabet cannot be created,
-     *         usually due to a wrong language reference.
-     */
-    public static Integer addAlphabet(Database db, int language) {
-        if (!isLanguagePresent(db, language)) {
-            return null;
-        }
-
-        final int alphabet = getMaxConcept(db) + 1;
-        insertAlphabet(db, alphabet, language);
-        return alphabet;
-    }
-
-    /**
      * Add a new alphabet to this database as a copy of the given sourceAlphabet.
      *
      * This method will check for any correlation using the sourceAlphabet and will

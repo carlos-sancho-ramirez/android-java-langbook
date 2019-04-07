@@ -147,7 +147,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         }
 
         for (int i = 1; i < _alphabetCount; i++) {
-            final int alphabet = LangbookDatabase.addAlphabet(db, _newLanguageId);
+            final int alphabet = LangbookDatabase.addAlphabetCopyingFromOther(db, _newLanguageId + 1);
             if (alphabet != _newLanguageId + i + 1) {
                 throw new AssertionError();
             }

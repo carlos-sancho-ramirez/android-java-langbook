@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAlphabet;
+import static sword.langbook3.android.LangbookDatabase.addAlphabetCopyingFromOther;
 import static sword.langbook3.android.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
@@ -102,9 +103,8 @@ public final class LangbookReadableDatabaseTest {
             final ImmutableList<String> textList = textListBuilder.build();
 
             final MemoryDatabase db = new MemoryDatabase();
-            final ImmutableIntPair langPair = addLanguage(db, "xx");
-            final int alphabet1 = langPair.right;
-            final int alphabet2 = addAlphabet(db, langPair.left);
+            final int alphabet1 = addLanguage(db, "xx").right;
+            final int alphabet2 = addAlphabetCopyingFromOther(db, alphabet1);
             final int concept1 = getMaxConcept(db) + 1;
             final int concept2 = concept1 + 1;
             final int concept3 = concept2 + 1;

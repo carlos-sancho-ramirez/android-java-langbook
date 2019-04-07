@@ -115,47 +115,6 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
-    public void testAddAlphabet() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final String code = "es";
-        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
-
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
-        final int secondAlphabet = addAlphabet(db, language);
-        assertNotEquals(language, secondAlphabet);
-        assertNotEquals(mainAlphabet, secondAlphabet);
-
-        assertEquals(langPair.left, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
-        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
-        assertEquals(2, alphabetSet.size());
-        assertTrue(alphabetSet.contains(mainAlphabet));
-        assertTrue(alphabetSet.contains(secondAlphabet));
-    }
-
-    @Test
-    public void testAddAlphabetTwice() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final String code = "es";
-        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
-
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
-        final int secondAlphabet = addAlphabet(db, language);
-        final int thirdAlphabet = addAlphabet(db, language);
-        assertNotEquals(language, thirdAlphabet);
-        assertNotEquals(mainAlphabet, thirdAlphabet);
-        assertNotEquals(secondAlphabet, thirdAlphabet);
-
-        assertEquals(langPair.left, LangbookReadableDatabase.findLanguageByCode(db, code).intValue());
-        final ImmutableIntSet alphabetSet = LangbookReadableDatabase.findAlphabetsByLanguage(db, langPair.left);
-        assertEquals(3, alphabetSet.size());
-        assertTrue(alphabetSet.contains(mainAlphabet));
-        assertTrue(alphabetSet.contains(secondAlphabet));
-        assertTrue(alphabetSet.contains(thirdAlphabet));
-    }
-
-    @Test
     public void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final String code = "es";
@@ -307,9 +266,8 @@ public final class LangbookDatabaseTest {
     @Test
     public void testObtainCorrelationForMultipleAlphabetLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
-        final int kanji = langPair.right;
-        final int kana = addAlphabet(db, langPair.left);
+        final int kanji = LangbookDatabase.addLanguage(db, "ja").right;
+        final int kana = addAlphabetCopyingFromOther(db, kanji);
 
         final ImmutableIntPairMap correlation = new ImmutableIntPairMap.Builder()
                 .put(kanji, obtainSymbolArray(db, "心"))
@@ -323,9 +281,8 @@ public final class LangbookDatabaseTest {
     @Test
     public void testObtainCorrelationForMultipleAlphabetLanguageTwice() {
         final MemoryDatabase db = new MemoryDatabase();
-        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
-        final int kanji = langPair.right;
-        final int kana = addAlphabet(db, langPair.left);
+        final int kanji = LangbookDatabase.addLanguage(db, "ja").right;
+        final int kana = addAlphabetCopyingFromOther(db, kanji);
 
         final ImmutableIntPairMap correlation = new ImmutableIntPairMap.Builder()
                 .put(kanji, obtainSymbolArray(db, "心"))
@@ -369,9 +326,8 @@ public final class LangbookDatabaseTest {
     @Test
     public void testObtainCorrelationWithTextForMultipleAlphabetLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
-        final int kanji = langPair.right;
-        final int kana = addAlphabet(db, langPair.left);
+        final int kanji = LangbookDatabase.addLanguage(db, "ja").right;
+        final int kana = addAlphabetCopyingFromOther(db, kanji);
 
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
                 .put(kanji, "心")
@@ -385,9 +341,8 @@ public final class LangbookDatabaseTest {
     @Test
     public void testObtainCorrelationWithTextForMultipleAlphabetLanguageTwice() {
         final MemoryDatabase db = new MemoryDatabase();
-        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, "ja");
-        final int kanji = langPair.right;
-        final int kana = addAlphabet(db, langPair.left);
+        final int kanji = LangbookDatabase.addLanguage(db, "ja").right;
+        final int kana = addAlphabetCopyingFromOther(db, kanji);
 
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
                 .put(kanji, "心")
@@ -434,10 +389,8 @@ public final class LangbookDatabaseTest {
     public void testAddJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final ImmutableIntPair langPair = addLanguage(db, "ja");
-        final int language = langPair.left;
-        final int kanji = langPair.right;
-        final int kana = addAlphabet(db, language);
+        final int kanji = addLanguage(db, "ja").right;
+        final int kana = addAlphabetCopyingFromOther(db, kanji);
         final int concept = getMaxConcept(db) + 1;
 
         final ImmutableList<ImmutableIntKeyMap<String>> correlations = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
@@ -483,12 +436,8 @@ public final class LangbookDatabaseTest {
     public void testAddJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
 
-        final ImmutableIntPair langPair = addLanguage(db, "ja");
-        final int language = langPair.left;
-        final int kanji = langPair.right;
-        final int kana = addAlphabet(db, language);
-        final int roumaji = addAlphabet(db, language);
-        final int concept = getMaxConcept(db) + 1;
+        final int kanji = addLanguage(db, "ja").right;
+        final int kana = addAlphabetCopyingFromOther(db, kanji);
 
         final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
                 .put("あ", "a")
@@ -498,7 +447,8 @@ public final class LangbookDatabaseTest {
                 .put("ちゅ", "chu")
                 .put("ち", "chi")
                 .build();
-        replaceConversion(db, new Conversion(kana, roumaji, convMap));
+        final int roumaji = addAlphabetAsConversionTarget(db, kana, convMap);
+        final int concept = getMaxConcept(db) + 1;
 
         final ImmutableList<ImmutableIntKeyMap<String>> correlations = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
                 .add(new ImmutableIntKeyMap.Builder<String>()
@@ -515,39 +465,11 @@ public final class LangbookDatabaseTest {
         final int correlationArrayId = obtainCorrelationArray(db, correlationIds);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
 
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery kanjiQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .where(strings.getStringAlphabetColumnIndex(), kanji)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringColumnIndex());
-        final List<DbValue> kanjiRow = selectSingleRow(db, kanjiQuery);
-        assertEquals(acceptation, kanjiRow.get(0).toInt());
-        assertEquals("注文", kanjiRow.get(1).toText());
-        assertEquals("注文", kanjiRow.get(2).toText());
-
-        final DbQuery kanaQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .where(strings.getStringAlphabetColumnIndex(), kana)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringColumnIndex());
-        final List<DbValue> kanaRow = selectSingleRow(db, kanaQuery);
-        assertEquals(acceptation, kanaRow.get(0).toInt());
-        assertEquals("注文", kanaRow.get(1).toText());
-        assertEquals("ちゅうもん", kanaRow.get(2).toText());
-
-        final DbQuery roumajiQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .where(strings.getStringAlphabetColumnIndex(), roumaji)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringColumnIndex());
-        final List<DbValue> roumajiRow = selectSingleRow(db, roumajiQuery);
-        assertEquals(acceptation, roumajiRow.get(0).toInt());
-        assertEquals("注文", roumajiRow.get(1).toText());
-        assertEquals("chuumon", roumajiRow.get(2).toText());
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptation);
+        assertEquals(3, texts.size());
+        assertEquals("注文", texts.get(kanji));
+        assertEquals("ちゅうもん", texts.get(kana));
+        assertEquals("chuumon", texts.get(roumaji));
     }
 
     @Test
@@ -1100,9 +1022,10 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final ImmutableIntPair jaLangPair = addLanguage(db, "ja");
-        final int kanjiAlphabet = jaLangPair.right;
-        final int kanaAlphabet = addAlphabet(db, jaLangPair.left);
+
+        final int kanjiAlphabet = addLanguage(db, "ja").right;
+        final int kanaAlphabet = addAlphabetCopyingFromOther(db, kanjiAlphabet);
+
         final int myVocabularyConcept = getMaxConcept(db) + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
         final int actionConcept = arVerbConcept + 1;
@@ -1135,9 +1058,8 @@ public final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
 
         final int alphabet = addLanguage(db, "es").right;
-        final ImmutableIntPair jaLangPair = addLanguage(db, "ja");
-        final int kanjiAlphabet = jaLangPair.right;
-        final int kanaAlphabet = addAlphabet(db, jaLangPair.left);
+        final int kanjiAlphabet = addLanguage(db, "ja").right;
+        final int kanaAlphabet = addAlphabetCopyingFromOther(db, kanjiAlphabet);
 
         final int myVocabularyConcept = getMaxConcept(db) + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -1329,11 +1251,10 @@ public final class LangbookDatabaseTest {
 
         final ImmutableIntPair langPair = addLanguage(db, "es");
         final int alphabet = langPair.right;
-        final int upperCaseAlphabet = addAlphabet(db, langPair.left);
+        final int upperCaseAlphabet = addAlphabetAsConversionTarget(db, alphabet, upperCaseConversion);
         final int concept = getMaxConcept(db) + 1;
         final int secondConjugationVerbBunch = concept + 1;
 
-        replaceConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
@@ -1404,11 +1325,10 @@ public final class LangbookDatabaseTest {
 
         final ImmutableIntPair langPair = addLanguage(db, "es");
         final int alphabet = langPair.right;
-        final int upperCaseAlphabet = addAlphabet(db, langPair.left);
+        final int upperCaseAlphabet = addAlphabetAsConversionTarget(db, alphabet, upperCaseConversion);
         final int concept = getMaxConcept(db) + 1;
         final int firstConjugationVerbBunch = concept + 1;
 
-        replaceConversion(db, new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion));
         final int correlationArrayId1 = addSimpleCorrelationArray(db, alphabet, text1);
         final int acceptationId = addAcceptation(db, concept, correlationArrayId1);
 
