@@ -99,7 +99,6 @@ import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.getSentenceMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetUsedInQuestions;
-import static sword.langbook3.android.LangbookReadableDatabase.isLanguagePresent;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayPresent;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
@@ -1081,24 +1080,38 @@ public final class LangbookDatabase {
      * create within the same correlation a new entry for the new created alphabet,
      * pointing to the same symbol array.
      *
-     * The new alphabet will be linked to the same language that the sourceAlphabet is.
+     * This method allows to link directly the concept of an already inserted acceptation with as a new alphabet.
+     * If there is no predefined alphabet reference to be used in this method, maybe the method
+     * {@link #addAlphabetCopyingFromOther(sword.database.Database, int)} should be called instead.
+     *
+     * If all is OK, the new alphabet will be linked to the same language that the sourceAlphabet is.
      *
      * @param db Database where the new alphabet has to be included.
+     * @param alphabet The identifier for this new alphabet to be added.
+     *                 This must not exist already as an alphabet or language,
+     *                 but it can be a concept within an acceptation.
      * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
-     * @return A new alphabet identifier if all went fine, or null if the alphabet cannot be added.
+     * @return true if the alphabet has been successfully added, and so, the database content has change.
      */
-    public static Integer addAlphabetCopyingFromOther(Database db, int sourceAlphabet) {
+    public static boolean addAlphabetCopyingFromOther(Database db, int alphabet, int sourceAlphabet) {
+        if (LangbookReadableDatabase.isAlphabetPresent(db, alphabet)) {
+            return false;
+        }
+
+        if (LangbookReadableDatabase.isLanguagePresent(db, alphabet)) {
+            return false;
+        }
+
         final Integer languageOpt = getLanguageFromAlphabet(db, sourceAlphabet);
         if (languageOpt == null) {
-            return null;
+            return false;
         }
 
         if (LangbookReadableDatabase.getConversionsMap(db).keySet().contains(sourceAlphabet)) {
-            return null;
+            return false;
         }
 
         final int language = languageOpt;
-        final int alphabet = getMaxConcept(db) + 1;
         insertAlphabet(db, alphabet, language);
 
         final ImmutableIntPairMap correlations = LangbookReadableDatabase.findCorrelationsAndSymbolArrayForAlphabet(db, sourceAlphabet);
@@ -1120,7 +1133,7 @@ public final class LangbookDatabase {
             LangbookDbInserter.insertStringQuery(db, row.text, row.mainText, row.mainAcceptation, row.dynamicAcceptation, alphabet);
         }
 
-        return alphabet;
+        return true;
     }
 
     private static final class StringQueryTableRow {
@@ -1135,6 +1148,21 @@ public final class LangbookDatabase {
             this.text = text;
             this.mainText = mainText;
         }
+    }
+
+    /**
+     * Add a new alphabet to this database as a copy of the given sourceAlphabet.
+     *
+     * This method is a simplification of {@link #addAlphabetCopyingFromOther(sword.database.Database, int, int)}
+     * where alphabet is a unused reference, calculated after checking the database.
+     *
+     * @param db Database where the new alphabet has to be included.
+     * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
+     * @return A new alphabet identifier if all went fine, or null if the alphabet cannot be added.
+     */
+    public static Integer addAlphabetCopyingFromOther(Database db, int sourceAlphabet) {
+        final int alphabet = getMaxConcept(db) + 1;
+        return addAlphabetCopyingFromOther(db, alphabet, sourceAlphabet)? alphabet : null;
     }
 
     /**

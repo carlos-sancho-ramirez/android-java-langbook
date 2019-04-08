@@ -20,6 +20,8 @@ import sword.database.Database;
 
 import static sword.langbook3.android.LangbookReadableDatabase.checkAlphabetCanBeRemoved;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.LangbookReadableDatabase.findAlphabetsByLanguage;
+import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForLanguage;
 
 public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener {
 
@@ -27,11 +29,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     private static final int REQUEST_CODE_NEW_LANGUAGE = 2;
 
     private interface SavedKeys {
-        String ALPHABET_TO_REMOVE = "atr";
-        String LANGUAGE_TO_REMOVE = "ltr";
-        String NEW_ALPHABET_LANGUAGE = "nal";
-        String OPTIONS_FOR_ALPHABET = "ofa";
-        String OPTIONS_FOR_LANGUAGE = "ofl";
+        String STATE = "st";
     }
 
     public static void open(Context context) {
@@ -39,11 +37,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         context.startActivity(intent);
     }
 
-    private int _newAlphabetLanguage;
-    private int _alphabetToRemove;
-    private int _languageToRemove;
-    private int _optionsForAlphabet;
-    private int _optionsForLanguage;
+    private AlphabetsActivityState _state;
 
     private AlphabetsAdapter _adapter;
     private ImmutableIntPairMap _conversions;
@@ -76,25 +70,29 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         super.onCreate(savedInstanceState);
         setContentView(R.layout.alphabets_activity);
 
-        updateUi();
         if (savedInstanceState != null) {
-            _newAlphabetLanguage = savedInstanceState.getInt(SavedKeys.NEW_ALPHABET_LANGUAGE);
-            _alphabetToRemove = savedInstanceState.getInt(SavedKeys.ALPHABET_TO_REMOVE);
-            _languageToRemove = savedInstanceState.getInt(SavedKeys.LANGUAGE_TO_REMOVE);
-            _optionsForAlphabet = savedInstanceState.getInt(SavedKeys.OPTIONS_FOR_ALPHABET);
-            _optionsForLanguage = savedInstanceState.getInt(SavedKeys.OPTIONS_FOR_LANGUAGE);
+            _state = savedInstanceState.getParcelable(SavedKeys.STATE);
+        }
+        else {
+            _state = new AlphabetsActivityState();
         }
 
-        if (_alphabetToRemove != 0 || _languageToRemove != 0) {
+        updateUi();
+
+        if (_state.shouldShowDeleteConfirmationDialog()) {
             showDeleteConfirmationDialog();
         }
 
-        if (_optionsForLanguage != 0) {
+        if (_state.shouldShowLanguageOptionsDialog()) {
             showLanguageOptionsDialog();
         }
 
-        if (_optionsForAlphabet != 0) {
+        if (_state.shouldShowAlphabetOptionsDialog()) {
             showAlphabetOptionsDialog();
+        }
+
+        if (_state.shouldShowSourceAlphabetPickerDialog()) {
+            showSourceAlphabetPickerDialog();
         }
     }
 
@@ -117,14 +115,11 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     private void showDeleteConfirmationDialog() {
-        final int message = (_alphabetToRemove != 0)? R.string.deleteAlphabetConfirmationText : R.string.deleteLanguageConfirmationText;
+        final int message = _state.isRemovingAlphabetConfirmationPresent()? R.string.deleteAlphabetConfirmationText : R.string.deleteLanguageConfirmationText;
         new AlertDialog.Builder(this)
                 .setMessage(message)
                 .setPositiveButton(R.string.menuItemDelete, this)
-                .setOnCancelListener(dialog -> {
-                    _alphabetToRemove = 0;
-                    _languageToRemove = 0;
-                })
+                .setOnCancelListener(dialog -> _state.cancelDeleteConfirmation())
                 .create().show();
     }
 
@@ -136,11 +131,11 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             final boolean isTargetForConversion = _conversions.keySet().contains(alphabet);
 
             if (canBeRemoved && isTargetForConversion) {
-                _optionsForAlphabet = alphabet;
+                _state.showAlphabetOptions(alphabet);
                 showAlphabetOptionsDialog();
             }
             else if (canBeRemoved) {
-                _alphabetToRemove = alphabet;
+                _state.showAlphabetRemovalConfirmation(alphabet);
                 showDeleteConfirmationDialog();
                 return true;
             }
@@ -150,7 +145,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             }
         }
         else {
-            _optionsForLanguage = _adapter.getItem(position);
+            _state.showLanguageOptions(_adapter.getItem(position));
             showLanguageOptionsDialog();
         }
 
@@ -162,19 +157,15 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         new AlertDialog.Builder(this)
                 .setItems(items, (dialog, which) -> {
                     if (which == 0) {
-                        final int language = _optionsForLanguage;
-                        _optionsForLanguage = 0;
-
-                        addAlphabet(language);
+                        _state.pickAcceptationForAlphabet();
+                        addAlphabet();
                     }
                     else if (which == 1) {
-                        _languageToRemove = _optionsForLanguage;
-                        _optionsForLanguage = 0;
-
+                        _state.showLanguageRemovalConfirmation();
                         showDeleteConfirmationDialog();
                     }
                 })
-                .setOnCancelListener(dialog -> _optionsForLanguage = 0)
+                .setOnCancelListener(dialog -> _state.cancelLanguageOptions())
                 .create().show();
     }
 
@@ -183,29 +174,44 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         new AlertDialog.Builder(this)
                 .setItems(items, (dialog, which) -> {
                     if (which == 0) {
-                        final int alphabet = _optionsForAlphabet;
-                        _optionsForAlphabet = 0;
-
+                        final int alphabet = _state.cancelAlphabetOptions();
                         ConversionDetailsActivity.open(this, _conversions.get(alphabet), alphabet);
                     }
                     else if (which == 1) {
-                        final int alphabet = _optionsForAlphabet;
-                        _optionsForAlphabet = 0;
-
-                        _alphabetToRemove = alphabet;
+                        _state.showAlphabetRemovalConfirmation();
                         showDeleteConfirmationDialog();
                     }
                 })
-                .setOnCancelListener(dialog -> _optionsForAlphabet = 0)
+                .setOnCancelListener(dialog -> _state.cancelAlphabetOptions())
+                .create().show();
+    }
+
+    private void showSourceAlphabetPickerDialog() {
+        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final Database db = DbManager.getInstance().getDatabase();
+        final ImmutableIntKeyMap<String> alphabetTexts = readAlphabetsForLanguage(db, _state.getNewAlphabetLanguage(), preferredAlphabet);
+
+        final int itemCount = alphabetTexts.size();
+        final String[] items = new String[itemCount];
+        for (int i = 0; i < itemCount; i++) {
+            items[i] = alphabetTexts.valueAt(i);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.sourceAlphabetPickerDialog)
+                .setItems(items, (dialog, which) -> {
+                    final int alphabet = _state.cancelSourceAlphabetPicking();
+                    addAlphabetCopyingFromSource(alphabet, alphabetTexts.keyAt(which));
+                })
+                .setOnCancelListener(dialog -> _state.cancelSourceAlphabetPicking())
                 .create().show();
     }
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
         final Database db = DbManager.getInstance().getDatabase();
-        if (_alphabetToRemove != 0) {
-            final int alphabet = _alphabetToRemove;
-            _alphabetToRemove = 0;
+        if (_state.isRemovingAlphabetConfirmationPresent()) {
+            final int alphabet = _state.cancelAlphabetRemoval();
 
             if (!LangbookDatabase.removeAlphabet(db, alphabet)) {
                 throw new AssertionError();
@@ -214,9 +220,8 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             Toast.makeText(this, R.string.removeAlphabetFeedback, Toast.LENGTH_SHORT).show();
             updateUi();
         }
-        else if (_languageToRemove != 0) {
-            final int language = _languageToRemove;
-            _languageToRemove = 0;
+        else if (_state.isRemovingLanguageConfirmationPresent()) {
+            final int language = _state.cancelLanguageRemoval();
 
             if (LangbookDatabase.removeLanguage(db, language)) {
                 Toast.makeText(this, R.string.removeLanguageFeedback, Toast.LENGTH_SHORT).show();
@@ -228,25 +233,45 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         }
     }
 
-    private void addAlphabet(int languageId) {
-        _newAlphabetLanguage = languageId;
+    private void addAlphabet() {
         AcceptationPickerActivity.open(this, REQUEST_CODE_NEW_ALPHABET);
+    }
+
+    private void addAlphabetCopyingFromSource(int alphabet, int sourceAlphabet) {
+        final Database db = DbManager.getInstance().getDatabase();
+        final boolean ok = LangbookDatabase.addAlphabetCopyingFromOther(db, alphabet, sourceAlphabet);
+        final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+
+        if (ok) {
+            updateUi();
+        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         final int acceptation = (data != null)? data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0) : 0;
-        if (requestCode == REQUEST_CODE_NEW_ALPHABET && resultCode == RESULT_OK && acceptation != 0) {
-            final int language = _newAlphabetLanguage;
-            _newAlphabetLanguage = 0;
+        if (requestCode == REQUEST_CODE_NEW_ALPHABET) {
+            if (resultCode == RESULT_OK && acceptation != 0) {
+                final Database db = DbManager.getInstance().getDatabase();
+                final ImmutableIntSet alphabets = findAlphabetsByLanguage(db, _state.getNewAlphabetLanguage());
 
-            final Database db = DbManager.getInstance().getDatabase();
-            final boolean ok = LangbookDatabase.addAlphabet(db, conceptFromAcceptation(db, acceptation), language);
-            final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                final int alphabet = conceptFromAcceptation(db, acceptation);
+                if (alphabets.size() == 1) {
+                    _state.cancelAcceptationForAlphabetPicking();
+                    addAlphabetCopyingFromSource(alphabet, alphabets.valueAt(0));
+                }
+                else {
+                    if (alphabets.size() <= 1) {
+                        throw new AssertionError();
+                    }
 
-            if (ok) {
-                updateUi();
+                    _state.showSourceAlphabetPickingState(alphabet);
+                    showSourceAlphabetPickerDialog();
+                }
+            }
+            else {
+                _state.cancelAcceptationForAlphabetPicking();
             }
         }
     }
@@ -254,10 +279,6 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putInt(SavedKeys.NEW_ALPHABET_LANGUAGE, _newAlphabetLanguage);
-        outState.putInt(SavedKeys.ALPHABET_TO_REMOVE, _alphabetToRemove);
-        outState.putInt(SavedKeys.LANGUAGE_TO_REMOVE, _languageToRemove);
-        outState.putInt(SavedKeys.OPTIONS_FOR_ALPHABET, _optionsForAlphabet);
-        outState.putInt(SavedKeys.OPTIONS_FOR_LANGUAGE, _optionsForLanguage);
+        outState.putParcelable(SavedKeys.STATE, _state);
     }
 }
