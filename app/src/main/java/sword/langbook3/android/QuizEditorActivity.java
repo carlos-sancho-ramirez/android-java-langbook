@@ -103,8 +103,8 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
     private int _bunch;
     private int _preferredAlphabet;
 
-    private AlphabetAdapter.Item[] _alphabetItems;
-    private AlphabetAdapter.Item[] _ruleItems;
+    private ImmutableIntKeyMap<String> _alphabetItems;
+    private ImmutableIntKeyMap<String> _ruleItems;
 
     private final class FieldListener implements Spinner.OnItemSelectedListener, View.OnClickListener {
 
@@ -125,8 +125,8 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
                     if (position == FieldTypes.appliedRule) {
                         if (fieldState.rule == 0) {
                             final int pos = ruleSpinner.getSelectedItemPosition();
-                            if (_ruleItems != null && pos >= 0 && pos < _ruleItems.length) {
-                                fieldState.rule = _ruleItems[pos].id;
+                            if (_ruleItems != null && pos >= 0 && pos < _ruleItems.size()) {
+                                fieldState.rule = _ruleItems.keyAt(pos);
                             }
                         }
                         visibility = View.VISIBLE;
@@ -138,11 +138,11 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
                     break;
 
                 case R.id.fieldAlphabet:
-                    fieldState.alphabet = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
+                    fieldState.alphabet = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).key();
                     break;
 
                 case R.id.fieldRule:
-                    fieldState.rule = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).id;
+                    fieldState.rule = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).key();
                     break;
             }
         }
@@ -238,19 +238,8 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
             bunchField.setText(bunchText);
         }
 
-        ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, _preferredAlphabet);
-        final int alphabetCount = allAlphabets.size();
-        _alphabetItems = new AlphabetAdapter.Item[alphabetCount];
-        for (int i = 0; i < alphabetCount; i++) {
-            _alphabetItems[i] = new AlphabetAdapter.Item(allAlphabets.keyAt(i), allAlphabets.valueAt(i));
-        }
-
-        ImmutableIntKeyMap<String> allRules = readAllRules(db, _preferredAlphabet);
-        final int ruleCount = allRules.size();
-        _ruleItems = new AlphabetAdapter.Item[ruleCount];
-        for (int i = 0; i < ruleCount; i++) {
-            _ruleItems[i] = new AlphabetAdapter.Item(allRules.keyAt(i), allRules.valueAt(i));
-        }
+        _alphabetItems = readAllAlphabets(db, _preferredAlphabet);
+        _ruleItems = readAllRules(db, _preferredAlphabet);
 
         _questionFields.add(new FieldState());
         _answerFields.add(new FieldState());

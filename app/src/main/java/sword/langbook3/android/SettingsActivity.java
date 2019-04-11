@@ -111,13 +111,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     private void updatePreferredAlphabetAdapter() {
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _alphabets = readAllAlphabets(DbManager.getInstance().getDatabase(), preferredAlphabet);
-        final int length = _alphabets.size();
-
-        final AlphabetAdapter.Item[] items = new AlphabetAdapter.Item[length];
-        for (int i = 0; i < length; i++) {
-            items[i] = new AlphabetAdapter.Item(_alphabets.keyAt(i), _alphabets.valueAt(i));
-        }
-        final AlphabetAdapter adapter = new AlphabetAdapter(items);
+        final AlphabetAdapter adapter = new AlphabetAdapter(_alphabets);
         _preferredAlphabetSpinner.setAdapter(adapter);
 
         final int position = _alphabets.keySet().indexOf(preferredAlphabet);

@@ -5,6 +5,8 @@ import android.os.Parcelable;
 
 public final class AlphabetsActivityState implements Parcelable {
 
+    private static final int DEFINE_CONVERSION_FLAG = 0x80000000;
+
     /**
      * State number for the state machine.
      * 0: NORMAL
@@ -28,6 +30,7 @@ public final class AlphabetsActivityState implements Parcelable {
     private int _intrinsicState;
     private int _id;
     private int _id2;
+    private int _sourceAlphabet;
 
     private AlphabetsActivityState(Parcel in) {
         _intrinsicState = in.readInt();
@@ -35,6 +38,7 @@ public final class AlphabetsActivityState implements Parcelable {
             _id = in.readInt();
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
                 _id2 = in.readInt();
+                _sourceAlphabet = in.readInt();
             }
         }
     }
@@ -174,6 +178,43 @@ public final class AlphabetsActivityState implements Parcelable {
         return _id;
     }
 
+    public int getSelectedSourceAlphabet() {
+        if (_intrinsicState != IntrinsicStates.PICKING_SOURCE_ALPHABET) {
+            throw new UnsupportedOperationException();
+        }
+
+        return _sourceAlphabet & ~DEFINE_CONVERSION_FLAG;
+    }
+
+    public void setSelectedSourceAlphabet(int alphabet) {
+        if (_intrinsicState != IntrinsicStates.PICKING_SOURCE_ALPHABET) {
+            throw new UnsupportedOperationException();
+        }
+
+        _sourceAlphabet = _sourceAlphabet & DEFINE_CONVERSION_FLAG | alphabet & ~DEFINE_CONVERSION_FLAG;
+    }
+
+    public boolean isDefineConversionChecked() {
+        if (_intrinsicState != IntrinsicStates.PICKING_SOURCE_ALPHABET) {
+            throw new UnsupportedOperationException();
+        }
+
+        return (_sourceAlphabet & DEFINE_CONVERSION_FLAG) != 0;
+    }
+
+    public void setDefinedConversionChecked(boolean checked) {
+        if (_intrinsicState != IntrinsicStates.PICKING_SOURCE_ALPHABET) {
+            throw new UnsupportedOperationException();
+        }
+
+        if (checked) {
+            _sourceAlphabet |= DEFINE_CONVERSION_FLAG;
+        }
+        else {
+            _sourceAlphabet &= ~DEFINE_CONVERSION_FLAG;
+        }
+    }
+
     public void cancelAcceptationForAlphabetPicking() {
         if (_intrinsicState != IntrinsicStates.PICKING_NEW_ALPHABET_ACCEPTATION) {
             throw new UnsupportedOperationException();
@@ -212,6 +253,7 @@ public final class AlphabetsActivityState implements Parcelable {
             dest.writeInt(_id);
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
                 dest.writeInt(_id2);
+                dest.writeInt(_sourceAlphabet);
             }
         }
     }

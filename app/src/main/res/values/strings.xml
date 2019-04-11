@@ -154,4 +154,6 @@
     <string name="languageAdderLanguageCodeInUse">Language code already in use</string>
     <string name="addLanguageFeedback">Language added</string>
     <string name="sourceAlphabetPickerDialog">Select the source</string>
+    <string name="sourceAlphabetSpinnerLabel">Select a source</string>
+    <string name="sourceAlphabetDefineConversionText">Define conversion</string>
 </resources>

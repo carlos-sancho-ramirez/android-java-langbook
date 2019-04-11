@@ -6,11 +6,15 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
@@ -20,10 +24,9 @@ import sword.database.Database;
 
 import static sword.langbook3.android.LangbookReadableDatabase.checkAlphabetCanBeRemoved;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.findAlphabetsByLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForLanguage;
 
-public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener {
+public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener, AdapterView.OnItemSelectedListener, CompoundButton.OnCheckedChangeListener {
 
     private static final int REQUEST_CODE_NEW_ALPHABET = 1;
     private static final int REQUEST_CODE_NEW_LANGUAGE = 2;
@@ -41,6 +44,8 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     private AlphabetsAdapter _adapter;
     private ImmutableIntPairMap _conversions;
+
+    private ImmutableIntKeyMap<String> _sourceAlphabetTexts;
 
     private void updateUi() {
         final ListView listView = findViewById(R.id.listView);
@@ -189,22 +194,39 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     private void showSourceAlphabetPickerDialog() {
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final Database db = DbManager.getInstance().getDatabase();
-        final ImmutableIntKeyMap<String> alphabetTexts = readAlphabetsForLanguage(db, _state.getNewAlphabetLanguage(), preferredAlphabet);
 
-        final int itemCount = alphabetTexts.size();
-        final String[] items = new String[itemCount];
-        for (int i = 0; i < itemCount; i++) {
-            items[i] = alphabetTexts.valueAt(i);
-        }
+        _sourceAlphabetTexts = readAlphabetsForLanguage(db, _state.getNewAlphabetLanguage(), preferredAlphabet);
+        final AlphabetAdapter adapter = new AlphabetAdapter(_sourceAlphabetTexts);
 
-        new AlertDialog.Builder(this)
+        final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.sourceAlphabetPickerDialog)
-                .setItems(items, (dialog, which) -> {
+                .setPositiveButton(R.string.addFieldButton, (d, which) -> {
+                    final int sourceAlphabet = _state.getSelectedSourceAlphabet();
                     final int alphabet = _state.cancelSourceAlphabetPicking();
-                    addAlphabetCopyingFromSource(alphabet, alphabetTexts.keyAt(which));
+                    // TODO: Implement logic for conversion option
+                    addAlphabetCopyingFromSource(alphabet, sourceAlphabet);
                 })
-                .setOnCancelListener(dialog -> _state.cancelSourceAlphabetPicking())
-                .create().show();
+                .setOnCancelListener(d -> _state.cancelSourceAlphabetPicking())
+                .create();
+
+        final LayoutInflater inflater = LayoutInflater.from(dialog.getContext());
+        final View view = inflater.inflate(R.layout.source_alphabet_picker_dialog, null);
+        final Spinner sourceAlphabetSpinner = view.findViewById(R.id.sourceAlphabetSpinner);
+        sourceAlphabetSpinner.setAdapter(adapter);
+        final int position = _sourceAlphabetTexts.keySet().indexOf(_state.getSelectedSourceAlphabet());
+        if (position >= 0) {
+            sourceAlphabetSpinner.setSelection(position);
+        }
+        sourceAlphabetSpinner.setOnItemSelectedListener(this);
+
+        final CheckBox defineConversionCheckBox = view.findViewById(R.id.defineConversionCheckBox);
+        if (_state.isDefineConversionChecked()) {
+            defineConversionCheckBox.setChecked(true);
+        }
+        defineConversionCheckBox.setOnCheckedChangeListener(this);
+
+        dialog.setView(view);
+        dialog.show();
     }
 
     @Override
@@ -254,26 +276,29 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         if (requestCode == REQUEST_CODE_NEW_ALPHABET) {
             if (resultCode == RESULT_OK && acceptation != 0) {
                 final Database db = DbManager.getInstance().getDatabase();
-                final ImmutableIntSet alphabets = findAlphabetsByLanguage(db, _state.getNewAlphabetLanguage());
-
                 final int alphabet = conceptFromAcceptation(db, acceptation);
-                if (alphabets.size() == 1) {
-                    _state.cancelAcceptationForAlphabetPicking();
-                    addAlphabetCopyingFromSource(alphabet, alphabets.valueAt(0));
-                }
-                else {
-                    if (alphabets.size() <= 1) {
-                        throw new AssertionError();
-                    }
-
-                    _state.showSourceAlphabetPickingState(alphabet);
-                    showSourceAlphabetPickerDialog();
-                }
+                _state.showSourceAlphabetPickingState(alphabet);
+                showSourceAlphabetPickerDialog();
             }
             else {
                 _state.cancelAcceptationForAlphabetPicking();
             }
         }
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        _state.setSelectedSourceAlphabet(_sourceAlphabetTexts.keyAt(position));
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Nothing to be done
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        _state.setDefinedConversionChecked(isChecked);
     }
 
     @Override

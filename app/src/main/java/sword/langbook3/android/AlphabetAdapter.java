@@ -6,22 +6,25 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.IntKeyMap;
+
 public final class AlphabetAdapter extends BaseAdapter {
-    private final Item[] _entries;
+    private final ImmutableIntKeyMap<String> _entries;
     private LayoutInflater _inflater;
 
-    AlphabetAdapter(Item[] entries) {
+    AlphabetAdapter(ImmutableIntKeyMap<String> entries) {
         _entries = entries;
     }
 
     @Override
     public int getCount() {
-        return _entries.length;
+        return _entries.size();
     }
 
     @Override
-    public Item getItem(int position) {
-        return _entries[position];
+    public IntKeyMap.Entry<String> getItem(int position) {
+        return _entries.entries().valueAt(position);
     }
 
     @Override
@@ -44,37 +47,8 @@ public final class AlphabetAdapter extends BaseAdapter {
         }
 
         final TextView textView = view.findViewById(R.id.itemTextView);
-        textView.setText(_entries[position].name);
+        textView.setText(_entries.valueAt(position));
 
         return view;
-    }
-
-    public static final class Item {
-        final int id;
-        final String name;
-
-        Item(int id, String name) {
-            if (name == null) {
-                throw new IllegalArgumentException();
-            }
-
-            this.id = id;
-            this.name = name;
-        }
-
-        @Override
-        public int hashCode() {
-            return id;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == null || !(other instanceof Item)) {
-                return false;
-            }
-
-            final Item that = (Item) other;
-            return id == that.id && name.equals(that.name);
-        }
     }
 }
