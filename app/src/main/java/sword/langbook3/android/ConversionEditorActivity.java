@@ -15,6 +15,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.database.Database;
@@ -23,6 +24,7 @@ import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 import static sword.langbook3.android.LangbookReadableDatabase.findConversionConflictWords;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
 
 public final class ConversionEditorActivity extends Activity implements ListView.OnItemClickListener, ListView.OnItemLongClickListener {
@@ -36,10 +38,31 @@ public final class ConversionEditorActivity extends Activity implements ListView
         String STATE = "st";
     }
 
+    interface ResultKeys {
+        String CONVERSION = "c";
+    }
+
     private Conversion _conversion;
     private ConversionEditorActivityState _state;
     private ConversionEditorAdapter _adapter;
 
+    /**
+     * Allow editing an existing conversion or include a new one.
+     *
+     * The conversion will be inserted into the database before finishing this activity,
+     * except if the user cancel the process by clicking back, or the target alphabet
+     * provided is not defined in the database as alphabet.
+     *
+     * In the latter case, the result will be sent back through the {@link android.os.Bundle} using a
+     * {@link ParcelableConversion} with key {@link ResultKeys#CONVERSION}.
+     *
+     * @param activity Activity used to open this new activity, and where it will return when finished.
+     * @param requestCode Identifier for this call.
+     * @param sourceAlphabet Source alphabet for this conversion. This alphabet must be registered as alphabet in the database.
+     * @param targetAlphabet Target alphabet for this conversion. This alphabet may or not be registered as alphabet.
+     *                       If so, the conversion will be stored into the database before finishing the activity.
+     *                       If not, the conversion will be send back through the bundle.
+     */
     public static void open(Activity activity, int requestCode, int sourceAlphabet, int targetAlphabet) {
         final Intent intent = new Intent(activity, ConversionEditorActivity.class);
         intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
@@ -66,10 +89,11 @@ public final class ConversionEditorActivity extends Activity implements ListView
         final int targetAlphabet = getTargetAlphabet();
 
         final String sourceText = readConceptText(db, sourceAlphabet, preferredAlphabet);
-        final String targetText = readConceptText(db, targetAlphabet, preferredAlphabet);
+        final String targetText = (targetAlphabet != 0)? readConceptText(db, targetAlphabet, preferredAlphabet) : "?";
         setTitle(sourceText + " -> " + targetText);
 
-        _conversion = getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet));
+        _conversion = (targetAlphabet != 0)? getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet)) :
+                new Conversion(sourceAlphabet, 0, ImmutableHashMap.empty());
 
         if (savedInstanceState == null) {
             _state = new ConversionEditorActivityState();
@@ -107,13 +131,20 @@ public final class ConversionEditorActivity extends Activity implements ListView
                 final Conversion newConversion = _state.getResultingConversion(_conversion);
                 final Database db = DbManager.getInstance().getDatabase();
                 if (checkConflicts(db, newConversion)) {
-                    if (!LangbookDatabase.replaceConversion(db, newConversion)) {
-                        throw new AssertionError();
+                    if (isAlphabetPresent(db, getTargetAlphabet())) {
+                        if (!LangbookDatabase.replaceConversion(db, newConversion)) {
+                            throw new AssertionError();
+                        }
+
+                        Toast.makeText(this, R.string.updateConversionFeedback, Toast.LENGTH_SHORT).show();
+                        setResult(RESULT_OK);
+                    }
+                    else {
+                        final Intent intent = new Intent();
+                        intent.putExtra(ResultKeys.CONVERSION, new ParcelableConversion(newConversion));
+                        setResult(RESULT_OK, intent);
                     }
 
-                    Toast.makeText(this, R.string.updateConversionFeedback, Toast.LENGTH_SHORT).show();
-
-                    setResult(RESULT_OK);
                     finish();
                 }
                 return true;
@@ -233,7 +264,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 
-    private boolean checkConflicts(DbExporter.Database db, Conversion newConversion) {
+    private boolean checkConflicts(DbExporter.Database db, LangbookReadableDatabase.ConversionProposal newConversion) {
         final ImmutableSet<String> wordsInConflict = findConversionConflictWords(db, newConversion);
 
         if (wordsInConflict.isEmpty()) {
@@ -242,7 +273,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         else {
             final String firstWord = wordsInConflict.valueAt(0);
             final String text = (wordsInConflict.size() == 1)? "Failing to convert word " + firstWord :
-                    (wordsInConflict.size() == 2)? "Failing to convert words " + firstWord + wordsInConflict.valueAt(1) :
+                    (wordsInConflict.size() == 2)? "Failing to convert words " + firstWord + " and " + wordsInConflict.valueAt(1) :
                             "Failing to convert word " + firstWord + " and other " + (wordsInConflict.size() - 1) + " words";
             Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
             return false;

@@ -7,16 +7,34 @@ public final class AlphabetsActivityState implements Parcelable {
 
     private static final int DEFINE_CONVERSION_FLAG = 0x80000000;
 
-    /**
-     * State number for the state machine.
-     * 0: NORMAL
-     * 1: SHOWING_LANGUAGE_OPTIONS
-     * 2: SHOWING_ALPHABET_OPTIONS
-     * 3: LANGUAGE_DELETE_CONFIRMATION
-     * 4: ALPHABET_DELETE_CONFIRMATION
-     * 5: PICKING_NEW_ALPHABET_ACCEPTATION
-     * 6: PICKING_SOURCE_ALPHABET
-     */
+    public int startDefiningConversion() {
+        if (_intrinsicState != IntrinsicStates.PICKING_SOURCE_ALPHABET) {
+            throw new UnsupportedOperationException();
+        }
+
+        _intrinsicState = IntrinsicStates.DEFINING_CONVERSION;
+        _sourceAlphabet &= ~DEFINE_CONVERSION_FLAG;
+
+        return _newAlphabetConcept;
+    }
+
+    public void cancelDefiningConversion() {
+        if (_intrinsicState != IntrinsicStates.DEFINING_CONVERSION) {
+            throw new UnsupportedOperationException();
+        }
+
+        _sourceAlphabet |= DEFINE_CONVERSION_FLAG;
+        _intrinsicState = IntrinsicStates.PICKING_SOURCE_ALPHABET;
+    }
+
+    public void completeDefiningConversion() {
+        if (_intrinsicState != IntrinsicStates.DEFINING_CONVERSION) {
+            throw new UnsupportedOperationException();
+        }
+
+        _intrinsicState = IntrinsicStates.NORMAL;
+    }
+
     interface IntrinsicStates {
         int NORMAL = 0;
         int SHOWING_LANGUAGE_OPTIONS = 1;
@@ -25,11 +43,12 @@ public final class AlphabetsActivityState implements Parcelable {
         int ALPHABET_DELETE_CONFIRMATION = 4;
         int PICKING_NEW_ALPHABET_ACCEPTATION = 5;
         int PICKING_SOURCE_ALPHABET = 6;
+        int DEFINING_CONVERSION = 7;
     }
 
     private int _intrinsicState;
     private int _id;
-    private int _id2;
+    private int _newAlphabetConcept;
     private int _sourceAlphabet;
 
     private AlphabetsActivityState(Parcel in) {
@@ -37,7 +56,7 @@ public final class AlphabetsActivityState implements Parcelable {
         if (_intrinsicState != IntrinsicStates.NORMAL) {
             _id = in.readInt();
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
-                _id2 = in.readInt();
+                _newAlphabetConcept = in.readInt();
                 _sourceAlphabet = in.readInt();
             }
         }
@@ -229,7 +248,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.PICKING_SOURCE_ALPHABET;
-        _id2 = alphabet;
+        _newAlphabetConcept = alphabet;
     }
 
     public int cancelSourceAlphabetPicking() {
@@ -238,7 +257,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.NORMAL;
-        return _id2;
+        return _newAlphabetConcept;
     }
 
     @Override
@@ -252,7 +271,7 @@ public final class AlphabetsActivityState implements Parcelable {
         if (_intrinsicState != IntrinsicStates.NORMAL) {
             dest.writeInt(_id);
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
-                dest.writeInt(_id2);
+                dest.writeInt(_newAlphabetConcept);
                 dest.writeInt(_sourceAlphabet);
             }
         }

@@ -18,7 +18,6 @@
         android:id="@+id/defineConversionCheckBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/sourceAlphabetDefineConversionText"
-        android:enabled="false"/>
+        android:text="@string/sourceAlphabetDefineConversionText"/>
 
 </LinearLayout>

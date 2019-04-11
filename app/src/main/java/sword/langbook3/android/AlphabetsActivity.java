@@ -21,6 +21,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
+import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 
 import static sword.langbook3.android.LangbookReadableDatabase.checkAlphabetCanBeRemoved;
 import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
@@ -30,6 +31,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     private static final int REQUEST_CODE_NEW_ALPHABET = 1;
     private static final int REQUEST_CODE_NEW_LANGUAGE = 2;
+    private static final int REQUEST_CODE_NEW_CONVERSION = 3;
 
     private interface SavedKeys {
         String STATE = "st";
@@ -201,10 +203,16 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.sourceAlphabetPickerDialog)
                 .setPositiveButton(R.string.addFieldButton, (d, which) -> {
+                    final boolean defineConversion = _state.isDefineConversionChecked();
                     final int sourceAlphabet = _state.getSelectedSourceAlphabet();
-                    final int alphabet = _state.cancelSourceAlphabetPicking();
-                    // TODO: Implement logic for conversion option
-                    addAlphabetCopyingFromSource(alphabet, sourceAlphabet);
+                    if (defineConversion) {
+                        final int alphabet = _state.startDefiningConversion();
+                        ConversionEditorActivity.open(this, REQUEST_CODE_NEW_CONVERSION, sourceAlphabet, alphabet);
+                    }
+                    else {
+                        final int alphabet = _state.cancelSourceAlphabetPicking();
+                        addAlphabetCopyingFromSource(alphabet, sourceAlphabet);
+                    }
                 })
                 .setOnCancelListener(d -> _state.cancelSourceAlphabetPicking())
                 .create();
@@ -272,8 +280,8 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        final int acceptation = (data != null)? data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0) : 0;
         if (requestCode == REQUEST_CODE_NEW_ALPHABET) {
+            final int acceptation = (data != null)? data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0) : 0;
             if (resultCode == RESULT_OK && acceptation != 0) {
                 final Database db = DbManager.getInstance().getDatabase();
                 final int alphabet = conceptFromAcceptation(db, acceptation);
@@ -282,6 +290,25 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             }
             else {
                 _state.cancelAcceptationForAlphabetPicking();
+            }
+        }
+        else if (requestCode == REQUEST_CODE_NEW_CONVERSION) {
+            final ParcelableConversion parcelable = (data != null)? data.getParcelableExtra(ConversionEditorActivity.ResultKeys.CONVERSION) : null;
+            final Conversion conversion = (parcelable != null)? parcelable.get() : null;
+            if (resultCode == RESULT_OK && conversion != null) {
+                final Database db = DbManager.getInstance().getDatabase();
+                final boolean ok = LangbookDatabase.addAlphabetAsConversionTarget(db, conversion);
+                final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                _state.completeDefiningConversion();
+
+                if (ok) {
+                    updateUi();
+                }
+            }
+            else {
+                _state.cancelDefiningConversion();
+                showSourceAlphabetPickerDialog();
             }
         }
     }

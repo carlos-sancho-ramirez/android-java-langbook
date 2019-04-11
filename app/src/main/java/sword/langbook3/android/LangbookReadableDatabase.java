@@ -537,7 +537,7 @@ public final class LangbookReadableDatabase {
                 .anyMatch(str -> conversion.convert(str) == null);
     }
 
-    public static ImmutableSet<String> findConversionConflictWords(DbExporter.Database db, Conversion conversion) {
+    public static ImmutableSet<String> findConversionConflictWords(DbExporter.Database db, ConversionProposal conversion) {
         // TODO: Logic in the word should be somehow centralised with #checkConversionConflicts method
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)

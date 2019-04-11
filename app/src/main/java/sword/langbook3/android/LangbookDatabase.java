@@ -98,6 +98,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.getMaxSentenceMea
 import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.LangbookReadableDatabase.getSentenceMeaning;
 import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
+import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayPresent;
@@ -1167,32 +1168,46 @@ public final class LangbookDatabase {
 
     /**
      * Add a new alphabet and a new conversion at once, being the resulting alphabet the target of the given conversion.
-     * @param db Database wher the alphabet and conversion will be included.
-     * @param sourceAlphabet Source alphabet for the given conversion.
-     * @param conversionPairs All pair of the conversion to be stored and applied. No specific order is required, as it will be resorted before applying it.
-     * @return The identifier for the new alphabet, or null if it is not possible to add them.
+     * @param db Database where the alphabet and conversion will be included.
+     * @param conversion Conversion to be evaluated and stored if no conflicts are found.
+     * @return Whether the action was completed successfully, and so the database state content has changed.
      */
-    public static Integer addAlphabetAsConversionTarget(Database db, int sourceAlphabet, Map<String, String> conversionPairs) {
-        final Integer languageOpt = getLanguageFromAlphabet(db, sourceAlphabet);
+    public static boolean addAlphabetAsConversionTarget(Database db, Conversion conversion) {
+        final Integer languageOpt = getLanguageFromAlphabet(db, conversion.getSourceAlphabet());
         if (languageOpt == null) {
-            return null;
+            return false;
+        }
+
+        if (isAlphabetPresent(db, conversion.getTargetAlphabet())) {
+            return false;
         }
 
         final int language = languageOpt;
-        final int alphabet = getMaxConcept(db) + 1;
-        final Conversion conversion = new Conversion(sourceAlphabet, alphabet, conversionPairs);
         if (!checkConversionConflicts(db, conversion)) {
-            return null;
+            return false;
         }
 
-        insertAlphabet(db, alphabet, language);
+        insertAlphabet(db, conversion.getTargetAlphabet(), language);
 
         if (!updateJustConversion(db, conversion).getMap().isEmpty()) {
             throw new AssertionError();
         }
 
         applyConversion(db, conversion);
-        return alphabet;
+        return true;
+    }
+
+    /**
+     * Add a new alphabet and a new conversion at once, being the resulting alphabet the target of the given conversion.
+     * @param db Database where the alphabet and conversion will be included.
+     * @param sourceAlphabet Source alphabet for the given conversion.
+     * @param conversionPairs All pair of the conversion to be stored and applied. No specific order is required, as it will be resorted before applying it.
+     * @return The identifier for the new alphabet, or null if it is not possible to add them.
+     */
+    public static Integer addAlphabetAsConversionTarget(Database db, int sourceAlphabet, Map<String, String> conversionPairs) {
+        final int alphabet = getMaxConcept(db) + 1;
+        final Conversion conversion = new Conversion(sourceAlphabet, alphabet, conversionPairs);
+        return addAlphabetAsConversionTarget(db, conversion)? alphabet : null;
     }
 
     /**
