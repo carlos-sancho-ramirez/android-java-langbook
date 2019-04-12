@@ -1,6 +1,5 @@
 package sword.langbook3.android;
 
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -262,11 +261,16 @@ class DbManager extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        final Uri uri = (_uri != null)? _uri : Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + _context.getPackageName() + '/' + R.raw.basic);
+        final LangbookDbSchema schema = LangbookDbSchema.getInstance();
+        createTables(db, schema);
+        createIndexes(db, schema);
 
-        _uri = null;
+        if (_uri != null) {
+            final Uri uri = _uri;
+            _uri = null;
 
-        importDatabase(db, uri);
+            importDatabase(db, uri);
+        }
     }
 
     private static final class InitializerDatabase implements DbImporter.Database {
@@ -289,10 +293,6 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private void importDatabase(SQLiteDatabase db, Uri uri) {
-        final LangbookDbSchema schema = LangbookDbSchema.getInstance();
-        createTables(db, schema);
-        createIndexes(db, schema);
-
         DbImporter.Database initDb = new InitializerDatabase(db);
         final DatabaseImporter reader = new DatabaseImporter(_context, uri, _progressListener);
         try {
