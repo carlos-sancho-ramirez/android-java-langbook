@@ -160,4 +160,5 @@
     <string name="sourceAlphabetPickerDialog">Select the source</string>
     <string name="sourceAlphabetSpinnerLabel">Select a source</string>
     <string name="sourceAlphabetDefineConversionText">Define conversion</string>
+    <string name="addLanguageButton">Add language</string>
 </resources>
