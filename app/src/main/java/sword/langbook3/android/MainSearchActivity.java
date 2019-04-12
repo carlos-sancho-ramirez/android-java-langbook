@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -9,12 +10,23 @@ import android.view.View;
 import android.widget.AdapterView;
 
 import sword.collections.ImmutableList;
+import sword.database.Database;
 
 import static sword.langbook3.android.LangbookDatabase.updateSearchHistory;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        final Database db = DbManager.getInstance().getDatabase();
+        if (savedInstanceState == null && !LangbookReadableDatabase.isAnyLanguagePresent(db)) {
+            WelcomeActivity.open(this, REQUEST_CODE_WELCOME);
+        }
+    }
 
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
         updateSearchHistory(DbManager.getInstance().getDatabase(), dynamicAcceptation);

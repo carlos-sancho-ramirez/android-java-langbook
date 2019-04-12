@@ -103,6 +103,12 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    private static boolean selectExistAtLeastOneRow(DbExporter.Database db, DbQuery query) {
+        try (DbResult dbResult = db.select(query)) {
+            return dbResult.hasNext();
+        }
+    }
+
     public static ImmutableIntSet findCorrelationsByLanguage(DbExporter.Database db, int language) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
@@ -1691,6 +1697,14 @@ public final class LangbookReadableDatabase {
                 .select(table.getIdColumnIndex());
 
         return selectExistingRow(db, query);
+    }
+
+    public static boolean isAnyLanguagePresent(DbExporter.Database db) {
+        final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getIdColumnIndex());
+
+        return selectExistAtLeastOneRow(db, query);
     }
 
     public static boolean isAlphabetPresent(DbExporter.Database db, int alphabet) {

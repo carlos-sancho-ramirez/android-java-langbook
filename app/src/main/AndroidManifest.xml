@@ -87,6 +87,10 @@
         <activity
             android:name=".LanguageAdderActivity"
             android:label="@string/languageAdderActivityTitle"/>
+
+        <activity
+            android:name=".WelcomeActivity"
+            android:label="@string/appName"/>
     </application>
 
 </manifest>

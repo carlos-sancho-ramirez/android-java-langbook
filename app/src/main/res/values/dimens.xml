@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Welcome screen -->
+    <dimen name="welcomeTextPadding">8dp</dimen>
+    <dimen name="welcomeTitleTextSize">28sp</dimen>
+
     <dimen name="questionTextSize">36sp</dimen>
     <dimen name="quizSelectorEntryPadding">8dp</dimen>
     <dimen name="quizSelectorEntryTextPadding">12dp</dimen>

@@ -2,6 +2,10 @@
     <string name="appName">Langbook</string>
     <string name="appCredits">App developed by Carlos Sancho Ramirez</string>
 
+    <!-- Welcome text -->
+    <string name="welcomeTitle">Welcome to Langbook!</string>
+    <string name="welcomeText">Langbook is intended to be a tool to help people in their task of learning new languages and master the ones they may already know. Langbook will allow you to store words, grammar rules, classify them in different ways according to your needs, test your knowledge, and much more!</string>
+
     <string name="languagePickerActivityTitle">Select a language</string>
     <string name="wordEditorActivityTitle">Fill representations</string>
     <string name="sentenceEditorActivityTitle">Type your sentence</string>

@@ -24,7 +24,9 @@ import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationFr
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
     static final String AGENT_QUERY_PREFIX = "Agent ";
-    private static final int REQUEST_CODE_NEW_ACCEPTATION = 1;
+
+    static final int REQUEST_CODE_WELCOME = 1;
+    private static final int REQUEST_CODE_NEW_ACCEPTATION = 2;
 
     private ListView _listView;
     private SearchResultAdapter _listAdapter;
