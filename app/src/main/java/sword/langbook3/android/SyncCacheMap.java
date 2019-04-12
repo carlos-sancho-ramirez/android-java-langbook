@@ -23,4 +23,8 @@ public final class SyncCacheMap<K, V> {
             return value;
         }
     }
+
+    public void clear() {
+        _map.clear();
+    }
 }

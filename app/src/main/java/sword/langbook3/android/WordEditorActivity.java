@@ -30,6 +30,7 @@ import sword.langbook3.android.LangbookReadableDatabase.Conversion;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.EqualUtils.equal;
+import static sword.langbook3.android.LangbookReadableDatabase.findAlphabetsByLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndLanguage;
@@ -38,6 +39,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForL
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_CORRELATION_PICKER = 1;
+    private static final int REQUEST_CODE_CHECK_CONVERSION = 2;
 
     interface ArgKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
@@ -140,6 +142,40 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         if (requestCode == REQUEST_CODE_CORRELATION_PICKER && resultCode == RESULT_OK) {
             setResult(RESULT_OK, data);
             finish();
+        }
+        else if (requestCode == REQUEST_CODE_CHECK_CONVERSION) {
+            _conversions.clear();
+            updateConvertedTexts();
+            updateFields();
+        }
+    }
+
+    private int getLanguage(Database db) {
+        if (_existingAcceptation != 0) {
+            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = readAcceptationTextsAndLanguage(db, _existingAcceptation);
+            return result.right;
+        }
+        else {
+            return getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
+        }
+    }
+
+    private void updateConvertedTexts() {
+        final Database db = DbManager.getInstance().getDatabase();
+        final int language = getLanguage(db);
+        final ImmutableIntSet alphabets = findAlphabetsByLanguage(db, language);
+        final ImmutableIntPairMap conversionMap = findConversions(db, alphabets);
+
+        final int alphabetCount = alphabets.size();
+        for (int targetFieldIndex = 0; targetFieldIndex < alphabetCount; targetFieldIndex++) {
+            final int targetAlphabet = alphabets.valueAt(targetFieldIndex);
+            final int sourceAlphabet = conversionMap.get(targetAlphabet, 0);
+            final ImmutableIntPair alphabetPair = new ImmutableIntPair(sourceAlphabet, targetAlphabet);
+            final int sourceFieldIndex = (sourceAlphabet != 0)? alphabets.indexOf(sourceAlphabet) : -1;
+            if (sourceFieldIndex >= 0) {
+                final String sourceText = _texts[sourceFieldIndex];
+                _texts[targetFieldIndex] = (sourceText != null)? _conversions.get(alphabetPair).convert(sourceText) : null;
+            }
         }
     }
 
@@ -305,7 +341,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 final int target = fieldNames.keyAt(fieldIndex);
                 final int source = fieldConversions.get(target);
                 fieldEntry.findViewById(R.id.checkConversionButton).setOnClickListener(view ->
-                        ConversionDetailsActivity.open(this, source, target));
+                        ConversionDetailsActivity.open(this, REQUEST_CODE_CHECK_CONVERSION, source, target));
             }
         }
 

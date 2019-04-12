@@ -30,6 +30,13 @@ public final class ConversionDetailsActivity extends Activity {
         context.startActivity(intent);
     }
 
+    public static void open(Activity activity, int requestCode, int sourceAlphabet, int targetAlphabet) {
+        final Intent intent = new Intent(activity, ConversionDetailsActivity.class);
+        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
+        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     private boolean _dataJustLoaded;
 
     private int getSourceAlphabet() {
