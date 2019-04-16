@@ -1,5 +1,7 @@
 package sword.langbook3.android;
 
+import sword.collections.ImmutableList;
+
 class SearchResult {
 
     interface Types {
@@ -9,11 +11,12 @@ class SearchResult {
 
     private final String _str;
     private final String _mainStr;
+    private final ImmutableList<String> _appliedRules;
     private final int _type;
     private final int _id;
     private final int _auxId;
 
-    SearchResult(String str, String mainStr, int type, int id, int auxId) {
+    SearchResult(String str, String mainStr, int type, int id, int auxId, ImmutableList<String> appliedRules) {
         if (type != Types.ACCEPTATION && type != Types.AGENT || str == null || mainStr == null) {
             throw new IllegalArgumentException();
         }
@@ -23,6 +26,11 @@ class SearchResult {
         _type = type;
         _id = id;
         _auxId = auxId;
+        _appliedRules = appliedRules;
+    }
+
+    SearchResult(String str, String mainStr, int type, int id, int auxId) {
+        this(str, mainStr, type, id, auxId, ImmutableList.empty());
     }
 
     String getStr() {
@@ -47,6 +55,14 @@ class SearchResult {
 
     boolean isDynamic() {
         return _type == Types.ACCEPTATION && _id != _auxId;
+    }
+
+    ImmutableList<String> getAppliedRules() {
+        return _appliedRules;
+    }
+
+    public SearchResult withRules(ImmutableList<String> rules) {
+        return new SearchResult(_str, _mainStr, _type, _id, _auxId, rules);
     }
 
     @Override

@@ -14,7 +14,6 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.List;
-import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.DbValue;
 import sword.langbook3.android.LangbookDbSchema.Tables;
@@ -137,9 +136,12 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
                 _query.toLowerCase().startsWith(str.toLowerCase()));
     }
 
+    ImmutableList<SearchResult> queryAcceptationResults(String query) {
+        return findAcceptationFromText(DbManager.getInstance().getDatabase(), query, getSearchRestrictionType());
+    }
+
     final void queryAllResults() {
-        final Database db = DbManager.getInstance().getDatabase();
-        ImmutableList<SearchResult> results = findAcceptationFromText(db, _query, getSearchRestrictionType());
+        ImmutableList<SearchResult> results = queryAcceptationResults(_query);
         if (includeAgentsAsResult() && _query != null && possibleString(AGENT_QUERY_PREFIX)) {
             results = results.appendAll(agentSearchResults().filter(entry -> possibleString(entry.getStr())));
         }

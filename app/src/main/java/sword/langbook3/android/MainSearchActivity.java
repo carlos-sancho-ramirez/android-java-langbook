@@ -14,9 +14,12 @@ import sword.database.Database;
 
 import static sword.langbook3.android.LangbookDatabase.updateSearchHistory;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationAndRulesFromText;
 import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
+
+    private int _preferredAlphabet;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -26,6 +29,12 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         if (savedInstanceState == null && !LangbookReadableDatabase.isAnyLanguagePresent(db)) {
             WelcomeActivity.open(this, REQUEST_CODE_WELCOME);
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
     }
 
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
@@ -89,5 +98,10 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     @Override
     ImmutableList<SearchResult> noQueryResults() {
         return getSearchHistory(DbManager.getInstance().getDatabase());
+    }
+
+    @Override
+    ImmutableList<SearchResult> queryAcceptationResults(String query) {
+        return findAcceptationAndRulesFromText(DbManager.getInstance().getDatabase(), query, getSearchRestrictionType(), _preferredAlphabet);
     }
 }

@@ -11,4 +11,5 @@
     <color name="listViewEntryPressed">#FF9999FF</color>
     <color name="alphabets_adapter_language_entry">#99000000</color>
     <color name="alphabets_adapter_language_text_color">#FFFFFFFF</color>
+    <color name="searchEntryAuxiliarInfoText">#FF666666</color>
 </resources>

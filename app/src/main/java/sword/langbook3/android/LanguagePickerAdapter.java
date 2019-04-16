@@ -40,7 +40,7 @@ final class LanguagePickerAdapter extends BaseAdapter {
                 _inflater = LayoutInflater.from(parent.getContext());
             }
 
-            view = _inflater.inflate(R.layout.search_result, parent, false);
+            view = _inflater.inflate(R.layout.language_picker_entry, parent, false);
         }
         else {
             view = convertView;

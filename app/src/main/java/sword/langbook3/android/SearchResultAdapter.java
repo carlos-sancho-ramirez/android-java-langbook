@@ -61,6 +61,16 @@ class SearchResultAdapter extends BaseAdapter {
         final String text = str.equals(mainStr)? str : mainStr + " (" + str + ')';
         tv.setText(text);
 
+        final TextView auxTv = view.findViewById(R.id.searchResultAdditionalInfo);
+        final ImmutableList<String> rules = item.getAppliedRules();
+        if (rules.isEmpty()) {
+            auxTv.setVisibility(View.GONE);
+        }
+        else {
+            auxTv.setText(rules.reduce((a, b) -> a + " + " + b));
+            auxTv.setVisibility(View.VISIBLE);
+        }
+
         return view;
     }
 }
