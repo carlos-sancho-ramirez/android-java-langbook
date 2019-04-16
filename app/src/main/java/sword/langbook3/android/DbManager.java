@@ -12,7 +12,9 @@ import android.widget.Toast;
 import sword.collections.AbstractTransformer;
 import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.IntFunction;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.Traversable;
@@ -208,8 +210,13 @@ class DbManager extends SQLiteOpenHelper {
         private final int _rowCount;
         private int _nextRowIndex;
 
+        private ImmutableIntSet _columnIndexes;
+        private IntFunction<DbValue> _mapFunc;
+
         SQLiteDbResult(ImmutableList<DbColumn> columns, Cursor cursor) {
             _columns = columns;
+            _columnIndexes = columns.indexes();
+            _mapFunc = this::cursorToDbValue;
             _cursor = cursor;
             _rowCount = cursor.getCount();
 
@@ -244,18 +251,13 @@ class DbManager extends SQLiteOpenHelper {
                 throw new UnsupportedOperationException("End already reached");
             }
 
-            final int length = _columns.size();
-            final ImmutableList.Builder<DbValue> builder = new ImmutableList.Builder<>(length);
-            for (int i = 0; i < length; i++) {
-                builder.add(cursorToDbValue(i));
-            }
-
+            final ImmutableList<DbValue> result = _columnIndexes.map(_mapFunc);
             if (!_cursor.moveToNext()) {
                 close();
             }
             _nextRowIndex++;
 
-            return builder.build();
+            return result;
         }
     }
 
