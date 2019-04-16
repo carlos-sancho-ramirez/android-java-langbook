@@ -71,7 +71,6 @@ import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
-import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
@@ -271,7 +270,7 @@ public final class LangbookDatabase {
     }
 
     private static boolean applyMatchersAddersAndConversions(MutableIntKeyMap<String> correlation,
-            AgentDetails details, ImmutableSet<ImmutableIntPair> conversionPairs,
+            AgentDetails details, ImmutableIntPairMap conversionMap,
             SyncCacheMap<ImmutableIntPair, Conversion> conversions) {
         for (IntKeyMap.Entry<String> entry : details.startMatcher.entries()) {
             final int length = entry.value().length();
@@ -297,9 +296,11 @@ public final class LangbookDatabase {
         }
 
         boolean validConversion = true;
-        for (ImmutableIntPair pair : conversionPairs) {
-            final IntSet keySet = correlation.keySet();
-            if (keySet.contains(pair.left)) {
+        final int conversionCount = conversionMap.size();
+        final IntSet keySet = correlation.keySet();
+        for (int conversionIndex = 0; conversionIndex < conversionCount; conversionIndex++) {
+            if (keySet.contains(conversionMap.valueAt(conversionIndex))) {
+                final ImmutableIntPair pair = new ImmutableIntPair(conversionMap.valueAt(conversionIndex), conversionMap.keyAt(conversionIndex));
                 final String result = conversions.get(pair).convert(correlation.get(pair.left));
                 if (result == null) {
                     validConversion = false;
@@ -319,7 +320,7 @@ public final class LangbookDatabase {
             processedAcceptations = matchingAcceptations;
         }
         else {
-            final ImmutableSet<ImmutableIntPair> conversionPairs = findConversions(db);
+            final ImmutableIntPairMap conversionMap = getConversionsMap(db);
             final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
@@ -329,11 +330,14 @@ public final class LangbookDatabase {
                 final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
                 final MutableIntKeyMap<String> correlation = textsAndMain.left.mutate();
 
-                final boolean validConversion = applyMatchersAddersAndConversions(correlation, details, conversionPairs, conversions);
+                final boolean validConversion = applyMatchersAddersAndConversions(correlation, details, conversionMap, conversions);
                 if (validConversion) {
+                    final ImmutableIntSet conversionTargets = conversionMap.keySet();
                     final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
                     for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
-                        corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                        if (!conversionTargets.contains(entry.key())) {
+                            corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                        }
                     }
 
                     final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
@@ -395,7 +399,7 @@ public final class LangbookDatabase {
             processedAcceptations = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
         }
         else {
-            // This is assuming that matcher, adder and rule and flags did not change from last run,
+            // This is assuming that matcher, adder, rule and flags did not change from last run,
             // only its source and diff bunches and its contents
             final ImmutableIntSet toBeProcessed;
             if (acceptationCorrelationChanged) {
@@ -431,7 +435,7 @@ public final class LangbookDatabase {
                 }
             }
 
-            final ImmutableSet<ImmutableIntPair> conversionPairs = findConversions(db);
+            final ImmutableIntPairMap conversionMap = getConversionsMap(db);
             final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
@@ -440,16 +444,18 @@ public final class LangbookDatabase {
                 final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
                 final MutableIntKeyMap<String> correlation = textsAndMain.left.mutate();
 
-                final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionPairs, conversions);
+                final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, conversions);
                 if (validConversion) {
+                    final ImmutableIntSet conversionTargets = conversionMap.keySet();
                     final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
                     for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
-                        corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                        if (!conversionTargets.contains(entry.key())) {
+                            corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                        }
                     }
 
                     final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
                     final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
-
                     final int baseConcept = conceptFromAcceptation(db, acc);
                     final int ruledConcept = obtainRuledConcept(db, agentDetails.rule, baseConcept);
                     final int newAcc = insertAcceptation(db, ruledConcept, correlationArrayId);
