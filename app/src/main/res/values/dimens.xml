@@ -29,5 +29,7 @@
 
     <dimen name="conversionSelectorEntryPadding">8dp</dimen>
     <dimen name="conversionDetailsEntryPadding">8dp</dimen>
+
+    <dimen name="searchEntryPadding">4dp</dimen>
     <dimen name="searchEntryRulePadding">8dp</dimen>
 </resources>

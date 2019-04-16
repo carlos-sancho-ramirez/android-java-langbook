@@ -67,7 +67,7 @@ class SearchResultAdapter extends BaseAdapter {
             auxTv.setVisibility(View.GONE);
         }
         else {
-            auxTv.setText(rules.reduce((a, b) -> a + " + " + b));
+            auxTv.setText(item.getMainAccMainStr() + " + " + rules.reduce((a, b) -> a + " + " + b));
             auxTv.setVisibility(View.VISIBLE);
         }
 

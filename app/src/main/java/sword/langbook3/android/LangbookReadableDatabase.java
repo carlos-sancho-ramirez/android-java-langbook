@@ -72,6 +72,16 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    public static List<DbValue> selectFirstRow(DbExporter.Database db, DbQuery query) {
+        try (DbResult result = db.select(query)) {
+            if (!result.hasNext()) {
+                throw new AssertionError("Nothing found matching the given criteria");
+            }
+
+            return result.next();
+        }
+    }
+
     private static Integer selectOptionalFirstIntColumn(DbExporter.Database db, DbQuery query) {
         Integer result = null;
         try (DbResult dbResult = db.select(query)) {
@@ -503,7 +513,9 @@ public final class LangbookReadableDatabase {
                     rules = rules.append(ruleTexts.get(row.get(1).toInt()));
                 }
 
-                return rawEntry.withRules(rules);
+                return rawEntry
+                        .withMainAccMainStr(readAcceptationMainText(db, rawEntry.getId()))
+                        .withRules(rules);
             }
             else {
                 return rawEntry;
@@ -1884,6 +1896,15 @@ public final class LangbookReadableDatabase {
         }
 
         return new ImmutablePair<>(builder.build(), mainAcc);
+    }
+
+    public static String readAcceptationMainText(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(table.getMainStringColumnIndex());
+
+        return selectFirstRow(db, query).get(0).toText();
     }
 
     public static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
