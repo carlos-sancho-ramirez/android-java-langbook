@@ -380,18 +380,6 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static ImmutableSet<ImmutableIntPair> findConversions(DbExporter.Database db) {
-        final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
-
-        final DbQuery query = new DbQuery.Builder(conversions)
-                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
-                .select(
-                        conversions.getSourceAlphabetColumnIndex(),
-                        conversions.getTargetAlphabetColumnIndex());
-
-        return db.select(query).map(row -> new ImmutableIntPair(row.get(0).toInt(), row.get(1).toInt())).toSet().toImmutable();
-    }
-
     public static Integer findLanguageByCode(DbExporter.Database db, String code) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbQuery query = new DbQuery.Builder(table)
@@ -1325,10 +1313,12 @@ public final class LangbookReadableDatabase {
             return null;
         }
 
-        final ImmutableSet<ImmutableIntPair> conversions = findConversions(db);
+        final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+        final int conversionCount = conversionMap.size();
         for (IntKeyMap.Entry<String> entry : texts.entries().toImmutable()) {
-            for (ImmutableIntPair pair : conversions) {
-                if (pair.left == entry.key()) {
+            for (int conversionIndex = 0; conversionIndex < conversionCount; conversionIndex++) {
+                if (conversionMap.valueAt(conversionIndex) == entry.key()) {
+                    final ImmutableIntPair pair = new ImmutableIntPair(conversionMap.valueAt(conversionIndex), conversionMap.keyAt(conversionIndex));
                     final String convertedText = getConversion(db, pair).convert(entry.value());
                     if (convertedText == null) {
                         return null;
