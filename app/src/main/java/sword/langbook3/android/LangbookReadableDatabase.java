@@ -493,16 +493,17 @@ public final class LangbookReadableDatabase {
     public static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType, int preferredAlphabet) {
         final ImmutableIntKeyMap<String> ruleTexts = readAllRules(db, preferredAlphabet);
         final ImmutableList<SearchResult> rawResult = findAcceptationFromText(db, queryText, restrictionStringType);
+        final SyncCacheIntKeyNonNullValueMap<String> mainTexts = new SyncCacheIntKeyNonNullValueMap<>(id -> readAcceptationMainText(db, id));
+
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final int offset = ruledAcceptations.columns().size();
 
         return rawResult.map(rawEntry -> {
             if (rawEntry.isDynamic()) {
                 ImmutableList<String> rules = ImmutableList.empty();
                 int dynAcc = rawEntry.getAuxiliarId();
                 while (dynAcc != rawEntry.getId()) {
-                    final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
-                    final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-                    final int offset = ruledAcceptations.columns().size();
-
                     final DbQuery query = new DbQuery.Builder(ruledAcceptations)
                             .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
                             .where(ruledAcceptations.getIdColumnIndex(), dynAcc)
@@ -514,7 +515,7 @@ public final class LangbookReadableDatabase {
                 }
 
                 return rawEntry
-                        .withMainAccMainStr(readAcceptationMainText(db, rawEntry.getId()))
+                        .withMainAccMainStr(mainTexts.get(rawEntry.getId()))
                         .withRules(rules);
             }
             else {
