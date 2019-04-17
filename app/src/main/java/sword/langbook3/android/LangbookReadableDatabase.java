@@ -2258,41 +2258,24 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(ruledConcepts)
                 .join(acceptations, ruledConcepts.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .orderBy(ruledConcepts.getRuleColumnIndex())
+                .groupBy(ruledConcepts.getRuleColumnIndex())
                 .select(ruledConcepts.getRuleColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-        try (DbResult result = db.select(query)) {
-            if (result.hasNext()) {
-                List<DbValue> row = result.next();
-                int rule = row.get(0).toInt();
-                int textAlphabet = row.get(1).toInt();
-                String text = row.get(2).toText();
+        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                List<DbValue> row = dbResult.next();
+                final int rule = row.get(0).toInt();
 
-                while (result.hasNext()) {
-                    row = result.next();
-                    if (rule == row.get(0).toInt()) {
-                        if (textAlphabet != preferredAlphabet && row.get(1).toInt() == preferredAlphabet) {
-                            textAlphabet = preferredAlphabet;
-                            text = row.get(2).toText();
-                        }
-                    }
-                    else {
-                        builder.put(rule, text);
-
-                        rule = row.get(0).toInt();
-                        textAlphabet = row.get(1).toInt();
-                        text = row.get(2).toText();
-                    }
+                if (result.get(rule, null) == null || row.get(1).toInt() == preferredAlphabet) {
+                    result.put(rule, row.get(2).toText());
                 }
-
-                builder.put(rule, text);
             }
         }
 
-        return builder.build();
+        return result.toImmutable();
     }
 
     private static boolean checkMatching(ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> texts) {
