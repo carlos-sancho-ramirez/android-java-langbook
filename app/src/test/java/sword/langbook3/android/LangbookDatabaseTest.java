@@ -47,6 +47,7 @@ import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.LangbookReadableDatabase.findLanguageByCode;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
@@ -288,6 +289,7 @@ public final class LangbookDatabaseTest {
 
         assertTrue(LangbookDatabase.removeLanguage(db, language));
         assertNull(findLanguageByCode(db, code));
+        assertTrue(getConversionsMap(db).isEmpty());
     }
 
     @Test

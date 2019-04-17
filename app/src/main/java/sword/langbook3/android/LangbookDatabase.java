@@ -1,5 +1,6 @@
 package sword.langbook3.android;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -70,6 +71,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgent
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
+import static sword.langbook3.android.LangbookReadableDatabase.findAlphabetsByLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
@@ -1072,6 +1074,19 @@ public final class LangbookDatabase {
             }
         }
 
+        final ImmutableIntSet alphabets = findAlphabetsByLanguage(db, language);
+        final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+        final int size = conversionMap.size();
+        for (int i = 0; i < size; i++) {
+            final int sourceAlphabet = conversionMap.valueAt(i);
+            if (alphabets.contains(sourceAlphabet)) {
+                final int targetAlphabet = conversionMap.keyAt(i);
+                if (!replaceConversion(db, new Conversion(sourceAlphabet, targetAlphabet, ImmutableHashMap.empty()))) {
+                    throw new AssertionError();
+                }
+            }
+        }
+
         if (!LangbookDeleter.deleteAlphabetsForLanguage(db, language) || !LangbookDeleter.deleteLanguage(db, language)) {
             throw new AssertionError();
         }
@@ -1244,6 +1259,7 @@ public final class LangbookDatabase {
             }
             else {
                 unapplyConversion(db, oldConversion);
+                updateJustConversion(db, conversion);
                 return true;
             }
         }
