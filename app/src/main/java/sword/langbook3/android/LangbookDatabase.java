@@ -1056,7 +1056,6 @@ public final class LangbookDatabase {
         return new ImmutableIntPair(language, alphabet);
     }
 
-    // TODO: Test this method
     public static boolean removeLanguage(Database db, int language) {
         final ImmutableIntSet correlationIds = LangbookReadableDatabase.findCorrelationsByLanguage(db, language);
         final ImmutableIntSet correlationUsedInAgents = LangbookReadableDatabase.findCorrelationsUsedInAgents(db);

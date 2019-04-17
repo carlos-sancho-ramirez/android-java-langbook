@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
 import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.LangbookDatabase.addAgent;
-import static sword.langbook3.android.LangbookDatabase.addAlphabet;
 import static sword.langbook3.android.LangbookDatabase.addAlphabetAsConversionTarget;
 import static sword.langbook3.android.LangbookDatabase.addAlphabetCopyingFromOther;
 import static sword.langbook3.android.LangbookDatabase.addLanguage;
@@ -45,6 +44,7 @@ import static sword.langbook3.android.LangbookDatabase.replaceConversion;
 import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.LangbookReadableDatabase.findLanguageByCode;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.LangbookReadableDatabase.getCorrelation;
@@ -115,6 +115,16 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
+    public void testRemoveLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        assertTrue(LangbookDatabase.removeLanguage(db, langPair.left));
+        assertNull(findLanguageByCode(db, code));
+    }
+
+    @Test
     public void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final String code = "es";
@@ -151,7 +161,7 @@ public final class LangbookDatabaseTest {
                 .build();
 
         final int acceptation = addAcceptation(db, language, obtainCorrelationArray(db, langCorrelations));
-;
+
         final int secondAlphabet = addAlphabetCopyingFromOther(db, mainAlphabet);
         assertNotEquals(language, secondAlphabet);
         assertNotEquals(mainAlphabet, secondAlphabet);
