@@ -179,6 +179,30 @@ public final class LangbookDatabaseTest {
     }
 
     @Test
+    public void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "ja";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+
+        final ImmutableIntKeyMap<String> langCorrelation = new ImmutableIntKeyMap.Builder<String>()
+                .put(mainAlphabet, "日本語")
+                .build();
+
+        final IntList langCorrelations = new ImmutableIntList.Builder()
+                .append(obtainCorrelation(db, langCorrelation))
+                .build();
+
+        addAcceptation(db, language, obtainCorrelationArray(db, langCorrelations));
+        addAlphabetCopyingFromOther(db, mainAlphabet);
+
+        assertTrue(LangbookDatabase.removeLanguage(db, language));
+        assertNull(findLanguageByCode(db, code));
+    }
+
+    @Test
     public void testAddAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final String code = "es";
@@ -243,6 +267,27 @@ public final class LangbookDatabaseTest {
         assertEquals(2, texts.size());
         assertEquals(text, texts.get(mainAlphabet));
         assertEquals(convertedText, texts.get(secondAlphabet));
+    }
+
+    @Test
+    public void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final String code = "es";
+        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
+
+        final int language = langPair.left;
+        final int mainAlphabet = langPair.right;
+
+        final String text = "casa";
+        final int correlationId = obtainCorrelation(db, new ImmutableIntKeyMap.Builder<String>().put(mainAlphabet, text).build());
+        final int correlationArrayId = obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
+
+        final int concept = getMaxConcept(db) + 1;
+        addAcceptation(db, concept, correlationArrayId);
+        addAlphabetAsConversionTarget(db, mainAlphabet, upperCaseConversion);
+
+        assertTrue(LangbookDatabase.removeLanguage(db, language));
+        assertNull(findLanguageByCode(db, code));
     }
 
     @Test
