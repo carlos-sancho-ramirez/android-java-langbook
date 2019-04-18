@@ -24,6 +24,7 @@ import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.LangbookDatabase.addAcceptation;
@@ -44,6 +45,7 @@ import static sword.langbook3.android.LangbookDatabase.replaceConversion;
 import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationsByConcept;
 import static sword.langbook3.android.LangbookReadableDatabase.findLanguageByCode;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
@@ -290,6 +292,41 @@ public final class LangbookDatabaseTest {
         assertTrue(LangbookDatabase.removeLanguage(db, language));
         assertNull(findLanguageByCode(db, code));
         assertTrue(getConversionsMap(db).isEmpty());
+    }
+
+    @Test
+    public void testRemoveLanguageButLeaveOther() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String esCode = "es";
+        final ImmutableIntPair esLangPair = LangbookDatabase.addLanguage(db, esCode);
+        final int esLanguage = esLangPair.left;
+        final int esMainAlphabet = esLangPair.right;
+
+        final String enCode = "en";
+        final ImmutableIntPair enLangPair = LangbookDatabase.addLanguage(db, enCode);
+        final int enLanguage = enLangPair.left;
+        final int enMainAlphabet = enLangPair.right;
+
+        final String esText = "casa";
+        final int esCorrelationId = obtainCorrelation(db, new ImmutableIntKeyMap.Builder<String>().put(esMainAlphabet, esText).build());
+        final int esCorrelationArrayId = obtainCorrelationArray(db, new ImmutableIntList.Builder().append(esCorrelationId).build());
+
+        final String enText = "house";
+        final int enCorrelationId = obtainCorrelation(db, new ImmutableIntKeyMap.Builder<String>().put(enMainAlphabet, enText).build());
+        final int enCorrelationArrayId = obtainCorrelationArray(db, new ImmutableIntList.Builder().append(enCorrelationId).build());
+
+        final int concept = getMaxConcept(db) + 1;
+        final int esAcc = addAcceptation(db, concept, esCorrelationArrayId);
+        final int enAcc = addAcceptation(db, concept, enCorrelationArrayId);
+        assertNotEquals(esAcc, enAcc);
+
+        assertTrue(LangbookDatabase.removeLanguage(db, esLanguage));
+        assertNull(findLanguageByCode(db, esCode));
+        assertNotNull(findLanguageByCode(db, enCode));
+        final ImmutableIntSet acceptations = findAcceptationsByConcept(db, concept);
+        assertEquals(1, acceptations.size());
+        assertEquals(enAcc, acceptations.valueAt(0));
     }
 
     @Test

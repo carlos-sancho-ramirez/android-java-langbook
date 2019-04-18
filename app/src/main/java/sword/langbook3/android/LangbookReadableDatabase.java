@@ -186,6 +186,15 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntSet findAcceptationsByConcept(DbExporter.Database db, int concept) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .where(acceptations.getConceptColumnIndex(), concept)
+                .select(acceptations.getIdColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     public Integer findSymbolArray(String str) {
         return findSymbolArray(db, str);
     }
