@@ -545,7 +545,7 @@ public final class LangbookDatabaseTest {
         final int correlationId = obtainCorrelation(db, correlation);
         final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         final int acceptation = addAcceptation(db, concept, correlationArrayId);
-        LangbookDbInserter.insertBunchAcceptation(db, verbConcept, acceptation, 0);
+        assertTrue(addAcceptationInBunch(db, verbConcept, acceptation));
 
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
@@ -611,7 +611,7 @@ public final class LangbookDatabaseTest {
         final int singCorrelationId = obtainCorrelation(db, singCorrelation);
         final int singCorrelationArrayId = obtainSimpleCorrelationArray(db, singCorrelationId);
         final int singAcceptation = addAcceptation(db, singConcept, singCorrelationArrayId);
-        LangbookDbInserter.insertBunchAcceptation(db, verbConcept, singAcceptation, 0);
+        assertTrue(addAcceptationInBunch(db, verbConcept, singAcceptation));
 
         final String coughtText = "toser";
         final ImmutableIntKeyMap<String> coughtCorrelation = new ImmutableIntKeyMap.Builder<String>()
@@ -620,7 +620,7 @@ public final class LangbookDatabaseTest {
         final int coughtCorrelationId = obtainCorrelation(db, coughtCorrelation);
         final int coughtCorrelationArrayId = obtainSimpleCorrelationArray(db, coughtCorrelationId);
         final int coughtAcceptation = addAcceptation(db, coughtConcept, coughtCorrelationArrayId);
-        LangbookDbInserter.insertBunchAcceptation(db, verbConcept, coughtAcceptation, 0);
+        assertTrue(addAcceptationInBunch(db, verbConcept, coughtAcceptation));
 
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
@@ -673,7 +673,7 @@ public final class LangbookDatabaseTest {
         final int correlationId = obtainCorrelation(db, correlation);
         final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
         final int acceptation = addAcceptation(db, singConcept, correlationArrayId);
-        LangbookDbInserter.insertBunchAcceptation(db, verbConcept, acceptation, 0);
+        assertTrue(addAcceptationInBunch(db, verbConcept, acceptation));
 
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
