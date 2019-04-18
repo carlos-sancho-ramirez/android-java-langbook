@@ -149,8 +149,12 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         updateSearchResults(results);
     }
 
+    SearchResultAdapter createAdapter(ImmutableList<SearchResult> results) {
+        return new SearchResultAdapter(results, null);
+    }
+
     private void updateSearchResults(ImmutableList<SearchResult> results) {
-        _listAdapter = new SearchResultAdapter(results);
+        _listAdapter = createAdapter(results);
         _listView.setAdapter(_listAdapter);
     }
 

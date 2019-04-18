@@ -6,19 +6,23 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableList;
 
 class SearchResultAdapter extends BaseAdapter {
 
     private final ImmutableList<SearchResult> _items;
+    private final ImmutableIntKeyMap<String> _ruleTexts;
     private LayoutInflater _inflater;
 
-    SearchResultAdapter(ImmutableList<SearchResult> items) {
+    SearchResultAdapter(ImmutableList<SearchResult> items, ImmutableIntKeyMap<String> ruleTexts) {
         if (items == null) {
             throw new IllegalArgumentException();
         }
 
         _items = items;
+        _ruleTexts = ruleTexts;
     }
 
     @Override
@@ -62,12 +66,12 @@ class SearchResultAdapter extends BaseAdapter {
         tv.setText(text);
 
         final TextView auxTv = view.findViewById(R.id.searchResultAdditionalInfo);
-        final ImmutableList<String> rules = item.getAppliedRules();
+        final ImmutableIntList rules = item.getAppliedRules();
         if (rules.isEmpty()) {
             auxTv.setVisibility(View.GONE);
         }
         else {
-            auxTv.setText(item.getMainAccMainStr() + " + " + rules.reduce((a, b) -> a + " + " + b));
+            auxTv.setText(item.getMainAccMainStr() + " + " + rules.map(_ruleTexts::get).reduce((a, b) -> a + " + " + b));
             auxTv.setVisibility(View.VISIBLE);
         }
 

@@ -490,8 +490,7 @@ public final class LangbookReadableDatabase {
         return map.toList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
-    public static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType, int preferredAlphabet) {
-        final ImmutableIntKeyMap<String> ruleTexts = readAllRules(db, preferredAlphabet);
+    public static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
         final ImmutableList<SearchResult> rawResult = findAcceptationFromText(db, queryText, restrictionStringType);
         final SyncCacheIntKeyNonNullValueMap<String> mainTexts = new SyncCacheIntKeyNonNullValueMap<>(id -> readAcceptationMainText(db, id));
 
@@ -501,7 +500,7 @@ public final class LangbookReadableDatabase {
 
         return rawResult.map(rawEntry -> {
             if (rawEntry.isDynamic()) {
-                ImmutableList<String> rules = ImmutableList.empty();
+                ImmutableIntList rules = ImmutableIntList.empty();
                 int dynAcc = rawEntry.getAuxiliarId();
                 while (dynAcc != rawEntry.getId()) {
                     final DbQuery query = new DbQuery.Builder(ruledAcceptations)
@@ -511,7 +510,7 @@ public final class LangbookReadableDatabase {
 
                     final List<DbValue> row = selectSingleRow(db, query);
                     dynAcc = row.get(0).toInt();
-                    rules = rules.append(ruleTexts.get(row.get(1).toInt()));
+                    rules = rules.append(row.get(1).toInt());
                 }
 
                 return rawEntry

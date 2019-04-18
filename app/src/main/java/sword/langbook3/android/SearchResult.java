@@ -1,6 +1,8 @@
 package sword.langbook3.android;
 
-import sword.collections.ImmutableList;
+import sword.collections.ImmutableIntList;
+
+import static sword.langbook3.android.EqualUtils.equal;
 
 class SearchResult {
 
@@ -15,9 +17,9 @@ class SearchResult {
     private final int _id;
     private final int _auxId;
     private final String _mainAccMainStr;
-    private final ImmutableList<String> _appliedRules;
+    private final ImmutableIntList _appliedRules;
 
-    SearchResult(String str, String mainStr, int type, int id, int auxId, String mainAccMainStr, ImmutableList<String> appliedRules) {
+    SearchResult(String str, String mainStr, int type, int id, int auxId, String mainAccMainStr, ImmutableIntList appliedRules) {
         if (type != Types.ACCEPTATION && type != Types.AGENT || str == null || mainStr == null) {
             throw new IllegalArgumentException();
         }
@@ -32,7 +34,7 @@ class SearchResult {
     }
 
     SearchResult(String str, String mainStr, int type, int id, int auxId) {
-        this(str, mainStr, type, id, auxId, null, ImmutableList.empty());
+        this(str, mainStr, type, id, auxId, null, ImmutableIntList.empty());
     }
 
     String getStr() {
@@ -63,15 +65,15 @@ class SearchResult {
         return _mainAccMainStr;
     }
 
-    ImmutableList<String> getAppliedRules() {
+    ImmutableIntList getAppliedRules() {
         return _appliedRules;
     }
 
-    public SearchResult withMainAccMainStr(String str) {
+    SearchResult withMainAccMainStr(String str) {
         return new SearchResult(_str, _mainStr, _type, _id, _auxId, str, _appliedRules);
     }
 
-    public SearchResult withRules(ImmutableList<String> rules) {
+    SearchResult withRules(ImmutableIntList rules) {
         return new SearchResult(_str, _mainStr, _type, _id, _auxId, _mainAccMainStr, rules);
     }
 
@@ -91,11 +93,13 @@ class SearchResult {
                 _id == that._id &&
                 _auxId == that._auxId &&
                 _str.equals(that._str) &&
-                _mainStr.equals(that._mainStr);
+                _mainStr.equals(that._mainStr) &&
+                equal(_mainAccMainStr, that._mainAccMainStr) &&
+                equal(_appliedRules, that._appliedRules);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '(' + _str + ',' + _mainStr + ',' + _type + ',' + _id + ',' + _auxId + ')';
+        return getClass().getSimpleName() + '(' + _str + ',' + _mainStr + ',' + _type + ',' + _id + ',' + _auxId + ',' + _mainAccMainStr + ',' + _appliedRules + ')';
     }
 }
