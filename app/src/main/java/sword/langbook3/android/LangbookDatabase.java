@@ -72,6 +72,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
 import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
 import static sword.langbook3.android.LangbookReadableDatabase.findAlphabetsByLanguage;
+import static sword.langbook3.android.LangbookReadableDatabase.findBunchConceptsLinkedToJustThisLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
@@ -79,6 +80,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findQuestionField
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.findSentenceIdsMatchingMeaning;
+import static sword.langbook3.android.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
 import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
 import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
@@ -1059,6 +1061,19 @@ public final class LangbookDatabase {
     }
 
     public static boolean removeLanguage(Database db, int language) {
+        // For now, if there is a bunch whose concept is only linked to acceptations of the language to be removed,
+        // the removal is rejected, as there will not be any way to access the that bunch any more in an AcceptationsDetailsActivity
+        // TODO: Removal should be allowed if all acceptations within the affected bunch belong to the same language. As all will be removed.
+        if (!findBunchConceptsLinkedToJustThisLanguage(db, language).isEmpty()) {
+            return false;
+        }
+
+        // For now, if there is a super type whose concept is only linked to acceptations of the language to be removed,
+        // the removal is rejected, as there will not be any way to access that supertype any more in an AcceptationsDetailsActivity
+        if (!findSuperTypesLinkedToJustThisLanguage(db, language).isEmpty()) {
+            return false;
+        }
+
         final ImmutableIntSet correlationIds = LangbookReadableDatabase.findCorrelationsByLanguage(db, language);
         final ImmutableIntSet correlationUsedInAgents = LangbookReadableDatabase.findCorrelationsUsedInAgents(db);
 
