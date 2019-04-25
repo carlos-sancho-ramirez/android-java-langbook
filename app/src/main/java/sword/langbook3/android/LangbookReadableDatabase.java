@@ -228,6 +228,24 @@ public final class LangbookReadableDatabase {
         return map.filter(set -> set.contains(language) && set.size() == 1).keySet().toImmutable();
     }
 
+    static ImmutableIntSet findIncludedAcceptationLanguages(DbExporter.Database db, int bunch) {
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+
+        final int strOffset = bunchAcceptations.columns().size();
+        final int alpOffset = strOffset + strings.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .join(strings, bunchAcceptations.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(alphabets, strOffset + strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
+                .groupBy(alpOffset + alphabets.getLanguageColumnIndex())
+                .where(bunchAcceptations.getBunchColumnIndex(), bunch)
+                .select(alpOffset + alphabets.getLanguageColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     static ImmutableIntSet findSuperTypesLinkedToJustThisLanguage(DbExporter.Database db, int language) {
         final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;

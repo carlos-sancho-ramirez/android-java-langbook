@@ -76,6 +76,7 @@ import static sword.langbook3.android.LangbookReadableDatabase.findBunchConcepts
 import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
+import static sword.langbook3.android.LangbookReadableDatabase.findIncludedAcceptationLanguages;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
@@ -1062,10 +1063,16 @@ public final class LangbookDatabase {
 
     public static boolean removeLanguage(Database db, int language) {
         // For now, if there is a bunch whose concept is only linked to acceptations of the language to be removed,
-        // the removal is rejected, as there will not be any way to access the that bunch any more in an AcceptationsDetailsActivity
-        // TODO: Removal should be allowed if all acceptations within the affected bunch belong to the same language. As all will be removed.
-        if (!findBunchConceptsLinkedToJustThisLanguage(db, language).isEmpty()) {
-            return false;
+        // the removal is rejected, as there will not be any way to access that bunch any more in an AcceptationsDetailsActivity.
+        // Only exception to the previous rule is the case where all acceptations within the bunch belongs to the language that is about to be removed.
+        final ImmutableIntSet linkedBunches = findBunchConceptsLinkedToJustThisLanguage(db, language);
+        if (!linkedBunches.isEmpty()) {
+            if (linkedBunches.anyMatch(bunch -> {
+                final ImmutableIntSet languages = findIncludedAcceptationLanguages(db, bunch);
+                return languages.size() > 1 || languages.size() == 1 && languages.valueAt(0) != language;
+            })) {
+                return false;
+            }
         }
 
         // For now, if there is a super type whose concept is only linked to acceptations of the language to be removed,

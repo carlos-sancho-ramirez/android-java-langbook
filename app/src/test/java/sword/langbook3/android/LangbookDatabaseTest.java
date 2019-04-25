@@ -41,6 +41,7 @@ import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptation;
 import static sword.langbook3.android.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.LangbookDatabase.removeAgent;
+import static sword.langbook3.android.LangbookDatabase.removeLanguage;
 import static sword.langbook3.android.LangbookDatabase.replaceConversion;
 import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
@@ -123,7 +124,7 @@ public final class LangbookDatabaseTest {
         final String code = "es";
         final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, code);
 
-        assertTrue(LangbookDatabase.removeLanguage(db, langPair.left));
+        assertTrue(removeLanguage(db, langPair.left));
         assertNull(findLanguageByCode(db, code));
     }
 
@@ -201,7 +202,7 @@ public final class LangbookDatabaseTest {
         addAcceptation(db, language, obtainCorrelationArray(db, langCorrelations));
         addAlphabetCopyingFromOther(db, mainAlphabet);
 
-        assertTrue(LangbookDatabase.removeLanguage(db, language));
+        assertTrue(removeLanguage(db, language));
         assertNull(findLanguageByCode(db, code));
     }
 
@@ -289,7 +290,7 @@ public final class LangbookDatabaseTest {
         addAcceptation(db, concept, correlationArrayId);
         addAlphabetAsConversionTarget(db, mainAlphabet, upperCaseConversion);
 
-        assertTrue(LangbookDatabase.removeLanguage(db, language));
+        assertTrue(removeLanguage(db, language));
         assertNull(findLanguageByCode(db, code));
         assertTrue(getConversionsMap(db).isEmpty());
     }
@@ -321,12 +322,46 @@ public final class LangbookDatabaseTest {
         final int enAcc = addAcceptation(db, concept, enCorrelationArrayId);
         assertNotEquals(esAcc, enAcc);
 
-        assertTrue(LangbookDatabase.removeLanguage(db, esLanguage));
+        assertTrue(removeLanguage(db, esLanguage));
         assertNull(findLanguageByCode(db, esCode));
         assertNotNull(findLanguageByCode(db, enCode));
         final ImmutableIntSet acceptations = findAcceptationsByConcept(db, concept);
         assertEquals(1, acceptations.size());
         assertEquals(enAcc, acceptations.valueAt(0));
+    }
+
+    @Test
+    public void testRemoveLanguageThatIncludeAcceptationsAsBunches() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final String langCode = "es";
+        final ImmutableIntPair langPair = addLanguage(db, langCode);
+        final int language = langPair.left;
+        final int alphabet = langPair.right;
+        final int verbConcept = getMaxConcept(db) + 1;
+        final int singConcept = verbConcept + 1;
+
+        final String singText = "cantar";
+        final ImmutableIntKeyMap<String> singCorrelation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, singText)
+                .build();
+        final int singCorrelationId = obtainCorrelation(db, singCorrelation);
+        final int singCorrelationArrayId = obtainSimpleCorrelationArray(db, singCorrelationId);
+        final int singAcceptation = addAcceptation(db, singConcept, singCorrelationArrayId);
+
+        final String verbText = "verbo";
+        final ImmutableIntKeyMap<String> verbCorrelation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, verbText)
+                .build();
+        final int verbCorrelationId = obtainCorrelation(db, verbCorrelation);
+        final int verbCorrelationArrayId = obtainSimpleCorrelationArray(db, verbCorrelationId);
+        final int verbAcceptation = addAcceptation(db, verbConcept, verbCorrelationArrayId);
+        assertTrue(addAcceptationInBunch(db, verbConcept, singAcceptation));
+
+        assertTrue(removeLanguage(db, language));
+        assertNull(findLanguageByCode(db, langCode));
+        assertTrue(getAcceptationTexts(db, singAcceptation).isEmpty());
+        assertTrue(getAcceptationTexts(db, verbAcceptation).isEmpty());
     }
 
     @Test
