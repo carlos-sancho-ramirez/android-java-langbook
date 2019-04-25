@@ -9,6 +9,8 @@ import android.widget.TextView;
 
 import sword.collections.ImmutableIntList;
 
+import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
+
 public final class QuizResultActivity extends Activity {
 
     private static final int REQUEST_CODE_QUESTION = 1;
@@ -69,7 +71,7 @@ public final class QuizResultActivity extends Activity {
         sb.append("\nTotal answers given for this quiz: ").append(_progress.getAnsweredQuestionsCount());
         final ImmutableIntList amounts = _progress.getAmountPerScore();
         for (int i = 0; i < amounts.size(); i++) {
-            sb.append("\n  With score ").append(QuestionActivity.MIN_ALLOWED_SCORE + i)
+            sb.append("\n  With score ").append(MIN_ALLOWED_SCORE + i)
                     .append(": ").append(amounts.get(i));
         }
 

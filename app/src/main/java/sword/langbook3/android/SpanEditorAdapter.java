@@ -9,7 +9,7 @@ import android.widget.CheckBox;
 import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
 import sword.collections.Procedure;
-import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
+import sword.langbook3.android.db.SentenceSpan;
 
 final class SpanEditorAdapter extends BaseAdapter {
 

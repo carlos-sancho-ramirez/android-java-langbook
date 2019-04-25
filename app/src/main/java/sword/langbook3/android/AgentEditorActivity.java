@@ -33,11 +33,13 @@ import sword.collections.MutableList;
 import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.DbValue;
+import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookDbSchema;
 
-import static sword.langbook3.android.EqualUtils.equal;
-import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 

@@ -50,7 +50,7 @@ import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
-import sword.langbook3.android.LangbookDbSchema;
+import sword.langbook3.android.db.LangbookDbSchema;
 
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 

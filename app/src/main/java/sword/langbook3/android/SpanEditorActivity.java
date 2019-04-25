@@ -18,16 +18,17 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableIntValueMap;
-import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.database.Database;
+import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.SentenceSpan;
 
-import static sword.langbook3.android.LangbookDbInserter.insertSpan;
-import static sword.langbook3.android.LangbookDeleter.deleteSpan;
-import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationTexts;
-import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpans;
-import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpansWithIds;
-import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.SentenceEditorActivity.NO_SYMBOL_ARRAY;
+import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;
+import static sword.langbook3.android.db.LangbookDeleter.deleteSpan;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpans;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpansWithIds;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 

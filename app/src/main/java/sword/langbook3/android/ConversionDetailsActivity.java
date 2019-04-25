@@ -9,10 +9,11 @@ import android.view.MenuItem;
 import android.widget.ListView;
 
 import sword.database.Database;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.db.Conversion;
 
-import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class ConversionDetailsActivity extends Activity {
 

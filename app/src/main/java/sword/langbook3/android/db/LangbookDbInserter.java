@@ -1,17 +1,17 @@
-package sword.langbook3.android;
-
-import java.util.Iterator;
+package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntRange;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.IntTraverser;
-import sword.langbook3.android.LangbookDbSchema.Tables;
-import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.database.DbInsertQuery;
 import sword.database.DbInserter;
+import sword.langbook3.android.db.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
+import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
+
+import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 
 public final class LangbookDbInserter {
 
@@ -258,7 +258,7 @@ public final class LangbookDbInserter {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
                     .put(table.getQuizDefinitionColumnIndex(), quizId)
                     .put(table.getAcceptationColumnIndex(), acceptation)
-                    .put(table.getScoreColumnIndex(), QuestionActivity.NO_SCORE)
+                    .put(table.getScoreColumnIndex(), NO_SCORE)
                     .build();
 
             if (db.insert(query) == null) {

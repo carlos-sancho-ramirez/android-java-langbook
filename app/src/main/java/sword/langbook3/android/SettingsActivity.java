@@ -24,7 +24,7 @@ import java.io.IOException;
 import sword.collections.ImmutableIntKeyMap;
 import sword.langbook3.android.sdb.ProgressListener;
 
-import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
 
 public final class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener,
         DialogInterface.OnClickListener, AdapterView.OnItemSelectedListener {

@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.collections;
 
 public final class ImmutableIntPair {
 

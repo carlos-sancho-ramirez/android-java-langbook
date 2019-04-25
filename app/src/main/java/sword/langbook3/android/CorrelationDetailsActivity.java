@@ -15,8 +15,9 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableIte
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
+import sword.langbook3.android.db.CorrelationDetailsModel;
 
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationDetails;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationDetails;
 
 public final class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 

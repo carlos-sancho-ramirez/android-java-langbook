@@ -1,8 +1,9 @@
-package sword.langbook3.android;
+package sword.langbook3.android.db;
 
 import sword.database.Database;
 import sword.database.DbDeleteQuery;
 import sword.database.Deleter;
+import sword.langbook3.android.collections.ImmutableIntPair;
 
 public final class LangbookDeleter {
 

@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.db;
 
 import sword.collections.ImmutableList;
 import sword.database.DbIndex;
@@ -23,6 +23,21 @@ public final class LangbookDbSchema implements DbSchema {
      * Used in agents' rule field to indicate that there is no rule assigned.
      */
     public static final int NO_RULE = 0;
+
+    /**
+     * Used in Knowledge table to indicate that there is no score because the question has never been asked.
+     */
+    public static final int NO_SCORE = 0;
+
+    /**
+     * Minimum value expected in Knowledge table score field for questions already asked.
+     */
+    public static final int MIN_ALLOWED_SCORE = 1;
+
+    /**
+     * Maximum value expected in Knowledge table score field for questions already asked.
+     */
+    public static final int MAX_ALLOWED_SCORE = 20;
 
     public static final class AcceptationsTable extends DbTable {
 

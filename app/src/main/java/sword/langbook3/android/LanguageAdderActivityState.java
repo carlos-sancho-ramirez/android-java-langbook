@@ -9,6 +9,8 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.database.Database;
+import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.db.LangbookDatabase;
 
 public final class LanguageAdderActivityState implements Parcelable {
 

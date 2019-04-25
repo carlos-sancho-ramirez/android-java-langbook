@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.db;
 
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
@@ -25,91 +25,91 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
-import sword.langbook3.android.LangbookReadableDatabase.AgentDetails;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
-import sword.langbook3.android.LangbookReadableDatabase.QuizDetails;
+import sword.database.Deleter;
+import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.collections.SyncCacheIntPairMap;
+import sword.langbook3.android.collections.SyncCacheIntValueMap;
+import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
-import static sword.langbook3.android.DatabaseInflater.applyConversion;
-import static sword.langbook3.android.DatabaseInflater.unapplyConversion;
-import static sword.langbook3.android.EqualUtils.equal;
-import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertAllPossibilities;
-import static sword.langbook3.android.LangbookDbInserter.insertAlphabet;
-import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertQuizDefinition;
-import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertSearchHistoryEntry;
-import static sword.langbook3.android.LangbookDbInserter.insertSentenceMeaning;
-import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
-import static sword.langbook3.android.LangbookDbInserter.insertSymbolArray;
-import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.LangbookDeleter.deleteAcceptation;
-import static sword.langbook3.android.LangbookDeleter.deleteAgentSet;
-import static sword.langbook3.android.LangbookDeleter.deleteAlphabet;
-import static sword.langbook3.android.LangbookDeleter.deleteAlphabetFromCorrelations;
-import static sword.langbook3.android.LangbookDeleter.deleteAlphabetFromStringQueries;
-import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptation;
-import static sword.langbook3.android.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
-import static sword.langbook3.android.LangbookDeleter.deleteConversion;
-import static sword.langbook3.android.LangbookDeleter.deleteKnowledge;
-import static sword.langbook3.android.LangbookDeleter.deleteKnowledgeForQuiz;
-import static sword.langbook3.android.LangbookDeleter.deleteQuiz;
-import static sword.langbook3.android.LangbookDeleter.deleteRuledAcceptation;
-import static sword.langbook3.android.LangbookDeleter.deleteSearchHistoryForAcceptation;
-import static sword.langbook3.android.LangbookDeleter.deleteSentenceMeaning;
-import static sword.langbook3.android.LangbookDeleter.deleteSpanBySymbolArrayId;
-import static sword.langbook3.android.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
-import static sword.langbook3.android.LangbookDeleter.deleteSymbolArray;
-import static sword.langbook3.android.LangbookReadableDatabase.alphabetsWithinLanguage;
-import static sword.langbook3.android.LangbookReadableDatabase.areAllAlphabetsFromSameLanguage;
-import static sword.langbook3.android.LangbookReadableDatabase.checkConversionConflicts;
-import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
-import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
-import static sword.langbook3.android.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
-import static sword.langbook3.android.LangbookReadableDatabase.findAgentSet;
-import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
-import static sword.langbook3.android.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
-import static sword.langbook3.android.LangbookReadableDatabase.findAlphabetsByLanguage;
-import static sword.langbook3.android.LangbookReadableDatabase.findBunchConceptsLinkedToJustThisLanguage;
-import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
-import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
-import static sword.langbook3.android.LangbookReadableDatabase.findCorrelationArray;
-import static sword.langbook3.android.LangbookReadableDatabase.findIncludedAcceptationLanguages;
-import static sword.langbook3.android.LangbookReadableDatabase.findQuestionFieldSet;
-import static sword.langbook3.android.LangbookReadableDatabase.findQuizDefinition;
-import static sword.langbook3.android.LangbookReadableDatabase.findQuizzesByBunch;
-import static sword.langbook3.android.LangbookReadableDatabase.findSentenceIdsMatchingMeaning;
-import static sword.langbook3.android.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
-import static sword.langbook3.android.LangbookReadableDatabase.findSymbolArray;
-import static sword.langbook3.android.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
-import static sword.langbook3.android.LangbookReadableDatabase.getAgentDetails;
-import static sword.langbook3.android.LangbookReadableDatabase.getAgentProcessedMap;
-import static sword.langbook3.android.LangbookReadableDatabase.getAllAgentSetsContaining;
-import static sword.langbook3.android.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
-import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.getConversionsMap;
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
-import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
-import static sword.langbook3.android.LangbookReadableDatabase.getLanguageFromAlphabet;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationArrayId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxCorrelationId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxQuestionFieldSetId;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxSentenceMeaning;
-import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
-import static sword.langbook3.android.LangbookReadableDatabase.getSentenceMeaning;
-import static sword.langbook3.android.LangbookReadableDatabase.isAcceptationInBunch;
-import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetPresent;
-import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetUsedInQuestions;
-import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
-import static sword.langbook3.android.LangbookReadableDatabase.isSymbolArrayPresent;
-import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndMain;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllPossibleAcceptations;
-import static sword.langbook3.android.LangbookReadableDatabase.readCorrelationArrayTextAndItsAppliedConversions;
-import static sword.langbook3.android.LangbookReadableDatabase.readMainAlphabetFromAlphabet;
+import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibilities;
+import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
+import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertQuizDefinition;
+import static sword.langbook3.android.db.LangbookDbInserter.insertRuledAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertSearchHistoryEntry;
+import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceMeaning;
+import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
+import static sword.langbook3.android.db.LangbookDbInserter.insertSymbolArray;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookDeleter.deleteAcceptation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteAgentSet;
+import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabet;
+import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromCorrelations;
+import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromStringQueries;
+import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
+import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
+import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
+import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
+import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
+import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteSearchHistoryForAcceptation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteSentenceMeaning;
+import static sword.langbook3.android.db.LangbookDeleter.deleteSpanBySymbolArrayId;
+import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
+import static sword.langbook3.android.db.LangbookReadableDatabase.alphabetsWithinLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.areAllAlphabetsFromSameLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.checkConversionConflicts;
+import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentSet;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAlphabetsByLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findBunchConceptsLinkedToJustThisLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findBunchSet;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findCorrelation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findCorrelationArray;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findIncludedAcceptationLanguages;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findQuestionFieldSet;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findQuizDefinition;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findQuizzesByBunch;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findSentenceIdsMatchingMeaning;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetails;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentProcessedMap;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAllAgentSetsContaining;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getConversionsMap;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getCurrentKnowledge;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getLanguageFromAlphabet;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxAgentSetId;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxCorrelationArrayId;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxCorrelationId;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxQuestionFieldSetId;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxSentenceMeaning;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceMeaning;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationInBunch;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayPresent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAcceptationTextsAndMain;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllPossibleAcceptations;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readCorrelationArrayTextAndItsAppliedConversions;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readMainAlphabetFromAlphabet;
 
 public final class LangbookDatabase {
 
@@ -1191,6 +1191,50 @@ public final class LangbookDatabase {
             this.text = text;
             this.mainText = mainText;
         }
+    }
+
+    public static void applyConversion(DbImporter.Database db, Conversion conversion) {
+        final int sourceAlphabet = conversion.getSourceAlphabet();
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
+
+        final DbResult result = db.select(query);
+        try {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final String str = conversion.convert(row.get(0).toText());
+                if (str == null) {
+                    throw new AssertionError("Unable to convert word " + row.get(0).toText());
+                }
+
+                final String mainStr = row.get(1).toText();
+                final int mainAcc = row.get(2).toInt();
+                final int dynAcc = row.get(3).toInt();
+
+                insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+            }
+        }
+        finally {
+            result.close();
+        }
+    }
+
+    public static void unapplyConversion(Deleter db, Conversion conversion) {
+        final int targetAlphabet = conversion.getTargetAlphabet();
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), targetAlphabet)
+                .build();
+
+        db.delete(query);
     }
 
     /**

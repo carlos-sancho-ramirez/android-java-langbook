@@ -33,6 +33,7 @@ import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
+import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sqlite.SQLiteDbQuery;
 

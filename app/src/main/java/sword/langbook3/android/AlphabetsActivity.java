@@ -21,11 +21,13 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookReadableDatabase;
 
-import static sword.langbook3.android.LangbookReadableDatabase.checkAlphabetCanBeRemoved;
-import static sword.langbook3.android.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.checkAlphabetCanBeRemoved;
+import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAlphabetsForLanguage;
 
 public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener, AdapterView.OnItemSelectedListener, CompoundButton.OnCheckedChangeListener {
 

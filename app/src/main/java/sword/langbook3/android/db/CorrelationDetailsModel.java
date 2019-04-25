@@ -1,8 +1,9 @@
-package sword.langbook3.android;
+package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.Predicate;
+import sword.langbook3.android.collections.EqualUtils;
 
 public final class CorrelationDetailsModel {
     /**

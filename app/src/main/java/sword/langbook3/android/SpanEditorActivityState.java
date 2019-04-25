@@ -6,7 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableIntRange;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueMap;
-import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
+import sword.langbook3.android.db.SentenceSpan;
 
 public final class SpanEditorActivityState implements Parcelable {
 
@@ -67,10 +67,23 @@ public final class SpanEditorActivityState implements Parcelable {
         writeSentenceSpanSetToParcel(dest);
     }
 
+    public static void writeSpanToParcel(SentenceSpan span, Parcel dest) {
+        dest.writeInt(span.range.min());
+        dest.writeInt(span.range.max());
+        dest.writeInt(span.acceptation);
+    }
+
+    public static SentenceSpan spanFromParcel(Parcel in) {
+        final int start = in.readInt();
+        final int end = in.readInt();
+        final int acc = in.readInt();
+        return new SentenceSpan(new ImmutableIntRange(start, end), acc);
+    }
+
     private static void sentenceSpanSetFromParcel(MutableIntValueMap<SentenceSpan> builder, Parcel in) {
         final int size = in.readInt();
         for (int i = 0; i < size; i++) {
-            builder.put(SentenceSpan.fromParcel(in), in.readInt());
+            builder.put(spanFromParcel(in), in.readInt());
         }
     }
 
@@ -78,7 +91,7 @@ public final class SpanEditorActivityState implements Parcelable {
         final int size = spans.size();
         dest.writeInt(size);
         for (int i = 0; i < size; i++) {
-            spans.keyAt(i).writeToParcel(dest);
+            writeSpanToParcel(spans.keyAt(i), dest);
             dest.writeInt(spans.valueAt(i));
         }
     }

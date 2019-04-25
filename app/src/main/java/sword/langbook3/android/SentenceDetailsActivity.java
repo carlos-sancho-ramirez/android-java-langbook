@@ -21,13 +21,15 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.LangbookReadableDatabase.SentenceSpan;
 import sword.database.Database;
+import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookReadableDatabase;
+import sword.langbook3.android.db.SentenceSpan;
 
-import static sword.langbook3.android.LangbookDatabase.removeSentence;
-import static sword.langbook3.android.LangbookReadableDatabase.getSentenceSpans;
-import static sword.langbook3.android.LangbookReadableDatabase.getStaticAcceptationFromDynamic;
-import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
+import static sword.langbook3.android.db.LangbookDatabase.removeSentence;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpans;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getStaticAcceptationFromDynamic;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
 
 public final class SentenceDetailsActivity extends Activity implements DialogInterface.OnClickListener, AdapterView.OnItemClickListener {
 

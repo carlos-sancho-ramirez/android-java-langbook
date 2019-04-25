@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.collections;
 
 public final class EqualUtils {
 
@@ -9,7 +9,7 @@ public final class EqualUtils {
         return a == b || a != null && a.equals(b);
     }
 
-    static boolean isNull(Object reference) {
+    public static boolean isNull(Object reference) {
         return reference == null;
     }
 }

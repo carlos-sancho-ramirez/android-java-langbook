@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.db;
 
 import org.junit.Test;
 
@@ -17,17 +17,15 @@ import sword.database.MemoryDatabase;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static sword.langbook3.android.LangbookDatabase.addAcceptation;
-import static sword.langbook3.android.LangbookDatabase.addAlphabet;
-import static sword.langbook3.android.LangbookDatabase.addAlphabetCopyingFromOther;
-import static sword.langbook3.android.LangbookDatabase.addLanguage;
-import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
-import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
-import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationFromText;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxConcept;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
+import static sword.langbook3.android.db.LangbookDatabase.addAcceptation;
+import static sword.langbook3.android.db.LangbookDatabase.addAlphabetCopyingFromOther;
+import static sword.langbook3.android.db.LangbookDatabase.addLanguage;
+import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
+import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
+import static sword.langbook3.android.db.LangbookDatabase.obtainSymbolArray;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
 public final class LangbookReadableDatabaseTest {
 
@@ -68,7 +66,8 @@ public final class LangbookReadableDatabaseTest {
         addAgent(db, femaleNounBunchId, alphabet, null, "s", pluralRule);
 
         final ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "cantar").build();
-        final ImmutableIntKeyMap<String> matchingBunches = LangbookReadableDatabase.readAllMatchingBunches(db, texts, alphabet);
+        final ImmutableIntKeyMap<String> matchingBunches = LangbookReadableDatabase
+                .readAllMatchingBunches(db, texts, alphabet);
         assertEquals(ImmutableIntKeyMap.empty().put(verbBunchId, verbBunchTitle), matchingBunches);
 
         final ImmutableIntKeyMap<String> texts2 = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();

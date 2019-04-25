@@ -20,14 +20,16 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
 import sword.database.Database;
+import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookReadableDatabase;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
-import static sword.langbook3.android.LangbookDatabase.addAcceptationInBunch;
-import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
-import static sword.langbook3.android.LangbookDatabase.updateAcceptationCorrelationArray;
-import static sword.langbook3.android.LangbookReadableDatabase.findCorrelation;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxConceptInAcceptations;
+import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
+import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
+import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
+import static sword.langbook3.android.db.LangbookDatabase.updateAcceptationCorrelationArray;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findCorrelation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConceptInAcceptations;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -293,7 +295,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     private boolean allValidAlphabets(Database db, IntKeyMap<String> texts) {
-        final ImmutableSet<Integer> languages = texts.toImmutable().keySet().map(alphabet -> LangbookReadableDatabase.getLanguageFromAlphabet(db, alphabet)).toSet();
+        final ImmutableSet<Integer> languages = texts.toImmutable().keySet().map(alphabet -> LangbookReadableDatabase
+                .getLanguageFromAlphabet(db, alphabet)).toSet();
         return !languages.anyMatch(lang -> lang == null) && languages.size() == 1;
     }
 

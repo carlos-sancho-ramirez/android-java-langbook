@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.collections;
 
 import sword.collections.IntResultFunction;
 import sword.collections.MutableIntValueHashMap;

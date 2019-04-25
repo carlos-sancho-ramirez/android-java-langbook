@@ -11,33 +11,34 @@ import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
-import sword.database.DbDeleteQuery;
 import sword.database.DbImporter;
 import sword.database.DbInsertQuery;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
-import sword.database.Deleter;
-import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
+import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.database.DbQuery.concat;
-import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.LangbookDatabase.obtainRuledConcept;
-import static sword.langbook3.android.LangbookDatabase.obtainSimpleCorrelationArray;
-import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
-import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertRuledAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertSpan;
-import static sword.langbook3.android.LangbookDbInserter.insertStringQuery;
-import static sword.langbook3.android.LangbookReadableDatabase.findRuledAcceptationByRuleAndMainAcceptation;
-import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxAgentSetId;
+import static sword.langbook3.android.db.LangbookDatabase.applyConversion;
+import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
+import static sword.langbook3.android.db.LangbookDatabase.obtainRuledConcept;
+import static sword.langbook3.android.db.LangbookDatabase.obtainSimpleCorrelationArray;
+import static sword.langbook3.android.db.LangbookDatabase.obtainSymbolArray;
+import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertRuledAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;
+import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndMainAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxAgentSetId;
 
 public final class DatabaseInflater {
 
@@ -394,50 +395,6 @@ public final class DatabaseInflater {
             setProgress(0.4f + ((0.8f - 0.4f) / agentCount) * index, "Running agent " + (++index) + " out of " + agentCount);
             runAgent(agentId);
         }
-    }
-
-    static void applyConversion(DbImporter.Database db, Conversion conversion) {
-        final int sourceAlphabet = conversion.getSourceAlphabet();
-
-        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
-                .select(
-                        table.getStringColumnIndex(),
-                        table.getMainStringColumnIndex(),
-                        table.getMainAcceptationColumnIndex(),
-                        table.getDynamicAcceptationColumnIndex());
-
-        final DbResult result = db.select(query);
-        try {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final String str = conversion.convert(row.get(0).toText());
-                if (str == null) {
-                    throw new AssertionError("Unable to convert word " + row.get(0).toText());
-                }
-
-                final String mainStr = row.get(1).toText();
-                final int mainAcc = row.get(2).toInt();
-                final int dynAcc = row.get(3).toInt();
-
-                insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
-            }
-        }
-        finally {
-            result.close();
-        }
-    }
-
-    static void unapplyConversion(Deleter db, Conversion conversion) {
-        final int targetAlphabet = conversion.getTargetAlphabet();
-
-        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), targetAlphabet)
-                .build();
-
-        db.delete(query);
     }
 
     private void applyConversions(Conversion[] conversions) {

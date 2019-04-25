@@ -11,15 +11,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
+import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
+import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
 import sword.database.Database;
 
-import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.LangbookReadableDatabase.getAgentRegister;
-import static sword.langbook3.android.LangbookReadableDatabase.getCorrelationWithText;
-import static sword.langbook3.android.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptAcceptationAndText;
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptAcceptationAndText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.SearchActivity.AGENT_QUERY_PREFIX;
 
 public final class AgentDetailsActivity extends Activity {

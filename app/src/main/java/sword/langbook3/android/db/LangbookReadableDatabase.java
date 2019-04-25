@@ -1,6 +1,4 @@
-package sword.langbook3.android;
-
-import android.os.Parcel;
+package sword.langbook3.android.db;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -18,7 +16,6 @@ import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
@@ -42,10 +39,13 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
+import sword.langbook3.android.DisplayableItem;
+import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
-import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.LangbookDbSchema.Tables.alphabets;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
 public final class LangbookReadableDatabase {
 
@@ -1466,58 +1466,6 @@ public final class LangbookReadableDatabase {
         return texts;
     }
 
-    public static final class IdentifiableResult {
-        final int id;
-        final String text;
-
-        IdentifiableResult(int id, String text) {
-            this.id = id;
-            this.text = text;
-        }
-    }
-
-    public static final class DynamizableResult {
-        final int id;
-        final boolean dynamic;
-        final String text;
-
-        DynamizableResult(int id, boolean dynamic, String text) {
-            this.id = id;
-            this.dynamic = dynamic;
-            this.text = text;
-        }
-    }
-
-    public static final class MorphologyResult {
-        final int agent;
-        final int dynamicAcceptation;
-        final int rule;
-        final String ruleText;
-        final String text;
-
-        MorphologyResult(int agent, int dynamicAcceptation, int rule, String ruleText, String text) {
-            this.agent = agent;
-            this.dynamicAcceptation = dynamicAcceptation;
-            this.rule = rule;
-            this.ruleText = ruleText;
-            this.text = text;
-        }
-    }
-
-    public static final class SynonymTranslationResult {
-        final int language;
-        final String text;
-
-        SynonymTranslationResult(int language, String text) {
-            if (text == null) {
-                throw new IllegalArgumentException();
-            }
-
-            this.language = language;
-            this.text = text;
-        }
-    }
-
     private static ImmutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
@@ -2663,82 +2611,6 @@ public final class LangbookReadableDatabase {
                 startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
     }
 
-    public static final class AgentDetails {
-        public final int targetBunch;
-        public final ImmutableIntSet sourceBunches;
-        public final ImmutableIntSet diffBunches;
-        public final ImmutableIntKeyMap<String> startMatcher;
-        public final ImmutableIntKeyMap<String> startAdder;
-        public final ImmutableIntKeyMap<String> endMatcher;
-        public final ImmutableIntKeyMap<String> endAdder;
-        public final int rule;
-
-        public AgentDetails(int targetBunch, ImmutableIntSet sourceBunches,
-                ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
-                ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
-                ImmutableIntKeyMap<String> endAdder, int rule) {
-
-            if (startMatcher == null) {
-                startMatcher = ImmutableIntKeyMap.empty();
-            }
-
-            if (startAdder == null) {
-                startAdder = ImmutableIntKeyMap.empty();
-            }
-
-            if (endMatcher == null) {
-                endMatcher = ImmutableIntKeyMap.empty();
-            }
-
-            if (endAdder == null) {
-                endAdder = ImmutableIntKeyMap.empty();
-            }
-
-            if (startMatcher.equals(startAdder) && endMatcher.equals(endAdder)) {
-                if (targetBunch == 0) {
-                    throw new IllegalArgumentException();
-                }
-                rule = 0;
-            }
-            else if (rule == 0) {
-                throw new IllegalArgumentException();
-            }
-
-            if (sourceBunches == null) {
-                sourceBunches = new ImmutableIntSetCreator().build();
-            }
-
-            if (diffBunches == null) {
-                diffBunches = new ImmutableIntSetCreator().build();
-            }
-
-            if (!sourceBunches.filter(diffBunches::contains).isEmpty()) {
-                throw new IllegalArgumentException();
-            }
-
-            if (sourceBunches.contains(0)) {
-                throw new IllegalArgumentException();
-            }
-
-            if (diffBunches.contains(0)) {
-                throw new IllegalArgumentException();
-            }
-
-            this.targetBunch = targetBunch;
-            this.sourceBunches = sourceBunches;
-            this.diffBunches = diffBunches;
-            this.startMatcher = startMatcher;
-            this.startAdder = startAdder;
-            this.endMatcher = endMatcher;
-            this.endAdder = endAdder;
-            this.rule = rule;
-        }
-
-        public boolean modifyCorrelations() {
-            return !startMatcher.equals(startAdder) || !endMatcher.equals(endAdder);
-        }
-    }
-
     public static AgentDetails getAgentDetails(DbExporter.Database db, int agentId) {
         final AgentRegister register = getAgentRegister(db, agentId);
         final ImmutableIntSet sourceBunches = getBunchSet(db, register.sourceBunchSetId);
@@ -2793,40 +2665,6 @@ public final class LangbookReadableDatabase {
         @Override
         public String toString() {
             return getClass().getSimpleName() + '(' + alphabet + ',' + rule + ',' + flags + ')';
-        }
-    }
-
-    public static final class QuizDetails {
-        public final int bunch;
-        public final ImmutableList<QuestionFieldDetails> fields;
-
-        public QuizDetails(int bunch, ImmutableList<QuestionFieldDetails> fields) {
-            if (fields == null || fields.size() < 2 || !fields.anyMatch(field -> !field.isAnswer()) || !fields.anyMatch(QuestionFieldDetails::isAnswer)) {
-                throw new IllegalArgumentException();
-            }
-
-            this.bunch = bunch;
-            this.fields = fields;
-        }
-
-        @Override
-        public int hashCode() {
-            return fields.hashCode() * 41 + bunch;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == null || !(other instanceof QuizDetails)) {
-                return false;
-            }
-
-            final QuizDetails that = (QuizDetails) other;
-            return bunch == that.bunch && fields.equals(that.fields);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + '(' + bunch + ',' + fields.toString() + ')';
         }
     }
 
@@ -2966,56 +2804,6 @@ public final class LangbookReadableDatabase {
                 relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable());
     }
 
-    public static class SentenceSpan {
-        final ImmutableIntRange range;
-        final int acceptation;
-
-        SentenceSpan(ImmutableIntRange range, int acceptation) {
-            if (range == null || range.min() < 0 || acceptation == 0) {
-                throw new IllegalArgumentException();
-            }
-
-            this.range = range;
-            this.acceptation = acceptation;
-        }
-
-        @Override
-        public int hashCode() {
-            return ((range.min() * 37) + range.size() * 37) + acceptation;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == this) {
-                return true;
-            }
-            else if (other == null || !(other instanceof SentenceSpan)) {
-                return false;
-            }
-
-            final SentenceSpan that = (SentenceSpan) other;
-            return acceptation == that.acceptation && range.equals(that.range);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + '(' + range + ", " + acceptation + ')';
-        }
-
-        void writeToParcel(Parcel dest) {
-            dest.writeInt(range.min());
-            dest.writeInt(range.max());
-            dest.writeInt(acceptation);
-        }
-
-        static SentenceSpan fromParcel(Parcel in) {
-            final int start = in.readInt();
-            final int end = in.readInt();
-            final int acc = in.readInt();
-            return new SentenceSpan(new ImmutableIntRange(start, end), acc);
-        }
-    }
-
     public static ImmutableSet<SentenceSpan> getSentenceSpans(DbExporter.Database db, int symbolArray) {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
@@ -3134,108 +2922,6 @@ public final class LangbookReadableDatabase {
         }
 
         return true;
-    }
-
-    public interface ConversionProposal {
-
-        /**
-         * Alphabet from where the conversion will be applied.
-         */
-        int getSourceAlphabet();
-
-        /**
-         * Apply this conversion to the given text and returns its converted text.
-         * @param text Text to be converted
-         * @return The converted text, or null if text cannot be converted.
-         */
-        String convert(String text);
-    }
-
-    public static final class Conversion implements ConversionProposal {
-        private final int _sourceAlphabet;
-        private final int _targetAlphabet;
-        private final ImmutableMap<String, String> _map;
-
-        public Conversion(int sourceAlphabet, int targetAlphabet, sword.collections.Map<String, String> map) {
-            if (sourceAlphabet == targetAlphabet) {
-                throw new IllegalArgumentException();
-            }
-
-            _sourceAlphabet = sourceAlphabet;
-            _targetAlphabet = targetAlphabet;
-            _map = map.toImmutable().sort(LangbookReadableDatabase.conversionKeySortFunction);
-        }
-
-        @Override
-        public int getSourceAlphabet() {
-            return _sourceAlphabet;
-        }
-
-        public int getTargetAlphabet() {
-            return _targetAlphabet;
-        }
-
-        public ImmutableIntPair getAlphabets() {
-            return new ImmutableIntPair(_sourceAlphabet, _targetAlphabet);
-        }
-
-        public ImmutableMap<String, String> getMap() {
-            return _map;
-        }
-
-        @Override
-        public String convert(String text) {
-            final int mapSize = _map.size();
-            String result = "";
-            while (text.length() > 0) {
-                boolean found = false;
-                for (int i = 0; i < mapSize; i++) {
-                    final String source = _map.keyAt(i);
-                    if (text.startsWith(source)) {
-                        result += _map.valueAt(i);
-                        text = text.substring(source.length());
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found) {
-                    return null;
-                }
-            }
-
-            return result;
-        }
-
-        /**
-         * Apply the given conversion in the inverse order to find all original
-         * strings that can be converted to the given text.
-         *
-         * @param text Converted text to be analyzed
-         * @return A set with all source texts that results in the given text once the conversion is applied. This will be empty is none, but never null.
-         */
-        public ImmutableSet<String> findSourceTexts(String text) {
-            final ImmutableSet.Builder<String> builder = new ImmutableHashSet.Builder<>();
-            if (text == null) {
-                return builder.build();
-            }
-
-            final int mapSize = _map.size();
-            for (int i = 0; i < mapSize; i++) {
-                final String source = _map.keyAt(i);
-                final String target = _map.valueAt(i);
-                if (target.equals(text)) {
-                    builder.add(source);
-                }
-                else if (text.startsWith(target)) {
-                    for (String result : findSourceTexts(text.substring(target.length()))) {
-                        builder.add(source + result);
-                    }
-                }
-            }
-
-            return builder.build();
-        }
     }
 
     public static boolean checkAlphabetCanBeRemoved(DbExporter.Database db, int alphabet) {

@@ -1,13 +1,9 @@
-package sword.langbook3.android;
+package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
-import sword.langbook3.android.LangbookReadableDatabase.DynamizableResult;
-import sword.langbook3.android.LangbookReadableDatabase.IdentifiableResult;
-import sword.langbook3.android.LangbookReadableDatabase.MorphologyResult;
-import sword.langbook3.android.LangbookReadableDatabase.SynonymTranslationResult;
 
 public final class AcceptationDetailsModel {
     public final int concept;
@@ -28,7 +24,7 @@ public final class AcceptationDetailsModel {
      */
     public final ImmutableIntKeyMap<String> languageTexts;
 
-    public AcceptationDetailsModel(
+    AcceptationDetailsModel(
             int concept,
             IdentifiableResult language,
             ImmutableIntList correlationIds,

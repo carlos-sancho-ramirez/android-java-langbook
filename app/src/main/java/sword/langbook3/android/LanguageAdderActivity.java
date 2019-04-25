@@ -8,6 +8,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import sword.database.Database;
+import sword.langbook3.android.db.LangbookReadableDatabase;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
 

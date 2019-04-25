@@ -11,7 +11,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
 import sword.database.Database;
 
-import static sword.langbook3.android.LangbookReadableDatabase.readAllMatchingBunches;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllMatchingBunches;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 

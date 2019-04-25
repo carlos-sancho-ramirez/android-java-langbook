@@ -29,25 +29,25 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
-import sword.langbook3.android.LangbookDbInserter;
-import sword.langbook3.android.LangbookDbSchema;
-import sword.langbook3.android.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.db.LangbookDbInserter;
+import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
 
-import static sword.langbook3.android.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.LangbookDatabase.obtainCorrelationArray;
-import static sword.langbook3.android.LangbookDatabase.obtainSymbolArray;
-import static sword.langbook3.android.LangbookDbInserter.insertAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertAgent;
-import static sword.langbook3.android.LangbookDbInserter.insertAlphabet;
-import static sword.langbook3.android.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.LangbookDbInserter.insertBunchConcept;
-import static sword.langbook3.android.LangbookDbInserter.insertConversion;
-import static sword.langbook3.android.LangbookDbInserter.insertLanguage;
-import static sword.langbook3.android.LangbookDbInserter.insertSentenceMeaning;
-import static sword.langbook3.android.LangbookReadableDatabase.findBunchSet;
-import static sword.langbook3.android.LangbookReadableDatabase.getMaxBunchSetId;
-import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
+import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
+import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
+import static sword.langbook3.android.db.LangbookDatabase.obtainSymbolArray;
+import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertAgent;
+import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
+import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertBunchConcept;
+import static sword.langbook3.android.db.LangbookDbInserter.insertConversion;
+import static sword.langbook3.android.db.LangbookDbInserter.insertLanguage;
+import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceMeaning;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findBunchSet;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxBunchSetId;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
 
 public final class StreamedDatabaseReader {
 

@@ -9,6 +9,7 @@ import android.widget.TextView;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableList;
+import sword.langbook3.android.db.SearchResult;
 
 class SearchResultAdapter extends BaseAdapter {
 

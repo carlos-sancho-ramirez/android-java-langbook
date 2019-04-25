@@ -25,16 +25,18 @@ import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
 import sword.database.Database;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.db.Conversion;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
-import static sword.langbook3.android.EqualUtils.equal;
-import static sword.langbook3.android.LangbookReadableDatabase.findAlphabetsByLanguage;
-import static sword.langbook3.android.LangbookReadableDatabase.findConversions;
-import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.readAcceptationTextsAndLanguage;
-import static sword.langbook3.android.LangbookReadableDatabase.readAlphabetsForLanguage;
+import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAlphabetsByLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findConversions;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAcceptationTextsAndLanguage;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAlphabetsForLanguage;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 

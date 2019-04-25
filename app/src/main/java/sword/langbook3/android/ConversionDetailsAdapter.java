@@ -8,7 +8,7 @@ import android.widget.TextView;
 
 import sword.collections.ImmutablePair;
 import sword.collections.Map;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.db.Conversion;
 
 final class ConversionDetailsAdapter extends BaseAdapter {
 

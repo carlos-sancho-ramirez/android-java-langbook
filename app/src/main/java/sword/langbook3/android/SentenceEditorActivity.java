@@ -8,7 +8,7 @@ import android.widget.EditText;
 
 import sword.database.Database;
 
-import static sword.langbook3.android.LangbookReadableDatabase.getSymbolArray;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
 
 public final class SentenceEditorActivity extends Activity implements View.OnClickListener {
 

@@ -25,16 +25,20 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
-import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
-import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.LangbookDbSchema.QuestionFieldSets;
-import sword.langbook3.android.LangbookDbSchema.QuizDefinitionsTable;
-import sword.langbook3.android.LangbookDbSchema.Tables;
-import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookDbSchema.KnowledgeTable;
+import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldSets;
+import sword.langbook3.android.db.LangbookDbSchema.QuizDefinitionsTable;
+import sword.langbook3.android.db.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
 
 import static sword.database.DbIdColumn.idColumnName;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
+import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
 
@@ -115,15 +119,15 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 new String[] { Integer.toString(quizId)});
 
         int numberOfQuestions = 0;
-        final int[] progress = new int[QuestionActivity.MAX_ALLOWED_SCORE - QuestionActivity.MIN_ALLOWED_SCORE + 1];
+        final int[] progress = new int[MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE + 1];
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
                     numberOfQuestions = cursor.getCount();
                     do {
                         final int score = cursor.getInt(0);
-                        if (score != QuestionActivity.NO_SCORE) {
-                            progress[score - QuestionActivity.MIN_ALLOWED_SCORE]++;
+                        if (score != NO_SCORE) {
+                            progress[score - MIN_ALLOWED_SCORE]++;
                         }
                     } while (cursor.moveToNext());
                 }

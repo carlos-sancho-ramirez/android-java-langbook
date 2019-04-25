@@ -10,6 +10,9 @@ import android.graphics.drawable.Drawable;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 
+import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
+
 public class KnowledgeDrawable extends Drawable {
 
     private static final int COLOR_MAP_TOP = 256;
@@ -48,10 +51,7 @@ public class KnowledgeDrawable extends Drawable {
 
     private int[] getColors() {
         if (COLORS == null) {
-            final int minScore = QuestionActivity.MIN_ALLOWED_SCORE;
-            final int maxScore = QuestionActivity.MAX_ALLOWED_SCORE;
-
-            final int length = maxScore - minScore + 1;
+            final int length = MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE + 1;
             final int[] colors = new int[length];
             final int colorMapMax = COLOR_MAP.size() - 1;
             final float step = ((float) COLOR_MAP_TOP) / (length - 1);

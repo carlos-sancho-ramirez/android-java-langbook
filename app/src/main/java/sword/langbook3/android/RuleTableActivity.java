@@ -11,12 +11,12 @@ import android.util.SparseArray;
 import java.util.HashMap;
 import java.util.Map;
 
-import sword.langbook3.android.LangbookDbSchema.AgentsTable;
-import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
-import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
-import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.db.LangbookDbSchema.RuledAcceptationsTable;
+import sword.langbook3.android.db.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.db.LangbookDbSchema.Tables;
 
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 import static sword.database.DbIdColumn.idColumnName;
 
 public class RuleTableActivity extends Activity {

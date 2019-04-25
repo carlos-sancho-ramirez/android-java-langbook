@@ -1,12 +1,12 @@
-package sword.langbook3.android;
+package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntList;
 
-import static sword.langbook3.android.EqualUtils.equal;
+import static sword.langbook3.android.collections.EqualUtils.equal;
 
-class SearchResult {
+public final class SearchResult {
 
-    interface Types {
+    public interface Types {
         int ACCEPTATION = 0; //auxId is dynamicAcceptation
         int AGENT = 1; //auxId not used
     }
@@ -33,47 +33,47 @@ class SearchResult {
         _appliedRules = appliedRules;
     }
 
-    SearchResult(String str, String mainStr, int type, int id, int auxId) {
+    public SearchResult(String str, String mainStr, int type, int id, int auxId) {
         this(str, mainStr, type, id, auxId, null, ImmutableIntList.empty());
     }
 
-    String getStr() {
+    public String getStr() {
         return _str;
     }
 
-    String getMainStr() {
+    public String getMainStr() {
         return _mainStr;
     }
 
-    int getType() {
+    public int getType() {
         return _type;
     }
 
-    int getId() {
+    public int getId() {
         return _id;
     }
 
-    int getAuxiliarId() {
+    public int getAuxiliarId() {
         return _auxId;
     }
 
-    boolean isDynamic() {
+    public boolean isDynamic() {
         return _type == Types.ACCEPTATION && _id != _auxId;
     }
 
-    String getMainAccMainStr() {
+    public String getMainAccMainStr() {
         return _mainAccMainStr;
     }
 
-    ImmutableIntList getAppliedRules() {
+    public ImmutableIntList getAppliedRules() {
         return _appliedRules;
     }
 
-    SearchResult withMainAccMainStr(String str) {
+    public SearchResult withMainAccMainStr(String str) {
         return new SearchResult(_str, _mainStr, _type, _id, _auxId, str, _appliedRules);
     }
 
-    SearchResult withRules(ImmutableIntList rules) {
+    public SearchResult withRules(ImmutableIntList rules) {
         return new SearchResult(_str, _mainStr, _type, _id, _auxId, _mainAccMainStr, rules);
     }
 

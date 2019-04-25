@@ -10,7 +10,7 @@ import android.widget.ListView;
 import sword.database.Database;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllLanguages;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllLanguages;
 
 public final class LanguagePickerActivity extends Activity implements ListView.OnItemClickListener {
 

@@ -12,12 +12,14 @@ import android.widget.AdapterView;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.database.Database;
+import sword.langbook3.android.db.LangbookReadableDatabase;
+import sword.langbook3.android.db.SearchResult;
 
-import static sword.langbook3.android.LangbookDatabase.updateSearchHistory;
-import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationAndRulesFromText;
-import static sword.langbook3.android.LangbookReadableDatabase.getSearchHistory;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
+import static sword.langbook3.android.db.LangbookDatabase.updateSearchHistory;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationAndRulesFromText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSearchHistory;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 

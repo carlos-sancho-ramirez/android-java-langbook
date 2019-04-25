@@ -18,10 +18,10 @@ import sword.collections.MutableSet;
 import sword.collections.MutableSortedMap;
 import sword.collections.Set;
 import sword.collections.SortUtils;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.db.Conversion;
 
-import static sword.langbook3.android.EqualUtils.equal;
-import static sword.langbook3.android.LangbookReadableDatabase.conversionKeySortFunction;
+import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.langbook3.android.db.LangbookReadableDatabase.conversionKeySortFunction;
 
 public final class ConversionEditorActivityState implements Parcelable {
 

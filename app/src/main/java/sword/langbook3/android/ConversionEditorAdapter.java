@@ -11,7 +11,8 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
 import sword.collections.Set;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.db.LangbookReadableDatabase;
 
 final class ConversionEditorAdapter extends BaseAdapter {
 

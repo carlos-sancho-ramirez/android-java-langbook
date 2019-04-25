@@ -20,25 +20,26 @@ import sword.collections.ImmutableList;
 import sword.database.Database;
 import sword.database.DbExporter;
 import sword.database.DbQuery;
-import sword.langbook3.android.LangbookDbSchema.AcceptationsTable;
-import sword.langbook3.android.LangbookDbSchema.AgentsTable;
-import sword.langbook3.android.LangbookDbSchema.KnowledgeTable;
-import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.LangbookDbSchema.RuledAcceptationsTable;
-import sword.langbook3.android.LangbookDbSchema.StringQueriesTable;
-import sword.langbook3.android.LangbookDbSchema.Tables;
-import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.db.LangbookDbSchema.AcceptationsTable;
+import sword.langbook3.android.db.LangbookDbSchema.AgentsTable;
+import sword.langbook3.android.db.LangbookDbSchema.KnowledgeTable;
+import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.LangbookDbSchema.RuledAcceptationsTable;
+import sword.langbook3.android.db.LangbookDbSchema.StringQueriesTable;
+import sword.langbook3.android.db.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.db.QuizDetails;
 
-import static sword.langbook3.android.LangbookReadableDatabase.getCurrentKnowledge;
-import static sword.langbook3.android.LangbookReadableDatabase.getQuizDetails;
-import static sword.langbook3.android.LangbookReadableDatabase.selectSingleRow;
+import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getCurrentKnowledge;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails;
+import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
 public final class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 
-    static final int NO_SCORE = 0;
-    static final int MIN_ALLOWED_SCORE = 1;
-    static final int MAX_ALLOWED_SCORE = 20;
-    private static final int INITIAL_SCORE = 10;
+    private static final int INITIAL_SCORE = (MIN_ALLOWED_SCORE + MAX_ALLOWED_SCORE) / 2;
     private static final int SCORE_INCREMENT = 1;
     private static final int SCORE_DECREMENT = 2;
 
@@ -70,7 +71,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private final SparseIntArray _knowledge = new SparseIntArray();
 
     private int _quizId;
-    private LangbookReadableDatabase.QuizDetails _quizDetails;
+    private QuizDetails _quizDetails;
     private TextView[] _fieldTextViews;
 
     private int _goodAnswerCount;

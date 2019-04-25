@@ -16,9 +16,11 @@ import sword.collections.ImmutableList;
 import sword.collections.List;
 import sword.database.DbQuery;
 import sword.database.DbValue;
-import sword.langbook3.android.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.db.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.SearchResult;
 
-import static sword.langbook3.android.LangbookReadableDatabase.findAcceptationFromText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 

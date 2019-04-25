@@ -20,12 +20,15 @@ import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.database.Database;
 import sword.database.DbExporter;
-import sword.langbook3.android.LangbookReadableDatabase.Conversion;
+import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.db.ConversionProposal;
+import sword.langbook3.android.db.LangbookDatabase;
 
-import static sword.langbook3.android.LangbookReadableDatabase.findConversionConflictWords;
-import static sword.langbook3.android.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.LangbookReadableDatabase.isAlphabetPresent;
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findConversionConflictWords;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class ConversionEditorActivity extends Activity implements ListView.OnItemClickListener, ListView.OnItemLongClickListener {
 
@@ -264,7 +267,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 
-    private boolean checkConflicts(DbExporter.Database db, LangbookReadableDatabase.ConversionProposal newConversion) {
+    private boolean checkConflicts(DbExporter.Database db, ConversionProposal newConversion) {
         final ImmutableSet<String> wordsInConflict = findConversionConflictWords(db, newConversion);
 
         if (wordsInConflict.isEmpty()) {

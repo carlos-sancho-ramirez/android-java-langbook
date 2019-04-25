@@ -15,15 +15,15 @@ import java.util.ArrayList;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
-import sword.langbook3.android.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
 import sword.database.Database;
 
-import static sword.langbook3.android.LangbookDatabase.obtainQuiz;
-import static sword.langbook3.android.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.LangbookReadableDatabase.readAllRules;
-import static sword.langbook3.android.LangbookReadableDatabase.readConceptText;
+import static sword.langbook3.android.db.LangbookDatabase.obtainQuiz;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class QuizEditorActivity extends Activity implements View.OnClickListener {
 
