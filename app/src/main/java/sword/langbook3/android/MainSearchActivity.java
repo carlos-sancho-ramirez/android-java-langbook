@@ -13,7 +13,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookReadableDatabase;
-import sword.langbook3.android.db.SearchResult;
+import sword.langbook3.android.models.SearchResult;
 
 import static sword.langbook3.android.db.LangbookDatabase.updateSearchHistory;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;

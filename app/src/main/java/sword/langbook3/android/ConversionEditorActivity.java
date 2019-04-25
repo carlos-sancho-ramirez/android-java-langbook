@@ -21,8 +21,8 @@ import sword.collections.Map;
 import sword.database.Database;
 import sword.database.DbExporter;
 import sword.langbook3.android.collections.ImmutableIntPair;
-import sword.langbook3.android.db.Conversion;
-import sword.langbook3.android.db.ConversionProposal;
+import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.db.LangbookDatabase;
 
 import static sword.langbook3.android.db.LangbookReadableDatabase.findConversionConflictWords;

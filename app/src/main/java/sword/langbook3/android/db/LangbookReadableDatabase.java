@@ -30,7 +30,6 @@ import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
-import sword.collections.SortFunction;
 import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
@@ -42,16 +41,25 @@ import sword.database.DbValue;
 import sword.langbook3.android.DisplayableItem;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
+import sword.langbook3.android.models.AcceptationDetailsModel;
+import sword.langbook3.android.models.AgentDetails;
+import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.ConversionProposal;
+import sword.langbook3.android.models.CorrelationDetailsModel;
+import sword.langbook3.android.models.DynamizableResult;
+import sword.langbook3.android.models.IdentifiableResult;
+import sword.langbook3.android.models.MorphologyResult;
+import sword.langbook3.android.models.QuestionFieldDetails;
+import sword.langbook3.android.models.QuizDetails;
+import sword.langbook3.android.models.SearchResult;
+import sword.langbook3.android.models.SentenceSpan;
+import sword.langbook3.android.models.SynonymTranslationResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
 public final class LangbookReadableDatabase {
-
-    public static final SortFunction<String> conversionKeySortFunction = (a, b) -> SortUtils.compareCharSequenceByUnicode(b, a);
-    public static final SortFunction<ImmutablePair<String, String>> conversionPairSortFunction = (a, b) ->
-            SortUtils.compareCharSequenceByUnicode(b.left, a.left);
 
     private final DbExporter.Database db;
 
@@ -2626,46 +2634,6 @@ public final class LangbookReadableDatabase {
 
         return new AgentDetails(register.targetBunch, sourceBunches, diffBunches,
                 startMatcher, startAdder, endMatcher, endAdder, register.rule);
-    }
-
-    public static final class QuestionFieldDetails {
-        public final int alphabet;
-        public final int rule;
-        public final int flags;
-
-        public QuestionFieldDetails(int alphabet, int rule, int flags) {
-            this.alphabet = alphabet;
-            this.rule = rule;
-            this.flags = flags;
-        }
-
-        public int getType() {
-            return flags & LangbookDbSchema.QuestionFieldFlags.TYPE_MASK;
-        }
-
-        public boolean isAnswer() {
-            return (flags & LangbookDbSchema.QuestionFieldFlags.IS_ANSWER) != 0;
-        }
-
-        @Override
-        public int hashCode() {
-            return (flags * 37 + rule) * 37 + alphabet;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == null || !(other instanceof QuestionFieldDetails)) {
-                return false;
-            }
-
-            final QuestionFieldDetails that = (QuestionFieldDetails) other;
-            return alphabet == that.alphabet && rule == that.rule && flags == that.flags;
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + '(' + alphabet + ',' + rule + ',' + flags + ')';
-        }
     }
 
     public static QuizDetails getQuizDetails(DbExporter.Database db, int quizId) {

@@ -6,7 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableIntRange;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueMap;
-import sword.langbook3.android.db.SentenceSpan;
+import sword.langbook3.android.models.SentenceSpan;
 
 public final class SpanEditorActivityState implements Parcelable {
 

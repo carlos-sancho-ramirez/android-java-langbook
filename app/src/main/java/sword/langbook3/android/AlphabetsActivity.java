@@ -21,7 +21,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
-import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.db.LangbookDatabase;
 import sword.langbook3.android.db.LangbookReadableDatabase;
 

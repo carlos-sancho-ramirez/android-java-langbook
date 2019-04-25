@@ -18,7 +18,7 @@ import sword.database.DbQuery;
 import sword.database.DbValue;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
-import sword.langbook3.android.db.SearchResult;
+import sword.langbook3.android.models.SearchResult;
 
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
 

@@ -18,10 +18,9 @@ import sword.collections.MutableSet;
 import sword.collections.MutableSortedMap;
 import sword.collections.Set;
 import sword.collections.SortUtils;
-import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
-import static sword.langbook3.android.db.LangbookReadableDatabase.conversionKeySortFunction;
 
 public final class ConversionEditorActivityState implements Parcelable {
 
@@ -44,7 +43,7 @@ public final class ConversionEditorActivityState implements Parcelable {
     }
 
     ConversionEditorActivityState() {
-        this(MutableIntArraySet.empty(), MutableSortedMap.empty(conversionKeySortFunction), MutableHashSet.empty(), false, null, null);
+        this(MutableIntArraySet.empty(), MutableSortedMap.empty(Conversion.keySortFunction), MutableHashSet.empty(), false, null, null);
     }
 
     IntSet getRemoved() {

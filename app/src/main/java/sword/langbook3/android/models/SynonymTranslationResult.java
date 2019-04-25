@@ -1,10 +1,10 @@
-package sword.langbook3.android.db;
+package sword.langbook3.android.models;
 
 public final class SynonymTranslationResult {
     public final int language;
     public final String text;
 
-    SynonymTranslationResult(int language, String text) {
+    public SynonymTranslationResult(int language, String text) {
         if (text == null) {
             throw new IllegalArgumentException();
         }

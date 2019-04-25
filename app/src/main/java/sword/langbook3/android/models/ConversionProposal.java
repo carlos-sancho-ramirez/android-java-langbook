@@ -1,4 +1,4 @@
-package sword.langbook3.android.db;
+package sword.langbook3.android.models;
 
 public interface ConversionProposal {
 

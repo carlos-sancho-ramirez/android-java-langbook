@@ -27,7 +27,7 @@ import sword.collections.MutableIntSet;
 import sword.database.Database;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheMap;
-import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;

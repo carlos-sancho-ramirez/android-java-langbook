@@ -17,7 +17,7 @@ import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
-import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
 import sword.langbook3.android.sdb.ProgressListener;

@@ -1,11 +1,20 @@
-package sword.langbook3.android.db;
+package sword.langbook3.android.models;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableMap;
+import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
+import sword.collections.SortFunction;
+import sword.collections.SortUtils;
 import sword.langbook3.android.collections.ImmutableIntPair;
 
 public final class Conversion implements ConversionProposal {
+
+    public static final SortFunction<String> keySortFunction = (a, b) -> SortUtils
+            .compareCharSequenceByUnicode(b, a);
+    public static final SortFunction<ImmutablePair<String, String>> pairSortFunction = (a, b) ->
+            SortUtils.compareCharSequenceByUnicode(b.left, a.left);
+
     private final int _sourceAlphabet;
     private final int _targetAlphabet;
     private final ImmutableMap<String, String> _map;
@@ -17,7 +26,7 @@ public final class Conversion implements ConversionProposal {
 
         _sourceAlphabet = sourceAlphabet;
         _targetAlphabet = targetAlphabet;
-        _map = map.toImmutable().sort(LangbookReadableDatabase.conversionKeySortFunction);
+        _map = map.toImmutable().sort(keySortFunction);
     }
 
     @Override

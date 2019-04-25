@@ -13,6 +13,7 @@ import sword.collections.ImmutableSet;
 import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
+import sword.langbook3.android.models.SearchResult;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

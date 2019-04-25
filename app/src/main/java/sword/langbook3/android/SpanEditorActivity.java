@@ -20,7 +20,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.MutableIntValueMap;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.SentenceSpan;
+import sword.langbook3.android.models.SentenceSpan;
 
 import static sword.langbook3.android.SentenceEditorActivity.NO_SYMBOL_ARRAY;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;

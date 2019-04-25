@@ -15,7 +15,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableIte
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
-import sword.langbook3.android.db.CorrelationDetailsModel;
+import sword.langbook3.android.models.CorrelationDetailsModel;
 
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationDetails;
 

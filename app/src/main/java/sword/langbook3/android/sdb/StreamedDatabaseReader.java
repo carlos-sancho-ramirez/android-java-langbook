@@ -29,7 +29,7 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
-import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.db.LangbookDbInserter;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;

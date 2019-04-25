@@ -9,7 +9,7 @@ import sword.database.DbInsertQuery;
 import sword.database.DbInserter;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
-import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 

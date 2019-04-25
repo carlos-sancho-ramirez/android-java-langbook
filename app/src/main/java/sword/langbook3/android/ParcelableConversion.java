@@ -6,7 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableMap;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableMap;
-import sword.langbook3.android.db.Conversion;
+import sword.langbook3.android.models.Conversion;
 
 public final class ParcelableConversion implements Parcelable {
 

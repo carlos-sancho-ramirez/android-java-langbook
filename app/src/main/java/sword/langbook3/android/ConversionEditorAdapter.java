@@ -11,8 +11,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
 import sword.collections.Set;
-import sword.langbook3.android.db.Conversion;
-import sword.langbook3.android.db.LangbookReadableDatabase;
+import sword.langbook3.android.models.Conversion;
 
 final class ConversionEditorAdapter extends BaseAdapter {
 
@@ -35,7 +34,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
 
     private void updateEntries() {
         final ImmutableSet<String> conversionKeys = _conversion.getMap().keySet();
-        final ImmutableSet<String> keys = conversionKeys.addAll(_added.keySet()).sort(LangbookReadableDatabase.conversionKeySortFunction);
+        final ImmutableSet<String> keys = conversionKeys.addAll(_added.keySet()).sort(Conversion.keySortFunction);
 
         final ImmutableList.Builder<Entry> builder = new ImmutableList.Builder<>();
         final int keyCount = keys.size();

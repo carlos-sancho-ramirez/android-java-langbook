@@ -31,7 +31,7 @@ import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.db.LangbookDbSchema.QuizDefinitionsTable;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
-import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static sword.database.DbIdColumn.idColumnName;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;

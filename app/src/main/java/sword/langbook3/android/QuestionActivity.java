@@ -27,8 +27,8 @@ import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.db.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.db.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
-import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
-import sword.langbook3.android.db.QuizDetails;
+import sword.langbook3.android.models.QuestionFieldDetails;
+import sword.langbook3.android.models.QuizDetails;
 
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;

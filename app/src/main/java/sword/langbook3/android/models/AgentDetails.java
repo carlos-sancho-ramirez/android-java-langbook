@@ -1,4 +1,4 @@
-package sword.langbook3.android.db;
+package sword.langbook3.android.models;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
@@ -14,7 +14,7 @@ public final class AgentDetails {
     public final ImmutableIntKeyMap<String> endAdder;
     public final int rule;
 
-    AgentDetails(int targetBunch, ImmutableIntSet sourceBunches,
+    public AgentDetails(int targetBunch, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule) {

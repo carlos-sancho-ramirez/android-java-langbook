@@ -1,13 +1,13 @@
-package sword.langbook3.android.db;
+package sword.langbook3.android.models;
 
 import sword.collections.ImmutableList;
 
 public final class QuizDetails {
     public final int bunch;
-    public final ImmutableList<LangbookReadableDatabase.QuestionFieldDetails> fields;
+    public final ImmutableList<QuestionFieldDetails> fields;
 
-    QuizDetails(int bunch, ImmutableList<LangbookReadableDatabase.QuestionFieldDetails> fields) {
-        if (fields == null || fields.size() < 2 || !fields.anyMatch(field -> !field.isAnswer()) || !fields.anyMatch(LangbookReadableDatabase.QuestionFieldDetails::isAnswer)) {
+    public QuizDetails(int bunch, ImmutableList<QuestionFieldDetails> fields) {
+        if (fields == null || fields.size() < 2 || !fields.anyMatch(field -> !field.isAnswer()) || !fields.anyMatch(QuestionFieldDetails::isAnswer)) {
             throw new IllegalArgumentException();
         }
 

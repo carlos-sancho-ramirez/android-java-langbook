@@ -19,7 +19,9 @@ import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.db.LangbookReadableDatabase.QuestionFieldDetails;
+import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.QuestionFieldDetails;
+import sword.langbook3.android.models.SearchResult;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

@@ -24,7 +24,7 @@ import sword.collections.ImmutableSet;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookDatabase;
 import sword.langbook3.android.db.LangbookReadableDatabase;
-import sword.langbook3.android.db.SentenceSpan;
+import sword.langbook3.android.models.SentenceSpan;
 
 import static sword.langbook3.android.db.LangbookDatabase.removeSentence;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpans;

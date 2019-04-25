@@ -1,4 +1,4 @@
-package sword.langbook3.android.db;
+package sword.langbook3.android.models;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
@@ -24,7 +24,7 @@ public final class AcceptationDetailsModel {
      */
     public final ImmutableIntKeyMap<String> languageTexts;
 
-    AcceptationDetailsModel(
+    public AcceptationDetailsModel(
             int concept,
             IdentifiableResult language,
             ImmutableIntList correlationIds,

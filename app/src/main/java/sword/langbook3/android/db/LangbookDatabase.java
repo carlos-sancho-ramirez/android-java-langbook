@@ -30,6 +30,10 @@ import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheIntPairMap;
 import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.models.AgentDetails;
+import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.QuestionFieldDetails;
+import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
@@ -186,7 +190,7 @@ public final class LangbookDatabase {
         return (id != null)? id : insertRuledConcept(db, rule, concept);
     }
 
-    public static int insertQuestionFieldSet(DbImporter.Database db, Iterable<LangbookReadableDatabase.QuestionFieldDetails> fields) {
+    public static int insertQuestionFieldSet(DbImporter.Database db, Iterable<QuestionFieldDetails> fields) {
         if (!fields.iterator().hasNext()) {
             return 0;
         }
@@ -826,7 +830,7 @@ public final class LangbookDatabase {
         }
     }
 
-    public static Integer obtainQuiz(Database db, int bunch, ImmutableList<LangbookReadableDatabase.QuestionFieldDetails> fields) {
+    public static Integer obtainQuiz(Database db, int bunch, ImmutableList<QuestionFieldDetails> fields) {
         final Integer existingSetId = findQuestionFieldSet(db, fields);
         final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, bunch, existingSetId) : null;
 
