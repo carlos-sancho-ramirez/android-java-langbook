@@ -117,14 +117,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.readMainAlphab
 
 public final class LangbookDatabase {
 
-    private final Database db;
-    private final LangbookReadableDatabase selector;
-    private final LangbookDbInserter inserter;
-
-    LangbookDatabase(Database db) {
-        this.db = db;
-        selector = new LangbookReadableDatabase(db);
-        inserter = new LangbookDbInserter(db);
+    private LangbookDatabase() {
     }
 
     public static int obtainSymbolArray(DbImporter.Database db, String str) {
@@ -141,7 +134,7 @@ public final class LangbookDatabase {
         return id;
     }
 
-    public static int insertBunchSet(DbImporter.Database db, IntSet bunchSet) {
+    private static int insertBunchSet(DbImporter.Database db, IntSet bunchSet) {
         if (bunchSet.isEmpty()) {
             return 0;
         }
@@ -151,20 +144,12 @@ public final class LangbookDatabase {
         return setId;
     }
 
-    public static int insertBunchSet(DbImporter.Database db, int... bunches) {
-        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-        for (int bunch : bunches) {
-            builder.add(bunch);
-        }
-        return insertBunchSet(db, builder.build());
-    }
-
-    public static int obtainBunchSet(DbImporter.Database db, IntSet bunchSet) {
+    private static int obtainBunchSet(DbImporter.Database db, IntSet bunchSet) {
         final Integer id = findBunchSet(db, bunchSet);
         return (id != null)? id : insertBunchSet(db, bunchSet);
     }
 
-    public static int insertAgentSet(DbImporter.Database db, IntSet agentSet) {
+    private static int insertAgentSet(DbImporter.Database db, IntSet agentSet) {
         if (agentSet.isEmpty()) {
             return 0;
         }
@@ -174,12 +159,12 @@ public final class LangbookDatabase {
         return setId;
     }
 
-    public static int obtainAgentSet(DbImporter.Database db, IntSet set) {
+    private static int obtainAgentSet(DbImporter.Database db, IntSet set) {
         final Integer setId = findAgentSet(db, set);
         return (setId != null)? setId : insertAgentSet(db, set);
     }
 
-    public static int insertRuledConcept(DbImporter.Database db, int rule, int concept) {
+    private static int insertRuledConcept(DbImporter.Database db, int rule, int concept) {
         final int ruledConcept = getMaxConcept(db) + 1;
         LangbookDbInserter.insertRuledConcept(db, ruledConcept, rule, concept);
         return ruledConcept;
@@ -190,7 +175,7 @@ public final class LangbookDatabase {
         return (id != null)? id : insertRuledConcept(db, rule, concept);
     }
 
-    public static int insertQuestionFieldSet(DbImporter.Database db, Iterable<QuestionFieldDetails> fields) {
+    private static int insertQuestionFieldSet(DbImporter.Database db, Iterable<QuestionFieldDetails> fields) {
         if (!fields.iterator().hasNext()) {
             return 0;
         }
@@ -881,7 +866,7 @@ public final class LangbookDatabase {
         return db.update(query);
     }
 
-    public static boolean removeSentenceMeaning(Database db, int symbolArrayId) {
+    private static boolean removeSentenceMeaning(Database db, int symbolArrayId) {
         final ImmutableIntSet others = findSentenceIdsMatchingMeaning(db, symbolArrayId);
         final boolean result = deleteSentenceMeaning(db, symbolArrayId);
         if (result && others.size() == 1) {
@@ -1002,15 +987,6 @@ public final class LangbookDatabase {
                 throw new AssertionError();
             }
         }
-    }
-
-    public static boolean addAlphabet(Database db, int alphabet, int language) {
-        if (LangbookReadableDatabase.isAlphabetPresent(db, alphabet)) {
-            return false;
-        }
-
-        insertAlphabet(db, alphabet, language);
-        return true;
     }
 
     public static boolean removeAlphabet(Database db, int alphabet) {
@@ -1209,8 +1185,7 @@ public final class LangbookDatabase {
                         table.getMainAcceptationColumnIndex(),
                         table.getDynamicAcceptationColumnIndex());
 
-        final DbResult result = db.select(query);
-        try {
+        try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final String str = conversion.convert(row.get(0).toText());
@@ -1225,12 +1200,9 @@ public final class LangbookDatabase {
                 insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
             }
         }
-        finally {
-            result.close();
-        }
     }
 
-    public static void unapplyConversion(Deleter db, Conversion conversion) {
+    private static void unapplyConversion(Deleter db, Conversion conversion) {
         final int targetAlphabet = conversion.getTargetAlphabet();
 
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
@@ -1294,7 +1266,7 @@ public final class LangbookDatabase {
      * @param conversionPairs All pair of the conversion to be stored and applied. No specific order is required, as it will be resorted before applying it.
      * @return The identifier for the new alphabet, or null if it is not possible to add them.
      */
-    public static Integer addAlphabetAsConversionTarget(Database db, int sourceAlphabet, Map<String, String> conversionPairs) {
+    static Integer addAlphabetAsConversionTarget(Database db, int sourceAlphabet, Map<String, String> conversionPairs) {
         final int alphabet = getMaxConcept(db) + 1;
         final Conversion conversion = new Conversion(sourceAlphabet, alphabet, conversionPairs);
         return addAlphabetAsConversionTarget(db, conversion)? alphabet : null;

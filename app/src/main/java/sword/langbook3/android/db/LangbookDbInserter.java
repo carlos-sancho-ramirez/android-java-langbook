@@ -15,13 +15,10 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 
 public final class LangbookDbInserter {
 
-    private final DbInserter db;
-
-    public LangbookDbInserter(DbInserter db) {
-        this.db = db;
+    private LangbookDbInserter() {
     }
 
-    public static Integer insertSymbolArray(DbInserter db, String str) {
+    static Integer insertSymbolArray(DbInserter db, String str) {
         final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getStrColumnIndex(), str)
@@ -170,7 +167,7 @@ public final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    public static void insertAgentSet(DbInserter db, int setId, IntSet agentSet) {
+    static void insertAgentSet(DbInserter db, int setId, IntSet agentSet) {
         final LangbookDbSchema.AgentSetsTable table = Tables.agentSets;
         for (int agent : agentSet) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -184,7 +181,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertRuledConcept(DbInserter db, int ruledConcept, int rule, int baseConcept) {
+    static void insertRuledConcept(DbInserter db, int ruledConcept, int rule, int baseConcept) {
         final LangbookDbSchema.RuledConceptsTable table = Tables.ruledConcepts;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), ruledConcept)
@@ -226,7 +223,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails> fields) {
+    static void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails> fields) {
         final LangbookDbSchema.QuestionFieldSets table = Tables.questionFieldSets;
         for (QuestionFieldDetails field : fields) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -252,7 +249,7 @@ public final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    public static void insertAllPossibilities(DbInserter db, int quizId, IntSet acceptations) {
+    static void insertAllPossibilities(DbInserter db, int quizId, IntSet acceptations) {
         final LangbookDbSchema.KnowledgeTable table = Tables.knowledge;
         for (int acceptation : acceptations) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -267,7 +264,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertSearchHistoryEntry(DbInserter db, int acceptation) {
+    static void insertSearchHistoryEntry(DbInserter db, int acceptation) {
         final LangbookDbSchema.SearchHistoryTable table = Tables.searchHistory;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getAcceptation(), acceptation)

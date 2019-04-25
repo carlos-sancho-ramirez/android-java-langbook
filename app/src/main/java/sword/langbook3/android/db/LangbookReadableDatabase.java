@@ -61,10 +61,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
 public final class LangbookReadableDatabase {
 
-    private final DbExporter.Database db;
-
-    public LangbookReadableDatabase(DbExporter.Database db) {
-        this.db = db;
+    private LangbookReadableDatabase() {
     }
 
     public static List<DbValue> selectSingleRow(DbExporter.Database db, DbQuery query) {
@@ -82,7 +79,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static List<DbValue> selectFirstRow(DbExporter.Database db, DbQuery query) {
+    private static List<DbValue> selectFirstRow(DbExporter.Database db, DbQuery query) {
         try (DbResult result = db.select(query)) {
             if (!result.hasNext()) {
                 throw new AssertionError("Nothing found matching the given criteria");
@@ -129,7 +126,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static ImmutableIntSet findCorrelationsByLanguage(DbExporter.Database db, int language) {
+    static ImmutableIntSet findCorrelationsByLanguage(DbExporter.Database db, int language) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final int offset = correlations.columns().size();
@@ -141,7 +138,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    public static ImmutableIntPairMap findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, int sourceAlphabet) {
+    static ImmutableIntPairMap findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, int sourceAlphabet) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(correlations)
                 .where(correlations.getAlphabetColumnIndex(), sourceAlphabet)
@@ -158,7 +155,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findCorrelationsUsedInAgents(DbExporter.Database db) {
+    static ImmutableIntSet findCorrelationsUsedInAgents(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .select(agents.getStartMatcherColumnIndex(), agents.getEndMatcherColumnIndex(),
@@ -177,7 +174,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findAcceptationsByLanguage(DbExporter.Database db, int language) {
+    static ImmutableIntSet findAcceptationsByLanguage(DbExporter.Database db, int language) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final int offset = strings.columns().size();
@@ -196,7 +193,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findAcceptationsByConcept(DbExporter.Database db, int concept) {
+    static ImmutableIntSet findAcceptationsByConcept(DbExporter.Database db, int concept) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(acceptations)
                 .where(acceptations.getConceptColumnIndex(), concept)
@@ -285,30 +282,19 @@ public final class LangbookReadableDatabase {
         return map.filter(set -> set.contains(language) && set.size() == 1).keySet().toImmutable();
     }
 
-    public Integer findSymbolArray(String str) {
-        return findSymbolArray(db, str);
-    }
-
-    public Integer findCorrelation(IntPairMap correlation) {
-        return findCorrelation(db, correlation);
-    }
-
-    public static Integer findSymbolArray(DbExporter.Database db, String str) {
+    static Integer findSymbolArray(DbExporter.Database db, String str) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStrColumnIndex(), str)
                 .select(table.getIdColumnIndex());
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
             if (result.hasNext()) {
                 throw new AssertionError();
             }
 
             return value;
-        }
-        finally {
-            result.close();
         }
     }
 
@@ -335,8 +321,8 @@ public final class LangbookReadableDatabase {
                         table.getCorrelationIdColumnIndex(),
                         offset2 + table.getAlphabetColumnIndex(),
                         offset3 + symbolArrays.getStrColumnIndex());
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int correlationId = row.get(0).toInt();
@@ -362,8 +348,6 @@ public final class LangbookReadableDatabase {
                     return correlationId;
                 }
             }
-        } finally {
-            result.close();
         }
 
         return null;
@@ -385,8 +369,8 @@ public final class LangbookReadableDatabase {
                         table.getCorrelationIdColumnIndex(),
                         offset + table.getAlphabetColumnIndex(),
                         offset + table.getSymbolArrayColumnIndex());
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int correlationId = row.get(0).toInt();
@@ -413,22 +397,19 @@ public final class LangbookReadableDatabase {
                 }
             }
         }
-        finally {
-            result.close();
-        }
 
         return null;
     }
 
-    public static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
+    static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
                 .where(table.getArrayPositionColumnIndex(), 0)
                 .where(table.getCorrelationColumnIndex(), array.get(0))
                 .select(table.getArrayIdColumnIndex(), table.columns().size() + table.getCorrelationColumnIndex());
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int arrayId = row.get(0).toInt();
@@ -454,14 +435,11 @@ public final class LangbookReadableDatabase {
                 }
             }
         }
-        finally {
-            result.close();
-        }
 
         return null;
     }
 
-    public static Integer findCorrelationArray(DbExporter.Database db, int... correlations) {
+    static Integer findCorrelationArray(DbExporter.Database db, int... correlations) {
         if (correlations.length == 0) {
             return StreamedDatabaseConstants.nullCorrelationArrayId;
         }
@@ -472,8 +450,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getCorrelationColumnIndex(), correlations[0])
                 .select(table.getArrayIdColumnIndex());
 
-        final DbResult result = db.select(query);
-        try {
+        try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final int arrayId = result.next().get(0).toInt();
                 final int[] array = getCorrelationArray(db, arrayId);
@@ -481,9 +458,6 @@ public final class LangbookReadableDatabase {
                     return arrayId;
                 }
             }
-        }
-        finally {
-            result.close();
         }
 
         return null;
@@ -526,23 +500,6 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
-    }
-
-    public static Integer findConversionRegister(DbExporter.Database db, ImmutableIntPair alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
-        final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getSourceAlphabetColumnIndex(), alphabets.left)
-                .where(table.getTargetAlphabetColumnIndex(), alphabets.right)
-                .where(table.getSourceColumnIndex(), sourceSymbolArrayId)
-                .where(table.getTargetColumnIndex(), targetSymbolArrayId)
-                .select(table.getIdColumnIndex());
-        final DbResult dbResult = db.select(query);
-        final Integer result = dbResult.hasNext()? dbResult.next().get(0).toInt() : null;
-        if (dbResult.hasNext()) {
-            throw new AssertionError();
-        }
-
-        return result;
     }
 
     public static Integer findRuledAcceptationByRuleAndMainAcceptation(DbExporter.Database db, int rule, int mainAcceptation) {
@@ -622,7 +579,7 @@ public final class LangbookReadableDatabase {
         });
     }
 
-    public static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
+    static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -697,11 +654,11 @@ public final class LangbookReadableDatabase {
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
                 .where(table.getBunchColumnIndex(), bunches.valueAt(0))
                 .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
-                final HashSet<Integer> set = new HashSet<>();
+                final MutableIntSet set = MutableIntArraySet.empty();
                 int setId = row.get(0).toInt();
                 set.add(row.get(1).toInt());
 
@@ -723,14 +680,11 @@ public final class LangbookReadableDatabase {
                 }
             }
         }
-        finally {
-            result.close();
-        }
 
         return null;
     }
 
-    public static Integer findAgentSet(DbExporter.Database db, IntSet agentSet) {
+    static Integer findAgentSet(DbExporter.Database db, IntSet agentSet) {
         if (agentSet.isEmpty()) {
             return 0;
         }
@@ -742,8 +696,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getAgentColumnIndex(), set.valueAt(0))
                 .select(table.getSetIdColumnIndex(), table.columns().size() + table.getAgentColumnIndex());
 
-        final DbResult result = db.select(query);
-        try {
+        try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int setId = row.get(0).toInt();
@@ -769,14 +722,11 @@ public final class LangbookReadableDatabase {
                 }
             }
         }
-        finally {
-            result.close();
-        }
 
         return null;
     }
 
-    public static Integer findRuledConcept(DbExporter.Database db, int rule, int concept) {
+    static Integer findRuledConcept(DbExporter.Database db, int rule, int concept) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getRuleColumnIndex(), rule)
@@ -792,7 +742,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static Integer findQuizDefinition(DbExporter.Database db, int bunch, int setId) {
+    static Integer findQuizDefinition(DbExporter.Database db, int bunch, int setId) {
         final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -808,22 +758,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static ImmutableIntSet findAffectedAgentsByItsSource(DbExporter.Database db, int bunch) {
-        if (bunch == 0) {
-            return new ImmutableIntSetCreator().build();
-        }
-
-        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(bunchSets)
-                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
-                .where(bunchSets.getBunchColumnIndex(), bunch)
-                .select(bunchSets.columns().size() + agents.getIdColumnIndex());
-
-        return intSetQuery(db, query);
-    }
-
-    public static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(DbExporter.Database db, int bunch) {
+    static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(DbExporter.Database db, int bunch) {
         if (bunch == 0) {
             return ImmutableIntPairMap.empty();
         }
@@ -847,22 +782,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findAffectedAgentsByItsDiff(DbExporter.Database db, int bunch) {
-        if (bunch == 0) {
-            return new ImmutableIntSetCreator().build();
-        }
-
-        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(bunchSets)
-                .join(agents, bunchSets.getSetIdColumnIndex(), agents.getDiffBunchSetColumnIndex())
-                .where(bunchSets.getBunchColumnIndex(), bunch)
-                .select(bunchSets.columns().size() + agents.getIdColumnIndex());
-
-        return intSetQuery(db, query);
-    }
-
-    public static ImmutableIntPairMap findAffectedAgentsByItsDiffWithTarget(DbExporter.Database db, int bunch) {
+    static ImmutableIntPairMap findAffectedAgentsByItsDiffWithTarget(DbExporter.Database db, int bunch) {
         if (bunch == 0) {
             return ImmutableIntPairMap.empty();
         }
@@ -886,7 +806,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findAgentsWithoutSourceBunches(DbExporter.Database db) {
+    static ImmutableIntSet findAgentsWithoutSourceBunches(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
@@ -895,7 +815,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntPairMap findAgentsWithoutSourceBunchesWithTarget(DbExporter.Database db) {
+    static ImmutableIntPairMap findAgentsWithoutSourceBunchesWithTarget(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
@@ -912,7 +832,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findAffectedAgentsByAcceptationCorrelationModification(DbExporter.Database db, int acceptation) {
+    static ImmutableIntSet findAffectedAgentsByAcceptationCorrelationModification(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
@@ -929,7 +849,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntSet findQuizzesByBunch(DbExporter.Database db, int bunch) {
+    static ImmutableIntSet findQuizzesByBunch(DbExporter.Database db, int bunch) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final DbQuery query = new DbQuery.Builder(quizzes)
                 .where(quizzes.getBunchColumnIndex(), bunch)
@@ -938,7 +858,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static Integer findQuestionFieldSet(DbExporter.Database db, Iterable<QuestionFieldDetails> collection) {
+    static Integer findQuestionFieldSet(DbExporter.Database db, Iterable<QuestionFieldDetails> collection) {
         final Set<QuestionFieldDetails> set = new HashSet<>();
         if (collection == null) {
             return null;
@@ -997,21 +917,6 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static Integer findSearchHistoryEntry(DbExporter.Database db, int acceptation) {
-        final LangbookDbSchema.SearchHistoryTable table = LangbookDbSchema.Tables.searchHistory;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getAcceptation(), acceptation)
-                .select(table.getIdColumnIndex());
-
-        try (DbResult result = db.select(query)) {
-            final Integer id = result.hasNext()? result.next().get(0).toInt() : null;
-            if (result.hasNext()) {
-                throw new AssertionError();
-            }
-            return id;
-        }
-    }
-
     public static ImmutableIntPairMap findConversions(DbExporter.Database db, IntSet alphabets) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
 
@@ -1058,24 +963,21 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    public static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
+    private static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
                 .select(DbQuery.max(columnIndex));
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             return result.hasNext()? result.next().get(0).toInt() : 0;
-        }
-        finally {
-            result.close();
         }
     }
 
-    public static int getMaxCorrelationId(DbExporter.Database db) {
+    static int getMaxCorrelationId(DbExporter.Database db) {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         return getColumnMax(db, table, table.getCorrelationIdColumnIndex());
     }
 
-    public static int getMaxCorrelationArrayId(DbExporter.Database db) {
+    static int getMaxCorrelationArrayId(DbExporter.Database db) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         return getColumnMax(db, table, table.getArrayIdColumnIndex());
     }
@@ -1085,7 +987,7 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getConceptColumnIndex());
     }
 
-    public static int getMaxConceptInRuledConcepts(DbExporter.Database db) {
+    private static int getMaxConceptInRuledConcepts(DbExporter.Database db) {
         LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         return getColumnMax(db, table, table.getIdColumnIndex());
     }
@@ -1130,12 +1032,12 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
-    public static int getMaxQuestionFieldSetId(DbExporter.Database db) {
+    static int getMaxQuestionFieldSetId(DbExporter.Database db) {
         LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
-    public static int getMaxSentenceMeaning(DbExporter.Database db) {
+    static int getMaxSentenceMeaning(DbExporter.Database db) {
         LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
         return getColumnMax(db, table, table.getMeaning());
     }
@@ -1145,35 +1047,28 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), id)
                 .select(table.getStrColumnIndex());
-        final DbResult result = db.select(query);
-        try {
+
+        try (DbResult result = db.select(query)) {
             final String str = result.hasNext()? result.next().get(0).toText() : null;
             if (result.hasNext()) {
                 throw new AssertionError("There should not be repeated identifiers");
             }
             return str;
         }
-        finally {
-            result.close();
-        }
     }
 
-    public static ImmutableIntPairMap getCorrelation(DbExporter.Database db, int id) {
+    static ImmutableIntPairMap getCorrelation(DbExporter.Database db, int id) {
         LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getCorrelationIdColumnIndex(), id)
                 .select(table.getAlphabetColumnIndex(), table.getSymbolArrayColumnIndex());
 
         ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
-        final DbResult result = db.select(query);
-        try {
+        try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 corrBuilder.put(row.get(0).toInt(), row.get(1).toInt());
             }
-        }
-        finally {
-            result.close();
         }
 
         return corrBuilder.build();
@@ -1197,7 +1092,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static int[] getCorrelationArray(DbExporter.Database db, int id) {
+    private static int[] getCorrelationArray(DbExporter.Database db, int id) {
         if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
             return new int[0];
         }
@@ -1227,7 +1122,7 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
-    public static ImmutableIntPairMap getAcceptationsAndAgentSetsInBunch(DbExporter.Database db, int bunch) {
+    static ImmutableIntPairMap getAcceptationsAndAgentSetsInBunch(DbExporter.Database db, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -1243,7 +1138,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {
+    private static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
@@ -1306,7 +1201,7 @@ public final class LangbookReadableDatabase {
         return new ImmutablePair<>(correlationIds.toImmutable(), correlationMap.toImmutable());
     }
 
-    public static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
+    private static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSetIdColumnIndex(), setId)
@@ -1344,7 +1239,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static Integer getSentenceMeaning(DbExporter.Database db, int symbolArrayId) {
+    static Integer getSentenceMeaning(DbExporter.Database db, int symbolArrayId) {
         final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
 
         final DbQuery query = new DbQuery.Builder(table)
@@ -1813,7 +1708,7 @@ public final class LangbookReadableDatabase {
         return true;
     }
 
-    public static ImmutableIntSet alphabetsWithinLanguage(DbExporter.Database db, int alphabet) {
+    static ImmutableIntSet alphabetsWithinLanguage(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
@@ -1840,7 +1735,7 @@ public final class LangbookReadableDatabase {
         return selectOptionalFirstIntColumn(db, query);
     }
 
-    public static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
+    private static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1913,7 +1808,7 @@ public final class LangbookReadableDatabase {
         return new ImmutablePair<>(builder.build(), language);
     }
 
-    public static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndMain(DbExporter.Database db, int acceptation) {
+    static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndMain(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), acceptation)
@@ -1945,7 +1840,7 @@ public final class LangbookReadableDatabase {
         return new ImmutablePair<>(builder.build(), mainAcc);
     }
 
-    public static String readAcceptationMainText(DbExporter.Database db, int acceptation) {
+    private static String readAcceptationMainText(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), acceptation)
@@ -2226,7 +2121,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    public static int readMainAlphabetFromAlphabet(DbExporter.Database db, int alphabet) {
+    static int readMainAlphabetFromAlphabet(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable alpTable = alphabets;
         final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
         final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
@@ -2272,7 +2167,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    public static ImmutableIntSet readAllAcceptations(DbExporter.Database db, int alphabet) {
+    private static ImmutableIntSet readAllAcceptations(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(strings)
                 .where(strings.getStringAlphabetColumnIndex(), alphabet)
@@ -2282,7 +2177,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntSet readAllAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
+    private static ImmutableIntSet readAllAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(bunchAcceptations)
@@ -2342,7 +2237,7 @@ public final class LangbookReadableDatabase {
         return !startMatcher.isEmpty() || !endMatcher.isEmpty();
     }
 
-    public static ImmutableIntSet readBunchesFromSetOfBunchSets(DbExporter.Database db, ImmutableIntSet bunchSets) {
+    private static ImmutableIntSet readBunchesFromSetOfBunchSets(DbExporter.Database db, ImmutableIntSet bunchSets) {
         final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
         for (int bunchSet : bunchSets) {
             for (int bunch : getBunchSet(db, bunchSet)) {
@@ -2406,7 +2301,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(DbExporter.Database db, int alphabet) {
+    private static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
@@ -2421,7 +2316,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
+    private static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2442,7 +2337,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntSet readAllRulableAcceptations(DbExporter.Database db, int alphabet, int rule) {
+    private static ImmutableIntSet readAllRulableAcceptations(DbExporter.Database db, int alphabet, int rule) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -2459,7 +2354,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntSet readAllRulableAcceptationsInBunch(DbExporter.Database db, int alphabet, int rule, int bunch) {
+    private static ImmutableIntSet readAllRulableAcceptationsInBunch(DbExporter.Database db, int alphabet, int rule, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
@@ -2498,12 +2393,12 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static ImmutableIntSet readAllPossibleAcceptations(DbExporter.Database db, int bunch, ImmutableSet<QuestionFieldDetails> fields) {
+    static ImmutableIntSet readAllPossibleAcceptations(DbExporter.Database db, int bunch, ImmutableSet<QuestionFieldDetails> fields) {
         final Function<QuestionFieldDetails, ImmutableIntSet> mapFunc = field -> readAllPossibleAcceptationForField(db, bunch, field);
         return fields.map(mapFunc).reduce((a,b) -> a.filter(b::contains));
     }
 
-    public static ImmutableIntSet getAllRuledAcceptationsForAgent(DbExporter.Database db, int agentId) {
+    static ImmutableIntSet getAllRuledAcceptationsForAgent(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getAgentColumnIndex(), agentId)
@@ -2512,7 +2407,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntPairMap getAgentProcessedMap(DbExporter.Database db, int agentId) {
+    static ImmutableIntPairMap getAgentProcessedMap(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getAgentColumnIndex(), agentId)
@@ -2529,7 +2424,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntKeyMap<ImmutableIntSet> getAllAgentSetsContaining(DbExporter.Database db, int agentId) {
+    static ImmutableIntKeyMap<ImmutableIntSet> getAllAgentSetsContaining(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
@@ -2619,7 +2514,7 @@ public final class LangbookReadableDatabase {
                 startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
     }
 
-    public static AgentDetails getAgentDetails(DbExporter.Database db, int agentId) {
+    static AgentDetails getAgentDetails(DbExporter.Database db, int agentId) {
         final AgentRegister register = getAgentRegister(db, agentId);
         final ImmutableIntSet sourceBunches = getBunchSet(db, register.sourceBunchSetId);
         final ImmutableIntSet diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
@@ -2904,10 +2799,7 @@ public final class LangbookReadableDatabase {
         }
 
         // First, quizzes using this alphabet should be removed
-        if (isAlphabetUsedInQuestions(db, alphabet)) {
-            return false;
-        }
-        return true;
+        return !isAlphabetUsedInQuestions(db, alphabet);
     }
 
     static boolean isAlphabetUsedInQuestions(DbExporter.Database db, int alphabet) {
