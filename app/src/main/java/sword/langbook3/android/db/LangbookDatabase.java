@@ -96,6 +96,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCurrentKnowledge;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAlphabetAndLanguageConcepts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getLanguageFromAlphabet;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
@@ -1211,6 +1212,122 @@ public final class LangbookDatabase {
                 .build();
 
         db.delete(query);
+    }
+
+    private static void updateBunchConceptConcepts(Database db, int oldConcept, int newConcept) {
+        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
+
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldConcept)
+                .put(table.getBunchColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+
+        query = new DbUpdateQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), oldConcept)
+                .put(table.getConceptColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateBunchAcceptationConcepts(Database db, int oldConcept, int newConcept) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldConcept)
+                .put(table.getBunchColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateQuestionRules(Database db, int oldRule, int newRule) {
+        final LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getRuleColumnIndex(), oldRule)
+                .put(table.getRuleColumnIndex(), newRule)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateQuizBunches(Database db, int oldBunch, int newBunch) {
+        final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldBunch)
+                .put(table.getBunchColumnIndex(), newBunch)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateBunchSetBunches(Database db, int oldBunch, int newBunch) {
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), oldBunch)
+                .put(table.getBunchColumnIndex(), newBunch)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateAgentRules(Database db, int oldRule, int newRule) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getRuleColumnIndex(), oldRule)
+                .put(table.getRuleColumnIndex(), newRule)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateAgentTargetBunches(Database db, int oldBunch, int newBunch) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getTargetBunchColumnIndex(), oldBunch)
+                .put(table.getTargetBunchColumnIndex(), newBunch)
+                .build();
+        db.update(query);
+    }
+
+    private static void updateAcceptationConcepts(Database db, int oldConcept, int newConcept) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), oldConcept)
+                .put(table.getConceptColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+    }
+
+    /**
+     * Join 2 concepts in a single one, removing any reference to the given old concept.
+     *
+     * This method extracts the concept from the given acceptation and replace
+     * any reference to the oldConcept for the extracted acceptation concept in the database.
+     *
+     * @param db Database to be updated.
+     * @param linkedAcceptation Acceptation from where the concept will be extracted.
+     * @param oldConcept Concept to be replaced by the linked one.
+     * @return Whether the database has changed.
+     */
+    public static boolean shareConcept(Database db, int linkedAcceptation, int oldConcept) {
+        final int linkedConcept = conceptFromAcceptation(db, linkedAcceptation);
+        if (oldConcept == linkedConcept) {
+            return false;
+        }
+
+        final ImmutableIntSet nonLinkableConcepts = getAlphabetAndLanguageConcepts(db);
+        if (nonLinkableConcepts.contains(linkedConcept)) {
+            return false;
+        }
+
+        if (oldConcept == 0 || linkedConcept == 0) {
+            throw new AssertionError();
+        }
+
+        updateBunchConceptConcepts(db, oldConcept, linkedConcept);
+        updateBunchAcceptationConcepts(db, oldConcept, linkedConcept);
+        updateQuestionRules(db, oldConcept, linkedConcept);
+        updateQuizBunches(db, oldConcept, linkedConcept);
+        updateBunchSetBunches(db, oldConcept, linkedConcept);
+        updateAgentRules(db, oldConcept, linkedConcept);
+        updateAgentTargetBunches(db, oldConcept, linkedConcept);
+        updateAcceptationConcepts(db, oldConcept, linkedConcept);
+        return true;
     }
 
     /**
