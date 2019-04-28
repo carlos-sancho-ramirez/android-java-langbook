@@ -26,19 +26,16 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntArraySet;
-import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.database.Database;
-import sword.database.DbQuery;
-import sword.database.DbValue;
 import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookDbSchema;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
@@ -84,7 +81,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 return true;
             }
 
-            if (other == null || !(other instanceof CorrelationEntry)) {
+            if (!(other instanceof CorrelationEntry)) {
                 return false;
             }
 
@@ -219,42 +216,14 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private LinearLayout _endMatchersContainer;
     private LinearLayout _endAddersContainer;
 
-    private void updateAlphabets() {
-        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-
-        final int acceptationsOffset = alphabets.columns().size();
-        final int stringsOffset = acceptationsOffset + acceptations.columns().size();
-
-        final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
-        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
-        final DbQuery query = new DbQuery.Builder(alphabets)
-                .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
-                .join(strings, acceptationsOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .select(
-                        alphabets.getIdColumnIndex(),
-                        stringsOffset + strings.getStringAlphabetColumnIndex(),
-                        stringsOffset + strings.getStringColumnIndex());
-
-        for (List<DbValue> row : DbManager.getInstance().attach(query)) {
-            final int id = row.get(0).toInt();
-            final int strAlphabet = row.get(1).toInt();
-
-            if (strAlphabet == _preferredAlphabet || !foundAlphabets.contains(id)) {
-                foundAlphabets.add(id);
-                result.put(id, row.get(2).toText());
-            }
-        }
-
-        _alphabets = result.toImmutable();
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.agent_editor_activity);
-        updateAlphabets();
+
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final Database db = DbManager.getInstance().getDatabase();
+        _alphabets = readAllAlphabets(db, _preferredAlphabet);
 
         if (savedInstanceState != null) {
             _state = savedInstanceState.getParcelable(SavedKeys.STATE);
@@ -263,14 +232,12 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             _state = new State();
         }
 
-        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _includeTargetBunchCheckBox = findViewById(R.id.includeTargetBunch);
         if (_state.includeTargetBunch) {
             _includeTargetBunchCheckBox.setChecked(true);
         }
         _includeTargetBunchCheckBox.setOnCheckedChangeListener(this);
 
-        final Database db = DbManager.getInstance().getDatabase();
         _targetBunchChangeButton = findViewById(R.id.targetBunchChangeButton);
         if (_state.targetBunch != NO_BUNCH) {
             final TextView textView = findViewById(R.id.targetBunchText);
