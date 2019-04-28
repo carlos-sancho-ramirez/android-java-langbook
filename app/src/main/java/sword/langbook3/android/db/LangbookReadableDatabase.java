@@ -49,6 +49,7 @@ import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.MorphologyResult;
+import sword.langbook3.android.models.Progress;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.models.SearchResult;
@@ -56,7 +57,10 @@ import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.SynonymTranslationResult;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
+import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
 public final class LangbookReadableDatabase {
@@ -64,7 +68,7 @@ public final class LangbookReadableDatabase {
     private LangbookReadableDatabase() {
     }
 
-    public static List<DbValue> selectSingleRow(DbExporter.Database db, DbQuery query) {
+    static List<DbValue> selectSingleRow(DbExporter.Database db, DbQuery query) {
         try (DbResult result = db.select(query)) {
             if (!result.hasNext()) {
                 throw new AssertionError("Nothing found matching the given criteria");
@@ -2295,6 +2299,29 @@ public final class LangbookReadableDatabase {
         }
 
         throw new UnsupportedOperationException("Unsupported question field type");
+    }
+
+    public static Progress readQuizProgress(DbExporter.Database db, int quizId) {
+        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
+
+        final DbQuery query = new DbQuery.Builder(knowledge)
+                .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
+                .select(knowledge.getScoreColumnIndex());
+
+        final int[] progress = new int[MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE + 1];
+        int numberOfQuestions = 0;
+
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                numberOfQuestions++;
+                final int score = dbResult.next().get(0).toInt();
+                if (score != NO_SCORE) {
+                    progress[score - MIN_ALLOWED_SCORE]++;
+                }
+            }
+        }
+
+        return new Progress(ImmutableIntList.from(progress), numberOfQuestions);
     }
 
     private static boolean checkMatching(ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> texts) {

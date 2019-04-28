@@ -6,6 +6,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import sword.langbook3.android.models.Progress;
+
 final class QuizSelectorAdapter extends BaseAdapter {
 
     private final Item[] _items;
@@ -46,10 +48,10 @@ final class QuizSelectorAdapter extends BaseAdapter {
         TextView atv = convertView.findViewById(R.id.answerText);
         atv.setText(item._answerText);
 
-        convertView.findViewById(R.id.knowledgeBarView).setBackground(item._progress.getDrawable());
+        convertView.findViewById(R.id.knowledgeBarView).setBackground(ProgressUtils.getDrawable(item._progress));
 
         TextView ctv = convertView.findViewById(R.id.completenessTextView);
-        ctv.setText(item._progress.getCompletenessString());
+        ctv.setText(ProgressUtils.getCompletenessString(item._progress));
 
         return convertView;
     }
@@ -58,9 +60,9 @@ final class QuizSelectorAdapter extends BaseAdapter {
         private final int _quizId;
         private final String _questionText;
         private final String _answerText;
-        private final QuizSelectorActivity.Progress _progress;
+        private final Progress _progress;
 
-        Item(int quizId, String questionText, String answerText, QuizSelectorActivity.Progress progress) {
+        Item(int quizId, String questionText, String answerText, Progress progress) {
             _quizId = quizId;
             _questionText = questionText;
             _answerText = answerText;

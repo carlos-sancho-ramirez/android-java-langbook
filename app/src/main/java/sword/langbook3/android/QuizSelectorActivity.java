@@ -26,7 +26,6 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookDbSchema.KnowledgeTable;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldSets;
 import sword.langbook3.android.db.LangbookDbSchema.QuizDefinitionsTable;
@@ -34,11 +33,9 @@ import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static sword.database.DbIdColumn.idColumnName;
-import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
-import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
-import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readQuizProgress;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
 
@@ -69,81 +66,6 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     private boolean _activityStarted;
     private ListView _listView;
     private ActionMode _listActionMode;
-
-    static final class Progress {
-        private final ImmutableIntList amountPerScore;
-        private final int totalAnsweredQuestions;
-        private final int numberOfQuestions;
-
-        Progress(ImmutableIntList amountPerScore, int numberOfQuestions) {
-            int answeredQuestions = 0;
-            for (int amount : amountPerScore) {
-                answeredQuestions += amount;
-            }
-
-            if (answeredQuestions > numberOfQuestions) {
-                throw new IllegalArgumentException();
-            }
-
-            this.amountPerScore = amountPerScore;
-            totalAnsweredQuestions = answeredQuestions;
-            this.numberOfQuestions = numberOfQuestions;
-        }
-
-        ImmutableIntList getAmountPerScore() {
-            return amountPerScore;
-        }
-
-        int getAnsweredQuestionsCount() {
-            return totalAnsweredQuestions;
-        }
-
-        int getNumberOfQuestions() {
-            return numberOfQuestions;
-        }
-
-        String getCompletenessString() {
-            final float completeness = (float) totalAnsweredQuestions * 100 / numberOfQuestions;
-            return String.format("%.1f%%", completeness);
-        }
-
-        KnowledgeDrawable getDrawable() {
-            return (totalAnsweredQuestions > 0)? new KnowledgeDrawable(amountPerScore) : null;
-        }
-    }
-
-    static Progress readProgress(SQLiteDatabase db, int quizId) {
-        final KnowledgeTable knowledge = Tables.knowledge;
-
-        final Cursor cursor = db.rawQuery("SELECT " + knowledge.columns().get(knowledge.getScoreColumnIndex()).name() + " FROM " + knowledge.name() + " WHERE " + knowledge.columns().get(knowledge.getQuizDefinitionColumnIndex()).name() + "=?",
-                new String[] { Integer.toString(quizId)});
-
-        int numberOfQuestions = 0;
-        final int[] progress = new int[MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE + 1];
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    numberOfQuestions = cursor.getCount();
-                    do {
-                        final int score = cursor.getInt(0);
-                        if (score != NO_SCORE) {
-                            progress[score - MIN_ALLOWED_SCORE]++;
-                        }
-                    } while (cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
-        final ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
-        for (int value : progress) {
-            builder.add(value);
-        }
-
-        return new Progress(builder.build(), numberOfQuestions);
-    }
 
     private String getRuleText(Database db, int rule) {
         if (_ruleTexts == null) {
@@ -245,7 +167,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 sb.append(')');
             }
 
-            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString(), readProgress(sqlDb, quizId));
+            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString(), readQuizProgress(db, quizId));
         }
 
         return items;

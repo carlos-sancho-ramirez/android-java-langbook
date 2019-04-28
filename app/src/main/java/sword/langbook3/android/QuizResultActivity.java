@@ -8,8 +8,10 @@ import android.view.View;
 import android.widget.TextView;
 
 import sword.collections.ImmutableIntList;
+import sword.langbook3.android.models.Progress;
 
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readQuizProgress;
 
 public final class QuizResultActivity extends Activity {
 
@@ -38,7 +40,7 @@ public final class QuizResultActivity extends Activity {
     private int _quizId;
     private TextView _textView;
     private View _knowledgeBarView;
-    private QuizSelectorActivity.Progress _progress;
+    private Progress _progress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +62,7 @@ public final class QuizResultActivity extends Activity {
         final int totalAnswerCount = _goodAnswerCount + _badAnswerCount;
 
         if (_progress == null) {
-            _progress = QuizSelectorActivity.readProgress(DbManager.getInstance().getReadableDatabase(), _quizId);
+            _progress = readQuizProgress(DbManager.getInstance().getDatabase(), _quizId);
         }
 
         final StringBuilder sb = new StringBuilder();
@@ -78,9 +80,9 @@ public final class QuizResultActivity extends Activity {
         sb.append("\n\nTotal possible questions: ").append(_progress.getNumberOfQuestions())
                 .append("\nQueried so far: ").append(_progress.getAnsweredQuestionsCount())
                 .append(" out of ").append(_progress.getNumberOfQuestions())
-                .append(" (").append(_progress.getCompletenessString()).append(')');
+                .append(" (").append(ProgressUtils.getCompletenessString(_progress)).append(')');
         _textView.setText(sb.toString());
-        _knowledgeBarView.setBackground(_progress.getDrawable());
+        _knowledgeBarView.setBackground(ProgressUtils.getDrawable(_progress));
     }
 
     @Override
