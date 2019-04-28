@@ -19,14 +19,9 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
 import sword.database.Database;
 import sword.database.DbExporter;
-import sword.database.DbQuery;
-import sword.langbook3.android.db.LangbookDbSchema.AcceptationsTable;
-import sword.langbook3.android.db.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.db.LangbookDbSchema.KnowledgeTable;
-import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.db.LangbookDbSchema.RuledAcceptationsTable;
-import sword.langbook3.android.db.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
+import sword.langbook3.android.db.LangbookReadableDatabase;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 
@@ -35,7 +30,6 @@ import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCurrentKnowledge;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails;
-import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
 public final class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 
@@ -90,67 +84,8 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         _fieldTextViews = new TextView[_quizDetails.fields.size()];
     }
 
-    private String readSameAcceptationQuestionText(DbExporter.Database db, int index) {
-        final StringQueriesTable strings = Tables.stringQueries;
-        final DbQuery query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), _acceptation)
-                .where(strings.getStringAlphabetColumnIndex(), _quizDetails.fields.get(index).alphabet)
-                .select(strings.getStringColumnIndex());
-        return selectSingleRow(db, query).get(0).toText();
-    }
-
-    private String readSameConceptQuestionText(DbExporter.Database db, int index) {
-        final AcceptationsTable acceptations = Tables.acceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        final int accOffset = acceptations.columns().size();
-        final int strOffset = accOffset + acceptations.columns().size();
-
-        final DbQuery query = new DbQuery.Builder(acceptations)
-                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
-                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .where(acceptations.getIdColumnIndex(), _acceptation)
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), _quizDetails.fields.get(index).alphabet)
-                .whereColumnValueDiffer(acceptations.getIdColumnIndex(), accOffset + acceptations.getIdColumnIndex())
-                .select(strOffset + strings.getStringColumnIndex());
-
-        return db.select(query)
-                .map(row -> row.get(0).toText())
-                .reduce((a, b) -> a + ", " + b);
-    }
-
-    private String readApplyRuleQuestionText(DbExporter.Database db, int index) {
-        final AgentsTable agents = Tables.agents;
-        final RuledAcceptationsTable ruledAcceptations = Tables.ruledAcceptations;
-        final StringQueriesTable strings = Tables.stringQueries;
-
-        final QuestionFieldDetails field = _quizDetails.fields.get(index);
-        final int strOffset = ruledAcceptations.columns().size();
-        final int agentsOffset = strOffset + strings.columns().size();
-
-        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
-                .join(strings, ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
-                .where(ruledAcceptations.getAcceptationColumnIndex(), _acceptation)
-                .where(agentsOffset + agents.getRuleColumnIndex(), field.rule)
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), field.alphabet)
-                .select(strOffset + strings.getStringColumnIndex());
-        return selectSingleRow(db, query).get(0).toText();
-    }
-
     private String readFieldText(DbExporter.Database db, int index) {
-        switch (_quizDetails.fields.get(index).getType()) {
-            case QuestionFieldFlags.TYPE_SAME_ACC:
-                return readSameAcceptationQuestionText(db, index);
-
-            case QuestionFieldFlags.TYPE_SAME_CONCEPT:
-                return readSameConceptQuestionText(db, index);
-
-            case QuestionFieldFlags.TYPE_APPLY_RULE:
-                return readApplyRuleQuestionText(db, index);
-        }
-
-        throw new UnsupportedOperationException("Unsupported question field type");
+        return LangbookReadableDatabase.readQuestionFieldText(db, _acceptation, _quizDetails.fields.get(index));
     }
 
     private void selectAcceptation() {

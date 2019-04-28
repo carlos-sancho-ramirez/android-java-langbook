@@ -2244,6 +2244,59 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
+    private static String readSameConceptTexts(DbExporter.Database db, int acceptation, int alphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = acceptations.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .whereColumnValueDiffer(acceptations.getIdColumnIndex(), accOffset + acceptations.getIdColumnIndex())
+                .select(strOffset + strings.getStringColumnIndex());
+
+        return db.select(query)
+                .map(row -> row.get(0).toText())
+                .reduce((a, b) -> a + ", " + b);
+    }
+
+    private static String readApplyRuleText(DbExporter.Database db, int acceptation, QuestionFieldDetails field) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int strOffset = ruledAcceptations.columns().size();
+        final int agentsOffset = strOffset + strings.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
+                .join(strings, ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .where(ruledAcceptations.getAcceptationColumnIndex(), acceptation)
+                .where(agentsOffset + agents.getRuleColumnIndex(), field.rule)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), field.alphabet)
+                .select(strOffset + strings.getStringColumnIndex());
+        return selectSingleRow(db, query).get(0).toText();
+    }
+
+    public static String readQuestionFieldText(DbExporter.Database db, int acceptation, QuestionFieldDetails field) {
+        switch (field.getType()) {
+            case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC:
+                return getAcceptationText(db, acceptation, field.alphabet);
+
+            case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT:
+                return readSameConceptTexts(db, acceptation, field.alphabet);
+
+            case LangbookDbSchema.QuestionFieldFlags.TYPE_APPLY_RULE:
+                return readApplyRuleText(db, acceptation, field);
+        }
+
+        throw new UnsupportedOperationException("Unsupported question field type");
+    }
+
     private static boolean checkMatching(ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> texts) {
         for (IntKeyMap.Entry<String> entry : startMatcher.entries()) {
             final String text = texts.get(entry.key(), null);
@@ -2772,6 +2825,15 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    private static String getAcceptationText(DbExporter.Database db, int acceptation, int alphabet) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .where(strings.getStringAlphabetColumnIndex(), alphabet)
+                .select(strings.getStringColumnIndex());
+        return selectSingleRow(db, query).get(0).toText();
     }
 
     /**
