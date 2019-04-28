@@ -69,6 +69,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.alphabetsWithi
 import static sword.langbook3.android.db.LangbookReadableDatabase.areAllAlphabetsFromSameLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.checkConversionConflicts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.correlationArrayFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
@@ -1328,6 +1329,22 @@ public final class LangbookDatabase {
         updateAgentTargetBunches(db, oldConcept, linkedConcept);
         updateAcceptationConcepts(db, oldConcept, linkedConcept);
         return true;
+    }
+
+    /**
+     * Extract the correlation array assigned to the given linkedAcceptation and
+     * creates a new acceptation with the same correlation array but with the given concept.
+     * @param db Database where the new acceptation has to be inserted.
+     * @param linkedAcceptation Acceptation from where the correlation array reference has to be copied.
+     * @param concept Concept to be applied to the new acceptation created.
+     */
+    public static void duplicateAcceptationWithThisConcept(Database db, int linkedAcceptation, int concept) {
+        if (concept == 0) {
+            throw new AssertionError();
+        }
+
+        final int correlationArray = correlationArrayFromAcceptation(db, linkedAcceptation);
+        addAcceptation(db, concept, correlationArray);
     }
 
     /**

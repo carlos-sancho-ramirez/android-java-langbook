@@ -15,18 +15,12 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
-import sword.collections.List;
 import sword.database.Database;
-import sword.database.DbInsertQuery;
-import sword.database.DbQuery;
-import sword.database.DbResult;
-import sword.database.DbValue;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
@@ -36,9 +30,6 @@ import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookDbSchema.AcceptationsTable;
-import sword.langbook3.android.db.LangbookDbSchema.StringQueriesTable;
-import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.LangbookReadableDatabase.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.DynamizableResult;
@@ -47,6 +38,7 @@ import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.SynonymTranslationResult;
 
 import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
+import static sword.langbook3.android.db.LangbookDatabase.duplicateAcceptationWithThisConcept;
 import static sword.langbook3.android.db.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.db.LangbookDatabase.shareConcept;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchConcept;
@@ -494,8 +486,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     showFeedback(ok? "Concept shared" : "Unable to shared concept");
                 }
                 else {
-                    // Duplicate concepts
-                    duplicateAcceptationWithThisConcept();
+                    duplicateAcceptationWithThisConcept(db, _state.getLinkedAcceptation(), _model.concept);
                     showFeedback("Acceptation linked");
                 }
                 _state.clearLinkedAcceptation();
@@ -604,70 +595,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(SavedKeys.STATE, _state);
-    }
-
-    private void duplicateAcceptationWithThisConcept() {
-        final int concept = _model.concept;
-        if (concept == 0) {
-            throw new AssertionError();
-        }
-
-        final int linkedAcceptation = _state.getLinkedAcceptation();
-        final AcceptationsTable table = Tables.acceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), linkedAcceptation)
-                .select(table.getCorrelationArrayColumnIndex());
-
-        final Database db = DbManager.getInstance().getDatabase();
-        final DbResult result = db.select(query);
-        final List<DbValue> row = result.next();
-        if (result.hasNext()) {
-            throw new AssertionError();
-        }
-
-        final int correlationArray = row.get(0).toInt();
-
-        final DbInsertQuery insertQuery = new DbInsertQuery.Builder(table)
-                .put(table.getConceptColumnIndex(), concept)
-                .put(table.getCorrelationArrayColumnIndex(), correlationArray)
-                .build();
-
-        final int newAccId = db.insert(insertQuery);
-
-        final StringQueriesTable strings = Tables.stringQueries;
-        final DbQuery stringsQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), linkedAcceptation)
-                .where(strings.getMainAcceptationColumnIndex(), linkedAcceptation)
-                .select(strings.getStringAlphabetColumnIndex(), strings.getStringColumnIndex(), strings.getMainStringColumnIndex());
-
-        final ImmutableIntList.Builder alphabetsBuilder = new ImmutableIntList.Builder();
-        final ImmutableList.Builder<String> stringsBuilder = new ImmutableList.Builder<>();
-        final ImmutableList.Builder<String> mainStringsBuilder = new ImmutableList.Builder<>();
-
-        for (List<DbValue> r : DbManager.getInstance().attach(stringsQuery)) {
-            alphabetsBuilder.add(r.get(0).toInt());
-            stringsBuilder.add(r.get(1).toText());
-            mainStringsBuilder.add(r.get(2).toText());
-        }
-
-        final ImmutableIntList alphabets = alphabetsBuilder.build();
-        final ImmutableList<String> strs = stringsBuilder.build();
-        final ImmutableList<String> mainStrs = mainStringsBuilder.build();
-        final int length = alphabets.size();
-
-        for (int i = 0; i < length; i++) {
-            final DbInsertQuery iQuery = new DbInsertQuery.Builder(strings)
-                    .put(strings.getDynamicAcceptationColumnIndex(), newAccId)
-                    .put(strings.getMainAcceptationColumnIndex(), newAccId)
-                    .put(strings.getStringAlphabetColumnIndex(), alphabets.valueAt(i))
-                    .put(strings.getStringColumnIndex(), strs.valueAt(i))
-                    .put(strings.getMainStringColumnIndex(), mainStrs.valueAt(i))
-                    .build();
-
-            if (db.insert(iQuery) == null) {
-                throw new AssertionError();
-            }
-        }
     }
 
     private void showFeedback(String message) {

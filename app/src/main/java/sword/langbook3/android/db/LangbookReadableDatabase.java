@@ -1332,6 +1332,14 @@ public final class LangbookReadableDatabase {
         return selectSingleRow(db, query).get(0).toInt();
     }
 
+    static int correlationArrayFromAcceptation(DbExporter.Database db, int accId) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), accId)
+                .select(table.getCorrelationArrayColumnIndex());
+        return selectSingleRow(db, query).get(0).toInt();
+    }
+
     static ImmutableIntSet getAlphabetAndLanguageConcepts(DbExporter.Database db) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbQuery query = new DbQuery.Builder(table)
