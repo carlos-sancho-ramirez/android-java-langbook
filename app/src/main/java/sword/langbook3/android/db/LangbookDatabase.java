@@ -47,6 +47,8 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertSearchHistoryE
 import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceMeaning;
 import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSymbolArray;
+import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAgentSet;
@@ -93,11 +95,11 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetail
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentProcessedMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAllAgentSetsContaining;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAlphabetAndLanguageConcepts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCurrentKnowledge;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAlphabetAndLanguageConcepts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getLanguageFromAlphabet;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxAgentSetId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
@@ -1290,6 +1292,20 @@ public final class LangbookDatabase {
         DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getConceptColumnIndex(), oldConcept)
                 .put(table.getConceptColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+    }
+
+    public static void updateScore(Database db, int quizId, int acceptation, int score) {
+        if (score < MIN_ALLOWED_SCORE || score > MAX_ALLOWED_SCORE) {
+            throw new IllegalArgumentException();
+        }
+
+        final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
+        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getQuizDefinitionColumnIndex(), quizId)
+                .where(table.getAcceptationColumnIndex(), acceptation)
+                .put(table.getScoreColumnIndex(), score)
                 .build();
         db.update(query);
     }

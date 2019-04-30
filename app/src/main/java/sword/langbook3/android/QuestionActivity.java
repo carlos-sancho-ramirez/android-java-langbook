@@ -2,10 +2,8 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
@@ -19,12 +17,11 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
 import sword.database.Database;
 import sword.database.DbExporter;
-import sword.langbook3.android.db.LangbookDbSchema.KnowledgeTable;
-import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.db.LangbookReadableDatabase;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 
+import static sword.langbook3.android.db.LangbookDatabase.updateScore;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
@@ -248,48 +245,40 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         }
     }
 
-    private void updateKnowledge(SQLiteDatabase db, int score) {
-        final KnowledgeTable table = Tables.knowledge;
-        ContentValues cv = new ContentValues();
-        cv.put(table.columns().get(table.getScoreColumnIndex()).name(), score);
-        final String whereClause = table.columns().get(table.getQuizDefinitionColumnIndex()).name() +
-                "=? AND " + table.columns().get(table.getAcceptationColumnIndex()).name() + "=?";
-        db.update(table.name(), cv, whereClause,
-                new String[] { Integer.toString(_quizId), Integer.toString(_acceptation)});
-    }
-
     private void registerGoodAnswer() {
-        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
-        final int foundScore = _knowledge.get(_acceptation, MIN_ALLOWED_SCORE - 1);
-        if (foundScore < MIN_ALLOWED_SCORE) {
-            final int newScore = INITIAL_SCORE + SCORE_INCREMENT;
-            _knowledge.put(_acceptation, newScore);
-            updateKnowledge(db, newScore);
+        final Database db = DbManager.getInstance().getDatabase();
+        final int foundScore = _knowledge.get(_acceptation, NO_SCORE);
+
+        final int newScore;
+        if (foundScore == NO_SCORE) {
+            newScore = INITIAL_SCORE + SCORE_INCREMENT;
         }
-        else if (foundScore < MAX_ALLOWED_SCORE) {
+        else {
             final int newProposedScore = foundScore + SCORE_INCREMENT;
-            final int newScore = (newProposedScore > MAX_ALLOWED_SCORE)? MAX_ALLOWED_SCORE : newProposedScore;
-            _knowledge.put(_acceptation, newScore);
-            updateKnowledge(db, newScore);
+            newScore = (newProposedScore > MAX_ALLOWED_SCORE)? MAX_ALLOWED_SCORE : newProposedScore;
         }
+
+        _knowledge.put(_acceptation, newScore);
+        updateScore(db, _quizId, _acceptation, newScore);
 
         _goodAnswerCount++;
     }
 
     private void registerBadAnswer() {
-        final SQLiteDatabase db = DbManager.getInstance().getWritableDatabase();
-        final int foundScore = _knowledge.get(_acceptation, MIN_ALLOWED_SCORE - 1);
-        if (foundScore < MIN_ALLOWED_SCORE) {
-            final int newScore = INITIAL_SCORE - SCORE_DECREMENT;
-            _knowledge.put(_acceptation, newScore);
-            updateKnowledge(db, newScore);
+        final Database db = DbManager.getInstance().getDatabase();
+        final int foundScore = _knowledge.get(_acceptation, NO_SCORE);
+
+        final int newScore;
+        if (foundScore == NO_SCORE) {
+            newScore = INITIAL_SCORE - SCORE_DECREMENT;
         }
-        else if (foundScore > MIN_ALLOWED_SCORE) {
+        else {
             final int newProposedScore = foundScore - SCORE_DECREMENT;
-            final int newScore = (newProposedScore >= MIN_ALLOWED_SCORE)? newProposedScore : MIN_ALLOWED_SCORE;
-            _knowledge.put(_acceptation, newScore);
-            updateKnowledge(db, newScore);
+            newScore = (newProposedScore >= MIN_ALLOWED_SCORE)? newProposedScore : MIN_ALLOWED_SCORE;
         }
+
+        _knowledge.put(_acceptation, newScore);
+        updateScore(db, _quizId, _acceptation, newScore);
 
         _badAnswerCount++;
     }
