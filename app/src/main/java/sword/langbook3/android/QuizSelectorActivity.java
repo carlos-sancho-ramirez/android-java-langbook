@@ -5,10 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.util.SparseArray;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,24 +15,21 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableList;
+import sword.collections.ImmutableSet;
+import sword.collections.MutableList;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookDatabase;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldSets;
-import sword.langbook3.android.db.LangbookDbSchema.QuizDefinitionsTable;
-import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
-import static sword.database.DbIdColumn.idColumnName;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readQuizProgress;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readQuizSelectorEntriesForBunch;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
 
@@ -91,83 +85,30 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     private QuizSelectorAdapter.Item[] composeAdapterItems(Database db, int bunch) {
+        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> resultMap = readQuizSelectorEntriesForBunch(db, bunch);
         final ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, _preferredAlphabet);
-        final QuizDefinitionsTable quizzes = Tables.quizDefinitions;
-        final QuestionFieldSets fieldSets = Tables.questionFieldSets;
-        final SQLiteDatabase sqlDb = DbManager.getInstance().getReadableDatabase();
-        Cursor cursor = sqlDb.rawQuery("SELECT" +
-                " J0." + idColumnName +
-                ",J1." + fieldSets.columns().get(fieldSets.getAlphabetColumnIndex()).name() +
-                ",J1." + fieldSets.columns().get(fieldSets.getRuleColumnIndex()).name() +
-                ",J1." + fieldSets.columns().get(fieldSets.getFlagsColumnIndex()).name() +
-                " FROM " + quizzes.name() + " AS J0" +
-                " JOIN " + fieldSets.name() + " AS J1 ON J0." + quizzes.columns().get(quizzes.getQuestionFieldsColumnIndex()).name() + "=J1." + fieldSets.columns().get(fieldSets.getSetIdColumnIndex()).name() +
-                " WHERE J0." + quizzes.columns().get(quizzes.getBunchColumnIndex()).name() + "=?",
-                new String[] {Integer.toString(bunch)});
-
-        final SparseArray<Set<QuestionFieldDetails>> resultMap = new SparseArray<>();
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        final int quizId = cursor.getInt(0);
-                        QuestionFieldDetails field = new QuestionFieldDetails(cursor.getInt(1), cursor.getInt(2), cursor.getInt(3));
-                        Set<QuestionFieldDetails> set = resultMap.get(quizId);
-                        if (set == null) {
-                            set = new HashSet<>();
-                        }
-
-                        set.add(field);
-                        resultMap.put(quizId, set);
-                    } while(cursor.moveToNext());
-                }
-            }
-            finally {
-                cursor.close();
-            }
-        }
-
         final int quizCount = resultMap.size();
         final QuizSelectorAdapter.Item[] items = new QuizSelectorAdapter.Item[quizCount];
 
         for (int i = 0; i < quizCount; i++) {
             final int quizId = resultMap.keyAt(i);
-            final Set<QuestionFieldDetails> set = resultMap.valueAt(i);
+            final ImmutableSet<QuestionFieldDetails> set = resultMap.valueAt(i);
 
-            StringBuilder qsb = null;
-            StringBuilder asb = null;
-            for (QuestionFieldDetails field : set) {
-                final StringBuilder sb;
-                if (field.isAnswer()) {
-                    if (asb == null) {
-                        asb = new StringBuilder();
-                    }
-                    else {
-                        asb.append('\n');
-                    }
-                    sb = asb;
-                }
-                else {
-                    if (qsb == null) {
-                        qsb = new StringBuilder();
-                    }
-                    else {
-                        qsb.append('\n');
-                    }
-                    sb = qsb;
-                }
-                sb.append('(')
-                        .append(allAlphabets.get(field.alphabet, "?")).append(", ")
-                        .append(getString(getTypeStringResId(field)));
+            final ImmutableList<String> fieldTexts = set.map(field -> {
+                final MutableList<String> texts = MutableList.empty();
+                texts.append(allAlphabets.get(field.alphabet, "?"));
+                texts.append(getString(getTypeStringResId(field)));
 
                 if (field.getType() == QuestionFieldFlags.TYPE_APPLY_RULE) {
-                    sb.append(", ").append(getRuleText(db, field.rule));
+                    texts.append(getRuleText(db, field.rule));
                 }
-                sb.append(')');
-            }
+                return "(" + texts.reduce((a, b) -> a + ", " + b) + ")";
+            });
 
-            items[i] = new QuizSelectorAdapter.Item(quizId, qsb.toString(), asb.toString(), readQuizProgress(db, quizId));
+            final String questionText = set.indexes().filterNot(index -> set.valueAt(index).isAnswer()).map(fieldTexts::valueAt).reduce((a, b) -> a + "\n" + b);
+            final String answerText = set.indexes().filter(index -> set.valueAt(index).isAnswer()).map(fieldTexts::valueAt).reduce((a, b) -> a + "\n" + b);
+
+            items[i] = new QuizSelectorAdapter.Item(quizId, questionText, answerText, readQuizProgress(db, quizId));
         }
 
         return items;

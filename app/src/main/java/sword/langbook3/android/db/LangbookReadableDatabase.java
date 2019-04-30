@@ -2324,6 +2324,34 @@ public final class LangbookReadableDatabase {
         return new Progress(ImmutableIntList.from(progress), numberOfQuestions);
     }
 
+    public static ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> readQuizSelectorEntriesForBunch(DbExporter.Database db, int bunch) {
+        final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
+        final LangbookDbSchema.QuestionFieldSets fieldSets = LangbookDbSchema.Tables.questionFieldSets;
+
+        final int offset = quizzes.columns().size();
+        final DbQuery query = new DbQuery.Builder(quizzes)
+                .join(fieldSets, quizzes.getQuestionFieldsColumnIndex(), fieldSets.getSetIdColumnIndex())
+                .where(quizzes.getBunchColumnIndex(), bunch)
+                .select(
+                        quizzes.getIdColumnIndex(),
+                        offset + fieldSets.getAlphabetColumnIndex(),
+                        offset + fieldSets.getRuleColumnIndex(),
+                        offset + fieldSets.getFlagsColumnIndex());
+
+        final MutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> resultMap = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int quizId = row.get(0).toInt();
+                final QuestionFieldDetails field = new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt());
+                final ImmutableSet<QuestionFieldDetails> set = resultMap.get(quizId, ImmutableHashSet.empty());
+                resultMap.put(quizId, set.add(field));
+            }
+        }
+
+        return resultMap.toImmutable();
+    }
+
     private static boolean checkMatching(ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> texts) {
         for (IntKeyMap.Entry<String> entry : startMatcher.entries()) {
             final String text = texts.get(entry.key(), null);
