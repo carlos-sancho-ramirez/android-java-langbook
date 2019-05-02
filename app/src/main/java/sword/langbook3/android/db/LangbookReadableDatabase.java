@@ -1364,6 +1364,14 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntSet getAgentIds(DbExporter.Database db) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getIdColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     static MutableIntKeyMap<String> readCorrelationArrayTexts(DbExporter.Database db, int correlationArrayId) {
         MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
         for (int correlationId : getCorrelationArray(db, correlationArrayId)) {

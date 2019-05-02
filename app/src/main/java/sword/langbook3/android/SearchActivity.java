@@ -10,17 +10,13 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 
-import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
-import sword.collections.List;
+import sword.database.Database;
 import sword.database.DbQuery;
-import sword.database.DbValue;
-import sword.langbook3.android.db.LangbookDbSchema;
-import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.SearchResult;
 
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentIds;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -111,25 +107,12 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return false;
     }
 
-    private ImmutableIntSet getAgentIds() {
-        final LangbookDbSchema.AgentsTable table = Tables.agents;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getIdColumnIndex());
-        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-        for (List<DbValue> row : DbManager.getInstance().attach(query)) {
-            builder.add(row.get(0).toInt());
-        }
-        return builder.build();
-    }
-
     private ImmutableList<SearchResult> agentSearchResults() {
-        final ImmutableList.Builder<SearchResult> builder = new ImmutableList.Builder<>();
-        for (int agentId : getAgentIds()) {
-            String str = AGENT_QUERY_PREFIX + agentId;
-            builder.add(new SearchResult(str, str, SearchResult.Types.AGENT, agentId, 0));
-        }
-
-        return builder.build();
+        final Database db = DbManager.getInstance().getDatabase();
+        return getAgentIds(db).map(agentId -> {
+            final String str = AGENT_QUERY_PREFIX + agentId;
+            return new SearchResult(str, str, SearchResult.Types.AGENT, agentId, 0);
+        });
     }
 
     private boolean possibleString(String str) {
