@@ -16,6 +16,7 @@ import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
@@ -55,6 +56,8 @@ import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.models.SearchResult;
 import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.SynonymTranslationResult;
+import sword.langbook3.android.models.TableCellReference;
+import sword.langbook3.android.models.TableCellValue;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
@@ -1903,6 +1906,52 @@ public final class LangbookReadableDatabase {
         }
 
         return text;
+    }
+
+    public static ImmutableMap<TableCellReference, TableCellValue> readTableContent(DbExporter.Database db, int dynamicAcceptation, int preferredAlphabet) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int ruledAccOffset1 = ruledAcceptations.columns().size();
+        final int agentOffset1 = ruledAccOffset1 + ruledAccOffset1;
+        final int agentOffset2 = agentOffset1 + agents.columns().size();
+        final int ruledAccOffset2 = agentOffset2 + agents.columns().size();
+        final int strOffset = ruledAccOffset2 + ruledAcceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
+                .join(ruledAcceptations, ruledAcceptations.getAcceptationColumnIndex(), ruledAcceptations.getAcceptationColumnIndex())
+                .join(agents, ruledAccOffset1 + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .join(agents, agentOffset1 + agents.getRuleColumnIndex(), agents.getRuleColumnIndex())
+                .join(ruledAcceptations, agentOffset2 + agents.getIdColumnIndex(), ruledAcceptations.getAgentColumnIndex())
+                .join(strings, ruledAccOffset2 + ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(ruledAcceptations.getIdColumnIndex(), dynamicAcceptation)
+                .select(agentOffset2 + agents.getSourceBunchSetColumnIndex(),
+                        agentOffset1 + agents.getRuleColumnIndex(),
+                        ruledAccOffset2 + ruledAcceptations.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex(),
+                        strOffset + strings.getMainAcceptationColumnIndex());
+
+        final MutableMap<TableCellReference, TableCellValue> resultMap = MutableHashMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final TableCellReference ref = new TableCellReference(row.get(0).toInt(), row.get(1).toInt());
+
+                final int dynamicAcc = row.get(2).toInt();
+                final int alphabet = row.get(3).toInt();
+                final String text = row.get(4).toText();
+                final int staticAcc = row.get(5).toInt();
+
+                TableCellValue cellValue = resultMap.get(ref, null);
+                if (cellValue == null || alphabet == preferredAlphabet) {
+                    resultMap.put(ref, new TableCellValue(staticAcc, dynamicAcc, text));
+                }
+            }
+        }
+
+        return resultMap.toImmutable();
     }
 
     public static DisplayableItem readConceptAcceptationAndText(DbExporter.Database db, int concept, int preferredAlphabet) {
