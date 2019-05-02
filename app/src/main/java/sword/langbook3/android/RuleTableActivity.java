@@ -11,13 +11,16 @@ import android.util.SparseArray;
 import java.util.HashMap;
 import java.util.Map;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.database.Database;
 import sword.langbook3.android.db.LangbookDbSchema.AgentsTable;
 import sword.langbook3.android.db.LangbookDbSchema.RuledAcceptationsTable;
 import sword.langbook3.android.db.LangbookDbSchema.StringQueriesTable;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 import static sword.database.DbIdColumn.idColumnName;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public class RuleTableActivity extends Activity {
 
@@ -72,27 +75,6 @@ public class RuleTableActivity extends Activity {
             this.dynamicAcceptation = dynamicAcceptation;
             this.text = text;
         }
-    }
-
-    private String readAcceptationText(int acceptation) {
-        final StringQueriesTable strings = Tables.stringQueries;
-        SQLiteDatabase db = DbManager.getInstance().getReadableDatabase();
-        final Cursor cursor = db.rawQuery("SELECT " + strings.columns().get(strings.getStringColumnIndex()).name() +
-                        " FROM " + strings.name() + " WHERE " +
-                        strings.columns().get(strings.getDynamicAcceptationColumnIndex()).name() + "=?",
-                new String[]{Integer.toString(acceptation)});
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    return cursor.getString(0);
-                }
-            } finally {
-                cursor.close();
-            }
-        }
-
-        throw new AssertionError();
     }
 
     private Map<TableCellRef, TableCellValue> readTableContent(int dynamicAcceptation) {
@@ -176,7 +158,14 @@ public class RuleTableActivity extends Activity {
         for (Map.Entry<TableCellRef, TableCellValue> entry : tableContent.entrySet()) {
             final TableCellRef ref = entry.getKey();
             if (acceptationSet.get(ref.bunchSet) == null) {
-                acceptationSet.put(ref.bunchSet, readAcceptationText(entry.getValue().staticAcceptation));
+                final Database db = DbManager.getInstance().getDatabase();
+                final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, entry.getValue().staticAcceptation);
+                String text = texts.get(_preferredAlphabet, null);
+                if (text == null) {
+                    text = texts.valueAt(0);
+                }
+
+                acceptationSet.put(ref.bunchSet, text);
             }
 
             if (ruleSet.get(ref.rule) == null) {
