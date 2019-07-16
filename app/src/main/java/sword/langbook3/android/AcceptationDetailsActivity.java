@@ -158,6 +158,16 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
         }
 
+        boolean acceptationSharingCorrelationArrayFound = false;
+        for (int acc : _model.acceptationsSharingCorrelationArray) {
+            if (!acceptationSharingCorrelationArrayFound) {
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsSharingCorrelationArray)));
+                acceptationSharingCorrelationArrayFound = true;
+            }
+
+            result.add(new AcceptationNavigableItem(acc, _model.getTitle(_preferredAlphabet), false));
+        }
+
         boolean parentBunchFound = false;
         for (DynamizableResult r : _model.bunchesWhereAcceptationIsIncluded) {
             if (!parentBunchFound) {

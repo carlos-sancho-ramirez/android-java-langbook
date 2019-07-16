@@ -3,6 +3,7 @@ package sword.langbook3.android.models;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 
 public final class AcceptationDetailsModel {
@@ -10,6 +11,7 @@ public final class AcceptationDetailsModel {
     public final IdentifiableResult language;
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
+    public final ImmutableIntSet acceptationsSharingCorrelationArray;
     public final ImmutableIntKeyMap<String> supertypes;
     public final ImmutableIntKeyMap<String> subtypes;
     public final ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations;
@@ -29,6 +31,7 @@ public final class AcceptationDetailsModel {
             IdentifiableResult language,
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
+            ImmutableIntSet acceptationsSharingCorrelationArray,
             ImmutableIntKeyMap<String> supertypes,
             ImmutableIntKeyMap<String> subtypes,
             ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations,
@@ -59,6 +62,7 @@ public final class AcceptationDetailsModel {
         this.language = language;
         this.correlationIds = correlationIds;
         this.correlations = correlations;
+        this.acceptationsSharingCorrelationArray = acceptationsSharingCorrelationArray;
         this.supertypes = supertypes;
         this.subtypes = subtypes;
         this.synonymsAndTranslations = synonymsAndTranslations;

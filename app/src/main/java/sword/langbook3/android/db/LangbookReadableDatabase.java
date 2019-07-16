@@ -1445,6 +1445,18 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    private static ImmutableIntSet readAcceptationsMatchingCorrelationArray(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+
+        final int offset = acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(acceptations, acceptations.getCorrelationArrayColumnIndex(), acceptations.getCorrelationArrayColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .select(offset + acceptations.getIdColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().remove(acceptation);
+    }
+
     private static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
@@ -2795,6 +2807,7 @@ public final class LangbookReadableDatabase {
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
         languageStrs.put(languageResult.id, languageResult.text);
 
+        final ImmutableIntSet acceptationsSharingCorrelationArray = readAcceptationsMatchingCorrelationArray(db, staticAcceptation);
         final IdentifiableResult definition = readSupertypeFromAcceptation(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
@@ -2818,7 +2831,7 @@ public final class LangbookReadableDatabase {
 
         final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, staticAcceptation);
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
-                correlationResultPair.right, supertypesBuilder.build(), subtypes,
+                correlationResultPair.right, acceptationsSharingCorrelationArray, supertypesBuilder.build(), subtypes,
                 synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
                 morphologyResults, involvedAgents, languageStrs.toImmutable(), sampleSentences);
     }
