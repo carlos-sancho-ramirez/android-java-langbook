@@ -6,6 +6,7 @@
     <string name="welcomeTitle">Welcome to Langbook!</string>
     <string name="welcomeText">Langbook is intended to be a tool to help people in their task of learning new languages and master the ones they may already know. Langbook will allow you to store words, grammar rules, classify them in different ways according to your needs, test your knowledge, and much more!</string>
 
+    <!-- Activity titles -->
     <string name="languagePickerActivityTitle">Select a language</string>
     <string name="wordEditorActivityTitle">Fill representations</string>
     <string name="sentenceEditorActivityTitle">Type your sentence</string>
@@ -18,8 +19,22 @@
     <string name="correlationDetailsActivityTitle">Correlation %s</string>
     <string name="sentenceDetailsActivityTitle">Sample sentence</string>
 
+    <!-- Search activity -->
     <string name="searchFieldHint">Search Here</string>
     <string name="addWordButton">Add</string>
+
+    <!-- Acceptation details activity sections -->
+    <string name="accDetailsSectionSummary">Displaying details for acceptation %d</string>
+    <string name="accDetailsSectionLanguage">Language</string>
+    <string name="accDetailsSectionType">Type of</string>
+    <string name="accDetailsSectionSubtypes">Subtypes</string>
+    <string name="accDetailsSectionSynonyms">Synonyms</string>
+    <string name="accDetailsSectionTranslations">Translations</string>
+    <string name="accDetailsSectionBunchesWhereIncluded">Bunches where included</string>
+    <string name="accDetailsSectionMorphologies">Morphologies</string>
+    <string name="accDetailsSectionAcceptationsInThisBunch">Acceptations included in this bunch</string>
+    <string name="accDetailsSectionSampleSentences">Sample sentences</string>
+    <string name="accDetailsSectionInvolvedAgents">Involved agents</string>
 
     <string name="menuItemAdd">Add</string>
     <string name="menuItemCheckAlphabets">Check alphabets</string>

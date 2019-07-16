@@ -114,18 +114,18 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new CorrelationArrayItem(_model.correlationIds, _model.correlations, mainAlphabet, pronunciationAlphabet));
         }
 
-        result.add(new HeaderItem("Displaying details for acceptation " + _staticAcceptation));
-        result.add(new NonNavigableItem("Language: " + _model.language.text));
+        result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _staticAcceptation)));
+        result.add(new NonNavigableItem(getString(R.string.accDetailsSectionLanguage) + ": " + _model.language.text));
 
         for (IntKeyMap.Entry<String> entry : _model.supertypes.entries()) {
             _definition = new IdentifiableResult(entry.key(), entry.value());
-            result.add(new AcceptationNavigableItem(entry.key(), "Type of: " + _definition.text, false));
+            result.add(new AcceptationNavigableItem(entry.key(), getString(R.string.accDetailsSectionType) + ": " + _definition.text, false));
         }
 
         boolean subTypeFound = false;
         for (ImmutableIntKeyMap.Entry<String> subtype : _model.subtypes.entries()) {
             if (!subTypeFound) {
-                result.add(new HeaderItem("Subtypes"));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionSubtypes)));
                 subTypeFound = true;
             }
 
@@ -136,7 +136,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         for (IntKeyMap.Entry<SynonymTranslationResult> entry : _model.synonymsAndTranslations.entries()) {
             if (entry.value().language == _model.language.id) {
                 if (!synonymFound) {
-                    result.add(new HeaderItem("Synonyms"));
+                    result.add(new HeaderItem(getString(R.string.accDetailsSectionSynonyms)));
                     synonymFound = true;
                 }
 
@@ -149,7 +149,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             final int language = entry.value().language;
             if (language != _model.language.id) {
                 if (!translationFound) {
-                    result.add(new HeaderItem("Translations"));
+                    result.add(new HeaderItem(getString(R.string.accDetailsSectionTranslations)));
                     translationFound = true;
                 }
 
@@ -161,7 +161,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         boolean parentBunchFound = false;
         for (DynamizableResult r : _model.bunchesWhereAcceptationIsIncluded) {
             if (!parentBunchFound) {
-                result.add(new HeaderItem("Bunches where included"));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionBunchesWhereIncluded)));
                 parentBunchFound = true;
             }
 
@@ -173,7 +173,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final ImmutableList<MorphologyResult> morphologyResults = _model.morphologies;
         for (MorphologyResult r : morphologyResults) {
             if (!morphologyFound) {
-                result.add(new HeaderItem("Morphologies"));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionMorphologies)));
                 morphologyFound = true;
             }
 
@@ -183,7 +183,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         boolean bunchChildFound = false;
         for (DynamizableResult r : _model.bunchChildren) {
             if (!bunchChildFound) {
-                result.add(new HeaderItem("Acceptations included in this bunch"));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsInThisBunch)));
                 bunchChildFound = true;
                 _shouldShowBunchChildrenQuizMenuOption = true;
             }
@@ -198,7 +198,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             final String sentence = _model.sampleSentences.valueAt(i);
 
             if (!sentenceFound) {
-                result.add(new HeaderItem("Sample sentences"));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionSampleSentences)));
                 sentenceFound = true;
             }
 
@@ -208,7 +208,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         boolean agentFound = false;
         for (IntPairMap.Entry entry : _model.involvedAgents.entries()) {
             if (!agentFound) {
-                result.add(new HeaderItem("Involved agents"));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;
             }
 
@@ -227,7 +227,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         for (MorphologyResult r : morphologyResults) {
             if (!agentFound) {
-                result.add(new HeaderItem("Involved agents"));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;
             }
 
