@@ -117,6 +117,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _staticAcceptation)));
         result.add(new NonNavigableItem(getString(R.string.accDetailsSectionLanguage) + ": " + _model.language.text));
 
+        _definition = null;
         for (IntKeyMap.Entry<String> entry : _model.supertypes.entries()) {
             _definition = new IdentifiableResult(entry.key(), entry.value());
             result.add(new AcceptationNavigableItem(entry.key(), getString(R.string.accDetailsSectionType) + ": " + _definition.text, false));
