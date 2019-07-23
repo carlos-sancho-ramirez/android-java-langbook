@@ -378,16 +378,16 @@ public final class StreamedDatabaseReader {
         return result;
     }
 
-    private int[] readAcceptations(InputBitStream ibs, int[] conceptIdMap, int[] correlationArrayIdMap) throws IOException {
+    private int[] readAcceptations(InputBitStream ibs, ImmutableIntRange validConcepts, int[] correlationArrayIdMap) throws IOException {
         final int acceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
 
         final int[] acceptationsIdMap = new int[acceptationsLength];
         if (acceptationsLength >= 0) {
             final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
             final HuffmanTable<Integer> corrArraySetLengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
-            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, conceptIdMap.length - 1);
+            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             for (int i = 0; i < acceptationsLength; i++) {
-                final int concept = conceptIdMap[ibs.readHuffmanSymbol(conceptTable)];
+                final int concept = ibs.readHuffmanSymbol(conceptTable);
                 final ImmutableIntSet corrArraySet = readRangedNumberSet(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
                 for (int corrArray : corrArraySet) {
                     // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
@@ -441,7 +441,7 @@ public final class StreamedDatabaseReader {
     }
 
     private AgentReadResult readAgents(
-            InputBitStream ibs, int maxConcept, int[] correlationIdMap) throws IOException {
+            InputBitStream ibs, ImmutableIntRange validConcepts, int[] correlationIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
@@ -453,22 +453,24 @@ public final class StreamedDatabaseReader {
             final HuffmanTable<Integer> sourceSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
-            int minSource = StreamedDatabaseConstants.minValidConcept;
+            int minSource = validConcepts.min();
             int desiredSetId = getMaxBunchSetId(_db) + 1;
             final MutableIntValueHashMap<ImmutableIntSet> insertedBunchSets = MutableIntValueHashMap.empty();
-            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, maxConcept);
+            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 
             for (int i = 0; i < agentsLength; i++) {
                 setProgress((0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f, "Reading agent " + (i + 1) + "/" + agentsLength);
-                final RangedIntegerHuffmanTable thisConceptTable = new RangedIntegerHuffmanTable(lastTarget, maxConcept);
-                final int targetBunch = ibs.readHuffmanSymbol(thisConceptTable);
+                final RangedIntegerHuffmanTable targetTable = (lastTarget == 0)?
+                        new RangedIntegerHuffmanTable(0, validConcepts.max()) :
+                        new RangedIntegerHuffmanTable(lastTarget + 1, validConcepts.max());
+                final int targetBunch = ibs.readHuffmanSymbol(targetTable);
 
                 if (targetBunch != lastTarget) {
-                    minSource = StreamedDatabaseConstants.minValidConcept;
+                    minSource = validConcepts.min();
                 }
 
-                final ImmutableIntSet sourceSet = readRangedNumberSet(ibs, sourceSetLengthTable, minSource, maxConcept);
+                final ImmutableIntSet sourceSet = readRangedNumberSet(ibs, sourceSetLengthTable, minSource, validConcepts.max());
 
                 if (!sourceSet.isEmpty()) {
                     int min = Integer.MAX_VALUE;
@@ -722,12 +724,7 @@ public final class StreamedDatabaseReader {
 
             // Export the amount of words and concepts in order to range integers
             final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
-            final int maxConcept = ibs.readHuffmanSymbol(naturalNumberTable) - 1;
-
-            int[] conceptIdMap = new int[maxConcept + 1];
-            for (int i = 0; i <= maxConcept; i++) {
-                conceptIdMap[i] = i;
-            }
+            final int maxConcept = ibs.readHuffmanSymbol(naturalNumberTable) + StreamedDatabaseConstants.minValidConcept - 1;
 
             // Import correlations
             setProgress(0.15f, "Reading correlations");
@@ -740,11 +737,11 @@ public final class StreamedDatabaseReader {
 
             // Import acceptations
             setProgress(0.5f, "Reading acceptations");
-            int[] acceptationIdMap = readAcceptations(ibs, conceptIdMap, correlationArrayIdMap);
+            final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
+            int[] acceptationIdMap = readAcceptations(ibs, validConcepts, correlationArrayIdMap);
 
             // Import bunchConcepts
             setProgress(0.6f, "Reading bunch concepts");
-            final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
             readBunchConcepts(ibs, validConcepts);
 
             // Import bunchAcceptations
@@ -753,7 +750,7 @@ public final class StreamedDatabaseReader {
 
             // Import agents
             setProgress(0.8f, "Reading agents");
-            final AgentReadResult agentReadResult = readAgents(ibs, maxConcept, correlationIdMap);
+            final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap);
 
             // Import relevant dynamic acceptations
             setProgress(0.9f, "Writing dynamic acceptations");

@@ -63,6 +63,13 @@ public final class LangbookDbSchema implements DbSchema {
                     new DbIntColumn("rule"));
         }
 
+        /**
+         * Bunch where all result coming from the agent should be stored.
+         *
+         * This may be 0 to indicate that the result should no be stored in any bunch.
+         * As a bunch can only be pointed as target uniquely by 0 or 1 agents (never more),
+         * then in case this column is not 0, it must be unique among all agents within the table.
+         */
         public int getTargetBunchColumnIndex() {
             return 1;
         }
