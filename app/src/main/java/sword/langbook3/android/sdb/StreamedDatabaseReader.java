@@ -272,6 +272,11 @@ public final class StreamedDatabaseReader {
 
     private SymbolArrayReadResult readSymbolArrays(InputBitStream ibs) throws IOException {
         final int symbolArraysLength = ibs.readHuffmanSymbol(naturalNumberTable);
+        if (symbolArraysLength == 0) {
+            final int[] emptyArray = new int[0];
+            return new SymbolArrayReadResult(emptyArray, emptyArray);
+        }
+
         final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
         final NaturalNumberHuffmanTable nat4Table = new NaturalNumberHuffmanTable(4);
 
@@ -677,93 +682,108 @@ public final class StreamedDatabaseReader {
             final InputBitStream ibs = new InputBitStream(_is);
             final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs);
             final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;
-            final int minSymbolArrayIndex = 0;
-            final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
-            final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex,
-                    maxSymbolArrayIndex);
+            if (symbolArraysIdMap.length == 0) {
+                final int validConceptCount = ibs.readHuffmanSymbol(naturalNumberTable);
+                // Writer does always write a 0 here, so it is expected by the reader.
+                if (validConceptCount != 0) {
+                    throw new IOException();
+                }
 
-            // Read languages and its alphabets
-            setProgress(0.09f, "Reading languages and its alphabets");
-            final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
-            final Language[] languages = new Language[languageCount];
-            final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
-            int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
-            final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
-
-            for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
-                final int codeSymbolArrayIndex = ibs.readHuffmanSymbol(symbolArrayTable);
-                final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
-                final String code = getSymbolArray(_db, symbolArraysIdMap[codeSymbolArrayIndex]);
-                languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
-
-                nextMinAlphabet += alphabetCount;
+                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new RuleAcceptationPair[0], new SentenceSpan[0]);
             }
+            else {
+                final int minSymbolArrayIndex = 0;
+                final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
+                final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex,
+                        maxSymbolArrayIndex);
 
-            final int maxValidAlphabet = nextMinAlphabet - 1;
-            final int minLanguage = nextMinAlphabet;
+                // Read languages and its alphabets
+                setProgress(0.09f, "Reading languages and its alphabets");
+                final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
+                final Language[] languages = new Language[languageCount];
+                final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
+                int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
+                final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
 
-            for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
-                for (int j = 0; j < languageCount; j++) {
-                    Language lang = languages[j];
-                    if (lang.containsAlphabet(i)) {
-                        insertAlphabet(_db, i, minLanguage + j);
-                        break;
+                for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
+                    final int codeSymbolArrayIndex = ibs.readHuffmanSymbol(symbolArrayTable);
+                    final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
+                    final String code = getSymbolArray(_db, symbolArraysIdMap[codeSymbolArrayIndex]);
+                    languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
+
+                    nextMinAlphabet += alphabetCount;
+                }
+
+                final int maxValidAlphabet = nextMinAlphabet - 1;
+                final int minLanguage = nextMinAlphabet;
+
+                for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
+                    for (int j = 0; j < languageCount; j++) {
+                        Language lang = languages[j];
+                        if (lang.containsAlphabet(i)) {
+                            insertAlphabet(_db, i, minLanguage + j);
+                            break;
+                        }
                     }
                 }
+
+                for (int i = 0; i < languageCount; i++) {
+                    final Language lang = languages[i];
+                    insertLanguage(_db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
+                }
+
+                // Read conversions
+                setProgress(0.1f, "Reading conversions");
+                final Conversion[] conversions = readConversions(ibs, minValidAlphabet, maxValidAlphabet, 0,
+                        maxSymbolArrayIndex, symbolArraysIdMap);
+
+                // Export the amount of words and concepts in order to range integers
+                final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
+                final int maxConcept =
+                        ibs.readHuffmanSymbol(naturalNumberTable) + StreamedDatabaseConstants.minValidConcept - 1;
+
+                // Import correlations
+                setProgress(0.15f, "Reading correlations");
+                int[] correlationIdMap = readCorrelations(ibs, StreamedDatabaseConstants.minValidAlphabet,
+                        maxValidAlphabet, symbolArraysIdMap);
+
+                // Import correlation arrays
+                setProgress(0.30f, "Reading correlation arrays");
+                int[] correlationArrayIdMap = readCorrelationArrays(ibs, correlationIdMap);
+
+                // Import acceptations
+                setProgress(0.5f, "Reading acceptations");
+                final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
+                int[] acceptationIdMap = readAcceptations(ibs, validConcepts, correlationArrayIdMap);
+
+                // Import bunchConcepts
+                setProgress(0.6f, "Reading bunch concepts");
+                readBunchConcepts(ibs, validConcepts);
+
+                // Import bunchAcceptations
+                setProgress(0.7f, "Reading bunch acceptations");
+                readBunchAcceptations(ibs, validConcepts, acceptationIdMap);
+
+                // Import agents
+                setProgress(0.8f, "Reading agents");
+                final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap);
+
+                // Import relevant dynamic acceptations
+                setProgress(0.9f, "Writing dynamic acceptations");
+                final RuleAcceptationPair[] ruleAcceptationPairs = readRelevantRuledAcceptations(ibs, acceptationIdMap,
+                        agentReadResult.presentRules);
+
+                // Import sentence spans
+                setProgress(0.93f, "Writing sentence spans");
+                final SentenceSpan[] spans = readSentenceSpans(ibs,
+                        acceptationIdMap.length + ruleAcceptationPairs.length, symbolArraysIdMap,
+                        symbolArraysReadResult.lengths);
+
+                setProgress(0.98f, "Writing sentence meanings");
+                readSentenceMeanings(ibs, symbolArraysIdMap);
+
+                return new Result(conversions, agentReadResult.agents, acceptationIdMap, ruleAcceptationPairs, spans);
             }
-
-            for (int i = 0; i < languageCount; i++) {
-                final Language lang = languages[i];
-                insertLanguage(_db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
-            }
-
-            // Read conversions
-            setProgress(0.1f, "Reading conversions");
-            final Conversion[] conversions = readConversions(ibs, minValidAlphabet, maxValidAlphabet, 0,
-                    maxSymbolArrayIndex, symbolArraysIdMap);
-
-            // Export the amount of words and concepts in order to range integers
-            final int minValidConcept = StreamedDatabaseConstants.minValidConcept;
-            final int maxConcept = ibs.readHuffmanSymbol(naturalNumberTable) + StreamedDatabaseConstants.minValidConcept - 1;
-
-            // Import correlations
-            setProgress(0.15f, "Reading correlations");
-            int[] correlationIdMap = readCorrelations(ibs, StreamedDatabaseConstants.minValidAlphabet,
-                    maxValidAlphabet, symbolArraysIdMap);
-
-            // Import correlation arrays
-            setProgress(0.30f, "Reading correlation arrays");
-            int[] correlationArrayIdMap = readCorrelationArrays(ibs, correlationIdMap);
-
-            // Import acceptations
-            setProgress(0.5f, "Reading acceptations");
-            final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
-            int[] acceptationIdMap = readAcceptations(ibs, validConcepts, correlationArrayIdMap);
-
-            // Import bunchConcepts
-            setProgress(0.6f, "Reading bunch concepts");
-            readBunchConcepts(ibs, validConcepts);
-
-            // Import bunchAcceptations
-            setProgress(0.7f, "Reading bunch acceptations");
-            readBunchAcceptations(ibs, validConcepts, acceptationIdMap);
-
-            // Import agents
-            setProgress(0.8f, "Reading agents");
-            final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap);
-
-            // Import relevant dynamic acceptations
-            setProgress(0.9f, "Writing dynamic acceptations");
-            final RuleAcceptationPair[] ruleAcceptationPairs = readRelevantRuledAcceptations(ibs, acceptationIdMap, agentReadResult.presentRules);
-
-            // Import sentence spans
-            setProgress(0.93f, "Writing sentence spans");
-            final SentenceSpan[] spans = readSentenceSpans(ibs, acceptationIdMap.length + ruleAcceptationPairs.length, symbolArraysIdMap, symbolArraysReadResult.lengths);
-
-            setProgress(0.98f, "Writing sentence meanings");
-            readSentenceMeanings(ibs, symbolArraysIdMap);
-
-            return new Result(conversions, agentReadResult.agents, acceptationIdMap, ruleAcceptationPairs, spans);
         }
         finally {
             try {

@@ -253,7 +253,7 @@ public final class StreamedDatabaseWriter {
 
     private SymbolArrayWriterResult writeSymbolArrays(ImmutableIntSet exportable, ImmutableIntValueMap<String> languageCodes) throws IOException {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
-        DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex(), table.getStrColumnIndex());
 
         final MutableIntValueHashMap<Character> charFrequency = MutableIntValueHashMap.empty();
@@ -281,46 +281,49 @@ public final class StreamedDatabaseWriter {
         final int length = count;
 
         _obs.writeHuffmanSymbol(naturalNumberTable, length);
+        if (length == 0) {
+            return new SymbolArrayWriterResult(ImmutableIntPairMap.empty(), ImmutableIntValueHashMap.empty(), ImmutableIntPairMap.empty());
+        }
+        else {
+            final DefinedHuffmanTable<Character> charHuffmanTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(charFrequency), new CharComparator());
+            final DefinedHuffmanTable<Integer> symbolArraysLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequency), new IntComparator());
 
-        final DefinedHuffmanTable<Character> charHuffmanTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(charFrequency), new CharComparator());
-        final DefinedHuffmanTable<Integer> symbolArraysLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequency), new IntComparator());
+            final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
+            final NaturalNumberHuffmanTable nat4Table = new NaturalNumberHuffmanTable(4);
 
-        final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
-        final NaturalNumberHuffmanTable nat4Table = new NaturalNumberHuffmanTable(4);
+            _obs.writeHuffmanTable(charHuffmanTable, new CharWriter(_obs), new CharHuffmanSymbolDiffWriter(_obs, nat4Table));
+            _obs.writeHuffmanTable(symbolArraysLengthTable, new IntWriter(), new IntHuffmanSymbolDiffWriter(_obs, nat3Table));
 
-        _obs.writeHuffmanTable(charHuffmanTable, new CharWriter(_obs), new CharHuffmanSymbolDiffWriter(_obs, nat4Table));
-        _obs.writeHuffmanTable(symbolArraysLengthTable, new IntWriter(), new IntHuffmanSymbolDiffWriter(_obs, nat3Table));
+            final ImmutableIntValueHashMap.Builder<String> langCodeSymbolArrayBuilder = new ImmutableIntValueHashMap.Builder<>();
+            final ImmutableSet<String> languageKeys = languageCodes.keySet();
+            final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
+            final ImmutableIntPairMap.Builder lengthMapBuilder = new ImmutableIntPairMap.Builder();
 
-        query = new DbQuery.Builder(table).select(table.getIdColumnIndex(), table.getStrColumnIndex());
-        final ImmutableIntValueHashMap.Builder<String> langCodeSymbolArrayBuilder = new ImmutableIntValueHashMap.Builder<>();
-        final ImmutableSet<String> languageKeys = languageCodes.keySet();
-        final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
-        final ImmutableIntPairMap.Builder lengthMapBuilder = new ImmutableIntPairMap.Builder();
+            count = 0;
+            try (DbResult result = _db.select(query)) {
+                while (result.hasNext()) {
+                    List<DbValue> row = result.next();
+                    final int dbId = row.get(0).toInt();
+                    if (exportable.contains(dbId)) {
+                        final String str = row.get(1).toText();
+                        if (languageKeys.contains(str)) {
+                            langCodeSymbolArrayBuilder.put(str, count);
+                        }
+                        idMapBuilder.put(dbId, count++);
 
-        count = 0;
-        try (DbResult result = _db.select(query)) {
-            while (result.hasNext()) {
-                List<DbValue> row = result.next();
-                final int dbId = row.get(0).toInt();
-                if (exportable.contains(dbId)) {
-                    final String str = row.get(1).toText();
-                    if (languageKeys.contains(str)) {
-                        langCodeSymbolArrayBuilder.put(str, count);
-                    }
-                    idMapBuilder.put(dbId, count++);
+                        final int strLength = str.length();
+                        _obs.writeHuffmanSymbol(symbolArraysLengthTable, strLength);
+                        lengthMapBuilder.put(dbId, strLength);
 
-                    final int strLength = str.length();
-                    _obs.writeHuffmanSymbol(symbolArraysLengthTable, strLength);
-                    lengthMapBuilder.put(dbId, strLength);
-
-                    for (int i = 0; i < strLength; i++) {
-                        _obs.writeHuffmanSymbol(charHuffmanTable, str.charAt(i));
+                        for (int i = 0; i < strLength; i++) {
+                            _obs.writeHuffmanSymbol(charHuffmanTable, str.charAt(i));
+                        }
                     }
                 }
             }
-        }
 
-        return new SymbolArrayWriterResult(idMapBuilder.build(), langCodeSymbolArrayBuilder.build(), lengthMapBuilder.build());
+            return new SymbolArrayWriterResult(idMapBuilder.build(), langCodeSymbolArrayBuilder.build(), lengthMapBuilder.build());
+        }
     }
 
     private ImmutableIntRange writeLanguages(ImmutableIntPairMap symbolArraysIdMap, ImmutableIntValueMap<String> langMap) throws IOException {
@@ -1443,52 +1446,71 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntValueMap<String> langCodes = readLanguageCodes();
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(exportableSymbolArrays.symbolArrays, langCodes);
         final ImmutableIntPairMap symbolArrayIdMap = symbolArrayWriterResult.idMap;
-        final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayIdMap, symbolArrayWriterResult.langMap);
-        final ImmutableIntPairMap symbolArrayLengths = symbolArrayWriterResult.lengths;
+        if (symbolArrayIdMap.isEmpty()) {
+            // Without symbolArrays, it is not possible to have languages (as they require a code like "en" or "es",
+            // assumed to be stored in the symbol arrays.
+            //
+            // Without languages, no alphabets. Then no conversions, correlations, acceptations, sentences...
+            //
+            // The only thing that can exist without symbol arrays are concepts, then all semantics can be present,
+            // even agents without matchers and adders. However, even if possible, the app could not reference any
+            // of those without a single text to display to the user. So, all that information is useless from app
+            // perspective, but not from database perspective.
+            //
+            // Because of that, for simplification, this writer will write an extra leading 0 to express that no valid
+            // concepts are present. If later, those concepts are included, it will be possible without incompatibilities.
 
-        setProgress(0.2f, "Writing conversions");
-        writeConversions(validAlphabets, symbolArrayIdMap);
-
-        final ImmutableIntSet validConcepts = getConceptsFromAcceptations()
-                .addAll(getConceptsFromBunchConcepts())
-                .addAll(getConceptsFromBunchAcceptations())
-                .addAll(getConceptsFromAlphabetsAndLanguages())
-                .addAll(getConceptsFromAgentRules());
-
-        if (validConcepts.min() <= 0) {
-            throw new AssertionError();
+            final int validConcepts = 0;
+            _obs.writeHuffmanSymbol(naturalNumberTable, validConcepts);
         }
+        else {
+            final ImmutableIntRange validAlphabets = writeLanguages(symbolArrayIdMap, symbolArrayWriterResult.langMap);
+            final ImmutableIntPairMap symbolArrayLengths = symbolArrayWriterResult.lengths;
 
-        _obs.writeHuffmanSymbol(naturalNumberTable, validConcepts.size());
+            setProgress(0.2f, "Writing conversions");
+            writeConversions(validAlphabets, symbolArrayIdMap);
 
-        setProgress(0.25f, "Writing correlations");
-        final ImmutableIntPairMap correlationIdMap = writeCorrelations(exportableCorrelations, validAlphabets, exportableSymbolArrays.excludedAlphabets, symbolArrayIdMap);
+            final ImmutableIntSet validConcepts = getConceptsFromAcceptations()
+                    .addAll(getConceptsFromBunchConcepts())
+                    .addAll(getConceptsFromBunchAcceptations())
+                    .addAll(getConceptsFromAlphabetsAndLanguages())
+                    .addAll(getConceptsFromAgentRules());
 
-        setProgress(0.35f, "Writing correlation arrays");
-        final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(exportable.correlationArrays, correlationIdMap);
+            if (validConcepts.min() <= 0) {
+                throw new AssertionError();
+            }
 
-        // TODO: Check if this is already required and accRanges.concepts cannot be used instead
-        setProgress(0.5f, "Writing acceptations");
-        final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, validConcepts, correlationArrayIdMap);
+            _obs.writeHuffmanSymbol(naturalNumberTable, validConcepts.size());
 
-        setProgress(0.6f, "Writing bunch concepts");
-        writeBunchConcepts(validConcepts);
+            setProgress(0.25f, "Writing correlations");
+            final ImmutableIntPairMap correlationIdMap = writeCorrelations(exportableCorrelations, validAlphabets, exportableSymbolArrays.excludedAlphabets, symbolArrayIdMap);
 
-        setProgress(0.7f, "Writing bunch acceptations");
-        writeBunchAcceptations(validConcepts, agentSetIds, accIdMap);
+            setProgress(0.35f, "Writing correlation arrays");
+            final ImmutableIntPairMap correlationArrayIdMap = writeCorrelationArrays(exportable.correlationArrays, correlationIdMap);
 
-        setProgress(0.8f, "Writing agents");
-        final ImmutableIntSet presentRules = writeAgents(validConcepts, correlationIdMap);
+            // TODO: Check if this is already required and accRanges.concepts cannot be used instead
+            setProgress(0.5f, "Writing acceptations");
+            final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, validConcepts, correlationArrayIdMap);
 
-        setProgress(0.9f, "Writing dynamic acceptations");
-        final MutableIntPairMap extendedAccIdMap = accIdMap.mutate();
-        writeRelevantRuledAcceptations(extendedAccIdMap, validConcepts, presentRules);
+            setProgress(0.6f, "Writing bunch concepts");
+            writeBunchConcepts(validConcepts);
 
-        setProgress(0.93f, "Writing sentence spans");
-        writeSentenceSpans(extendedAccIdMap, symbolArrayIdMap, symbolArrayLengths);
+            setProgress(0.7f, "Writing bunch acceptations");
+            writeBunchAcceptations(validConcepts, agentSetIds, accIdMap);
 
-        setProgress(0.98f, "Writing sentence meanings");
-        writeSentenceMeanings(symbolArrayIdMap);
+            setProgress(0.8f, "Writing agents");
+            final ImmutableIntSet presentRules = writeAgents(validConcepts, correlationIdMap);
+
+            setProgress(0.9f, "Writing dynamic acceptations");
+            final MutableIntPairMap extendedAccIdMap = accIdMap.mutate();
+            writeRelevantRuledAcceptations(extendedAccIdMap, validConcepts, presentRules);
+
+            setProgress(0.93f, "Writing sentence spans");
+            writeSentenceSpans(extendedAccIdMap, symbolArrayIdMap, symbolArrayLengths);
+
+            setProgress(0.98f, "Writing sentence meanings");
+            writeSentenceMeanings(symbolArrayIdMap);
+        }
 
         _obs.close();
     }

@@ -303,7 +303,6 @@ class DbManager extends SQLiteOpenHelper {
         }
         catch (DbImporter.UnableToImportException e) {
             e.printStackTrace();
-            Toast.makeText(_context, "Error loading database", Toast.LENGTH_SHORT).show();
         }
     }
 

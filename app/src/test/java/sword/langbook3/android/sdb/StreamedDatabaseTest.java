@@ -117,13 +117,12 @@ public final class StreamedDatabaseTest {
         }
     }
 
-    @Test
-    public void testReadWriteBasic() {
+    private void checkReadWriteResource(String name) {
         final ProgressListener progressListener = (progress, message) -> {
             // Nothing to be done
         };
 
-        final InputStream origIs = getClass().getClassLoader().getResourceAsStream("basic.sdb");
+        final InputStream origIs = getClass().getClassLoader().getResourceAsStream(name);
         final MemoryDatabase db = new MemoryDatabase();
         try {
             origIs.skip(20);
@@ -146,5 +145,15 @@ public final class StreamedDatabaseTest {
                 // Nothing to be done
             }
         }
+    }
+
+    @Test
+    public void testReadWriteBasic() {
+        checkReadWriteResource("basic.sdb");
+    }
+
+    @Test
+    public void testReadWriteEmpty() {
+        checkReadWriteResource("empty.sdb");
     }
 }
