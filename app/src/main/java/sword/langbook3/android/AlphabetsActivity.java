@@ -45,6 +45,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     private AlphabetsActivityState _state;
+    private boolean _uiJustUpdated;
 
     private AlphabetsAdapter _adapter;
     private ImmutableIntPairMap _conversions;
@@ -87,6 +88,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         }
 
         updateUi();
+        _uiJustUpdated = true;
 
         if (_state.shouldShowDeleteConfirmationDialog()) {
             showDeleteConfirmationDialog();
@@ -294,6 +296,9 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
                 _state.cancelAcceptationForAlphabetPicking();
             }
         }
+        else if (requestCode == REQUEST_CODE_NEW_LANGUAGE && !_uiJustUpdated) {
+            updateUi();
+        }
         else if (requestCode == REQUEST_CODE_NEW_CONVERSION) {
             final ParcelableConversion parcelable = (data != null)? data.getParcelableExtra(ConversionEditorActivity.ResultKeys.CONVERSION) : null;
             final Conversion conversion = (parcelable != null)? parcelable.get() : null;
@@ -313,6 +318,12 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
                 showSourceAlphabetPickerDialog();
             }
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        _uiJustUpdated = false;
     }
 
     @Override
