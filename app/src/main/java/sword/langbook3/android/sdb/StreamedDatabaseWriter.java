@@ -472,24 +472,22 @@ public final class StreamedDatabaseWriter {
         return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private ImmutableIntSet getConceptsFromBunchConceptsBunches() {
-        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getBunchColumnIndex());
+    private ImmutableIntSet getConceptsFromComplementedConcepts() {
+        final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(),
+                table.getBaseColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
-    }
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+            }
+        }
 
-    private ImmutableIntSet getConceptsFromBunchConceptsConcepts() {
-        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getConceptColumnIndex());
-
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
-    }
-
-    private ImmutableIntSet getConceptsFromBunchConcepts() {
-        return getConceptsFromBunchConceptsBunches().addAll(getConceptsFromBunchConceptsConcepts());
+        return builder.build();
     }
 
     private ImmutableIntSet getConceptsFromBunchAcceptations() {
@@ -772,34 +770,34 @@ public final class StreamedDatabaseWriter {
         return idMapBuilder.build();
     }
 
-    private void writeBunchConcepts(ImmutableIntSet validConcepts) throws IOException {
-        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
+    private void writeComplementedConcepts(ImmutableIntSet validConcepts) throws IOException {
+        final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
         final DbQuery query = new DbQuery.Builder(table).select(
-                table.getBunchColumnIndex(),
-                table.getConceptColumnIndex());
+                table.getBaseColumnIndex(),
+                table.getIdColumnIndex());
 
-        final MutableIntKeyMap<MutableIntSet> bunches = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<MutableIntSet> bases = MutableIntKeyMap.empty();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                final int bunchId = validConcepts.indexOf(row.get(0).toInt());
+                final int baseId = validConcepts.indexOf(row.get(0).toInt());
                 final MutableIntSet set;
-                if (bunches.keySet().contains(bunchId)) {
-                    set = bunches.get(bunchId);
+                if (bases.keySet().contains(baseId)) {
+                    set = bases.get(baseId);
                 }
                 else {
                     set = MutableIntArraySet.empty();
-                    bunches.put(bunchId, set);
+                    bases.put(baseId, set);
                 }
                 set.add(validConcepts.indexOf(row.get(1).toInt()));
             }
         }
 
-        _obs.writeHuffmanSymbol(naturalNumberTable, bunches.size());
+        _obs.writeHuffmanSymbol(naturalNumberTable, bases.size());
 
-        if (!bunches.isEmpty()) {
+        if (!bases.isEmpty()) {
             final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
-            for (IntSet set : bunches) {
+            for (IntSet set : bases) {
                 final int length = set.size();
                 final int amount = lengthFrequencies.get(length, 0);
                 lengthFrequencies.put(length, amount + 1);
@@ -810,9 +808,9 @@ public final class StreamedDatabaseWriter {
             _obs.writeHuffmanTable(lengthTable, natEncoder, natEncoder);
 
             final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, 0, validConcepts.size() - 1);
-            int remainingBunches = bunches.size();
+            int remainingBunches = bases.size();
             int minBunchConcept = 0;
-            for (IntKeyMap.Entry<MutableIntSet> entry : bunches.entries()) {
+            for (IntKeyMap.Entry<MutableIntSet> entry : bases.entries()) {
                 final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, validConcepts.size() - remainingBunches);
                 _obs.writeHuffmanSymbol(bunchTable, entry.key());
                 minBunchConcept = entry.key() + 1;
@@ -1471,7 +1469,7 @@ public final class StreamedDatabaseWriter {
             writeConversions(validAlphabets, symbolArrayIdMap);
 
             final ImmutableIntSet validConcepts = getConceptsFromAcceptations()
-                    .addAll(getConceptsFromBunchConcepts())
+                    .addAll(getConceptsFromComplementedConcepts())
                     .addAll(getConceptsFromBunchAcceptations())
                     .addAll(getConceptsFromAlphabetsAndLanguages())
                     .addAll(getConceptsFromAgentRules());
@@ -1493,7 +1491,7 @@ public final class StreamedDatabaseWriter {
             final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, validConcepts, correlationArrayIdMap);
 
             setProgress(0.6f, "Writing bunch concepts");
-            writeBunchConcepts(validConcepts);
+            writeComplementedConcepts(validConcepts);
 
             setProgress(0.7f, "Writing bunch acceptations");
             writeBunchAcceptations(validConcepts, agentSetIds, accIdMap);

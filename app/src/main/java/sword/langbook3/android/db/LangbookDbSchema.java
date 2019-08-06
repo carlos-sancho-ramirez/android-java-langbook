@@ -156,17 +156,47 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
-    public static final class BunchConceptsTable extends DbTable {
+    /**
+     * Define semantics creating new concepts, from another base concept and a complement.
+     *
+     * Leaving the complement aside, if we call the complemented concept 'A', and the base concept 'B'.
+     * Semantically we could say that 'A' is 'B', but it may not be true that 'B' is 'A'.
+     *
+     * As an example, 'dog' could be a complemented concept, being its base 'animal'.
+     * In this example, it is true that a 'dog' is an 'animal', but it is not true that any 'animal' is a 'dog', as there is a lot of animals.
+     *
+     * Complemented concepts can be chained. So, if there is a complemented concept 'A' whose base is 'B',
+     * and 'B' is another complemented concept (written in this table as well but in another row)
+     * whose base is 'C' , then 'A' is both 'B' and 'C'.
+     *
+     * Following with the example. 'A' could be 'dog', 'B' could be 'animal' and 'C' could be 'living creature'.
+     * So, it is true that an 'animal' is a 'living creature', and a 'dog' is both, an animal and a living creature.
+     *
+     * On the other side, complements qualifies the base concept to create a new complemented concept.
+     *
+     * So, as en example, we can say that a 'dog', as complemented concept, is an 'animal', as base concept,
+     * that is 'domestic' as a possible complement.
+     *
+     * New complemented concepts and the base concept are substantives,
+     * while complements can be understood as adjectives.
+     *
+     * Restrictions within the table (serialization is optimized based on this):
+     * <li>It is not possible to have 2 rows with the same complemented concept.</li>
+     * <li>Complemented concept will never match in value with the base concept nor the complement in the same row.</li>
+     * <li>Base concept and complement will never match in value in the same row.</li>
+     * <li>Complement can be 0 to determine that no suitable complement</li>
+     */
+    public static final class ComplementedConceptsTable extends DbTable {
 
-        private BunchConceptsTable() {
-            super("BunchConcepts", new DbIntColumn("bunch"), new DbIntColumn("concept"));
+        private ComplementedConceptsTable() {
+            super("ComplementedConcepts", new DbIntColumn("base"), new DbIntColumn("complement"));
         }
 
-        public int getBunchColumnIndex() {
+        public int getBaseColumnIndex() {
             return 1;
         }
 
-        public int getConceptColumnIndex() {
+        public int getComplementColumnIndex() {
             return 2;
         }
     }
@@ -479,7 +509,7 @@ public final class LangbookDbSchema implements DbSchema {
         AgentSetsTable agentSets = new AgentSetsTable();
         AlphabetsTable alphabets = new AlphabetsTable();
         BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
-        BunchConceptsTable bunchConcepts = new BunchConceptsTable();
+        ComplementedConceptsTable complementedConcepts = new ComplementedConceptsTable();
         BunchSetsTable bunchSets = new BunchSetsTable();
         ConversionsTable conversions = new ConversionsTable();
         CorrelationsTable correlations = new CorrelationsTable();
@@ -503,8 +533,8 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.agentSets)
             .add(Tables.alphabets)
             .add(Tables.bunchAcceptations)
-            .add(Tables.bunchConcepts)
             .add(Tables.bunchSets)
+            .add(Tables.complementedConcepts)
             .add(Tables.conversions)
             .add(Tables.correlations)
             .add(Tables.correlationArrays)

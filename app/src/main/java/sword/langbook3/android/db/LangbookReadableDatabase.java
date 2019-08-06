@@ -259,21 +259,21 @@ public final class LangbookReadableDatabase {
     }
 
     static ImmutableIntSet findSuperTypesLinkedToJustThisLanguage(DbExporter.Database db, int language) {
-        final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
+        final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
 
-        final int accOffset = bunchConcepts.columns().size();
+        final int accOffset = complementedConcepts.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
         final int alphabetsOffset = strOffset + strings.columns().size();
 
-        final DbQuery query = new DbQuery.Builder(bunchConcepts)
-                .join(acceptations, bunchConcepts.getBunchColumnIndex(), acceptations.getConceptColumnIndex())
+        final DbQuery query = new DbQuery.Builder(complementedConcepts)
+                .join(acceptations, complementedConcepts.getBaseColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .join(alphabets, strOffset + strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
-                .groupBy(bunchConcepts.getBunchColumnIndex())
-                .select(bunchConcepts.getBunchColumnIndex(), alphabetsOffset + alphabets.getLanguageColumnIndex());
+                .groupBy(complementedConcepts.getBaseColumnIndex())
+                .select(complementedConcepts.getBaseColumnIndex(), alphabetsOffset + alphabets.getLanguageColumnIndex());
 
         MutableIntKeyMap<ImmutableIntSet> map = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
@@ -1459,15 +1459,15 @@ public final class LangbookReadableDatabase {
 
     private static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
+        final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int bunchOffset = acceptations.columns().size();
-        final int accOffset = bunchOffset + bunchConcepts.columns().size();
+        final int accOffset = bunchOffset + complementedConcepts.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
         final DbQuery query = new DbQuery.Builder(acceptations)
-                .join(bunchConcepts, acceptations.getConceptColumnIndex(), bunchConcepts.getConceptColumnIndex())
-                .join(acceptations, bunchOffset + bunchConcepts.getBunchColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(complementedConcepts, acceptations.getConceptColumnIndex(), complementedConcepts.getIdColumnIndex())
+                .join(acceptations, bunchOffset + complementedConcepts.getBaseColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(acceptations.getIdColumnIndex(), acceptation)
                 .select(accOffset + acceptations.getIdColumnIndex(),
@@ -1499,19 +1499,19 @@ public final class LangbookReadableDatabase {
 
     private static ImmutableIntKeyMap<String> readSubtypesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final LangbookDbSchema.BunchConceptsTable bunchConcepts = LangbookDbSchema.Tables.bunchConcepts;
+        final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int bunchOffset = acceptations.columns().size();
-        final int accOffset = bunchOffset + bunchConcepts.columns().size();
+        final int accOffset = bunchOffset + complementedConcepts.columns().size();
         final int strOffset = accOffset + bunchOffset;
 
         final DbQuery query = new DbQuery.Builder(acceptations)
-                .join(bunchConcepts, acceptations.getConceptColumnIndex(), bunchConcepts.getBunchColumnIndex())
-                .join(acceptations, bunchOffset + bunchConcepts.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(complementedConcepts, acceptations.getConceptColumnIndex(), complementedConcepts.getBaseColumnIndex())
+                .join(acceptations, bunchOffset + complementedConcepts.getIdColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(acceptations.getIdColumnIndex(), acceptation)
-                .select(bunchOffset + bunchConcepts.getConceptColumnIndex(),
+                .select(bunchOffset + complementedConcepts.getIdColumnIndex(),
                         accOffset + acceptations.getIdColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());

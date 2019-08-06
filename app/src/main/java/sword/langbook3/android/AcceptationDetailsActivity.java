@@ -41,8 +41,8 @@ import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.db.LangbookDatabase.duplicateAcceptationWithThisConcept;
 import static sword.langbook3.android.db.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.db.LangbookDatabase.shareConcept;
-import static sword.langbook3.android.db.LangbookDbInserter.insertBunchConcept;
-import static sword.langbook3.android.db.LangbookDeleter.deleteBunchConceptForConcept;
+import static sword.langbook3.android.db.LangbookDbInserter.insertComplementedConcept;
+import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsDetails;
 
@@ -481,7 +481,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case IntrinsicStates.DELETE_SUPERTYPE:
                 _state.clearDeletingSupertype();
-                if (!deleteBunchConceptForConcept(db, _model.concept)) {
+                if (!deleteComplementedConcept(db, _model.concept)) {
                     throw new AssertionError();
                 }
 
@@ -577,7 +577,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             else if (requestCode == REQUEST_CODE_PICK_SUPERTYPE) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
                 final int pickedConcept = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
-                insertBunchConcept(db, pickedConcept, _model.concept);
+                insertComplementedConcept(db, pickedConcept, _model.concept, 0);
                 showFeedback(getString(R.string.includeSupertypeOk));
                 if (updateModelAndUi()) {
                     invalidateOptionsMenu();

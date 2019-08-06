@@ -41,7 +41,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAgent;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertBunchConcept;
+import static sword.langbook3.android.db.LangbookDbInserter.insertComplementedConcept;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConversion;
 import static sword.langbook3.android.db.LangbookDbInserter.insertLanguage;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceMeaning;
@@ -404,7 +404,7 @@ public final class StreamedDatabaseReader {
         return acceptationsIdMap;
     }
 
-    private void readBunchConcepts(InputBitStream ibs, ImmutableIntRange validConcepts) throws IOException {
+    private void readComplementedConcepts(InputBitStream ibs, ImmutableIntRange validConcepts) throws IOException {
         final int bunchConceptsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final NaturalDecoder natDecoder = new NaturalDecoder(ibs);
         final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
@@ -413,12 +413,12 @@ public final class StreamedDatabaseReader {
         int minBunchConcept = validConcepts.min();
         final int maxValidBunch = validConcepts.max();
         for (int maxBunchConcept = validConcepts.max() - bunchConceptsLength + 1; maxBunchConcept <= maxValidBunch; maxBunchConcept++) {
-            final int bunch = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept));
-            minBunchConcept = bunch + 1;
+            final int base = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept));
+            minBunchConcept = base + 1;
 
             final ImmutableIntSet concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
             for (int concept : concepts) {
-                insertBunchConcept(_db, bunch, concept);
+                insertComplementedConcept(_db, base, concept, 0);
             }
         }
     }
@@ -758,7 +758,7 @@ public final class StreamedDatabaseReader {
 
                 // Import bunchConcepts
                 setProgress(0.6f, "Reading bunch concepts");
-                readBunchConcepts(ibs, validConcepts);
+                readComplementedConcepts(ibs, validConcepts);
 
                 // Import bunchAcceptations
                 setProgress(0.7f, "Reading bunch acceptations");

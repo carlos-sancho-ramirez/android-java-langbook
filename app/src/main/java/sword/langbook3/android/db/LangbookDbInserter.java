@@ -112,11 +112,12 @@ public final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    public static void insertBunchConcept(DbInserter db, int bunch, int concept) {
-        final LangbookDbSchema.BunchConceptsTable table = Tables.bunchConcepts;
+    public static void insertComplementedConcept(DbInserter db, int base, int complementedConcept, int complement) {
+        final LangbookDbSchema.ComplementedConceptsTable table = Tables.complementedConcepts;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getBunchColumnIndex(), bunch)
-                .put(table.getConceptColumnIndex(), concept)
+                .put(table.getIdColumnIndex(), complementedConcept)
+                .put(table.getBaseColumnIndex(), base)
+                .put(table.getComplementColumnIndex(), complement)
                 .build();
         db.insert(query);
     }

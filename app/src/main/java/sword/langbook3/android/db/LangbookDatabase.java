@@ -1217,18 +1217,24 @@ public final class LangbookDatabase {
         db.delete(query);
     }
 
-    private static void updateBunchConceptConcepts(Database db, int oldConcept, int newConcept) {
-        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
+    private static void updateConceptsInComplementedConcepts(Database db, int oldConcept, int newConcept) {
+        final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
 
         DbUpdateQuery query = new DbUpdateQuery.Builder(table)
-                .where(table.getBunchColumnIndex(), oldConcept)
-                .put(table.getBunchColumnIndex(), newConcept)
+                .where(table.getBaseColumnIndex(), oldConcept)
+                .put(table.getBaseColumnIndex(), newConcept)
                 .build();
         db.update(query);
 
         query = new DbUpdateQuery.Builder(table)
-                .where(table.getConceptColumnIndex(), oldConcept)
-                .put(table.getConceptColumnIndex(), newConcept)
+                .where(table.getIdColumnIndex(), oldConcept)
+                .put(table.getIdColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+
+        query = new DbUpdateQuery.Builder(table)
+                .where(table.getComplementColumnIndex(), oldConcept)
+                .put(table.getComplementColumnIndex(), newConcept)
                 .build();
         db.update(query);
     }
@@ -1336,7 +1342,7 @@ public final class LangbookDatabase {
             throw new AssertionError();
         }
 
-        updateBunchConceptConcepts(db, oldConcept, linkedConcept);
+        updateConceptsInComplementedConcepts(db, oldConcept, linkedConcept);
         updateBunchAcceptationConcepts(db, oldConcept, linkedConcept);
         updateQuestionRules(db, oldConcept, linkedConcept);
         updateQuizBunches(db, oldConcept, linkedConcept);

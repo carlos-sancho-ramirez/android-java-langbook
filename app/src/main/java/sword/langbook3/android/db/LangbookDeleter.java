@@ -45,10 +45,10 @@ public final class LangbookDeleter {
         return db.delete(query);
     }
 
-    public static boolean deleteBunchConceptForConcept(Deleter db, int concept) {
-        final LangbookDbSchema.BunchConceptsTable table = LangbookDbSchema.Tables.bunchConcepts;
+    public static boolean deleteComplementedConcept(Deleter db, int complementedConcept) {
+        final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getConceptColumnIndex(), concept)
+                .where(table.getIdColumnIndex(), complementedConcept)
                 .build();
 
         return db.delete(query);
