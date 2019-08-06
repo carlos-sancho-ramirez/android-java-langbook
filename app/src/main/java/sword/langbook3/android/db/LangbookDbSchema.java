@@ -201,6 +201,37 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    /**
+     * Define semantics for concepts by linking 2 or more concepts that act as qualifiers to it.
+     *
+     * It is expected to found at least 2 rows with the same composed concept, but among the rows
+     * where the composed concepts is the same, it is not expected to find duplicated items.
+     *
+     * In terms of semantics, the concept can be understood as the addition to all of the items.
+     * This table can be combined with {@link ComplementedConceptsTable}, where the composed concept
+     * her can be used as the complement in the other table, creating a definition for a concept.
+     *
+     * So, for example, a 'dog' is an 'animal' that is 'domestic' and 'has the ability to bark',
+     * among lot of other adjectives that we could find. In this example, 'domestic' and 'has the ability to bark'
+     * are 2 item concepts within this table, composing a new concept that includes all its items
+     * (the composed concept), this composed concept can be used as complement in the {@link ComplementedConceptsTable},
+     * while 'animal' would be the base, and 'dog' the complemented concept within that table.
+     */
+    public static final class ConceptCompositionsTable extends DbTable {
+
+        private ConceptCompositionsTable() {
+            super("ConceptCompositions", new DbIntColumn("composed"), new DbIntColumn("item"));
+        }
+
+        public int getComposedColumnIndex() {
+            return 1;
+        }
+
+        public int getItemColumnIndex() {
+            return 2;
+        }
+    }
+
     public static final class BunchSetsTable extends DbTable {
 
         private BunchSetsTable() {
@@ -511,6 +542,7 @@ public final class LangbookDbSchema implements DbSchema {
         BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
         ComplementedConceptsTable complementedConcepts = new ComplementedConceptsTable();
         BunchSetsTable bunchSets = new BunchSetsTable();
+        ConceptCompositionsTable conceptCompositions = new ConceptCompositionsTable();
         ConversionsTable conversions = new ConversionsTable();
         CorrelationsTable correlations = new CorrelationsTable();
         CorrelationArraysTable correlationArrays = new CorrelationArraysTable();
@@ -535,6 +567,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.bunchAcceptations)
             .add(Tables.bunchSets)
             .add(Tables.complementedConcepts)
+            .add(Tables.conceptCompositions)
             .add(Tables.conversions)
             .add(Tables.correlations)
             .add(Tables.correlationArrays)

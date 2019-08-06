@@ -48,6 +48,10 @@
             android:label="@string/correlationPickerActivityTitle"/>
 
         <activity
+            android:name=".DefinitionEditorActivity"
+            android:label="@string/definitionEditorActivityTitle"/>
+
+        <activity
             android:name=".MatchingBunchesPickerActivity"
             android:label="@string/matchingBunchesPickerActivityTitle"/>
 

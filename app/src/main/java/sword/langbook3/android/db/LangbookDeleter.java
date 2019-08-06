@@ -45,7 +45,7 @@ public final class LangbookDeleter {
         return db.delete(query);
     }
 
-    public static boolean deleteComplementedConcept(Deleter db, int complementedConcept) {
+    static boolean deleteComplementedConcept(Deleter db, int complementedConcept) {
         final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getIdColumnIndex(), complementedConcept)

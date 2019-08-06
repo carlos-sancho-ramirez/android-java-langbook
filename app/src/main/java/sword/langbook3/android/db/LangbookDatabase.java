@@ -57,6 +57,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromCorre
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromStringQueries;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
+import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
@@ -623,6 +624,11 @@ public final class LangbookDatabase {
         return removed;
     }
 
+    public static boolean removeComplementedConcept(Database db, int complementedConcept) {
+        // TODO: This method should remove any orphan concept composition to avoid rubbish
+        return deleteComplementedConcept(db, complementedConcept);
+    }
+
     private static void recheckQuizzes(Database db, ImmutableIntSet updatedBunches) {
         final ImmutableIntSet.Builder affectedQuizzesBuilder = new ImmutableIntSetCreator();
         for (int b : updatedBunches) {
@@ -1161,6 +1167,11 @@ public final class LangbookDatabase {
         }
 
         return true;
+    }
+
+    public static void addDefinition(Database db, int baseConcept, int concept, ImmutableIntSet complements) {
+        // TODO: Implement complements insertion. For now it is ignored
+        LangbookDbInserter.insertComplementedConcept(db, baseConcept, concept, 0);
     }
 
     private static final class StringQueryTableRow {

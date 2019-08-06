@@ -40,9 +40,8 @@ import sword.langbook3.android.models.SynonymTranslationResult;
 import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.db.LangbookDatabase.duplicateAcceptationWithThisConcept;
 import static sword.langbook3.android.db.LangbookDatabase.removeAcceptationFromBunch;
+import static sword.langbook3.android.db.LangbookDatabase.removeComplementedConcept;
 import static sword.langbook3.android.db.LangbookDatabase.shareConcept;
-import static sword.langbook3.android.db.LangbookDbInserter.insertComplementedConcept;
-import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsDetails;
 
@@ -54,7 +53,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private static final int REQUEST_CODE_LINKED_ACCEPTATION = 3;
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 4;
     private static final int REQUEST_CODE_PICK_BUNCH = 5;
-    private static final int REQUEST_CODE_PICK_SUPERTYPE = 6;
+    private static final int REQUEST_CODE_PICK_DEFINITION = 6;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -297,8 +296,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     showDeleteConfirmationDialog();
                     break;
 
-                case IntrinsicStates.DELETE_SUPERTYPE:
-                    showDeleteSupertypeConfirmationDialog();
+                case IntrinsicStates.DELETE_DEFINITION:
+                    showDeleteDefinitionConfirmationDialog();
                     break;
 
                 case IntrinsicStates.DELETING_FROM_BUNCH:
@@ -372,10 +371,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
 
                 if (_definition == null) {
-                    inflater.inflate(R.menu.acceptation_details_activity_include_supertype, menu);
+                    inflater.inflate(R.menu.acceptation_details_activity_include_definition, menu);
                 }
                 else {
-                    inflater.inflate(R.menu.acceptation_details_activity_delete_supertype, menu);
+                    inflater.inflate(R.menu.acceptation_details_activity_delete_definition, menu);
                 }
 
                 inflater.inflate(R.menu.acceptation_details_activity_common_actions, menu);
@@ -413,13 +412,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 showDeleteConfirmationDialog();
                 return true;
 
-            case R.id.menuItemIncludeSupertype:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_SUPERTYPE);
+            case R.id.menuItemIncludeDefinition:
+                DefinitionEditorActivity.open(this, REQUEST_CODE_PICK_DEFINITION);
                 return true;
 
-            case R.id.menuItemDeleteSupertype:
+            case R.id.menuItemDeleteDefinition:
                 _state.setDeletingSupertype();
-                showDeleteSupertypeConfirmationDialog();
+                showDeleteDefinitionConfirmationDialog();
                 return true;
 
             case R.id.menuItemConfirm:
@@ -463,11 +462,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 .create().show();
     }
 
-    private void showDeleteSupertypeConfirmationDialog() {
+    private void showDeleteDefinitionConfirmationDialog() {
         new AlertDialog.Builder(this)
-                .setMessage(R.string.deleteSupertypeConfirmationText)
+                .setMessage(R.string.deleteDefinitionConfirmationText)
                 .setPositiveButton(R.string.menuItemDelete, this)
-                .setOnCancelListener(dialog -> _state.clearDeletingSupertype())
+                .setOnCancelListener(dialog -> _state.clearDeletingDefinition())
                 .create().show();
     }
 
@@ -479,16 +478,16 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 deleteAcceptation();
                 break;
 
-            case IntrinsicStates.DELETE_SUPERTYPE:
-                _state.clearDeletingSupertype();
-                if (!deleteComplementedConcept(db, _model.concept)) {
+            case IntrinsicStates.DELETE_DEFINITION:
+                _state.clearDeletingDefinition();
+                if (!removeComplementedConcept(db, _model.concept)) {
                     throw new AssertionError();
                 }
 
                 if (updateModelAndUi()) {
                     invalidateOptionsMenu();
                 }
-                showFeedback(getString(R.string.deleteSupertypeFeedback));
+                showFeedback(getString(R.string.deleteDefinitionFeedback));
                 break;
 
             case IntrinsicStates.LINKING_CONCEPT:
@@ -574,10 +573,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 updateModelAndUi();
                 showFeedback(getString(message));
             }
-            else if (requestCode == REQUEST_CODE_PICK_SUPERTYPE) {
-                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                final int pickedConcept = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
-                insertComplementedConcept(db, pickedConcept, _model.concept, 0);
+            else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {
+                final DefinitionEditorActivity.State values = data.getParcelableExtra(DefinitionEditorActivity.ResultKeys.VALUES);
+                LangbookDatabase.addDefinition(db, values.baseConcept, _model.concept, values.complements);
                 showFeedback(getString(R.string.includeSupertypeOk));
                 if (updateModelAndUi()) {
                     invalidateOptionsMenu();
