@@ -33,11 +33,11 @@ import sword.langbook3.android.db.LangbookDatabase;
 import sword.langbook3.android.db.LangbookReadableDatabase.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.DynamizableResult;
-import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.SynonymTranslationResult;
 
 import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
+import static sword.langbook3.android.db.LangbookDatabase.addDefinition;
 import static sword.langbook3.android.db.LangbookDatabase.duplicateAcceptationWithThisConcept;
 import static sword.langbook3.android.db.LangbookDatabase.removeAcceptationFromBunch;
 import static sword.langbook3.android.db.LangbookDatabase.removeComplementedConcept;
@@ -74,7 +74,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private AcceptationDetailsModel _model;
     private boolean _confirmOnly;
 
-    private IdentifiableResult _definition;
+    private boolean _hasDefinition;
 
     private AcceptationDetailsActivityState _state;
 
@@ -116,10 +116,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _staticAcceptation)));
         result.add(new NonNavigableItem(getString(R.string.accDetailsSectionLanguage) + ": " + _model.language.text));
 
-        _definition = null;
-        for (IntKeyMap.Entry<String> entry : _model.supertypes.entries()) {
-            _definition = new IdentifiableResult(entry.key(), entry.value());
-            result.add(new AcceptationNavigableItem(entry.key(), getString(R.string.accDetailsSectionType) + ": " + _definition.text, false));
+        _hasDefinition = _model.baseConceptAcceptationId != 0;
+        if (_hasDefinition) {
+            String baseText = getString(R.string.accDetailsSectionType) + ": " + _model.baseConceptText;
+            String complementsText = _model.definitionComplementTexts.reduce((a, b) -> a + ", " + b, null);
+            String definitionText = (complementsText != null)? baseText + " (" + complementsText + ")" : baseText;
+            result.add(new AcceptationNavigableItem(_model.baseConceptAcceptationId, definitionText, false));
+            _hasDefinition = true;
         }
 
         boolean subTypeFound = false;
@@ -370,11 +373,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
                 inflater.inflate(R.menu.acceptation_details_activity_link_options, menu);
 
-                if (_definition == null) {
-                    inflater.inflate(R.menu.acceptation_details_activity_include_definition, menu);
+                if (_hasDefinition) {
+                    inflater.inflate(R.menu.acceptation_details_activity_delete_definition, menu);
                 }
                 else {
-                    inflater.inflate(R.menu.acceptation_details_activity_delete_definition, menu);
+                    inflater.inflate(R.menu.acceptation_details_activity_include_definition, menu);
                 }
 
                 inflater.inflate(R.menu.acceptation_details_activity_common_actions, menu);
@@ -575,7 +578,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
             else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {
                 final DefinitionEditorActivity.State values = data.getParcelableExtra(DefinitionEditorActivity.ResultKeys.VALUES);
-                LangbookDatabase.addDefinition(db, values.baseConcept, _model.concept, values.complements);
+                addDefinition(db, values.baseConcept, _model.concept, values.complements);
                 showFeedback(getString(R.string.includeSupertypeOk));
                 if (updateModelAndUi()) {
                     invalidateOptionsMenu();

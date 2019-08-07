@@ -5,20 +5,23 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
-import sword.langbook3.android.db.LangbookReadableDatabase;
 
 import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class DefinitionEditorActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_PICK_BASE = 1;
+    private static final int REQUEST_CODE_PICK_COMPLEMENT = 2;
 
     private interface SavedKeys {
         String STATE = "state";
@@ -60,8 +63,18 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
         final TextView baseConceptTextView = findViewById(R.id.baseConceptText);
 
         final String text = (_state.baseConcept == 0)? null :
-                LangbookReadableDatabase.readConceptText(db, _state.baseConcept, preferredAlphabet);
+                readConceptText(db, _state.baseConcept, preferredAlphabet);
         baseConceptTextView.setText(text);
+
+        final LinearLayout complementsPanel = findViewById(R.id.complementsPanel);
+        complementsPanel.removeAllViews();
+
+        final LayoutInflater inflater = LayoutInflater.from(this);
+        for (int complementConcept : _state.complements) {
+            inflater.inflate(R.layout.definition_editor_complement_entry, complementsPanel, true);
+            final TextView textView = complementsPanel.getChildAt(complementsPanel.getChildCount() - 1).findViewById(R.id.text);
+            textView.setText(readConceptText(db, complementConcept, preferredAlphabet));
+        }
     }
 
     @Override
@@ -69,6 +82,10 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
         switch (v.getId()) {
             case R.id.baseConceptChangeButton:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BASE);
+                return;
+
+            case R.id.complementsAddButton:
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_COMPLEMENT);
                 return;
 
             case R.id.saveButton:
@@ -97,6 +114,12 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
             final Database db = DbManager.getInstance().getDatabase();
             final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
             _state.baseConcept = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
+            updateUi();
+        }
+        else if (requestCode == REQUEST_CODE_PICK_COMPLEMENT && resultCode == RESULT_OK && data != null) {
+            final Database db = DbManager.getInstance().getDatabase();
+            final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            _state.complements = _state.complements.add(conceptFromAcceptation(db, pickedAcceptation));
             updateUi();
         }
     }

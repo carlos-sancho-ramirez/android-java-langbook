@@ -41,6 +41,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
 import static sword.langbook3.android.db.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSearchHistoryEntry;
@@ -1169,9 +1170,26 @@ public final class LangbookDatabase {
         return true;
     }
 
+    private static int obtainConceptComposition(Database db, ImmutableIntSet concepts) {
+        final Integer compositionConcept = LangbookReadableDatabase.findConceptComposition(db, concepts);
+        if (compositionConcept == null) {
+            int newCompositionConcept = getMaxConcept(db) + 1;
+            if (concepts.max() >= newCompositionConcept) {
+                newCompositionConcept = concepts.max() + 1;
+            }
+
+            for (int item : concepts) {
+                insertConceptCompositionEntry(db, newCompositionConcept, item);
+            }
+
+            return newCompositionConcept;
+        }
+
+        return compositionConcept;
+    }
+
     public static void addDefinition(Database db, int baseConcept, int concept, ImmutableIntSet complements) {
-        // TODO: Implement complements insertion. For now it is ignored
-        LangbookDbInserter.insertComplementedConcept(db, baseConcept, concept, 0);
+        LangbookDbInserter.insertComplementedConcept(db, baseConcept, concept, obtainConceptComposition(db, complements));
     }
 
     private static final class StringQueryTableRow {

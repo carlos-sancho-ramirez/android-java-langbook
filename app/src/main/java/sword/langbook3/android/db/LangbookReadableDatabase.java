@@ -47,6 +47,7 @@ import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.CorrelationDetailsModel;
+import sword.langbook3.android.models.DefinitionDetails;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.MorphologyResult;
@@ -999,6 +1000,49 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getIdColumnIndex());
     }
 
+    private static int getMaxConceptInComplementedConcepts(DbExporter.Database db) {
+        LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getIdColumnIndex(), table.getBaseColumnIndex(), table.getComplementColumnIndex());
+
+        int max = 0;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int id = row.get(0).toInt();
+                final int base = row.get(1).toInt();
+                final int complement = row.get(2).toInt();
+                final int localMax = (id > base && id > complement)? id : (base > complement)? base : complement;
+                if (localMax > max) {
+                    max = localMax;
+                }
+            }
+        }
+
+        return max;
+    }
+
+    private static int getMaxConceptInConceptCompositions(DbExporter.Database db) {
+        LangbookDbSchema.ConceptCompositionsTable table = LangbookDbSchema.Tables.conceptCompositions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getComposedColumnIndex(), table.getItemColumnIndex());
+
+        int max = 0;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int compositionId = row.get(0).toInt();
+                final int item = row.get(1).toInt();
+                final int localMax = (item > compositionId)? item : compositionId;
+                if (localMax > max) {
+                    max = localMax;
+                }
+            }
+        }
+
+        return max;
+    }
+
     private static int getMaxLanguage(DbExporter.Database db) {
         LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         return getColumnMax(db, table, table.getIdColumnIndex());
@@ -1022,6 +1066,16 @@ public final class LangbookReadableDatabase {
         }
 
         temp = getMaxAlphabet(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxConceptInComplementedConcepts(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxConceptInConceptCompositions(db);
         if (temp > max) {
             max = temp;
         }
@@ -1457,7 +1511,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().remove(acceptation);
     }
 
-    private static IdentifiableResult readSupertypeFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> readDefinitionFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1472,15 +1526,18 @@ public final class LangbookReadableDatabase {
                 .where(acceptations.getIdColumnIndex(), acceptation)
                 .select(accOffset + acceptations.getIdColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
-                        strOffset + strings.getStringColumnIndex());
+                        strOffset + strings.getStringColumnIndex(),
+                        bunchOffset + complementedConcepts.getComplementColumnIndex());
 
         IdentifiableResult result = null;
+        int compositionId = 0;
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
                 List<DbValue> row = dbResult.next();
                 int acc = row.get(0).toInt();
                 int firstAlphabet = row.get(1).toInt();
                 String text = row.get(2).toText();
+                compositionId = row.get(3).toInt();
                 while (firstAlphabet != preferredAlphabet && dbResult.hasNext()) {
                     row = dbResult.next();
                     if (row.get(1).toInt() == preferredAlphabet) {
@@ -1494,7 +1551,63 @@ public final class LangbookReadableDatabase {
             }
         }
 
-        return result;
+        ImmutableIntKeyMap<String> componentTexts = ImmutableIntKeyMap.empty();
+        if (compositionId != 0) {
+            final ImmutableIntKeyMap<String> texts = readDefinitionComponentsText(db, compositionId, preferredAlphabet);
+            if (texts.isEmpty()) {
+                final DisplayableItem item = readConceptAcceptationAndText(db, compositionId, preferredAlphabet);
+                componentTexts = componentTexts.put(item.id, item.text);
+            }
+            else {
+                componentTexts = texts;
+            }
+        }
+
+        return new ImmutablePair<>(result, componentTexts);
+    }
+
+    private static ImmutableIntKeyMap<String> readDefinitionComponentsText(DbExporter.Database db, int compositionId, int preferredAlphabet) {
+        final LangbookDbSchema.ConceptCompositionsTable compositions = LangbookDbSchema.Tables.conceptCompositions;
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = compositions.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+        final DbQuery query = new DbQuery.Builder(compositions)
+                .join(acceptations, compositions.getItemColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(compositions.getComposedColumnIndex(), compositionId)
+                .select(
+                        compositions.getItemColumnIndex(),
+                        accOffset + acceptations.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex());
+
+        final MutableIntPairMap conceptAccMap = MutableIntPairMap.empty();
+        final MutableIntKeyMap<String> conceptTextMap = MutableIntKeyMap.empty();
+
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final int concept = row.get(0).toInt();
+                final int accId = row.get(1).toInt();
+                final int alphabet = row.get(2).toInt();
+                final String text = row.get(3).toText();
+
+                final int currentAccId = conceptAccMap.get(concept, 0);
+                if (currentAccId == 0 || alphabet == preferredAlphabet) {
+                    conceptAccMap.put(concept, accId);
+                    conceptTextMap.put(concept, text);
+                }
+            }
+        }
+
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        for (IntPairMap.Entry pair : conceptAccMap.entries()) {
+            builder.put(pair.value(), conceptTextMap.get(pair.key()));
+        }
+
+        return builder.build();
     }
 
     private static ImmutableIntKeyMap<String> readSubtypesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
@@ -1668,6 +1781,43 @@ public final class LangbookReadableDatabase {
                 .select(bunchAcceptations.columns().size() + agentSets.getAgentColumnIndex());
 
         return intSetQuery(db, query).remove(agents.nullReference());
+    }
+
+    public static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
+        final int conceptCount = concepts.size();
+        if (conceptCount == 0) {
+            return 0;
+        }
+        else if (conceptCount == 1) {
+            return concepts.valueAt(0);
+        }
+
+        final LangbookDbSchema.ConceptCompositionsTable table = LangbookDbSchema.Tables.conceptCompositions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getComposedColumnIndex(), table.getComposedColumnIndex())
+                .where(table.getItemColumnIndex(), concepts.valueAt(0))
+                .select(table.getComposedColumnIndex(), table.columns().size() + table.getItemColumnIndex());
+
+        final MutableIntKeyMap<ImmutableIntSet> possibleSets = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int compositionId = row.get(0).toInt();
+                final int item = row.get(1).toInt();
+
+                final ImmutableIntSet set = possibleSets.get(compositionId, ImmutableIntArraySet.empty());
+                possibleSets.put(compositionId, set.add(item));
+            }
+        }
+
+        final int mapSize = possibleSets.size();
+        for (int i = 0; i < mapSize; i++) {
+            if (possibleSets.valueAt(i).equalSet(concepts)) {
+                return possibleSets.keyAt(i);
+            }
+        }
+
+        return null;
     }
 
     public interface InvolvedAgentResultFlags {
@@ -2808,7 +2958,7 @@ public final class LangbookReadableDatabase {
         languageStrs.put(languageResult.id, languageResult.text);
 
         final ImmutableIntSet acceptationsSharingCorrelationArray = readAcceptationsMatchingCorrelationArray(db, staticAcceptation);
-        final IdentifiableResult definition = readSupertypeFromAcceptation(db, staticAcceptation, preferredAlphabet);
+        final ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> definition = readDefinitionFromAcceptation(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
                 readAcceptationSynonymsAndTranslations(db, staticAcceptation);
@@ -2824,14 +2974,11 @@ public final class LangbookReadableDatabase {
         final ImmutableList<DynamizableResult> bunchChildren = readAcceptationBunchChildren(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(db, staticAcceptation);
 
-        final ImmutableIntKeyMap.Builder<String> supertypesBuilder = new ImmutableIntKeyMap.Builder<>();
-        if (definition != null) {
-            supertypesBuilder.put(definition.id, definition.text);
-        }
-
         final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, staticAcceptation);
+        final int baseConceptAcceptationId = (definition.left != null)? definition.left.id : 0;
+        final String baseConceptText = (definition.left != null)? definition.left.text : null;
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
-                correlationResultPair.right, acceptationsSharingCorrelationArray, supertypesBuilder.build(), subtypes,
+                correlationResultPair.right, acceptationsSharingCorrelationArray, baseConceptAcceptationId, baseConceptText, definition.right, subtypes,
                 synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
                 morphologyResults, involvedAgents, languageStrs.toImmutable(), sampleSentences);
     }
@@ -3023,5 +3170,36 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             return dbResult.hasNext();
         }
+    }
+
+    public static DefinitionDetails getDefinition(DbExporter.Database db, int concept) {
+        final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
+        final LangbookDbSchema.ConceptCompositionsTable compositions = LangbookDbSchema.Tables.conceptCompositions;
+
+        DbQuery query = new DbQuery.Builder(complementedConcepts)
+                .where(complementedConcepts.getIdColumnIndex(), concept)
+                .select(complementedConcepts.getBaseColumnIndex(), complementedConcepts.getComplementColumnIndex());
+
+        final int baseConcept;
+        final int compositionId;
+        try (DbResult dbResult = db.select(query)) {
+            if (!dbResult.hasNext()) {
+                return null;
+            }
+
+            final List<DbValue> row = dbResult.next();
+            baseConcept = row.get(0).toInt();
+            compositionId = row.get(1).toInt();
+        }
+
+        query = new DbQuery.Builder(compositions)
+                .where(compositions.getComposedColumnIndex(), compositionId)
+                .select(compositions.getItemColumnIndex());
+        ImmutableIntSet complements = db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        if (complements.isEmpty() && compositionId != 0) {
+            complements = new ImmutableIntSetCreator().add(compositionId).build();
+        }
+
+        return new DefinitionDetails(baseConcept, complements);
     }
 }

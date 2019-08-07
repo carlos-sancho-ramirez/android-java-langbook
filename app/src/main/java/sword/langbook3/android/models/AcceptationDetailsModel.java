@@ -12,7 +12,9 @@ public final class AcceptationDetailsModel {
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
     public final ImmutableIntSet acceptationsSharingCorrelationArray;
-    public final ImmutableIntKeyMap<String> supertypes;
+    public final int baseConceptAcceptationId;
+    public final String baseConceptText;
+    public final ImmutableIntKeyMap<String> definitionComplementTexts;
     public final ImmutableIntKeyMap<String> subtypes;
     public final ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations;
     public final ImmutableList<DynamizableResult> bunchChildren;
@@ -32,7 +34,9 @@ public final class AcceptationDetailsModel {
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
             ImmutableIntSet acceptationsSharingCorrelationArray,
-            ImmutableIntKeyMap<String> supertypes,
+            int baseConceptAcceptationId,
+            String baseConceptText,
+            ImmutableIntKeyMap<String> definitionComplementTexts,
             ImmutableIntKeyMap<String> subtypes,
             ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations,
             ImmutableList<DynamizableResult> bunchChildren,
@@ -43,7 +47,7 @@ public final class AcceptationDetailsModel {
             ImmutableIntKeyMap<String> sampleSentences
     ) {
         if (language == null || correlationIds == null || correlations == null ||
-                supertypes == null || subtypes == null || synonymsAndTranslations == null ||
+                definitionComplementTexts == null || subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
                 morphologies == null || involvedAgents == null || languageTexts == null ||
                 sampleSentences == null) {
@@ -63,7 +67,9 @@ public final class AcceptationDetailsModel {
         this.correlationIds = correlationIds;
         this.correlations = correlations;
         this.acceptationsSharingCorrelationArray = acceptationsSharingCorrelationArray;
-        this.supertypes = supertypes;
+        this.baseConceptAcceptationId = baseConceptAcceptationId;
+        this.baseConceptText = baseConceptText;
+        this.definitionComplementTexts = definitionComplementTexts;
         this.subtypes = subtypes;
         this.synonymsAndTranslations = synonymsAndTranslations;
         this.bunchChildren = bunchChildren;

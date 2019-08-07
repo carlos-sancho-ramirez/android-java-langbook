@@ -20,6 +20,7 @@ import sword.database.MemoryDatabase;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.DefinitionDetails;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.SearchResult;
 
@@ -34,6 +35,7 @@ import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.db.LangbookDatabase.addAgent;
 import static sword.langbook3.android.db.LangbookDatabase.addAlphabetAsConversionTarget;
 import static sword.langbook3.android.db.LangbookDatabase.addAlphabetCopyingFromOther;
+import static sword.langbook3.android.db.LangbookDatabase.addDefinition;
 import static sword.langbook3.android.db.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
@@ -55,6 +57,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getDefinition;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConceptInAcceptations;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSearchHistory;
@@ -1709,5 +1712,62 @@ public final class LangbookDatabaseTest {
         final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptationId);
         assertEquals(1, texts.size());
         assertEquals(kanaText, texts.get(kanaAlphabet));
+    }
+
+    private void insertTextForConcept(Database db, int concept, int alphabet, String text) {
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, text)
+                .build();
+        addAcceptation(db, concept, obtainSimpleCorrelationArray(db, obtainCorrelation(db, correlation)));
+    }
+
+    @Test
+    public void testAddDefinitionForSingleComplement() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int alphabet = addLanguage(db, "es").right;
+        final int animalConcept = getMaxConcept(db) + 1;
+        final int catConcept = animalConcept + 1;
+        final int quadrupedConcept = catConcept + 1;
+
+        insertTextForConcept(db, animalConcept, alphabet, "animal");
+        insertTextForConcept(db, catConcept, alphabet, "gato");
+        insertTextForConcept(db, quadrupedConcept, alphabet, "cuadrúpedo");
+
+        addDefinition(db, animalConcept, catConcept, new ImmutableIntSetCreator().add(quadrupedConcept).build());
+
+        final DefinitionDetails definition = getDefinition(db, catConcept);
+        assertEquals(animalConcept, definition.baseConcept);
+        assertEquals(1, definition.complements.size());
+        assertEquals(quadrupedConcept, definition.complements.valueAt(0));
+    }
+
+    @Test
+    public void testAddDefinitionForMultipleComplements() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int alphabet = addLanguage(db, "es").right;
+        final int animalConcept = getMaxConcept(db) + 1;
+        final int catConcept = animalConcept + 1;
+        final int quadrupedConcept = catConcept + 1;
+        final int felineConcept = quadrupedConcept + 1;
+
+        insertTextForConcept(db, animalConcept, alphabet, "animal");
+        insertTextForConcept(db, catConcept, alphabet, "gato");
+        insertTextForConcept(db, quadrupedConcept, alphabet, "cuadrúpedo");
+        insertTextForConcept(db, felineConcept, alphabet, "felino");
+
+        addDefinition(db, animalConcept, catConcept, new ImmutableIntSetCreator().add(quadrupedConcept).add(felineConcept).build());
+
+        final DefinitionDetails definition = getDefinition(db, catConcept);
+        assertEquals(animalConcept, definition.baseConcept);
+        assertEquals(2, definition.complements.size());
+        if (quadrupedConcept == definition.complements.valueAt(0)) {
+            assertEquals(felineConcept, definition.complements.valueAt(1));
+        }
+        else {
+            assertEquals(felineConcept, definition.complements.valueAt(0));
+            assertEquals(quadrupedConcept, definition.complements.valueAt(1));
+        }
     }
 }
