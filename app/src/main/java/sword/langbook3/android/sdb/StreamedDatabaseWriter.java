@@ -923,16 +923,14 @@ public final class StreamedDatabaseWriter {
         final MutableIntPairMap bunchSetLengthFrequencyMap = MutableIntPairMap.empty();
         int count = 0;
         try (DbResult result = _db.select(query)) {
+            final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int sourceBunchSet = row.get(0).toInt();
                 final int diffBunchSet = row.get(1).toInt();
 
-                final ImmutableIntSet sourceSet = bunchSets.get(sourceBunchSet, null);
-                final ImmutableIntSet diffSet = bunchSets.get(diffBunchSet, null);
-
-                final int sourceBunchSetLength = (sourceSet != null)? sourceSet.size() : 0;
-                final int diffBunchSetLength = (diffSet != null)? diffSet.size() : 0;
+                final int sourceBunchSetLength = bunchSets.get(sourceBunchSet, emptySet).size();
+                final int diffBunchSetLength = bunchSets.get(diffBunchSet, emptySet).size();
 
                 int amount = bunchSetLengthFrequencyMap.get(sourceBunchSetLength, 0);
                 bunchSetLengthFrequencyMap.put(sourceBunchSetLength, amount + 1);
@@ -953,7 +951,9 @@ public final class StreamedDatabaseWriter {
             final DefinedHuffmanTable<Integer> sourceSetLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(bunchSetLengthFrequencyMap), new IntComparator());
             _obs.writeHuffmanTable(sourceSetLengthTable, intWriter, null);
 
-            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(StreamedDatabaseConstants.minValidConcept, StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1);
+            int minSource = StreamedDatabaseConstants.minValidConcept;
+            final int maxSource = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1;
+            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minSource, maxSource);
 
             query = new DbQuery.Builder(table).select(
                     table.getTargetBunchColumnIndex(),
@@ -967,11 +967,10 @@ public final class StreamedDatabaseWriter {
             try (DbResult result = _db.select(query)) {
                 final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
                 int lastTarget = 0;
-                int minSource = 0;
                 while (result.hasNext()) {
                     final List<DbValue> row = result.next();
                     final int rawTargetBunch = row.get(0).toInt();
-                    final int targetBunch = (rawTargetBunch == 0)? 0 : conceptIdMap.get(row.get(0).toInt()) + 1;
+                    final int targetBunch = (rawTargetBunch == 0)? 0 : conceptIdMap.get(rawTargetBunch);
                     final int sourceBunchSetId = row.get(1).toInt();
                     final int startMatcher = row.get(2).toInt();
                     final int startAdder = row.get(3).toInt();
@@ -988,7 +987,6 @@ public final class StreamedDatabaseWriter {
                         minSource = StreamedDatabaseConstants.minValidConcept;
                     }
 
-                    final int maxSource = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1;
                     final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
                     final IntSet sourceBunchSet = bunchSets.get(sourceBunchSetId);
                     writeRangedNumberSet(encoder, sourceBunchSet);

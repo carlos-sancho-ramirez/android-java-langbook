@@ -148,8 +148,8 @@ public final class StreamedDatabaseTest {
     }
 
     @Test
-    public void testReadWriteBasic() {
-        checkReadWriteResource("basic.sdb");
+    public void testReadWriteEmpty() {
+        checkReadWriteResource("empty.sdb");
     }
 
     @Test
@@ -158,7 +158,12 @@ public final class StreamedDatabaseTest {
     }
 
     @Test
-    public void testReadWriteEmpty() {
-        checkReadWriteResource("empty.sdb");
+    public void testReadWriteBasic() {
+        checkReadWriteResource("basic.sdb");
+    }
+
+    @Test
+    public void testReadWriteSingleAgent() {
+        checkReadWriteResource("singleAgent.sdb");
     }
 }

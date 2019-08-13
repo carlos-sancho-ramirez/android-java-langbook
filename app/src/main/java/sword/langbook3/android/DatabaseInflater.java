@@ -17,9 +17,9 @@ import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
-import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
+import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
@@ -371,6 +371,7 @@ public final class DatabaseInflater {
             for (int i = 0; i < index; i++) {
                 if (result[i].dependsOn(agent)) {
                     firstDependency = i;
+                    break;
                 }
             }
 
