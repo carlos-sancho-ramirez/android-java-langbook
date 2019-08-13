@@ -1083,6 +1083,96 @@ public final class LangbookReadableDatabase {
         return max;
     }
 
+    private static ImmutableIntSet getConceptsInAcceptations(DbExporter.Database db) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getConceptColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    private static ImmutableIntSet getConceptsInRuledConcepts(DbExporter.Database db) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(),
+                table.getRuleColumnIndex(),
+                table.getConceptColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+                builder.add(row.get(2).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    private static ImmutableIntSet getConceptsFromAlphabets(DbExporter.Database db) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(),
+                table.getLanguageColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    private static ImmutableIntSet getConceptsInComplementedConcepts(DbExporter.Database db) {
+        final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(),
+                table.getBaseColumnIndex(),
+                table.getComplementColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+
+                final int complement = row.get(2).toInt();
+                if (complement != 0) {
+                    builder.add(complement);
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
+    private static ImmutableIntSet getConceptsInConceptCompositions(DbExporter.Database db) {
+        final LangbookDbSchema.ConceptCompositionsTable table = LangbookDbSchema.Tables.conceptCompositions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getItemColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    public static ImmutableIntSet getUsedConcepts(DbExporter.Database db) {
+        final ImmutableIntSet set = getConceptsInAcceptations(db)
+                .addAll(getConceptsInRuledConcepts(db))
+                .addAll(getConceptsFromAlphabets(db))
+                .addAll(getConceptsInComplementedConcepts(db))
+                .addAll(getConceptsInConceptCompositions(db));
+
+        if (set.contains(0)) {
+            throw new AssertionError();
+        }
+
+        return set;
+    }
+
     public static int getMaxBunchSetId(DbExporter.Database db) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());

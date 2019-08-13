@@ -86,7 +86,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
 
         final Database db = DbManager.getInstance().getDatabase();
         String errorMessage = null;
-        if (!code.matches("[a-z][a-z]")) {
+        if (!code.matches(LanguageCodeRules.REGEX)) {
             errorMessage = getString(R.string.languageAdderBadLanguageCode);
         }
         else if (alphabetCount <= 0 || alphabetCount > 5) {

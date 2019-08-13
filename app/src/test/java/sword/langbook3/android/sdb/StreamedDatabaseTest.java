@@ -153,6 +153,11 @@ public final class StreamedDatabaseTest {
     }
 
     @Test
+    public void testReadWriteJustEsLang() {
+        checkReadWriteResource("justEsLang.sdb");
+    }
+
+    @Test
     public void testReadWriteEmpty() {
         checkReadWriteResource("empty.sdb");
     }

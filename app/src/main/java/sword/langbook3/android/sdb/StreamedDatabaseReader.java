@@ -692,30 +692,31 @@ public final class StreamedDatabaseReader {
                 return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new RuleAcceptationPair[0], new SentenceSpan[0]);
             }
             else {
-                final int minSymbolArrayIndex = 0;
                 final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
-                final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex,
-                        maxSymbolArrayIndex);
 
                 // Read languages and its alphabets
                 setProgress(0.09f, "Reading languages and its alphabets");
                 final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
                 final Language[] languages = new Language[languageCount];
-                final int minValidAlphabet = StreamedDatabaseConstants.minValidAlphabet;
-                int nextMinAlphabet = StreamedDatabaseConstants.minValidAlphabet;
-                final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
 
+                final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
+                final int minValidAlphabet = StreamedDatabaseConstants.minValidConcept + languageCount;
+                int nextMinAlphabet = minValidAlphabet;
+
+                final RangedIntegerHuffmanTable languageCodeSymbol = new RangedIntegerHuffmanTable('a', 'z');
                 for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
-                    final int codeSymbolArrayIndex = ibs.readHuffmanSymbol(symbolArrayTable);
+                    final char firstChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
+                    final char secondChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
                     final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
-                    final String code = getSymbolArray(_db, symbolArraysIdMap[codeSymbolArrayIndex]);
+
+                    final String code = "" + firstChar + secondChar;
                     languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
 
                     nextMinAlphabet += alphabetCount;
                 }
 
                 final int maxValidAlphabet = nextMinAlphabet - 1;
-                final int minLanguage = nextMinAlphabet;
+                final int minLanguage = StreamedDatabaseConstants.minValidConcept;
 
                 for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
                     for (int j = 0; j < languageCount; j++) {
@@ -744,7 +745,7 @@ public final class StreamedDatabaseReader {
 
                 // Import correlations
                 setProgress(0.15f, "Reading correlations");
-                int[] correlationIdMap = readCorrelations(ibs, StreamedDatabaseConstants.minValidAlphabet,
+                int[] correlationIdMap = readCorrelations(ibs, minValidAlphabet,
                         maxValidAlphabet, symbolArraysIdMap);
 
                 // Import correlation arrays
