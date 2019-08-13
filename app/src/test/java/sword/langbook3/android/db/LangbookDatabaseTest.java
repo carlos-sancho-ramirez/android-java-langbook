@@ -53,6 +53,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationsByConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findLanguageByCode;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsAndAgentSetsInBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelation;
@@ -1714,11 +1715,11 @@ public final class LangbookDatabaseTest {
         assertEquals(kanaText, texts.get(kanaAlphabet));
     }
 
-    private void insertTextForConcept(Database db, int concept, int alphabet, String text) {
+    private int insertTextForConcept(Database db, int concept, int alphabet, String text) {
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, text)
                 .build();
-        addAcceptation(db, concept, obtainSimpleCorrelationArray(db, obtainCorrelation(db, correlation)));
+        return addAcceptation(db, concept, obtainSimpleCorrelationArray(db, obtainCorrelation(db, correlation)));
     }
 
     @Test
@@ -1769,5 +1770,22 @@ public final class LangbookDatabaseTest {
             assertEquals(felineConcept, definition.complements.valueAt(0));
             assertEquals(quadrupedConcept, definition.complements.valueAt(1));
         }
+    }
+
+    @Test
+    public void testRemoveAcceptationForBunchWithAcceptationsInside() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int alphabet = addLanguage(db, "es").right;
+        final int animalConcept = getMaxConcept(db) + 1;
+        final int catConcept = animalConcept + 1;
+
+        final int animalAcc = insertTextForConcept(db, animalConcept, alphabet, "animal");
+        final int catAcc = insertTextForConcept(db, catConcept, alphabet, "gato");
+
+        assertTrue(addAcceptationInBunch(db, animalConcept, catAcc));
+        assertTrue(removeAcceptation(db, animalAcc));
+
+        assertTrue(getAcceptationsAndAgentSetsInBunch(db, animalConcept).keySet().isEmpty());
     }
 }

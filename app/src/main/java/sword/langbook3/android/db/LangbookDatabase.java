@@ -56,6 +56,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteAgentSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromCorrelations;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromStringQueries;
+import static sword.langbook3.android.db.LangbookDeleter.deleteBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsForAgentSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
@@ -591,11 +592,17 @@ public final class LangbookDatabase {
     }
 
     public static boolean removeAcceptation(Database db, int acceptation) {
+        final int concept = conceptFromAcceptation(db, acceptation);
+        final boolean withoutSynonymsOrTranslations = LangbookReadableDatabase.findAcceptationsByConcept(db, concept).remove(acceptation).isEmpty();
         LangbookDeleter.deleteKnowledge(db, acceptation);
         removeFromBunches(db, acceptation);
         removeFromStringQueryTable(db, acceptation);
         final boolean removed = LangbookDeleter.deleteAcceptation(db, acceptation);
         deleteSearchHistoryForAcceptation(db, acceptation);
+
+        if (removed && withoutSynonymsOrTranslations) {
+            deleteBunch(db, concept);
+        }
 
         final ImmutableIntPairMap affectedAgents = findAgentsWithoutSourceBunchesWithTarget(db);
         for (int agent : affectedAgents.keySet()) {
