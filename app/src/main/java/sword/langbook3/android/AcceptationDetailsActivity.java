@@ -540,12 +540,14 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void deleteAcceptation() {
-        if (!LangbookDatabase.removeAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation)) {
-            throw new AssertionError();
+        if (LangbookDatabase.removeAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation)) {
+            showFeedback(getString(R.string.deleteAcceptationFeedback));
+            finish();
         }
-
-        showFeedback(getString(R.string.deleteAcceptationFeedback));
-        finish();
+        else {
+            showFeedback(getString(R.string.unableToDelete));
+            _state.clearDeletingAcceptation();
+        }
     }
 
     @Override

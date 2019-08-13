@@ -3,6 +3,7 @@ package sword.langbook3.android.db;
 import org.junit.Test;
 
 import sword.collections.ImmutableHashMap;
+import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -1787,5 +1788,37 @@ public final class LangbookDatabaseTest {
         assertTrue(removeAcceptation(db, animalAcc));
 
         assertTrue(getAcceptationsAndAgentSetsInBunch(db, animalConcept).keySet().isEmpty());
+    }
+
+    @Test
+    public void testUnabletoRemoveAcceptationsWhenTheyAreUniqueAgentSourceOrTargetBunch() {
+        final MemoryDatabase db = new MemoryDatabase();
+
+        final int alphabet = addLanguage(db, "es").right;
+        final int verbConcept = getMaxConcept(db) + 1;
+        final int firstConjugationVerbConcept = verbConcept + 1;
+        final int singConcept = firstConjugationVerbConcept + 1;
+
+        final String verbText = "verbo";
+        final String firstConjugationVerbText = "verbo de primera conjugación";
+
+        final int verbAcc = insertTextForConcept(db, verbConcept, alphabet, verbText);
+        final int firstConjugationVerbAcc = insertTextForConcept(db, firstConjugationVerbConcept, alphabet, firstConjugationVerbText);
+        final int singAcc = insertTextForConcept(db, singConcept, alphabet, "cantar");
+
+        assertTrue(addAcceptationInBunch(db, verbConcept, singAcc));
+
+        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
+        final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
+
+        final ImmutableIntKeyMap<String> startMatcher = ImmutableIntKeyMap.empty();
+        final ImmutableIntKeyMap<String> endMatcher = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "ar").build();
+        assertNotEquals(null, addAgent(db, firstConjugationVerbConcept, sourceBunches, diffBunches, startMatcher, startMatcher, endMatcher, endMatcher, 0));
+
+        assertFalse(removeAcceptation(db, verbAcc));
+        assertFalse(removeAcceptation(db, firstConjugationVerbAcc));
+
+        assertEquals(verbText, LangbookReadableDatabase.getAcceptationTexts(db, verbAcc).get(alphabet));
+        assertEquals(firstConjugationVerbText, LangbookReadableDatabase.getAcceptationTexts(db, firstConjugationVerbAcc).get(alphabet));
     }
 }

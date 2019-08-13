@@ -1919,6 +1919,53 @@ public final class LangbookReadableDatabase {
     }
 
     /**
+     * Return true if the given concept is required for any agent as source, diff, target or rule
+     * @param db Readable database to be used.
+     * @param concept Concept to by looked up
+     * @return Whether there is at least one agent that uses the concept as source, target, diff or rule.
+     */
+    static boolean hasAgentsRequiringAcceptation(DbExporter.Database db, int concept) {
+        final MutableIntPairMap flags = MutableIntPairMap.empty();
+
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        DbQuery query = new DbQuery.Builder(agents)
+                .select(agents.getTargetBunchColumnIndex(), agents.getRuleColumnIndex(), agents.getSourceBunchSetColumnIndex(), agents.getDiffBunchSetColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int target = row.get(0).toInt();
+                final int rule = row.get(1).toInt();
+
+                if (target == concept || rule == concept) {
+                    return true;
+                }
+
+                final int sourceBunchSet = row.get(2).toInt();
+                final int diffBunchSet = row.get(3).toInt();
+                builder.add(sourceBunchSet).add(diffBunchSet);
+            }
+        }
+        final ImmutableIntSet requiredBunchSets = builder.build();
+
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
+        query = new DbQuery.Builder(bunchSets)
+                .where(bunchSets.getBunchColumnIndex(), concept)
+                .select(bunchSets.getSetIdColumnIndex());
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final int bunch = dbResult.next().get(0).toInt();
+                if (requiredBunchSets.contains(bunch)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Return information about all agents involved with the given acceptation.
      * @param db Readable database to be used
      * @param staticAcceptation Identifier for the acceptation to analyze.

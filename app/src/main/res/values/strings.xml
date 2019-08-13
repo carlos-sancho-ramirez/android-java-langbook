@@ -184,4 +184,5 @@
     <string name="definitionEditorComponentsPanelTitle">Complements</string>
     <string name="definitionEditorSaveButton">Save</string>
     <string name="baseConceptMissing">Missing base concept</string>
+    <string name="unableToDelete">Unable to delete</string>
 </resources>

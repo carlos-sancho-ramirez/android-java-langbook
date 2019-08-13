@@ -112,6 +112,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxQuestion
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxSentenceMeaning;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceMeaning;
+import static sword.langbook3.android.db.LangbookReadableDatabase.hasAgentsRequiringAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
@@ -594,6 +595,10 @@ public final class LangbookDatabase {
     public static boolean removeAcceptation(Database db, int acceptation) {
         final int concept = conceptFromAcceptation(db, acceptation);
         final boolean withoutSynonymsOrTranslations = LangbookReadableDatabase.findAcceptationsByConcept(db, concept).remove(acceptation).isEmpty();
+        if (withoutSynonymsOrTranslations && hasAgentsRequiringAcceptation(db, concept)) {
+            return false;
+        }
+
         LangbookDeleter.deleteKnowledge(db, acceptation);
         removeFromBunches(db, acceptation);
         removeFromStringQueryTable(db, acceptation);
