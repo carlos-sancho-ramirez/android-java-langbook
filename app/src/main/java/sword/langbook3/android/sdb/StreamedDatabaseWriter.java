@@ -21,6 +21,7 @@ import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -35,6 +36,7 @@ import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.IntValueMap;
 import sword.collections.List;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
@@ -49,6 +51,7 @@ import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
+import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema;
 
 import static sword.langbook3.android.db.LangbookReadableDatabase.getUsedConcepts;
@@ -796,22 +799,26 @@ public final class StreamedDatabaseWriter {
         final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getBaseColumnIndex(),
-                table.getIdColumnIndex());
+                table.getIdColumnIndex(),
+                table.getComplementColumnIndex());
 
-        final MutableIntKeyMap<MutableIntSet> bases = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<MutableSet<ImmutableIntPair>> bases = MutableIntKeyMap.empty();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int baseId = conceptIdMap.get(row.get(0).toInt());
-                final MutableIntSet set;
+                final MutableSet<ImmutableIntPair> set;
                 if (bases.keySet().contains(baseId)) {
                     set = bases.get(baseId);
                 }
                 else {
-                    set = MutableIntArraySet.empty();
+                    set = MutableHashSet.empty();
                     bases.put(baseId, set);
                 }
-                set.add(conceptIdMap.get(row.get(1).toInt()));
+
+                final int complementedConcept = conceptIdMap.get(row.get(1).toInt());
+                final int compositionId = row.get(2).toInt();
+                set.add(new ImmutableIntPair(complementedConcept, compositionId));
             }
         }
 
@@ -819,7 +826,7 @@ public final class StreamedDatabaseWriter {
 
         if (!bases.isEmpty()) {
             final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
-            for (IntSet set : bases) {
+            for (MutableSet<ImmutableIntPair> set : bases) {
                 final int length = set.size();
                 final int amount = lengthFrequencies.get(length, 0);
                 lengthFrequencies.put(length, amount + 1);
@@ -832,13 +839,53 @@ public final class StreamedDatabaseWriter {
             final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, StreamedDatabaseConstants.minValidConcept, StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1);
             int remainingBunches = bases.size();
             int minBunchConcept = StreamedDatabaseConstants.minValidConcept;
-            for (IntKeyMap.Entry<MutableIntSet> entry : bases.entries()) {
+            for (IntKeyMap.Entry<MutableSet<ImmutableIntPair>> entry : bases.entries()) {
                 final RangedIntegerHuffmanTable bunchTable = new RangedIntegerHuffmanTable(minBunchConcept, StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - remainingBunches);
                 _obs.writeHuffmanSymbol(bunchTable, entry.key());
                 minBunchConcept = entry.key() + 1;
                 --remainingBunches;
 
-                writeRangedNumberSet(encoder, entry.value());
+                final java.util.Map<Integer, ImmutableIntSet> innerMap = new java.util.HashMap<>();
+                for (ImmutableIntPair pair : entry.value()) {
+                    final ImmutableIntSet itemConcepts;
+                    if (pair.right == 0) {
+                        itemConcepts = ImmutableIntArraySet.empty();
+                    }
+                    else {
+                        final LangbookDbSchema.ConceptCompositionsTable conceptCompositions = LangbookDbSchema.Tables.conceptCompositions;
+                        final DbQuery compositionQuery = new DbQuery.Builder(conceptCompositions)
+                                .where(conceptCompositions.getComposedColumnIndex(), pair.right)
+                                .select(conceptCompositions.getItemColumnIndex());
+
+                        final ImmutableIntSetCreator itemConceptsBuilder = new ImmutableIntSetCreator();
+                        boolean hasItems = false;
+                        try (DbResult dbResult = _db.select(compositionQuery)) {
+                            while (dbResult.hasNext()) {
+                                hasItems = true;
+                                itemConceptsBuilder.add(conceptIdMap.get(dbResult.next().get(0).toInt()));
+                            }
+                        }
+
+                        itemConcepts = hasItems? itemConceptsBuilder.build() : itemConceptsBuilder.add(conceptIdMap.get(pair.right)).build();
+                    }
+
+                    innerMap.put(pair.left, itemConcepts);
+                }
+
+                _obs.writeMap(encoder, encoder, encoder, encoder, complements -> {
+                    int minValidComplement = StreamedDatabaseConstants.minValidConcept;
+                    final int maxValidComplement = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1;
+                    for (int complement : complements) {
+                        _obs.writeBoolean(true);
+                        final RangedIntegerHuffmanTable rangedTable = new RangedIntegerHuffmanTable(minValidComplement, maxValidComplement);
+                        _obs.writeHuffmanSymbol(rangedTable, complement);
+                        minValidComplement = complement + 1;
+                    }
+
+                    if (minValidComplement <= maxValidComplement) {
+                        _obs.writeBoolean(false);
+                    }
+                }, innerMap);
             }
         }
     }
@@ -1506,7 +1553,7 @@ public final class StreamedDatabaseWriter {
             setProgress(0.5f, "Writing acceptations");
             final ImmutableIntPairMap accIdMap = writeAcceptations(exportable.acceptations, conceptIdMap, correlationArrayIdMap);
 
-            setProgress(0.6f, "Writing bunch concepts");
+            setProgress(0.6f, "Writing complemented concepts");
             writeComplementedConcepts(conceptIdMap);
 
             setProgress(0.7f, "Writing bunch acceptations");

@@ -29,11 +29,12 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
-import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.db.LangbookDbInserter;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
+import sword.langbook3.android.models.Conversion;
 
+import static sword.langbook3.android.db.LangbookDatabase.addDefinition;
 import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
 import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
 import static sword.langbook3.android.db.LangbookDatabase.obtainSymbolArray;
@@ -41,7 +42,6 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAgent;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertComplementedConcept;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConversion;
 import static sword.langbook3.android.db.LangbookDbInserter.insertLanguage;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceMeaning;
@@ -416,9 +416,21 @@ public final class StreamedDatabaseReader {
             final int base = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept));
             minBunchConcept = base + 1;
 
-            final ImmutableIntSet concepts = readRangedNumberSet(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
-            for (int concept : concepts) {
-                insertComplementedConcept(_db, base, concept, 0);
+            final RangedIntegerSetDecoder decoder = new RangedIntegerSetDecoder(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
+            final java.util.Map<Integer, ImmutableIntSet> map = ibs.readMap(decoder, decoder, decoder, () -> {
+                final MutableIntSet complements = MutableIntArraySet.empty();
+                int minValidConcept = validConcepts.min();
+                while (minValidConcept < validConcepts.max() && ibs.readBoolean()) {
+                    final int concept = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minValidConcept, validConcepts.max()));
+                    complements.add(concept);
+                    minValidConcept = concept + 1;
+                }
+
+                return complements.toImmutable();
+            });
+
+            for (Map.Entry<Integer, ImmutableIntSet> entry : map.entrySet()) {
+                addDefinition(_db, base, entry.getKey(), entry.getValue());
             }
         }
     }

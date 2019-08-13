@@ -1170,7 +1170,7 @@ public final class LangbookDatabase {
         return true;
     }
 
-    private static int obtainConceptComposition(Database db, ImmutableIntSet concepts) {
+    private static int obtainConceptComposition(DbImporter.Database db, ImmutableIntSet concepts) {
         final Integer compositionConcept = LangbookReadableDatabase.findConceptComposition(db, concepts);
         if (compositionConcept == null) {
             int newCompositionConcept = getMaxConcept(db) + 1;
@@ -1188,7 +1188,7 @@ public final class LangbookDatabase {
         return compositionConcept;
     }
 
-    public static void addDefinition(Database db, int baseConcept, int concept, ImmutableIntSet complements) {
+    public static void addDefinition(DbImporter.Database db, int baseConcept, int concept, ImmutableIntSet complements) {
         LangbookDbInserter.insertComplementedConcept(db, baseConcept, concept, obtainConceptComposition(db, complements));
     }
 
