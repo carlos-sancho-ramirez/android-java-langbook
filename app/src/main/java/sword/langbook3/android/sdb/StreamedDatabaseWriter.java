@@ -977,7 +977,7 @@ public final class StreamedDatabaseWriter {
                     final int startAdder = row.get(3).toInt();
                     final int endMatcher = row.get(4).toInt();
                     final int endAdder = row.get(5).toInt();
-                    final int rule = conceptIdMap.get(row.get(6).toInt());
+                    final int rawRule = row.get(6).toInt();
 
                     final RangedIntegerHuffmanTable targetBunchTable = (lastTarget == 0)?
                             new RangedIntegerHuffmanTable(0, conceptIdMap.size()) :
@@ -1004,6 +1004,7 @@ public final class StreamedDatabaseWriter {
 
                     final boolean hasRule = startMatcher != startAdder || endMatcher != endAdder;
                     if (hasRule) {
+                        final int rule = conceptIdMap.get(rawRule);
                         _obs.writeHuffmanSymbol(conceptTable, rule);
                         presentRules.add(rule);
                     }
