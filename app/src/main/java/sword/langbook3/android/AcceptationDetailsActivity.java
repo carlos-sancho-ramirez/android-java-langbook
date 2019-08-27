@@ -118,7 +118,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         _hasDefinition = _model.baseConceptAcceptationId != 0;
         if (_hasDefinition) {
-            String baseText = getString(R.string.accDetailsSectionType) + ": " + _model.baseConceptText;
+            String baseText = getString(R.string.accDetailsSectionDefinition) + ": " + _model.baseConceptText;
             String complementsText = _model.definitionComplementTexts.reduce((a, b) -> a + ", " + b, null);
             String definitionText = (complementsText != null)? baseText + " (" + complementsText + ")" : baseText;
             result.add(new AcceptationNavigableItem(_model.baseConceptAcceptationId, definitionText, false));

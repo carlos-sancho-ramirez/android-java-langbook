@@ -27,7 +27,7 @@
     <!-- Acceptation details activity sections -->
     <string name="accDetailsSectionSummary">Displaying details for acceptation %d</string>
     <string name="accDetailsSectionLanguage">Language</string>
-    <string name="accDetailsSectionType">Type of</string>
+    <string name="accDetailsSectionDefinition">Definition</string>
     <string name="accDetailsSectionSubtypes">Subtypes</string>
     <string name="accDetailsSectionSynonyms">Synonyms</string>
     <string name="accDetailsSectionTranslations">Translations</string>
