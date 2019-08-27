@@ -1838,7 +1838,7 @@ public final class LangbookReadableDatabase {
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
 
         final int bunchSetsOffset = acceptations.columns().size();
-        final int agentsOffset = bunchSetsOffset + bunchSets.getSetIdColumnIndex();
+        final int agentsOffset = bunchSetsOffset + bunchSets.columns().size();
 
         final DbQuery query = new DbQuery.Builder(acceptations)
                 .join(bunchSets, acceptations.getConceptColumnIndex(), bunchSets.getBunchColumnIndex())
