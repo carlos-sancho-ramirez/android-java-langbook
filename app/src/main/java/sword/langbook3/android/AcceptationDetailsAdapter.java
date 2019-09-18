@@ -1,6 +1,6 @@
 package sword.langbook3.android;
 
-import android.content.Context;
+import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,7 +41,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             return _text;
         }
 
-        abstract void navigate(Context context);
+        abstract void navigate(Activity activity, int requestCode);
 
         boolean isEnabled() {
             return false;
@@ -71,7 +71,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
+        void navigate(Activity activity, int requestCode) {
             // This item does not navigate
         }
 
@@ -102,8 +102,8 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
-            AcceptationDetailsActivity.open(context, _id, _id);
+        void navigate(Activity activity, int requestCode) {
+            AcceptationDetailsActivity.open(activity, requestCode, _id, _id, false);
         }
 
         @Override
@@ -139,8 +139,8 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
-            CorrelationDetailsActivity.open(context, _id);
+        void navigate(Activity activity, int requestCode) {
+            CorrelationDetailsActivity.open(activity, _id);
         }
 
         @Override
@@ -163,8 +163,8 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
-            RuleTableActivity.open(context, _id);
+        void navigate(Activity activity, int requestCode) {
+            RuleTableActivity.open(activity, _id);
         }
 
         @Override
@@ -188,8 +188,8 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
-            AgentDetailsActivity.open(context, _id);
+        void navigate(Activity activity, int requestCode) {
+            AgentDetailsActivity.open(activity, _id);
         }
 
         @Override
@@ -208,8 +208,8 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
-            SentenceDetailsActivity.open(context, _id);
+        void navigate(Activity activity, int requestCode) {
+            SentenceDetailsActivity.open(activity, _id);
         }
 
         @Override
@@ -229,7 +229,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
+        void navigate(Activity activity, int requestCode) {
             // This item does not navigate
         }
     }
@@ -270,7 +270,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Context context) {
+        void navigate(Activity activity, int requestCode) {
             // This item does not navigate
         }
 

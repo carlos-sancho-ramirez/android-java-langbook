@@ -49,11 +49,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_CREATE_SENTENCE = 1;
-    private static final int REQUEST_CODE_EDIT = 2;
-    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 3;
-    private static final int REQUEST_CODE_PICK_ACCEPTATION = 4;
-    private static final int REQUEST_CODE_PICK_BUNCH = 5;
-    private static final int REQUEST_CODE_PICK_DEFINITION = 6;
+    private static final int REQUEST_CODE_CLICK_NAVIGATION = 2;
+    private static final int REQUEST_CODE_EDIT = 3;
+    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 4;
+    private static final int REQUEST_CODE_PICK_ACCEPTATION = 5;
+    private static final int REQUEST_CODE_PICK_BUNCH = 6;
+    private static final int REQUEST_CODE_PICK_DEFINITION = 7;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -323,7 +324,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-        _listAdapter.getItem(position).navigate(this);
+        _listAdapter.getItem(position).navigate(this, REQUEST_CODE_CLICK_NAVIGATION);
     }
 
     @Override
@@ -552,7 +553,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
+        if (requestCode == REQUEST_CODE_CLICK_NAVIGATION) {
+            updateModelAndUi();
+        }
+        else if (resultCode == RESULT_OK) {
             final Database db = DbManager.getInstance().getDatabase();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 final boolean usedConcept = data

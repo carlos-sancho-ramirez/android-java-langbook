@@ -21,6 +21,8 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelation
 
 public final class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
+    private static final int REQUEST_CODE_CLICK_NAVIGATION = 1;
+
     private interface ArgKeys {
         String CORRELATION = BundleKeys.CORRELATION;
     }
@@ -34,6 +36,8 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     private int _correlationId;
     private CorrelationDetailsModel _model;
     private AcceptationDetailsAdapter _listAdapter;
+
+    private boolean _justLoaded;
 
     private static String composeCorrelationString(ImmutableIntKeyMap<String> correlation) {
         return correlation.reduce((a, b) -> a + '/' + b);
@@ -71,16 +75,12 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         return result.build();
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.correlation_details_activity);
-
+    private void updateModelAndUi() {
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _correlationId = getIntent().getIntExtra(ArgKeys.CORRELATION, 0);
         _model = getCorrelationDetails(DbManager.getInstance().getDatabase(), _correlationId, preferredAlphabet);
 
         if (_model != null) {
+            _justLoaded = true;
             setTitle(getString(R.string.correlationDetailsActivityTitle, composeCorrelationString(_model.correlation)));
             _listAdapter = new AcceptationDetailsAdapter(getAdapterItems());
             final ListView listView = findViewById(R.id.listView);
@@ -93,7 +93,29 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.correlation_details_activity);
+
+        _correlationId = getIntent().getIntExtra(ArgKeys.CORRELATION, 0);
+        updateModelAndUi();
+    }
+
+    @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-        _listAdapter.getItem(position).navigate(this);
+        _listAdapter.getItem(position).navigate(this, REQUEST_CODE_CLICK_NAVIGATION);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_CLICK_NAVIGATION && !_justLoaded) {
+            updateModelAndUi();
+        }
+    }
+
+    @Override
+    public void onStart() {
+        _justLoaded = false;
+        super.onStart();
     }
 }
