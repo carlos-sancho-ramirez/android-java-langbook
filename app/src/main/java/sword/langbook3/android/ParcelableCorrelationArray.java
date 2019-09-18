@@ -7,7 +7,6 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.List;
-import sword.collections.MutableIntKeyMap;
 
 public final class ParcelableCorrelationArray implements Parcelable {
 
@@ -38,17 +37,7 @@ public final class ParcelableCorrelationArray implements Parcelable {
         }
         else {
             final ImmutableIntRange range = new ImmutableIntRange(0, arraySize - 1);
-            array = range.map(index -> {
-                final int correlationSize = in.readInt();
-                MutableIntKeyMap<String> correlation = MutableIntKeyMap.empty();
-                for (int j = 0; j < correlationSize; j++) {
-                    final int key = in.readInt();
-                    final String value = in.readString();
-                    correlation.put(key, value);
-                }
-
-                return correlation.toImmutable();
-            });
+            array = range.map(index -> ParcelableCorrelation.read(in));
         }
 
         return array.toImmutable();
@@ -60,13 +49,7 @@ public final class ParcelableCorrelationArray implements Parcelable {
 
         for (int i = 0; i < arraySize; i++) {
             final ImmutableIntKeyMap<String> correlation = array.valueAt(i);
-            final int correlationSize = correlation.size();
-            dest.writeInt(correlationSize);
-
-            for (int j = 0; j < correlationSize; j++) {
-                dest.writeInt(correlation.keyAt(j));
-                dest.writeString(correlation.valueAt(j));
-            }
+            ParcelableCorrelation.write(dest, correlation);
         }
     }
 

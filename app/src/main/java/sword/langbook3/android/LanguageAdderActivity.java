@@ -7,6 +7,10 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableList;
+import sword.collections.IntKeyMap;
+import sword.collections.MutableIntKeyMap;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookReadableDatabase;
 
@@ -46,29 +50,65 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         }
     }
 
+    private ImmutableIntKeyMap<String> correlationFromCorrelationArray(ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+        return correlationArray.reduce((corr1, corr2) -> {
+            final MutableIntKeyMap<String> mixed = corr1.mutate();
+            for (IntKeyMap.Entry<String> entry : corr2.entries()) {
+                final int key = entry.key();
+                mixed.put(key, mixed.get(key) + entry.value());
+            }
+
+            return mixed.toImmutable();
+        });
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_NAME_LANGUAGE && resultCode == RESULT_OK) {
-            final ParcelableCorrelationArray parcelableArray = data.getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
-            _state.setLanguageCorrelationArray(parcelableArray.get());
-            final String title = getString(R.string.newMainAlphabetNameActivityTitle);
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getAlphabets(), _state.getCurrentConcept());
-        }
-        else if (requestCode == REQUEST_CODE_NAME_ALPHABET && resultCode == RESULT_OK) {
-            final ParcelableCorrelationArray parcelableArray = data.getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
-            _state.setNextAlphabetCorrelationArray(parcelableArray.get());
-
-            if (_state.missingAlphabetCorrelationArray()) {
-                final String title = getString(R.string.newAuxAlphabetNameActivityTitle);
-                WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getAlphabets(), _state.getCurrentConcept());
+        if (requestCode == REQUEST_CODE_NAME_LANGUAGE) {
+            if (resultCode == RESULT_OK) {
+                final ParcelableCorrelationArray parcelableArray = data
+                        .getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
+                _state.setLanguageCorrelationArray(parcelableArray.get());
+                final String title = getString(R.string.newMainAlphabetNameActivityTitle);
+                WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getEmptyCorrelation(),
+                        _state.getCurrentConcept());
             }
             else {
-                final Database db = DbManager.getInstance().getDatabase();
-                _state.storeIntoDatabase(db);
+                _state.reset();
+            }
+        }
+        else if (requestCode == REQUEST_CODE_NAME_ALPHABET) {
+            if (resultCode == RESULT_OK) {
+                final ParcelableCorrelationArray parcelableArray = data
+                        .getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
+                _state.setNextAlphabetCorrelationArray(parcelableArray.get());
 
-                Toast.makeText(this, R.string.addLanguageFeedback, Toast.LENGTH_SHORT).show();
-                setResult(RESULT_OK);
-                finish();
+                if (_state.missingAlphabetCorrelationArray()) {
+                    final String title = getString(R.string.newAuxAlphabetNameActivityTitle);
+                    WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getEmptyCorrelation(),
+                            _state.getCurrentConcept());
+                }
+                else {
+                    final Database db = DbManager.getInstance().getDatabase();
+                    _state.storeIntoDatabase(db);
+
+                    Toast.makeText(this, R.string.addLanguageFeedback, Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK);
+                    finish();
+                }
+            }
+            else {
+                if (_state.hasAtLeastOneAlphabetCorrelationArray()) {
+                    final ImmutableIntKeyMap<String> correlation = correlationFromCorrelationArray(_state.popLastAlphabetCorrelationArray());
+                    final int titleResId = _state.hasAtLeastOneAlphabetCorrelationArray()?
+                            R.string.newMainAlphabetNameActivityTitle : R.string.newAuxAlphabetNameActivityTitle;
+                    WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, getString(titleResId), correlation, _state.getCurrentConcept());
+                }
+                else {
+                    final ImmutableIntKeyMap<String> correlation = correlationFromCorrelationArray(_state.popLanguageCorrelationArray());
+                    final String title = getString(R.string.newLanguageNameActivityTitle);
+                    WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, correlation, _state.getCurrentConcept());
+                }
             }
         }
     }
@@ -103,7 +143,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         if (errorMessage == null) {
             _state.setBasicDetails(code, languageId, alphabetCount);
             final String title = getString(R.string.newLanguageNameActivityTitle);
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getAlphabets(), languageId);
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getEmptyCorrelation(), languageId);
         }
         else {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
@@ -112,6 +152,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 }

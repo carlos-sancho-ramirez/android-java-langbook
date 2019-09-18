@@ -78,6 +78,6 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':database')
     implementation 'com.github.carlos-sancho-ramirez:lib-java-bitstream:cc83755605b55173b1dcef75dc5ba873a216a39d'
-    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:53738c8f74c18a5f6a096bf39530b081f020fe54'
+    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:d5f3790d248fa7d468b8c93745ecb0da7b001ded'
     testImplementation 'junit:junit:4.12'
 }
