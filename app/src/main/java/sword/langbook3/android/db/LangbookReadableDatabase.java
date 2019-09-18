@@ -1480,7 +1480,15 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), accId)
                 .select(table.getConceptColumnIndex());
-        return selectSingleRow(db, query).get(0).toInt();
+        try (DbResult result = db.select(query)) {
+            final int concept = result.hasNext()? result.next().get(0).toInt() : 0;
+
+            if (result.hasNext()) {
+                throw new AssertionError("Multiple rows found matching the given criteria");
+            }
+
+            return concept;
+        }
     }
 
     static int correlationArrayFromAcceptation(DbExporter.Database db, int accId) {

@@ -140,7 +140,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
         @Override
         void navigate(Activity activity, int requestCode) {
-            CorrelationDetailsActivity.open(activity, _id);
+            CorrelationDetailsActivity.open(activity, requestCode, _id);
         }
 
         @Override
@@ -279,7 +279,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             return R.layout.correlation_array_container;
         }
 
-        void updateView(LinearLayout view) {
+        void updateView(Activity activity, int requestCode, LinearLayout view) {
             view.removeAllViews();
             final LayoutInflater inflater = LayoutInflater.from(view.getContext());
             for (int correlationId : _correlationIds) {
@@ -298,7 +298,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
                 pronunciationTv.setText(furiganaText);
 
                 corrLayout.setOnClickListener(v -> {
-                    CorrelationDetailsActivity.open(v.getContext(), correlationId);
+                    CorrelationDetailsActivity.open(activity, requestCode, correlationId);
                 });
             }
         }
@@ -307,9 +307,12 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
     private final ImmutableList<Item> _items;
     private final boolean _allItemsEnabled;
     private final ImmutableIntSet _viewTypes;
+
+    private final Activity _activity;
+    private final int _correlationArrayRequestCode;
     private LayoutInflater _inflater;
 
-    AcceptationDetailsAdapter(ImmutableList<Item> items) {
+    AcceptationDetailsAdapter(Activity activity, int correlationArrayRequestCode, ImmutableList<Item> items) {
         final MutableIntSet viewTypeSet = MutableIntArraySet.empty();
         boolean allEnabled = true;
         for (Item item : items) {
@@ -320,6 +323,9 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         _items = items;
         _allItemsEnabled = allEnabled;
         _viewTypes = viewTypeSet.toImmutable();
+
+        _activity = activity;
+        _correlationArrayRequestCode = correlationArrayRequestCode;
     }
 
     @Override
@@ -384,7 +390,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
         else if (item instanceof CorrelationArrayItem) {
             final CorrelationArrayItem caItem = (CorrelationArrayItem) item;
-            caItem.updateView((LinearLayout) view);
+            caItem.updateView(_activity, _correlationArrayRequestCode, (LinearLayout) view);
         }
         else {
             throw new AssertionError("Unable to handle item");

@@ -257,7 +257,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         _model = getAcceptationsDetails(db, _staticAcceptation, _preferredAlphabet);
         if (_model != null) {
             setTitle(_model.getTitle(_preferredAlphabet));
-            _listAdapter = new AcceptationDetailsAdapter(getAdapterItems());
+            _listAdapter = new AcceptationDetailsAdapter(this, REQUEST_CODE_CLICK_NAVIGATION, getAdapterItems());
             _listView.setAdapter(_listAdapter);
             return true;
         }

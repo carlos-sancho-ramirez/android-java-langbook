@@ -1,7 +1,6 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -27,10 +26,10 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         String CORRELATION = BundleKeys.CORRELATION;
     }
 
-    public static void open(Context context, int correlationId) {
-        Intent intent = new Intent(context, CorrelationDetailsActivity.class);
+    public static void open(Activity activity, int requestCode, int correlationId) {
+        Intent intent = new Intent(activity, CorrelationDetailsActivity.class);
         intent.putExtra(ArgKeys.CORRELATION, correlationId);
-        context.startActivity(intent);
+        activity.startActivityForResult(intent, requestCode);
     }
 
     private int _correlationId;
@@ -82,7 +81,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         if (_model != null) {
             _justLoaded = true;
             setTitle(getString(R.string.correlationDetailsActivityTitle, composeCorrelationString(_model.correlation)));
-            _listAdapter = new AcceptationDetailsAdapter(getAdapterItems());
+            _listAdapter = new AcceptationDetailsAdapter(this, REQUEST_CODE_CLICK_NAVIGATION, getAdapterItems());
             final ListView listView = findViewById(R.id.listView);
             listView.setAdapter(_listAdapter);
             listView.setOnItemClickListener(this);
