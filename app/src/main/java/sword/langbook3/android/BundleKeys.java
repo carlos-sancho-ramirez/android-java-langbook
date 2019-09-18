@@ -23,4 +23,5 @@ public interface BundleKeys {
     String TARGET_ALPHABET = "tAlph";
     String TEXT = "text";
     String TEXTS = "texts";
+    String TITLE = "title";
 }

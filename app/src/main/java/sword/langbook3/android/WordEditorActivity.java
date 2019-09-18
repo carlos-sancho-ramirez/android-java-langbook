@@ -49,6 +49,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         String CONCEPT = BundleKeys.CONCEPT;
         String LANGUAGE = BundleKeys.LANGUAGE;
         String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
+        String TITLE = BundleKeys.TITLE;
     }
 
     private interface SavedKeys {
@@ -82,9 +83,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, IntSet alphabets, int concept) {
+    public static void open(Activity activity, int requestCode, String title, IntSet alphabets, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
+        intent.putExtra(ArgKeys.TITLE, title);
 
         final int alphabetCount = alphabets.size();
         final int[] alphabetArray = new int[alphabetCount];
@@ -126,6 +128,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.word_editor_activity);
+
+        final String givenTitle = getIntent().getStringExtra(ArgKeys.TITLE);
+        if (givenTitle != null) {
+            setTitle(givenTitle);
+        }
 
         _formPanel = findViewById(R.id.formPanel);
         findViewById(R.id.nextButton).setOnClickListener(this);

@@ -51,14 +51,16 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         if (requestCode == REQUEST_CODE_NAME_LANGUAGE && resultCode == RESULT_OK) {
             final ParcelableCorrelationArray parcelableArray = data.getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
             _state.setLanguageCorrelationArray(parcelableArray.get());
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, _state.getAlphabets(), _state.getCurrentConcept());
+            final String title = getString(R.string.newMainAlphabetNameActivityTitle);
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getAlphabets(), _state.getCurrentConcept());
         }
         else if (requestCode == REQUEST_CODE_NAME_ALPHABET && resultCode == RESULT_OK) {
             final ParcelableCorrelationArray parcelableArray = data.getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
             _state.setNextAlphabetCorrelationArray(parcelableArray.get());
 
             if (_state.missingAlphabetCorrelationArray()) {
-                WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, _state.getAlphabets(), _state.getCurrentConcept());
+                final String title = getString(R.string.newAuxAlphabetNameActivityTitle);
+                WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getAlphabets(), _state.getCurrentConcept());
             }
             else {
                 final Database db = DbManager.getInstance().getDatabase();
@@ -100,7 +102,8 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
 
         if (errorMessage == null) {
             _state.setBasicDetails(code, languageId, alphabetCount);
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, _state.getAlphabets(), languageId);
+            final String title = getString(R.string.newLanguageNameActivityTitle);
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getAlphabets(), languageId);
         }
         else {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
