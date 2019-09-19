@@ -49,7 +49,6 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
     private TextView _sentenceText;
     private ListView _listView;
-    private ActionMode _selectionActionMode;
 
     private SpanEditorActivityState _state = new SpanEditorActivityState();
 
@@ -139,25 +138,22 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
     @Override
     public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-        _selectionActionMode = mode;
-        return true;
-    }
-
-    @Override
-    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
         getMenuInflater().inflate(R.menu.span_editor_selection_actions, menu);
         return true;
     }
 
     @Override
+    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+        // Nothing to be done
+        return false;
+    }
+
+    @Override
     public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemAddSpan:
-                addSpan();
-                final ActionMode actionMode = _selectionActionMode;
-                _selectionActionMode = null;
-                actionMode.finish();
-                return true;
+        if (item.getItemId() == R.id.menuItemAddSpan) {
+            addSpan();
+            mode.finish();
+            return true;
         }
 
         return false;
@@ -177,16 +173,13 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemConfirm:
-                evaluateSpans();
-                break;
-
-            default:
-                return super.onOptionsItemSelected(item);
+        if (item.getItemId() == R.id.menuItemConfirm) {
+            evaluateSpans();
+            return true;
         }
-
-        return true;
+        else {
+            return super.onOptionsItemSelected(item);
+        }
     }
 
     private void evaluateSpans() {
@@ -252,12 +245,11 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private void addSpan() {
         final int start = _sentenceText.getSelectionStart();
         final int end = _sentenceText.getSelectionEnd();
-        if (start >= 0 && start < end - 1) {
-            final ImmutableIntRange range = new ImmutableIntRange(start, end - 1);
-            final String query = _sentenceText.getText().toString().substring(start, end);
-            _state.setSelection(range);
-            FixedTextAcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION, query);
-        }
+
+        final ImmutableIntRange range = new ImmutableIntRange(start, end - 1);
+        final String query = _sentenceText.getText().toString().substring(start, end);
+        _state.setSelection(range);
+        FixedTextAcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION, query);
     }
 
     @Override
