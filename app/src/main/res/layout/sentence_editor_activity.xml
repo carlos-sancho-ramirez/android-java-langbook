@@ -7,10 +7,8 @@
     <EditText
         android:id="@+id/textField"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:inputType="textMultiLine"
-        android:gravity="top|left"/>
+        android:layout_height="wrap_content"
+        android:inputType="text"/>
 
     <Button
         android:id="@+id/nextButton"

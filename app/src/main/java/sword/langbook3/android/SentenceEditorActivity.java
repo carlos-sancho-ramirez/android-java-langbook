@@ -3,6 +3,7 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 
@@ -48,6 +49,14 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
         findViewById(R.id.nextButton).setOnClickListener(this);
         _textField = findViewById(R.id.textField);
+        _textField.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                openSpanEditor();
+                return true;
+            }
+
+            return false;
+        });
 
         final int symbolArrayId = getSymbolArrayId();
         if (symbolArrayId != NO_SYMBOL_ARRAY) {
@@ -59,6 +68,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     @Override
     public void onClick(View v) {
+        openSpanEditor();
+    }
+
+    private void openSpanEditor() {
         final int symbolArrayId = getSymbolArrayId();
         final String text = _textField.getText().toString();
 
