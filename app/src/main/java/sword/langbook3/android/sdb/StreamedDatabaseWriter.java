@@ -1299,9 +1299,9 @@ public final class StreamedDatabaseWriter {
         final int ruledAccOffset = spans.columns().size();
         final int agentOffset = ruledAccOffset + ruledAcceptations.columns().size();
         final DbQuery query = new DbQuery.Builder(spans)
-                .join(ruledAcceptations, spans.getAcceptation(), ruledAcceptations.getIdColumnIndex())
+                .join(ruledAcceptations, spans.getDynamicAcceptation(), ruledAcceptations.getIdColumnIndex())
                 .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
-                .select(spans.getAcceptation(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), agentOffset + agents.getRuleColumnIndex());
+                .select(spans.getDynamicAcceptation(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), agentOffset + agents.getRuleColumnIndex());
 
         final MutableIntValueSortedMap<RuleAcceptationPair> pairs = MutableIntValueSortedMap.empty(RuleAcceptationPair::lessThan);
         try (DbResult dbResult = _db.select(query)) {
@@ -1389,7 +1389,7 @@ public final class StreamedDatabaseWriter {
     private void writeSentenceSpans(IntPairMap accIdMap, IntPairMap symbolArrayIdMap, IntPairMap symbolArrayLengths) throws IOException {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getSymbolArray(), table.getStart(), table.getLength(), table.getAcceptation());
+                .select(table.getSymbolArray(), table.getStart(), table.getLength(), table.getDynamicAcceptation());
 
         final ImmutableSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
         try (DbResult dbResult = _db.select(query)) {

@@ -17,7 +17,8 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     private static final int REQUEST_CODE_VIEW_DETAILS = 1;
 
     interface ResultKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
+        String STATIC_ACCEPTATION = BundleKeys.ACCEPTATION;
+        String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
     }
 
     public static void open(Activity activity, int requestCode, String text) {
@@ -68,10 +69,19 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             final Intent intent = new Intent();
-            final String key = (requestCode == REQUEST_CODE_VIEW_DETAILS)?
-                    AcceptationDetailsActivity.ResultKeys.ACCEPTATION :
-                    LanguagePickerActivity.ResultKeys.ACCEPTATION;
-            intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(key, 0));
+            final int staticAcc;
+            final int dynamicAcc;
+            if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
+                staticAcc = data.getIntExtra(AcceptationDetailsActivity.ResultKeys.STATIC_ACCEPTATION, 0);
+                dynamicAcc = data.getIntExtra(AcceptationDetailsActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0);
+            }
+            else {
+                staticAcc = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
+                dynamicAcc = staticAcc;
+            }
+
+            intent.putExtra(ResultKeys.STATIC_ACCEPTATION, staticAcc);
+            intent.putExtra(ResultKeys.DYNAMIC_ACCEPTATION, dynamicAcc);
             setResult(RESULT_OK, intent);
             finish();
         }

@@ -3073,20 +3073,26 @@ public final class LangbookReadableDatabase {
     }
 
     private static ImmutableIntKeyMap<String> getSampleSentences(DbExporter.Database db, int staticAcceptation) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
-        final DbQuery query = new DbQuery.Builder(spans)
-                .where(spans.getAcceptation(), staticAcceptation)
-                .select(spans.getSymbolArray());
+        final int offset = strings.columns().size();
 
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final DbQuery query = new DbQuery.Builder(strings)
+                .join(spans, strings.getDynamicAcceptationColumnIndex(), spans.getDynamicAcceptation())
+                .where(strings.getMainAcceptationColumnIndex(), staticAcceptation)
+                .select(offset + spans.getSymbolArray());
+
+        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final int symbolArrayId = dbResult.next().get(0).toInt();
-                builder.put(symbolArrayId, getSymbolArray(db, symbolArrayId));
+                if (result.get(symbolArrayId, null) == null) {
+                    result.put(symbolArrayId, getSymbolArray(db, symbolArrayId));
+                }
             }
         }
 
-        return builder.build();
+        return result.toImmutable();
     }
 
     public static AcceptationDetailsModel getAcceptationsDetails(
@@ -3166,7 +3172,7 @@ public final class LangbookReadableDatabase {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSymbolArray(), symbolArray)
-                .select(table.getStart(), table.getLength(), table.getAcceptation());
+                .select(table.getStart(), table.getLength(), table.getDynamicAcceptation());
         final ImmutableHashSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
@@ -3186,7 +3192,7 @@ public final class LangbookReadableDatabase {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSymbolArray(), symbolArray)
-                .select(table.getIdColumnIndex(), table.getStart(), table.getLength(), table.getAcceptation());
+                .select(table.getIdColumnIndex(), table.getStart(), table.getLength(), table.getDynamicAcceptation());
         final ImmutableIntValueHashMap.Builder<SentenceSpan> builder = new ImmutableIntValueHashMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {

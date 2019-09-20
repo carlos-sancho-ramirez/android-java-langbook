@@ -67,7 +67,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     interface ResultKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
+        String STATIC_ACCEPTATION = BundleKeys.ACCEPTATION;
+        String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
     }
 
     private int _preferredAlphabet;
@@ -427,7 +428,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case R.id.menuItemConfirm:
                 final Intent intent = new Intent();
-                intent.putExtra(ResultKeys.ACCEPTATION, _staticAcceptation);
+                intent.putExtra(ResultKeys.STATIC_ACCEPTATION, _staticAcceptation);
+                intent.putExtra(ResultKeys.DYNAMIC_ACCEPTATION, getIntent().getIntExtra(ArgKeys.DYNAMIC_ACCEPTATION, 0));
                 setResult(Activity.RESULT_OK, intent);
                 finish();
                 return true;

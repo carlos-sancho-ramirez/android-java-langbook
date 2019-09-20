@@ -43,7 +43,7 @@ public final class AcceptationPickerActivity extends SearchActivity {
         if (resultCode == RESULT_OK) {
             final Intent intent = new Intent();
             if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.STATIC_ACCEPTATION, 0));
             }
             else {
                 // When a new acceptation has been created

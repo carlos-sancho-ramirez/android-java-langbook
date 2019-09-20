@@ -255,9 +255,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_PICK_ACCEPTATION && resultCode == RESULT_OK && data != null) {
-            final int acceptation = data.getIntExtra(FixedTextAcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-            if (acceptation != 0) {
-                _state.getSpans().put(new SentenceSpan(_state.getSelection(), acceptation), 1);
+            final int dynamicAcc = data.getIntExtra(FixedTextAcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0);
+            if (dynamicAcc != 0) {
+                _state.getSpans().put(new SentenceSpan(_state.getSelection(), dynamicAcc), 1);
                 _sentenceText.setText(getRichText());
             }
         }
@@ -266,9 +266,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     @Override
     public void onResume() {
         super.onResume();
-        _listView.setAdapter(new SpanEditorAdapter(getText(), _state.getSpans(), map -> {
-            _sentenceText.setText(getRichText());
-        }));
+        _listView.setAdapter(new SpanEditorAdapter(getText(), _state.getSpans(), map -> _sentenceText.setText(getRichText())));
     }
 
     @Override

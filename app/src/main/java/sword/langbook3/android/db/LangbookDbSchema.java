@@ -490,7 +490,10 @@ public final class LangbookDbSchema implements DbSchema {
             return 3;
         }
 
-        public int getAcceptation() {
+        /**
+         * Dynamic acceptation for this span.
+         */
+        public int getDynamicAcceptation() {
             return 4;
         }
     }

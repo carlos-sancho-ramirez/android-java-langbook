@@ -285,7 +285,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertSpan(DbInserter db, int symbolArray, ImmutableIntRange range, int acceptation) {
+    public static void insertSpan(DbInserter db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
         if (range == null || range.min() < 0) {
             throw new IllegalArgumentException();
         }
@@ -295,7 +295,7 @@ public final class LangbookDbInserter {
                 .put(table.getSymbolArray(), symbolArray)
                 .put(table.getStart(), range.min())
                 .put(table.getLength(), range.size())
-                .put(table.getAcceptation(), acceptation)
+                .put(table.getDynamicAcceptation(), dynamicAcceptation)
                 .build();
 
         if (db.insert(query) == null) {
