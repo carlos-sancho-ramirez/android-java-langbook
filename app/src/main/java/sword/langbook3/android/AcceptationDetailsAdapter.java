@@ -209,7 +209,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
         @Override
         void navigate(Activity activity, int requestCode) {
-            SentenceDetailsActivity.open(activity, _id);
+            SentenceDetailsActivity.open(activity, requestCode, _id);
         }
 
         @Override

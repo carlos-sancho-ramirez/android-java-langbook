@@ -2,7 +2,6 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -35,7 +34,8 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     private static final int REQUEST_CODE_EDIT = 1;
     private static final int REQUEST_CODE_OPEN_ACCEPTATION = 2;
-    private static final int REQUEST_CODE_NEW = 3;
+    private static final int REQUEST_CODE_OPEN_SENTENCE = 3;
+    private static final int REQUEST_CODE_NEW = 4;
 
     interface ArgKeys {
         String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
@@ -45,10 +45,16 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         String DISPLAYING_DELETE_DIALOG = "dd";
     }
 
-    static void open(Context context, int symbolArray) {
-        final Intent intent = new Intent(context, SentenceDetailsActivity.class);
+    static void open(Activity activity, int requestCode, int symbolArray) {
+        final Intent intent = new Intent(activity, SentenceDetailsActivity.class);
         intent.putExtra(ArgKeys.SYMBOL_ARRAY, symbolArray);
-        context.startActivity(intent);
+
+        if (requestCode != 0) {
+            activity.startActivityForResult(intent, requestCode);
+        }
+        else {
+            activity.startActivity(intent);
+        }
     }
 
     private TextView _sentenceTextView;
@@ -155,7 +161,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        SentenceDetailsActivity.open(this, (int) id);
+        SentenceDetailsActivity.open(this, REQUEST_CODE_OPEN_SENTENCE, (int) id);
     }
 
     @Override
