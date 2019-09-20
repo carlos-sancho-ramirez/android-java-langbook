@@ -2,7 +2,15 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.content.Intent;
+
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableList;
+import sword.database.Database;
 import sword.database.DbQuery;
+import sword.langbook3.android.models.SearchResult;
+
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationAndRulesFromText;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
 
 public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
@@ -18,6 +26,8 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
         activity.startActivityForResult(intent, requestCode);
     }
 
+    private ImmutableIntKeyMap<String> _ruleTexts;
+
     @Override
     boolean isQueryModifiable() {
         return false;
@@ -26,6 +36,22 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     @Override
     int getSearchRestrictionType() {
         return DbQuery.RestrictionStringTypes.EXACT;
+    }
+
+    @Override
+    ImmutableList<SearchResult> queryAcceptationResults(String query) {
+        return findAcceptationAndRulesFromText(DbManager.getInstance().getDatabase(), query, getSearchRestrictionType());
+    }
+
+    @Override
+    SearchResultAdapter createAdapter(ImmutableList<SearchResult> results) {
+        if (_ruleTexts == null) {
+            final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+            final Database db = DbManager.getInstance().getDatabase();
+            _ruleTexts = readAllRules(db, preferredAlphabet);
+        }
+
+        return new SearchResultAdapter(results, _ruleTexts);
     }
 
     @Override
