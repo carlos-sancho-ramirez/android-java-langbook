@@ -2012,6 +2012,15 @@ public final class LangbookReadableDatabase {
         return selectExistingRow(db, query);
     }
 
+    static boolean isAcceptationPresent(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(table.getIdColumnIndex());
+
+        return selectExistAtLeastOneRow(db, query);
+    }
+
     static boolean isLanguagePresent(DbExporter.Database db, int language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbQuery query = new DbQuery.Builder(table)

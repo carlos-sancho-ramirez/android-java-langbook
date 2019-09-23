@@ -4,6 +4,7 @@ import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
@@ -114,6 +115,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceMeaning;
 import static sword.langbook3.android.db.LangbookReadableDatabase.hasAgentsRequiringAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationInBunch;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
@@ -1635,5 +1637,18 @@ public final class LangbookDatabase {
      */
     public static Integer obtainSimpleCorrelationArray(DbImporter.Database db, int correlationId) {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
+    }
+
+    public static boolean addSpan(DbImporter.Database db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
+        if (isSymbolArrayPresent(db, symbolArray) && isAcceptationPresent(db, dynamicAcceptation)) {
+            LangbookDbInserter.insertSpan(db, symbolArray, range, dynamicAcceptation);
+            return true;
+        }
+
+        return false;
+    }
+
+    public static boolean removeSpan(Deleter db, int id) {
+        return LangbookDeleter.deleteSpan(db, id);
     }
 }

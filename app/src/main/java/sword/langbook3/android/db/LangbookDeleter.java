@@ -5,7 +5,7 @@ import sword.database.DbDeleteQuery;
 import sword.database.Deleter;
 import sword.langbook3.android.collections.ImmutableIntPair;
 
-public final class LangbookDeleter {
+final class LangbookDeleter {
 
     private LangbookDeleter() {
     }
@@ -144,7 +144,7 @@ public final class LangbookDeleter {
         return db.delete(query);
     }
 
-    public static boolean deleteSpan(Deleter db, int id) {
+    static boolean deleteSpan(Deleter db, int id) {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getIdColumnIndex(), id)
