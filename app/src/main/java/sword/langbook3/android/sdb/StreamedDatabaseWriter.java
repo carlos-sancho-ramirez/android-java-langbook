@@ -31,6 +31,7 @@ import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
+import sword.collections.ImmutableSortedSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
@@ -45,6 +46,7 @@ import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueSortedMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
+import sword.collections.SortFunction;
 import sword.database.DbExporter.Database;
 import sword.database.DbQuery;
 import sword.database.DbResult;
@@ -53,6 +55,7 @@ import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
 
 import static sword.langbook3.android.db.LangbookReadableDatabase.getUsedConcepts;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
@@ -917,35 +920,53 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
 
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        DbQuery query = new DbQuery.Builder(table).select(
-                table.getSourceBunchSetColumnIndex(),
-                table.getDiffBunchSetColumnIndex());
+        final DbQuery query = new DbQuery.Builder(table).select(
+                        table.getTargetBunchColumnIndex(),
+                        table.getSourceBunchSetColumnIndex(),
+                        table.getDiffBunchSetColumnIndex(),
+                        table.getStartMatcherColumnIndex(),
+                        table.getStartAdderColumnIndex(),
+                        table.getEndMatcherColumnIndex(),
+                        table.getEndAdderColumnIndex(),
+                        table.getRuleColumnIndex());
 
-        final MutableIntPairMap bunchSetLengthFrequencyMap = MutableIntPairMap.empty();
-        int count = 0;
+        final SortFunction<AgentRegister> sortFunc = (a, b) -> a.targetBunch < b.targetBunch || a.targetBunch == b.targetBunch &&
+                b.sourceBunchSetId != 0 && (a.sourceBunchSetId == 0 || bunchSets.get(a.sourceBunchSetId).min() < bunchSets.get(b.sourceBunchSetId).min());
+
+        final ImmutableHashSet.Builder<AgentRegister> agentsBuilder = new ImmutableHashSet.Builder<>();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                final int sourceBunchSet = row.get(0).toInt();
-                final int diffBunchSet = row.get(1).toInt();
-
-                final int sourceBunchSetLength = bunchSets.get(sourceBunchSet, emptySet).size();
-                final int diffBunchSetLength = bunchSets.get(diffBunchSet, emptySet).size();
-
-                int amount = bunchSetLengthFrequencyMap.get(sourceBunchSetLength, 0);
-                bunchSetLengthFrequencyMap.put(sourceBunchSetLength, amount + 1);
-
-                amount = bunchSetLengthFrequencyMap.get(diffBunchSetLength, 0);
-                bunchSetLengthFrequencyMap.put(diffBunchSetLength, amount + 1);
-                count++;
+                final int rawTargetBunch = row.get(0).toInt();
+                final int targetBunch = (rawTargetBunch == 0)? 0 : conceptIdMap.get(rawTargetBunch);
+                final int sourceBunchSetId = row.get(1).toInt();
+                final int diffBunchSetId = row.get(2).toInt();
+                final int startMatcherId = row.get(3).toInt();
+                final int startAdderId = row.get(4).toInt();
+                final int endMatcherId = row.get(5).toInt();
+                final int endAdderId = row.get(6).toInt();
+                final int rule = row.get(7).toInt();
+                agentsBuilder.add(new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule));
             }
         }
+        final ImmutableSortedSet<AgentRegister> agents = agentsBuilder.build().sort(sortFunc);
 
-        final int agentCount = count;
+        final MutableIntPairMap bunchSetLengthFrequencyMap = MutableIntPairMap.empty();
+        for (AgentRegister agent : agents) {
+            final int sourceBunchSetLength = bunchSets.get(agent.sourceBunchSetId, emptySet).size();
+            int amount = bunchSetLengthFrequencyMap.get(sourceBunchSetLength, 0);
+            bunchSetLengthFrequencyMap.put(sourceBunchSetLength, amount + 1);
+
+            final int diffBunchSetLength = bunchSets.get(agent.diffBunchSetId, emptySet).size();
+            amount = bunchSetLengthFrequencyMap.get(diffBunchSetLength, 0);
+            bunchSetLengthFrequencyMap.put(diffBunchSetLength, amount + 1);
+        }
+
+        final int agentCount = agents.size();
         _obs.writeHuffmanSymbol(naturalNumberTable, agentCount);
 
         final MutableIntSet presentRules = MutableIntArraySet.empty();
-        if (agentCount != 0) {
+        if (!agents.isEmpty()) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntWriter intWriter = new IntWriter(nat3Table);
             final DefinedHuffmanTable<Integer> sourceSetLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(bunchSetLengthFrequencyMap), new IntComparator());
@@ -955,60 +976,39 @@ public final class StreamedDatabaseWriter {
             final int maxSource = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1;
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minSource, maxSource);
 
-            query = new DbQuery.Builder(table).select(
-                    table.getTargetBunchColumnIndex(),
-                    table.getSourceBunchSetColumnIndex(),
-                    table.getStartMatcherColumnIndex(),
-                    table.getStartAdderColumnIndex(),
-                    table.getEndMatcherColumnIndex(),
-                    table.getEndAdderColumnIndex(),
-                    table.getRuleColumnIndex());
+            final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
+            int lastTarget = 0;
+            for (AgentRegister agent : agents) {
+                final RangedIntegerHuffmanTable targetBunchTable = (lastTarget == 0)?
+                        new RangedIntegerHuffmanTable(0, conceptIdMap.size()) :
+                        new RangedIntegerHuffmanTable(lastTarget + 1, conceptIdMap.size());
+                _obs.writeHuffmanSymbol(targetBunchTable, agent.targetBunch);
 
-            try (DbResult result = _db.select(query)) {
-                final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
-                int lastTarget = 0;
-                while (result.hasNext()) {
-                    final List<DbValue> row = result.next();
-                    final int rawTargetBunch = row.get(0).toInt();
-                    final int targetBunch = (rawTargetBunch == 0)? 0 : conceptIdMap.get(rawTargetBunch);
-                    final int sourceBunchSetId = row.get(1).toInt();
-                    final int startMatcher = row.get(2).toInt();
-                    final int startAdder = row.get(3).toInt();
-                    final int endMatcher = row.get(4).toInt();
-                    final int endAdder = row.get(5).toInt();
-                    final int rawRule = row.get(6).toInt();
-
-                    final RangedIntegerHuffmanTable targetBunchTable = (lastTarget == 0)?
-                            new RangedIntegerHuffmanTable(0, conceptIdMap.size()) :
-                            new RangedIntegerHuffmanTable(lastTarget + 1, conceptIdMap.size());
-                    _obs.writeHuffmanSymbol(targetBunchTable, targetBunch);
-
-                    if (targetBunch != lastTarget) {
-                        minSource = StreamedDatabaseConstants.minValidConcept;
-                    }
-
-                    final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
-                    final IntSet sourceBunchSet = bunchSets.get(sourceBunchSetId, emptySet);
-                    writeRangedNumberSet(encoder, sourceBunchSet);
-
-                    if (!sourceBunchSet.isEmpty()) {
-                        minSource = sourceBunchSet.min();
-                    }
-
-                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(startMatcher));
-                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(startAdder));
-                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(endMatcher));
-                    _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(endAdder));
-
-                    final boolean hasRule = startMatcher != startAdder || endMatcher != endAdder;
-                    if (hasRule) {
-                        final int rule = conceptIdMap.get(rawRule);
-                        _obs.writeHuffmanSymbol(conceptTable, rule);
-                        presentRules.add(rule);
-                    }
-
-                    lastTarget = targetBunch;
+                if (agent.targetBunch != lastTarget) {
+                    minSource = StreamedDatabaseConstants.minValidConcept;
                 }
+
+                final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
+                final IntSet sourceBunchSet = (agent.sourceBunchSetId != 0)? bunchSets.get(agent.sourceBunchSetId) : emptySet;
+                writeRangedNumberSet(encoder, sourceBunchSet);
+
+                if (!sourceBunchSet.isEmpty()) {
+                    minSource = sourceBunchSet.min();
+                }
+
+                _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(agent.startMatcherId));
+                _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(agent.startAdderId));
+                _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(agent.endMatcherId));
+                _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(agent.endAdderId));
+
+                final boolean hasRule = agent.startMatcherId != agent.startAdderId || agent.endMatcherId != agent.endAdderId;
+                if (hasRule) {
+                    final int rule = conceptIdMap.get(agent.rule);
+                    _obs.writeHuffmanSymbol(conceptTable, rule);
+                    presentRules.add(rule);
+                }
+
+                lastTarget = agent.targetBunch;
             }
         }
 
