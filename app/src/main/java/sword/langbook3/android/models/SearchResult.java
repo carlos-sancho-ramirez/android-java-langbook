@@ -19,7 +19,7 @@ public final class SearchResult {
     private final String _mainAccMainStr;
     private final ImmutableIntList _appliedRules;
 
-    SearchResult(String str, String mainStr, int type, int id, int auxId, String mainAccMainStr, ImmutableIntList appliedRules) {
+    private SearchResult(String str, String mainStr, int type, int id, int auxId, String mainAccMainStr, ImmutableIntList appliedRules) {
         if (type != Types.ACCEPTATION && type != Types.AGENT || str == null || mainStr == null) {
             throw new IllegalArgumentException();
         }

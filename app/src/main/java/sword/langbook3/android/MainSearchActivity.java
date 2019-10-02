@@ -58,7 +58,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 return true;
 
             case R.id.menuItemNewAgent:
-                AgentEditorActivity.open(this);
+                AgentEditorActivity.open(this, REQUEST_CODE_NEW_AGENT);
                 return true;
 
             case R.id.menuItemSettings:
@@ -86,9 +86,13 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
-            if (acceptationId != 0) {
-                AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
+            _ruleTexts = null;
+
+            if (requestCode == REQUEST_CODE_NEW_ACCEPTATION) {
+                final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
+                if (acceptationId != 0) {
+                    AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
+                }
             }
         }
     }

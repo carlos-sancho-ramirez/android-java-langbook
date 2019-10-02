@@ -1,7 +1,6 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -51,9 +50,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         String STATE = "st";
     }
 
-    public static void open(Context context) {
-        final Intent intent = new Intent(context, AgentEditorActivity.class);
-        context.startActivity(intent);
+    public static void open(Activity activity, int requestCode) {
+        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        activity.startActivityForResult(intent, requestCode);
     }
 
     static final class CorrelationEntry {
@@ -559,6 +558,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     if (agentId != null) {
+                        setResult(RESULT_OK);
                         finish();
                     }
                 }
