@@ -488,6 +488,7 @@ public final class StreamedDatabaseReader {
                 }
 
                 final ImmutableIntSet sourceSet = readRangedNumberSet(ibs, sourceSetLengthTable, minSource, validConcepts.max());
+                final ImmutableIntSet diffSet = readRangedNumberSet(ibs, sourceSetLengthTable, validConcepts.min(), validConcepts.max());
 
                 if (!sourceSet.isEmpty()) {
                     int min = Integer.MAX_VALUE;
@@ -528,7 +529,6 @@ public final class StreamedDatabaseReader {
                 final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 final int agentId = insertAgent(_db, register);
 
-                final ImmutableIntSet diffSet = new ImmutableIntSetCreator().build();
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
 
                 if (hasRule) {

@@ -988,9 +988,13 @@ public final class StreamedDatabaseWriter {
                     minSource = StreamedDatabaseConstants.minValidConcept;
                 }
 
-                final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
+                final RangedIntegerSetEncoder sourceEncoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
                 final IntSet sourceBunchSet = (agent.sourceBunchSetId != 0)? bunchSets.get(agent.sourceBunchSetId) : emptySet;
-                writeRangedNumberSet(encoder, sourceBunchSet);
+                writeRangedNumberSet(sourceEncoder, sourceBunchSet);
+
+                final RangedIntegerSetEncoder diffEncoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, StreamedDatabaseConstants.minValidConcept, maxSource);
+                final IntSet diffBunchSet = (agent.diffBunchSetId != 0)? bunchSets.get(agent.diffBunchSetId) : emptySet;
+                writeRangedNumberSet(diffEncoder, diffBunchSet);
 
                 if (!sourceBunchSet.isEmpty()) {
                     minSource = sourceBunchSet.min();
