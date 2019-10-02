@@ -914,6 +914,7 @@ public final class StreamedDatabaseWriter {
 
     private ImmutableIntSet writeAgents(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap correlationIdMap) throws IOException {
         final ImmutableIntKeyMap<ImmutableIntSet> bunchSets = getBunchSets(conceptIdMap);
+        final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
 
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         DbQuery query = new DbQuery.Builder(table).select(
@@ -923,7 +924,6 @@ public final class StreamedDatabaseWriter {
         final MutableIntPairMap bunchSetLengthFrequencyMap = MutableIntPairMap.empty();
         int count = 0;
         try (DbResult result = _db.select(query)) {
-            final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int sourceBunchSet = row.get(0).toInt();
@@ -988,7 +988,7 @@ public final class StreamedDatabaseWriter {
                     }
 
                     final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
-                    final IntSet sourceBunchSet = bunchSets.get(sourceBunchSetId);
+                    final IntSet sourceBunchSet = bunchSets.get(sourceBunchSetId, emptySet);
                     writeRangedNumberSet(encoder, sourceBunchSet);
 
                     if (!sourceBunchSet.isEmpty()) {
