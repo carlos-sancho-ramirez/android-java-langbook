@@ -117,9 +117,6 @@ public final class DatabaseInflater {
         }
     }
 
-    /**
-     * @return True if the suggestedNewWordId has been used.
-     */
     private void applyAgent(int agentId, AgentSetSupplier agentSetSupplier, int accId, int concept,
             int targetBunch, IntKeyMap<String> startMatcher, IntKeyMap<String> startAdder,
             IntKeyMap<String> endMatcher, IntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr) {
@@ -298,22 +295,34 @@ public final class DatabaseInflater {
         final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
         final int acceptationsOffset = stringsOffset + strings.columns().size();
 
-        // TODO: This query does not manage the case where sourceSet is null
         // TODO: This query does not manage the case where diff is different from null
-        final DbQuery query = new DbQuery.Builder(bunchSets)
-                .join(bunchAccs, bunchSets.getBunchColumnIndex(), bunchAccs.getBunchColumnIndex())
-                .join(strings, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .join(acceptations, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), acceptations.getIdColumnIndex())
-                .where(bunchSets.getSetIdColumnIndex(), register.sourceBunchSetId)
-                .orderBy(bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), stringsOffset + strings.getStringAlphabetColumnIndex())
-                .select(
-                        bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(),
-                        stringsOffset + strings.getStringAlphabetColumnIndex(),
-                        stringsOffset + strings.getStringColumnIndex(),
-                        acceptationsOffset + acceptations.getConceptColumnIndex());
+        final DbQuery query;
+        if (register.sourceBunchSetId == 0) {
+            query = new DbQuery.Builder(strings)
+                    .join(acceptations, strings.getDynamicAcceptationColumnIndex(), acceptations.getIdColumnIndex())
+                    .whereColumnValueMatch(strings.getDynamicAcceptationColumnIndex(), strings.getMainAcceptationColumnIndex())
+                    .orderBy(strings.getDynamicAcceptationColumnIndex(), strings.getStringAlphabetColumnIndex())
+                    .select(
+                            strings.getDynamicAcceptationColumnIndex(),
+                            strings.getStringAlphabetColumnIndex(),
+                            strings.getStringColumnIndex(),
+                            strings.columns().size() + acceptations.getConceptColumnIndex());
+        }
+        else {
+            query = new DbQuery.Builder(bunchSets)
+                    .join(bunchAccs, bunchSets.getBunchColumnIndex(), bunchAccs.getBunchColumnIndex())
+                    .join(strings, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                    .join(acceptations, bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), acceptations.getIdColumnIndex())
+                    .where(bunchSets.getSetIdColumnIndex(), register.sourceBunchSetId)
+                    .orderBy(bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(), stringsOffset + strings.getStringAlphabetColumnIndex())
+                    .select(
+                            bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(),
+                            stringsOffset + strings.getStringAlphabetColumnIndex(),
+                            stringsOffset + strings.getStringColumnIndex(),
+                            acceptationsOffset + acceptations.getConceptColumnIndex());
+        }
 
-        final DbResult result = _db.select(query);
-        try {
+        try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 final MutableIntKeyMap<String> corr = MutableIntKeyMap.empty();
@@ -343,9 +352,6 @@ public final class DatabaseInflater {
                 applyAgent(agentId, agentSetSupplier, accId, concept, register.targetBunch,
                         startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
             }
-        }
-        finally {
-            result.close();
         }
     }
 
@@ -419,7 +425,7 @@ public final class DatabaseInflater {
         }
     }
 
-    public void read() throws IOException {
+    void read() throws IOException {
         final StreamedDatabaseReader.Result result = _dbReader.read();
 
         setProgress(0.2f, "Indexing strings");
