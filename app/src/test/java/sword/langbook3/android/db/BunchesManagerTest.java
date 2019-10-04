@@ -5,7 +5,7 @@ import org.junit.Test;
 import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
-import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.models.LanguageCreationResult;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -35,9 +35,9 @@ public final class BunchesManagerTest {
         final BunchesManager manager = createManager(db);
 
         final String langCode = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(langCode);
-        final int language = langPair.left;
-        final int alphabet = langPair.right;
+        final LanguageCreationResult langPair = manager.addLanguage(langCode);
+        final int language = langPair.language;
+        final int alphabet = langPair.mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
         final int singConcept = verbConcept + 1;
 
@@ -56,7 +56,7 @@ public final class BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int kanjiAlphabet = manager.getMaxConcept() + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
@@ -83,7 +83,7 @@ public final class BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int animalConcept = manager.getMaxConcept() + 1;
         final int catConcept = animalConcept + 1;
 

@@ -44,7 +44,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
@@ -104,7 +104,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int erVerbConcept = arVerbConcept + 1;
         final int verbConcept = erVerbConcept + 1;
@@ -158,7 +158,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
         final int verbConcept = gerund + 1;
         final int arVerbConcept = verbConcept + 1;
@@ -237,7 +237,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int arEndingNounConcept = arVerbConcept + 1;
         final int singConcept = arEndingNounConcept + 1;
@@ -344,7 +344,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -427,7 +427,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -460,7 +460,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -492,7 +492,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
         final int arVerbConcept = verbConcept + 1;
         final int actionConcept = arVerbConcept + 1;
@@ -528,7 +528,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
         final int verbArConcept = gerund + 1;
         final int verbErConcept = verbArConcept + 1;
@@ -587,7 +587,7 @@ public final class AgentsManagerTest {
         final String rightText = "cantar";
         final String rightGerundText = "cantando";
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
         final int gerundRule = concept + 1;
         final int firstConjugationVerbBunch = gerundRule + 1;
@@ -646,7 +646,7 @@ public final class AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
         final int firstConjugationVerbConcept = verbConcept + 1;
         final int singConcept = firstConjugationVerbConcept + 1;

@@ -33,6 +33,7 @@ import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
@@ -1063,7 +1064,7 @@ public final class LangbookDatabase {
      * @param code 2-char lowercase language code. Such as "es" for Spanish, "en" for English of "ja" for Japanese.
      * @return A pair containing the language created concept in the left and its main alphabet on its right, or null if it cannot be added.
      */
-    public static ImmutableIntPair addLanguage(Database db, String code) {
+    public static LanguageCreationResult addLanguage(Database db, String code) {
         if (LangbookReadableDatabase.findLanguageByCode(db, code) != null) {
             return null;
         }
@@ -1073,7 +1074,7 @@ public final class LangbookDatabase {
         LangbookDbInserter.insertLanguage(db, language, code, alphabet);
         insertAlphabet(db, alphabet, language);
 
-        return new ImmutableIntPair(language, alphabet);
+        return new LanguageCreationResult(language, alphabet);
     }
 
     public static boolean removeLanguage(Database db, int language) {

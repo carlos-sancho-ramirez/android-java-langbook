@@ -7,8 +7,8 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.Database;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.models.LanguageCreationResult;
 
 public final class LanguageAdderActivityState implements Parcelable {
 
@@ -168,8 +168,8 @@ public final class LanguageAdderActivityState implements Parcelable {
             throw new UnsupportedOperationException();
         }
 
-        final ImmutableIntPair langPair = LangbookDatabase.addLanguage(db, _languageCode);
-        if (langPair.left != _newLanguageId || langPair.right != _newLanguageId + 1) {
+        final LanguageCreationResult langPair = LangbookDatabase.addLanguage(db, _languageCode);
+        if (langPair.language != _newLanguageId || langPair.mainAlphabet != _newLanguageId + 1) {
             throw new AssertionError();
         }
 

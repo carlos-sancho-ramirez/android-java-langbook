@@ -13,6 +13,7 @@ import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.LanguageCreationResult;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -70,13 +71,12 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
-        assertNotEquals(langPair.left, langPair.right);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
 
-        assertEquals(langPair.left, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.left);
+        assertEquals(langPair.language, manager.findLanguageByCode(code).intValue());
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.language);
         assertEquals(1, alphabetSet.size());
-        assertEquals(langPair.right, alphabetSet.valueAt(0));
+        assertEquals(langPair.mainAlphabet, alphabetSet.valueAt(0));
     }
 
     @Test
@@ -85,14 +85,13 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
         assertNull(manager.addLanguage(code));
-        assertNotEquals(langPair.left, langPair.right);
 
-        assertEquals(langPair.left, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.left);
+        assertEquals(langPair.language, manager.findLanguageByCode(code).intValue());
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.language);
         assertEquals(1, alphabetSet.size());
-        assertEquals(langPair.right, alphabetSet.valueAt(0));
+        assertEquals(langPair.mainAlphabet, alphabetSet.valueAt(0));
     }
 
     @Test
@@ -101,9 +100,8 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
-
-        assertTrue(manager.removeLanguage(langPair.left));
+        final int language = manager.addLanguage(code).language;
+        assertTrue(manager.removeLanguage(language));
         assertNull(manager.findLanguageByCode(code));
     }
 
@@ -114,16 +112,16 @@ public final class AcceptationsManagerTest {
 
         final String code1 = "es";
         final String code2 = "en";
-        final ImmutableIntPair langPair1 = manager.addLanguage(code1);
-        final ImmutableIntPair langPair2 = manager.addLanguage(code2);
+        final LanguageCreationResult langPair1 = manager.addLanguage(code1);
+        final LanguageCreationResult langPair2 = manager.addLanguage(code2);
 
-        assertTrue(manager.removeLanguage(langPair1.left));
+        assertTrue(manager.removeLanguage(langPair1.language));
         assertNull(manager.findLanguageByCode(code1));
-        assertEquals(langPair2.left, manager.findLanguageByCode(code2).intValue());
+        assertEquals(langPair2.language, manager.findLanguageByCode(code2).intValue());
 
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair2.left);
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair2.language);
         assertEquals(1, alphabetSet.size());
-        assertEquals(langPair2.right, alphabetSet.valueAt(0));
+        assertEquals(langPair2.mainAlphabet, alphabetSet.valueAt(0));
     }
 
     @Test
@@ -133,16 +131,16 @@ public final class AcceptationsManagerTest {
 
         final String code1 = "es";
         final String code2 = "en";
-        final ImmutableIntPair langPair1 = manager.addLanguage(code1);
-        final ImmutableIntPair langPair2 = manager.addLanguage(code2);
+        final LanguageCreationResult langPair1 = manager.addLanguage(code1);
+        final LanguageCreationResult langPair2 = manager.addLanguage(code2);
 
-        assertTrue(manager.removeLanguage(langPair2.left));
+        assertTrue(manager.removeLanguage(langPair2.language));
         assertNull(manager.findLanguageByCode(code2));
-        assertEquals(langPair1.left, manager.findLanguageByCode(code1).intValue());
+        assertEquals(langPair1.language, manager.findLanguageByCode(code1).intValue());
 
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair1.left);
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair1.language);
         assertEquals(1, alphabetSet.size());
-        assertEquals(langPair1.right, alphabetSet.valueAt(0));
+        assertEquals(langPair1.mainAlphabet, alphabetSet.valueAt(0));
     }
 
     @Test
@@ -151,16 +149,16 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
 
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
+        final int language = langPair.language;
+        final int mainAlphabet = langPair.mainAlphabet;
         final int secondAlphabet = manager.addAlphabetCopyingFromOther(mainAlphabet);
         assertNotEquals(language, secondAlphabet);
         assertNotEquals(mainAlphabet, secondAlphabet);
 
         assertEquals(language, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.left);
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
         assertEquals(2, alphabetSet.size());
         assertTrue(alphabetSet.contains(mainAlphabet));
         assertTrue(alphabetSet.contains(secondAlphabet));
@@ -196,10 +194,10 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "ja";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
 
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
+        final int language = langPair.language;
+        final int mainAlphabet = langPair.mainAlphabet;
 
         final int acceptation = addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
 
@@ -208,7 +206,7 @@ public final class AcceptationsManagerTest {
         assertNotEquals(mainAlphabet, secondAlphabet);
 
         assertEquals(language, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.left);
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
         assertEquals(2, alphabetSet.size());
         assertTrue(alphabetSet.contains(mainAlphabet));
         assertTrue(alphabetSet.contains(secondAlphabet));
@@ -225,10 +223,10 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "ja";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
 
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
+        final int language = langPair.language;
+        final int mainAlphabet = langPair.mainAlphabet;
 
         addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
         manager.addAlphabetCopyingFromOther(mainAlphabet);
@@ -243,16 +241,16 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
 
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
+        final int language = langPair.language;
+        final int mainAlphabet = langPair.mainAlphabet;
         final int secondAlphabet = mainAlphabet + 1;
         final Conversion conversion = new Conversion(mainAlphabet, secondAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
         assertEquals(language, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.left);
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
         assertEquals(2, alphabetSet.size());
         assertTrue(alphabetSet.contains(mainAlphabet));
         assertTrue(alphabetSet.contains(secondAlphabet));
@@ -274,10 +272,10 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
 
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
+        final int language = langPair.language;
+        final int mainAlphabet = langPair.mainAlphabet;
 
         final String text = "casa";
         final int concept = manager.getMaxConcept() + 1;
@@ -288,7 +286,7 @@ public final class AcceptationsManagerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
         assertEquals(language, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.left);
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
         assertEquals(2, alphabetSet.size());
         assertTrue(alphabetSet.contains(mainAlphabet));
         assertTrue(alphabetSet.contains(secondAlphabet));
@@ -307,10 +305,10 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String code = "es";
-        final ImmutableIntPair langPair = manager.addLanguage(code);
+        final LanguageCreationResult langPair = manager.addLanguage(code);
 
-        final int language = langPair.left;
-        final int mainAlphabet = langPair.right;
+        final int language = langPair.language;
+        final int mainAlphabet = langPair.mainAlphabet;
 
         final int concept = manager.getMaxConcept() + 1;
         final int secondAlphabet = concept + 1;
@@ -329,12 +327,12 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final String esCode = "es";
-        final ImmutableIntPair esLangPair = manager.addLanguage(esCode);
-        final int esLanguage = esLangPair.left;
-        final int esMainAlphabet = esLangPair.right;
+        final LanguageCreationResult esLangPair = manager.addLanguage(esCode);
+        final int esLanguage = esLangPair.language;
+        final int esMainAlphabet = esLangPair.mainAlphabet;
 
         final String enCode = "en";
-        final int enMainAlphabet = manager.addLanguage(enCode).right;
+        final int enMainAlphabet = manager.addLanguage(enCode).mainAlphabet;
 
         final String esText = "casa";
         final String enText = "house";
@@ -357,7 +355,7 @@ public final class AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
 
         final String text = "cantar";
@@ -382,7 +380,7 @@ public final class AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
-        final int kanji = manager.addLanguage("ja").right;
+        final int kanji = manager.addLanguage("ja").mainAlphabet;
         final int kana = manager.addAlphabetCopyingFromOther(kanji);
         final int concept = manager.getMaxConcept() + 1;
 
@@ -428,7 +426,7 @@ public final class AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
-        final int kanji = manager.addLanguage("ja").right;
+        final int kanji = manager.addLanguage("ja").mainAlphabet;
         final int kana = manager.addAlphabetCopyingFromOther(kanji);
         final int roumaji = kana + 1;
 
@@ -470,14 +468,14 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager1 = new LangbookDatabaseManager(db1);
 
         final String text = "cantar";
-        final int alphabet1 = manager1.addLanguage("es").right;
+        final int alphabet1 = manager1.addLanguage("es").mainAlphabet;
         final int concept1 = manager1.getMaxConcept() + 1;
         final int acceptationId = addSimpleAcceptation(manager1, alphabet1, concept1, text);
 
         final MemoryDatabase db2 = new MemoryDatabase();
         final AcceptationsManager manager2 = new LangbookDatabaseManager(db2);
 
-        final int alphabet2 = manager2.addLanguage("es").right;
+        final int alphabet2 = manager2.addLanguage("es").mainAlphabet;
         final int concept2 = manager2.getMaxConcept() + 1;
         assertEquals(acceptationId, addSimpleAcceptation(manager2, alphabet2, concept2, text));
         assertEquals(db1, db2);
@@ -493,7 +491,7 @@ public final class AcceptationsManagerTest {
 
         final String kanaText = "ねこ";
 
-        final int kanaAlphabet = manager.addLanguage("ja").right;
+        final int kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final int roumajiAlphabet = manager.getMaxConcept() + 1;
         final int concept = roumajiAlphabet + 1;
 
@@ -537,7 +535,7 @@ public final class AcceptationsManagerTest {
 
         final String kanaText = "ねこ";
 
-        final int kanaAlphabet = manager.addLanguage("ja").right;
+        final int kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final int roumajiAlphabet = manager.getMaxConcept() + 1;
         final int concept = roumajiAlphabet + 1;
 

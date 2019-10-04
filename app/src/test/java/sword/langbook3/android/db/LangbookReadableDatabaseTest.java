@@ -41,7 +41,7 @@ public final class LangbookReadableDatabaseTest {
     public void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
-        final int alphabet = addLanguage(db, "es").right;
+        final int alphabet = addLanguage(db, "es").mainAlphabet;
         final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
         final int verbBunchId = pluralRule + 1;
@@ -94,7 +94,7 @@ public final class LangbookReadableDatabaseTest {
 
             final MemoryDatabase db = new MemoryDatabase();
             final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
-            final int alphabet1 = addLanguage(db, "xx").right;
+            final int alphabet1 = addLanguage(db, "xx").mainAlphabet;
             final int alphabet2 = addAlphabetCopyingFromOther(db, alphabet1);
             final int concept1 = getMaxConcept(db) + 1;
             final int concept2 = concept1 + 1;

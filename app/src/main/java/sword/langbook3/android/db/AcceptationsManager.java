@@ -2,8 +2,8 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.LanguageCreationResult;
 
 public interface AcceptationsManager extends AcceptationsChecker {
 
@@ -14,9 +14,9 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * Usually because the code provided is not valid or already exists in the database.
      *
      * @param code 2-char lowercase language code. Such as "es" for Spanish, "en" for English of "ja" for Japanese.
-     * @return A pair containing the language created concept in the left and its main alphabet on its right, or null if it cannot be added.
+     * @return A pair containing the language created concept and its main alphabet, or null if it cannot be added.
      */
-    ImmutableIntPair addLanguage(String code);
+    LanguageCreationResult addLanguage(String code);
     boolean removeLanguage(int language);
 
     /**

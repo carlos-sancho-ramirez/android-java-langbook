@@ -11,7 +11,6 @@ import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.DbValue;
 import sword.database.MemoryDatabase;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
@@ -61,9 +60,9 @@ public final class QuizzesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int kanjiAlphabet = manager.addLanguage("ja").right;
+        final int kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
         final int kanaAlphabet = manager.addAlphabetCopyingFromOther(kanjiAlphabet);
 
         final int myVocabularyConcept = manager.getMaxConcept() + 1;
@@ -98,8 +97,8 @@ public final class QuizzesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").right;
-        final int kanjiAlphabet = manager.addLanguage("ja").right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
         final int kanaAlphabet = manager.addAlphabetCopyingFromOther(kanjiAlphabet);
 
         final int myVocabularyConcept = manager.getMaxConcept() + 1;
@@ -142,8 +141,7 @@ public final class QuizzesManagerTest {
         final String text2 = "beber";
         final String text2UpperCase = "BEBER";
 
-        final ImmutableIntPair langPair = manager.addLanguage("es");
-        final int alphabet = langPair.right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
         final int secondConjugationVerbBunch = concept + 1;
         final int upperCaseAlphabet = secondConjugationVerbBunch + 1;
@@ -209,8 +207,7 @@ public final class QuizzesManagerTest {
         final String text2 = "beber";
         final String text2UpperCase = "BEBER";
 
-        final ImmutableIntPair langPair = manager.addLanguage("es");
-        final int alphabet = langPair.right;
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
         final int firstConjugationVerbBunch = concept + 1;
         final int upperCaseAlphabet = firstConjugationVerbBunch + 1;
