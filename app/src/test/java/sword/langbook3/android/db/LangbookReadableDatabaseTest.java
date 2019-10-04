@@ -5,7 +5,6 @@ import org.junit.Test;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
@@ -18,24 +17,14 @@ import sword.langbook3.android.models.SearchResult;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static sword.langbook3.android.db.LangbookDatabase.addAcceptation;
+import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookDatabase.addAlphabetCopyingFromOther;
 import static sword.langbook3.android.db.LangbookDatabase.addLanguage;
-import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
-import static sword.langbook3.android.db.LangbookDatabase.obtainSymbolArray;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
 public final class LangbookReadableDatabaseTest {
-
-    private void addBunch(Database db, int id, int alphabet, String title) {
-        final int verbBunchTitleId = LangbookDatabase.obtainSymbolArray(db, title);
-        final int bunchCorrelation = LangbookDatabase.obtainCorrelation(db, new ImmutableIntPairMap.Builder().put(alphabet, verbBunchTitleId).build());
-        final int bunchCorrelationArrayId = LangbookDatabase.obtainCorrelationArray(db, new ImmutableIntList.Builder().append(bunchCorrelation).build());
-        addAcceptation(db, id, bunchCorrelationArrayId);
-    }
 
     private void addAgent(Database db, int sourceBunch, int alphabet, String endMatcherText, String endAdderText, int rule) {
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
@@ -51,6 +40,7 @@ public final class LangbookReadableDatabaseTest {
     @Test
     public void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
+        final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
         final int alphabet = addLanguage(db, "es").right;
         final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
@@ -58,10 +48,10 @@ public final class LangbookReadableDatabaseTest {
         final int femaleNounBunchId = verbBunchId + 1;
 
         final String verbBunchTitle = "verbos (1a conjugación)";
-        addBunch(db, verbBunchId, alphabet, verbBunchTitle);
+        addSimpleAcceptation(manager, alphabet, verbBunchId, verbBunchTitle);
 
         final String femaleNounBunchTitle = "substantivos femeninos";
-        addBunch(db, femaleNounBunchId, alphabet, femaleNounBunchTitle);
+        addSimpleAcceptation(manager, alphabet, femaleNounBunchId, femaleNounBunchTitle);
 
         addAgent(db, verbBunchId, alphabet, "ar", "ando", gerundRule);
         addAgent(db, femaleNounBunchId, alphabet, null, "s", pluralRule);
@@ -103,6 +93,7 @@ public final class LangbookReadableDatabaseTest {
             final ImmutableList<String> textList = textListBuilder.build();
 
             final MemoryDatabase db = new MemoryDatabase();
+            final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
             final int alphabet1 = addLanguage(db, "xx").right;
             final int alphabet2 = addAlphabetCopyingFromOther(db, alphabet1);
             final int concept1 = getMaxConcept(db) + 1;
@@ -111,10 +102,7 @@ public final class LangbookReadableDatabaseTest {
 
             final ImmutableIntList.Builder accListBuilder = new ImmutableIntList.Builder();
             for (int i = 0; i < textList.size(); i++) {
-                final ImmutableIntKeyMap<String> correlation = corrObtainer.obtain(alphabet1, textList.valueAt(i));
-                final int correlationId = obtainCorrelation(db, correlation.mapToInt(text -> obtainSymbolArray(db, text)));
-                final int corrArrayId = obtainCorrelationArray(db, new ImmutableIntList.Builder().add(correlationId).build());
-                accListBuilder.append(addAcceptation(db, concept1 + i, corrArrayId));
+                accListBuilder.append(addSimpleAcceptation(manager, alphabet1, concept1 + i, textList.valueAt(i)));
             }
             final ImmutableIntList accList = accListBuilder.build();
 

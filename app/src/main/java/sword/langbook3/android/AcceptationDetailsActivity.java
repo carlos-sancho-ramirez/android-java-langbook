@@ -40,7 +40,7 @@ import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
 import static sword.langbook3.android.db.LangbookDatabase.addDefinition;
 import static sword.langbook3.android.db.LangbookDatabase.duplicateAcceptationWithThisConcept;
 import static sword.langbook3.android.db.LangbookDatabase.removeAcceptationFromBunch;
-import static sword.langbook3.android.db.LangbookDatabase.removeComplementedConcept;
+import static sword.langbook3.android.db.LangbookDatabase.removeDefinition;
 import static sword.langbook3.android.db.LangbookDatabase.shareConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsDetails;
@@ -486,7 +486,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case IntrinsicStates.DELETE_DEFINITION:
                 _state.clearDeletingDefinition();
-                if (!removeComplementedConcept(db, _model.concept)) {
+                if (!removeDefinition(db, _model.concept)) {
                     throw new AssertionError();
                 }
 

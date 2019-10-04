@@ -4,7 +4,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.Database;
@@ -181,17 +180,12 @@ public final class LanguageAdderActivityState implements Parcelable {
             }
         }
 
-        final ImmutableIntList langArray = _languageCorrelationArray.mapToInt(correlation -> LangbookDatabase.obtainCorrelation(db, correlation));
-        final int langArrayId = LangbookDatabase.obtainCorrelationArray(db, langArray);
-        if (LangbookDatabase.addAcceptation(db, _newLanguageId, langArrayId) == null) {
+        if (LangbookDatabase.addAcceptation(db, _newLanguageId, _languageCorrelationArray) == null) {
             throw new AssertionError();
         }
 
         for (int i = 0; i < _alphabetCount; i++) {
-            final ImmutableList<ImmutableIntKeyMap<String>> array = _alphabetCorrelationArrays.valueAt(i);
-            final ImmutableIntList alphabetArray = array.mapToInt(correlation -> LangbookDatabase.obtainCorrelation(db, correlation));
-            final int alphabetArrayId = LangbookDatabase.obtainCorrelationArray(db, alphabetArray);
-            if (LangbookDatabase.addAcceptation(db, _newLanguageId + i + 1, alphabetArrayId) == null) {
+            if (LangbookDatabase.addAcceptation(db, _newLanguageId + i + 1, _alphabetCorrelationArrays.valueAt(i)) == null) {
                 throw new AssertionError();
             }
         }

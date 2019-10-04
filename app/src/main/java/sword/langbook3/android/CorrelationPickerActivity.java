@@ -22,11 +22,8 @@ import sword.collections.IntResultFunction;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookDatabase;
 import sword.langbook3.android.db.LangbookReadableDatabase;
-import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
-import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
 import static sword.langbook3.android.db.LangbookDatabase.updateAcceptationCorrelationArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findCorrelation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConceptInAcceptations;
@@ -300,28 +297,13 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return !languages.anyMatch(lang -> lang == null) && languages.size() == 1;
     }
 
-    private int addCorrelationArray(Database db) {
-        ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
-        final ImmutableIntList.Builder arrayBuilder = new ImmutableIntList.Builder();
-        for (ImmutableIntKeyMap<String> correlation : array) {
-            int id = _knownCorrelations.get(correlation, StreamedDatabaseConstants.nullCorrelationId);
-            if (id == StreamedDatabaseConstants.nullCorrelationId) {
-                id = obtainCorrelation(db, correlation);
-            }
-            arrayBuilder.add(id);
-        }
-
-        final ImmutableIntList idArray = arrayBuilder.build();
-        return obtainCorrelationArray(db, idArray);
-    }
-
     private int addAcceptation(Database db) {
         int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
         if (concept == NO_CONCEPT) {
             concept = getMaxConceptInAcceptations(db) + 1;
         }
 
-        return LangbookDatabase.addAcceptation(db, concept, addCorrelationArray(db));
+        return LangbookDatabase.addAcceptation(db, concept, _options.valueAt(_selection));
     }
 
     @Override
@@ -359,7 +341,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
         else {
             final Database db = DbManager.getInstance().getDatabase();
-            updateAcceptationCorrelationArray(db, existingAcceptation, addCorrelationArray(db));
+            updateAcceptationCorrelationArray(db, existingAcceptation, _options.valueAt(_selection));
             setResult(RESULT_OK);
             finish();
         }

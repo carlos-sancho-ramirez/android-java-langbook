@@ -1293,6 +1293,22 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    public static ImmutableIntSet getAcceptationsInBunch(DbExporter.Database db, int bunch) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .select(table.getAcceptationColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                builder.add(result.next().get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
     private static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;

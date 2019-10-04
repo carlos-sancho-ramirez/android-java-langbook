@@ -486,7 +486,7 @@ public final class LangbookDatabase {
         return (targetChanged && agentDetails.targetBunch != NO_BUNCH)? agentDetails.targetBunch : null;
     }
 
-    public static Integer addAcceptation(Database db, int concept, int correlationArrayId) {
+    private static Integer addAcceptation(Database db, int concept, int correlationArrayId) {
         final IntKeyMap<String> texts = readCorrelationArrayTextAndItsAppliedConversions(db, correlationArrayId);
         if (texts == null) {
             return null;
@@ -507,7 +507,12 @@ public final class LangbookDatabase {
         return acceptation;
     }
 
-    public static boolean updateAcceptationCorrelationArray(Database db, int acceptation, int newCorrelationArrayId) {
+    public static Integer addAcceptation(Database db, int concept, ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+        final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
+        return addAcceptation(db, concept, correlationArrayId);
+    }
+
+    private static boolean updateAcceptationCorrelationArray(Database db, int acceptation, int newCorrelationArrayId) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getIdColumnIndex(), acceptation)
@@ -576,6 +581,11 @@ public final class LangbookDatabase {
         return changed;
     }
 
+    public static boolean updateAcceptationCorrelationArray(Database db, int acceptation, ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+        final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
+        return updateAcceptationCorrelationArray(db, acceptation, correlationArrayId);
+    }
+
     private static void removeFromStringQueryTable(Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
@@ -639,7 +649,7 @@ public final class LangbookDatabase {
         return removed;
     }
 
-    public static boolean removeComplementedConcept(Database db, int complementedConcept) {
+    public static boolean removeDefinition(Database db, int complementedConcept) {
         // TODO: This method should remove any orphan concept composition to avoid rubbish
         return deleteComplementedConcept(db, complementedConcept);
     }
@@ -1456,19 +1466,6 @@ public final class LangbookDatabase {
 
         applyConversion(db, conversion);
         return true;
-    }
-
-    /**
-     * Add a new alphabet and a new conversion at once, being the resulting alphabet the target of the given conversion.
-     * @param db Database where the alphabet and conversion will be included.
-     * @param sourceAlphabet Source alphabet for the given conversion.
-     * @param conversionPairs All pair of the conversion to be stored and applied. No specific order is required, as it will be resorted before applying it.
-     * @return The identifier for the new alphabet, or null if it is not possible to add them.
-     */
-    static Integer addAlphabetAsConversionTarget(Database db, int sourceAlphabet, Map<String, String> conversionPairs) {
-        final int alphabet = getMaxConcept(db) + 1;
-        final Conversion conversion = new Conversion(sourceAlphabet, alphabet, conversionPairs);
-        return addAlphabetAsConversionTarget(db, conversion)? alphabet : null;
     }
 
     /**
