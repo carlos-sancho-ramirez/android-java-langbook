@@ -313,7 +313,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static Integer findCorrelation(DbExporter.Database db, IntKeyMap<String> correlation) {
+    static Integer findCorrelation(DbExporter.Database db, IntKeyMap<String> correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
@@ -368,7 +368,7 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
+    static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
             return StreamedDatabaseConstants.nullCorrelationId;
         }
@@ -478,7 +478,7 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static Integer findLanguageByCode(DbExporter.Database db, String code) {
+    static Integer findLanguageByCode(DbExporter.Database db, String code) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getCodeColumnIndex(), code)
@@ -487,7 +487,7 @@ public final class LangbookReadableDatabase {
         return selectOptionalFirstIntColumn(db, query);
     }
 
-    public static ImmutableIntSet findAlphabetsByLanguage(DbExporter.Database db, int language) {
+    static ImmutableIntSet findAlphabetsByLanguage(DbExporter.Database db, int language) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getLanguageColumnIndex(), language)
@@ -497,7 +497,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    public static ImmutableIntPairMap getConversionsMap(DbExporter.Database db) {
+    static ImmutableIntPairMap getConversionsMap(DbExporter.Database db) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
 
         final DbQuery query = new DbQuery.Builder(conversions)
@@ -534,7 +534,7 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
-    public static ImmutableList<SearchResult> findAcceptationFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
+    static ImmutableList<SearchResult> findAcceptationFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(queryText),
@@ -561,7 +561,7 @@ public final class LangbookReadableDatabase {
         return map.toList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
-    public static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
+    static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
         final ImmutableList<SearchResult> rawResult = findAcceptationFromText(db, queryText, restrictionStringType);
         final SyncCacheIntKeyNonNullValueMap<String> mainTexts = new SyncCacheIntKeyNonNullValueMap<>(id -> readAcceptationMainText(db, id));
 
@@ -605,7 +605,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static Conversion getConversion(DbExporter.Database db, ImmutableIntPair pair) {
+    static Conversion getConversion(DbExporter.Database db, ImmutableIntPair pair) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
         final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
 
@@ -645,7 +645,7 @@ public final class LangbookReadableDatabase {
                 .anyMatch(str -> conversion.convert(str) == null);
     }
 
-    public static ImmutableSet<String> findConversionConflictWords(DbExporter.Database db, ConversionProposal conversion) {
+    static ImmutableSet<String> findConversionConflictWords(DbExporter.Database db, ConversionProposal conversion) {
         // TODO: Logic in the word should be somehow centralised with #checkConversionConflicts method
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
@@ -932,7 +932,7 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    public static ImmutableIntPairMap findConversions(DbExporter.Database db, IntSet alphabets) {
+    static ImmutableIntPairMap findConversions(DbExporter.Database db, IntSet alphabets) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
 
         final DbQuery query = new DbQuery.Builder(conversions)
@@ -997,7 +997,7 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getArrayIdColumnIndex());
     }
 
-    public static int getMaxConceptInAcceptations(DbExporter.Database db) {
+    private static int getMaxConceptInAcceptations(DbExporter.Database db) {
         LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         return getColumnMax(db, table, table.getConceptColumnIndex());
     }
@@ -1215,23 +1215,6 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    static ImmutableIntPairMap getCorrelation(DbExporter.Database db, int id) {
-        LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getCorrelationIdColumnIndex(), id)
-                .select(table.getAlphabetColumnIndex(), table.getSymbolArrayColumnIndex());
-
-        ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                corrBuilder.put(row.get(0).toInt(), row.get(1).toInt());
-            }
-        }
-
-        return corrBuilder.build();
-    }
-
     public static ImmutableIntKeyMap<String> getCorrelationWithText(DbExporter.Database db, int correlationId) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
@@ -1296,7 +1279,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet getAcceptationsInBunch(DbExporter.Database db, int bunch) {
+    static ImmutableIntSet getAcceptationsInBunch(DbExporter.Database db, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -1384,7 +1367,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableList<SearchResult> getSearchHistory(DbExporter.Database db) {
+    static ImmutableList<SearchResult> getSearchHistory(DbExporter.Database db) {
         final LangbookDbSchema.SearchHistoryTable history = LangbookDbSchema.Tables.searchHistory;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final int offset = history.columns().size();
@@ -1498,7 +1481,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    public static int conceptFromAcceptation(DbExporter.Database db, int accId) {
+    static int conceptFromAcceptation(DbExporter.Database db, int accId) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), accId)
@@ -1539,7 +1522,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet getAgentIds(DbExporter.Database db) {
+    static ImmutableIntSet getAgentIds(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex());
@@ -1937,7 +1920,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query).remove(agents.nullReference());
     }
 
-    public static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
+    static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
         final int conceptCount = concepts.size();
         if (conceptCount == 0) {
             return 0;
@@ -1981,8 +1964,6 @@ public final class LangbookReadableDatabase {
      * @return Whether there is at least one agent that uses the concept as source, target, diff or rule.
      */
     static boolean hasAgentsRequiringAcceptation(DbExporter.Database db, int concept) {
-        final MutableIntPairMap flags = MutableIntPairMap.empty();
-
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         DbQuery query = new DbQuery.Builder(agents)
                 .select(agents.getTargetBunchColumnIndex(), agents.getRuleColumnIndex(), agents.getSourceBunchSetColumnIndex(), agents.getDiffBunchSetColumnIndex());
@@ -2078,7 +2059,7 @@ public final class LangbookReadableDatabase {
         return selectExistingRow(db, query);
     }
 
-    public static boolean isAnyLanguagePresent(DbExporter.Database db) {
+    static boolean isAnyLanguagePresent(DbExporter.Database db) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex());
@@ -2086,7 +2067,7 @@ public final class LangbookReadableDatabase {
         return selectExistAtLeastOneRow(db, query);
     }
 
-    public static boolean isAlphabetPresent(DbExporter.Database db, int alphabet) {
+    static boolean isAlphabetPresent(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), alphabet)
@@ -2130,7 +2111,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static Integer getLanguageFromAlphabet(DbExporter.Database db, int alphabet) {
+    static Integer getLanguageFromAlphabet(DbExporter.Database db, int alphabet) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), alphabet)
@@ -2178,7 +2159,7 @@ public final class LangbookReadableDatabase {
         throw new IllegalArgumentException("alphabet " + alphabet + " not found");
     }
 
-    public static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndLanguage(DbExporter.Database db, int acceptation) {
+    static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndLanguage(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabetsTable = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
@@ -2280,7 +2261,7 @@ public final class LangbookReadableDatabase {
         return text;
     }
 
-    public static ImmutableMap<TableCellReference, TableCellValue> readTableContent(DbExporter.Database db, int dynamicAcceptation, int preferredAlphabet) {
+    static ImmutableMap<TableCellReference, TableCellValue> readTableContent(DbExporter.Database db, int dynamicAcceptation, int preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2326,7 +2307,7 @@ public final class LangbookReadableDatabase {
         return resultMap.toImmutable();
     }
 
-    public static DisplayableItem readConceptAcceptationAndText(DbExporter.Database db, int concept, int preferredAlphabet) {
+    static DisplayableItem readConceptAcceptationAndText(DbExporter.Database db, int concept, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
@@ -2358,7 +2339,7 @@ public final class LangbookReadableDatabase {
         return new DisplayableItem(acceptation, text);
     }
 
-    public static ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(DbExporter.Database db, int bunchSet, int preferredAlphabet) {
+    static ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(DbExporter.Database db, int bunchSet, int preferredAlphabet) {
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2493,7 +2474,7 @@ public final class LangbookReadableDatabase {
         return resultMap.toList().toImmutable();
     }
 
-    public static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
+    static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2537,7 +2518,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntKeyMap<String> readAlphabetsForLanguage(DbExporter.Database db, int language, int preferredAlphabet) {
+    static ImmutableIntKeyMap<String> readAlphabetsForLanguage(DbExporter.Database db, int language, int preferredAlphabet) {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
@@ -2581,7 +2562,7 @@ public final class LangbookReadableDatabase {
         return selectSingleRow(db, mainAlphableQuery).get(0).toInt();
     }
 
-    public static ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, int preferredAlphabet) {
+    static ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, int preferredAlphabet) {
         final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
@@ -2639,7 +2620,7 @@ public final class LangbookReadableDatabase {
         return intSetQuery(db, query);
     }
 
-    public static ImmutableIntKeyMap<String> readAllRules(DbExporter.Database db, int preferredAlphabet) {
+    static ImmutableIntKeyMap<String> readAllRules(DbExporter.Database db, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2707,7 +2688,7 @@ public final class LangbookReadableDatabase {
         return selectSingleRow(db, query).get(0).toText();
     }
 
-    public static String readQuestionFieldText(DbExporter.Database db, int acceptation, QuestionFieldDetails field) {
+    static String readQuestionFieldText(DbExporter.Database db, int acceptation, QuestionFieldDetails field) {
         switch (field.getType()) {
             case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC:
                 return getAcceptationText(db, acceptation, field.alphabet);
@@ -2722,7 +2703,7 @@ public final class LangbookReadableDatabase {
         throw new UnsupportedOperationException("Unsupported question field type");
     }
 
-    public static Progress readQuizProgress(DbExporter.Database db, int quizId) {
+    static Progress readQuizProgress(DbExporter.Database db, int quizId) {
         final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
 
         final DbQuery query = new DbQuery.Builder(knowledge)
@@ -2745,7 +2726,7 @@ public final class LangbookReadableDatabase {
         return new Progress(ImmutableIntList.from(progress), numberOfQuestions);
     }
 
-    public static ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> readQuizSelectorEntriesForBunch(DbExporter.Database db, int bunch) {
+    static ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> readQuizSelectorEntriesForBunch(DbExporter.Database db, int bunch) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final LangbookDbSchema.QuestionFieldSets fieldSets = LangbookDbSchema.Tables.questionFieldSets;
 
@@ -2818,7 +2799,7 @@ public final class LangbookReadableDatabase {
      * @param preferredAlphabet User's defined alphabet.
      * @return A map whose keys are bunches (concepts) and value are the suitable way to represent that bunch, according to the given preferred alphabet.
      */
-    public static ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, ImmutableIntKeyMap<String> texts, int preferredAlphabet) {
+    static ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, ImmutableIntKeyMap<String> texts, int preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getTargetBunchColumnIndex(), NO_BUNCH)
@@ -3052,7 +3033,7 @@ public final class LangbookReadableDatabase {
                 startMatcher, startAdder, endMatcher, endAdder, register.rule);
     }
 
-    public static QuizDetails getQuizDetails(DbExporter.Database db, int quizId) {
+    static QuizDetails getQuizDetails(DbExporter.Database db, int quizId) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final LangbookDbSchema.QuestionFieldSets questions = LangbookDbSchema.Tables.questionFieldSets;
         final int offset = quizzes.columns().size();
@@ -3079,7 +3060,7 @@ public final class LangbookReadableDatabase {
         return fields.isEmpty()? null : new QuizDetails(bunch, fields);
     }
 
-    public static ImmutableIntPairMap getCurrentKnowledge(DbExporter.Database db, int quizId) {
+    static ImmutableIntPairMap getCurrentKnowledge(DbExporter.Database db, int quizId) {
         final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getQuizDefinitionColumnIndex(), quizId)
@@ -3119,7 +3100,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    public static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
+    static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
         final int concept = conceptFromAcceptation(db, staticAcceptation);
         if (concept == 0) {
             return null;
@@ -3157,7 +3138,7 @@ public final class LangbookReadableDatabase {
                 morphologyResults, involvedAgents, languageStrs.toImmutable(), sampleSentences);
     }
 
-    public static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {
+    static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {
         final ImmutableIntKeyMap<String> correlation = getCorrelationWithText(db, correlationId);
         if (correlation.isEmpty()) {
             return null;
@@ -3191,7 +3172,7 @@ public final class LangbookReadableDatabase {
                 relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable());
     }
 
-    public static ImmutableSet<SentenceSpan> getSentenceSpans(DbExporter.Database db, int symbolArray) {
+    static ImmutableSet<SentenceSpan> getSentenceSpans(DbExporter.Database db, int symbolArray) {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSymbolArray(), symbolArray)
@@ -3232,7 +3213,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static Integer getStaticAcceptationFromDynamic(DbExporter.Database db, int dynamicAcceptation) {
+    static Integer getStaticAcceptationFromDynamic(DbExporter.Database db, int dynamicAcceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
@@ -3256,7 +3237,7 @@ public final class LangbookReadableDatabase {
         return found? value : null;
     }
 
-    public static ImmutableIntKeyMap<String> getAcceptationTexts(DbExporter.Database db, int acceptation) {
+    static ImmutableIntKeyMap<String> getAcceptationTexts(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), acceptation)
@@ -3286,7 +3267,7 @@ public final class LangbookReadableDatabase {
      * Checks if the given symbolArray is not used neither as a correlation nor as a conversion,
      * and then it is merely a sentence.
      */
-    public static boolean isSymbolArrayMerelyASentence(DbExporter.Database db, int symbolArrayId) {
+    static boolean isSymbolArrayMerelyASentence(DbExporter.Database db, int symbolArrayId) {
         final LangbookDbSchema.CorrelationsTable corrTable = LangbookDbSchema.Tables.correlations;
 
         DbQuery query = new DbQuery.Builder(corrTable)
@@ -3320,7 +3301,7 @@ public final class LangbookReadableDatabase {
         return true;
     }
 
-    public static boolean checkAlphabetCanBeRemoved(DbExporter.Database db, int alphabet) {
+    static boolean checkAlphabetCanBeRemoved(DbExporter.Database db, int alphabet) {
         // There must be at least another alphabet in the same language to avoid leaving the language without alphabets
         if (alphabetsWithinLanguage(db, alphabet).size() < 2) {
             return false;
@@ -3346,7 +3327,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    public static DefinitionDetails getDefinition(DbExporter.Database db, int concept) {
+    static DefinitionDetails getDefinition(DbExporter.Database db, int concept) {
         final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.ConceptCompositionsTable compositions = LangbookDbSchema.Tables.conceptCompositions;
 

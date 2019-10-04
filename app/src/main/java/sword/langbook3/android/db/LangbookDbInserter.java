@@ -112,7 +112,7 @@ public final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    public static void insertConceptCompositionEntry(DbInserter db, int compositionId, int item) {
+    static void insertConceptCompositionEntry(DbInserter db, int compositionId, int item) {
         final LangbookDbSchema.ConceptCompositionsTable table = Tables.conceptCompositions;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getComposedColumnIndex(), compositionId)
@@ -121,7 +121,7 @@ public final class LangbookDbInserter {
         db.insert(query);
     }
 
-    public static void insertComplementedConcept(DbInserter db, int base, int complementedConcept, int complement) {
+    static void insertComplementedConcept(DbInserter db, int base, int complementedConcept, int complement) {
         final LangbookDbSchema.ComplementedConceptsTable table = Tables.complementedConcepts;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), complementedConcept)

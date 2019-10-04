@@ -514,7 +514,7 @@ public final class LangbookDatabase {
         return acceptation;
     }
 
-    public static Integer addAcceptation(Database db, int concept, ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+    static Integer addAcceptation(Database db, int concept, ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
         final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
         return addAcceptation(db, concept, correlationArrayId);
     }
@@ -588,7 +588,7 @@ public final class LangbookDatabase {
         return changed;
     }
 
-    public static boolean updateAcceptationCorrelationArray(Database db, int acceptation, ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+    static boolean updateAcceptationCorrelationArray(Database db, int acceptation, ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
         final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
         return updateAcceptationCorrelationArray(db, acceptation, correlationArrayId);
     }
@@ -611,7 +611,7 @@ public final class LangbookDatabase {
         db.delete(query);
     }
 
-    public static boolean removeAcceptation(Database db, int acceptation) {
+    static boolean removeAcceptation(Database db, int acceptation) {
         final int concept = conceptFromAcceptation(db, acceptation);
         final boolean withoutSynonymsOrTranslations = LangbookReadableDatabase.findAcceptationsByConcept(db, concept).remove(acceptation).isEmpty();
         if (withoutSynonymsOrTranslations && hasAgentsRequiringAcceptation(db, concept)) {
@@ -656,7 +656,7 @@ public final class LangbookDatabase {
         return removed;
     }
 
-    public static boolean removeDefinition(Database db, int complementedConcept) {
+    static boolean removeDefinition(Database db, int complementedConcept) {
         // TODO: This method should remove any orphan concept composition to avoid rubbish
         return deleteComplementedConcept(db, complementedConcept);
     }
@@ -686,7 +686,7 @@ public final class LangbookDatabase {
      * @return Whether the acceptation has been properly included.
      *         False if the acceptation is already included in the bunch.
      */
-    public static boolean addAcceptationInBunch(Database db, int bunch, int acceptation) {
+    static boolean addAcceptationInBunch(Database db, int bunch, int acceptation) {
         if (isAcceptationInBunch(db, bunch, acceptation)) {
             return false;
         }
@@ -720,7 +720,7 @@ public final class LangbookDatabase {
         return true;
     }
 
-    public static boolean removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
+    static boolean removeAcceptationFromBunch(Database db, int bunch, int acceptation) {
         if (LangbookDeleter.deleteBunchAcceptation(db, bunch, acceptation)) {
             final ImmutableIntSet.Builder allUpdatedBunchesBuilder = new ImmutableIntSetCreator();
             ImmutableIntSet updatedBunches = new ImmutableIntSetCreator().add(bunch).build();
@@ -752,7 +752,7 @@ public final class LangbookDatabase {
         return false;
     }
 
-    public static Integer addAgent(Database db, int targetBunch, ImmutableIntSet sourceBunches,
+    static Integer addAgent(Database db, int targetBunch, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule) {
@@ -799,7 +799,7 @@ public final class LangbookDatabase {
         return agentId;
     }
 
-    public static void removeAgent(Database db, int agentId) {
+    static void removeAgent(Database db, int agentId) {
         // This implementation has lot of holes.
         // 1. It is assuming that there is no chained agents
         // 2. It is assuming that agents sets only contains a single agent.
@@ -857,7 +857,7 @@ public final class LangbookDatabase {
         }
     }
 
-    public static Integer obtainQuiz(Database db, int bunch, ImmutableList<QuestionFieldDetails> fields) {
+    static Integer obtainQuiz(Database db, int bunch, ImmutableList<QuestionFieldDetails> fields) {
         final Integer existingSetId = findQuestionFieldSet(db, fields);
         final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(db, bunch, existingSetId) : null;
 
@@ -889,17 +889,17 @@ public final class LangbookDatabase {
         insertAllPossibilities(db, quizId, possibleAcceptations.filterNot(registeredAcceptations::contains));
     }
 
-    public static void updateSearchHistory(Database db, int acceptation) {
+    static void updateSearchHistory(Database db, int acceptation) {
         deleteSearchHistoryForAcceptation(db, acceptation);
         insertSearchHistoryEntry(db, acceptation);
     }
 
-    public static void removeQuiz(Database db, int quizId) {
+    static void removeQuiz(Database db, int quizId) {
         deleteKnowledgeForQuiz(db, quizId);
         deleteQuiz(db, quizId);
     }
 
-    static boolean updateSymbolArray(Database db, int symbolArrayId, String text) {
+    private static boolean updateSymbolArray(Database db, int symbolArrayId, String text) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
         final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getIdColumnIndex(), symbolArrayId)
@@ -918,7 +918,7 @@ public final class LangbookDatabase {
         return result;
     }
 
-    public static boolean removeSentence(Database db, int symbolArrayId) {
+    static boolean removeSentence(Database db, int symbolArrayId) {
         removeSentenceMeaning(db, symbolArrayId);
         deleteSpanBySymbolArrayId(db, symbolArrayId);
         return isSymbolArrayMerelyASentence(db, symbolArrayId) && deleteSymbolArray(db, symbolArrayId);
@@ -943,7 +943,7 @@ public final class LangbookDatabase {
      * @return True if any update has been performed in the database, false if
      * source and target already were sharing its meaning.
      */
-    public static boolean copySentenceMeaning(Database db, int sourceSymbolArray, int targetSymbolArray) {
+    static boolean copySentenceMeaning(Database db, int sourceSymbolArray, int targetSymbolArray) {
         final Integer foundMeaning = getSentenceMeaning(db, sourceSymbolArray);
         final int meaning;
         boolean dbUpdated = false;
@@ -1031,7 +1031,7 @@ public final class LangbookDatabase {
         }
     }
 
-    public static boolean removeAlphabet(Database db, int alphabet) {
+    static boolean removeAlphabet(Database db, int alphabet) {
         // There must be at least another alphabet in the same language to avoid leaving the language without alphabets
         if (alphabetsWithinLanguage(db, alphabet).size() < 2) {
             return false;
@@ -1083,7 +1083,7 @@ public final class LangbookDatabase {
         return new LanguageCreationResult(language, alphabet);
     }
 
-    public static boolean removeLanguage(Database db, int language) {
+    static boolean removeLanguage(Database db, int language) {
         // For now, if there is a bunch whose concept is only linked to acceptations of the language to be removed,
         // the removal is rejected, as there will not be any way to access that bunch any more in an AcceptationsDetailsActivity.
         // Only exception to the previous rule is the case where all acceptations within the bunch belongs to the language that is about to be removed.
@@ -1158,7 +1158,7 @@ public final class LangbookDatabase {
      * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
      * @return true if the alphabet has been successfully added, and so, the database content has change.
      */
-    public static boolean addAlphabetCopyingFromOther(Database db, int alphabet, int sourceAlphabet) {
+    static boolean addAlphabetCopyingFromOther(Database db, int alphabet, int sourceAlphabet) {
         if (LangbookReadableDatabase.isAlphabetPresent(db, alphabet)) {
             return false;
         }
@@ -1403,7 +1403,7 @@ public final class LangbookDatabase {
         db.update(query);
     }
 
-    public static void updateScore(Database db, int quizId, int acceptation, int score) {
+    static void updateScore(Database db, int quizId, int acceptation, int score) {
         if (score < MIN_ALLOWED_SCORE || score > MAX_ALLOWED_SCORE) {
             throw new IllegalArgumentException();
         }
@@ -1428,7 +1428,7 @@ public final class LangbookDatabase {
      * @param oldConcept Concept to be replaced by the linked one.
      * @return Whether the database has changed.
      */
-    public static boolean shareConcept(Database db, int linkedAcceptation, int oldConcept) {
+    static boolean shareConcept(Database db, int linkedAcceptation, int oldConcept) {
         final int linkedConcept = conceptFromAcceptation(db, linkedAcceptation);
         if (oldConcept == linkedConcept) {
             return false;
@@ -1461,7 +1461,7 @@ public final class LangbookDatabase {
      * @param linkedAcceptation Acceptation from where the correlation array reference has to be copied.
      * @param concept Concept to be applied to the new acceptation created.
      */
-    public static void duplicateAcceptationWithThisConcept(Database db, int linkedAcceptation, int concept) {
+    static void duplicateAcceptationWithThisConcept(Database db, int linkedAcceptation, int concept) {
         if (concept == 0) {
             throw new AssertionError();
         }
@@ -1476,7 +1476,7 @@ public final class LangbookDatabase {
      * @param conversion Conversion to be evaluated and stored if no conflicts are found.
      * @return Whether the action was completed successfully, and so the database state content has changed.
      */
-    public static boolean addAlphabetAsConversionTarget(Database db, Conversion conversion) {
+    static boolean addAlphabetAsConversionTarget(Database db, Conversion conversion) {
         final Integer languageOpt = getLanguageFromAlphabet(db, conversion.getSourceAlphabet());
         if (languageOpt == null) {
             return false;
@@ -1510,7 +1510,7 @@ public final class LangbookDatabase {
      * @param conversion New conversion to be included.
      * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
      */
-    public static boolean replaceConversion(Database db, Conversion conversion) {
+    static boolean replaceConversion(Database db, Conversion conversion) {
         final int sourceAlphabet = conversion.getSourceAlphabet();
         final int targetAlphabet = conversion.getTargetAlphabet();
         final Integer languageObj = getLanguageFromAlphabet(db, sourceAlphabet);
@@ -1669,7 +1669,7 @@ public final class LangbookDatabase {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 
-    static boolean addSpan(DbImporter.Database db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
+    private static boolean addSpan(DbImporter.Database db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
         if (isSymbolArrayPresent(db, symbolArray) && isAcceptationPresent(db, dynamicAcceptation)) {
             LangbookDbInserter.insertSpan(db, symbolArray, range, dynamicAcceptation);
             return true;
@@ -1678,7 +1678,7 @@ public final class LangbookDatabase {
         return false;
     }
 
-    static boolean removeSpan(Deleter db, int id) {
+    private static boolean removeSpan(Deleter db, int id) {
         return LangbookDeleter.deleteSpan(db, id);
     }
 }
