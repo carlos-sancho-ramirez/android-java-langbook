@@ -951,16 +951,10 @@ public final class StreamedDatabaseWriter {
         }
         final ImmutableSortedSet<AgentRegister> agents = agentsBuilder.build().sort(sortFunc);
 
-        final MutableIntPairMap bunchSetLengthFrequencyMap = MutableIntPairMap.empty();
-        for (AgentRegister agent : agents) {
-            final int sourceBunchSetLength = bunchSets.get(agent.sourceBunchSetId, emptySet).size();
-            int amount = bunchSetLengthFrequencyMap.get(sourceBunchSetLength, 0);
-            bunchSetLengthFrequencyMap.put(sourceBunchSetLength, amount + 1);
-
-            final int diffBunchSetLength = bunchSets.get(agent.diffBunchSetId, emptySet).size();
-            amount = bunchSetLengthFrequencyMap.get(diffBunchSetLength, 0);
-            bunchSetLengthFrequencyMap.put(diffBunchSetLength, amount + 1);
-        }
+        final ImmutableIntPairMap bunchSetLengthFrequencyMap = agents
+                .mapToInt(agent -> bunchSets.get(agent.sourceBunchSetId, emptySet).size())
+                .appendAll(agents.mapToInt(agent -> bunchSets.get(agent.diffBunchSetId, emptySet).size()))
+                .count();
 
         final int agentCount = agents.size();
         _obs.writeHuffmanSymbol(naturalNumberTable, agentCount);
