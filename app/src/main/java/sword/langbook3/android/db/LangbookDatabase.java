@@ -1424,21 +1424,6 @@ public final class LangbookDatabase {
     }
 
     /**
-     * Add a new alphabet to this database as a copy of the given sourceAlphabet.
-     *
-     * This method is a simplification of {@link #addAlphabetCopyingFromOther(sword.database.Database, int, int)}
-     * where alphabet is a unused reference, calculated after checking the database.
-     *
-     * @param db Database where the new alphabet has to be included.
-     * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
-     * @return A new alphabet identifier if all went fine, or null if the alphabet cannot be added.
-     */
-    public static Integer addAlphabetCopyingFromOther(Database db, int sourceAlphabet) {
-        final int alphabet = getMaxConcept(db) + 1;
-        return addAlphabetCopyingFromOther(db, alphabet, sourceAlphabet)? alphabet : null;
-    }
-
-    /**
      * Add a new alphabet and a new conversion at once, being the resulting alphabet the target of the given conversion.
      * @param db Database where the alphabet and conversion will be included.
      * @param conversion Conversion to be evaluated and stored if no conflicts are found.

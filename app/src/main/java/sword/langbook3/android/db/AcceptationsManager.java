@@ -22,24 +22,11 @@ public interface AcceptationsManager extends AcceptationsChecker {
     /**
      * Add a new alphabet to this database as a copy of the given sourceAlphabet.
      *
-     * This method is a simplification of {@link #addAlphabetCopyingFromOther(int, int)}
-     * where alphabet is a unused reference, calculated after checking the database.
-     *
-     * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
-     * @return A new alphabet identifier if all went fine, or null if the alphabet cannot be added.
-     */
-    Integer addAlphabetCopyingFromOther(int sourceAlphabet);
-
-    /**
-     * Add a new alphabet to this database as a copy of the given sourceAlphabet.
-     *
      * This method will check for any correlation using the sourceAlphabet and will
      * create within the same correlation a new entry for the new created alphabet,
      * pointing to the same symbol array.
      *
      * This method allows to link directly the concept of an already inserted acceptation with as a new alphabet.
-     * If there is no predefined alphabet reference to be used in this method, maybe the method
-     * {@link #addAlphabetCopyingFromOther(int)} should be called instead.
      *
      * If all is OK, the new alphabet will be linked to the same language that the sourceAlphabet is.
      *

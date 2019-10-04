@@ -153,9 +153,8 @@ public final class AcceptationsManagerTest {
 
         final int language = langPair.language;
         final int mainAlphabet = langPair.mainAlphabet;
-        final int secondAlphabet = manager.addAlphabetCopyingFromOther(mainAlphabet);
-        assertNotEquals(language, secondAlphabet);
-        assertNotEquals(mainAlphabet, secondAlphabet);
+        final int secondAlphabet = mainAlphabet + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
         assertEquals(language, manager.findLanguageByCode(code).intValue());
         final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
@@ -201,9 +200,8 @@ public final class AcceptationsManagerTest {
 
         final int acceptation = addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
 
-        final int secondAlphabet = manager.addAlphabetCopyingFromOther(mainAlphabet);
-        assertNotEquals(language, secondAlphabet);
-        assertNotEquals(mainAlphabet, secondAlphabet);
+        final int secondAlphabet = manager.getMaxConcept() + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
         assertEquals(language, manager.findLanguageByCode(code).intValue());
         final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
@@ -229,7 +227,8 @@ public final class AcceptationsManagerTest {
         final int mainAlphabet = langPair.mainAlphabet;
 
         addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
-        manager.addAlphabetCopyingFromOther(mainAlphabet);
+        final int secondAlphabet = manager.getMaxConcept() + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
         assertTrue(manager.removeLanguage(language));
         assertNull(manager.findLanguageByCode(code));
@@ -381,7 +380,8 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final int kanji = manager.addLanguage("ja").mainAlphabet;
-        final int kana = manager.addAlphabetCopyingFromOther(kanji);
+        final int kana = manager.getMaxConcept() + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
         final int concept = manager.getMaxConcept() + 1;
 
         final ImmutableList<ImmutableIntKeyMap<String>> correlationArrays = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
@@ -427,9 +427,10 @@ public final class AcceptationsManagerTest {
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
         final int kanji = manager.addLanguage("ja").mainAlphabet;
-        final int kana = manager.addAlphabetCopyingFromOther(kanji);
-        final int roumaji = kana + 1;
+        final int kana = manager.getMaxConcept() + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
 
+        final int roumaji = manager.getMaxConcept() + 1;
         final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
                 .put("あ", "a")
                 .put("も", "mo")

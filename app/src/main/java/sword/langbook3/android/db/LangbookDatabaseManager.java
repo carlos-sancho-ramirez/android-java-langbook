@@ -4,7 +4,6 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.database.Database;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -58,11 +57,6 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     @Override
     public boolean removeLanguage(int language) {
         return LangbookDatabase.removeLanguage(_db, language);
-    }
-
-    @Override
-    public Integer addAlphabetCopyingFromOther(int sourceAlphabet) {
-        return LangbookDatabase.addAlphabetCopyingFromOther(_db, sourceAlphabet);
     }
 
     @Override

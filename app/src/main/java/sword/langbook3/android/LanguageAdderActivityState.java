@@ -8,6 +8,7 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookReadableDatabase;
 import sword.langbook3.android.models.LanguageCreationResult;
 
 public final class LanguageAdderActivityState implements Parcelable {
@@ -174,8 +175,8 @@ public final class LanguageAdderActivityState implements Parcelable {
         }
 
         for (int i = 1; i < _alphabetCount; i++) {
-            final int alphabet = LangbookDatabase.addAlphabetCopyingFromOther(db, _newLanguageId + 1);
-            if (alphabet != _newLanguageId + i + 1) {
+            final int alphabet = LangbookReadableDatabase.getMaxConcept(db) + 1;
+            if (!LangbookDatabase.addAlphabetCopyingFromOther(db, alphabet, _newLanguageId + 1)) {
                 throw new AssertionError();
             }
         }

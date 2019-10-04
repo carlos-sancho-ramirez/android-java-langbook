@@ -63,7 +63,8 @@ public final class QuizzesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
-        final int kanaAlphabet = manager.addAlphabetCopyingFromOther(kanjiAlphabet);
+        final int kanaAlphabet = kanjiAlphabet + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
 
         final int myVocabularyConcept = manager.getMaxConcept() + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -99,7 +100,8 @@ public final class QuizzesManagerTest {
 
         final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
-        final int kanaAlphabet = manager.addAlphabetCopyingFromOther(kanjiAlphabet);
+        final int kanaAlphabet = kanjiAlphabet + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
 
         final int myVocabularyConcept = manager.getMaxConcept() + 1;
         final int arVerbConcept = myVocabularyConcept + 1;

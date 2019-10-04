@@ -95,7 +95,9 @@ public final class LangbookReadableDatabaseTest {
             final MemoryDatabase db = new MemoryDatabase();
             final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
             final int alphabet1 = addLanguage(db, "xx").mainAlphabet;
-            final int alphabet2 = addAlphabetCopyingFromOther(db, alphabet1);
+            final int alphabet2 = manager.getMaxConcept() + 1;
+            assertTrue(addAlphabetCopyingFromOther(db, alphabet2, alphabet1));
+
             final int concept1 = getMaxConcept(db) + 1;
             final int concept2 = concept1 + 1;
             final int concept3 = concept2 + 1;
