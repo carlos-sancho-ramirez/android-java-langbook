@@ -17,6 +17,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableSet;
+import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
 import sword.database.Database;
 import sword.langbook3.android.db.LangbookDatabase;
@@ -28,12 +29,14 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptation
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpans;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpansWithIds;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readTextAndDynamicAcceptationsMapFromStaticAcceptation;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
 
     private interface ArgKeys {
+        String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
         String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
         String TEXT = BundleKeys.TEXT;
     }
@@ -49,11 +52,18 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private TextView _sentenceText;
     private ListView _listView;
 
-    private SpanEditorActivityState _state = new SpanEditorActivityState();
+    private SpanEditorActivityState _state;
 
     static void open(Activity activity, int requestCode, String text) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    static void openWithStaticAcceptation(Activity activity, int requestCode, String text, int staticAcceptation) {
+        final Intent intent = new Intent(activity, SpanEditorActivity.class);
+        intent.putExtra(ArgKeys.TEXT, text);
+        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -88,6 +98,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, NO_SYMBOL_ARRAY);
     }
 
+    private int getStaticAcceptationId() {
+        return getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+    }
+
     private void insertInitialSpans(int symbolArrayId) {
         final Database db = DbManager.getInstance().getDatabase();
         final String sentence = getText();
@@ -114,12 +128,38 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
     }
 
+    private void insertSuggestedSpans(int staticAcceptation) {
+        final Database db = DbManager.getInstance().getDatabase();
+        final ImmutableIntValueMap<String> map = readTextAndDynamicAcceptationsMapFromStaticAcceptation(db, staticAcceptation);
+        final String text = getText();
+        for (IntValueMap.Entry<String> entry : map.entries()) {
+            final int index = text.indexOf(entry.key());
+            if (index >= 0) {
+                final ImmutableIntRange range = new ImmutableIntRange(index, index + entry.key().length() - 1);
+                _state.getSpans().put(new SentenceSpan(range, entry.value()), 1);
+                return;
+            }
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.span_editor_activity);
 
-        if (savedInstanceState != null) {
+        if (savedInstanceState == null) {
+            _state = new SpanEditorActivityState();
+
+            final int symbolArrayId = getSymbolArrayId();
+            final int staticAcceptation = getStaticAcceptationId();
+            if (symbolArrayId != NO_SYMBOL_ARRAY) {
+                insertInitialSpans(symbolArrayId);
+            }
+            else if (staticAcceptation != 0) {
+                insertSuggestedSpans(staticAcceptation);
+            }
+        }
+        else {
             _state = savedInstanceState.getParcelable(SavedKeys.STATE);
         }
 
@@ -128,11 +168,6 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         _sentenceText.setCustomSelectionActionModeCallback(this);
 
         _listView = findViewById(R.id.listView);
-
-        final int symbolArrayId = getSymbolArrayId();
-        if (symbolArrayId != NO_SYMBOL_ARRAY) {
-            insertInitialSpans(symbolArrayId);
-        }
     }
 
     @Override

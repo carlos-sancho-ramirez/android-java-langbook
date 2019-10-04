@@ -18,6 +18,7 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
     private static final int REQUEST_CODE_ADD_SPAN = 1;
 
     interface ArgKeys {
+        String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
         String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
     }
 
@@ -27,6 +28,12 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    static void openWithStaticAcceptation(Activity activity, int requestCode, int staticAcceptation) {
+        final Intent intent = new Intent(activity, SentenceEditorActivity.class);
+        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -40,6 +47,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     private int getSymbolArrayId() {
         return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, NO_SYMBOL_ARRAY);
+    }
+
+    private int getStaticAcceptationId() {
+        return getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
     }
 
     @Override
@@ -73,9 +84,13 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     private void openSpanEditor() {
         final int symbolArrayId = getSymbolArrayId();
+        final int staticAcceptation = getStaticAcceptationId();
         final String text = _textField.getText().toString();
 
-        if (symbolArrayId == NO_SYMBOL_ARRAY) {
+        if (staticAcceptation != 0) {
+            SpanEditorActivity.openWithStaticAcceptation(this, REQUEST_CODE_ADD_SPAN, text, staticAcceptation);
+        }
+        else if (symbolArrayId == NO_SYMBOL_ARRAY) {
             SpanEditorActivity.open(this, REQUEST_CODE_ADD_SPAN, text);
         }
         else {

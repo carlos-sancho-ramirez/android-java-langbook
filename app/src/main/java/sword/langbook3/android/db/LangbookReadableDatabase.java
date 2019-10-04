@@ -25,12 +25,16 @@ import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.MutableHashMap;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
+import sword.collections.MutableIntValueHashMap;
+import sword.collections.MutableIntValueMap;
 import sword.collections.MutableMap;
+import sword.collections.MutableSet;
 import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
@@ -1816,6 +1820,39 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    public static ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(DbExporter.Database db, int staticAcceptation) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getMainAcceptationColumnIndex(), staticAcceptation)
+                .select(strings.getDynamicAcceptationColumnIndex(),
+                        strings.getStringColumnIndex());
+
+        final MutableIntValueMap<String> result = MutableIntValueHashMap.empty();
+        final MutableSet<String> discardTexts = MutableHashSet.empty();
+
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int dynAcc = row.get(0).toInt();
+                final String text = row.get(1).toText();
+
+                if (!discardTexts.contains(text)) {
+                    final int foundDynAcc = result.get(text, 0);
+                    if (foundDynAcc == 0) {
+                        result.put(text, dynAcc);
+                    }
+                    else if (dynAcc != foundDynAcc) {
+                        discardTexts.add(text);
+                        result.removeAt(result.indexOfKey(text));
+                    }
+                }
+            }
+        }
+
+        return result.toImmutable();
     }
 
     private static ImmutableIntSet intSetQuery(DbExporter.Database db, DbQuery query) {
