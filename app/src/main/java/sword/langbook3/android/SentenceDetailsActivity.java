@@ -17,10 +17,9 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
 public final class SentenceDetailsActivity extends Activity implements DialogInterface.OnClickListener, AdapterView.OnItemClickListener {
@@ -52,6 +51,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     private TextView _sentenceTextView;
     private ListView _listView;
+    private SentenceDetailsModel _model;
     private boolean _justCreated;
 
     private boolean _displayingDeleteDialog;
@@ -77,17 +77,15 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     }
 
     private void updateSentenceTextView() {
-        final int symbolArrayId = getSymbolArrayId();
-        final LangbookChecker checker = DbManager.getInstance().getManager();
-        final String text = checker.getSymbolArray(symbolArrayId);
-
+        final String text = _model.text;
         if (text == null) {
             finish();
         }
         else {
-            final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(symbolArrayId);
+            final ImmutableSet<SentenceSpan> spans = _model.spans;
 
             final SpannableString string = new SpannableString(text);
+            final LangbookChecker checker = DbManager.getInstance().getManager();
             for (SentenceSpan span : spans) {
                 final int staticAcceptation = checker.getStaticAcceptationFromDynamic(span.acceptation);
                 string.setSpan(new ClickableSentenceSpan(staticAcceptation, span.acceptation),
@@ -99,10 +97,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     }
 
     private void updateOtherSentences() {
-        final LangbookChecker checker = DbManager.getInstance().getManager();
-        final ImmutableIntSet others = checker.findSentenceIdsMatchingMeaning(getSymbolArrayId());
-        final ImmutableIntKeyMap<String> sentences = others.assign(checker::getSymbolArray);
-        _listView.setAdapter(new SentenceDetailsAdapter(sentences));
+        _listView.setAdapter(new SentenceDetailsAdapter(_model.sameMeaningSentences));
         _listView.setOnItemClickListener(this);
     }
 
@@ -118,6 +113,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
             _displayingDeleteDialog = savedInstanceState.getBoolean(SavedKeys.DISPLAYING_DELETE_DIALOG);
         }
 
+        _model = DbManager.getInstance().getManager().getSentenceDetails(getSymbolArrayId());
         updateSentenceTextView();
         updateOtherSentences();
         _justCreated = true;
@@ -175,6 +171,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         }
 
         if (resultCode == RESULT_OK && !_justCreated) {
+            _model = DbManager.getInstance().getManager().getSentenceDetails(getSymbolArrayId());
             updateSentenceTextView();
         }
     }

@@ -221,49 +221,22 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             final int symbolArrayId = getSymbolArrayId();
             final int newSymbolArray;
             if (symbolArrayId == NO_SYMBOL_ARRAY) {
-                newSymbolArray = manager.obtainSymbolArray(newText);
-                for (SentenceSpan span : spans) {
-                    if (!manager.addSpan(newSymbolArray, span.range, span.acceptation)) {
-                        throw new AssertionError();
-                    }
-                }
-
+                newSymbolArray = manager.addSentence(newText, spans);
                 Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
             else {
                 if (manager.isSymbolArrayMerelyASentence(symbolArrayId)) {
+                    if (!manager.replaceSentence(symbolArrayId, newText, spans)) {
+                        throw new AssertionError();
+                    }
                     newSymbolArray = symbolArrayId;
-                    if (!manager.updateSymbolArray(symbolArrayId, newText)) {
+                }
+                else {
+                    if (!manager.removeSentence(symbolArrayId)) {
                         throw new AssertionError();
                     }
 
-                    final ImmutableIntValueMap<SentenceSpan> dbSpanMap = manager.getSentenceSpansWithIds(symbolArrayId);
-                    final ImmutableSet<SentenceSpan> dbSpanSet = dbSpanMap.keySet();
-                    for (SentenceSpan span : dbSpanSet.filterNot(spans::contains)) {
-                        if (!manager.removeSpan(dbSpanMap.get(span))) {
-                            throw new AssertionError();
-                        }
-                    }
-
-                    for (SentenceSpan span : spans.filterNot(dbSpanSet::contains)) {
-                        if (!manager.addSpan(symbolArrayId, span.range, span.acceptation)) {
-                            throw new AssertionError();
-                        }
-                    }
-                }
-                else {
-                    newSymbolArray = manager.obtainSymbolArray(newText);
-                    for (int spanId : manager.getSentenceSpansWithIds(symbolArrayId)) {
-                        if (!manager.removeSpan(spanId)) {
-                            throw new AssertionError();
-                        }
-                    }
-
-                    for (SentenceSpan span : spans) {
-                        if (!manager.addSpan(newSymbolArray, span.range, span.acceptation)) {
-                            throw new AssertionError();
-                        }
-                    }
+                    newSymbolArray = manager.addSentence(newText, spans);
                 }
 
                 Toast.makeText(this, R.string.updateSentenceFeedback, Toast.LENGTH_SHORT).show();

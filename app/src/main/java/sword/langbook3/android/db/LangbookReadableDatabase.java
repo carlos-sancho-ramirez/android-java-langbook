@@ -61,6 +61,7 @@ import sword.langbook3.android.models.Progress;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.models.SearchResult;
+import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.SynonymTranslationResult;
 import sword.langbook3.android.models.TableCellReference;
@@ -966,7 +967,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int symbolArrayId) {
+    static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int symbolArrayId) {
         final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
@@ -3095,7 +3096,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static ImmutableIntKeyMap<String> getSampleSentences(DbExporter.Database db, int staticAcceptation) {
+    static ImmutableIntKeyMap<String> getSampleSentences(DbExporter.Database db, int staticAcceptation) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
         final int offset = strings.columns().size();
@@ -3210,7 +3211,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntValueMap<SentenceSpan> getSentenceSpansWithIds(DbExporter.Database db, int symbolArray) {
+    static ImmutableIntValueMap<SentenceSpan> getSentenceSpansWithIds(DbExporter.Database db, int symbolArray) {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSymbolArray(), symbolArray)
@@ -3374,5 +3375,12 @@ public final class LangbookReadableDatabase {
         }
 
         return new DefinitionDetails(baseConcept, complements);
+    }
+
+    static SentenceDetailsModel getSentenceDetails(DbExporter.Database db, int sentenceId) {
+        final String text = getSymbolArray(db, sentenceId);
+        final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, sentenceId);
+        final ImmutableIntKeyMap<String> sameMeaningSentences = findSentenceIdsMatchingMeaning(db, sentenceId).assign(id -> getSymbolArray(db, id));
+        return new SentenceDetailsModel(text, spans, sameMeaningSentences);
     }
 }

@@ -7,6 +7,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
+import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
@@ -17,6 +18,7 @@ import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.Map;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.Set;
 import sword.database.Database;
 import sword.database.DbDeleteQuery;
 import sword.database.DbExporter;
@@ -37,6 +39,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
+import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
@@ -115,6 +118,8 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxQuestion
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxSentenceMeaning;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceMeaning;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpansWithIds;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.hasAgentsRequiringAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationPresent;
@@ -894,7 +899,7 @@ public final class LangbookDatabase {
         deleteQuiz(db, quizId);
     }
 
-    public static boolean updateSymbolArray(Database db, int symbolArrayId, String text) {
+    static boolean updateSymbolArray(Database db, int symbolArrayId, String text) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
         final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getIdColumnIndex(), symbolArrayId)
@@ -1216,6 +1221,47 @@ public final class LangbookDatabase {
 
     public static void addDefinition(DbImporter.Database db, int baseConcept, int concept, ImmutableIntSet complements) {
         LangbookDbInserter.insertComplementedConcept(db, baseConcept, concept, obtainConceptComposition(db, complements));
+    }
+
+    static Integer addSentence(Database db, String text, Set<SentenceSpan> spans) {
+        // TODO: Check if there was already a sentence with the same text
+        final int newSymbolArray = obtainSymbolArray(db, text);
+        for (SentenceSpan span : spans) {
+            if (!addSpan(db, newSymbolArray, span.range, span.acceptation)) {
+                throw new AssertionError();
+            }
+        }
+
+        return newSymbolArray;
+    }
+
+    static boolean replaceSentence(Database db, int sentenceId, String newText, Set<SentenceSpan> newSpans) {
+        final boolean isTextPresent = isSymbolArrayPresent(db, sentenceId);
+        final boolean textChanged = !isTextPresent || !equal(getSymbolArray(db, sentenceId), newText);
+
+        if (!isTextPresent || textChanged && !isSymbolArrayMerelyASentence(db, sentenceId)) {
+            return false;
+        }
+
+        if (textChanged && !updateSymbolArray(db, sentenceId, newText)) {
+            throw new AssertionError();
+        }
+
+        final ImmutableIntValueMap<SentenceSpan> oldSpanMap = getSentenceSpansWithIds(db, sentenceId);
+        final ImmutableSet<SentenceSpan> oldSpans = oldSpanMap.keySet();
+        for (SentenceSpan span : oldSpans.filterNot(newSpans::contains)) {
+            if (!removeSpan(db, oldSpanMap.get(span))) {
+                throw new AssertionError();
+            }
+        }
+
+        for (SentenceSpan span : newSpans.filterNot(oldSpans::contains)) {
+            if (!addSpan(db, sentenceId, span.range, span.acceptation)) {
+                throw new AssertionError();
+            }
+        }
+
+        return true;
     }
 
     private static final class StringQueryTableRow {
@@ -1623,7 +1669,7 @@ public final class LangbookDatabase {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 
-    public static boolean addSpan(DbImporter.Database db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
+    static boolean addSpan(DbImporter.Database db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
         if (isSymbolArrayPresent(db, symbolArray) && isAcceptationPresent(db, dynamicAcceptation)) {
             LangbookDbInserter.insertSpan(db, symbolArray, range, dynamicAcceptation);
             return true;
@@ -1632,7 +1678,7 @@ public final class LangbookDatabase {
         return false;
     }
 
-    public static boolean removeSpan(Deleter db, int id) {
+    static boolean removeSpan(Deleter db, int id) {
         return LangbookDeleter.deleteSpan(db, id);
     }
 }

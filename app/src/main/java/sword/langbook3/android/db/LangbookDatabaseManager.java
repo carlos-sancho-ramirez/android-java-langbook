@@ -1,13 +1,14 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.Set;
 import sword.database.Database;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
+import sword.langbook3.android.models.SentenceSpan;
 
 public final class LangbookDatabaseManager extends LangbookDatabaseChecker implements LangbookManager {
 
@@ -106,16 +107,6 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public boolean updateSymbolArray(int symbolArrayId, String text) {
-        return LangbookDatabase.updateSymbolArray(_db, symbolArrayId, text);
-    }
-
-    @Override
-    public int obtainSymbolArray(String str) {
-        return LangbookDatabase.obtainSymbolArray(_db, str);
-    }
-
-    @Override
     public Integer obtainQuiz(int bunch, ImmutableList<QuestionFieldDetails> fields) {
         return LangbookDatabase.obtainQuiz(_db, bunch, fields);
     }
@@ -151,17 +142,17 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public boolean removeSentence(int symbolArrayId) {
-        return LangbookDatabase.removeSentence(_db, symbolArrayId);
+    public boolean removeSentence(int sentenceId) {
+        return LangbookDatabase.removeSentence(_db, sentenceId);
     }
 
     @Override
-    public boolean addSpan(int symbolArrayId, ImmutableIntRange range, int acceptation) {
-        return LangbookDatabase.addSpan(_db, symbolArrayId, range, acceptation);
+    public Integer addSentence(String text, Set<SentenceSpan> spans) {
+        return LangbookDatabase.addSentence(_db, text, spans);
     }
 
     @Override
-    public boolean removeSpan(int id) {
-        return LangbookDatabase.removeSpan(_db, id);
+    public boolean replaceSentence(int sentenceId, String newText, Set<SentenceSpan> newSpans) {
+        return LangbookDatabase.replaceSentence(_db, sentenceId, newText, newSpans);
     }
 }

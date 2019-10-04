@@ -1,10 +1,11 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntRange;
+import sword.collections.Set;
+import sword.langbook3.android.models.SentenceSpan;
 
 public interface SentencesManager extends AcceptationsManager, SentencesChecker {
+    Integer addSentence(String text, Set<SentenceSpan> spans);
+    boolean replaceSentence(int sentenceId, String newText, Set<SentenceSpan> newSpans);
+    boolean removeSentence(int sentenceId);
     boolean copySentenceMeaning(int thisSentence, int pickedSentence);
-    boolean removeSentence(int symbolArrayId);
-    boolean addSpan(int symbolArrayId, ImmutableIntRange range, int acceptation);
-    boolean removeSpan(int id);
 }

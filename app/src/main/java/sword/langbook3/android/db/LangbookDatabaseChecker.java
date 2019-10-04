@@ -24,6 +24,7 @@ import sword.langbook3.android.models.Progress;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.models.SearchResult;
+import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
@@ -105,11 +106,6 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     @Override
     public ImmutableIntKeyMap<String> readAllRules(int preferredAlphabet) {
         return LangbookReadableDatabase.readAllRules(getDatabase(), preferredAlphabet);
-    }
-
-    @Override
-    public ImmutableIntValueMap<SentenceSpan> getSentenceSpansWithIds(int symbolArray) {
-        return LangbookReadableDatabase.getSentenceSpansWithIds(getDatabase(), symbolArray);
     }
 
     @Override
@@ -203,11 +199,6 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableIntSet findSentenceIdsMatchingMeaning(int symbolArrayId) {
-        return LangbookReadableDatabase.findSentenceIdsMatchingMeaning(getDatabase(), symbolArrayId);
-    }
-
-    @Override
     public String getSymbolArray(int id) {
         return LangbookReadableDatabase.getSymbolArray(getDatabase(), id);
     }
@@ -270,5 +261,14 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     @Override
     public ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(int staticAcceptation) {
         return LangbookReadableDatabase.readTextAndDynamicAcceptationsMapFromStaticAcceptation(getDatabase(), staticAcceptation);
+    }
+
+    public ImmutableIntKeyMap<String> getSampleSentences(int staticAcceptation) {
+        return LangbookReadableDatabase.getSampleSentences(getDatabase(), staticAcceptation);
+    }
+
+    @Override
+    public SentenceDetailsModel getSentenceDetails(int sentenceId) {
+        return LangbookReadableDatabase.getSentenceDetails(getDatabase(), sentenceId);
     }
 }
