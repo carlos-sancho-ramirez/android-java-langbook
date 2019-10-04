@@ -11,8 +11,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.collections.MutableIntKeyMap;
-import sword.database.Database;
-import sword.langbook3.android.db.LangbookReadableDatabase;
+import sword.langbook3.android.db.LangbookChecker;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
 
@@ -89,8 +88,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
                             _state.getCurrentConcept());
                 }
                 else {
-                    final Database db = DbManager.getInstance().getDatabase();
-                    _state.storeIntoDatabase(db);
+                    _state.storeIntoDatabase(DbManager.getInstance().getManager());
 
                     Toast.makeText(this, R.string.addLanguageFeedback, Toast.LENGTH_SHORT).show();
                     setResult(RESULT_OK);
@@ -126,7 +124,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             // Nothing to be done
         }
 
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookChecker checker = DbManager.getInstance().getManager();
         String errorMessage = null;
         if (!code.matches(LanguageCodeRules.REGEX)) {
             errorMessage = getString(R.string.languageAdderBadLanguageCode);
@@ -134,11 +132,11 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         else if (alphabetCount <= 0 || alphabetCount > 5) {
             errorMessage = getString(R.string.languageAdderBadAlphabetCount);
         }
-        else if (LangbookReadableDatabase.findLanguageByCode(db, code) != null) {
+        else if (checker.findLanguageByCode(code) != null) {
             errorMessage = getString(R.string.languageAdderLanguageCodeInUse);
         }
 
-        final int languageId = LangbookReadableDatabase.getMaxConcept(db) + 1;
+        final int languageId = checker.getMaxConcept() + 1;
 
         if (errorMessage == null) {
             _state.setBasicDetails(code, languageId, alphabetCount);

@@ -29,13 +29,11 @@ import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.database.Database;
-import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LangbookManager;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
@@ -221,8 +219,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         setContentView(R.layout.agent_editor_activity);
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final Database db = DbManager.getInstance().getDatabase();
-        _alphabets = readAllAlphabets(db, _preferredAlphabet);
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        _alphabets = checker.readAllAlphabets(_preferredAlphabet);
 
         if (savedInstanceState != null) {
             _state = savedInstanceState.getParcelable(SavedKeys.STATE);
@@ -240,7 +238,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         _targetBunchChangeButton = findViewById(R.id.targetBunchChangeButton);
         if (_state.targetBunch != NO_BUNCH) {
             final TextView textView = findViewById(R.id.targetBunchText);
-            textView.setText(readConceptText(db, _state.targetBunch, _preferredAlphabet));
+            textView.setText(checker.readConceptText(_state.targetBunch, _preferredAlphabet));
 
             if (_state.includeTargetBunch) {
                 _targetBunchChangeButton.setEnabled(true);
@@ -296,7 +294,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
         if (_state.rule != NO_RULE) {
             final TextView textView = findViewById(R.id.ruleText);
-            textView.setText(readConceptText(db, _state.rule, _preferredAlphabet));
+            textView.setText(checker.readConceptText(_state.rule, _preferredAlphabet));
         }
 
         findViewById(R.id.saveButton).setOnClickListener(this);
@@ -433,7 +431,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final View view = _sourceBunchesContainer.getChildAt(_sourceBunchesContainer.getChildCount() - 1);
 
         final TextView textView = view.findViewById(R.id.textView);
-        textView.setText(readConceptText(DbManager.getInstance().getDatabase(), concept, _preferredAlphabet));
+        textView.setText(DbManager.getInstance().getManager().readConceptText(concept, _preferredAlphabet));
 
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeSourceBunch(concept));
     }
@@ -453,7 +451,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final View view = _diffBunchesContainer.getChildAt(_diffBunchesContainer.getChildCount() - 1);
 
         final TextView textView = view.findViewById(R.id.textView);
-        textView.setText(readConceptText(DbManager.getInstance().getDatabase(), concept, _preferredAlphabet));
+        textView.setText(DbManager.getInstance().getManager().readConceptText(concept, _preferredAlphabet));
 
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeDiffBunch(concept));
     }
@@ -552,7 +550,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
                     final int rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? NO_RULE : _state.rule;
 
-                    final Integer agentId = LangbookDatabase.addAgent(db, targetBunch,
+                    final Integer agentId = DbManager.getInstance().getManager().addAgent(targetBunch,
                             _state.sourceBunches.toImmutable().toSet(), _state.diffBunches.toImmutable().toSet(),
                             startMatcher, startAdder, endMatcher, endAdder, rule);
                     final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
@@ -568,7 +566,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookManager manager = DbManager.getInstance().getManager();
         if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH) {
             if (resultCode == RESULT_OK) {
                 final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
@@ -576,10 +574,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     throw new AssertionError();
                 }
 
-                final int concept = conceptFromAcceptation(db, acceptation);
+                final int concept = manager.conceptFromAcceptation(acceptation);
                 _state.targetBunch = concept;
 
-                final String text = readConceptText(db, concept, _preferredAlphabet);
+                final String text = manager.readConceptText(concept, _preferredAlphabet);
 
                 final TextView textView = findViewById(R.id.targetBunchText);
                 textView.setText(text);
@@ -596,7 +594,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = conceptFromAcceptation(db, acceptation);
+            final int concept = manager.conceptFromAcceptation(acceptation);
             _state.sourceBunches.append(concept);
             addSourceBunch(concept);
         }
@@ -606,7 +604,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = conceptFromAcceptation(db, acceptation);
+            final int concept = manager.conceptFromAcceptation(acceptation);
             _state.diffBunches.append(concept);
             addDiffBunch(concept);
         }
@@ -616,10 +614,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = conceptFromAcceptation(db, acceptation);
+            final int concept = manager.conceptFromAcceptation(acceptation);
             _state.rule = concept;
 
-            final String text = readConceptText(db, concept, _preferredAlphabet);
+            final String text = manager.readConceptText(concept, _preferredAlphabet);
             final TextView textView = findViewById(R.id.ruleText);
             textView.setText(text);
         }

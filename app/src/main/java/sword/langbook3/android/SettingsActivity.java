@@ -24,8 +24,6 @@ import java.io.IOException;
 import sword.collections.ImmutableIntKeyMap;
 import sword.langbook3.android.sdb.ProgressListener;
 
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
-
 public final class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener,
         DialogInterface.OnClickListener, AdapterView.OnItemSelectedListener {
 
@@ -110,7 +108,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
     private void updatePreferredAlphabetAdapter() {
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _alphabets = readAllAlphabets(DbManager.getInstance().getDatabase(), preferredAlphabet);
+        _alphabets = DbManager.getInstance().getManager().readAllAlphabets(preferredAlphabet);
         final AlphabetAdapter adapter = new AlphabetAdapter(_alphabets);
         _preferredAlphabetSpinner.setAdapter(adapter);
 

@@ -20,7 +20,6 @@ import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
-import sword.database.Database;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
@@ -29,21 +28,12 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
-import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookReadableDatabase.InvolvedAgentResultFlags;
+import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.AcceptationDetailsModel;
+import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.SynonymTranslationResult;
-
-import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
-import static sword.langbook3.android.db.LangbookDatabase.addDefinition;
-import static sword.langbook3.android.db.LangbookDatabase.duplicateAcceptationWithThisConcept;
-import static sword.langbook3.android.db.LangbookDatabase.removeAcceptationFromBunch;
-import static sword.langbook3.android.db.LangbookDatabase.removeDefinition;
-import static sword.langbook3.android.db.LangbookDatabase.shareConcept;
-import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsDetails;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
@@ -254,8 +244,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private boolean updateModelAndUi() {
-        final Database db = DbManager.getInstance().getDatabase();
-        _model = getAcceptationsDetails(db, _staticAcceptation, _preferredAlphabet);
+        _model = DbManager.getInstance().getManager().getAcceptationsDetails(_staticAcceptation, _preferredAlphabet);
         if (_model != null) {
             setTitle(_model.getTitle(_preferredAlphabet));
             _listAdapter = new AcceptationDetailsAdapter(this, REQUEST_CODE_CLICK_NAVIGATION, getAdapterItems());
@@ -340,8 +329,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED) {
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
             if (!it.isDynamic()) {
-                final int bunch = conceptFromAcceptation(DbManager.getInstance().getDatabase(), it.getId());
-                _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText().toString()));
+                final int bunch = DbManager.getInstance().getManager().conceptFromAcceptation(it.getId());
+                _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText()));
                 showDeleteFromBunchConfirmationDialog();
             }
             return true;
@@ -478,7 +467,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookManager manager = DbManager.getInstance().getManager();
         switch (_state.getIntrinsicState()) {
             case IntrinsicStates.DELETE_ACCEPTATION:
                 deleteAcceptation();
@@ -486,7 +475,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case IntrinsicStates.DELETE_DEFINITION:
                 _state.clearDeletingDefinition();
-                if (!removeDefinition(db, _model.concept)) {
+                if (!manager.removeDefinition(_model.concept)) {
                     throw new AssertionError();
                 }
 
@@ -498,11 +487,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case IntrinsicStates.LINKING_CONCEPT:
                 if (_state.getDialogCheckedOption() == 0) {
-                    final boolean ok = shareConcept(db, _state.getLinkedAcceptation(), _model.concept);
+                    final boolean ok = manager.shareConcept(_state.getLinkedAcceptation(), _model.concept);
                     showFeedback(ok? "Concept shared" : "Unable to shared concept");
                 }
                 else {
-                    duplicateAcceptationWithThisConcept(db, _state.getLinkedAcceptation(), _model.concept);
+                    manager.duplicateAcceptationWithThisConcept(_state.getLinkedAcceptation(), _model.concept);
                     showFeedback("Acceptation linked");
                 }
                 _state.clearLinkedAcceptation();
@@ -515,7 +504,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String bunchText = item.text;
                 _state.clearDeleteTarget();
 
-                if (!removeAcceptationFromBunch(db, bunch, _staticAcceptation)) {
+                if (!manager.removeAcceptationFromBunch(bunch, _staticAcceptation)) {
                     throw new AssertionError();
                 }
 
@@ -529,7 +518,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String accToDeleteText = itemToDelete.text;
                 _state.clearDeleteTarget();
 
-                if (!removeAcceptationFromBunch(db, _model.concept, accIdToDelete)) {
+                if (!manager.removeAcceptationFromBunch(_model.concept, accIdToDelete)) {
                     throw new AssertionError();
                 }
 
@@ -543,7 +532,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void deleteAcceptation() {
-        if (LangbookDatabase.removeAcceptation(DbManager.getInstance().getDatabase(), _staticAcceptation)) {
+        if (DbManager.getInstance().getManager().removeAcceptation(_staticAcceptation)) {
             showFeedback(getString(R.string.deleteAcceptationFeedback));
             finish();
         }
@@ -559,7 +548,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             updateModelAndUi();
         }
         else if (resultCode == RESULT_OK) {
-            final Database db = DbManager.getInstance().getDatabase();
+            final LangbookManager manager = DbManager.getInstance().getManager();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 final boolean usedConcept = data
                         .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
@@ -573,20 +562,20 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                final int message = addAcceptationInBunch(db, _model.concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                final int message = manager.addAcceptationInBunch(_model.concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 updateModelAndUi();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-                final int pickedBunch = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
-                final int message = addAcceptationInBunch(db, pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                final int pickedBunch = (pickedAcceptation != 0)? manager.conceptFromAcceptation(pickedAcceptation) : 0;
+                final int message = manager.addAcceptationInBunch(pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 updateModelAndUi();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {
                 final DefinitionEditorActivity.State values = data.getParcelableExtra(DefinitionEditorActivity.ResultKeys.VALUES);
-                addDefinition(db, values.baseConcept, _model.concept, values.complements);
+                manager.addDefinition(values.baseConcept, _model.concept, values.complements);
                 showFeedback(getString(R.string.includeSupertypeOk));
                 if (updateModelAndUi()) {
                     invalidateOptionsMenu();

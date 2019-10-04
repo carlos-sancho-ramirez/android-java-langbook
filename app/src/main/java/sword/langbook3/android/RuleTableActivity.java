@@ -9,13 +9,9 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableMap;
 import sword.collections.Map;
 import sword.collections.MutableIntKeyMap;
-import sword.database.Database;
+import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readTableContent;
 
 public class RuleTableActivity extends Activity {
 
@@ -36,8 +32,8 @@ public class RuleTableActivity extends Activity {
 
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final int dynAcc = getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
-        final Database db = DbManager.getInstance().getDatabase();
-        final ImmutableMap<TableCellReference, TableCellValue> tableContent = readTableContent(db, dynAcc, preferredAlphabet);
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final ImmutableMap<TableCellReference, TableCellValue> tableContent = checker.readTableContent(dynAcc, preferredAlphabet);
 
         final MutableIntKeyMap<String> acceptationSet = MutableIntKeyMap.empty();
         final MutableIntKeyMap<String> ruleSet = MutableIntKeyMap.empty();
@@ -45,7 +41,7 @@ public class RuleTableActivity extends Activity {
         for (Map.Entry<TableCellReference, TableCellValue> entry : tableContent.entries()) {
             final TableCellReference ref = entry.key();
             if (acceptationSet.get(ref.bunchSet, null) == null) {
-                final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, entry.value().staticAcceptation);
+                final ImmutableIntKeyMap<String> texts = checker.getAcceptationTexts(entry.value().staticAcceptation);
                 String text = texts.get(preferredAlphabet, null);
                 if (text == null) {
                     text = texts.valueAt(0);
@@ -55,7 +51,7 @@ public class RuleTableActivity extends Activity {
             }
 
             if (ruleSet.get(ref.rule, null) == null) {
-                ruleSet.put(ref.rule, readConceptText(DbManager.getInstance().getDatabase(), ref.rule, preferredAlphabet));
+                ruleSet.put(ref.rule, checker.readConceptText(ref.rule, preferredAlphabet));
             }
         }
 

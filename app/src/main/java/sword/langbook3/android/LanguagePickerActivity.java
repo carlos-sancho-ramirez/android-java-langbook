@@ -7,10 +7,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import sword.database.Database;
-
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllLanguages;
 
 public final class LanguagePickerActivity extends Activity implements ListView.OnItemClickListener {
 
@@ -44,9 +41,8 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
         setContentView(R.layout.language_picker_activity);
 
         final ListView listView = findViewById(R.id.listView);
-        final Database db = DbManager.getInstance().getDatabase();
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        listView.setAdapter(new LanguagePickerAdapter(readAllLanguages(db, preferredAlphabet)));
+        listView.setAdapter(new LanguagePickerAdapter(DbManager.getInstance().getManager().readAllLanguages(preferredAlphabet)));
         listView.setOnItemClickListener(this);
     }
 

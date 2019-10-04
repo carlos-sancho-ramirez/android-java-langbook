@@ -7,10 +7,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 
-import sword.database.Database;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
-
 public final class SentenceEditorActivity extends Activity implements View.OnClickListener {
 
     static final int NO_SYMBOL_ARRAY = 0;
@@ -71,9 +67,7 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
         final int symbolArrayId = getSymbolArrayId();
         if (symbolArrayId != NO_SYMBOL_ARRAY) {
-            final Database db = DbManager.getInstance().getDatabase();
-            final String text = getSymbolArray(db, symbolArrayId);
-            _textField.setText(text);
+            _textField.setText(DbManager.getInstance().getManager().getSymbolArray(symbolArrayId));
         }
     }
 

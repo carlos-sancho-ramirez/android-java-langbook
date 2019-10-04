@@ -12,17 +12,11 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
-import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
-import sword.database.Database;
+import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.models.AgentRegister;
 
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readBunchSetAcceptationsAndTexts;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptAcceptationAndText;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 import static sword.langbook3.android.SearchActivity.AGENT_QUERY_PREFIX;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
 public final class AgentDetailsActivity extends Activity {
 
@@ -47,8 +41,8 @@ public final class AgentDetailsActivity extends Activity {
 
     AgentRegister _register;
 
-    private void dumpCorrelation(Database db, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, StringBuilder sb) {
-        ImmutableIntKeyMap<String> matcher = getCorrelationWithText(db, correlationId);
+    private void dumpCorrelation(LangbookChecker checker, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, StringBuilder sb) {
+        ImmutableIntKeyMap<String> matcher = checker.getCorrelationWithText(correlationId);
         for (int i = 0; i < matcher.size(); i++) {
             final int alphabet = matcher.keyAt(i);
             final String alphabetText = alphabetTexts.get(alphabet);
@@ -73,40 +67,40 @@ public final class AgentDetailsActivity extends Activity {
 
         setTitle(AGENT_QUERY_PREFIX + '#' + _agentId);
 
-        final Database db = DbManager.getInstance().getDatabase();
-        _register = getAgentRegister(DbManager.getInstance().getDatabase(), _agentId);
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        _register = checker.getAgentRegister(_agentId);
 
         final StringBuilder s = new StringBuilder();
         if (_register.targetBunch != NO_BUNCH) {
-            DisplayableItem targetResult = readConceptAcceptationAndText(db, _register.targetBunch, _preferredAlphabet);
+            DisplayableItem targetResult = checker.readConceptAcceptationAndText(_register.targetBunch, _preferredAlphabet);
             s.append("Target: ").append(targetResult.text).append(" (").append(_register.targetBunch).append(")\n");
         }
 
         s.append("Source Bunch Set (").append(_register.sourceBunchSetId).append("):");
-        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _register.sourceBunchSetId, _preferredAlphabet)) {
+        for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.sourceBunchSetId, _preferredAlphabet)) {
             s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
         s.append("\nDiff Bunch Set (").append(_register.diffBunchSetId).append("):");
-        for (DisplayableItem r : readBunchSetAcceptationsAndTexts(db, _register.diffBunchSetId, _preferredAlphabet)) {
+        for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.diffBunchSetId, _preferredAlphabet)) {
             s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
         }
 
-        final SyncCacheIntKeyNonNullValueMap<String> alphabetTexts = new SyncCacheIntKeyNonNullValueMap<>(alphabet -> readConceptText(db, alphabet, _preferredAlphabet));
+        final SyncCacheIntKeyNonNullValueMap<String> alphabetTexts = new SyncCacheIntKeyNonNullValueMap<>(alphabet -> checker.readConceptText(alphabet, _preferredAlphabet));
         s.append("\nStart Matcher: ").append(_register.startMatcherId);
-        dumpCorrelation(db, _register.startMatcherId, alphabetTexts, s);
+        dumpCorrelation(checker, _register.startMatcherId, alphabetTexts, s);
 
         s.append("\nStart Adder: ").append(_register.startAdderId);
-        dumpCorrelation(db, _register.startAdderId, alphabetTexts, s);
+        dumpCorrelation(checker, _register.startAdderId, alphabetTexts, s);
 
         s.append("\nEnd Matcher: ").append(_register.endMatcherId);
-        dumpCorrelation(db, _register.endMatcherId, alphabetTexts, s);
+        dumpCorrelation(checker, _register.endMatcherId, alphabetTexts, s);
 
         s.append("\nEnd Adder: ").append(_register.endAdderId);
-        dumpCorrelation(db, _register.endAdderId, alphabetTexts, s);
+        dumpCorrelation(checker, _register.endAdderId, alphabetTexts, s);
 
         if (_register.rule != 0) {
-            DisplayableItem ruleResult = readConceptAcceptationAndText(db, _register.rule, _preferredAlphabet);
+            DisplayableItem ruleResult = checker.readConceptAcceptationAndText(_register.rule, _preferredAlphabet);
             s.append("\nRule: ").append(ruleResult.text).append(" (").append(_register.rule).append(')');
         }
 
@@ -158,7 +152,7 @@ public final class AgentDetailsActivity extends Activity {
     }
 
     private void deleteAgent() {
-        LangbookDatabase.removeAgent(DbManager.getInstance().getDatabase(), _agentId);
+        DbManager.getInstance().getManager().removeAgent(_agentId);
         showFeedback(getString(R.string.deleteAgentFeedback));
         finish();
     }

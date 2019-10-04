@@ -1,6 +1,7 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.database.Database;
@@ -8,7 +9,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
-public final class LangbookDatabaseManager extends LangbookDatabaseChecker implements QuizzesManager, DefinitionsManager {
+public final class LangbookDatabaseManager extends LangbookDatabaseChecker implements LangbookManager {
 
     private final Database _db;
 
@@ -105,6 +106,16 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
+    public boolean updateSymbolArray(int symbolArrayId, String text) {
+        return LangbookDatabase.updateSymbolArray(_db, symbolArrayId, text);
+    }
+
+    @Override
+    public int obtainSymbolArray(String str) {
+        return LangbookDatabase.obtainSymbolArray(_db, str);
+    }
+
+    @Override
     public Integer obtainQuiz(int bunch, ImmutableList<QuestionFieldDetails> fields) {
         return LangbookDatabase.obtainQuiz(_db, bunch, fields);
     }
@@ -127,5 +138,30 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     @Override
     public boolean removeDefinition(int complementedConcept) {
         return LangbookDatabase.removeDefinition(_db, complementedConcept);
+    }
+
+    @Override
+    public void updateSearchHistory(int dynamicAcceptation) {
+        LangbookDatabase.updateSearchHistory(_db, dynamicAcceptation);
+    }
+
+    @Override
+    public boolean copySentenceMeaning(int sourceSymbolArray, int targetSymbolArray) {
+        return LangbookDatabase.copySentenceMeaning(_db, sourceSymbolArray, targetSymbolArray);
+    }
+
+    @Override
+    public boolean removeSentence(int symbolArrayId) {
+        return LangbookDatabase.removeSentence(_db, symbolArrayId);
+    }
+
+    @Override
+    public boolean addSpan(int symbolArrayId, ImmutableIntRange range, int acceptation) {
+        return LangbookDatabase.addSpan(_db, symbolArrayId, range, acceptation);
+    }
+
+    @Override
+    public boolean removeSpan(int id) {
+        return LangbookDatabase.removeSpan(_db, id);
     }
 }

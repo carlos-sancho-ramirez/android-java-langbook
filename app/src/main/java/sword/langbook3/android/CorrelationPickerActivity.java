@@ -19,14 +19,8 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
-import sword.database.Database;
-import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookReadableDatabase;
-
-import static sword.langbook3.android.db.LangbookDatabase.addAcceptationInBunch;
-import static sword.langbook3.android.db.LangbookDatabase.updateAcceptationCorrelationArray;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findCorrelation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConceptInAcceptations;
+import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LangbookManager;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -229,7 +223,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
         final ImmutableIntValueHashMap.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableIntValueHashMap.Builder<>();
         for (ImmutableIntKeyMap<String> correlation : correlations) {
-            final Integer id = findCorrelation(DbManager.getInstance().getDatabase(), correlation);
+            final Integer id = DbManager.getInstance().getManager().findCorrelation(correlation);
             if (id != null) {
                 builder.put(correlation, id);
             }
@@ -291,30 +285,29 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private boolean allValidAlphabets(Database db, IntKeyMap<String> texts) {
-        final ImmutableSet<Integer> languages = texts.toImmutable().keySet().map(alphabet -> LangbookReadableDatabase
-                .getLanguageFromAlphabet(db, alphabet)).toSet();
+    private boolean allValidAlphabets(LangbookChecker checker, IntKeyMap<String> texts) {
+        final ImmutableSet<Integer> languages = texts.toImmutable().keySet().map(checker::getLanguageFromAlphabet).toSet();
         return !languages.anyMatch(lang -> lang == null) && languages.size() == 1;
     }
 
-    private int addAcceptation(Database db) {
+    private int addAcceptation(LangbookManager manager) {
         int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
         if (concept == NO_CONCEPT) {
-            concept = getMaxConceptInAcceptations(db) + 1;
+            concept = manager.getMaxConcept() + 1;
         }
 
-        return LangbookDatabase.addAcceptation(db, concept, _options.valueAt(_selection));
+        return manager.addAcceptation(concept, _options.valueAt(_selection));
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_PICK_BUNCHES && resultCode == RESULT_OK && data != null) {
             final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
-            final Database db = DbManager.getInstance().getDatabase();
-            if (allValidAlphabets(db, getTexts())) {
-                final int accId = addAcceptation(db);
+            final LangbookManager manager = DbManager.getInstance().getManager();
+            if (allValidAlphabets(manager, getTexts())) {
+                final int accId = addAcceptation(manager);
                 for (int bunch : bunchSet) {
-                    addAcceptationInBunch(db, bunch, accId);
+                    manager.addAcceptationInBunch(bunch, accId);
                 }
                 Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
 
@@ -340,8 +333,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
         }
         else {
-            final Database db = DbManager.getInstance().getDatabase();
-            updateAcceptationCorrelationArray(db, existingAcceptation, _options.valueAt(_selection));
+            DbManager.getInstance().getManager().updateAcceptationCorrelationArray(existingAcceptation, _options.valueAt(_selection));
             setResult(RESULT_OK);
             finish();
         }

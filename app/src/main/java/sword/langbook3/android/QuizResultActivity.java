@@ -11,7 +11,6 @@ import sword.collections.ImmutableIntList;
 import sword.langbook3.android.models.Progress;
 
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readQuizProgress;
 
 public final class QuizResultActivity extends Activity {
 
@@ -62,7 +61,7 @@ public final class QuizResultActivity extends Activity {
         final int totalAnswerCount = _goodAnswerCount + _badAnswerCount;
 
         if (_progress == null) {
-            _progress = readQuizProgress(DbManager.getInstance().getDatabase(), _quizId);
+            _progress = DbManager.getInstance().getManager().readQuizProgress(_quizId);
         }
 
         final StringBuilder sb = new StringBuilder();

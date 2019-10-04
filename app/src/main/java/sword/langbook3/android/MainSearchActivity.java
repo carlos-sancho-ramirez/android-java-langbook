@@ -11,15 +11,9 @@ import android.widget.AdapterView;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
-import sword.database.Database;
-import sword.langbook3.android.db.LangbookReadableDatabase;
 import sword.langbook3.android.models.SearchResult;
 
-import static sword.langbook3.android.db.LangbookDatabase.updateSearchHistory;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationAndRulesFromText;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSearchHistory;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -29,14 +23,13 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        final Database db = DbManager.getInstance().getDatabase();
-        if (savedInstanceState == null && !LangbookReadableDatabase.isAnyLanguagePresent(db)) {
+        if (savedInstanceState == null && !DbManager.getInstance().getManager().isAnyLanguagePresent()) {
             WelcomeActivity.open(this, REQUEST_CODE_WELCOME);
         }
     }
 
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
-        updateSearchHistory(DbManager.getInstance().getDatabase(), dynamicAcceptation);
+        DbManager.getInstance().getManager().updateSearchHistory(dynamicAcceptation);
         AcceptationDetailsActivity.open(this, staticAcceptation, dynamicAcceptation);
     }
 
@@ -99,15 +92,14 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     ImmutableList<SearchResult> noQueryResults() {
-        return getSearchHistory(DbManager.getInstance().getDatabase());
+        return DbManager.getInstance().getManager().getSearchHistory();
     }
 
     @Override
     SearchResultAdapter createAdapter(ImmutableList<SearchResult> results) {
         if (_ruleTexts == null) {
             final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-            final Database db = DbManager.getInstance().getDatabase();
-            _ruleTexts = readAllRules(db, preferredAlphabet);
+            _ruleTexts = DbManager.getInstance().getManager().readAllRules(preferredAlphabet);
         }
 
         return new SearchResultAdapter(results, _ruleTexts);
@@ -115,6 +107,6 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     ImmutableList<SearchResult> queryAcceptationResults(String query) {
-        return findAcceptationAndRulesFromText(DbManager.getInstance().getDatabase(), query, getSearchRestrictionType());
+        return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType());
     }
 }

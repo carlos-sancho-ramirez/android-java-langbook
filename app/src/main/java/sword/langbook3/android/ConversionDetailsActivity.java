@@ -8,12 +8,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
 
-import sword.database.Database;
 import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.Conversion;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class ConversionDetailsActivity extends Activity {
 
@@ -50,15 +47,15 @@ public final class ConversionDetailsActivity extends Activity {
 
     private void updateUi() {
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookChecker checker = DbManager.getInstance().getManager();
         final int sourceAlphabet = getSourceAlphabet();
         final int targetAlphabet = getTargetAlphabet();
 
-        final String sourceText = readConceptText(db, sourceAlphabet, preferredAlphabet);
-        final String targetText = readConceptText(db, targetAlphabet, preferredAlphabet);
+        final String sourceText = checker.readConceptText(sourceAlphabet, preferredAlphabet);
+        final String targetText = checker.readConceptText(targetAlphabet, preferredAlphabet);
         setTitle(sourceText + " -> " + targetText);
 
-        final Conversion conversion = getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet));
+        final Conversion conversion = checker.getConversion(new ImmutableIntPair(sourceAlphabet, targetAlphabet));
 
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new ConversionDetailsAdapter(conversion));

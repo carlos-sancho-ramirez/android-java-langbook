@@ -7,6 +7,15 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 
 public final class AcceptationDetailsModel {
+
+    public interface InvolvedAgentResultFlags {
+        int target = 1;
+        int source = 2;
+        int diff = 4;
+        int rule = 8;
+        int processed = 16;
+    }
+
     public final int concept;
     public final IdentifiableResult language;
     public final ImmutableIntList correlationIds;

@@ -20,15 +20,8 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableSet;
-import sword.database.Database;
-import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookReadableDatabase;
+import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.SentenceSpan;
-
-import static sword.langbook3.android.db.LangbookDatabase.removeSentence;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpans;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getStaticAcceptationFromDynamic;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
 
 public final class SentenceDetailsActivity extends Activity implements DialogInterface.OnClickListener, AdapterView.OnItemClickListener {
 
@@ -85,18 +78,18 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     private void updateSentenceTextView() {
         final int symbolArrayId = getSymbolArrayId();
-        final Database db = DbManager.getInstance().getDatabase();
-        final String text = getSymbolArray(db, symbolArrayId);
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final String text = checker.getSymbolArray(symbolArrayId);
 
         if (text == null) {
             finish();
         }
         else {
-            final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, symbolArrayId);
+            final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(symbolArrayId);
 
             final SpannableString string = new SpannableString(text);
             for (SentenceSpan span : spans) {
-                final int staticAcceptation = getStaticAcceptationFromDynamic(db, span.acceptation);
+                final int staticAcceptation = checker.getStaticAcceptationFromDynamic(span.acceptation);
                 string.setSpan(new ClickableSentenceSpan(staticAcceptation, span.acceptation),
                         span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             }
@@ -106,9 +99,9 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     }
 
     private void updateOtherSentences() {
-        final Database db = DbManager.getInstance().getDatabase();
-        final ImmutableIntSet others = LangbookReadableDatabase.findSentenceIdsMatchingMeaning(db, getSymbolArrayId());
-        final ImmutableIntKeyMap<String> sentences = others.assign(id -> getSymbolArray(db, id));
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final ImmutableIntSet others = checker.findSentenceIdsMatchingMeaning(getSymbolArrayId());
+        final ImmutableIntKeyMap<String> sentences = others.assign(checker::getSymbolArray);
         _listView.setAdapter(new SentenceDetailsAdapter(sentences));
         _listView.setOnItemClickListener(this);
     }
@@ -176,7 +169,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
             final int pickedSentence = data.getIntExtra(SentenceEditorActivity.ResultKeys.SYMBOL_ARRAY, 0);
             final int thisSentence = getSymbolArrayId();
             if (pickedSentence != 0 && pickedSentence != thisSentence) {
-                LangbookDatabase.copySentenceMeaning(DbManager.getInstance().getDatabase(), thisSentence, pickedSentence);
+                DbManager.getInstance().getManager().copySentenceMeaning(thisSentence, pickedSentence);
                 updateOtherSentences();
             }
         }
@@ -196,7 +189,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     @Override
     public void onClick(DialogInterface dialogInterface, int i) {
-        if (!removeSentence(DbManager.getInstance().getDatabase(), getSymbolArrayId())) {
+        if (!DbManager.getInstance().getManager().removeSentence(getSymbolArrayId())) {
             throw new AssertionError();
         }
 

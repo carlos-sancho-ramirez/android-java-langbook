@@ -18,17 +18,11 @@ import android.widget.Toast;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
-import sword.database.Database;
-import sword.database.DbExporter;
 import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
-import sword.langbook3.android.db.LangbookDatabase;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.findConversionConflictWords;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class ConversionEditorActivity extends Activity implements ListView.OnItemClickListener, ListView.OnItemLongClickListener {
 
@@ -87,15 +81,15 @@ public final class ConversionEditorActivity extends Activity implements ListView
         setContentView(R.layout.conversion_details_activity);
 
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookChecker checker = DbManager.getInstance().getManager();
         final int sourceAlphabet = getSourceAlphabet();
         final int targetAlphabet = getTargetAlphabet();
 
-        final String sourceText = readConceptText(db, sourceAlphabet, preferredAlphabet);
-        final String targetText = (targetAlphabet != 0)? readConceptText(db, targetAlphabet, preferredAlphabet) : "?";
+        final String sourceText = checker.readConceptText(sourceAlphabet, preferredAlphabet);
+        final String targetText = (targetAlphabet != 0)? checker.readConceptText(targetAlphabet, preferredAlphabet) : "?";
         setTitle(sourceText + " -> " + targetText);
 
-        _conversion = (targetAlphabet != 0)? getConversion(db, new ImmutableIntPair(sourceAlphabet, targetAlphabet)) :
+        _conversion = (targetAlphabet != 0)? checker.getConversion(new ImmutableIntPair(sourceAlphabet, targetAlphabet)) :
                 new Conversion(sourceAlphabet, 0, ImmutableHashMap.empty());
 
         if (savedInstanceState == null) {
@@ -132,10 +126,10 @@ public final class ConversionEditorActivity extends Activity implements ListView
 
             case R.id.menuItemSave:
                 final Conversion newConversion = _state.getResultingConversion(_conversion);
-                final Database db = DbManager.getInstance().getDatabase();
-                if (checkConflicts(db, newConversion)) {
-                    if (isAlphabetPresent(db, getTargetAlphabet())) {
-                        if (!LangbookDatabase.replaceConversion(db, newConversion)) {
+                final LangbookManager manager = DbManager.getInstance().getManager();
+                if (checkConflicts(manager, newConversion)) {
+                    if (manager.isAlphabetPresent(getTargetAlphabet())) {
+                        if (!manager.replaceConversion(newConversion)) {
                             throw new AssertionError();
                         }
 
@@ -267,8 +261,8 @@ public final class ConversionEditorActivity extends Activity implements ListView
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 
-    private boolean checkConflicts(DbExporter.Database db, ConversionProposal newConversion) {
-        final ImmutableSet<String> wordsInConflict = findConversionConflictWords(db, newConversion);
+    private boolean checkConflicts(LangbookChecker checker, ConversionProposal newConversion) {
+        final ImmutableSet<String> wordsInConflict = checker.findConversionConflictWords(newConversion);
 
         if (wordsInConflict.isEmpty()) {
             return true;

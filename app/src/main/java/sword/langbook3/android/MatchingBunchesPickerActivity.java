@@ -9,9 +9,6 @@ import android.widget.ListView;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
-import sword.database.Database;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllMatchingBunches;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 
@@ -65,9 +62,8 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         setContentView(R.layout.matching_bunches_picker_activity);
 
         final ListView listView = findViewById(R.id.listView);
-        final Database db = DbManager.getInstance().getDatabase();
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableIntKeyMap<String> bunches = readAllMatchingBunches(db, getTexts(), preferredAlphabet);
+        final ImmutableIntKeyMap<String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(getTexts(), preferredAlphabet);
 
         if (bunches.isEmpty()) {
             final Intent intent = new Intent();

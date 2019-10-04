@@ -13,10 +13,7 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntSet;
-import sword.database.Database;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
+import sword.langbook3.android.db.LangbookChecker;
 
 public final class DefinitionEditorActivity extends Activity implements View.OnClickListener {
 
@@ -58,12 +55,11 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
     }
 
     private void updateUi() {
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookChecker checker = DbManager.getInstance().getManager();
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final TextView baseConceptTextView = findViewById(R.id.baseConceptText);
 
-        final String text = (_state.baseConcept == 0)? null :
-                readConceptText(db, _state.baseConcept, preferredAlphabet);
+        final String text = (_state.baseConcept == 0)? null : checker.readConceptText(_state.baseConcept, preferredAlphabet);
         baseConceptTextView.setText(text);
 
         final LinearLayout complementsPanel = findViewById(R.id.complementsPanel);
@@ -73,7 +69,7 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
         for (int complementConcept : _state.complements) {
             inflater.inflate(R.layout.definition_editor_complement_entry, complementsPanel, true);
             final TextView textView = complementsPanel.getChildAt(complementsPanel.getChildCount() - 1).findViewById(R.id.text);
-            textView.setText(readConceptText(db, complementConcept, preferredAlphabet));
+            textView.setText(checker.readConceptText(complementConcept, preferredAlphabet));
         }
     }
 
@@ -111,15 +107,15 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_CODE_PICK_BASE && resultCode == RESULT_OK && data != null) {
-            final Database db = DbManager.getInstance().getDatabase();
+            final LangbookChecker checker = DbManager.getInstance().getManager();
             final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-            _state.baseConcept = (pickedAcceptation != 0)? conceptFromAcceptation(db, pickedAcceptation) : 0;
+            _state.baseConcept = (pickedAcceptation != 0)? checker.conceptFromAcceptation(pickedAcceptation) : 0;
             updateUi();
         }
         else if (requestCode == REQUEST_CODE_PICK_COMPLEMENT && resultCode == RESULT_OK && data != null) {
-            final Database db = DbManager.getInstance().getDatabase();
+            final LangbookChecker checker = DbManager.getInstance().getManager();
             final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
-            _state.complements = _state.complements.add(conceptFromAcceptation(db, pickedAcceptation));
+            _state.complements = _state.complements.add(checker.conceptFromAcceptation(pickedAcceptation));
             updateUi();
         }
     }

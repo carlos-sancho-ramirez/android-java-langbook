@@ -33,7 +33,9 @@ import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
+import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sqlite.SQLiteDbQuery;
 
@@ -465,5 +467,9 @@ class DbManager extends SQLiteOpenHelper {
 
     public Database getDatabase() {
         return new ManagerDatabase();
+    }
+
+    public LangbookManager getManager() {
+        return new LangbookDatabaseManager(getDatabase());
     }
 }

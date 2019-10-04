@@ -11,12 +11,8 @@ import android.widget.EditText;
 import android.widget.ListView;
 
 import sword.collections.ImmutableList;
-import sword.database.Database;
 import sword.database.DbQuery;
 import sword.langbook3.android.models.SearchResult;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentIds;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -109,8 +105,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     }
 
     private ImmutableList<SearchResult> agentSearchResults() {
-        final Database db = DbManager.getInstance().getDatabase();
-        return getAgentIds(db).map(agentId -> {
+        return DbManager.getInstance().getManager().getAgentIds().map(agentId -> {
             final String str = AGENT_QUERY_PREFIX + agentId;
             return new SearchResult(str, str, SearchResult.Types.AGENT, agentId, 0);
         });
@@ -123,7 +118,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     }
 
     ImmutableList<SearchResult> queryAcceptationResults(String query) {
-        return findAcceptationFromText(DbManager.getInstance().getDatabase(), query, getSearchRestrictionType());
+        return DbManager.getInstance().getManager().findAcceptationFromText(query, getSearchRestrictionType());
     }
 
     final void queryAllResults() {

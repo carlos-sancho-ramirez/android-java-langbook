@@ -19,17 +19,11 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
-import sword.database.Database;
-import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.SentenceSpan;
 
 import static sword.langbook3.android.SentenceEditorActivity.NO_SYMBOL_ARRAY;
-import static sword.langbook3.android.db.LangbookDatabase.removeSpan;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpans;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpansWithIds;
-import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readTextAndDynamicAcceptationsMapFromStaticAcceptation;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
@@ -103,12 +97,12 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void insertInitialSpans(int symbolArrayId) {
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookChecker checker = DbManager.getInstance().getManager();
         final String sentence = getText();
-        final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, symbolArrayId);
+        final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(symbolArrayId);
         final MutableIntValueMap<SentenceSpan> builder = _state.getSpans();
         for (SentenceSpan span : spans) {
-            final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, span.acceptation);
+            final ImmutableIntKeyMap<String> texts = checker.getAcceptationTexts(span.acceptation);
             final int mapSize = texts.size();
             int index = 0;
             int mapIndex;
@@ -129,8 +123,8 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void insertSuggestedSpans(int staticAcceptation) {
-        final Database db = DbManager.getInstance().getDatabase();
-        final ImmutableIntValueMap<String> map = readTextAndDynamicAcceptationsMapFromStaticAcceptation(db, staticAcceptation);
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final ImmutableIntValueMap<String> map = checker.readTextAndDynamicAcceptationsMapFromStaticAcceptation(staticAcceptation);
         final String text = getText();
         for (IntValueMap.Entry<String> entry : map.entries()) {
             final int index = text.indexOf(entry.key());
@@ -223,13 +217,13 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
         else {
             final String newText = getText();
-            final Database db = DbManager.getInstance().getDatabase();
+            final LangbookManager manager = DbManager.getInstance().getManager();
             final int symbolArrayId = getSymbolArrayId();
             final int newSymbolArray;
             if (symbolArrayId == NO_SYMBOL_ARRAY) {
-                newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
+                newSymbolArray = manager.obtainSymbolArray(newText);
                 for (SentenceSpan span : spans) {
-                    if (!LangbookDatabase.addSpan(db, newSymbolArray, span.range, span.acceptation)) {
+                    if (!manager.addSpan(newSymbolArray, span.range, span.acceptation)) {
                         throw new AssertionError();
                     }
                 }
@@ -237,36 +231,36 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
                 Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
             else {
-                if (isSymbolArrayMerelyASentence(db, symbolArrayId)) {
+                if (manager.isSymbolArrayMerelyASentence(symbolArrayId)) {
                     newSymbolArray = symbolArrayId;
-                    if (!LangbookDatabase.updateSymbolArray(db, symbolArrayId, newText)) {
+                    if (!manager.updateSymbolArray(symbolArrayId, newText)) {
                         throw new AssertionError();
                     }
 
-                    final ImmutableIntValueMap<SentenceSpan> dbSpanMap = getSentenceSpansWithIds(db, symbolArrayId);
+                    final ImmutableIntValueMap<SentenceSpan> dbSpanMap = manager.getSentenceSpansWithIds(symbolArrayId);
                     final ImmutableSet<SentenceSpan> dbSpanSet = dbSpanMap.keySet();
                     for (SentenceSpan span : dbSpanSet.filterNot(spans::contains)) {
-                        if (!removeSpan(db, dbSpanMap.get(span))) {
+                        if (!manager.removeSpan(dbSpanMap.get(span))) {
                             throw new AssertionError();
                         }
                     }
 
                     for (SentenceSpan span : spans.filterNot(dbSpanSet::contains)) {
-                        if (!LangbookDatabase.addSpan(db, symbolArrayId, span.range, span.acceptation)) {
+                        if (!manager.addSpan(symbolArrayId, span.range, span.acceptation)) {
                             throw new AssertionError();
                         }
                     }
                 }
                 else {
-                    newSymbolArray = LangbookDatabase.obtainSymbolArray(db, newText);
-                    for (int spanId : getSentenceSpansWithIds(db, symbolArrayId)) {
-                        if (!removeSpan(db, spanId)) {
+                    newSymbolArray = manager.obtainSymbolArray(newText);
+                    for (int spanId : manager.getSentenceSpansWithIds(symbolArrayId)) {
+                        if (!manager.removeSpan(spanId)) {
                             throw new AssertionError();
                         }
                     }
 
                     for (SentenceSpan span : spans) {
-                        if (!LangbookDatabase.addSpan(db, newSymbolArray, span.range, span.acceptation)) {
+                        if (!manager.addSpan(newSymbolArray, span.range, span.acceptation)) {
                             throw new AssertionError();
                         }
                     }

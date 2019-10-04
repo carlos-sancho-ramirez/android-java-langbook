@@ -32,6 +32,7 @@ import sword.langbook3.android.collections.SyncCacheIntPairMap;
 import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
+import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -760,9 +761,9 @@ public final class LangbookDatabase {
         final int endMatcherId = cachedCorrelationIds.get(endMatcher);
         final int endAdderId = cachedCorrelationIds.get(endAdder);
 
-        final LangbookReadableDatabase.AgentRegister register;
+        final AgentRegister register;
         try {
-            register = new LangbookReadableDatabase.AgentRegister(targetBunch, sourceBunchSetId,
+            register = new AgentRegister(targetBunch, sourceBunchSetId,
                     diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
         }
         catch (IllegalArgumentException e) {

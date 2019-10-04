@@ -15,15 +15,11 @@ import java.util.ArrayList;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
-import sword.database.Database;
+import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
-import static sword.langbook3.android.db.LangbookDatabase.obtainQuiz;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readConceptText;
 
 public final class QuizEditorActivity extends Activity implements View.OnClickListener {
 
@@ -230,16 +226,16 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, NO_BUNCH);
         final DbManager manager = DbManager.getInstance();
-        final Database db = manager.getDatabase();
+        final LangbookChecker checker = manager.getManager();
 
         if (_bunch != NO_BUNCH) {
-            final String bunchText = readConceptText(DbManager.getInstance().getDatabase(), _bunch, _preferredAlphabet);
+            final String bunchText = checker.readConceptText(_bunch, _preferredAlphabet);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
         }
 
-        _alphabetItems = readAllAlphabets(db, _preferredAlphabet);
-        _ruleItems = readAllRules(db, _preferredAlphabet);
+        _alphabetItems = checker.readAllAlphabets(_preferredAlphabet);
+        _ruleItems = checker.readAllRules(_preferredAlphabet);
 
         _questionFields.add(new FieldState());
         _answerFields.add(new FieldState());
@@ -276,8 +272,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
     }
 
     private void startQuiz() {
-        final Database db = DbManager.getInstance().getDatabase();
-        final int quizId = obtainQuiz(db, _bunch, composeFields());
+        final int quizId = DbManager.getInstance().getManager().obtainQuiz(_bunch, composeFields());
 
         final Intent intent = new Intent();
         intent.putExtra(ResultKeys.QUIZ, quizId);

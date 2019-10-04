@@ -31,7 +31,7 @@ import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
 import sword.langbook3.android.db.LangbookDbInserter;
 import sword.langbook3.android.db.LangbookDbSchema;
-import sword.langbook3.android.db.LangbookReadableDatabase.AgentRegister;
+import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.db.LangbookDatabase.addDefinition;

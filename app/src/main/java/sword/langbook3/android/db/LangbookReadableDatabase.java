@@ -47,7 +47,9 @@ import sword.langbook3.android.DisplayableItem;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
+import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.AgentDetails;
+import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.CorrelationDetailsModel;
@@ -1838,7 +1840,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(DbExporter.Database db, int staticAcceptation) {
+    static ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(DbExporter.Database db, int staticAcceptation) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final DbQuery query = new DbQuery.Builder(strings)
@@ -1969,14 +1971,6 @@ public final class LangbookReadableDatabase {
         }
 
         return null;
-    }
-
-    public interface InvolvedAgentResultFlags {
-        int target = 1;
-        int source = 2;
-        int diff = 4;
-        int rule = 8;
-        int processed = 16;
     }
 
     /**
@@ -2259,7 +2253,7 @@ public final class LangbookReadableDatabase {
     }
 
     public static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int j1Offset = acceptations.columns().size();
@@ -3016,39 +3010,6 @@ public final class LangbookReadableDatabase {
         return mapBuilder.build();
     }
 
-    public static final class AgentRegister {
-        public final int targetBunch;
-        public final int sourceBunchSetId;
-        public final int diffBunchSetId;
-        public final int startMatcherId;
-        public final int startAdderId;
-        public final int endMatcherId;
-        public final int endAdderId;
-        public final int rule;
-
-        public AgentRegister(int targetBunch, int sourceBunchSetId, int diffBunchSetId,
-                int startMatcherId, int startAdderId, int endMatcherId, int endAdderId, int rule) {
-
-            if (startMatcherId == startAdderId && endMatcherId == endAdderId) {
-                if (targetBunch == 0 || rule != 0) {
-                    throw new IllegalArgumentException();
-                }
-            }
-            else if (rule == 0) {
-                throw new IllegalArgumentException();
-            }
-
-            this.targetBunch = targetBunch;
-            this.sourceBunchSetId = sourceBunchSetId;
-            this.diffBunchSetId = diffBunchSetId;
-            this.startMatcherId = startMatcherId;
-            this.startAdderId = startAdderId;
-            this.endMatcherId = endMatcherId;
-            this.endAdderId = endAdderId;
-            this.rule = rule;
-        }
-    }
-
     public static AgentRegister getAgentRegister(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
@@ -3157,8 +3118,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    public static AcceptationDetailsModel getAcceptationsDetails(
-            DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
+    public static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
         final int concept = conceptFromAcceptation(db, staticAcceptation);
         if (concept == 0) {
             return null;

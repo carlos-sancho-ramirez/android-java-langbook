@@ -21,15 +21,10 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableList;
-import sword.database.Database;
-import sword.langbook3.android.db.LangbookDatabase;
+import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.QuestionFieldDetails;
-
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllAlphabets;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAllRules;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readQuizProgress;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readQuizSelectorEntriesForBunch;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
 
@@ -61,9 +56,9 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     private ListView _listView;
     private ActionMode _listActionMode;
 
-    private String getRuleText(Database db, int rule) {
+    private String getRuleText(LangbookChecker checker, int rule) {
         if (_ruleTexts == null) {
-            _ruleTexts = readAllRules(db, _preferredAlphabet);
+            _ruleTexts = checker.readAllRules(_preferredAlphabet);
         }
 
         return _ruleTexts.get(rule);
@@ -84,9 +79,9 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return 0;
     }
 
-    private QuizSelectorAdapter.Item[] composeAdapterItems(Database db, int bunch) {
-        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> resultMap = readQuizSelectorEntriesForBunch(db, bunch);
-        final ImmutableIntKeyMap<String> allAlphabets = readAllAlphabets(db, _preferredAlphabet);
+    private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookChecker checker, int bunch) {
+        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
+        final ImmutableIntKeyMap<String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
         final int quizCount = resultMap.size();
         final QuizSelectorAdapter.Item[] items = new QuizSelectorAdapter.Item[quizCount];
 
@@ -100,15 +95,14 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
                 texts.append(getString(getTypeStringResId(field)));
 
                 if (field.getType() == QuestionFieldFlags.TYPE_APPLY_RULE) {
-                    texts.append(getRuleText(db, field.rule));
+                    texts.append(getRuleText(checker, field.rule));
                 }
                 return "(" + texts.reduce((a, b) -> a + ", " + b) + ")";
             });
 
             final String questionText = set.indexes().filterNot(index -> set.valueAt(index).isAnswer()).map(fieldTexts::valueAt).reduce((a, b) -> a + "\n" + b);
             final String answerText = set.indexes().filter(index -> set.valueAt(index).isAnswer()).map(fieldTexts::valueAt).reduce((a, b) -> a + "\n" + b);
-
-            items[i] = new QuizSelectorAdapter.Item(quizId, questionText, answerText, readQuizProgress(db, quizId));
+            items[i] = new QuizSelectorAdapter.Item(quizId, questionText, answerText, checker.readQuizProgress(quizId));
         }
 
         return items;
@@ -139,8 +133,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         super.onStart();
         _activityStarted = true;
 
-        final QuizSelectorAdapter.Item[] items = composeAdapterItems(
-                DbManager.getInstance().getDatabase(), _bunch);
+        final QuizSelectorAdapter.Item[] items = composeAdapterItems(DbManager.getInstance().getManager(), _bunch);
 
         if (items.length == 0) {
             if (!_state.firstActionExecuted()) {
@@ -279,14 +272,13 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         _listActionMode = null;
         listActionMode.finish();
 
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookManager manager = DbManager.getInstance().getManager();
         for (int quizId : quizzes) {
-            LangbookDatabase.removeQuiz(db, quizId);
+            manager.removeQuiz(quizId);
         }
         showFeedback(getString(R.string.deleteQuizzesFeedback));
 
-        final QuizSelectorAdapter.Item[] items = composeAdapterItems(
-                DbManager.getInstance().getDatabase(), _bunch);
+        final QuizSelectorAdapter.Item[] items = composeAdapterItems(manager, _bunch);
 
         if (items.length == 0) {
             finish();

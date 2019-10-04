@@ -22,19 +22,15 @@ import sword.collections.IntPairMap;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
-import sword.database.Database;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.collections.EqualUtils.equal;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findAlphabetsByLanguage;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findConversions;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAcceptationTextsAndLanguage;
-import static sword.langbook3.android.db.LangbookReadableDatabase.readAlphabetsForLanguage;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
@@ -64,7 +60,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private ImmutableIntPairMap _fieldIndexAlphabetRelationMap;
     private int _existingAcceptation = NO_ACCEPTATION;
     private final SyncCacheMap<ImmutableIntPair, Conversion> _conversions =
-            new SyncCacheMap<>(pair -> getConversion(DbManager.getInstance().getDatabase(), pair));
+            new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
     public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
@@ -145,9 +141,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private int getLanguage(Database db) {
+    private int getLanguage(LangbookChecker checker) {
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = readAcceptationTextsAndLanguage(db, _existingAcceptation);
+            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
         }
         else {
@@ -156,10 +152,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     private void updateConvertedTexts() {
-        final Database db = DbManager.getInstance().getDatabase();
-        final int language = getLanguage(db);
-        final ImmutableIntSet alphabets = findAlphabetsByLanguage(db, language);
-        final ImmutableIntPairMap conversionMap = findConversions(db, alphabets);
+        final LangbookManager manager = DbManager.getInstance().getManager();
+        final int language = getLanguage(manager);
+        final ImmutableIntSet alphabets = manager.findAlphabetsByLanguage(language);
+        final ImmutableIntPairMap conversionMap = manager.findConversions(alphabets);
 
         final int alphabetCount = alphabets.size();
         for (int targetFieldIndex = 0; targetFieldIndex < alphabetCount; targetFieldIndex++) {
@@ -244,12 +240,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private void updateFields() {
         _formPanel.removeAllViews();
-        final Database db = DbManager.getInstance().getDatabase();
+        final LangbookChecker checker = DbManager.getInstance().getManager();
         final ImmutableIntKeyMap<String> existingTexts;
         final int language;
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = readAcceptationTextsAndLanguage(db,
-                    _existingAcceptation);
+            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             existingTexts = result.left;
             language = result.right;
         }
@@ -266,8 +261,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             fieldConversions = ImmutableIntPairMap.empty();
         }
         else {
-            fieldNames = readAlphabetsForLanguage(db, language, preferredAlphabet);
-            fieldConversions = findConversions(db, fieldNames.keySet());
+            fieldNames = checker.readAlphabetsForLanguage(language, preferredAlphabet);
+            fieldConversions = checker.findConversions(fieldNames.keySet());
         }
 
         final LayoutInflater inflater = getLayoutInflater();

@@ -6,9 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
-import sword.database.Database;
-import sword.langbook3.android.db.LangbookDatabase;
-import sword.langbook3.android.db.LangbookReadableDatabase;
+import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.LanguageCreationResult;
 
 public final class LanguageAdderActivityState implements Parcelable {
@@ -164,29 +162,29 @@ public final class LanguageAdderActivityState implements Parcelable {
         }
     };
 
-    void storeIntoDatabase(Database db) {
+    void storeIntoDatabase(LangbookManager manager) {
         if (missingAlphabetCorrelationArray()) {
             throw new UnsupportedOperationException();
         }
 
-        final LanguageCreationResult langPair = LangbookDatabase.addLanguage(db, _languageCode);
+        final LanguageCreationResult langPair = manager.addLanguage(_languageCode);
         if (langPair.language != _newLanguageId || langPair.mainAlphabet != _newLanguageId + 1) {
             throw new AssertionError();
         }
 
         for (int i = 1; i < _alphabetCount; i++) {
-            final int alphabet = LangbookReadableDatabase.getMaxConcept(db) + 1;
-            if (!LangbookDatabase.addAlphabetCopyingFromOther(db, alphabet, _newLanguageId + 1)) {
+            final int alphabet = manager.getMaxConcept() + 1;
+            if (!manager.addAlphabetCopyingFromOther(alphabet, _newLanguageId + 1)) {
                 throw new AssertionError();
             }
         }
 
-        if (LangbookDatabase.addAcceptation(db, _newLanguageId, _languageCorrelationArray) == null) {
+        if (manager.addAcceptation(_newLanguageId, _languageCorrelationArray) == null) {
             throw new AssertionError();
         }
 
         for (int i = 0; i < _alphabetCount; i++) {
-            if (LangbookDatabase.addAcceptation(db, _newLanguageId + i + 1, _alphabetCorrelationArrays.valueAt(i)) == null) {
+            if (manager.addAcceptation(_newLanguageId + i + 1, _alphabetCorrelationArrays.valueAt(i)) == null) {
                 throw new AssertionError();
             }
         }

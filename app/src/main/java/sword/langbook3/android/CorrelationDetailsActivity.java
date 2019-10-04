@@ -16,8 +16,6 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 
-import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationDetails;
-
 public final class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
     private static final int REQUEST_CODE_CLICK_NAVIGATION = 1;
@@ -76,7 +74,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
 
     private void updateModelAndUi() {
         final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _model = getCorrelationDetails(DbManager.getInstance().getDatabase(), _correlationId, preferredAlphabet);
+        _model = DbManager.getInstance().getManager().getCorrelationDetails(_correlationId, preferredAlphabet);
 
         if (_model != null) {
             _justLoaded = true;

@@ -15,18 +15,13 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
-import sword.database.Database;
-import sword.database.DbExporter;
-import sword.langbook3.android.db.LangbookReadableDatabase;
+import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 
-import static sword.langbook3.android.db.LangbookDatabase.updateScore;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getCurrentKnowledge;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails;
 
 public final class QuestionActivity extends Activity implements View.OnClickListener, DialogInterface.OnClickListener, DialogInterface.OnDismissListener {
 
@@ -76,13 +71,13 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private long _lastClickTime;
     private int[] _possibleAcceptations;
 
-    private void readQuizDefinition(DbExporter.Database db) {
-        _quizDetails = getQuizDetails(db, _quizId);
+    private void readQuizDefinition(LangbookChecker checker) {
+        _quizDetails = checker.getQuizDetails(_quizId);
         _fieldTextViews = new TextView[_quizDetails.fields.size()];
     }
 
-    private String readFieldText(DbExporter.Database db, int index) {
-        return LangbookReadableDatabase.readQuestionFieldText(db, _acceptation, _quizDetails.fields.get(index));
+    private String readFieldText(LangbookChecker checker, int index) {
+        return checker.readQuestionFieldText(_acceptation, _quizDetails.fields.get(index));
     }
 
     private void selectAcceptation() {
@@ -117,12 +112,10 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     }
 
     private void updateTextFields() {
-        final Database db = DbManager.getInstance().getDatabase();
-
         final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
         final int fieldCount = fields.size();
         for (int i = 0; i < fieldCount; i++) {
-            final String text = !fields.get(i).isAnswer()? readFieldText(db, i) : "?";
+            final String text = !fields.get(i).isAnswer()? readFieldText(DbManager.getInstance().getManager(), i) : "?";
             _fieldTextViews[i].setText(text);
         }
 
@@ -135,14 +128,14 @@ public final class QuestionActivity extends Activity implements View.OnClickList
 
         final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
         if (!_isAnswerVisible) {
-            Database db = null;
+            LangbookChecker checker = null;
             for (int i = 0; i < fields.size(); i++) {
                 if (fields.get(i).isAnswer()) {
-                    if (db == null) {
-                        db = DbManager.getInstance().getDatabase();
+                    if (checker == null) {
+                        checker = DbManager.getInstance().getManager();
                     }
 
-                    _fieldTextViews[i].setText(readFieldText(db, i));
+                    _fieldTextViews[i].setText(readFieldText(checker, i));
                 }
             }
 
@@ -179,9 +172,9 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         setContentView(R.layout.question_activity);
 
         _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
-        final Database db = DbManager.getInstance().getDatabase();
-        readQuizDefinition(db);
-        readCurrentKnowledge(db);
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        readQuizDefinition(checker);
+        readCurrentKnowledge(checker);
 
         if (_possibleAcceptations.length == 0) {
             Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
@@ -231,8 +224,8 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         }
     }
 
-    private void readCurrentKnowledge(DbExporter.Database db) {
-        final ImmutableIntPairMap knowledgeMap = getCurrentKnowledge(db, _quizId);
+    private void readCurrentKnowledge(LangbookChecker checker) {
+        final ImmutableIntPairMap knowledgeMap = checker.getCurrentKnowledge(_quizId);
         _possibleAcceptations = new int[knowledgeMap.size()];
         for (ImmutableIntPairMap.Entry entry : knowledgeMap.entries()) {
             final int acceptation = entry.key();
@@ -246,7 +239,6 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     }
 
     private void registerGoodAnswer() {
-        final Database db = DbManager.getInstance().getDatabase();
         final int foundScore = _knowledge.get(_acceptation, NO_SCORE);
 
         final int newScore;
@@ -259,13 +251,12 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         }
 
         _knowledge.put(_acceptation, newScore);
-        updateScore(db, _quizId, _acceptation, newScore);
+        DbManager.getInstance().getManager().updateScore(_quizId, _acceptation, newScore);
 
         _goodAnswerCount++;
     }
 
     private void registerBadAnswer() {
-        final Database db = DbManager.getInstance().getDatabase();
         final int foundScore = _knowledge.get(_acceptation, NO_SCORE);
 
         final int newScore;
@@ -278,7 +269,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         }
 
         _knowledge.put(_acceptation, newScore);
-        updateScore(db, _quizId, _acceptation, newScore);
+        DbManager.getInstance().getManager().updateScore(_quizId, _acceptation, newScore);
 
         _badAnswerCount++;
     }

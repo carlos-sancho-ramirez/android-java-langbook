@@ -81,4 +81,7 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
      */
     boolean replaceConversion(Conversion conversion);
+
+    boolean updateSymbolArray(int symbolArrayId, String text);
+    int obtainSymbolArray(String str);
 }
