@@ -71,10 +71,12 @@ public final class SentencesManagerTest {
                 .add(new SentenceSpan(new ImmutableIntRange(redEnStart, redEnEnd - 1), redEnAcc))
                 .build();
 
-        final int sentence1 = manager.addSentence(text1, spans1);
-        final int sentence2 = manager.addSentence(text2, spans2);
-        final int sentence3 = manager.addSentence(text3, spans3);
-        manager.copySentenceMeaning(sentence2, sentence3);
+        final int concept1 = manager.getMaxConcept() + 1;
+        final int sentence1 = manager.addSentence(concept1, text1, spans1);
+
+        final int concept2 = manager.getMaxConcept() + 1;
+        final int sentence2 = manager.addSentence(concept2, text2, spans2);
+        final int sentence3 = manager.addSentence(concept2, text3, spans3);
 
         final ImmutableIntKeyMap<String> greatMatchingSentences = manager.getSampleSentences(greatAcc);
         assertEquals(1, greatMatchingSentences.size());
@@ -164,11 +166,11 @@ public final class SentencesManagerTest {
                 .add(new SentenceSpan(new ImmutableIntRange(redEnStart, redEnEnd - 1), redEnAcc))
                 .build();
 
-        final int sentence1 = manager.addSentence(text1a, spans1a);
-        assertTrue(manager.replaceSentence(sentence1, text1b, spans1b));
-        final int sentence2 = manager.addSentence(text2, spans2);
-        manager.copySentenceMeaning(sentence1, sentence2);
+        final int concept1 = manager.getMaxConcept() + 1;
+        final int sentence1 = manager.addSentence(concept1, text1a, spans1a);
+        assertTrue(manager.updateSentenceTextAndSpans(sentence1, text1b, spans1b));
 
+        final int sentence2 = manager.addSentence(concept1, text2, spans2);
         assertTrue(manager.getSampleSentences(greatAcc).isEmpty());
 
         final ImmutableIntKeyMap<String> redEsMatchingSentences = manager.getSampleSentences(redEsAcc);
@@ -226,7 +228,8 @@ public final class SentencesManagerTest {
                 .add(new SentenceSpan(new ImmutableIntRange(greatStart, greatEnd - 1), greatAcc))
                 .build();
 
-        final int sentence1 = manager.addSentence(text, spans);
+        final int concept1 = manager.getMaxConcept() + 1;
+        final int sentence1 = manager.addSentence(concept1, text, spans);
         manager.removeSentence(sentence1);
 
         assertTrue(manager.getSampleSentences(carAcc).isEmpty());

@@ -119,6 +119,21 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    private static String selectOptionalFirstTextColumn(DbExporter.Database db, DbQuery query) {
+        String result = null;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                result = dbResult.next().get(0).toText();
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError("Only 0 or 1 row was expected");
+            }
+        }
+
+        return result;
+    }
+
     private static boolean selectExistingRow(DbExporter.Database db, DbQuery query) {
         boolean result = false;
         try (DbResult dbResult = db.select(query)) {
@@ -967,12 +982,12 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int symbolArrayId) {
-        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
+    static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int sentenceId) {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getMeaning(), table.getMeaning())
-                .where(table.getIdColumnIndex(), symbolArrayId)
+                .join(table, table.getConceptColumnIndex(), table.getConceptColumnIndex())
+                .where(table.getIdColumnIndex(), sentenceId)
                 .whereColumnValueDiffer(table.getIdColumnIndex(), offset + table.getIdColumnIndex())
                 .select(offset + table.getIdColumnIndex());
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
@@ -999,6 +1014,11 @@ public final class LangbookReadableDatabase {
 
     private static int getMaxConceptInAcceptations(DbExporter.Database db) {
         LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        return getColumnMax(db, table, table.getConceptColumnIndex());
+    }
+
+    private static int getMaxConceptInSentences(DbExporter.Database db) {
+        LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         return getColumnMax(db, table, table.getConceptColumnIndex());
     }
 
@@ -1083,6 +1103,11 @@ public final class LangbookReadableDatabase {
         }
 
         temp = getMaxConceptInConceptCompositions(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxConceptInSentences(db);
         if (temp > max) {
             max = temp;
         }
@@ -1193,11 +1218,6 @@ public final class LangbookReadableDatabase {
     static int getMaxQuestionFieldSetId(DbExporter.Database db) {
         LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());
-    }
-
-    static int getMaxSentenceMeaning(DbExporter.Database db) {
-        LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
-        return getColumnMax(db, table, table.getMeaning());
     }
 
     public static String getSymbolArray(DbExporter.Database db, int id) {
@@ -1394,27 +1414,6 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
-    }
-
-    static Integer getSentenceMeaning(DbExporter.Database db, int symbolArrayId) {
-        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
-
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), symbolArrayId)
-                .select(table.getMeaning());
-
-        Integer result = null;
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                result = dbResult.next().get(0).toInt();
-            }
-
-            if (dbResult.hasNext()) {
-                throw new AssertionError();
-            }
-        }
-
-        return result;
     }
 
     private static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, int preferredAlphabet) {
@@ -3083,21 +3082,11 @@ public final class LangbookReadableDatabase {
         final int offset = strings.columns().size();
 
         final DbQuery query = new DbQuery.Builder(strings)
-                .join(spans, strings.getDynamicAcceptationColumnIndex(), spans.getDynamicAcceptation())
+                .join(spans, strings.getDynamicAcceptationColumnIndex(), spans.getDynamicAcceptationColumnIndex())
                 .where(strings.getMainAcceptationColumnIndex(), staticAcceptation)
-                .select(offset + spans.getSymbolArray());
+                .select(offset + spans.getSentenceIdColumnIndex());
 
-        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
-        try (DbResult dbResult = db.select(query)) {
-            while (dbResult.hasNext()) {
-                final int symbolArrayId = dbResult.next().get(0).toInt();
-                if (result.get(symbolArrayId, null) == null) {
-                    result.put(symbolArrayId, getSymbolArray(db, symbolArrayId));
-                }
-            }
-        }
-
-        return result.toImmutable();
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().assign(sentenceId -> getSentenceText(db, sentenceId));
     }
 
     static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
@@ -3172,11 +3161,11 @@ public final class LangbookReadableDatabase {
                 relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable());
     }
 
-    static ImmutableSet<SentenceSpan> getSentenceSpans(DbExporter.Database db, int symbolArray) {
+    static ImmutableSet<SentenceSpan> getSentenceSpans(DbExporter.Database db, int sentenceId) {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getSymbolArray(), symbolArray)
-                .select(table.getStart(), table.getLength(), table.getDynamicAcceptation());
+                .where(table.getSentenceIdColumnIndex(), sentenceId)
+                .select(table.getStartColumnIndex(), table.getLengthColumnIndex(), table.getDynamicAcceptationColumnIndex());
         final ImmutableHashSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
@@ -3192,11 +3181,11 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static ImmutableIntValueMap<SentenceSpan> getSentenceSpansWithIds(DbExporter.Database db, int symbolArray) {
+    static ImmutableIntValueMap<SentenceSpan> getSentenceSpansWithIds(DbExporter.Database db, int sentenceId) {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getSymbolArray(), symbolArray)
-                .select(table.getIdColumnIndex(), table.getStart(), table.getLength(), table.getDynamicAcceptation());
+                .where(table.getSentenceIdColumnIndex(), sentenceId)
+                .select(table.getIdColumnIndex(), table.getStartColumnIndex(), table.getLengthColumnIndex(), table.getDynamicAcceptationColumnIndex());
         final ImmutableIntValueHashMap.Builder<SentenceSpan> builder = new ImmutableIntValueHashMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
@@ -3301,6 +3290,18 @@ public final class LangbookReadableDatabase {
         return true;
     }
 
+    /**
+     * Returns a set for all sentences linked to the given symbolArray.
+     */
+    static ImmutableIntSet findSentencesBySymbolArrayId(DbExporter.Database db, int symbolArrayId) {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSymbolArrayColumnIndex(), symbolArrayId)
+                .select(table.getIdColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     static boolean checkAlphabetCanBeRemoved(DbExporter.Database db, int alphabet) {
         // There must be at least another alphabet in the same language to avoid leaving the language without alphabets
         if (alphabetsWithinLanguage(db, alphabet).size() < 2) {
@@ -3358,10 +3359,36 @@ public final class LangbookReadableDatabase {
         return new DefinitionDetails(baseConcept, complements);
     }
 
+    static Integer getSentenceConcept(DbExporter.Database db, int sentenceId) {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), sentenceId)
+                .select(table.getConceptColumnIndex());
+        return selectOptionalFirstIntColumn(db, query);
+    }
+
+    static Integer getSentenceSymbolArray(DbExporter.Database db, int sentenceId) {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), sentenceId)
+                .select(table.getSymbolArrayColumnIndex());
+        return selectOptionalFirstIntColumn(db, query);
+    }
+
+    static String getSentenceText(DbExporter.Database db, int sentenceId) {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+        final LangbookDbSchema.SymbolArraysTable texts = LangbookDbSchema.Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(texts, table.getSymbolArrayColumnIndex(), texts.getIdColumnIndex())
+                .where(table.getIdColumnIndex(), sentenceId)
+                .select(table.columns().size() + texts.getStrColumnIndex());
+        return selectOptionalFirstTextColumn(db, query);
+    }
+
     static SentenceDetailsModel getSentenceDetails(DbExporter.Database db, int sentenceId) {
-        final String text = getSymbolArray(db, sentenceId);
+        final String text = getSentenceText(db, sentenceId);
         final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, sentenceId);
-        final ImmutableIntKeyMap<String> sameMeaningSentences = findSentenceIdsMatchingMeaning(db, sentenceId).assign(id -> getSymbolArray(db, id));
+        final ImmutableIntKeyMap<String> sameMeaningSentences = findSentenceIdsMatchingMeaning(db, sentenceId).assign(id -> getSentenceText(db, id));
         return new SentenceDetailsModel(text, spans, sameMeaningSentences);
     }
 }

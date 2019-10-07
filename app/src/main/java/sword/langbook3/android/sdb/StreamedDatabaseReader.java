@@ -44,9 +44,10 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConversion;
 import static sword.langbook3.android.db.LangbookDbInserter.insertLanguage;
-import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceMeaning;
+import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceWithId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findBunchSet;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxBunchSetId;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
 
 public final class StreamedDatabaseReader {
@@ -582,12 +583,14 @@ public final class StreamedDatabaseReader {
     }
 
     public static final class SentenceSpan {
+        public final int sentenceId;
         public final int symbolArray;
         public final int start;
         public final int length;
         public final int acceptationFileIndex;
 
-        SentenceSpan(int symbolArray, int start, int length, int acceptationFileIndex) {
+        SentenceSpan(int sentenceId, int symbolArray, int start, int length, int acceptationFileIndex) {
+            this.sentenceId = sentenceId;
             this.symbolArray = symbolArray;
             this.start = start;
             this.length = length;
@@ -619,6 +622,7 @@ public final class StreamedDatabaseReader {
             int previousSymbolArray = 0;
             int previousStart = 0;
 
+            final MutableIntPairMap sentenceIdMap = MutableIntPairMap.empty();
             for (int spanIndex = 0; spanIndex < spanCount; spanIndex++) {
                 final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(previousSymbolArray, maxSymbolArray);
                 final int symbolArrayFileId = ibs.readHuffmanSymbol(symbolArrayTable);
@@ -636,7 +640,13 @@ public final class StreamedDatabaseReader {
 
                 final int accIndex = ibs.readHuffmanSymbol(accTable);
 
-                spans[spanIndex] = new SentenceSpan(symbolArray, start, length, accIndex);
+                int sentenceId = sentenceIdMap.get(symbolArray, 0);
+                if (sentenceId == 0) {
+                    sentenceId = sentenceIdMap.size() + 1;
+                    sentenceIdMap.put(symbolArray, sentenceId);
+                }
+
+                spans[spanIndex] = new SentenceSpan(sentenceId, symbolArray, start, length, accIndex);
                 previousSymbolArray = symbolArrayFileId;
                 previousStart = start;
             }
@@ -645,18 +655,26 @@ public final class StreamedDatabaseReader {
         return spans;
     }
 
-    private void readSentenceMeanings(InputBitStream ibs, int[] symbolArrayIdMap) throws IOException {
+    private void readSentenceMeanings(InputBitStream ibs, int[] symbolArrayIdMap, SentenceSpan[] spans) throws IOException {
         final int meaningCount = ibs.readHuffmanSymbol(naturalNumberTable);
         if (meaningCount > 0) {
+            final MutableIntPairMap sentenceIds = MutableIntPairMap.empty();
+            for (SentenceSpan span : spans) {
+                sentenceIds.put(span.symbolArray, span.sentenceId);
+            }
+
             final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
             DefinedHuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
 
+            final int baseConcept = getMaxConcept(_db) + 1;
             int previousMin = 0;
             for (int meaningIndex = 0; meaningIndex < meaningCount; meaningIndex++) {
                 final ImmutableIntSet set = readRangedNumberSet(ibs, lengthTable, previousMin, symbolArrayIdMap.length - 1);
                 previousMin = set.min();
                 for (int symbolArrayFileId : set) {
-                    insertSentenceMeaning(_db, symbolArrayIdMap[symbolArrayFileId], meaningIndex + 1);
+                    final int concept = baseConcept + meaningIndex;
+                    final int symbolArray = symbolArrayIdMap[symbolArrayFileId];
+                    insertSentenceWithId(_db, sentenceIds.get(symbolArray), concept, symbolArray);
                 }
             }
         }
@@ -793,7 +811,7 @@ public final class StreamedDatabaseReader {
                         symbolArraysReadResult.lengths);
 
                 setProgress(0.98f, "Writing sentence meanings");
-                readSentenceMeanings(ibs, symbolArraysIdMap);
+                readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
                 return new Result(conversions, agentReadResult.agents, acceptationIdMap, ruleAcceptationPairs, spans);
             }

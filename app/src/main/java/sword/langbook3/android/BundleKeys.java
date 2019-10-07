@@ -18,6 +18,7 @@ public interface BundleKeys {
     String LANGUAGE = "language";
     String QUIZ = "quiz";
     String SEARCH_QUERY = "searchQuery";
+    String SENTENCE_ID = "seId";
     String SOURCE_ALPHABET = "sAlph";
     String STATIC_ACCEPTATION = "sa";
     String SYMBOL_ARRAY = "saId";

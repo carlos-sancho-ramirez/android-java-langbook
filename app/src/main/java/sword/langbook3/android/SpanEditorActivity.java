@@ -23,7 +23,7 @@ import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.SentenceSpan;
 
-import static sword.langbook3.android.SentenceEditorActivity.NO_SYMBOL_ARRAY;
+import static sword.langbook3.android.SentenceEditorActivity.NO_SENTENCE_ID;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
@@ -31,7 +31,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
-        String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
+        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
         String TEXT = BundleKeys.TEXT;
     }
 
@@ -40,7 +40,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     interface ResultKeys {
-        String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
+        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
     }
 
     private TextView _sentenceText;
@@ -61,10 +61,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void open(Activity activity, int requestCode, String text, int symbolArrayId) {
+    static void open(Activity activity, int requestCode, String text, int sentenceId) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
-        intent.putExtra(ArgKeys.SYMBOL_ARRAY, symbolArrayId);
+        intent.putExtra(ArgKeys.SENTENCE_ID, sentenceId);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -88,18 +88,18 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return string;
     }
 
-    private int getSymbolArrayId() {
-        return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, NO_SYMBOL_ARRAY);
+    private int getSentenceId() {
+        return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, NO_SENTENCE_ID);
     }
 
     private int getStaticAcceptationId() {
         return getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
     }
 
-    private void insertInitialSpans(int symbolArrayId) {
+    private void insertInitialSpans(int sentenceId) {
         final LangbookChecker checker = DbManager.getInstance().getManager();
         final String sentence = getText();
-        final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(symbolArrayId);
+        final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(sentenceId);
         final MutableIntValueMap<SentenceSpan> builder = _state.getSpans();
         for (SentenceSpan span : spans) {
             final ImmutableIntKeyMap<String> texts = checker.getAcceptationTexts(span.acceptation);
@@ -144,10 +144,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         if (savedInstanceState == null) {
             _state = new SpanEditorActivityState();
 
-            final int symbolArrayId = getSymbolArrayId();
+            final int sentenceId = getSentenceId();
             final int staticAcceptation = getStaticAcceptationId();
-            if (symbolArrayId != NO_SYMBOL_ARRAY) {
-                insertInitialSpans(symbolArrayId);
+            if (sentenceId != NO_SENTENCE_ID) {
+                insertInitialSpans(sentenceId);
             }
             else if (staticAcceptation != 0) {
                 insertSuggestedSpans(staticAcceptation);
@@ -218,32 +218,24 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         else {
             final String newText = getText();
             final LangbookManager manager = DbManager.getInstance().getManager();
-            final int symbolArrayId = getSymbolArrayId();
-            final int newSymbolArray;
-            if (symbolArrayId == NO_SYMBOL_ARRAY) {
-                newSymbolArray = manager.addSentence(newText, spans);
+            final int sentenceId = getSentenceId();
+            final int newSentenceId;
+            if (sentenceId == NO_SENTENCE_ID) {
+                final int concept = manager.getMaxConcept() + 1;
+                newSentenceId = manager.addSentence(concept, newText, spans);
                 Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
             else {
-                if (manager.isSymbolArrayMerelyASentence(symbolArrayId)) {
-                    if (!manager.replaceSentence(symbolArrayId, newText, spans)) {
-                        throw new AssertionError();
-                    }
-                    newSymbolArray = symbolArrayId;
-                }
-                else {
-                    if (!manager.removeSentence(symbolArrayId)) {
-                        throw new AssertionError();
-                    }
-
-                    newSymbolArray = manager.addSentence(newText, spans);
+                if (!manager.updateSentenceTextAndSpans(sentenceId, newText, spans)) {
+                    throw new AssertionError();
                 }
 
+                newSentenceId = sentenceId;
                 Toast.makeText(this, R.string.updateSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
 
             final Intent resultIntent = new Intent();
-            resultIntent.putExtra(ResultKeys.SYMBOL_ARRAY, newSymbolArray);
+            resultIntent.putExtra(ResultKeys.SENTENCE_ID, newSentenceId);
             setResult(RESULT_OK, resultIntent);
             finish();
         }

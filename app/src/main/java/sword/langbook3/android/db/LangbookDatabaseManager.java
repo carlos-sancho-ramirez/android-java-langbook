@@ -137,8 +137,8 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public boolean copySentenceMeaning(int sourceSymbolArray, int targetSymbolArray) {
-        return LangbookDatabase.copySentenceMeaning(_db, sourceSymbolArray, targetSymbolArray);
+    public boolean copySentenceConcept(int sourceSentenceId, int targetSentenceId) {
+        return LangbookDatabase.copySentenceConcept(_db, sourceSentenceId, targetSentenceId);
     }
 
     @Override
@@ -147,12 +147,12 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public Integer addSentence(String text, Set<SentenceSpan> spans) {
-        return LangbookDatabase.addSentence(_db, text, spans);
+    public Integer addSentence(int concept, String text, Set<SentenceSpan> spans) {
+        return LangbookDatabase.addSentence(_db, concept, text, spans);
     }
 
     @Override
-    public boolean replaceSentence(int sentenceId, String newText, Set<SentenceSpan> newSpans) {
-        return LangbookDatabase.replaceSentence(_db, sentenceId, newText, newSpans);
+    public boolean updateSentenceTextAndSpans(int sentenceId, String newText, Set<SentenceSpan> newSpans) {
+        return LangbookDatabase.updateSentenceTextAndSpans(_db, sentenceId, newText, newSpans);
     }
 }

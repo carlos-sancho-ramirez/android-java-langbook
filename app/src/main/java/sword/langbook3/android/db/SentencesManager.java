@@ -4,8 +4,39 @@ import sword.collections.Set;
 import sword.langbook3.android.models.SentenceSpan;
 
 public interface SentencesManager extends AcceptationsManager, SentencesChecker {
-    Integer addSentence(String text, Set<SentenceSpan> spans);
-    boolean replaceSentence(int sentenceId, String newText, Set<SentenceSpan> newSpans);
+
+    /**
+     * Add a new sentence into the database attached to the given concept, text and set of spans.
+     * @param concept Meaning of this sentence.
+     * @param text Plain text for the sentence.
+     * @param spans Set of spans for the plain text provided in order to include semantics.
+     * @return The identifier for the new sentence, or null if it is not possible to be included.
+     */
+    Integer addSentence(int concept, String text, Set<SentenceSpan> spans);
+
+    /**
+     * Replaces the text and spans for an existing sentence, leaving the concept untouched.
+     * @param sentenceId Identifier for the sentence to be updated.
+     * @param newText New text for the sentence. This can be the same it was before, or a different one.
+     * @param newSpans New set of spans for the given newText. This set will completelly replace the previous one.
+     * @return Whether the operation succeeded or not. This will return true even if no change is performed within the database.
+     */
+    boolean updateSentenceTextAndSpans(int sentenceId, String newText, Set<SentenceSpan> newSpans);
+
+    /**
+     * Remove completely the sentence linked to the given identifier and its spans.
+     * @param sentenceId Identifier for the sentence to be removed.
+     * @return Whether the sentence has been removed or not. This may be false if there was no sentence for the given identifier.
+     */
     boolean removeSentence(int sentenceId);
-    boolean copySentenceMeaning(int thisSentence, int pickedSentence);
+
+    /**
+     * Replaces the concept of the targetSentence with the concept of the sourceSentence.
+     * This will make them synonym or translation of each other.
+     *
+     * @param sourceSentenceId Sentence from where the concept will be copied.
+     * @param targetSentenceId Sentence where the concept will be replaced.
+     * @return Whether the operation succeeded. This can be false if either the source or the target sentence identifier is invalid.
+     */
+    boolean copySentenceConcept(int sourceSentenceId, int targetSentenceId);
 }

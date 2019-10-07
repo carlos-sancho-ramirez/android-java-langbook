@@ -194,6 +194,11 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
+    public String getSentenceText(int sentenceId) {
+        return LangbookReadableDatabase.getSentenceText(getDatabase(), sentenceId);
+    }
+
+    @Override
     public ImmutableSet<SentenceSpan> getSentenceSpans(int symbolArray) {
         return LangbookReadableDatabase.getSentenceSpans(getDatabase(), symbolArray);
     }

@@ -30,16 +30,16 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     private static final int REQUEST_CODE_NEW = 4;
 
     interface ArgKeys {
-        String SYMBOL_ARRAY = BundleKeys.SYMBOL_ARRAY;
+        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
     }
 
     private interface SavedKeys {
         String DISPLAYING_DELETE_DIALOG = "dd";
     }
 
-    static void open(Activity activity, int requestCode, int symbolArray) {
+    static void open(Activity activity, int requestCode, int sentenceId) {
         final Intent intent = new Intent(activity, SentenceDetailsActivity.class);
-        intent.putExtra(ArgKeys.SYMBOL_ARRAY, symbolArray);
+        intent.putExtra(ArgKeys.SENTENCE_ID, sentenceId);
 
         if (requestCode != 0) {
             activity.startActivityForResult(intent, requestCode);
@@ -72,8 +72,8 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         }
     }
 
-    private int getSymbolArrayId() {
-        return getIntent().getIntExtra(ArgKeys.SYMBOL_ARRAY, 0);
+    private int getSentenceId() {
+        return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, 0);
     }
 
     private void updateSentenceTextView() {
@@ -113,7 +113,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
             _displayingDeleteDialog = savedInstanceState.getBoolean(SavedKeys.DISPLAYING_DELETE_DIALOG);
         }
 
-        _model = DbManager.getInstance().getManager().getSentenceDetails(getSymbolArrayId());
+        _model = DbManager.getInstance().getManager().getSentenceDetails(getSentenceId());
         updateSentenceTextView();
         updateOtherSentences();
         _justCreated = true;
@@ -134,7 +134,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemEdit:
-                SentenceEditorActivity.open(this, REQUEST_CODE_EDIT, getSymbolArrayId());
+                SentenceEditorActivity.open(this, REQUEST_CODE_EDIT, getSentenceId());
                 return true;
             case R.id.menuItemDelete:
                 _displayingDeleteDialog = true;
@@ -162,16 +162,16 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_NEW && resultCode == RESULT_OK) {
-            final int pickedSentence = data.getIntExtra(SentenceEditorActivity.ResultKeys.SYMBOL_ARRAY, 0);
-            final int thisSentence = getSymbolArrayId();
+            final int pickedSentence = data.getIntExtra(SentenceEditorActivity.ResultKeys.SENTENCE_ID, 0);
+            final int thisSentence = getSentenceId();
             if (pickedSentence != 0 && pickedSentence != thisSentence) {
-                DbManager.getInstance().getManager().copySentenceMeaning(thisSentence, pickedSentence);
+                DbManager.getInstance().getManager().copySentenceConcept(thisSentence, pickedSentence);
                 updateOtherSentences();
             }
         }
 
         if (resultCode == RESULT_OK && !_justCreated) {
-            _model = DbManager.getInstance().getManager().getSentenceDetails(getSymbolArrayId());
+            _model = DbManager.getInstance().getManager().getSentenceDetails(getSentenceId());
             updateSentenceTextView();
         }
     }
@@ -186,7 +186,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     @Override
     public void onClick(DialogInterface dialogInterface, int i) {
-        if (!DbManager.getInstance().getManager().removeSentence(getSymbolArrayId())) {
+        if (!DbManager.getInstance().getManager().removeSentence(getSentenceId())) {
             throw new AssertionError();
         }
 

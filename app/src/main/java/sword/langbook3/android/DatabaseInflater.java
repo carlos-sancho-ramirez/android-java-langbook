@@ -421,7 +421,7 @@ public final class DatabaseInflater {
                 StreamedDatabaseReader.RuleAcceptationPair pair = ruleAcceptationPairs[span.acceptationFileIndex - accIdMap.length];
                 acc = findRuledAcceptationByRuleAndMainAcceptation(_db, pair.rule, pair.acceptation);
             }
-            insertSpan(_db, span.symbolArray, range, acc);
+            insertSpan(_db, span.sentenceId, range, acc);
         }
     }
 

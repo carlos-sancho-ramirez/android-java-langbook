@@ -285,17 +285,17 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertSpan(DbInserter db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
+    public static void insertSpan(DbInserter db, int sentenceId, ImmutableIntRange range, int dynamicAcceptation) {
         if (range == null || range.min() < 0) {
             throw new IllegalArgumentException();
         }
 
         final LangbookDbSchema.SpanTable table = Tables.spans;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getSymbolArray(), symbolArray)
-                .put(table.getStart(), range.min())
-                .put(table.getLength(), range.size())
-                .put(table.getDynamicAcceptation(), dynamicAcceptation)
+                .put(table.getSentenceIdColumnIndex(), sentenceId)
+                .put(table.getStartColumnIndex(), range.min())
+                .put(table.getLengthColumnIndex(), range.size())
+                .put(table.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
                 .build();
 
         if (db.insert(query) == null) {
@@ -303,15 +303,24 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertSentenceMeaning(DbInserter db, int symbolArray, int meaning) {
-        final LangbookDbSchema.SentenceMeaningTable table = Tables.sentenceMeaning;
+    public static int insertSentence(DbInserter db, int concept, int symbolArray) {
+        final LangbookDbSchema.SentencesTable table = Tables.sentences;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), symbolArray)
-                .put(table.getMeaning(), meaning)
+                .put(table.getConceptColumnIndex(), concept)
+                .put(table.getSymbolArrayColumnIndex(), symbolArray)
                 .build();
 
-        if (db.insert(query) == null) {
-            throw new AssertionError();
-        }
+        return db.insert(query);
+    }
+
+    public static void insertSentenceWithId(DbInserter db, int sentenceId, int concept, int symbolArray) {
+        final LangbookDbSchema.SentencesTable table = Tables.sentences;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), sentenceId)
+                .put(table.getConceptColumnIndex(), concept)
+                .put(table.getSymbolArrayColumnIndex(), symbolArray)
+                .build();
+
+        db.insert(query);
     }
 }

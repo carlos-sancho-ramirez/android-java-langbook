@@ -452,25 +452,44 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
-    public static final class SentenceMeaningTable extends DbTable {
+    public static final class SentencesTable extends DbTable {
 
-        private SentenceMeaningTable() {
-            super("SentenceMeaning", new DbIntColumn("meaning"));
+        private SentencesTable() {
+            super("Sentences", new DbIntColumn("concept"), new DbIntColumn("symbolArray"));
         }
 
-        public int getMeaning() {
+        /**
+         * Concept for this sentence.
+         *
+         * Sentences sharing the same concept means that they have the same meaning.
+         * They can be defined for the same language (synonyms) or among different languages (translations).
+         */
+        public int getConceptColumnIndex() {
             return 1;
+        }
+
+        /**
+         * Foreign key for the SymbolArrays table.
+         *
+         * This identifies the text to be displayed for this sentence.
+         */
+        public int getSymbolArrayColumnIndex() {
+            return 2;
         }
     }
 
     public static final class SpanTable extends DbTable {
 
         private SpanTable() {
-            super("SpanTable", new DbIntColumn("symbolArray"), new DbIntColumn("start"),
+            super("SpanTable", new DbIntColumn("sentenceId"), new DbIntColumn("start"),
                     new DbIntColumn("length"), new DbIntColumn("acceptation"));
         }
 
-        public int getSymbolArray() {
+        /**
+         * Foreign key for the SentencesTable id column.
+         * This is the unique identifier within the database for the sentence.
+         */
+        public int getSentenceIdColumnIndex() {
             return 1;
         }
 
@@ -478,7 +497,7 @@ public final class LangbookDbSchema implements DbSchema {
          * Index within the symbol array where this span starts.
          * It's inclusive, which means that the char at the given index is also included within the span.
          */
-        public int getStart() {
+        public int getStartColumnIndex() {
             return 2;
         }
 
@@ -486,14 +505,14 @@ public final class LangbookDbSchema implements DbSchema {
          * The amount of characters included in this span.
          * This should always be a positive number, never zero.
          */
-        public int getLength() {
+        public int getLengthColumnIndex() {
             return 3;
         }
 
         /**
          * Dynamic acceptation for this span.
          */
-        public int getDynamicAcceptation() {
+        public int getDynamicAcceptationColumnIndex() {
             return 4;
         }
     }
@@ -556,7 +575,7 @@ public final class LangbookDbSchema implements DbSchema {
         RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
         RuledConceptsTable ruledConcepts = new RuledConceptsTable();
         SearchHistoryTable searchHistory = new SearchHistoryTable();
-        SentenceMeaningTable sentenceMeaning = new SentenceMeaningTable();
+        SentencesTable sentences = new SentencesTable();
         SpanTable spans = new SpanTable();
         StringQueriesTable stringQueries = new StringQueriesTable();
         SymbolArraysTable symbolArrays = new SymbolArraysTable();
@@ -581,7 +600,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.ruledAcceptations)
             .add(Tables.ruledConcepts)
             .add(Tables.searchHistory)
-            .add(Tables.sentenceMeaning)
+            .add(Tables.sentences)
             .add(Tables.spans)
             .add(Tables.stringQueries)
             .add(Tables.symbolArrays)

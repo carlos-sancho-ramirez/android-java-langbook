@@ -153,18 +153,18 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteSpanBySymbolArrayId(Deleter db, int symbolArray) {
-        final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
-        DbDeleteQuery query = new DbDeleteQuery.Builder(spans)
-                .where(spans.getSymbolArray(), symbolArray)
+    static boolean deleteSentence(Deleter db, int sentenceId) {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getIdColumnIndex(), sentenceId)
                 .build();
         return db.delete(query);
     }
 
-    static boolean deleteSentenceMeaning(Deleter db, int symbolArray) {
-        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
-        DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getIdColumnIndex(), symbolArray)
+    static boolean deleteSpansBySentenceId(Deleter db, int sentenceId) {
+        final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(spans)
+                .where(spans.getSentenceIdColumnIndex(), sentenceId)
                 .build();
         return db.delete(query);
     }

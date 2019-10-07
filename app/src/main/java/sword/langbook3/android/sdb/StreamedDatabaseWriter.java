@@ -1203,17 +1203,12 @@ public final class StreamedDatabaseWriter {
         return builder.build();
     }
 
-    private ImmutableIntSet listSymbolArraysForSentenceSpans() {
-        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+    private ImmutableIntSet listSymbolArraysFromSentences() {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getSymbolArray());
-        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-        try (DbResult result = _db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-        return builder.build();
+                .select(table.getSymbolArrayColumnIndex());
+
+        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private ExportableSymbolArraysResult listExportableSymbolArrays(ImmutableIntSet correlations) {
@@ -1239,7 +1234,7 @@ public final class StreamedDatabaseWriter {
             }
         }
 
-        for (int arrayId : listSymbolArraysForSentenceSpans()) {
+        for (int arrayId : listSymbolArraysFromSentences()) {
             symbolArrays.add(arrayId);
         }
 
@@ -1297,9 +1292,9 @@ public final class StreamedDatabaseWriter {
         final int ruledAccOffset = spans.columns().size();
         final int agentOffset = ruledAccOffset + ruledAcceptations.columns().size();
         final DbQuery query = new DbQuery.Builder(spans)
-                .join(ruledAcceptations, spans.getDynamicAcceptation(), ruledAcceptations.getIdColumnIndex())
+                .join(ruledAcceptations, spans.getDynamicAcceptationColumnIndex(), ruledAcceptations.getIdColumnIndex())
                 .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
-                .select(spans.getDynamicAcceptation(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), agentOffset + agents.getRuleColumnIndex());
+                .select(spans.getDynamicAcceptationColumnIndex(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), agentOffset + agents.getRuleColumnIndex());
 
         final MutableIntValueSortedMap<RuleAcceptationPair> pairs = MutableIntValueSortedMap.empty(RuleAcceptationPair::lessThan);
         try (DbResult dbResult = _db.select(query)) {
@@ -1386,18 +1381,24 @@ public final class StreamedDatabaseWriter {
 
     private void writeSentenceSpans(IntPairMap accIdMap, IntPairMap symbolArrayIdMap, IntPairMap symbolArrayLengths) throws IOException {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final LangbookDbSchema.SentencesTable sentences = LangbookDbSchema.Tables.sentences;
         final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getSymbolArray(), table.getStart(), table.getLength(), table.getDynamicAcceptation());
+                .join(sentences, table.getSentenceIdColumnIndex(), sentences.getIdColumnIndex())
+                .select(
+                        table.columns().size() + sentences.getSymbolArrayColumnIndex(),
+                        table.getStartColumnIndex(),
+                        table.getLengthColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
 
         final ImmutableSet.Builder<SentenceSpan> builder = new ImmutableHashSet.Builder<>();
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int symbolArray = row.get(0).toInt();
+                final int sentenceId = row.get(0).toInt();
                 final int start = row.get(1).toInt();
                 final int length = row.get(2).toInt();
                 final int acc = row.get(3).toInt();
-                builder.add(new SentenceSpan(symbolArray, start, length, acc));
+                builder.add(new SentenceSpan(sentenceId, start, length, acc));
             }
         }
 
@@ -1460,9 +1461,9 @@ public final class StreamedDatabaseWriter {
     }
 
     private void writeSentenceMeanings(IntPairMap symbolArrayIdMap) throws IOException {
-        final LangbookDbSchema.SentenceMeaningTable table = LangbookDbSchema.Tables.sentenceMeaning;
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getIdColumnIndex(), table.getMeaning());
+                .select(table.getSymbolArrayColumnIndex(), table.getConceptColumnIndex());
 
         final MutableIntKeyMap<ImmutableIntSet> map = MutableIntKeyMap.empty();
         final ImmutableIntSet emptySet = new ImmutableIntSetCreator().build();
@@ -1470,10 +1471,10 @@ public final class StreamedDatabaseWriter {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int symbolArray = row.get(0).toInt();
-                final int meaning = row.get(1).toInt();
+                final int concept = row.get(1).toInt();
 
-                final ImmutableIntSet current = map.get(meaning, emptySet);
-                map.put(meaning, current.add(symbolArrayIdMap.get(symbolArray)));
+                final ImmutableIntSet current = map.get(concept, emptySet);
+                map.put(concept, current.add(symbolArrayIdMap.get(symbolArray)));
             }
         }
 
