@@ -235,4 +235,46 @@ public final class SentencesManagerTest {
         assertTrue(manager.getSampleSentences(carAcc).isEmpty());
         assertTrue(manager.getSampleSentences(greatAcc).isEmpty());
     }
+
+    @Test
+    public void testRemoveAcceptationIncludedInASpan() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final SentencesManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+
+        final String carText = "coche";
+        final int carConcept = manager.getMaxConcept() + 1;
+        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, carText);
+
+        final String redText = "rojo";
+        final int redConcept = manager.getMaxConcept() + 1;
+        final int redAcc = addSimpleAcceptation(manager, esAlphabet, redConcept, redText);
+
+        final String text = "El " + carText + " es " + redText;
+
+        final int carStart = text.indexOf(carText);
+        final int carEnd = carStart + carText.length();
+        final int redStart = text.indexOf(redText);
+        final int redEnd = redStart + redText.length();
+
+        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
+                .add(new SentenceSpan(new ImmutableIntRange(redStart, redEnd - 1), redAcc))
+                .build();
+
+        final int concept = manager.getMaxConcept() + 1;
+        final int sentence = manager.addSentence(concept, text, spans);
+        assertTrue(manager.removeAcceptation(carAcc));
+
+        assertTrue(manager.getSampleSentences(carAcc).isEmpty());
+
+        final ImmutableIntKeyMap<String> redEsMatchingSentences = manager.getSampleSentences(redAcc);
+        assertEquals(1, redEsMatchingSentences.size());
+        assertEquals(text, redEsMatchingSentences.get(sentence));
+
+        final ImmutableSet<SentenceSpan> foundSpans = manager.getSentenceSpans(sentence);
+        assertEquals(1, foundSpans.size());
+        assertEquals(redAcc, foundSpans.valueAt(0).acceptation);
+    }
 }

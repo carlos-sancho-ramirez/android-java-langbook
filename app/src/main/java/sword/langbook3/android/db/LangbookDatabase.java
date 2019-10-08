@@ -613,6 +613,15 @@ public final class LangbookDatabase {
         db.delete(query);
     }
 
+    private static void removeFromSentenceSpans(Database db, int acceptation) {
+        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
+                .build();
+
+        db.delete(query);
+    }
+
     static boolean removeAcceptation(Database db, int acceptation) {
         final int concept = conceptFromAcceptation(db, acceptation);
         final boolean withoutSynonymsOrTranslations = LangbookReadableDatabase.findAcceptationsByConcept(db, concept).remove(acceptation).isEmpty();
@@ -623,6 +632,7 @@ public final class LangbookDatabase {
         LangbookDeleter.deleteKnowledge(db, acceptation);
         removeFromBunches(db, acceptation);
         removeFromStringQueryTable(db, acceptation);
+        removeFromSentenceSpans(db, acceptation);
         final boolean removed = LangbookDeleter.deleteAcceptation(db, acceptation);
         deleteSearchHistoryForAcceptation(db, acceptation);
 
