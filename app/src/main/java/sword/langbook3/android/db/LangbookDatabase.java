@@ -871,6 +871,8 @@ public final class LangbookDatabase {
             if (!deleteRuledAcceptation(db, ruleAcceptation)) {
                 throw new AssertionError();
             }
+
+            deleteSpansByDynamicAcceptation(db, ruleAcceptation);
         }
 
         if (!LangbookDeleter.deleteAgent(db, agentId)) {
