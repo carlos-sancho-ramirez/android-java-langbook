@@ -169,6 +169,14 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static boolean deleteSpansByDynamicAcceptation(Deleter db, int dynamicAcceptation) {
+        final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(spans)
+                .where(spans.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
+                .build();
+        return db.delete(query);
+    }
+
     static boolean deleteConversionRegister(Deleter db, ImmutableIntPair alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         DbDeleteQuery query = new DbDeleteQuery.Builder(table)
