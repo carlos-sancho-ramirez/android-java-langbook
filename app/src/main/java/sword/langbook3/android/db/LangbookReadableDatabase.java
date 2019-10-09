@@ -1755,74 +1755,78 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    // This method is unable to provide more than one rule per entry, which can happen with chained agents
-    // TODO: Change this method to return a list of rules/agents, instead of a unique one
-    private static ImmutableList<MorphologyResult> readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+    private static final class MorphologyReaderResult {
+        final ImmutableList<MorphologyResult> morphologies;
+        final ImmutableIntKeyMap<String> ruleTexts;
+        final ImmutableIntPairMap agentRules;
+
+        MorphologyReaderResult(ImmutableList<MorphologyResult> morphologies, ImmutableIntKeyMap<String> ruleTexts, ImmutableIntPairMap agentRules) {
+            this.morphologies = morphologies;
+            this.ruleTexts = ruleTexts;
+            this.agentRules = agentRules;
+        }
+    }
+
+    private static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
 
-        final int strOffset1 = ruledAcceptations.columns().size();
-        final int agentsOffset = strOffset1 + strings.columns().size();
-        final int accOffset = agentsOffset + agents.columns().size();
-        final int strOffset2 = accOffset + acceptations.columns().size();
+        final int ruledAccOffset = strings.columns().size();
+        final int agentsOffset = ruledAccOffset + ruledAcceptations.columns().size();
 
-        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
-                .join(strings, ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
-                .join(acceptations, agentsOffset + agents.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
-                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .where(ruledAcceptations.getAcceptationColumnIndex(), acceptation)
-                .select(ruledAcceptations.getIdColumnIndex(),
-                        accOffset + acceptations.getConceptColumnIndex(),
-                        strOffset1 + strings.getStringAlphabetColumnIndex(),
-                        strOffset1 + strings.getStringColumnIndex(),
-                        strOffset2 + strings.getStringAlphabetColumnIndex(),
-                        strOffset2 + strings.getStringColumnIndex(),
-                        agentsOffset + agents.getIdColumnIndex());
+        final DbQuery mainQuery = new DbQuery.Builder(strings)
+                .join(ruledAcceptations, strings.getDynamicAcceptationColumnIndex(), ruledAcceptations.getIdColumnIndex())
+                .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .where(strings.getMainAcceptationColumnIndex(), acceptation)
+                .select(strings.getDynamicAcceptationColumnIndex(),
+                        strings.getStringAlphabetColumnIndex(),
+                        strings.getStringColumnIndex(),
+                        ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(),
+                        ruledAccOffset + ruledAcceptations.getAgentColumnIndex(),
+                        agentsOffset + agents.getRuleColumnIndex());
 
         final MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
-        final MutableIntKeyMap<String> ruleTexts = MutableIntKeyMap.empty();
-        final MutableIntPairMap ruleAgents = MutableIntPairMap.empty();
-        final MutableIntPairMap ruledAccs = MutableIntPairMap.empty();
+        final MutableIntPairMap sourceAccs = MutableIntPairMap.empty();
+        final MutableIntPairMap accRules = MutableIntPairMap.empty();
+        final MutableIntPairMap agentRules = MutableIntPairMap.empty();
 
-        try (DbResult dbResult = db.select(query)) {
+        try (DbResult dbResult = db.select(mainQuery)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int acc = row.get(0).toInt();
-                final int rule = row.get(1).toInt();
-                final int alphabet = row.get(2).toInt();
-                final String text = row.get(3).toText();
-                final int ruleAlphabet = row.get(4).toInt();
-                final String ruleText = row.get(5).toText();
-                final int agent = row.get(6).toInt();
+                final int dynAcc = row.get(0).toInt();
+                final int alphabet = row.get(1).toInt();
+                final int agent = row.get(4).toInt();
+                final int rule = row.get(5).toInt();
 
-                final boolean agentNotRegistered = texts.get(agent, null) == null;
-                if (agentNotRegistered) {
-                    ruleAgents.put(agent, rule);
-                    ruledAccs.put(agent, acc);
+                final boolean dynAccNotFound = texts.get(dynAcc, null) == null;
+                if (dynAccNotFound || alphabet == preferredAlphabet) {
+                    texts.put(dynAcc, row.get(2).toText());
                 }
 
-                if (agentNotRegistered || ruleAlphabet == preferredAlphabet) {
-                    ruleTexts.put(rule, ruleText);
+                if (dynAccNotFound) {
+                    sourceAccs.put(dynAcc, row.get(3).toInt());
+                    accRules.put(dynAcc, rule);
                 }
 
-                if (agentNotRegistered || alphabet == preferredAlphabet) {
-                    texts.put(agent, text);
-                }
+                agentRules.put(agent, rule);
             }
         }
 
-        final ImmutableList.Builder<MorphologyResult> builder = new ImmutableList.Builder<>();
-        final int length = ruleAgents.size();
-        for (int i = 0; i < length; i++) {
-            final int agent = ruleAgents.keyAt(i);
-            final int rule = ruleAgents.valueAt(i);
-            builder.add(new MorphologyResult(agent, ruledAccs.valueAt(i), rule, ruleTexts.get(rule), texts.valueAt(i)));
-        }
+        final ImmutableIntSet rules = accRules.toSet().toImmutable();
+        final ImmutableIntKeyMap<String> ruleTexts = rules.assign(rule -> readConceptText(db, rule, preferredAlphabet));
 
-        return builder.build();
+        final ImmutableList<MorphologyResult> morphologies = sourceAccs.keySet().map(dynAcc -> {
+            int acc = dynAcc;
+            ImmutableIntList ruleChain = ImmutableIntList.empty();
+            while (acc != acceptation) {
+                ruleChain = ruleChain.append(accRules.get(acc));
+                acc = sourceAccs.get(acc);
+            }
+            return new MorphologyResult(dynAcc, ruleChain, texts.get(dynAcc));
+        }).toImmutable();
+
+        return new MorphologyReaderResult(morphologies, ruleTexts, agentRules.toImmutable());
     }
 
     static ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(DbExporter.Database db, int staticAcceptation) {
@@ -3116,7 +3120,7 @@ public final class LangbookReadableDatabase {
         }
 
         final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded = readBunchesWhereAcceptationIsIncluded(db, staticAcceptation, preferredAlphabet);
-        final ImmutableList<MorphologyResult> morphologyResults = readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet);
+        final MorphologyReaderResult morphologyResults = readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet);
         final ImmutableList<DynamizableResult> bunchChildren = readAcceptationBunchChildren(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(db, staticAcceptation);
 
@@ -3124,9 +3128,10 @@ public final class LangbookReadableDatabase {
         final int baseConceptAcceptationId = (definition.left != null)? definition.left.id : 0;
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
-                correlationResultPair.right, acceptationsSharingCorrelationArray, baseConceptAcceptationId, baseConceptText, definition.right, subtypes,
-                synonymTranslationResults, bunchChildren, bunchesWhereAcceptationIsIncluded,
-                morphologyResults, involvedAgents, languageStrs.toImmutable(), sampleSentences);
+                correlationResultPair.right, acceptationsSharingCorrelationArray, baseConceptAcceptationId,
+                baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
+                bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyResults.ruleTexts,
+                involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
     }
 
     static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {

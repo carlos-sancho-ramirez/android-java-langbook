@@ -29,7 +29,9 @@ public final class AcceptationDetailsModel {
     public final ImmutableList<DynamizableResult> bunchChildren;
     public final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded;
     public final ImmutableList<MorphologyResult> morphologies;
+    public final ImmutableIntKeyMap<String> ruleTexts;
     public final ImmutableIntPairMap involvedAgents;
+    public final ImmutableIntPairMap agentRules;
     public final ImmutableIntKeyMap<String> sampleSentences;
 
     /**
@@ -51,15 +53,17 @@ public final class AcceptationDetailsModel {
             ImmutableList<DynamizableResult> bunchChildren,
             ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded,
             ImmutableList<MorphologyResult> morphologies,
+            ImmutableIntKeyMap<String> ruleTexts,
             ImmutableIntPairMap involvedAgents,
+            ImmutableIntPairMap agentRules,
             ImmutableIntKeyMap<String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
         if (language == null || correlationIds == null || correlations == null ||
                 definitionComplementTexts == null || subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
-                morphologies == null || involvedAgents == null || languageTexts == null ||
-                sampleSentences == null) {
+                morphologies == null || ruleTexts == null || involvedAgents == null ||
+                agentRules == null || languageTexts == null || sampleSentences == null) {
             throw new IllegalArgumentException();
         }
 
@@ -84,7 +88,9 @@ public final class AcceptationDetailsModel {
         this.bunchChildren = bunchChildren;
         this.bunchesWhereAcceptationIsIncluded = bunchesWhereAcceptationIsIncluded;
         this.morphologies = morphologies;
+        this.ruleTexts = ruleTexts;
         this.involvedAgents = involvedAgents;
+        this.agentRules = agentRules;
         this.languageTexts = languageTexts;
         this.sampleSentences = sampleSentences;
     }

@@ -182,7 +182,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 morphologyFound = true;
             }
 
-            result.add(new RuleNavigableItem(r.dynamicAcceptation, r.ruleText + " -> " + r.text));
+            final String ruleText = r.rules.map(_model.ruleTexts::get).reduce((a, b) -> a + " + " + b);
+            result.add(new RuleNavigableItem(r.dynamicAcceptation, ruleText + " -> " + r.text));
         }
 
         boolean bunchChildFound = false;
@@ -230,14 +231,14 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AgentNavigableItem(entry.key(), s.toString()));
         }
 
-        for (MorphologyResult r : morphologyResults) {
+        for (IntPairMap.Entry entry : _model.agentRules.entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;
             }
 
-            final String text = "Agent #" + r.agent + " (" + r.ruleText + ')';
-            result.add(new AgentNavigableItem(r.agent, text));
+            final String text = "Agent #" + entry.key() + " (" + _model.ruleTexts.get(entry.value()) + ')';
+            result.add(new AgentNavigableItem(entry.key(), text));
         }
 
         return result.build();
