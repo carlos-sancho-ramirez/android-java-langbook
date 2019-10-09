@@ -1755,6 +1755,8 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    // This method is unable to provide more than one rule per entry, which can happen with chained agents
+    // TODO: Change this method to return a list of rules/agents, instead of a unique one
     private static ImmutableList<MorphologyResult> readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -1796,20 +1798,18 @@ public final class LangbookReadableDatabase {
                 final String ruleText = row.get(5).toText();
                 final int agent = row.get(6).toInt();
 
-                if (!ruleTexts.keySet().contains(rule)) {
-                    ruleTexts.put(rule, ruleText);
-                    texts.put(rule, text);
-                    ruleAgents.put(rule, agent);
-                    ruledAccs.put(rule, acc);
+                final boolean agentNotRegistered = texts.get(agent, null) == null;
+                if (agentNotRegistered) {
+                    ruleAgents.put(agent, rule);
+                    ruledAccs.put(agent, acc);
                 }
-                else {
-                    if (ruleAlphabet == preferredAlphabet) {
-                        ruleTexts.put(rule, ruleText);
-                    }
 
-                    if (alphabet == preferredAlphabet) {
-                        texts.put(rule, text);
-                    }
+                if (agentNotRegistered || ruleAlphabet == preferredAlphabet) {
+                    ruleTexts.put(rule, ruleText);
+                }
+
+                if (agentNotRegistered || alphabet == preferredAlphabet) {
+                    texts.put(agent, text);
                 }
             }
         }
@@ -1817,7 +1817,9 @@ public final class LangbookReadableDatabase {
         final ImmutableList.Builder<MorphologyResult> builder = new ImmutableList.Builder<>();
         final int length = ruleAgents.size();
         for (int i = 0; i < length; i++) {
-            builder.add(new MorphologyResult(ruleAgents.valueAt(i), ruledAccs.valueAt(i), ruleAgents.keyAt(i), ruleTexts.valueAt(i), texts.valueAt(i)));
+            final int agent = ruleAgents.keyAt(i);
+            final int rule = ruleAgents.valueAt(i);
+            builder.add(new MorphologyResult(agent, ruledAccs.valueAt(i), rule, ruleTexts.get(rule), texts.valueAt(i)));
         }
 
         return builder.build();
