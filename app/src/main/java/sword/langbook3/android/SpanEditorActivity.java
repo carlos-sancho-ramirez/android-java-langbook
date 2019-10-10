@@ -30,6 +30,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
 
     private interface ArgKeys {
+        String CONCEPT = BundleKeys.CONCEPT;
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
         String SENTENCE_ID = BundleKeys.SENTENCE_ID;
         String TEXT = BundleKeys.TEXT;
@@ -39,18 +40,15 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         String STATE = "cSt";
     }
 
-    interface ResultKeys {
-        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
-    }
-
     private TextView _sentenceText;
     private ListView _listView;
 
     private SpanEditorActivityState _state;
 
-    static void open(Activity activity, int requestCode, String text) {
+    static void openWithConcept(Activity activity, int requestCode, String text, int concept) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
+        intent.putExtra(ArgKeys.CONCEPT, concept);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -61,7 +59,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void open(Activity activity, int requestCode, String text, int sentenceId) {
+    static void openWithSentenceId(Activity activity, int requestCode, String text, int sentenceId) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
         intent.putExtra(ArgKeys.SENTENCE_ID, sentenceId);
@@ -94,6 +92,16 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
     private int getStaticAcceptationId() {
         return getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+    }
+
+    private int getConcept() {
+        return getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
+    }
+
+    // We should prevent having sentences without neither spans nor other sentence sharing the same meaning,
+    // as it will be not possible to reference them within the app.
+    private boolean shouldAllowNoSpans() {
+        return getSentenceId() != NO_SENTENCE_ID || getConcept() != 0;
     }
 
     private void insertInitialSpans(int sentenceId) {
@@ -211,18 +219,24 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void evaluateSpans() {
-        final ImmutableSet<SentenceSpan> spans = _state.getSpans().keySet().toImmutable();
-        if (spans.isEmpty()) {
+        final ImmutableSet<SentenceSpan> spans = _state.getSpans().filter(v -> v != 0).keySet().toImmutable();
+
+        if (spans.isEmpty() && !shouldAllowNoSpans()) {
             Toast.makeText(this, R.string.spanEditorNoSpanPresentError, Toast.LENGTH_SHORT).show();
         }
         else {
             final String newText = getText();
             final LangbookManager manager = DbManager.getInstance().getManager();
             final int sentenceId = getSentenceId();
-            final int newSentenceId;
             if (sentenceId == NO_SENTENCE_ID) {
-                final int concept = manager.getMaxConcept() + 1;
-                newSentenceId = manager.addSentence(concept, newText, spans);
+                int concept = getConcept();
+                if (concept == 0) {
+                    concept = manager.getMaxConcept() + 1;
+                }
+
+                if (manager.addSentence(concept, newText, spans) == null) {
+                    throw new AssertionError();
+                }
                 Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
             else {
@@ -230,13 +244,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
                     throw new AssertionError();
                 }
 
-                newSentenceId = sentenceId;
                 Toast.makeText(this, R.string.updateSentenceFeedback, Toast.LENGTH_SHORT).show();
             }
 
-            final Intent resultIntent = new Intent();
-            resultIntent.putExtra(ResultKeys.SENTENCE_ID, newSentenceId);
-            setResult(RESULT_OK, resultIntent);
+            setResult(RESULT_OK);
             finish();
         }
     }

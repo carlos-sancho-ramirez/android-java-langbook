@@ -18,7 +18,8 @@ public interface SentencesManager extends AcceptationsManager, SentencesChecker 
      * Replaces the text and spans for an existing sentence, leaving the concept untouched.
      * @param sentenceId Identifier for the sentence to be updated.
      * @param newText New text for the sentence. This can be the same it was before, or a different one.
-     * @param newSpans New set of spans for the given newText. This set will completelly replace the previous one.
+     * @param newSpans New set of spans for the given newText. This set will completely replace the previous one.
+     *                 In case this set is empty, all current spans for the sentence will be removed.
      * @return Whether the operation succeeded or not. This will return true even if no change is performed within the database.
      */
     boolean updateSentenceTextAndSpans(int sentenceId, String newText, Set<SentenceSpan> newSpans);

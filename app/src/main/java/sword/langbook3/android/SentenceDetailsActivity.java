@@ -101,6 +101,12 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         _listView.setOnItemClickListener(this);
     }
 
+    private void updateModelAndUi() {
+        _model = DbManager.getInstance().getManager().getSentenceDetails(getSentenceId());
+        updateSentenceTextView();
+        updateOtherSentences();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,9 +119,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
             _displayingDeleteDialog = savedInstanceState.getBoolean(SavedKeys.DISPLAYING_DELETE_DIALOG);
         }
 
-        _model = DbManager.getInstance().getManager().getSentenceDetails(getSentenceId());
-        updateSentenceTextView();
-        updateOtherSentences();
+        updateModelAndUi();
         _justCreated = true;
 
         if (_displayingDeleteDialog) {
@@ -134,14 +138,14 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemEdit:
-                SentenceEditorActivity.open(this, REQUEST_CODE_EDIT, getSentenceId());
+                SentenceEditorActivity.openWithSentenceId(this, REQUEST_CODE_EDIT, getSentenceId());
                 return true;
             case R.id.menuItemDelete:
                 _displayingDeleteDialog = true;
                 showDeleteConfirmationDialog();
                 return true;
             case R.id.menuItemLinkSentence:
-                SentenceEditorActivity.open(this, REQUEST_CODE_NEW);
+                SentenceEditorActivity.openWithConcept(this, REQUEST_CODE_NEW, _model.concept);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -161,18 +165,8 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_NEW && resultCode == RESULT_OK) {
-            final int pickedSentence = data.getIntExtra(SentenceEditorActivity.ResultKeys.SENTENCE_ID, 0);
-            final int thisSentence = getSentenceId();
-            if (pickedSentence != 0 && pickedSentence != thisSentence) {
-                DbManager.getInstance().getManager().copySentenceConcept(thisSentence, pickedSentence);
-                updateOtherSentences();
-            }
-        }
-
         if (resultCode == RESULT_OK && !_justCreated) {
-            _model = DbManager.getInstance().getManager().getSentenceDetails(getSentenceId());
-            updateSentenceTextView();
+            updateModelAndUi();
         }
     }
 

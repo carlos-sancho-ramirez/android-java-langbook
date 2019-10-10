@@ -3392,10 +3392,42 @@ public final class LangbookReadableDatabase {
         return selectOptionalFirstTextColumn(db, query);
     }
 
+    private static final class SentenceConceptAndText {
+        final int concept;
+        final String text;
+
+        SentenceConceptAndText(int concept, String text) {
+            this.concept = concept;
+            this.text = text;
+        }
+    }
+
+    private static SentenceConceptAndText getSentenceConceptAndText(DbExporter.Database db, int sentenceId) {
+        final LangbookDbSchema.SentencesTable sentences = LangbookDbSchema.Tables.sentences;
+        final LangbookDbSchema.SymbolArraysTable texts = LangbookDbSchema.Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(sentences)
+                .join(texts, sentences.getSymbolArrayColumnIndex(), texts.getIdColumnIndex())
+                .where(sentences.getIdColumnIndex(), sentenceId)
+                .select(sentences.getConceptColumnIndex(), sentences.columns().size() + texts.getStrColumnIndex());
+
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                return new SentenceConceptAndText(row.get(0).toInt(), row.get(1).toText());
+            }
+        }
+
+        return null;
+    }
+
     static SentenceDetailsModel getSentenceDetails(DbExporter.Database db, int sentenceId) {
-        final String text = getSentenceText(db, sentenceId);
+        final SentenceConceptAndText conceptAndText = getSentenceConceptAndText(db, sentenceId);
+        if (conceptAndText == null) {
+            return null;
+        }
+
         final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, sentenceId);
         final ImmutableIntKeyMap<String> sameMeaningSentences = findSentenceIdsMatchingMeaning(db, sentenceId).assign(id -> getSentenceText(db, id));
-        return new SentenceDetailsModel(text, spans, sameMeaningSentences);
+        return new SentenceDetailsModel(conceptAndText.concept, conceptAndText.text, spans, sameMeaningSentences);
     }
 }

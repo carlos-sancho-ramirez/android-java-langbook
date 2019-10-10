@@ -21,7 +21,6 @@ public interface BundleKeys {
     String SENTENCE_ID = "seId";
     String SOURCE_ALPHABET = "sAlph";
     String STATIC_ACCEPTATION = "sa";
-    String SYMBOL_ARRAY = "saId";
     String TARGET_ALPHABET = "tAlph";
     String TEXT = "text";
     String TEXTS = "texts";

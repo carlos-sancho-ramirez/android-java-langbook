@@ -14,16 +14,14 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
     private static final int REQUEST_CODE_ADD_SPAN = 1;
 
     interface ArgKeys {
+        String CONCEPT = BundleKeys.CONCEPT;
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
         String SENTENCE_ID = BundleKeys.SENTENCE_ID;
     }
 
-    interface ResultKeys {
-        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
-    }
-
-    static void open(Activity activity, int requestCode) {
+    static void openWithConcept(Activity activity, int requestCode, int concept) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
+        intent.putExtra(ArgKeys.CONCEPT, concept);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -33,7 +31,7 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void open(Activity activity, int requestCode, int sentenceId) {
+    static void openWithSentenceId(Activity activity, int requestCode, int sentenceId) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
         intent.putExtra(ArgKeys.SENTENCE_ID, sentenceId);
         activity.startActivityForResult(intent, requestCode);
@@ -47,6 +45,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     private int getStaticAcceptationId() {
         return getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+    }
+
+    private int getConcept() {
+        return getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
     }
 
     @Override
@@ -85,19 +87,17 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
             SpanEditorActivity.openWithStaticAcceptation(this, REQUEST_CODE_ADD_SPAN, text, staticAcceptation);
         }
         else if (sentenceId == NO_SENTENCE_ID) {
-            SpanEditorActivity.open(this, REQUEST_CODE_ADD_SPAN, text);
+            SpanEditorActivity.openWithConcept(this, REQUEST_CODE_ADD_SPAN, text, getConcept());
         }
         else {
-            SpanEditorActivity.open(this, REQUEST_CODE_ADD_SPAN, text, sentenceId);
+            SpanEditorActivity.openWithSentenceId(this, REQUEST_CODE_ADD_SPAN, text, sentenceId);
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK && data != null) {
-            final Intent resultIntent = new Intent();
-            resultIntent.putExtra(ResultKeys.SENTENCE_ID, data.getIntExtra(SpanEditorActivity.ResultKeys.SENTENCE_ID, 0));
-            setResult(RESULT_OK, resultIntent);
+        if (resultCode == RESULT_OK) {
+            setResult(RESULT_OK);
             finish();
         }
     }
