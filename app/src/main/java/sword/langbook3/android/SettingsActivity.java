@@ -170,6 +170,24 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         }
     }
 
+    private boolean hasReadPermission() {
+        return checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE, android.os.Process.myPid(), android.os.Process.myUid()) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean hasWritePermission() {
+        return checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, android.os.Process.myPid(), android.os.Process.myUid()) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @SuppressWarnings("NewApi")
+    private void requestReadPermission() {
+        requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_ASK_PERMISSION);
+    }
+
+    @SuppressWarnings("NewApi")
+    private void requestWritePermission() {
+        requestPermissions(new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_ASK_PERMISSION);
+    }
+
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -271,13 +289,26 @@ public final class SettingsActivity extends Activity implements View.OnClickList
                 if (!"file".equals(uri.getScheme())) {
                     throw new UnsupportedOperationException("Unable to save for no file uri");
                 }
-                saveSqliteDatabase(uri.getPath());
+
+                if (StorageUtils.isExternalFileUri(uri) && !hasWritePermission()) {
+                    _uri = uri;
+                    requestWritePermission();
+                }
+                else {
+                    saveSqliteDatabase(uri.getPath());
+                }
             }
             else {
-                final DbManager manager = DbManager.getInstance();
-                manager.exportStreamedDatabase(uri);
-                if (_resumed) {
-                    manager.setProgressListener(this);
+                if (StorageUtils.isExternalFileUri(uri) && !hasWritePermission()) {
+                    _uri = uri;
+                    requestWritePermission();
+                }
+                else {
+                    final DbManager manager = DbManager.getInstance();
+                    manager.exportStreamedDatabase(uri);
+                    if (_resumed) {
+                        manager.setProgressListener(this);
+                    }
                 }
             }
         }
@@ -286,9 +317,9 @@ public final class SettingsActivity extends Activity implements View.OnClickList
                 loadSqliteDatabase(uri);
             }
             else {
-                if (ApiUtils.isAtLeastApi23() && StorageUtils.isExternalFileUri(uri) && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (StorageUtils.isExternalFileUri(uri) && !hasReadPermission()) {
                     _uri = uri;
-                    requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_ASK_PERMISSION);
+                    requestReadPermission();
                 }
                 else {
                     importDatabase(uri);
@@ -300,12 +331,33 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == REQUEST_CODE_ASK_PERMISSION) {
-            for (int i = 0; i < permissions.length; i++) {
-                if (Manifest.permission.READ_EXTERNAL_STORAGE.equals(permissions[i])) {
-                    if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                        importDatabase(_uri);
+            if (expectsSaveFile()) {
+                for (int i = 0; i < permissions.length; i++) {
+                    if (Manifest.permission.WRITE_EXTERNAL_STORAGE.equals(permissions[i])) {
+                        if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                            if (expectsSqliteFileFormat()) {
+                                saveSqliteDatabase(_uri.getPath());
+                            }
+                            else {
+                                final DbManager manager = DbManager.getInstance();
+                                manager.exportStreamedDatabase(_uri);
+                                if (_resumed) {
+                                    manager.setProgressListener(this);
+                                }
+                            }
+                        }
+                        break;
                     }
-                    break;
+                }
+            }
+            else {
+                for (int i = 0; i < permissions.length; i++) {
+                    if (Manifest.permission.READ_EXTERNAL_STORAGE.equals(permissions[i])) {
+                        if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                            importDatabase(_uri);
+                        }
+                        break;
+                    }
                 }
             }
         }

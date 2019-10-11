@@ -1,15 +1,14 @@
 package sword.langbook3.android;
 
 import android.net.Uri;
-import android.os.Environment;
 
 public final class StorageUtils {
 
     private StorageUtils() {
     }
 
+    // TODO: Improve this logic to determine if the given Uri requires the READ or WRITE external storage permission.
     public static boolean isExternalFileUri(Uri uri) {
-        return uri != null && "file".equals(uri.getScheme()) &&
-                uri.getPath().startsWith(Environment.getExternalStorageDirectory().getAbsolutePath());
+        return uri != null && "file".equals(uri.getScheme());
     }
 }
