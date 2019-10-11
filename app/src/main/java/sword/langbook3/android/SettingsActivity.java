@@ -3,7 +3,6 @@ package sword.langbook3.android;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -57,9 +56,9 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
     private int _fileFlags;
 
-    public static void open(Context context) {
-        Intent intent = new Intent(context, SettingsActivity.class);
-        context.startActivity(intent);
+    public static void open(Activity activity, int requestCode) {
+        final Intent intent = new Intent(activity, SettingsActivity.class);
+        activity.startActivityForResult(intent, requestCode);
     }
 
     private boolean expectsSaveFile() {

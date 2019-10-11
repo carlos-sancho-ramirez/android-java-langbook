@@ -55,7 +55,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 return true;
 
             case R.id.menuItemSettings:
-                SettingsActivity.open(this);
+                SettingsActivity.open(this, REQUEST_CODE_OPEN_SETTINGS);
                 return true;
 
             case R.id.menuItemAbout:
@@ -78,14 +78,14 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
+        if (resultCode == RESULT_OK || requestCode == REQUEST_CODE_OPEN_SETTINGS) {
             _ruleTexts = null;
+        }
 
-            if (requestCode == REQUEST_CODE_NEW_ACCEPTATION) {
-                final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
-                if (acceptationId != 0) {
-                    AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
-                }
+        if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_NEW_ACCEPTATION) {
+            final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
+            if (acceptationId != 0) {
+                AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
             }
         }
     }
