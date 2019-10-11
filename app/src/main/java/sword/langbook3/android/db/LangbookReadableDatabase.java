@@ -842,7 +842,7 @@ public final class LangbookReadableDatabase {
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
                 .select(agents.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static ImmutableIntPairMap findAgentsWithoutSourceBunchesWithTarget(DbExporter.Database db) {
@@ -876,7 +876,7 @@ public final class LangbookReadableDatabase {
                 .where(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(agents.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static ImmutableIntSet findQuizzesByBunch(DbExporter.Database db, int bunch) {
@@ -885,7 +885,7 @@ public final class LangbookReadableDatabase {
                 .where(quizzes.getBunchColumnIndex(), bunch)
                 .select(quizzes.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static Integer findQuestionFieldSet(DbExporter.Database db, Iterable<QuestionFieldDetails> collection) {
@@ -982,7 +982,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int sentenceId) {
+    private static ImmutableIntSet findSentenceIdsMatchingMeaning(DbExporter.Database db, int sentenceId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
@@ -1288,6 +1288,7 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .select(table.getAcceptationColumnIndex(), table.getAgentSetColumnIndex());
+
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
@@ -1384,7 +1385,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getSetIdColumnIndex(), setId)
                 .select(table.getBunchColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static ImmutableList<SearchResult> getSearchHistory(DbExporter.Database db) {
@@ -1862,16 +1863,6 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    private static ImmutableIntSet intSetQuery(DbExporter.Database db, DbQuery query) {
-        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-        try (DbResult dbResult = db.select(query)) {
-            while (dbResult.hasNext()) {
-                builder.add(dbResult.next().get(0).toInt());
-            }
-        }
-        return builder.build();
-    }
-
     private static ImmutableIntSet readAgentsWhereAcceptationIsTarget(DbExporter.Database db, int staticAcceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -1881,7 +1872,7 @@ public final class LangbookReadableDatabase {
                 .where(acceptations.getIdColumnIndex(), staticAcceptation)
                 .select(acceptations.columns().size() + agents.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableIntSet readAgentsWhereAcceptationIsSource(DbExporter.Database db, int staticAcceptation) {
@@ -1898,7 +1889,7 @@ public final class LangbookReadableDatabase {
                 .where(acceptations.getIdColumnIndex(), staticAcceptation)
                 .select(agentsOffset + agents.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableIntSet readAgentsWhereAcceptationIsRule(DbExporter.Database db, int staticAcceptation) {
@@ -1909,20 +1900,19 @@ public final class LangbookReadableDatabase {
                 .join(agents, acceptations.getConceptColumnIndex(), agents.getRuleColumnIndex())
                 .where(acceptations.getIdColumnIndex(), staticAcceptation)
                 .select(acceptations.columns().size() + agents.getIdColumnIndex());
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableIntSet readAgentsWhereAcceptationIsProcessed(DbExporter.Database db, int staticAcceptation) {
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+    private static ImmutableIntSet readAgentsWhereAcceptationIsProcessed(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
 
         final DbQuery query = new DbQuery.Builder(bunchAcceptations)
                 .join(agentSets, bunchAcceptations.getAgentSetColumnIndex(), agentSets.getSetIdColumnIndex())
-                .where(bunchAcceptations.getAcceptationColumnIndex(), staticAcceptation)
+                .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(bunchAcceptations.columns().size() + agentSets.getAgentColumnIndex());
 
-        return intSetQuery(db, query).remove(agents.nullReference());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
@@ -2610,7 +2600,7 @@ public final class LangbookReadableDatabase {
                 .whereColumnValueMatch(strings.getMainAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .select(strings.getDynamicAcceptationColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableIntSet readAllAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
@@ -2622,7 +2612,7 @@ public final class LangbookReadableDatabase {
                 .where(bunchAcceptations.columns().size() + strings.getStringAlphabetColumnIndex(), alphabet)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static ImmutableIntKeyMap<String> readAllRules(DbExporter.Database db, int preferredAlphabet) {
@@ -2853,7 +2843,7 @@ public final class LangbookReadableDatabase {
                 .whereColumnValueDiffer(acceptations.getIdColumnIndex(), acceptations.columns().size() + acceptations.getIdColumnIndex())
                 .select(acceptations.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
@@ -2874,7 +2864,7 @@ public final class LangbookReadableDatabase {
                 .whereColumnValueDiffer(accOffset1 + acceptations.getIdColumnIndex(), accOffset2 + acceptations.getIdColumnIndex())
                 .select(accOffset1 + acceptations.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableIntSet readAllRulableAcceptations(DbExporter.Database db, int alphabet, int rule) {
@@ -2891,7 +2881,7 @@ public final class LangbookReadableDatabase {
                 .where(agentOffset + agents.getRuleColumnIndex(), rule)
                 .select(ruledAcceptations.getAcceptationColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableIntSet readAllRulableAcceptationsInBunch(DbExporter.Database db, int alphabet, int rule, int bunch) {
@@ -2912,7 +2902,7 @@ public final class LangbookReadableDatabase {
                 .where(agentOffset + agents.getRuleColumnIndex(), rule)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableIntSet readAllPossibleAcceptationForField(DbExporter.Database db, int bunch, QuestionFieldDetails field) {
@@ -2944,7 +2934,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getAgentColumnIndex(), agentId)
                 .select(table.getIdColumnIndex());
 
-        return intSetQuery(db, query);
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static ImmutableIntPairMap getAgentProcessedMap(DbExporter.Database db, int agentId) {
