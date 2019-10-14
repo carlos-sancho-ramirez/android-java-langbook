@@ -122,8 +122,8 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceCon
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpansWithIds;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.hasAgentsRequiringAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationInBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationPresent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationStaticallyInBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
@@ -685,7 +685,7 @@ public final class LangbookDatabase {
      *         False if the acceptation is already included in the bunch.
      */
     static boolean addAcceptationInBunch(Database db, int bunch, int acceptation) {
-        if (isAcceptationInBunch(db, bunch, acceptation)) {
+        if (isAcceptationStaticallyInBunch(db, bunch, acceptation)) {
             return false;
         }
 

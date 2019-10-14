@@ -609,11 +609,12 @@ public final class LangbookReadableDatabase {
         });
     }
 
-    static boolean isAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
+    static boolean isAcceptationStaticallyInBunch(DbExporter.Database db, int bunch, int acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .where(table.getAcceptationColumnIndex(), acceptation)
+                .where(table.getAgentColumnIndex(), 0)
                 .select(table.getIdColumnIndex());
         try (DbResult result = db.select(query)) {
             return result.hasNext();
