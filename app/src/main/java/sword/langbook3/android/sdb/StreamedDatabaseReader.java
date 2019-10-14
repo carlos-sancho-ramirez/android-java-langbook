@@ -30,7 +30,6 @@ import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
 import sword.langbook3.android.db.LangbookDbInserter;
-import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 
@@ -443,7 +442,6 @@ public final class StreamedDatabaseReader {
                 ibs.readHuffmanTable(natDecoder, natDecoder) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
-        final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
 
         int minBunch = validConcepts.min();
         final int maxValidBunch = validConcepts.max();
@@ -453,7 +451,7 @@ public final class StreamedDatabaseReader {
 
             final ImmutableIntSet acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
             for (int acceptation : acceptations) {
-                insertBunchAcceptation(_db, bunch, acceptationsIdMap[acceptation], nullAgentSet);
+                insertBunchAcceptation(_db, bunch, acceptationsIdMap[acceptation], 0);
             }
         }
     }

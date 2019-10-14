@@ -128,12 +128,6 @@ public final class AgentsManagerTest {
         final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
         final int agentId = manager.addAgent(arVerbConcept, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
 
-        final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
-        final DbQuery agentSetQuery = new DbQuery.Builder(agentSets)
-                .where(agentSets.getAgentColumnIndex(), agentId)
-                .select(agentSets.getSetIdColumnIndex());
-        final int agentSetId = selectSingleRow(db, agentSetQuery).get(0).toInt();
-
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery verbBunchAccQuery = new DbQuery.Builder(bunchAcceptations)
                 .where(bunchAcceptations.getBunchColumnIndex(), verbConcept)
@@ -149,7 +143,7 @@ public final class AgentsManagerTest {
 
         final DbQuery arVerbBunchAccQuery = new DbQuery.Builder(bunchAcceptations)
                 .where(bunchAcceptations.getBunchColumnIndex(), arVerbConcept)
-                .where(bunchAcceptations.getAgentSetColumnIndex(), agentSetId)
+                .where(bunchAcceptations.getAgentColumnIndex(), agentId)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
         assertEquals(singAcceptation, selectSingleRow(db, arVerbBunchAccQuery).get(0).toInt());
     }
@@ -266,19 +260,13 @@ public final class AgentsManagerTest {
             agentId = manager.addAgent(arVerbConcept, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
         }
 
-        final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
-        final DbQuery agentSetQuery = new DbQuery.Builder(agentSets)
-                .where(agentSets.getAgentColumnIndex(), agentId)
-                .select(agentSets.getSetIdColumnIndex());
-        final int agentSetId = selectSingleRow(db, agentSetQuery).get(0).toInt();
-
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery arVerbsQuery = new DbQuery.Builder(bunchAcceptations)
                 .where(bunchAcceptations.getBunchColumnIndex(), arVerbConcept)
-                .select(bunchAcceptations.getAcceptationColumnIndex(), bunchAcceptations.getAgentSetColumnIndex());
+                .select(bunchAcceptations.getAcceptationColumnIndex(), bunchAcceptations.getAgentColumnIndex());
         final List<DbValue> row = selectSingleRow(db, arVerbsQuery);
         assertEquals(singAcceptation, row.get(0).toInt());
-        assertEquals(agentSetId, row.get(1).toInt());
+        assertEquals(agentId, row.get(1).toInt());
     }
 
     @Test
@@ -674,6 +662,17 @@ public final class AgentsManagerTest {
         assertEquals(firstConjugationVerbText, LangbookReadableDatabase.getAcceptationTexts(db, firstConjugationVerbAcc).get(alphabet));
     }
 
+    private ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(Database db, int bunch, int acceptation) {
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .where(bunchAcceptations.getBunchColumnIndex(), bunch)
+                .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
+                .select(bunchAcceptations.getAgentColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     @Test
     public void testMultipleAgentsTargetingSameBunch() {
         final MemoryDatabase db = new MemoryDatabase();
@@ -701,15 +700,56 @@ public final class AgentsManagerTest {
         final int desAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, startMatcher, startMatcher, nullCorrelation, nullCorrelation, 0);
         final int arAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, nullCorrelation, nullCorrelation, endMatcher, endMatcher, 0);
 
-        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
-        final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
-        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
-                .join(agentSets, bunchAcceptations.getAgentSetColumnIndex(), agentSets.getSetIdColumnIndex())
-                .where(bunchAcceptations.getBunchColumnIndex(), myBunch)
-                .where(bunchAcceptations.getAcceptationColumnIndex(), verbAcc)
-                .select(bunchAcceptations.columns().size() + agentSets.getAgentColumnIndex());
-
         final ImmutableIntSet expected = new ImmutableIntSetCreator().add(desAgent).add(arAgent).build();
-        assertTrue(expected.equalSet(db.select(query).mapToInt(row -> row.get(0).toInt()).toSet()));
+        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc)));
+    }
+
+    @Test
+    public void testAcceptationAddedInBunchByBothAgentAndUser() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int bedConcept = manager.getMaxConcept() + 1;
+        final String bedText = "cama";
+        final int bedAcc = addSimpleAcceptation(manager, alphabet, bedConcept, bedText);
+
+        final int verbConcept1 = manager.getMaxConcept() + 1;
+        final String verbText1 = "confiar";
+        final int verbAcc1 = addSimpleAcceptation(manager, alphabet, verbConcept1, verbText1);
+
+        final int verbConcept2 = manager.getMaxConcept() + 1;
+        final String verbText2 = "desconfiar";
+        final int verbAcc2 = addSimpleAcceptation(manager, alphabet, verbConcept2, verbText2);
+
+        final int myBunch = manager.getMaxConcept() + 1;
+        final String myBunchText = "palabaras raras";
+        addSimpleAcceptation(manager, alphabet, myBunch, myBunchText);
+
+        assertTrue(manager.addAcceptationInBunch(myBunch, bedAcc));
+        assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc1));
+        assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc2));
+
+        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
+        final ImmutableIntKeyMap<String> startMatcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "des")
+                .build();
+        final ImmutableIntKeyMap<String> endMatcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ar")
+                .build();
+
+        final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
+        final int desAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, startMatcher, startMatcher, nullCorrelation, nullCorrelation, 0);
+        final int arAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, nullCorrelation, nullCorrelation, endMatcher, endMatcher, 0);
+
+        ImmutableIntSet expected = new ImmutableIntSetCreator().add(0).build();
+        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc)));
+
+        expected = new ImmutableIntSetCreator().add(0).add(arAgent).build();
+        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc1)));
+
+        expected = new ImmutableIntSetCreator().add(0).add(desAgent).add(arAgent).build();
+        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc2)));
     }
 }

@@ -714,48 +714,6 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static Integer findAgentSet(DbExporter.Database db, IntSet agentSet) {
-        if (agentSet.isEmpty()) {
-            return 0;
-        }
-
-        final ImmutableIntSet set = agentSet.toImmutable();
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
-                .where(table.getAgentColumnIndex(), set.valueAt(0))
-                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getAgentColumnIndex());
-
-        try (DbResult result = db.select(query)) {
-            if (result.hasNext()) {
-                List<DbValue> row = result.next();
-                int setId = row.get(0).toInt();
-                ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-                builder.add(row.get(1).toInt());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    int newSetId = row.get(0).toInt();
-                    if (newSetId != setId) {
-                        if (set.equals(builder.build())) {
-                            return setId;
-                        }
-
-                        setId = newSetId;
-                        builder = new ImmutableIntSetCreator();
-                    }
-                    builder.add(row.get(1).toInt());
-                }
-
-                if (set.equals(builder.build())) {
-                    return setId;
-                }
-            }
-        }
-
-        return null;
-    }
-
     static Integer findRuledConcept(DbExporter.Database db, int rule, int concept) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery query = new DbQuery.Builder(table)
@@ -872,7 +830,7 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(agents)
                 .join(bunchSets, agents.getSourceBunchSetColumnIndex(), bunchSets.getSetIdColumnIndex())
                 .join(bunchAcceptations, bunchSetOffset + bunchSets.getBunchColumnIndex(), bunchAcceptations.getBunchColumnIndex())
-                .where(bunchAccOffset + bunchAcceptations.getAgentSetColumnIndex(), 0)
+                .where(bunchAccOffset + bunchAcceptations.getAgentColumnIndex(), 0)
                 .where(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(agents.getIdColumnIndex());
 
@@ -1210,11 +1168,6 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
-    public static int getMaxAgentSetId(DbExporter.Database db) {
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        return getColumnMax(db, table, table.getSetIdColumnIndex());
-    }
-
     static int getMaxQuestionFieldSetId(DbExporter.Database db) {
         LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
         return getColumnMax(db, table, table.getSetIdColumnIndex());
@@ -1283,21 +1236,34 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
-    static ImmutableIntPairMap getAcceptationsAndAgentSetsInBunch(DbExporter.Database db, int bunch) {
+    static ImmutableIntKeyMap<ImmutableIntSet> getAcceptationsAndAgentSetsInBunch(DbExporter.Database db, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
-                .select(table.getAcceptationColumnIndex(), table.getAgentSetColumnIndex());
+                .select(table.getAcceptationColumnIndex(), table.getAgentColumnIndex());
 
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
+        final MutableIntKeyMap<ImmutableIntSet> builder = MutableIntKeyMap.empty();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), row.get(1).toInt());
+                final int acceptation = row.get(0).toInt();
+                final ImmutableIntSet currentSet = builder.get(acceptation, emptySet);
+                builder.put(acceptation, currentSet.add(row.get(1).toInt()));
             }
         }
 
-        return builder.build();
+        return builder.toImmutable();
+    }
+
+    static ImmutableIntSet getAcceptationsInBunchByBunchAndAgent(DbExporter.Database db, int bunch, int agent) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .where(table.getAgentColumnIndex(), agent)
+                .select(table.getAcceptationColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static ImmutableIntSet getAcceptationsInBunch(DbExporter.Database db, int bunch) {
@@ -1905,12 +1871,10 @@ public final class LangbookReadableDatabase {
 
     private static ImmutableIntSet readAgentsWhereAcceptationIsProcessed(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
-        final LangbookDbSchema.AgentSetsTable agentSets = LangbookDbSchema.Tables.agentSets;
 
         final DbQuery query = new DbQuery.Builder(bunchAcceptations)
-                .join(agentSets, bunchAcceptations.getAgentSetColumnIndex(), agentSets.getSetIdColumnIndex())
                 .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
-                .select(bunchAcceptations.columns().size() + agentSets.getAgentColumnIndex());
+                .select(bunchAcceptations.getAgentColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
@@ -2404,33 +2368,33 @@ public final class LangbookReadableDatabase {
                         accOffset + acceptations.getIdColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex(),
-                        bunchAcceptations.getAgentSetColumnIndex());
+                        bunchAcceptations.getAgentColumnIndex());
 
-        final MutableIntKeyMap<DynamizableResult> resultMap = MutableIntKeyMap.empty();
+        final MutableIntSet bunchesWhereIncludedStatically = MutableIntArraySet.empty();
+        final MutableIntPairMap acceptationsMap = MutableIntPairMap.empty();
+        final MutableIntKeyMap<String> textsMap = MutableIntKeyMap.empty();
+
         try (DbResult dbResult = db.select(query)) {
-            final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int bunch = row.get(0).toInt();
                 final int alphabet = row.get(2).toInt();
 
-                if (alphabet == preferredAlphabet || !resultMap.keySet().contains(bunch)) {
+                if (alphabet == preferredAlphabet || acceptationsMap.get(bunch, 0) == 0) {
                     final int acc = row.get(1).toInt();
                     final String text = row.get(3).toText();
-                    final int agentSet = row.get(4).toInt();
-                    final boolean dynamic = agentSet != nullAgentSet;
+                    acceptationsMap.put(bunch, acc);
+                    textsMap.put(bunch, text);
+                }
 
-                    resultMap.put(bunch, new DynamizableResult(acc, dynamic, text));
+                final int agent = row.get(4).toInt();
+                if (agent == 0) {
+                    bunchesWhereIncludedStatically.add(bunch);
                 }
             }
         }
 
-        final ImmutableList.Builder<DynamizableResult> builder = new ImmutableList.Builder<>();
-        for (DynamizableResult r : resultMap) {
-            builder.add(r);
-        }
-
-        return builder.build();
+        return acceptationsMap.keySet().map(bunch -> new DynamizableResult(acceptationsMap.get(bunch), !bunchesWhereIncludedStatically.contains(bunch), textsMap.get(bunch))).toImmutable();
     }
 
     private static ImmutableList<DynamizableResult> readAcceptationBunchChildren(DbExporter.Database db, int acceptation, int preferredAlphabet) {
@@ -2447,26 +2411,29 @@ public final class LangbookReadableDatabase {
                 .select(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex(),
-                        bunchAccOffset + bunchAcceptations.getAgentSetColumnIndex());
+                        bunchAccOffset + bunchAcceptations.getAgentColumnIndex());
 
-        final MutableIntKeyMap<DynamizableResult> resultMap = MutableIntKeyMap.empty();
+        final MutableIntSet includedStatically = MutableIntArraySet.empty();
+        final MutableIntKeyMap<String> accTexts = MutableIntKeyMap.empty();
+
         try (DbResult dbResult = db.select(query)) {
-            final int nullAgentSet = LangbookDbSchema.Tables.agentSets.nullReference();
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int acc = row.get(0).toInt();
                 final int alphabet = row.get(1).toInt();
 
-                if (alphabet == preferredAlphabet || resultMap.get(acc, null) == null) {
+                if (alphabet == preferredAlphabet || accTexts.get(acc, null) == null) {
                     final String text = row.get(2).toText();
-                    final int agentSet = row.get(3).toInt();
-                    final boolean dynamic = agentSet != nullAgentSet;
-                    resultMap.put(acc, new DynamizableResult(acc, dynamic, text));
+                    final int agent = row.get(3).toInt();
+                    accTexts.put(acc, text);
+                    if (agent == 0) {
+                        includedStatically.add(acc);
+                    }
                 }
             }
         }
 
-        return resultMap.toList().toImmutable();
+        return accTexts.keySet().map(acc -> new DynamizableResult(acc, !includedStatically.contains(acc), accTexts.get(acc))).toImmutable();
     }
 
     static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
@@ -2952,39 +2919,6 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
-    }
-
-    static ImmutableIntKeyMap<ImmutableIntSet> getAllAgentSetsContaining(DbExporter.Database db, int agentId) {
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        final DbQuery query = new DbQuery.Builder(table)
-                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
-                .where(table.getAgentColumnIndex(), agentId)
-                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getAgentColumnIndex());
-
-        final ImmutableIntKeyMap.Builder<ImmutableIntSet> mapBuilder = new ImmutableIntKeyMap.Builder<>();
-        try (DbResult result = db.select(query)) {
-            if (result.hasNext()) {
-                List<DbValue> row = result.next();
-                int setId = row.get(0).toInt();
-                ImmutableIntSet.Builder setBuilder = new ImmutableIntSetCreator();
-                setBuilder.add(row.get(1).toInt());
-
-                while (result.hasNext()) {
-                    row = result.next();
-                    int newSetId = row.get(0).toInt();
-                    if (newSetId != setId) {
-                        mapBuilder.put(setId, setBuilder.build());
-                        setId = newSetId;
-                        setBuilder = new ImmutableIntSetCreator();
-                    }
-                    setBuilder.add(row.get(1).toInt());
-                }
-
-                mapBuilder.put(setId, setBuilder.build());
-            }
-        }
-
-        return mapBuilder.build();
     }
 
     public static AgentRegister getAgentRegister(DbExporter.Database db, int agentId) {

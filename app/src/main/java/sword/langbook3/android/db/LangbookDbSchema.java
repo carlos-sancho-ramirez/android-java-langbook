@@ -101,29 +101,6 @@ public final class LangbookDbSchema implements DbSchema {
         public int getRuleColumnIndex() {
             return 8;
         }
-
-        public int nullReference() {
-            return 0;
-        }
-    }
-
-    public static final class AgentSetsTable extends DbTable {
-
-        private AgentSetsTable() {
-            super("AgentSets", new DbIntColumn("setId"), new DbIntColumn("agent"));
-        }
-
-        public int getSetIdColumnIndex() {
-            return 1;
-        }
-
-        public int getAgentColumnIndex() {
-            return 2;
-        }
-
-        public int nullReference() {
-            return 0;
-        }
     }
 
     public static final class AlphabetsTable extends DbTable {
@@ -137,21 +114,37 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    /**
+     * List which acceptations are included in which bunches, and by who.
+     *
+     * It is possible to have multiple rows with the same value for 2 of the three columns,
+     * but it is considered an error to have multiple rows where bunch, acceptation and agent are matching.
+     */
     public static final class BunchAcceptationsTable extends DbTable {
 
         private BunchAcceptationsTable() {
             super("BunchAcceptations", new DbIntColumn("bunch"), new DbIntColumn("acceptation"), new DbIntColumn("agentSet"));
         }
 
+        /**
+         * Bunch where the acceptation is included. This is a concept.
+         */
         public int getBunchColumnIndex() {
             return 1;
         }
 
+        /**
+         * Identifier for the acceptation that is included.
+         */
         public int getAcceptationColumnIndex() {
             return 2;
         }
 
-        public int getAgentSetColumnIndex() {
+        /**
+         * Identifier for the agent that included the acceptation in this bunch because it was it's target.
+         * Or 0 if the user included the acceptation in the bunch manually.
+         */
+        public int getAgentColumnIndex() {
             return 3;
         }
     }
@@ -559,7 +552,6 @@ public final class LangbookDbSchema implements DbSchema {
     public interface Tables {
         AcceptationsTable acceptations = new AcceptationsTable();
         AgentsTable agents = new AgentsTable();
-        AgentSetsTable agentSets = new AgentSetsTable();
         AlphabetsTable alphabets = new AlphabetsTable();
         BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
         ComplementedConceptsTable complementedConcepts = new ComplementedConceptsTable();
@@ -584,7 +576,6 @@ public final class LangbookDbSchema implements DbSchema {
     private final ImmutableList<DbTable> _tables = new ImmutableList.Builder<DbTable>()
             .add(Tables.acceptations)
             .add(Tables.agents)
-            .add(Tables.agentSets)
             .add(Tables.alphabets)
             .add(Tables.bunchAcceptations)
             .add(Tables.bunchSets)

@@ -36,15 +36,6 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteAgentSet(Deleter db, int setId) {
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getSetIdColumnIndex(), setId)
-                .build();
-
-        return db.delete(query);
-    }
-
     static boolean deleteComplementedConcept(Deleter db, int complementedConcept) {
         final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
@@ -63,20 +54,21 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptation(Deleter db, int bunch, int acceptation) {
+    static boolean deleteBunchAcceptation(Deleter db, int bunch, int acceptation, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .where(table.getAcceptationColumnIndex(), acceptation)
+                .where(table.getAgentColumnIndex(), agent)
                 .build();
 
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptationsForAgentSet(Deleter db, int agentSetId) {
+    static boolean deleteBunchAcceptationsByAgent(Deleter db, int agentId) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getAgentSetColumnIndex(), agentSetId)
+                .where(table.getAgentColumnIndex(), agentId)
                 .build();
 
         return db.delete(query);

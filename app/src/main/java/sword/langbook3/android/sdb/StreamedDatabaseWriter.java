@@ -1013,23 +1013,19 @@ public final class StreamedDatabaseWriter {
         return presentRules.toImmutable();
     }
 
-    private void writeBunchAcceptations(ImmutableIntPairMap conceptIdMap, ImmutableIntSet agentSetIds, ImmutableIntPairMap accIdMap) throws IOException {
+    private void writeBunchAcceptations(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap accIdMap) throws IOException {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getBunchColumnIndex(),
                 table.getAcceptationColumnIndex(),
-                table.getAgentSetColumnIndex());
+                table.getAgentColumnIndex());
 
         final MutableIntKeyMap<MutableIntSet> bunches = MutableIntKeyMap.empty();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                final int agentSetId = row.get(2).toInt();
-                if (!agentSetIds.contains(agentSetId)) {
-                    if (agentSetId != LangbookDbSchema.Tables.agentSets.nullReference()) {
-                        throw new AssertionError();
-                    }
-
+                final int agentId = row.get(2).toInt();
+                if (agentId == 0) {
                     final int bunchId = conceptIdMap.get(row.get(0).toInt());
                     final MutableIntSet set;
                     if (bunches.keySet().contains(bunchId)) {
@@ -1239,16 +1235,6 @@ public final class StreamedDatabaseWriter {
         }
 
         return new ExportableSymbolArraysResult(symbolArrays.build(), targetedAlphabets.toImmutable());
-    }
-
-    private ImmutableIntSet listAgentSets() {
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-        final DbQuery query = new DbQuery.Builder(table).select(table.getSetIdColumnIndex());
-
-        return _db.select(query)
-                .mapToInt(row -> row.get(0).toInt())
-                .toSet()
-                .toImmutable();
     }
 
     private static class RuleAcceptationPair {
@@ -1506,7 +1492,6 @@ public final class StreamedDatabaseWriter {
         final ExportableAcceptationsAndCorrelationArrays exportable = listExportableAcceptationsAndCorrelationArrays();
         final ImmutableIntSet exportableCorrelations = listExportableCorrelations(exportable.correlationArrays);
         final ExportableSymbolArraysResult exportableSymbolArrays = listExportableSymbolArrays(exportableCorrelations);
-        final ImmutableIntSet agentSetIds = listAgentSets();
 
         setProgress(0.1f, "Writing symbol arrays");
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(exportableSymbolArrays.symbolArrays);
@@ -1555,7 +1540,7 @@ public final class StreamedDatabaseWriter {
             writeComplementedConcepts(conceptIdMap);
 
             setProgress(0.7f, "Writing bunch acceptations");
-            writeBunchAcceptations(conceptIdMap, agentSetIds, accIdMap);
+            writeBunchAcceptations(conceptIdMap, accIdMap);
 
             setProgress(0.8f, "Writing agents");
             final ImmutableIntSet presentRules = writeAgents(conceptIdMap, correlationIdMap);

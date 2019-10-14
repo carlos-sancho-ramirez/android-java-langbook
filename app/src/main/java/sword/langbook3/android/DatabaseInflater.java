@@ -2,8 +2,6 @@ package sword.langbook3.android;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Set;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
@@ -12,7 +10,6 @@ import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.database.DbImporter;
-import sword.database.DbInsertQuery;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
@@ -38,7 +35,6 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndMainAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxAgentSetId;
 
 public final class DatabaseInflater {
 
@@ -117,7 +113,7 @@ public final class DatabaseInflater {
         }
     }
 
-    private void applyAgent(int agentId, AgentSetSupplier agentSetSupplier, int accId, int concept,
+    private void applyAgent(int agentId, int accId, int concept,
             int targetBunch, IntKeyMap<String> startMatcher, IntKeyMap<String> startAdder,
             IntKeyMap<String> endMatcher, IntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr) {
         boolean matching = true;
@@ -201,80 +197,9 @@ public final class DatabaseInflater {
             }
 
             if (targetBunch != StreamedDatabaseConstants.nullBunchId) {
-                insertBunchAcceptation(_db, targetBunch, targetAccId, agentSetSupplier.get());
+                insertBunchAcceptation(_db, targetBunch, targetAccId, agentId);
             }
         }
-    }
-
-    private int insertAgentSet(Set<Integer> agents) {
-        final LangbookDbSchema.AgentSetsTable table = LangbookDbSchema.Tables.agentSets;
-
-        if (agents.isEmpty()) {
-            return table.nullReference();
-        }
-        else {
-            final int setId = getMaxAgentSetId(_db) + 1;
-            for (int agent : agents) {
-                final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                        .put(table.getSetIdColumnIndex(), setId)
-                        .put(table.getAgentColumnIndex(), agent)
-                        .build();
-                _db.insert(query);
-            }
-
-            return setId;
-        }
-    }
-
-    private final class AgentSetSupplier {
-        private final int _agentId;
-        private boolean _created;
-        private int _agentSetId;
-
-        AgentSetSupplier(int agentId) {
-            _agentId = agentId;
-        }
-
-        int get() {
-            if (!_created) {
-                final Set<Integer> set = new HashSet<>();
-                set.add(_agentId);
-                _agentSetId = insertAgentSet(set);
-                _created = true;
-            }
-
-            return _agentSetId;
-        }
-    }
-
-    private ImmutableIntKeyMap<String> getCorrelation(int agentId, int agentColumn) {
-        LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
-        LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
-
-        final int corrTableOffset = agents.columns().size();
-        final int symArrayTableOffset = corrTableOffset + correlations.columns().size();
-        final DbQuery query = new DbQuery.Builder(agents)
-                .join(correlations, agentColumn, correlations.getCorrelationIdColumnIndex())
-                .join(symbolArrays, corrTableOffset + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
-                .where(agents.getIdColumnIndex(), agentId)
-                .select(corrTableOffset + correlations.getAlphabetColumnIndex(), symArrayTableOffset + symbolArrays.getStrColumnIndex());
-
-        final DbResult result = _db.select(query);
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-        try {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final int alphabet = row.get(0).toInt();
-                final String str = row.get(1).toText();
-                builder.put(alphabet, str);
-            }
-        }
-        finally {
-            result.close();
-        }
-
-        return builder.build();
     }
 
     private void runAgent(int agentId) {
@@ -330,13 +255,12 @@ public final class DatabaseInflater {
                 corr.put(row.get(1).toInt(), row.get(2).toText());
                 int concept = row.get(3).toInt();
 
-                final AgentSetSupplier agentSetSupplier = new AgentSetSupplier(agentId);
                 int newAccId;
                 while (result.hasNext()) {
                     row = result.next();
                     newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
-                        applyAgent(agentId, agentSetSupplier, accId, concept, register.targetBunch,
+                        applyAgent(agentId, accId, concept, register.targetBunch,
                                 startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
 
                         accId = newAccId;
@@ -349,7 +273,7 @@ public final class DatabaseInflater {
                     }
                 }
 
-                applyAgent(agentId, agentSetSupplier, accId, concept, register.targetBunch,
+                applyAgent(agentId, accId, concept, register.targetBunch,
                         startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
             }
         }

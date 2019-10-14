@@ -131,12 +131,12 @@ public final class LangbookDbInserter {
         db.insert(query);
     }
 
-    public static void insertBunchAcceptation(DbInserter db, int bunch, int acceptation, int agentSet) {
+    public static void insertBunchAcceptation(DbInserter db, int bunch, int acceptation, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = Tables.bunchAcceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getBunchColumnIndex(), bunch)
                 .put(table.getAcceptationColumnIndex(), acceptation)
-                .put(table.getAgentSetColumnIndex(), agentSet)
+                .put(table.getAgentColumnIndex(), agent)
                 .build();
 
         if (db.insert(query) == null) {
@@ -175,20 +175,6 @@ public final class LangbookDbInserter {
                 .put(table.getRuleColumnIndex(), register.rule)
                 .build();
         return db.insert(query);
-    }
-
-    static void insertAgentSet(DbInserter db, int setId, IntSet agentSet) {
-        final LangbookDbSchema.AgentSetsTable table = Tables.agentSets;
-        for (int agent : agentSet) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                    .put(table.getSetIdColumnIndex(), setId)
-                    .put(table.getAgentColumnIndex(), agent)
-                    .build();
-
-            if (db.insert(query) == null) {
-                throw new AssertionError();
-            }
-        }
     }
 
     static void insertRuledConcept(DbInserter db, int ruledConcept, int rule, int baseConcept) {
