@@ -1260,7 +1260,7 @@ public final class LangbookDatabase {
             }
         }
         else {
-            if (oldSymbolArrayOnlyUsedHere && !deleteSymbolArray(db, oldSymbolArrayId)) {
+            if (foundSymbolArrayId != oldSymbolArrayId && oldSymbolArrayOnlyUsedHere && !deleteSymbolArray(db, oldSymbolArrayId)) {
                 throw new AssertionError();
             }
             newSymbolArrayId = foundSymbolArrayId;
