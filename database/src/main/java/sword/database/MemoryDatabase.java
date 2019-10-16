@@ -67,13 +67,19 @@ public final class MemoryDatabase implements Database {
             for (int row = 0; row < result.size(); row++) {
                 final ImmutableList<Object> oldRow = result.get(row);
                 final Object rawValue = oldRow.get(joinPair.left());
-                final MutableIntKeyMap<ImmutableList<Object>> viewContent = _tableMap.get(view);
+                final MutableIntKeyMap<ImmutableList<Object>> viewContent = _tableMap.get(view, MutableIntKeyMap.empty());
                 final int targetJoinColumnIndex = joinPair.right() - oldRow.size();
 
                 if (targetJoinColumnIndex == 0) {
                     final int id = (Integer) rawValue;
-                    ImmutableList<Object> newRow = oldRow.append(id).appendAll(viewContent.get(id));
-                    result.put(row, newRow);
+                    final ImmutableList<Object> foundRow = viewContent.get(id, null);
+                    if (foundRow != null) {
+                        ImmutableList<Object> newRow = oldRow.append(id).appendAll(foundRow);
+                        result.put(row, newRow);
+                    }
+                    else {
+                        result.removeAt(row--);
+                    }
                 }
                 else {
                     boolean somethingReplaced = false;
