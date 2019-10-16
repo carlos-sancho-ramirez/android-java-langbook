@@ -16,11 +16,13 @@ import sword.database.MemoryDatabase;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readMorphologiesFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
 /**
@@ -225,6 +227,77 @@ public final class AgentsManagerTest {
     @Test
     public void testAdd2ChainedAgentsReversedAdditionOrder() {
         checkAdd2ChainedAgents(true);
+    }
+
+    private void checkAdd2ChainedAgentsFirstWithoutSource(boolean reversedAdditionOrder, boolean acceptationBeforeAgents) {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int bunchConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, bunchConcept, "pluralizable sustituyendo ón por ones");
+
+        int songConcept = 0;
+        int acceptation = 0;
+        if (acceptationBeforeAgents) {
+            songConcept = manager.getMaxConcept() + 1;
+            acceptation = addSimpleAcceptation(manager, alphabet, songConcept, "canción");
+        }
+
+        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
+        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ón")
+                .build();
+        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ones")
+                .build();
+
+        final ImmutableIntSet middleBunchSet = new ImmutableIntSetCreator().add(bunchConcept).build();
+        final ImmutableIntSet noBunchSet = new ImmutableIntSetCreator().build();
+
+        final int pluralConcept;
+        if (reversedAdditionOrder) {
+            pluralConcept = manager.getMaxConcept() + 1;
+            assertNotNull(manager.addAgent(0, middleBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, adder, pluralConcept));
+            assertNotNull(manager.addAgent(bunchConcept, noBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, matcher, 0));
+        }
+        else {
+            assertNotNull(manager.addAgent(bunchConcept, noBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, matcher, 0));
+            pluralConcept = manager.getMaxConcept() + 1;
+            assertNotNull(manager.addAgent(0, middleBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, adder, pluralConcept));
+        }
+
+        if (!acceptationBeforeAgents) {
+            songConcept = manager.getMaxConcept() + 1;
+            acceptation = addSimpleAcceptation(manager, alphabet, songConcept, "canción");
+        }
+
+        final LangbookReadableDatabase.MorphologyReaderResult result = readMorphologiesFromAcceptation(db, acceptation, alphabet);
+        assertEquals(1, result.morphologies.size());
+        assertEquals("canciones", result.morphologies.valueAt(0).text);
+        assertEquals(1, result.morphologies.valueAt(0).rules.size());
+        assertEquals(pluralConcept, result.morphologies.valueAt(0).rules.valueAt(0));
+    }
+
+    @Test
+    public void testAdd2ChainedAgentsFirstWithoutSourceBeforeMatchingAcceptation() {
+        checkAdd2ChainedAgentsFirstWithoutSource(false, false);
+    }
+
+    @Test
+    public void testAdd2ChainedAgentsFirstWithoutSourceReversedAdditionOrderBeforeMatchingAcceptation() {
+        checkAdd2ChainedAgentsFirstWithoutSource(true, false);
+    }
+
+    @Test
+    public void testAdd2ChainedAgentsFirstWithoutSourceAfterMatchingAcceptation() {
+        checkAdd2ChainedAgentsFirstWithoutSource(false, true);
+    }
+
+    @Test
+    public void testAdd2ChainedAgentsFirstWithoutSourceReversedAdditionOrderAfterMatchingAcceptation() {
+        checkAdd2ChainedAgentsFirstWithoutSource(true, true);
     }
 
     private void checkAddAgentWithDiffBunch(boolean addAgentBeforeAcceptations) {

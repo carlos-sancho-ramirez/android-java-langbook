@@ -1723,7 +1723,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static final class MorphologyReaderResult {
+    static final class MorphologyReaderResult {
         final ImmutableList<MorphologyResult> morphologies;
         final ImmutableIntKeyMap<String> ruleTexts;
         final ImmutableIntPairMap agentRules;
@@ -1735,7 +1735,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    private static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -3354,5 +3354,62 @@ public final class LangbookReadableDatabase {
         final ImmutableSet<SentenceSpan> spans = getSentenceSpans(db, sentenceId);
         final ImmutableIntKeyMap<String> sameMeaningSentences = findSentenceIdsMatchingMeaning(db, sentenceId).assign(id -> getSentenceText(db, id));
         return new SentenceDetailsModel(conceptAndText.concept, conceptAndText.text, spans, sameMeaningSentences);
+    }
+
+    static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntSet>> getAgentExecutionOrder(DbExporter.Database db) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getIdColumnIndex(), table.getTargetBunchColumnIndex(), table.getSourceBunchSetColumnIndex(), table.getDiffBunchSetColumnIndex());
+
+        final MutableIntKeyMap<ImmutableIntSet> agentDependencies = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<ImmutableIntSet> agentDependenciesWithZero = MutableIntKeyMap.empty();
+
+        final MutableIntSet agentsWithoutSource = MutableIntArraySet.empty();
+        final MutableIntPairMap agentTargets = MutableIntPairMap.empty();
+        final SyncCacheIntKeyNonNullValueMap<ImmutableIntSet> bunchSets = new SyncCacheIntKeyNonNullValueMap<>(setId -> getBunchSet(db, setId));
+        try (DbResult dbResult = db.select(query)) {
+            final ImmutableIntSet justZeroDependency = ImmutableIntArraySet.empty().add(0);
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int id = row.get(0).toInt();
+                agentTargets.put(id, row.get(1).toInt());
+
+                final ImmutableIntSet sourceBunches = bunchSets.get(row.get(2).toInt());
+                final ImmutableIntSet diffBunches = bunchSets.get(row.get(3).toInt());
+                agentDependencies.put(id, sourceBunches.addAll(diffBunches));
+
+                final ImmutableIntSet sourceBunchesWithZero = sourceBunches.isEmpty()? justZeroDependency : sourceBunches;
+                agentDependenciesWithZero.put(id, sourceBunchesWithZero.addAll(diffBunches));
+
+                if (sourceBunches.isEmpty()) {
+                    agentsWithoutSource.add(id);
+                }
+            }
+        }
+
+        final int agentCount = agentDependencies.size();
+        final int[] agentList = new int[agentCount];
+        for (int i = 0; i < agentCount; i++) {
+            final int agentId = agentDependencies.keyAt(i);
+            final int target = agentTargets.get(agentId);
+            boolean inserted = false;
+            for (int j = 0; j < i; j++) {
+                if (agentDependencies.get(agentList[j]).contains(target)) {
+                    for (int k = i; k > j; k--) {
+                        agentList[k] = agentList[k - 1];
+                    }
+                    agentList[j] = agentId;
+                    inserted = true;
+                    break;
+                }
+            }
+
+            if (!inserted) {
+                agentList[i] = agentId;
+            }
+        }
+
+        final ImmutableIntList sortedIdentifiers = ImmutableIntList.from(agentList);
+        return new ImmutablePair<>(sortedIdentifiers, agentDependenciesWithZero.toImmutable());
     }
 }

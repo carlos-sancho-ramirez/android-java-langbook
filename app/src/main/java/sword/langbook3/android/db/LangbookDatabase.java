@@ -105,6 +105,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypes
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetails;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentExecutionOrder;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentProcessedMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAlphabetAndLanguageConcepts;
@@ -495,8 +496,18 @@ public final class LangbookDatabase {
             insertStringQuery(db, str, mainStr, acceptation, acceptation, alphabet);
         }
 
-        for (int agentId : findAgentsWithoutSourceBunches(db)) {
-            rerunAgent(db, agentId, false, null);
+        final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntSet>> sortedAgents = getAgentExecutionOrder(db);
+        final ImmutableIntKeyMap<ImmutableIntSet> agentDependencies = sortedAgents.right;
+        final MutableIntSet touchedBunches = MutableIntArraySet.empty();
+        touchedBunches.add(0);
+
+        for (int agentId : sortedAgents.left) {
+            if (!agentDependencies.get(agentId).filter(touchedBunches::contains).isEmpty()) {
+                final Integer touchedBunch = rerunAgent(db, agentId, false, null);
+                if (touchedBunch != null) {
+                    touchedBunches.add(touchedBunch);
+                }
+            }
         }
 
         return acceptation;
