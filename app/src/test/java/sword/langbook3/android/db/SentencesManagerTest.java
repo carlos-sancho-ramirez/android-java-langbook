@@ -202,6 +202,55 @@ public final class SentencesManagerTest {
     }
 
     @Test
+    public void testReplaceSentenceWithSameText() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final SentencesManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+
+        final String carText = "coche";
+        final int carConcept = manager.getMaxConcept() + 1;
+        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, carText);
+
+        final String greatText = "genial";
+        final String text = "Mi " + carText + " es " + greatText;
+
+        final int carStart = text.indexOf(carText);
+        final int carEnd = carStart + carText.length();
+        final int greatStart = text.indexOf(greatText);
+        final int greatEnd = greatStart + greatText.length();
+
+        final ImmutableSet<SentenceSpan> spans1 = new ImmutableHashSet.Builder<SentenceSpan>()
+                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
+                .build();
+
+        final int concept = manager.getMaxConcept() + 1;
+        final int sentence = manager.addSentence(concept, text, spans1);
+
+        final int greatConcept = manager.getMaxConcept() + 1;
+        final int greatAcc = addSimpleAcceptation(manager, esAlphabet, greatConcept, greatText);
+
+        final ImmutableSet<SentenceSpan> spans2 = spans1
+                .add(new SentenceSpan(new ImmutableIntRange(greatStart, greatEnd - 1), greatAcc));
+
+        assertTrue(manager.updateSentenceTextAndSpans(sentence, text, spans2));
+
+        final ImmutableIntKeyMap<String> carMatchingSentences = manager.getSampleSentences(carAcc);
+        assertEquals(1, carMatchingSentences.size());
+        assertEquals(text, carMatchingSentences.get(sentence));
+
+        final ImmutableIntKeyMap<String> greatMatchingSentences = manager.getSampleSentences(greatAcc);
+        assertEquals(1, greatMatchingSentences.size());
+        assertEquals(text, greatMatchingSentences.get(sentence));
+
+        final SentenceDetailsModel sentenceDetails1 = manager.getSentenceDetails(sentence);
+
+        assertEquals(concept, sentenceDetails1.concept);
+        assertEquals(text, sentenceDetails1.text);
+        assertTrue(spans2.equalSet(sentenceDetails1.spans));
+    }
+
+    @Test
     public void testRemoveSentence() {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
