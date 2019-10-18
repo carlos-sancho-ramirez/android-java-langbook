@@ -1877,7 +1877,7 @@ public final class LangbookReadableDatabase {
                 .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(bunchAcceptations.getAgentColumnIndex());
 
-        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).filter(agentId -> agentId != 0).toSet().toImmutable();
     }
 
     static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
