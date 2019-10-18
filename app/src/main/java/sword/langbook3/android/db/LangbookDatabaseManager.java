@@ -24,11 +24,6 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public int obtainRuledConcept(int rule, int concept) {
-        return LangbookDatabase.obtainRuledConcept(_db, rule, concept);
-    }
-
-    @Override
     public Integer addAgent(
             int targetBunch, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
             ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
