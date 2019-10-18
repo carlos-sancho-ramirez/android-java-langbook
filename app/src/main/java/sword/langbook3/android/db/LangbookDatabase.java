@@ -848,7 +848,7 @@ public final class LangbookDatabase {
         for (int thisAgentId : agentExecutionOrder.left) {
             final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
             if (thisAgentId == agentId || dependencies.anyMatch(touchedBunches::contains)) {
-                final Integer touchedBunch = rerunAgent(db, agentId, false, null);
+                final Integer touchedBunch = rerunAgent(db, thisAgentId, false, null);
                 if (touchedBunch != null) {
                     touchedBunches.add(touchedBunch);
                 }

@@ -23,6 +23,7 @@ import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAccept
 import static sword.langbook3.android.db.BunchesManagerTest.findAcceptationsIncludedInBunch;
 import static sword.langbook3.android.db.BunchesManagerTest.findBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readMorphologiesFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
@@ -62,6 +63,15 @@ public final class AgentsManagerTest {
                 .select(bunchAcceptations.getAcceptationColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    private int findDynamicAcceptation(Database db, int baseAcceptation, int agentId) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAgentColumnIndex(), agentId)
+                .where(table.getAcceptationColumnIndex(), baseAcceptation)
+                .select(table.getIdColumnIndex());
+        return selectSingleRow(db, query).get(0).toInt();
     }
 
     @Test
@@ -876,7 +886,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateAgentTargetForAgentWithoutRule() {
+    public void testUpdateAgentTargetForNoChainedAgentWithoutRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -904,5 +914,47 @@ public final class AgentsManagerTest {
         final ImmutableIntSet bunches = findBunchesWhereAcceptationIsIncluded(db, singAcceptation);
         assertEquals(1, bunches.size());
         assertEquals(arVerbConcept, bunches.valueAt(0));
+    }
+
+    @Test
+    public void testUpdateAgentTargetForChainedAgentWithoutRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final String singText = "cantar";
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, singText);
+
+        final int arVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
+
+        final int erVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, erVerbConcept, "verbo de segunda conjugación");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
+
+        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
+        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ar")
+                .build();
+
+        final ImmutableIntKeyMap<String> andoAdder = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, "ando")
+                .build();
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final int agent1Id = manager.addAgent(erVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+
+        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
+        final int agent2Id = manager.addAgent(0, arVerbBunchSet, noBunches, nullCorrelation, nullCorrelation, arMatcher, andoAdder, gerundConcept);
+        assertTrue(manager.updateAgent(agent1Id, arVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0));
+
+        final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, dynamicAcceptation);
+        assertEquals(1, texts.size());
+        assertEquals(alphabet, texts.keyAt(0));
+        assertEquals("cantando", texts.valueAt(0));
     }
 }
