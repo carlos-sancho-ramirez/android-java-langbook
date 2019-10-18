@@ -107,6 +107,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptation
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentExecutionOrder;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentProcessedMap;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAlphabetAndLanguageConcepts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
@@ -816,6 +817,45 @@ public final class LangbookDatabase {
         }
 
         return agentId;
+    }
+
+    static boolean updateAgent(Database db, int agentId, int targetBunch, ImmutableIntSet sourceBunches,
+            ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
+            ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
+            ImmutableIntKeyMap<String> endAdder, int rule) {
+        final AgentRegister register = getAgentRegister(db, agentId);
+        if (register == null) {
+            return false;
+        }
+
+        if (register.targetBunch == targetBunch) {
+            return true;
+        }
+
+        final MutableIntArraySet touchedBunches = MutableIntArraySet.empty();
+        if (deleteBunchAcceptationsByAgent(db, agentId)) {
+            touchedBunches.add(register.targetBunch);
+        }
+
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbUpdateQuery updateQuery = new DbUpdateQuery.Builder(table)
+                .put(table.getTargetBunchColumnIndex(), targetBunch)
+                .where(table.getIdColumnIndex(), agentId)
+                .build();
+        db.update(updateQuery);
+
+        final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntSet>> agentExecutionOrder = getAgentExecutionOrder(db);
+        for (int thisAgentId : agentExecutionOrder.left) {
+            final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
+            if (thisAgentId == agentId || dependencies.anyMatch(touchedBunches::contains)) {
+                final Integer touchedBunch = rerunAgent(db, agentId, false, null);
+                if (touchedBunch != null) {
+                    touchedBunches.add(touchedBunch);
+                }
+            }
+        }
+
+        return true;
     }
 
     static void removeAgent(Database db, int agentId) {

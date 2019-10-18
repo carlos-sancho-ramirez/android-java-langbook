@@ -32,6 +32,14 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
+    public boolean updateAgent(
+            int agentId, int targetBunch, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
+            ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
+            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule) {
+        return LangbookDatabase.updateAgent(_db, agentId, targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+    }
+
+    @Override
     public void removeAgent(int agentId) {
         LangbookDatabase.removeAgent(_db, agentId);
     }

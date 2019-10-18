@@ -94,6 +94,12 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    static List<DbValue> selectOptionalSingleRow(DbExporter.Database db, DbQuery query) {
+        try (DbResult result = db.select(query)) {
+            return result.hasNext()? result.next() : null;
+        }
+    }
+
     private static List<DbValue> selectFirstRow(DbExporter.Database db, DbQuery query) {
         try (DbResult result = db.select(query)) {
             if (!result.hasNext()) {
@@ -2934,16 +2940,20 @@ public final class LangbookReadableDatabase {
                         table.getEndMatcherColumnIndex(),
                         table.getEndAdderColumnIndex(),
                         table.getRuleColumnIndex());
-        final List<DbValue> agentRow = selectSingleRow(db, query);
 
-        final int sourceBunchSetId = agentRow.get(1).toInt();
-        final int diffBunchSetId = agentRow.get(2).toInt();
-        final int startMatcherId = agentRow.get(3).toInt();
-        final int startAdderId = agentRow.get(4).toInt();
-        final int endMatcherId = agentRow.get(5).toInt();
-        final int endAdderId = agentRow.get(6).toInt();
-        return new AgentRegister(agentRow.get(0).toInt(), sourceBunchSetId, diffBunchSetId,
-                startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
+        final List<DbValue> agentRow = selectOptionalSingleRow(db, query);
+        if (agentRow != null) {
+            final int sourceBunchSetId = agentRow.get(1).toInt();
+            final int diffBunchSetId = agentRow.get(2).toInt();
+            final int startMatcherId = agentRow.get(3).toInt();
+            final int startAdderId = agentRow.get(4).toInt();
+            final int endMatcherId = agentRow.get(5).toInt();
+            final int endAdderId = agentRow.get(6).toInt();
+            return new AgentRegister(agentRow.get(0).toInt(), sourceBunchSetId, diffBunchSetId,
+                    startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
+        }
+
+        return null;
     }
 
     static AgentDetails getAgentDetails(DbExporter.Database db, int agentId) {

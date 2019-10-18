@@ -39,5 +39,10 @@ public interface AgentsManager extends BunchesManager, AgentsChecker {
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule);
 
+    boolean updateAgent(int agentId, int targetBunch, ImmutableIntSet sourceBunches,
+            ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
+            ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
+            ImmutableIntKeyMap<String> endAdder, int rule);
+
     void removeAgent(int agentId);
 }
