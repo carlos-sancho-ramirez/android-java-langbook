@@ -20,6 +20,7 @@ import sword.collections.List;
 import sword.collections.Map;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.Set;
 import sword.database.Database;
@@ -376,7 +377,7 @@ public final class LangbookDatabase {
 
         boolean targetChanged = false;
         final boolean ruleApplied = agentDetails.modifyCorrelations();
-        final ImmutableIntSet processedAcceptations;
+        final ImmutableIntPairMap processedAcceptationsMap;
         if (!ruleApplied) {
             final ImmutableIntSet alreadyProcessedAcceptations = getAcceptationsInBunchByBunchAndAgent(db, agentDetails.targetBunch, agentId);
 
@@ -388,14 +389,16 @@ public final class LangbookDatabase {
                     targetChanged = true;
                 }
             }
-            processedAcceptations = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
+            final ImmutableIntSet processedAcceptations = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
+            processedAcceptationsMap = processedAcceptations.assignToInt(key -> key);
         }
         else {
             // This is assuming that matcher, adder, rule and flags did not change from last run,
             // only its source and diff bunches and its contents
+            final ImmutableIntPairMap oldProcessedMap = getAgentProcessedMap(db, agentId);
             final ImmutableIntSet toBeProcessed;
             if (acceptationCorrelationChanged) {
-                for (IntPairMap.Entry accPair : getAgentProcessedMap(db, agentId).entries()) {
+                for (IntPairMap.Entry accPair : oldProcessedMap.entries()) {
                     final int acc = accPair.value();
                     deleteKnowledge(db, acc);
                     deleteBunchAcceptation(db, agentDetails.targetBunch, acc, agentId);
@@ -414,11 +417,11 @@ public final class LangbookDatabase {
                 toBeProcessed = matchingAcceptations;
             }
             else {
-                final ImmutableIntPairMap alreadyProcessedMap = getAgentProcessedMap(db, agentId);
-                final ImmutableIntSet alreadyProcessedAcceptations = alreadyProcessedMap.keySet();
+                final ImmutableIntSet alreadyProcessedAcceptations = oldProcessedMap.keySet();
                 toBeProcessed = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
 
-                for (IntPairMap.Entry accPair : alreadyProcessedMap.entries()) {
+                final MutableIntPairMap resultProcessedMap = oldProcessedMap.mutate();
+                for (IntPairMap.Entry accPair : oldProcessedMap.entries()) {
                     if (!matchingAcceptations.contains(accPair.key())) {
                         final int acc = accPair.value();
                         deleteKnowledge(db, acc);
@@ -433,6 +436,7 @@ public final class LangbookDatabase {
                         }
 
                         targetChanged = true;
+                        resultProcessedMap.remove(accPair.key());
                     }
                 }
             }
@@ -441,40 +445,48 @@ public final class LangbookDatabase {
             final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
 
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
-            final ImmutableIntSet.Builder processedAccBuilder = new ImmutableIntSetCreator();
-            for (int acc : toBeProcessed) {
-                final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
-                final MutableIntKeyMap<String> correlation = textsAndMain.left.mutate();
+            final ImmutableIntPairMap.Builder processedAccMapBuilder = new ImmutableIntPairMap.Builder();
+            for (int acc : matchingAcceptations) {
+                if (toBeProcessed.contains(acc)) {
+                    final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(
+                            db, acc);
+                    final MutableIntKeyMap<String> correlation = textsAndMain.left.mutate();
 
-                final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, conversions);
-                if (validConversion) {
-                    final ImmutableIntSet conversionTargets = conversionMap.keySet();
-                    final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
-                    for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
-                        if (!conversionTargets.contains(entry.key())) {
-                            corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
+                            conversionMap, conversions);
+                    if (validConversion) {
+                        final ImmutableIntSet conversionTargets = conversionMap.keySet();
+                        final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
+                        for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
+                            if (!conversionTargets.contains(entry.key())) {
+                                corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                            }
                         }
-                    }
 
-                    final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
-                    final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
-                    final int baseConcept = conceptFromAcceptation(db, acc);
-                    final int ruledConcept = obtainRuledConcept(db, agentDetails.rule, baseConcept);
-                    final int newAcc = insertAcceptation(db, ruledConcept, correlationArrayId);
-                    insertRuledAcceptation(db, newAcc, agentId, acc);
+                        final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
+                        final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
+                        final int baseConcept = conceptFromAcceptation(db, acc);
+                        final int ruledConcept = obtainRuledConcept(db, agentDetails.rule, baseConcept);
+                        final int newAcc = insertAcceptation(db, ruledConcept, correlationArrayId);
+                        insertRuledAcceptation(db, newAcc, agentId, acc);
 
-                    for (IntKeyMap.Entry<String> entry : correlation.entries()) {
-                        final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
-                        insertStringQuery(db, entry.value(), mainText, textsAndMain.right, newAcc, entry.key());
+                        for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+                            final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
+                            insertStringQuery(db, entry.value(), mainText, textsAndMain.right, newAcc, entry.key());
+                        }
+                        processedAccMapBuilder.put(acc, newAcc);
                     }
-                    processedAccBuilder.add(newAcc);
+                }
+                else {
+                    processedAccMapBuilder.put(acc, oldProcessedMap.get(acc));
                 }
             }
-            processedAcceptations = processedAccBuilder.build();
+            processedAcceptationsMap = processedAccMapBuilder.build();
         }
 
         if (agentDetails.targetBunch != NO_BUNCH) {
-            for (int acc : processedAcceptations) {
+            final ImmutableIntSet alreadyIncludedAcceptations = getAcceptationsInBunchByBunchAndAgent(db, agentDetails.targetBunch, agentId);
+            for (int acc : processedAcceptationsMap.filterNot(alreadyIncludedAcceptations::contains)) {
                 insertBunchAcceptation(db, agentDetails.targetBunch, acc, agentId);
                 targetChanged = true;
             }
