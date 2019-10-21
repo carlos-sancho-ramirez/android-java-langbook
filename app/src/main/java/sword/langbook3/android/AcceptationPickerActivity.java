@@ -12,8 +12,9 @@ public final class AcceptationPickerActivity extends SearchActivity {
     }
 
     interface ResultKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CONCEPT_USED = BundleKeys.CONCEPT_USED;
+        String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
+        String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
     }
 
     public static void open(Activity activity, int requestCode) {
@@ -43,11 +44,12 @@ public final class AcceptationPickerActivity extends SearchActivity {
         if (resultCode == RESULT_OK) {
             final Intent intent = new Intent();
             if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.STATIC_ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.STATIC_ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.STATIC_ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.DYNAMIC_ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0));
             }
             else {
                 // When a new acceptation has been created
-                intent.putExtra(ResultKeys.ACCEPTATION, data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.STATIC_ACCEPTATION, data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0));
                 intent.putExtra(ResultKeys.CONCEPT_USED, true);
             }
 

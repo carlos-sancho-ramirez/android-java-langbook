@@ -554,7 +554,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final boolean usedConcept = data
                         .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
                 if (!usedConcept) {
-                    _state.setLinkedAcceptation(data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0));
+                    _state.setLinkedAcceptation(data.getIntExtra(AcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0));
                     showLinkModeSelectorDialog();
                 }
                 else {
@@ -562,13 +562,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 }
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
-                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
                 final int message = manager.addAcceptationInBunch(_model.concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 updateModelAndUi();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
-                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
                 final int pickedBunch = (pickedAcceptation != 0)? manager.conceptFromAcceptation(pickedAcceptation) : 0;
                 final int message = manager.addAcceptationInBunch(pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 updateModelAndUi();

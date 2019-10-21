@@ -569,7 +569,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         final LangbookManager manager = DbManager.getInstance().getManager();
         if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH) {
             if (resultCode == RESULT_OK) {
-                final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+                final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
                 if (acceptation == 0) {
                     throw new AssertionError();
                 }
@@ -589,7 +589,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
         }
         else if (requestCode == REQUEST_CODE_PICK_SOURCE_BUNCH && resultCode == RESULT_OK) {
-            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             if (acceptation == 0) {
                 throw new AssertionError();
             }
@@ -599,7 +599,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addSourceBunch(concept);
         }
         else if (requestCode == REQUEST_CODE_PICK_DIFF_BUNCH && resultCode == RESULT_OK) {
-            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             if (acceptation == 0) {
                 throw new AssertionError();
             }
@@ -609,7 +609,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addDiffBunch(concept);
         }
         else if (requestCode == REQUEST_CODE_PICK_RULE && resultCode == RESULT_OK) {
-            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             if (acceptation == 0) {
                 throw new AssertionError();
             }

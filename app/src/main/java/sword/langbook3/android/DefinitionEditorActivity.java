@@ -108,13 +108,13 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
 
         if (requestCode == REQUEST_CODE_PICK_BASE && resultCode == RESULT_OK && data != null) {
             final LangbookChecker checker = DbManager.getInstance().getManager();
-            final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             _state.baseConcept = (pickedAcceptation != 0)? checker.conceptFromAcceptation(pickedAcceptation) : 0;
             updateUi();
         }
         else if (requestCode == REQUEST_CODE_PICK_COMPLEMENT && resultCode == RESULT_OK && data != null) {
             final LangbookChecker checker = DbManager.getInstance().getManager();
-            final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.ACCEPTATION, 0);
+            final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             _state.complements = _state.complements.add(checker.conceptFromAcceptation(pickedAcceptation));
             updateUi();
         }
