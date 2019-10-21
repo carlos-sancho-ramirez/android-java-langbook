@@ -1558,7 +1558,8 @@ public final class LangbookReadableDatabase {
                 .join(languages, alphabetsOffset + alphabets.getLanguageColumnIndex(), languages.getIdColumnIndex())
                 .where(acceptations.getIdColumnIndex(), acceptation)
                 .whereColumnValueMatch(alphabetsOffset + alphabets.getIdColumnIndex(), languagesOffset + languages.getMainAlphabetColumnIndex())
-                .select(accOffset + acceptations.getIdColumnIndex(),
+                .select(stringsOffset + strings.getMainAcceptationColumnIndex(),
+                        stringsOffset + strings.getDynamicAcceptationColumnIndex(),
                         languagesOffset + languages.getIdColumnIndex(),
                         stringsOffset + strings.getStringColumnIndex());
 
@@ -1568,7 +1569,7 @@ public final class LangbookReadableDatabase {
                 final List<DbValue> row = result.next();
                 final int accId = row.get(0).toInt();
                 if (accId != acceptation) {
-                    builder.put(accId, new SynonymTranslationResult(row.get(1).toInt(), row.get(2).toText()));
+                    builder.put(accId, new SynonymTranslationResult(row.get(2).toInt(), row.get(3).toText(), row.get(1).toInt() != accId));
                 }
             }
         }

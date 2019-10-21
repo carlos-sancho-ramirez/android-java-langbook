@@ -135,7 +135,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     synonymFound = true;
                 }
 
-                result.add(new AcceptationNavigableItem(entry.key(), entry.value().text, false));
+                result.add(new AcceptationNavigableItem(entry.key(), entry.value().text, entry.value().dynamic));
             }
         }
 
@@ -149,7 +149,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 }
 
                 final String langStr = _model.languageTexts.get(language, null);
-                result.add(new AcceptationNavigableItem(entry.key(), "" + langStr + " -> " + entry.value().text, false));
+                result.add(new AcceptationNavigableItem(entry.key(), "" + langStr + " -> " + entry.value().text, entry.value().dynamic));
             }
         }
 
