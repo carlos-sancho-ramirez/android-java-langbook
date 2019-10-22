@@ -963,4 +963,177 @@ public final class AgentsManagerTest {
         assertEquals(1, included.size());
         assertEquals(dynamicAcceptation, included.valueAt(0));
     }
+
+    @Test
+    public void testIncludeAgentSourceBunchesForNoChainedAgentWithoutRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int touchConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, touchConcept, "tocar");
+
+        final int chapter1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter1, "vocabulario del capítulo 1");
+        assertTrue(manager.addAcceptationInBunch(chapter1, singAcceptation));
+
+        final int allVocabulary = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
+        assertEquals(1, acceptations.size());
+        assertEquals(singAcceptation, acceptations.valueAt(0));
+    }
+
+    @Test
+    public void testRemoveAgentSourceBunchesFromNoChainedAgentWithoutRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int touchConcept = manager.getMaxConcept() + 1;
+        final int touchAcceptation = addSimpleAcceptation(manager, alphabet, touchConcept, "tocar");
+
+        final int chapter1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter1, "vocabulario del capítulo 1");
+        assertTrue(manager.addAcceptationInBunch(chapter1, singAcceptation));
+
+        final int allVocabulary = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
+        assertEquals(2, acceptations.size());
+        assertTrue(acceptations.contains(singAcceptation));
+        assertTrue(acceptations.contains(touchAcceptation));
+    }
+
+    @Test
+    public void testChangeAgentSourceBunchesFromNoChainedAgentWithoutRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int touchConcept = manager.getMaxConcept() + 1;
+        final int touchAcceptation = addSimpleAcceptation(manager, alphabet, touchConcept, "tocar");
+
+        final int chapter1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter1, "vocabulario del capítulo 1");
+        assertTrue(manager.addAcceptationInBunch(chapter1, singAcceptation));
+
+        final int chapter2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter2, "vocabulario del capítulo 2");
+        assertTrue(manager.addAcceptationInBunch(chapter2, touchAcceptation));
+
+        final int allVocabulary = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        final ImmutableIntSet chapter2Only = new ImmutableIntSetCreator().add(chapter2).build();
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
+        assertEquals(1, acceptations.size());
+        assertEquals(touchAcceptation, acceptations.valueAt(0));
+    }
+
+    @Test
+    public void testIncludeExtraSourceBuncheInNoChainedAgentWithoutRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int touchConcept = manager.getMaxConcept() + 1;
+        final int touchAcceptation = addSimpleAcceptation(manager, alphabet, touchConcept, "tocar");
+
+        final int passConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, passConcept, "pasar");
+
+        final int chapter1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter1, "vocabulario del capítulo 1");
+        assertTrue(manager.addAcceptationInBunch(chapter1, singAcceptation));
+
+        final int chapter2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter2, "vocabulario del capítulo 2");
+        assertTrue(manager.addAcceptationInBunch(chapter2, touchAcceptation));
+
+        final int allVocabulary = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        final ImmutableIntSet chapter1And2 = new ImmutableIntSetCreator().add(chapter1).add(chapter2).build();
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1And2, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
+        assertEquals(2, acceptations.size());
+        assertTrue(acceptations.contains(singAcceptation));
+        assertTrue(acceptations.contains(touchAcceptation));
+    }
+
+    @Test
+    public void testRemoveOneSourceBuncheFromNoChainedAgentWithoutRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int touchConcept = manager.getMaxConcept() + 1;
+        final int touchAcceptation = addSimpleAcceptation(manager, alphabet, touchConcept, "tocar");
+
+        final int passConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, passConcept, "pasar");
+
+        final int chapter1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter1, "vocabulario del capítulo 1");
+        assertTrue(manager.addAcceptationInBunch(chapter1, singAcceptation));
+
+        final int chapter2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, chapter2, "vocabulario del capítulo 2");
+        assertTrue(manager.addAcceptationInBunch(chapter2, touchAcceptation));
+
+        final int allVocabulary = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet chapter1And2 = new ImmutableIntSetCreator().add(chapter1).add(chapter2).build();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1And2, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
+        assertEquals(1, acceptations.size());
+        assertEquals(singAcceptation, acceptations.valueAt(0));
+    }
 }

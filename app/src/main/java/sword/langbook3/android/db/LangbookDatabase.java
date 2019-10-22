@@ -840,18 +840,32 @@ public final class LangbookDatabase {
             return false;
         }
 
-        if (register.targetBunch == targetBunch) {
-            return true;
-        }
-
         final MutableIntArraySet touchedBunches = MutableIntArraySet.empty();
-        if (deleteBunchAcceptationsByAgent(db, agentId)) {
+        if (targetBunch != register.targetBunch && deleteBunchAcceptationsByAgent(db, agentId)) {
             touchedBunches.add(register.targetBunch);
         }
 
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbUpdateQuery updateQuery = new DbUpdateQuery.Builder(table)
-                .put(table.getTargetBunchColumnIndex(), targetBunch)
+        final DbUpdateQuery.Builder updateQueryBuilder = new DbUpdateQuery.Builder(table);
+
+        boolean somethingChanged = false;
+        if (targetBunch != register.targetBunch) {
+            updateQueryBuilder.put(table.getTargetBunchColumnIndex(), targetBunch);
+            somethingChanged = true;
+        }
+
+        final int sourceBunchSetId = obtainBunchSet(db, sourceBunches);
+        if (sourceBunchSetId != register.sourceBunchSetId) {
+            // TODO: old bunch set should be removed if not used by any other agent, in order to keep clean the database
+            updateQueryBuilder.put(table.getSourceBunchSetColumnIndex(), sourceBunchSetId);
+            somethingChanged = true;
+        }
+
+        if (!somethingChanged) {
+            return true;
+        }
+
+        final DbUpdateQuery updateQuery = updateQueryBuilder
                 .where(table.getIdColumnIndex(), agentId)
                 .build();
         db.update(updateQuery);

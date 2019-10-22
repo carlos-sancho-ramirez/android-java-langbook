@@ -690,6 +690,7 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
                 .where(table.getBunchColumnIndex(), bunches.valueAt(0))
+                .orderBy(table.getSetIdColumnIndex())
                 .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
 
         try (DbResult result = db.select(query)) {
@@ -708,8 +709,9 @@ public final class LangbookReadableDatabase {
 
                         setId = row.get(0).toInt();
                         set.clear();
-                        set.add(row.get(1).toInt());
                     }
+
+                    set.add(row.get(1).toInt());
                 }
 
                 if (set.equals(bunches)) {
