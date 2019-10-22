@@ -64,6 +64,42 @@ public final class AgentsManagerTest {
         return selectSingleRow(db, query).get(0).toInt();
     }
 
+    private static Integer addSingleAlphabetAgent(AgentsManager manager, int targetBunch, ImmutableIntSet sourceBunches,
+            ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
+            String endAdderText, int rule) {
+        final ImmutableIntKeyMap<String> startMatcher = (startMatcherText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startMatcherText).build();
+
+        final ImmutableIntKeyMap<String> startAdder = (startAdderText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startAdderText).build();
+
+        final ImmutableIntKeyMap<String> endMatcher = (endMatcherText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endMatcherText).build();
+
+        final ImmutableIntKeyMap<String> endAdder = (endAdderText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
+
+        return manager.addAgent(targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+    }
+
+    private static boolean updateSingleAlphabetAgent(AgentsManager manager, int agentId, int targetBunch, ImmutableIntSet sourceBunches,
+            ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
+            String endAdderText, int rule) {
+        final ImmutableIntKeyMap<String> startMatcher = (startMatcherText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startMatcherText).build();
+
+        final ImmutableIntKeyMap<String> startAdder = (startAdderText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startAdderText).build();
+
+        final ImmutableIntKeyMap<String> endMatcher = (endMatcherText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endMatcherText).build();
+
+        final ImmutableIntKeyMap<String> endAdder = (endAdderText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
+
+        return manager.updateAgent(agentId, targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+    }
+
     @Test
     public void testAddAgentApplyingRule() {
         final MemoryDatabase db = new MemoryDatabase();
@@ -78,17 +114,9 @@ public final class AgentsManagerTest {
         final int acceptation = addSimpleAcceptation(manager, alphabet, concept, verbText);
         assertTrue(manager.addAcceptationInBunch(verbConcept, acceptation));
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ando")
-                .build();
-
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
         final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
-        final int agentId = manager.addAgent(0, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerund);
+        final int agentId = addSingleAlphabetAgent(manager, 0, sourceBunches, diffBunches, alphabet, null, null, "ar", "ando", gerund);
 
         final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery ruledConceptQuery = new DbQuery.Builder(ruledConcepts)
@@ -144,14 +172,9 @@ public final class AgentsManagerTest {
         final int coughtAcceptation = addSimpleAcceptation(manager, alphabet, coughtConcept, coughtText);
         assertTrue(manager.addAcceptationInBunch(verbConcept, coughtAcceptation));
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
         final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
-        final int agentId = manager.addAgent(arVerbConcept, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+        final int agentId = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
 
         final ImmutableIntSet acceptationsInBunch = findAcceptationsIncludedInBunch(db, verbConcept);
         assertEquals(new ImmutableIntSetCreator().add(singAcceptation).add(coughtAcceptation).build(), acceptationsInBunch);
@@ -322,11 +345,6 @@ public final class AgentsManagerTest {
         final int palateConcept = singConcept + 1;
 
         final String palateText = "paladar";
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().build();
         final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().add(arEndingNounConcept).build();
 
@@ -334,14 +352,14 @@ public final class AgentsManagerTest {
         final int palateAcceptation;
         final int agentId;
         if (addAgentBeforeAcceptations) {
-            agentId = manager.addAgent(arVerbConcept, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+            agentId = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
             palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, palateText);
             manager.addAcceptationInBunch(arEndingNounConcept, palateAcceptation);
         }
         else {
             palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, palateText);
             manager.addAcceptationInBunch(arEndingNounConcept, palateAcceptation);
-            agentId = manager.addAgent(arVerbConcept, sourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+            agentId = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
         }
 
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
@@ -380,25 +398,13 @@ public final class AgentsManagerTest {
             int alphabet, ImmutableIntSet sourceBunchSet, int arVerbConcept, int actionConcept,
             int nominalizationRule, int pluralRule) {
 
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "o")
-                .build();
-        final ImmutableIntKeyMap<String> noMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .build();
-        final ImmutableIntKeyMap<String> pluralAdder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "s")
-                .build();
-
         final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
         final ImmutableIntSet actionConceptBunchSet = new ImmutableIntSetCreator().add(actionConcept).build();
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
 
-        final int agent3Id = manager.addAgent(0, actionConceptBunchSet, noBunches, noMatcher, noMatcher, noMatcher, pluralAdder, pluralRule);
-        final int agent2Id = manager.addAgent(actionConcept, arVerbBunchSet, noBunches, noMatcher, noMatcher, matcher, adder, nominalizationRule);
-        final int agent1Id = manager.addAgent(arVerbConcept, sourceBunchSet, noBunches, noMatcher, noMatcher, matcher, matcher, 0);
+        final int agent3Id = addSingleAlphabetAgent(manager, 0, actionConceptBunchSet, noBunches, alphabet, null, null, null, "s", pluralRule);
+        final int agent2Id = addSingleAlphabetAgent(manager, actionConcept, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "o", nominalizationRule);
+        final int agent1Id = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunchSet, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         return new Add3ChainedAgentsResult(agent1Id, agent2Id, agent3Id);
     }
@@ -611,27 +617,12 @@ public final class AgentsManagerTest {
         final String verbErText = "verbo de segunda conjugación";
         addSimpleAcceptation(manager, alphabet, verbErConcept, verbErText);
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-        final ImmutableIntKeyMap<String> arAdder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ando")
-                .build();
-
         final ImmutableIntSet arSourceBunches = new ImmutableIntSetCreator().add(verbArConcept).build();
         final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
-        manager.addAgent(0, arSourceBunches, diffBunches, nullCorrelation, nullCorrelation, arMatcher, arAdder, gerund);
-
-        final ImmutableIntKeyMap<String> erMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "er")
-                .build();
-        final ImmutableIntKeyMap<String> erAdder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "iendo")
-                .build();
+        addSingleAlphabetAgent(manager, 0, arSourceBunches, diffBunches, alphabet, null, null, "ar", "ando", gerund);
 
         final ImmutableIntSet erSourceBunches = new ImmutableIntSetCreator().add(verbErConcept).build();
-        manager.addAgent(0, erSourceBunches, diffBunches, nullCorrelation, nullCorrelation, erMatcher, erAdder, gerund);
+        addSingleAlphabetAgent(manager, 0, erSourceBunches, diffBunches, alphabet, null, null, "er", "iendo", gerund);
 
         ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "jugar").build();
         ImmutableIntKeyMap<String> result = manager.readAllMatchingBunches(texts, alphabet);
@@ -669,15 +660,8 @@ public final class AgentsManagerTest {
 
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
         final ImmutableIntSet firstConjugationVerbBunchSet = new ImmutableIntSetCreator().add(firstConjugationVerbBunch).build();
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ando")
-                .build();
 
-        manager.addAgent(NO_BUNCH, firstConjugationVerbBunchSet, noBunches, nullCorrelation, nullCorrelation, matcher, adder, gerundRule);
+        addSingleAlphabetAgent(manager, NO_BUNCH, firstConjugationVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, rightText);
 
@@ -735,9 +719,7 @@ public final class AgentsManagerTest {
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
         final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
 
-        final ImmutableIntKeyMap<String> startMatcher = ImmutableIntKeyMap.empty();
-        final ImmutableIntKeyMap<String> endMatcher = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "ar").build();
-        assertNotEquals(null, manager.addAgent(firstConjugationVerbConcept, sourceBunches, diffBunches, startMatcher, startMatcher, endMatcher, endMatcher, 0));
+        assertNotEquals(null, addSingleAlphabetAgent(manager, firstConjugationVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0));
 
         assertFalse(manager.removeAcceptation(verbAcc));
         assertFalse(manager.removeAcceptation(firstConjugationVerbAcc));
@@ -761,17 +743,9 @@ public final class AgentsManagerTest {
         final String myBunchText = "palabaras raras";
         addSimpleAcceptation(manager, alphabet, myBunch, myBunchText);
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> startMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "des")
-                .build();
-        final ImmutableIntKeyMap<String> endMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
-        final int desAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, startMatcher, startMatcher, nullCorrelation, nullCorrelation, 0);
-        final int arAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, nullCorrelation, nullCorrelation, endMatcher, endMatcher, 0);
+        final int desAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
+        final int arAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
 
         final ImmutableIntSet expected = new ImmutableIntSetCreator().add(desAgent).add(arAgent).build();
         assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc)));
@@ -804,17 +778,9 @@ public final class AgentsManagerTest {
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc1));
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc2));
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> startMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "des")
-                .build();
-        final ImmutableIntKeyMap<String> endMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
-        final int desAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, startMatcher, startMatcher, nullCorrelation, nullCorrelation, 0);
-        final int arAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, nullCorrelation, nullCorrelation, endMatcher, endMatcher, 0);
+        final int desAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
+        final int arAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
 
         ImmutableIntSet expected = new ImmutableIntSetCreator().add(0).build();
         assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc)));
@@ -849,17 +815,9 @@ public final class AgentsManagerTest {
         final String myBunchText = "palabaras raras";
         addSimpleAcceptation(manager, alphabet, myBunch, myBunchText);
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> startMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "des")
-                .build();
-        final ImmutableIntKeyMap<String> endMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
-        final int desAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, startMatcher, startMatcher, nullCorrelation, nullCorrelation, 0);
-        final int arAgent = manager.addAgent(myBunch, emptyBunchSet, emptyBunchSet, nullCorrelation, nullCorrelation, endMatcher, endMatcher, 0);
+        final int desAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
+        final int arAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(manager.addAcceptationInBunch(myBunch, bedAcc));
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc1));
@@ -891,15 +849,10 @@ public final class AgentsManagerTest {
         final int erVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, erVerbConcept, "verbo de segunda conjugación");
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final int agentId = manager.addAgent(erVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+        final int agentId = addSingleAlphabetAgent(manager, erVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        assertTrue(manager.updateAgent(agentId, arVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
         final ImmutableIntSet bunches = findBunchesWhereAcceptationIsIncluded(db, singAcceptation);
         assertEquals(1, bunches.size());
@@ -925,21 +878,12 @@ public final class AgentsManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
-        final ImmutableIntKeyMap<String> andoAdder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ando")
-                .build();
-
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final int agent1Id = manager.addAgent(erVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+        final int agent1Id = addSingleAlphabetAgent(manager, erVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final int agent2Id = manager.addAgent(0, arVerbBunchSet, noBunches, nullCorrelation, nullCorrelation, arMatcher, andoAdder, gerundConcept);
-        assertTrue(manager.updateAgent(agent1Id, arVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0));
+        final int agent2Id = addSingleAlphabetAgent(manager, 0, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agent1Id, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
         final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, dynamicAcceptation);
@@ -967,21 +911,12 @@ public final class AgentsManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
-        final ImmutableIntKeyMap<String> andoAdder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ando")
-                .build();
-
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        manager.addAgent(arVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+        addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final int agent2Id = manager.addAgent(recentWordsConcept, arVerbBunchSet, noBunches, nullCorrelation, nullCorrelation, arMatcher, andoAdder, gerundConcept);
-        assertTrue(manager.updateAgent(agent2Id, 0, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, andoAdder, gerundConcept));
+        final int agent2Id = addSingleAlphabetAgent(manager, recentWordsConcept, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agent2Id, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
         final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, dynamicAcceptation);
@@ -1011,21 +946,12 @@ public final class AgentsManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> arMatcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
-
-        final ImmutableIntKeyMap<String> andoAdder = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ando")
-                .build();
-
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        manager.addAgent(arVerbConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, arMatcher, 0);
+        addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final int agent2Id = manager.addAgent(0, arVerbBunchSet, noBunches, nullCorrelation, nullCorrelation, arMatcher, andoAdder, gerundConcept);
-        assertTrue(manager.updateAgent(agent2Id, recentWordsConcept, noBunches, noBunches, nullCorrelation, nullCorrelation, arMatcher, andoAdder, gerundConcept));
+        final int agent2Id = addSingleAlphabetAgent(manager, 0, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agent2Id, recentWordsConcept, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
         final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, dynamicAcceptation);
