@@ -1279,4 +1279,54 @@ public final class AgentsManagerTest {
         assertEquals(1, acceptations.size());
         assertEquals(touchAcceptation, acceptations.valueAt(0));
     }
+
+    @Test
+    public void testChangeAgentEndMatcherAndAdder() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int eatConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, eatConcept, "comer");
+
+        final int arVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final int agentId = addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, alphabet, null, null, "er", "er", 0);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId);
+        assertEquals(1, acceptations.size());
+        assertEquals(singAcceptation, acceptations.valueAt(0));
+    }
+
+    @Test
+    public void testChangeAgentStartMatcherAndAdder() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int trustConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, trustConcept, "confiar");
+
+        final int untrustConcept = manager.getMaxConcept() + 1;
+        final int untrustAcceptation = addSimpleAcceptation(manager, alphabet, untrustConcept, "desconfiar");
+
+        final int unVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, unVerbConcept, "verbo que comienza por des");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final int agentId = addSingleAlphabetAgent(manager, unVerbConcept, noBunches, noBunches, alphabet, "con", "con", null, null, 0);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, unVerbConcept, noBunches, noBunches, alphabet, "des", "des", null, null, 0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, unVerbConcept, agentId);
+        assertEquals(1, acceptations.size());
+        assertEquals(untrustAcceptation, acceptations.valueAt(0));
+    }
 }

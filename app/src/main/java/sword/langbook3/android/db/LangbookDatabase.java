@@ -876,6 +876,34 @@ public final class LangbookDatabase {
             somethingChanged = true;
         }
 
+        final int startMatcherId = obtainCorrelation(db, startMatcher);
+        if (startMatcherId != register.startMatcherId) {
+            // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
+            updateQueryBuilder.put(table.getStartMatcherColumnIndex(), startMatcherId);
+            somethingChanged = true;
+        }
+
+        final int startAdderId = obtainCorrelation(db, startAdder);
+        if (startAdderId != register.startAdderId) {
+            // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
+            updateQueryBuilder.put(table.getStartAdderColumnIndex(), startAdderId);
+            somethingChanged = true;
+        }
+
+        final int endMatcherId = obtainCorrelation(db, endMatcher);
+        if (endMatcherId != register.endMatcherId) {
+            // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
+            updateQueryBuilder.put(table.getEndMatcherColumnIndex(), endMatcherId);
+            somethingChanged = true;
+        }
+
+        final int endAdderId = obtainCorrelation(db, endAdder);
+        if (endAdderId != register.endAdderId) {
+            // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
+            updateQueryBuilder.put(table.getEndAdderColumnIndex(), endAdderId);
+            somethingChanged = true;
+        }
+
         if (!somethingChanged) {
             return true;
         }
