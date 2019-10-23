@@ -788,6 +788,10 @@ public final class LangbookDatabase {
             ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule) {
+        if (sourceBunches.anyMatch(diffBunches::contains)) {
+            return null;
+        }
+
         final int sourceBunchSetId = obtainBunchSet(db, sourceBunches);
         final int diffBunchSetId = obtainBunchSet(db, diffBunches);
 
@@ -835,6 +839,10 @@ public final class LangbookDatabase {
             ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule) {
+        if (sourceBunches.anyMatch(diffBunches::contains)) {
+            return false;
+        }
+
         final AgentRegister register = getAgentRegister(db, agentId);
         if (register == null) {
             return false;
@@ -858,6 +866,13 @@ public final class LangbookDatabase {
         if (sourceBunchSetId != register.sourceBunchSetId) {
             // TODO: old bunch set should be removed if not used by any other agent, in order to keep clean the database
             updateQueryBuilder.put(table.getSourceBunchSetColumnIndex(), sourceBunchSetId);
+            somethingChanged = true;
+        }
+
+        final int diffBunchSetId = obtainBunchSet(db, diffBunches);
+        if (diffBunchSetId != register.diffBunchSetId) {
+            // TODO: old bunch set should be removed if not used by any other agent, in order to keep clean the database
+            updateQueryBuilder.put(table.getDiffBunchSetColumnIndex(), diffBunchSetId);
             somethingChanged = true;
         }
 

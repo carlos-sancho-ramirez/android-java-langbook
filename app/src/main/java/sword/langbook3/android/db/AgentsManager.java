@@ -15,8 +15,9 @@ public interface AgentsManager extends BunchesManager, AgentsChecker {
      *                    or 0 if the processed acceptation should not be included in any bunch.
      * @param sourceBunches Set of bunches from where acceptations to be processed will be picked.
      *                      Any acceptation included in at least one of the bunches within the set
-     *                      will be processed, except if the same bunch is included in any of the <code>diffBunches</code>.
+     *                      will be processed, except if the same acceptation is included in any of the <code>diffBunches</code>.
      *                      If this bunch is empty, it is understood that all static acceptations within the database will be used as source.
+     *                      This set must not contain any of the bunches given in diffBunches. It is considered an error and the agent will not be added.
      * @param diffBunches Set of bunches whose included acceptations will be used to filter acceptations coming from the <code>sourceBunches</code>.
      *                    In other words, any acceptation included in any of the source bunches,
      *                    that is not included in any of the diff bunches will be processed.
