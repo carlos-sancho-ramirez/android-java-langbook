@@ -739,6 +739,23 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    static Integer getRuleByRuledConcept(DbExporter.Database db, int ruledConcept) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), ruledConcept)
+                .select(table.getRuleColumnIndex());
+
+        return selectOptionalFirstIntColumn(db, query);
+    }
+
+    static ImmutableIntSet findAgentsByRule(DbExporter.Database db, int rule) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getRuleColumnIndex(), rule)
+                .select(table.getIdColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     static Integer findQuizDefinition(DbExporter.Database db, int bunch, int setId) {
         final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
         final DbQuery query = new DbQuery.Builder(table)
@@ -1730,6 +1747,15 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    static Integer findAcceptation(DbImporter.Database db, int concept, int correlationArrayId) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), concept)
+                .where(table.getCorrelationArrayColumnIndex(), correlationArrayId)
+                .select(table.getIdColumnIndex());
+        return selectOptionalFirstIntColumn(db, query);
     }
 
     static final class MorphologyReaderResult {

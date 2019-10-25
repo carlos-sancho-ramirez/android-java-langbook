@@ -5,7 +5,6 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
-import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueMap;
@@ -90,6 +89,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.correlationArr
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByAcceptationCorrelationModification;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByItsDiffWithTarget;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsByRule;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAlphabetsByLanguage;
@@ -104,6 +104,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findQuizzesByB
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSentencesBySymbolArrayId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentExecutionOrder;
@@ -121,11 +122,11 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxCorrelat
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxCorrelationId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxQuestionFieldSetId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getQuizDetails;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getRuleByRuledConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSpansWithIds;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSentenceSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.hasAgentsRequiringAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationStaticallyInBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
@@ -393,6 +394,10 @@ public final class LangbookDatabase {
             processedAcceptationsMap = processedAcceptations.assignToInt(key -> key);
         }
         else {
+            final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+            final ImmutableIntSet conversionTargets = conversionMap.keySet();
+            final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
+
             // This is assuming that matcher, adder, rule and flags did not change from last run,
             // only its source and diff bunches and its contents
             final ImmutableIntPairMap oldProcessedMap = getAgentProcessedMap(db, agentId);
@@ -418,6 +423,85 @@ public final class LangbookDatabase {
             }
             else {
                 final ImmutableIntSet alreadyProcessedAcceptations = oldProcessedMap.keySet();
+                final int sampleStaticAcc = matchingAcceptations.findFirst(alreadyProcessedAcceptations::contains, 0);
+                final boolean hasSameRule;
+                final boolean canReuseRuledConcept;
+                final boolean hasSameAdders;
+                if (sampleStaticAcc != 0) {
+                    final int sampleDynAcc = oldProcessedMap.get(sampleStaticAcc);
+                    final int sampleRuledConcept = LangbookReadableDatabase.conceptFromAcceptation(db, sampleDynAcc);
+                    final int sampleRule = getRuleByRuledConcept(db, sampleRuledConcept);
+                    hasSameRule = sampleRule == agentDetails.rule;
+                    canReuseRuledConcept = hasSameRule || findAgentsByRule(db, sampleRule).isEmpty();
+
+                    final MutableIntKeyMap<String> accText = getAcceptationTexts(db, sampleStaticAcc).mutate();
+                    final ImmutableIntKeyMap<String> sampleDynAccText = getAcceptationTexts(db, sampleDynAcc);
+                    final boolean validConversion = applyMatchersAddersAndConversions(accText, agentDetails,
+                            conversionMap, conversions);
+                    hasSameAdders = validConversion && accText.equalMap(sampleDynAccText);
+                }
+                else {
+                    hasSameRule = false;
+                    canReuseRuledConcept = false;
+                    hasSameAdders = false;
+                }
+
+                if (!hasSameRule && canReuseRuledConcept) {
+                    for (int staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
+                        final int dynAcc = oldProcessedMap.get(staticAcc);
+                        final int ruledConcept = LangbookReadableDatabase.conceptFromAcceptation(db, dynAcc);
+                        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+                        final DbUpdateQuery updateQuery = new DbUpdateQuery.Builder(table)
+                                .put(table.getRuleColumnIndex(), agentDetails.rule)
+                                .where(table.getIdColumnIndex(), ruledConcept)
+                                .build();
+                        if (!db.update(updateQuery)) {
+                            throw new AssertionError();
+                        }
+                    }
+                }
+
+                if (!hasSameAdders) {
+                    for (int staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
+                        final MutableIntKeyMap<String> correlation = getAcceptationTexts(db, sampleStaticAcc).mutate();
+                        final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
+                                conversionMap, conversions);
+                        if (validConversion) {
+                            final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
+                            for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
+                                if (!conversionTargets.contains(entry.key())) {
+                                    corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                                }
+                            }
+
+                            final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
+                            final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
+                            final int dynAcc = oldProcessedMap.get(staticAcc);
+
+                            final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+                            DbUpdateQuery updateQuery = new DbUpdateQuery.Builder(table)
+                                    .put(table.getCorrelationArrayColumnIndex(), correlationArrayId)
+                                    .where(table.getIdColumnIndex(), dynAcc)
+                                    .build();
+                            if (!db.update(updateQuery)) {
+                                throw new AssertionError();
+                            }
+
+                            for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+                                final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+                                updateQuery = new DbUpdateQuery.Builder(strings)
+                                        .put(strings.getStringColumnIndex(), entry.value())
+                                        .where(strings.getDynamicAcceptationColumnIndex(), dynAcc)
+                                        .where(strings.getStringAlphabetColumnIndex(), entry.key())
+                                        .build();
+                                if (!db.update(updateQuery)) {
+                                    throw new AssertionError();
+                                }
+                            }
+                        }
+                    }
+                }
+
                 toBeProcessed = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
 
                 final MutableIntPairMap resultProcessedMap = oldProcessedMap.mutate();
@@ -441,9 +525,6 @@ public final class LangbookDatabase {
                 }
             }
 
-            final ImmutableIntPairMap conversionMap = getConversionsMap(db);
-            final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
-
             final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
             final ImmutableIntPairMap.Builder processedAccMapBuilder = new ImmutableIntPairMap.Builder();
             for (int acc : matchingAcceptations) {
@@ -455,7 +536,6 @@ public final class LangbookDatabase {
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
                             conversionMap, conversions);
                     if (validConversion) {
-                        final ImmutableIntSet conversionTargets = conversionMap.keySet();
                         final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
                         for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
                             if (!conversionTargets.contains(entry.key())) {
@@ -802,6 +882,12 @@ public final class LangbookDatabase {
         final int endMatcherId = cachedCorrelationIds.get(endMatcher);
         final int endAdderId = cachedCorrelationIds.get(endAdder);
 
+        final boolean ruleExpected = startMatcherId != startAdderId || endMatcherId != endAdderId;
+        final boolean rulePresent = rule != 0;
+        if (ruleExpected != rulePresent) {
+            return null;
+        }
+
         final AgentRegister register;
         try {
             register = new AgentRegister(targetBunch, sourceBunchSetId,
@@ -901,6 +987,17 @@ public final class LangbookDatabase {
         if (endAdderId != register.endAdderId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getEndAdderColumnIndex(), endAdderId);
+            somethingChanged = true;
+        }
+
+        final boolean ruleExpected = startMatcherId != startAdderId || endMatcherId != endAdderId;
+        final boolean rulePresent = rule != 0;
+        if (ruleExpected != rulePresent) {
+            return false;
+        }
+
+        if (rule != register.rule) {
+            updateQueryBuilder.put(table.getRuleColumnIndex(), rule);
             somethingChanged = true;
         }
 
@@ -1807,18 +1904,5 @@ public final class LangbookDatabase {
      */
     public static Integer obtainSimpleCorrelationArray(DbImporter.Database db, int correlationId) {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
-    }
-
-    private static boolean addSpan(DbImporter.Database db, int symbolArray, ImmutableIntRange range, int dynamicAcceptation) {
-        if (isSymbolArrayPresent(db, symbolArray) && isAcceptationPresent(db, dynamicAcceptation)) {
-            insertSpan(db, symbolArray, range, dynamicAcceptation);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static boolean removeSpan(Deleter db, int id) {
-        return deleteSpan(db, id);
     }
 }
