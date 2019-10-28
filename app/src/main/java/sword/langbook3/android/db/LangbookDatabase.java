@@ -2,6 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
@@ -74,6 +75,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptationByAgent;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSearchHistoryForAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSentence;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSpan;
@@ -105,6 +107,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findSentencesB
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentExecutionOrder;
@@ -376,11 +379,23 @@ public final class LangbookDatabase {
                 agentDetails.sourceBunches, agentDetails.diffBunches,
                 agentDetails.startMatcher, agentDetails.endMatcher);
 
+        final ImmutablePair<Integer, ImmutableIntSet> acceptationsInBunchResult = getAcceptationsInBunchByAgent(db, agentId);
+        final ImmutableIntSet acceptationsInBunch = acceptationsInBunchResult.right;
+
         boolean targetChanged = false;
         final boolean ruleApplied = agentDetails.modifyCorrelations();
         final ImmutableIntPairMap processedAcceptationsMap;
         if (!ruleApplied) {
-            final ImmutableIntSet alreadyProcessedAcceptations = getAcceptationsInBunchByBunchAndAgent(db, agentDetails.targetBunch, agentId);
+            final ImmutableIntSet alreadyProcessedAcceptations;
+            // TODO: Ruled concept should also be removed if they are not used by other agent
+            if (deleteRuledAcceptationByAgent(db, agentId)) {
+                deleteBunchAcceptationsByAgent(db, agentId);
+                targetChanged = true;
+                alreadyProcessedAcceptations = ImmutableIntArraySet.empty();
+            }
+            else {
+                alreadyProcessedAcceptations = getAcceptationsInBunchByBunchAndAgent(db, agentDetails.targetBunch, agentId);
+            }
 
             for (int acc : alreadyProcessedAcceptations) {
                 if (!matchingAcceptations.contains(acc)) {
@@ -423,6 +438,11 @@ public final class LangbookDatabase {
             }
             else {
                 final ImmutableIntSet alreadyProcessedAcceptations = oldProcessedMap.keySet();
+                final boolean noRuleBefore = alreadyProcessedAcceptations.isEmpty() && !acceptationsInBunch.isEmpty();
+                if (noRuleBefore && !deleteBunchAcceptationsByAgent(db, agentId)) {
+                    throw new AssertionError();
+                }
+
                 final int sampleStaticAcc = matchingAcceptations.findFirst(alreadyProcessedAcceptations::contains, 0);
                 final boolean hasSameRule;
                 final boolean canReuseRuledConcept;

@@ -1416,4 +1416,64 @@ public final class AgentsManagerTest {
         assertEquals(1, rules.size());
         assertEquals(gerundConcept, rules.valueAt(0));
     }
+
+    @Test
+    public void testAddAdderAndRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int myTargetBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, myTargetBunch, "mi lista");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final int agentId = addSingleAlphabetAgent(manager, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+
+        final ImmutableList<MorphologyResult> morphologies = readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies;
+        assertEquals(1, morphologies.size());
+        assertEquals("cantando", morphologies.valueAt(0).text);
+
+        final ImmutableIntList rules = morphologies.valueAt(0).rules;
+        assertEquals(1, rules.size());
+        assertEquals(gerundConcept, rules.valueAt(0));
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId);
+        assertEquals(1, acceptations.size());
+        assertEquals(morphologies.valueAt(0).dynamicAcceptation, acceptations.valueAt(0));
+    }
+
+    @Test
+    public void testRemoveAdderAndRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int myTargetBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, myTargetBunch, "mi lista");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final int agentId = addSingleAlphabetAgent(manager, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        assertTrue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies.isEmpty());
+
+        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId);
+        assertEquals(1, acceptations.size());
+        assertEquals(singAcceptation, acceptations.valueAt(0));
+    }
 }

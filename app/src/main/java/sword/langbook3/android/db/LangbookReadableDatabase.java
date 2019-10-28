@@ -1262,26 +1262,6 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
-    static ImmutableIntKeyMap<ImmutableIntSet> getAcceptationsAndAgentSetsInBunch(DbExporter.Database db, int bunch) {
-        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getBunchColumnIndex(), bunch)
-                .select(table.getAcceptationColumnIndex(), table.getAgentColumnIndex());
-
-        final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
-        final MutableIntKeyMap<ImmutableIntSet> builder = MutableIntKeyMap.empty();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final int acceptation = row.get(0).toInt();
-                final ImmutableIntSet currentSet = builder.get(acceptation, emptySet);
-                builder.put(acceptation, currentSet.add(row.get(1).toInt()));
-            }
-        }
-
-        return builder.toImmutable();
-    }
-
     static ImmutableIntSet getAcceptationsInBunchByBunchAndAgent(DbExporter.Database db, int bunch, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
@@ -1290,6 +1270,30 @@ public final class LangbookReadableDatabase {
                 .select(table.getAcceptationColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    static ImmutablePair<Integer, ImmutableIntSet> getAcceptationsInBunchByAgent(DbExporter.Database db, int agentId) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAgentColumnIndex(), agentId)
+                .select(table.getBunchColumnIndex(), table.getAcceptationColumnIndex());
+
+        Integer bunch = null;
+        final MutableIntSet acceptations = MutableIntArraySet.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int thisBunch = row.get(0).toInt();
+                if (bunch != null && thisBunch != bunch) {
+                    throw new AssertionError();
+                }
+
+                bunch = thisBunch;
+                acceptations.add(row.get(1).toInt());
+            }
+        }
+
+        return new ImmutablePair<>(bunch, acceptations.toImmutable());
     }
 
     static ImmutableIntSet getAcceptationsInBunch(DbExporter.Database db, int bunch) {

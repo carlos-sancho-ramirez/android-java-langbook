@@ -82,6 +82,14 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static boolean deleteRuledAcceptationByAgent(Deleter db, int agentId) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getAgentColumnIndex(), agentId)
+                .build();
+        return db.delete(query);
+    }
+
     static boolean deleteStringQueriesForDynamicAcceptation(Deleter db, int dynamicAcceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
