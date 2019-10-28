@@ -136,6 +136,7 @@
     <string name="no">No</string>
 
     <string name="newAgentFeedback">Agent included</string>
+    <string name="updateAgentFeedback">Agent updated</string>
     <string name="newAcceptationFeedback">Acceptation included</string>
     <string name="deleteAcceptationFeedback">Acceptation deleted</string>
     <string name="deleteAgentFeedback">Agent deleted</string>
@@ -150,6 +151,7 @@
     <string name="updateSentenceFeedback">Sentence updated</string>
     <string name="includeInBunchKo">Unable to include acceptation in bunch</string>
     <string name="newAgentError">Unable to include agent</string>
+    <string name="updateAgentError">Unable to update agent</string>
     <string name="spanEditorNoSpanPresentError">No span present</string>
     <string name="updateConversionFeedback">Conversion updated</string>
     <string name="includeAlphabetFeedback">Alphabet included</string>

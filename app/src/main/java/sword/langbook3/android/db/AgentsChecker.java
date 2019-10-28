@@ -6,6 +6,7 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.MutableIntKeyMap;
 import sword.langbook3.android.DisplayableItem;
+import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.SearchResult;
 import sword.langbook3.android.models.TableCellReference;
@@ -18,6 +19,7 @@ public interface AgentsChecker extends BunchesChecker {
     ImmutableIntSet getAgentIds();
     ImmutableList<SearchResult> findAcceptationFromText(String queryText, int restrictionStringType);
     AgentRegister getAgentRegister(int agentId);
+    AgentDetails getAgentDetails(int agentId);
     ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(int bunchSet, int preferredAlphabet);
     ImmutableList<SearchResult> findAcceptationAndRulesFromText(String queryText, int restrictionStringType);
     ImmutableMap<TableCellReference, TableCellValue> readTableContent(int dynamicAcceptation, int preferredAlphabet);

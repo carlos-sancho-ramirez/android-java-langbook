@@ -15,6 +15,7 @@ import sword.database.DbExporter;
 import sword.langbook3.android.DisplayableItem;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.AcceptationDetailsModel;
+import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
@@ -171,6 +172,11 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     @Override
     public AgentRegister getAgentRegister(int agentId) {
         return LangbookReadableDatabase.getAgentRegister(getDatabase(), agentId);
+    }
+
+    @Override
+    public AgentDetails getAgentDetails(int agentId) {
+        return LangbookReadableDatabase.getAgentDetails(getDatabase(), agentId);
     }
 
     @Override

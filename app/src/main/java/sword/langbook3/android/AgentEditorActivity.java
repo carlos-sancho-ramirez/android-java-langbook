@@ -23,14 +23,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntSet;
+import sword.collections.IntKeyMap;
+import sword.collections.IntList;
 import sword.collections.List;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
-import sword.database.Database;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.models.AgentDetails;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
@@ -44,12 +47,22 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private static final int NO_RULE = 0;
 
+    private interface ArgKeys {
+        String AGENT = BundleKeys.AGENT;
+    }
+
     private interface SavedKeys {
         String STATE = "st";
     }
 
     public static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    public static void open(Activity activity, int requestCode, int agentId) {
+        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        intent.putExtra(ArgKeys.AGENT, agentId);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -213,6 +226,97 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private LinearLayout _endMatchersContainer;
     private LinearLayout _endAddersContainer;
 
+    private int getAgentId() {
+        return getIntent().getIntExtra(ArgKeys.AGENT, 0);
+    }
+
+    private void updateBunchSet(LangbookChecker checker, ViewGroup container, MutableIntList bunches) {
+        final int currentBunchViewCount = container.getChildCount();
+        final int stateBunchCount = bunches.size();
+
+        for (int i = currentBunchViewCount - 1; i >= stateBunchCount; i--) {
+            container.removeViewAt(i);
+        }
+
+        for (int i = 0; i < stateBunchCount; i++) {
+            final int concept = bunches.valueAt(i);
+            if (i < currentBunchViewCount) {
+                bindBunch(container.getChildAt(i), checker, concept, container, bunches);
+            }
+            else {
+                addBunch(checker, concept, container, bunches);
+            }
+        }
+    }
+
+    private void updateCorrelation(ViewGroup container, MutableList<CorrelationEntry> correlation) {
+        final int currentEntryViewCount = container.getChildCount();
+        final int stateEntryCount = correlation.size();
+
+        for (int i = currentEntryViewCount - 1; i >= stateEntryCount; i--) {
+            container.removeViewAt(i);
+        }
+
+        for (int i = 0; i < stateEntryCount; i++) {
+            final CorrelationEntry entry = correlation.get(i);
+            if (i < currentEntryViewCount) {
+                bindEntry(container.getChildAt(i), entry, container, correlation);
+            }
+            else {
+                addEntry(entry, container, correlation);
+            }
+        }
+    }
+
+    private void setStateValues() {
+        final LangbookChecker checker = DbManager.getInstance().getManager();
+        _includeTargetBunchCheckBox.setChecked(_state.includeTargetBunch);
+
+        if (_state.targetBunch != NO_BUNCH) {
+            final TextView textView = findViewById(R.id.targetBunchText);
+            textView.setText(checker.readConceptText(_state.targetBunch, _preferredAlphabet));
+            _targetBunchChangeButton.setEnabled(_state.includeTargetBunch);
+        }
+
+        updateBunchSet(checker, _sourceBunchesContainer, _state.sourceBunches);
+        updateBunchSet(checker, _diffBunchesContainer, _state.diffBunches);
+
+        updateCorrelation(_startMatchersContainer, _state.startMatcher);
+        updateCorrelation(_startAddersContainer, _state.startAdder);
+        updateCorrelation(_endMatchersContainer, _state.endMatcher);
+        updateCorrelation(_endAddersContainer, _state.endAdder);
+
+        if (_state.startMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
+                _state.startAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
+                _state.endMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
+                _state.endAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text))) {
+
+            enableFlagAndRuleFields();
+        }
+
+        final TextView textView = findViewById(R.id.ruleText);
+        textView.setText((_state.rule != NO_RULE)? checker.readConceptText(_state.rule, _preferredAlphabet) : null);
+    }
+
+    // TODO: Include this in the collection library
+    private MutableIntList mutate(IntList collection) {
+        MutableIntList result = MutableIntList.empty();
+        for (int value : collection) {
+            result.append(value);
+        }
+
+        return result;
+    }
+
+    private MutableList<CorrelationEntry> toCorrelationEntryList(IntKeyMap<String> correlation) {
+        final MutableList<CorrelationEntry> result = MutableList.empty();
+        for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+            result.append(new CorrelationEntry(entry.key(), entry.value()));
+        }
+
+        return result;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -227,83 +331,57 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
         else {
             _state = new State();
+
+            final int agentId = getAgentId();
+            if (agentId != 0) {
+                final AgentDetails agentDetails = checker.getAgentDetails(agentId);
+                _state.targetBunch = agentDetails.targetBunch;
+                _state.includeTargetBunch = agentDetails.targetBunch != 0;
+                _state.sourceBunches = mutate(agentDetails.sourceBunches.toList());
+                _state.diffBunches = mutate(agentDetails.diffBunches.toList());
+                _state.startMatcher = toCorrelationEntryList(agentDetails.startMatcher);
+                _state.startAdder = toCorrelationEntryList(agentDetails.startAdder);
+                _state.endMatcher = toCorrelationEntryList(agentDetails.endMatcher);
+                _state.endAdder = toCorrelationEntryList(agentDetails.endAdder);
+                _state.rule = agentDetails.rule;
+            }
         }
 
         _includeTargetBunchCheckBox = findViewById(R.id.includeTargetBunch);
-        if (_state.includeTargetBunch) {
-            _includeTargetBunchCheckBox.setChecked(true);
-        }
         _includeTargetBunchCheckBox.setOnCheckedChangeListener(this);
 
         _targetBunchChangeButton = findViewById(R.id.targetBunchChangeButton);
-        if (_state.targetBunch != NO_BUNCH) {
-            final TextView textView = findViewById(R.id.targetBunchText);
-            textView.setText(checker.readConceptText(_state.targetBunch, _preferredAlphabet));
-
-            if (_state.includeTargetBunch) {
-                _targetBunchChangeButton.setEnabled(true);
-            }
-        }
         _targetBunchChangeButton.setOnClickListener(this);
 
         findViewById(R.id.addSourceBunchButton).setOnClickListener(this);
-        _sourceBunchesContainer = findViewById(R.id.sourceBunchesContainer);
-        for (int concept : _state.sourceBunches) {
-            addSourceBunch(concept);
-        }
-
         findViewById(R.id.addDiffBunchButton).setOnClickListener(this);
+
+        _sourceBunchesContainer = findViewById(R.id.sourceBunchesContainer);
         _diffBunchesContainer = findViewById(R.id.diffBunchesContainer);
-        for (int concept : _state.diffBunches) {
-            addDiffBunch(concept);
-        }
 
         _startMatchersContainer = findViewById(R.id.startMatchersContainer);
-        for (CorrelationEntry entry : _state.startMatcher) {
-            addEntry(entry, _startMatchersContainer, _state.startMatcher);
-        }
-        findViewById(R.id.addStartMatcherButton).setOnClickListener(this);
-
         _startAddersContainer = findViewById(R.id.startAddersContainer);
-        for (CorrelationEntry entry : _state.startAdder) {
-            addEntry(entry, _startAddersContainer, _state.startAdder);
-        }
-        findViewById(R.id.addStartAdderButton).setOnClickListener(this);
-
         _endMatchersContainer = findViewById(R.id.endMatchersContainer);
-        for (CorrelationEntry entry : _state.endMatcher) {
-            addEntry(entry, _endMatchersContainer, _state.endMatcher);
-        }
-        findViewById(R.id.addEndMatcherButton).setOnClickListener(this);
-
         _endAddersContainer = findViewById(R.id.endAddersContainer);
-        for (CorrelationEntry entry : _state.endAdder) {
-            addEntry(entry, _endAddersContainer, _state.endAdder);
-        }
+
+        findViewById(R.id.addStartMatcherButton).setOnClickListener(this);
+        findViewById(R.id.addStartAdderButton).setOnClickListener(this);
+        findViewById(R.id.addEndMatcherButton).setOnClickListener(this);
         findViewById(R.id.addEndAdderButton).setOnClickListener(this);
 
-        if (_state.startMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
-                _state.startAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
-                _state.endMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
-                _state.endAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text))) {
-
-            enableFlagAndRuleFields();
-        }
-
         findViewById(R.id.ruleChangeButton).setOnClickListener(this);
-
-        if (_state.rule != NO_RULE) {
-            final TextView textView = findViewById(R.id.ruleText);
-            textView.setText(checker.readConceptText(_state.rule, _preferredAlphabet));
-        }
-
         findViewById(R.id.saveButton).setOnClickListener(this);
+
+        setStateValues();
     }
 
-    private void addEntry(CorrelationEntry entry, LinearLayout container, MutableList<CorrelationEntry> entries) {
+    private void addEntry(CorrelationEntry entry, ViewGroup container, MutableList<CorrelationEntry> entries) {
         getLayoutInflater().inflate(R.layout.agent_editor_correlation_entry, container, true);
         final View view = container.getChildAt(container.getChildCount() - 1);
+        bindEntry(view, entry, container, entries);
+    }
 
+    private void bindEntry(View view, CorrelationEntry entry, ViewGroup container, MutableList<CorrelationEntry> entries) {
         final Spinner alphabetSpinner = view.findViewById(R.id.alphabet);
         alphabetSpinner.setAdapter(new AlphabetAdapter());
         final int position = _alphabets.keySet().indexOf(entry.alphabet);
@@ -313,15 +391,13 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         alphabetSpinner.setOnItemSelectedListener(new AlphabetSelectedListener(entry));
 
         final EditText textField = view.findViewById(R.id.text);
-        if (entry.text != null) {
-            textField.setText(entry.text);
-        }
+        textField.setText(entry.text);
         textField.addTextChangedListener(new CorrelationTextWatcher(entry));
 
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeEntry(entry, container, entries));
     }
 
-    private static void removeEntry(CorrelationEntry entry, LinearLayout container, MutableList<CorrelationEntry> entries) {
+    private static void removeEntry(CorrelationEntry entry, ViewGroup container, MutableList<CorrelationEntry> entries) {
         final int position = entries.indexOf(entry);
         if (position < 0) {
             throw new AssertionError();
@@ -426,44 +502,26 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
     }
 
-    private void addSourceBunch(int concept) {
-        getLayoutInflater().inflate(R.layout.agent_editor_bunch_entry, _sourceBunchesContainer, true);
-        final View view = _sourceBunchesContainer.getChildAt(_sourceBunchesContainer.getChildCount() - 1);
-
-        final TextView textView = view.findViewById(R.id.textView);
-        textView.setText(DbManager.getInstance().getManager().readConceptText(concept, _preferredAlphabet));
-
-        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeSourceBunch(concept));
+    private void addBunch(LangbookChecker checker, int concept, ViewGroup container, MutableIntList bunches) {
+        getLayoutInflater().inflate(R.layout.agent_editor_bunch_entry, container, true);
+        final View view = container.getChildAt(container.getChildCount() - 1);
+        bindBunch(view, checker, concept, container, bunches);
     }
 
-    private void removeSourceBunch(int concept) {
-        final int index = _state.sourceBunches.indexOf(concept);
+    private void bindBunch(View view, LangbookChecker checker, int concept, ViewGroup container, MutableIntList bunches) {
+        final TextView textView = view.findViewById(R.id.textView);
+        textView.setText(checker.readConceptText(concept, _preferredAlphabet));
+        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeBunch(container, bunches, concept));
+    }
+
+    private static void removeBunch(ViewGroup container, MutableIntList bunches, int concept) {
+        final int index = bunches.indexOf(concept);
         if (index < 0) {
             throw new AssertionError();
         }
 
-        _sourceBunchesContainer.removeViewAt(index);
-        _state.sourceBunches.removeAt(index);
-    }
-
-    private void addDiffBunch(int concept) {
-        getLayoutInflater().inflate(R.layout.agent_editor_bunch_entry, _diffBunchesContainer, true);
-        final View view = _diffBunchesContainer.getChildAt(_diffBunchesContainer.getChildCount() - 1);
-
-        final TextView textView = view.findViewById(R.id.textView);
-        textView.setText(DbManager.getInstance().getManager().readConceptText(concept, _preferredAlphabet));
-
-        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeDiffBunch(concept));
-    }
-
-    private void removeDiffBunch(int concept) {
-        final int index = _state.diffBunches.indexOf(concept);
-        if (index < 0) {
-            throw new AssertionError();
-        }
-
-        _diffBunchesContainer.removeViewAt(index);
-        _state.diffBunches.removeAt(index);
+        container.removeViewAt(index);
+        bunches.removeAt(index);
     }
 
     @Override
@@ -540,7 +598,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
                 }
                 else {
-                    final Database db = DbManager.getInstance().getDatabase();
                     final int targetBunch = _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH;
 
                     final ImmutableIntKeyMap<String> startMatcher = buildCorrelation(_state.startMatcher);
@@ -550,14 +607,29 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
                     final int rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? NO_RULE : _state.rule;
 
-                    final Integer agentId = DbManager.getInstance().getManager().addAgent(targetBunch,
-                            _state.sourceBunches.toImmutable().toSet(), _state.diffBunches.toImmutable().toSet(),
-                            startMatcher, startAdder, endMatcher, endAdder, rule);
-                    final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-                    if (agentId != null) {
-                        setResult(RESULT_OK);
-                        finish();
+                    final int givenAgentId = getAgentId();
+                    final LangbookManager manager = DbManager.getInstance().getManager();
+                    final ImmutableIntSet sourceBunches = _state.sourceBunches.toImmutable().toSet();
+                    final ImmutableIntSet diffBunches = _state.diffBunches.toImmutable().toSet();
+                    if (givenAgentId == 0) {
+                        final Integer agentId = manager.addAgent(targetBunch, sourceBunches, diffBunches,
+                                startMatcher, startAdder, endMatcher, endAdder, rule);
+                        final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
+                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                        if (agentId != null) {
+                            setResult(RESULT_OK);
+                            finish();
+                        }
+                    }
+                    else {
+                        final boolean success = manager.updateAgent(givenAgentId, targetBunch, sourceBunches, diffBunches,
+                                startMatcher, startAdder, endMatcher, endAdder, rule);
+                        final int message = success? R.string.updateAgentFeedback : R.string.updateAgentError;
+                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                        if (success) {
+                            setResult(RESULT_OK);
+                            finish();
+                        }
                     }
                 }
                 break;
@@ -596,7 +668,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
             final int concept = manager.conceptFromAcceptation(acceptation);
             _state.sourceBunches.append(concept);
-            addSourceBunch(concept);
+            addBunch(DbManager.getInstance().getManager(), concept, _sourceBunchesContainer, _state.sourceBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_DIFF_BUNCH && resultCode == RESULT_OK) {
             final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
@@ -606,7 +678,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
             final int concept = manager.conceptFromAcceptation(acceptation);
             _state.diffBunches.append(concept);
-            addDiffBunch(concept);
+            addBunch(DbManager.getInstance().getManager(), concept, _diffBunchesContainer, _state.diffBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_RULE && resultCode == RESULT_OK) {
             final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);

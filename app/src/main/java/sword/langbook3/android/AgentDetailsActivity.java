@@ -20,6 +20,8 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
 public final class AgentDetailsActivity extends Activity {
 
+    private static final int REQUEST_CODE_EDIT_AGENT = 1;
+
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
     }
@@ -40,6 +42,7 @@ public final class AgentDetailsActivity extends Activity {
     boolean _deleteDialogPresent;
 
     AgentRegister _register;
+    private boolean _uiJustUpdated;
 
     private void dumpCorrelation(LangbookChecker checker, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, StringBuilder sb) {
         ImmutableIntKeyMap<String> matcher = checker.getCorrelationWithText(correlationId);
@@ -66,7 +69,11 @@ public final class AgentDetailsActivity extends Activity {
         }
 
         setTitle(AGENT_QUERY_PREFIX + '#' + _agentId);
+        updateUi();
+        _uiJustUpdated = true;
+    }
 
+    private void updateUi() {
         final LangbookChecker checker = DbManager.getInstance().getManager();
         _register = checker.getAgentRegister(_agentId);
 
@@ -113,6 +120,13 @@ public final class AgentDetailsActivity extends Activity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_EDIT_AGENT && resultCode == RESULT_OK && !_uiJustUpdated) {
+            updateUi();
+        }
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         getMenuInflater().inflate(R.menu.agent_details_activity, menu);
@@ -122,6 +136,10 @@ public final class AgentDetailsActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.menuItemEdit:
+                AgentEditorActivity.open(this, REQUEST_CODE_EDIT_AGENT, _agentId);
+                return true;
+
             case R.id.menuItemDeleteAgent:
                 _deleteDialogPresent = true;
                 showDeleteConfirmationDialog();
@@ -131,6 +149,12 @@ public final class AgentDetailsActivity extends Activity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onResume() {
+        _uiJustUpdated = false;
+        super.onResume();
     }
 
     @Override
