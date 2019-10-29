@@ -25,7 +25,6 @@ import android.widget.Toast;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
-import sword.collections.IntList;
 import sword.collections.List;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntList;
@@ -298,16 +297,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         textView.setText((_state.rule != NO_RULE)? checker.readConceptText(_state.rule, _preferredAlphabet) : null);
     }
 
-    // TODO: Include this in the collection library
-    private MutableIntList mutate(IntList collection) {
-        MutableIntList result = MutableIntList.empty();
-        for (int value : collection) {
-            result.append(value);
-        }
-
-        return result;
-    }
-
     private MutableList<CorrelationEntry> toCorrelationEntryList(IntKeyMap<String> correlation) {
         final MutableList<CorrelationEntry> result = MutableList.empty();
         for (IntKeyMap.Entry<String> entry : correlation.entries()) {
@@ -337,8 +326,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 final AgentDetails agentDetails = checker.getAgentDetails(agentId);
                 _state.targetBunch = agentDetails.targetBunch;
                 _state.includeTargetBunch = agentDetails.targetBunch != 0;
-                _state.sourceBunches = mutate(agentDetails.sourceBunches.toList());
-                _state.diffBunches = mutate(agentDetails.diffBunches.toList());
+                _state.sourceBunches = agentDetails.sourceBunches.toList().mutate();
+                _state.diffBunches = agentDetails.diffBunches.toList().mutate();
                 _state.startMatcher = toCorrelationEntryList(agentDetails.startMatcher);
                 _state.startAdder = toCorrelationEntryList(agentDetails.startAdder);
                 _state.endMatcher = toCorrelationEntryList(agentDetails.endMatcher);
