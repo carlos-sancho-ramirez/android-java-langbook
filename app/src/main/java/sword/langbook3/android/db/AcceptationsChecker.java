@@ -13,7 +13,6 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 
 public interface AcceptationsChecker extends ConceptsChecker {
-    String getSymbolArray(int id);
     Integer findLanguageByCode(String code);
     ImmutableIntSet findAlphabetsByLanguage(int language);
     ImmutableIntKeyMap<String> getAcceptationTexts(int acceptation);

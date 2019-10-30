@@ -261,7 +261,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.acceptation_details_activity);
+        setContentView(R.layout.list_activity);
 
         if (!getIntent().hasExtra(ArgKeys.STATIC_ACCEPTATION)) {
             throw new IllegalArgumentException("staticAcceptation not provided");

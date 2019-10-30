@@ -7,10 +7,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TextView;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.AgentRegister;
@@ -18,9 +21,10 @@ import sword.langbook3.android.models.AgentRegister;
 import static sword.langbook3.android.SearchActivity.AGENT_QUERY_PREFIX;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
-public final class AgentDetailsActivity extends Activity {
+public final class AgentDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
-    private static final int REQUEST_CODE_EDIT_AGENT = 1;
+    private static final int REQUEST_CODE_CLICK_NAVIGATION = 1;
+    private static final int REQUEST_CODE_EDIT_AGENT = 2;
 
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
@@ -44,19 +48,15 @@ public final class AgentDetailsActivity extends Activity {
     AgentRegister _register;
     private boolean _uiJustUpdated;
 
-    private void dumpCorrelation(LangbookChecker checker, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, StringBuilder sb) {
-        ImmutableIntKeyMap<String> matcher = checker.getCorrelationWithText(correlationId);
-        for (int i = 0; i < matcher.size(); i++) {
-            final int alphabet = matcher.keyAt(i);
-            final String alphabetText = alphabetTexts.get(alphabet);
-            sb.append("\n  * ").append(alphabetText).append(" -> ").append(matcher.valueAt(i));
-        }
-    }
+    private ListView _listView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.agent_details_activity);
+        setContentView(R.layout.list_activity);
+
+        _listView = findViewById(R.id.listView);
+        _listView.setOnItemClickListener(this);
 
         if (!getIntent().hasExtra(ArgKeys.AGENT)) {
             throw new IllegalArgumentException("agent identifier not provided");
@@ -73,46 +73,68 @@ public final class AgentDetailsActivity extends Activity {
         _uiJustUpdated = true;
     }
 
+    private static void addCorrelationSection(LangbookChecker checker, String title, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
+        boolean headerAdded = false;
+        ImmutableIntKeyMap<String> matcher = checker.getCorrelationWithText(correlationId);
+        for (int i = 0; i < matcher.size(); i++) {
+            if (!headerAdded) {
+                headerAdded = true;
+                builder.add(new AcceptationDetailsAdapter.HeaderItem(title));
+            }
+
+            final int alphabet = matcher.keyAt(i);
+            final String alphabetText = alphabetTexts.get(alphabet);
+            final String text = alphabetText + " -> " + matcher.valueAt(i);
+            builder.add(new AcceptationDetailsAdapter.NonNavigableItem(text));
+        }
+    }
+
     private void updateUi() {
         final LangbookChecker checker = DbManager.getInstance().getManager();
         _register = checker.getAgentRegister(_agentId);
 
-        final StringBuilder s = new StringBuilder();
+        final ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder = new ImmutableList.Builder<>();
         if (_register.targetBunch != NO_BUNCH) {
+            builder.add(new AcceptationDetailsAdapter.HeaderItem("Target bunches"));
             DisplayableItem targetResult = checker.readConceptAcceptationAndText(_register.targetBunch, _preferredAlphabet);
-            s.append("Target: ").append(targetResult.text).append(" (").append(_register.targetBunch).append(")\n");
+            builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(targetResult.id, targetResult.text, false));
         }
 
-        s.append("Source Bunch Set (").append(_register.sourceBunchSetId).append("):");
+        boolean headerAdded = false;
         for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.sourceBunchSetId, _preferredAlphabet)) {
-            s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
+            if (!headerAdded) {
+                headerAdded = true;
+                builder.add(new AcceptationDetailsAdapter.HeaderItem("Source bunches"));
+            }
+
+            builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
         }
 
-        s.append("\nDiff Bunch Set (").append(_register.diffBunchSetId).append("):");
+        headerAdded = false;
         for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.diffBunchSetId, _preferredAlphabet)) {
-            s.append("\n  * ").append(r.text).append(" (").append(r.id).append(')');
+            if (!headerAdded) {
+                headerAdded = true;
+                builder.add(new AcceptationDetailsAdapter.HeaderItem("Diff bunches"));
+            }
+
+            builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
         }
 
         final SyncCacheIntKeyNonNullValueMap<String> alphabetTexts = new SyncCacheIntKeyNonNullValueMap<>(alphabet -> checker.readConceptText(alphabet, _preferredAlphabet));
-        s.append("\nStart Matcher: ").append(_register.startMatcherId);
-        dumpCorrelation(checker, _register.startMatcherId, alphabetTexts, s);
 
-        s.append("\nStart Adder: ").append(_register.startAdderId);
-        dumpCorrelation(checker, _register.startAdderId, alphabetTexts, s);
-
-        s.append("\nEnd Matcher: ").append(_register.endMatcherId);
-        dumpCorrelation(checker, _register.endMatcherId, alphabetTexts, s);
-
-        s.append("\nEnd Adder: ").append(_register.endAdderId);
-        dumpCorrelation(checker, _register.endAdderId, alphabetTexts, s);
+        addCorrelationSection(checker, "Start Matcher", _register.startMatcherId, alphabetTexts, builder);
+        addCorrelationSection(checker, "Start Adder", _register.startAdderId, alphabetTexts, builder);
+        addCorrelationSection(checker, "End Matcher", _register.endMatcherId, alphabetTexts, builder);
+        addCorrelationSection(checker, "End Adder", _register.endAdderId, alphabetTexts, builder);
 
         if (_register.rule != 0) {
-            DisplayableItem ruleResult = checker.readConceptAcceptationAndText(_register.rule, _preferredAlphabet);
-            s.append("\nRule: ").append(ruleResult.text).append(" (").append(_register.rule).append(')');
+            builder.add(new AcceptationDetailsAdapter.HeaderItem("Applying rules"));
+
+            final DisplayableItem ruleResult = checker.readConceptAcceptationAndText(_register.rule, _preferredAlphabet);
+            builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(ruleResult.id, ruleResult.text, false));
         }
 
-        final TextView tv = findViewById(R.id.textView);
-        tv.setText(s.toString());
+        _listView.setAdapter(new AcceptationDetailsAdapter(this, REQUEST_CODE_CLICK_NAVIGATION, builder.build()));
 
         if (_deleteDialogPresent) {
             showDeleteConfirmationDialog();
@@ -155,6 +177,12 @@ public final class AgentDetailsActivity extends Activity {
     public void onResume() {
         _uiJustUpdated = false;
         super.onResume();
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        final AcceptationDetailsAdapter.Item item = (AcceptationDetailsAdapter.Item) parent.getAdapter().getItem(position);
+        item.navigate(this, REQUEST_CODE_CLICK_NAVIGATION);
     }
 
     @Override

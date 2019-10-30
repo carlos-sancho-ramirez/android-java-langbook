@@ -210,11 +210,6 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public String getSymbolArray(int id) {
-        return LangbookReadableDatabase.getSymbolArray(getDatabase(), id);
-    }
-
-    @Override
     public ImmutableIntKeyMap<String> readAllLanguages(int preferredAlphabet) {
         return LangbookReadableDatabase.readAllLanguages(getDatabase(), preferredAlphabet);
     }
