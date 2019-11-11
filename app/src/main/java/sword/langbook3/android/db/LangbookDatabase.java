@@ -412,6 +412,7 @@ public final class LangbookDatabase {
             final ImmutableIntPairMap conversionMap = getConversionsMap(db);
             final ImmutableIntSet conversionTargets = conversionMap.keySet();
             final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
+            final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
 
             // This is assuming that matcher, adder, rule and flags did not change from last run,
             // only its source and diff bunches and its contents
@@ -509,8 +510,10 @@ public final class LangbookDatabase {
 
                             for (IntKeyMap.Entry<String> entry : correlation.entries()) {
                                 final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+                                final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
                                 updateQuery = new DbUpdateQuery.Builder(strings)
                                         .put(strings.getStringColumnIndex(), entry.value())
+                                        .put(strings.getMainStringColumnIndex(), mainText)
                                         .where(strings.getDynamicAcceptationColumnIndex(), dynAcc)
                                         .where(strings.getStringAlphabetColumnIndex(), entry.key())
                                         .build();
@@ -545,7 +548,6 @@ public final class LangbookDatabase {
                 }
             }
 
-            final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
             final ImmutableIntPairMap.Builder processedAccMapBuilder = new ImmutableIntPairMap.Builder();
             for (int acc : matchingAcceptations) {
                 if (toBeProcessed.contains(acc)) {
