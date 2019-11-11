@@ -483,7 +483,7 @@ public final class LangbookDatabase {
 
                 if (!hasSameAdders) {
                     for (int staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
-                        final MutableIntKeyMap<String> correlation = getAcceptationTexts(db, sampleStaticAcc).mutate();
+                        final MutableIntKeyMap<String> correlation = getAcceptationTexts(db, staticAcc).mutate();
                         final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
                                 conversionMap, conversions);
                         if (validConversion) {
