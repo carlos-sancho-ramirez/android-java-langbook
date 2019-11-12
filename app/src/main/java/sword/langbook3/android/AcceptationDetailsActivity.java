@@ -38,13 +38,14 @@ import sword.langbook3.android.models.SynonymTranslationResult;
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
 
-    private static final int REQUEST_CODE_CREATE_SENTENCE = 1;
-    private static final int REQUEST_CODE_CLICK_NAVIGATION = 2;
-    private static final int REQUEST_CODE_EDIT = 3;
-    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 4;
-    private static final int REQUEST_CODE_PICK_ACCEPTATION = 5;
-    private static final int REQUEST_CODE_PICK_BUNCH = 6;
-    private static final int REQUEST_CODE_PICK_DEFINITION = 7;
+    private static final int REQUEST_CODE_CLICK_NAVIGATION = 1;
+    private static final int REQUEST_CODE_CREATE_AGENT = 2;
+    private static final int REQUEST_CODE_CREATE_SENTENCE = 3;
+    private static final int REQUEST_CODE_EDIT = 4;
+    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 5;
+    private static final int REQUEST_CODE_PICK_ACCEPTATION = 6;
+    private static final int REQUEST_CODE_PICK_BUNCH = 7;
+    private static final int REQUEST_CODE_PICK_DEFINITION = 8;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -427,6 +428,18 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             case R.id.menuItemNewSentence:
                 SentenceEditorActivity.openWithStaticAcceptation(this, REQUEST_CODE_CREATE_SENTENCE, _staticAcceptation);
                 return true;
+
+            case R.id.menuItemNewAgentAsSource:
+                AgentEditorActivity.openWithSource(this, REQUEST_CODE_CREATE_AGENT, _model.concept);
+                return true;
+
+            case R.id.menuItemNewAgentAsDiff:
+                AgentEditorActivity.openWithDiff(this, REQUEST_CODE_CREATE_AGENT, _model.concept);
+                return true;
+
+            case R.id.menuItemNewAgentAsTarget:
+                AgentEditorActivity.openWithTarget(this, REQUEST_CODE_CREATE_AGENT, _model.concept);
+                return true;
         }
 
         return false;
@@ -591,7 +604,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     updateModelAndUi();
                 }
             }
-            else if (requestCode == REQUEST_CODE_EDIT) {
+            else if (requestCode == REQUEST_CODE_EDIT || requestCode == REQUEST_CODE_CREATE_AGENT) {
                 updateModelAndUi();
             }
         }

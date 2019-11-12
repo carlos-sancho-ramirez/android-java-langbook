@@ -13,6 +13,7 @@ public interface BundleKeys {
     String CORRELATION = "cId";
     String CORRELATION_ARRAY = "cArray";
     String CORRELATION_MAP = "cMap";
+    String DIFF_BUNCH = "db";
     String DYNAMIC_ACCEPTATION = "da";
     String GOOD_ANSWER_COUNT = "goodAnswer";
     String LANGUAGE = "language";
@@ -20,8 +21,10 @@ public interface BundleKeys {
     String SEARCH_QUERY = "searchQuery";
     String SENTENCE_ID = "seId";
     String SOURCE_ALPHABET = "sAlph";
+    String SOURCE_BUNCH = "sb";
     String STATIC_ACCEPTATION = "sa";
     String TARGET_ALPHABET = "tAlph";
+    String TARGET_BUNCH = "tb";
     String TEXT = "text";
     String TEXTS = "texts";
     String TITLE = "title";

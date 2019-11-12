@@ -59,6 +59,9 @@
     <string name="menuItemDelete">Delete</string>
     <string name="menuItemConfirm">Confirm</string>
     <string name="menuItemAddSpan">Add</string>
+    <string name="menuItemNewAgentAsSource">as Source</string>
+    <string name="menuItemNewAgentAsDiff">as Diff</string>
+    <string name="menuItemNewAgentAsTarget">as Target</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
     <string name="deleteDefinitionConfirmationText">Are you sure that you want to remove this acceptation definition?</string>

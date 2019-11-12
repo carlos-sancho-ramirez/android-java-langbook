@@ -48,6 +48,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
+        String SOURCE_BUNCH = BundleKeys.SOURCE_BUNCH;
+        String DIFF_BUNCH = BundleKeys.DIFF_BUNCH;
+        String TARGET_BUNCH = BundleKeys.TARGET_BUNCH;
     }
 
     private interface SavedKeys {
@@ -56,6 +59,24 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     public static void open(Activity activity, int requestCode) {
         final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    public static void openWithSource(Activity activity, int requestCode, int sourceBunch) {
+        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        intent.putExtra(ArgKeys.SOURCE_BUNCH, sourceBunch);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    public static void openWithDiff(Activity activity, int requestCode, int sourceBunch) {
+        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        intent.putExtra(ArgKeys.DIFF_BUNCH, sourceBunch);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
+    public static void openWithTarget(Activity activity, int requestCode, int sourceBunch) {
+        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        intent.putExtra(ArgKeys.TARGET_BUNCH, sourceBunch);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -229,6 +250,18 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         return getIntent().getIntExtra(ArgKeys.AGENT, 0);
     }
 
+    private int getSourceBunch() {
+        return getIntent().getIntExtra(ArgKeys.SOURCE_BUNCH, 0);
+    }
+
+    private int getDiffBunch() {
+        return getIntent().getIntExtra(ArgKeys.DIFF_BUNCH, 0);
+    }
+
+    private int getTargetBunch() {
+        return getIntent().getIntExtra(ArgKeys.TARGET_BUNCH, 0);
+    }
+
     private void updateBunchSet(LangbookChecker checker, ViewGroup container, MutableIntList bunches) {
         final int currentBunchViewCount = container.getChildCount();
         final int stateBunchCount = bunches.size();
@@ -322,6 +355,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             _state = new State();
 
             final int agentId = getAgentId();
+            final int sourceBunch = getSourceBunch();
+            final int diffBunch = getDiffBunch();
+            final int targetBunch = getTargetBunch();
             if (agentId != 0) {
                 final AgentDetails agentDetails = checker.getAgentDetails(agentId);
                 _state.targetBunch = agentDetails.targetBunch;
@@ -333,6 +369,16 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 _state.endMatcher = toCorrelationEntryList(agentDetails.endMatcher);
                 _state.endAdder = toCorrelationEntryList(agentDetails.endAdder);
                 _state.rule = agentDetails.rule;
+            }
+            else if (sourceBunch != 0) {
+                _state.sourceBunches.append(sourceBunch);
+            }
+            else if (diffBunch != 0) {
+                _state.diffBunches.append(diffBunch);
+            }
+            else if (targetBunch != 0) {
+                _state.targetBunch = targetBunch;
+                _state.includeTargetBunch = true;
             }
         }
 
