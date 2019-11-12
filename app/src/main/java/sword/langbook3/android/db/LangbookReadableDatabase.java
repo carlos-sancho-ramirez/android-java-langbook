@@ -439,11 +439,13 @@ public final class LangbookReadableDatabase {
 
     static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
                 .where(table.getArrayPositionColumnIndex(), 0)
                 .where(table.getCorrelationColumnIndex(), array.get(0))
-                .select(table.getArrayIdColumnIndex(), table.columns().size() + table.getCorrelationColumnIndex());
+                .orderBy(table.getArrayIdColumnIndex(), offset + table.getArrayPositionColumnIndex())
+                .select(table.getArrayIdColumnIndex(), offset + table.getCorrelationColumnIndex());
 
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
