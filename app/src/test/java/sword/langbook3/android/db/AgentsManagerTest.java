@@ -10,6 +10,7 @@ import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.List;
 import sword.database.Database;
+import sword.database.DbExporter;
 import sword.database.DbQuery;
 import sword.database.DbValue;
 import sword.database.MemoryDatabase;
@@ -101,6 +102,16 @@ public final class AgentsManagerTest {
                 new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
 
         return manager.updateAgent(agentId, targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+    }
+
+    private static void assertOnlyOneMorphology(DbExporter.Database db, int staticAcceptation, int preferredAlphabet, String expectedText, int expectedRule) {
+        final ImmutableList<MorphologyResult> morphologies = readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet).morphologies;
+        assertEquals(1, morphologies.size());
+        assertEquals(expectedText, morphologies.valueAt(0).text);
+
+        final ImmutableIntList rules = morphologies.valueAt(0).rules;
+        assertEquals(1, rules.size());
+        assertEquals(expectedRule, rules.valueAt(0));
     }
 
     @Test
@@ -1353,13 +1364,7 @@ public final class AgentsManagerTest {
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
-        final ImmutableList<MorphologyResult> morphologies = readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies;
-        assertEquals(1, morphologies.size());
-        assertEquals("cantando", morphologies.valueAt(0).text);
-
-        final ImmutableIntList rules = morphologies.valueAt(0).rules;
-        assertEquals(1, rules.size());
-        assertEquals(gerundConcept, rules.valueAt(0));
+        assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
     }
 
     @Test
@@ -1379,13 +1384,31 @@ public final class AgentsManagerTest {
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
-        final ImmutableList<MorphologyResult> morphologies = readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies;
-        assertEquals(1, morphologies.size());
-        assertEquals("cantando", morphologies.valueAt(0).text);
+        assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
+    }
 
-        final ImmutableIntList rules = morphologies.valueAt(0).rules;
-        assertEquals(1, rules.size());
-        assertEquals(gerundConcept, rules.valueAt(0));
+    @Test
+    public void testChangeAdderForMultipleAcceptations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int cryConcept = manager.getMaxConcept() + 1;
+        final int cryAcceptation = addSimpleAcceptation(manager, alphabet, cryConcept, "llorar");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final int agentId = addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "aba", gerundConcept);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+
+        assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
+        assertOnlyOneMorphology(db, cryAcceptation, alphabet, "llorando", gerundConcept);
     }
 
     @Test
@@ -1408,13 +1431,7 @@ public final class AgentsManagerTest {
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
-        final ImmutableList<MorphologyResult> morphologies = readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies;
-        assertEquals(1, morphologies.size());
-        assertEquals("cantando", morphologies.valueAt(0).text);
-
-        final ImmutableIntList rules = morphologies.valueAt(0).rules;
-        assertEquals(1, rules.size());
-        assertEquals(gerundConcept, rules.valueAt(0));
+        assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
     }
 
     @Test
