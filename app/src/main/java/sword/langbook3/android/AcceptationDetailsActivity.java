@@ -582,7 +582,16 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     invalidateOptionsMenu();
                 }
             }
-            else if (requestCode == REQUEST_CODE_EDIT || requestCode == REQUEST_CODE_CREATE_SENTENCE) {
+            else if (requestCode == REQUEST_CODE_CREATE_SENTENCE) {
+                final int sentenceId = (data != null)? data.getIntExtra(SentenceEditorActivity.ResultKeys.SENTENCE_ID, 0) : 0;
+                if (sentenceId != 0) {
+                    SentenceDetailsActivity.open(this, REQUEST_CODE_CLICK_NAVIGATION, sentenceId);
+                }
+                else {
+                    updateModelAndUi();
+                }
+            }
+            else if (requestCode == REQUEST_CODE_EDIT) {
                 updateModelAndUi();
             }
         }

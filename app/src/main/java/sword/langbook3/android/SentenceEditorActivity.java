@@ -19,6 +19,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         String SENTENCE_ID = BundleKeys.SENTENCE_ID;
     }
 
+    interface ResultKeys {
+        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
+    }
+
     static void openWithConcept(Activity activity, int requestCode, int concept) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
@@ -97,7 +101,15 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            setResult(RESULT_OK);
+            final int sentenceId = (data != null)? data.getIntExtra(SpanEditorActivity.ResultKeys.SENTENCE_ID, 0) : 0;
+            if (sentenceId != 0) {
+                final Intent intent = new Intent();
+                intent.putExtra(ResultKeys.SENTENCE_ID, sentenceId);
+                setResult(RESULT_OK, intent);
+            }
+            else {
+                setResult(RESULT_OK);
+            }
             finish();
         }
     }

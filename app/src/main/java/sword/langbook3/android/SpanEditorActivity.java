@@ -40,6 +40,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         String STATE = "cSt";
     }
 
+    interface ResultKeys {
+        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
+    }
+
     private TextView _sentenceText;
     private ListView _listView;
 
@@ -234,10 +238,12 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
                     concept = manager.getMaxConcept() + 1;
                 }
 
-                if (manager.addSentence(concept, newText, spans) == null) {
-                    throw new AssertionError();
-                }
+                final int newSentenceId = manager.addSentence(concept, newText, spans);
                 Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
+
+                final Intent intent = new Intent();
+                intent.putExtra(ResultKeys.SENTENCE_ID, newSentenceId);
+                setResult(RESULT_OK, intent);
             }
             else {
                 if (!manager.updateSentenceTextAndSpans(sentenceId, newText, spans)) {
@@ -245,9 +251,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
                 }
 
                 Toast.makeText(this, R.string.updateSentenceFeedback, Toast.LENGTH_SHORT).show();
+                setResult(RESULT_OK);
             }
 
-            setResult(RESULT_OK);
             finish();
         }
     }
