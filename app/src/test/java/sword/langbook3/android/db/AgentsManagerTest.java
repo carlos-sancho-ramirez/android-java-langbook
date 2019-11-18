@@ -1493,4 +1493,92 @@ public final class AgentsManagerTest {
         assertEquals(1, acceptations.size());
         assertEquals(singAcceptation, acceptations.valueAt(0));
     }
+
+    @Test
+    public void testUpdateCorrelationArrayMatchingAgentBefore() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        assertNotNull(addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+
+        assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
+        assertTrue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies.isEmpty());
+    }
+
+    @Test
+    public void testUpdateCorrelationArrayMatchingAgentAfter() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar (sin instrumentos)");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        assertNotNull(addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+
+        assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar"));
+        assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
+    }
+
+    @Test
+    public void testUpdateCorrelationArrayMatchingChainedAgentBefore() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final int verbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, verbConcept, "verbo");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        assertNotNull(addSingleAlphabetAgent(manager, verbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet verbBunchSet = new ImmutableIntSetCreator().add(verbConcept).build();
+        assertNotNull(addSingleAlphabetAgent(manager, 0, verbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+
+        assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
+        assertTrue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies.isEmpty());
+    }
+
+    @Test
+    public void testUpdateCorrelationArrayMatchingChainedAgentAfter() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar (sin instrumentos)");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final int verbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, verbConcept, "verbo");
+
+        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        assertNotNull(addSingleAlphabetAgent(manager, verbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        final ImmutableIntSet verbBunchSet = new ImmutableIntSetCreator().add(verbConcept).build();
+        assertNotNull(addSingleAlphabetAgent(manager, 0, verbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+
+        assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar"));
+        assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
+    }
 }

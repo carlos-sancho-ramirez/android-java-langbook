@@ -661,24 +661,28 @@ public final class LangbookDatabase {
                 }
             }
 
-            final ImmutableIntSet.Builder touchedBunchesBuilder = new ImmutableIntSetCreator();
+            final MutableIntArraySet touchedBunches = MutableIntArraySet.empty();
 
-            final ImmutableIntSet.Builder affectedAgents = new ImmutableIntSetCreator();
+            final ImmutableIntSet.Builder affectedAgentsBuilder = new ImmutableIntSetCreator();
             for (int agentId : findAgentsWithoutSourceBunches(db)) {
-                affectedAgents.add(agentId);
+                affectedAgentsBuilder.add(agentId);
             }
 
             for (int agentId : findAffectedAgentsByAcceptationCorrelationModification(db, acceptation)) {
-                affectedAgents.add(agentId);
+                affectedAgentsBuilder.add(agentId);
             }
 
-            for (int agentId : affectedAgents.build()) {
-                final Integer touchedBunch = rerunAgent(db, agentId, true, null);
-                if (touchedBunch != null) {
-                    touchedBunchesBuilder.add(touchedBunch);
+            final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntSet>> agentExecutionOrder = getAgentExecutionOrder(db);
+            final ImmutableIntSet affectedAgents = affectedAgentsBuilder.build();
+            for (int thisAgentId : agentExecutionOrder.left) {
+                final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
+                if (affectedAgents.contains(thisAgentId) || dependencies.anyMatch(touchedBunches::contains)) {
+                    final Integer touchedBunch = rerunAgent(db, thisAgentId, false, null);
+                    if (touchedBunch != null) {
+                        touchedBunches.add(touchedBunch);
+                    }
                 }
             }
-            final ImmutableIntSet touchedBunches = touchedBunchesBuilder.build();
 
             final ImmutableIntSet.Builder quizIdsBuilder = new ImmutableIntSetCreator();
             final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
