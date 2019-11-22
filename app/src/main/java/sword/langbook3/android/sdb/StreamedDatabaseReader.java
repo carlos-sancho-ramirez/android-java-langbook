@@ -477,9 +477,7 @@ public final class StreamedDatabaseReader {
 
             for (int i = 0; i < agentsLength; i++) {
                 setProgress((0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f, "Reading agent " + (i + 1) + "/" + agentsLength);
-                final RangedIntegerHuffmanTable targetTable = (lastTarget == 0)?
-                        new RangedIntegerHuffmanTable(0, validConcepts.max()) :
-                        new RangedIntegerHuffmanTable(lastTarget + 1, validConcepts.max());
+                final RangedIntegerHuffmanTable targetTable = new RangedIntegerHuffmanTable(lastTarget, validConcepts.max());
                 final int targetBunch = ibs.readHuffmanSymbol(targetTable);
 
                 if (targetBunch != lastTarget) {

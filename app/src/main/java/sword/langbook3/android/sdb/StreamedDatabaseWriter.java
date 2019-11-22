@@ -973,9 +973,7 @@ public final class StreamedDatabaseWriter {
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
             int lastTarget = 0;
             for (AgentRegister agent : agents) {
-                final RangedIntegerHuffmanTable targetBunchTable = (lastTarget == 0)?
-                        new RangedIntegerHuffmanTable(0, conceptIdMap.size()) :
-                        new RangedIntegerHuffmanTable(lastTarget + 1, conceptIdMap.size());
+                final RangedIntegerHuffmanTable targetBunchTable = new RangedIntegerHuffmanTable(lastTarget, conceptIdMap.size());
                 _obs.writeHuffmanSymbol(targetBunchTable, agent.targetBunch);
 
                 if (agent.targetBunch != lastTarget) {
