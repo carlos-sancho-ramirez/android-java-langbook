@@ -3109,14 +3109,24 @@ public final class LangbookReadableDatabase {
         final ImmutableList<DynamizableResult> bunchChildren = readAcceptationBunchChildren(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(db, staticAcceptation);
 
+        final MutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations = MutableIntKeyMap.empty();
+        for (int dynAcc : morphologyResults.morphologies.mapToInt(m -> m.dynamicAcceptation).toSet()) {
+            final ImmutableIntKeyMap<String> conceptMap = readAcceptationSynonymsAndTranslations(db, dynAcc).map(r -> r.text);
+            final int indexForThis = conceptMap.indexOfKey(staticAcceptation);
+            final ImmutableIntKeyMap<String> shrunkMap = (indexForThis >= 0)? conceptMap.removeAt(indexForThis) : conceptMap;
+            if (!shrunkMap.isEmpty()) {
+                morphologyLinkedAcceptations.put(dynAcc, shrunkMap);
+            }
+        }
+
         final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, staticAcceptation);
         final int baseConceptAcceptationId = (definition.left != null)? definition.left.id : 0;
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
                 correlationResultPair.right, acceptationsSharingCorrelationArray, baseConceptAcceptationId,
                 baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
-                bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyResults.ruleTexts,
-                involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
+                bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyLinkedAcceptations.toImmutable(),
+                morphologyResults.ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
     }
 
     static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {
