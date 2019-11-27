@@ -40,6 +40,7 @@ import sword.collections.List;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
@@ -919,12 +920,13 @@ public final class StreamedDatabaseWriter {
         return bunchSets.toImmutable();
     }
 
-    private ImmutableIntSet writeAgents(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap correlationIdMap) throws IOException {
+    private ImmutableIntList writeAgents(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap correlationIdMap) throws IOException {
         final ImmutableIntKeyMap<ImmutableIntSet> bunchSets = getBunchSets(conceptIdMap);
         final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
 
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table).select(
+                        table.getIdColumnIndex(),
                         table.getTargetBunchColumnIndex(),
                         table.getSourceBunchSetColumnIndex(),
                         table.getDiffBunchSetColumnIndex(),
@@ -938,19 +940,23 @@ public final class StreamedDatabaseWriter {
                 b.sourceBunchSetId != 0 && (a.sourceBunchSetId == 0 || bunchSets.get(a.sourceBunchSetId).min() < bunchSets.get(b.sourceBunchSetId).min());
 
         final ImmutableHashSet.Builder<AgentRegister> agentsBuilder = new ImmutableHashSet.Builder<>();
+        final MutableIntValueHashMap<AgentRegister> agentIds = MutableIntValueHashMap.empty();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                final int rawTargetBunch = row.get(0).toInt();
+                final int agentId = row.get(0).toInt();
+                final int rawTargetBunch = row.get(1).toInt();
                 final int targetBunch = (rawTargetBunch == 0)? 0 : conceptIdMap.get(rawTargetBunch);
-                final int sourceBunchSetId = row.get(1).toInt();
-                final int diffBunchSetId = row.get(2).toInt();
-                final int startMatcherId = row.get(3).toInt();
-                final int startAdderId = row.get(4).toInt();
-                final int endMatcherId = row.get(5).toInt();
-                final int endAdderId = row.get(6).toInt();
-                final int rule = row.get(7).toInt();
-                agentsBuilder.add(new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule));
+                final int sourceBunchSetId = row.get(2).toInt();
+                final int diffBunchSetId = row.get(3).toInt();
+                final int startMatcherId = row.get(4).toInt();
+                final int startAdderId = row.get(5).toInt();
+                final int endMatcherId = row.get(6).toInt();
+                final int endAdderId = row.get(7).toInt();
+                final int rule = row.get(8).toInt();
+                final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
+                agentsBuilder.add(register);
+                agentIds.put(register, agentId);
             }
         }
         final ImmutableSortedSet<AgentRegister> agents = agentsBuilder.build().sort(sortFunc);
@@ -963,7 +969,7 @@ public final class StreamedDatabaseWriter {
         final int agentCount = agents.size();
         _obs.writeHuffmanSymbol(naturalNumberTable, agentCount);
 
-        final MutableIntSet presentRules = MutableIntArraySet.empty();
+        final MutableIntList agentsWithRule = MutableIntList.empty();
         if (!agents.isEmpty()) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntWriter intWriter = new IntWriter(nat3Table);
@@ -1005,14 +1011,14 @@ public final class StreamedDatabaseWriter {
                 if (hasRule) {
                     final int rule = conceptIdMap.get(agent.rule);
                     _obs.writeHuffmanSymbol(conceptTable, rule);
-                    presentRules.add(rule);
+                    agentsWithRule.append(agentIds.get(agent));
                 }
 
                 lastTarget = agent.targetBunch;
             }
         }
 
-        return presentRules.toImmutable();
+        return agentsWithRule.toImmutable();
     }
 
     private void writeBunchAcceptations(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap accIdMap) throws IOException {
@@ -1239,36 +1245,37 @@ public final class StreamedDatabaseWriter {
         return new ExportableSymbolArraysResult(symbolArrays.build(), targetedAlphabets.toImmutable());
     }
 
-    private static class RuleAcceptationPair {
-        final int rule;
+    private static class AgentAcceptationPair {
+        final int agentWithRuleIndex;
         final int acceptation;
 
-        RuleAcceptationPair(int rule, int acceptation) {
-            this.rule = rule;
+        AgentAcceptationPair(int agentWithRuleIndex, int acceptation) {
+            this.agentWithRuleIndex = agentWithRuleIndex;
             this.acceptation = acceptation;
         }
 
         @Override
         public int hashCode() {
-            return rule * 37 + acceptation;
+            return agentWithRuleIndex * 37 + acceptation;
         }
 
         @Override
         public boolean equals(Object other) {
-            if (!(other instanceof RuleAcceptationPair)) {
+            if (!(other instanceof AgentAcceptationPair)) {
                 return false;
             }
 
-            RuleAcceptationPair that = (RuleAcceptationPair) other;
-            return rule == that.rule && acceptation == that.acceptation;
+            AgentAcceptationPair that = (AgentAcceptationPair) other;
+            return agentWithRuleIndex == that.agentWithRuleIndex && acceptation == that.acceptation;
         }
 
-        static boolean lessThan(RuleAcceptationPair a, RuleAcceptationPair b) {
-            return b != null && (a == null || a.rule < b.rule || a.rule == b.rule && a.acceptation < b.acceptation);
+        static boolean lessThan(AgentAcceptationPair a, AgentAcceptationPair b) {
+            return b != null && (a == null || a.agentWithRuleIndex < b.agentWithRuleIndex ||
+                    a.agentWithRuleIndex == b.agentWithRuleIndex && a.acceptation < b.acceptation);
         }
     }
 
-    private void writeRelevantRuledAcceptations(MutableIntPairMap accIdMap, ImmutableIntPairMap conceptIdMap, ImmutableIntSet presentRules) throws IOException {
+    private void writeRelevantRuledAcceptations(MutableIntPairMap accIdMap, ImmutableIntList agentsWithRule) throws IOException {
         final ImmutableIntSet originalAccKeys = accIdMap.keySet().toImmutable();
         if (accIdMap.max() + 1 != accIdMap.size()) {
             throw new AssertionError();
@@ -1276,33 +1283,30 @@ public final class StreamedDatabaseWriter {
 
         final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final int ruledAccOffset = spans.columns().size();
-        final int agentOffset = ruledAccOffset + ruledAcceptations.columns().size();
         final DbQuery query = new DbQuery.Builder(spans)
                 .join(ruledAcceptations, spans.getDynamicAcceptationColumnIndex(), ruledAcceptations.getIdColumnIndex())
-                .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
-                .select(spans.getDynamicAcceptationColumnIndex(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), agentOffset + agents.getRuleColumnIndex());
+                .select(spans.getDynamicAcceptationColumnIndex(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), ruledAccOffset + ruledAcceptations.getAgentColumnIndex());
 
-        final MutableIntValueSortedMap<RuleAcceptationPair> pairs = MutableIntValueSortedMap.empty(RuleAcceptationPair::lessThan);
+        final MutableIntValueSortedMap<AgentAcceptationPair> pairs = MutableIntValueSortedMap.empty(AgentAcceptationPair::lessThan);
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int dynamicAcc = row.get(0).toInt();
-                final int mainAcc = row.get(1).toInt();
-                final int ruleIndex = presentRules.indexOf(conceptIdMap.get(row.get(2).toInt()));
+                final int baseAcc = row.get(1).toInt();
+                final int agentWithRuleIndex = agentsWithRule.indexOf(row.get(2).toInt());
 
-                if (ruleIndex < 0 || ruleIndex >= presentRules.size()) {
+                if (agentWithRuleIndex < 0) {
                     throw new AssertionError();
                 }
                 if (originalAccKeys.contains(dynamicAcc)) {
                     throw new AssertionError();
                 }
-                if (!originalAccKeys.contains(mainAcc)) {
+                if (!originalAccKeys.contains(baseAcc)) {
                     throw new AssertionError();
                 }
 
-                pairs.put(new RuleAcceptationPair(ruleIndex, accIdMap.get(mainAcc)), dynamicAcc);
+                pairs.put(new AgentAcceptationPair(agentWithRuleIndex, accIdMap.get(baseAcc)), dynamicAcc);
             }
         }
 
@@ -1310,22 +1314,22 @@ public final class StreamedDatabaseWriter {
         _obs.writeHuffmanSymbol(naturalNumberTable, pairsCount);
         if (pairsCount > 0) {
             final int mainAccCount = originalAccKeys.size();
-            final int maxPresentRule = presentRules.size() - 1;
+            final int maxAgentWithRule = agentsWithRule.size() - 1;
             int accIdMapSize = accIdMap.size();
-            int previousRule = 0;
+            int previousAgentWithRuleIndex = 0;
             int firstPossibleAcc = 0;
             for (int pairIndex = 0; pairIndex < pairsCount; pairIndex++) {
-                final RuleAcceptationPair pair = pairs.keyAt(pairIndex);
-                final RangedIntegerHuffmanTable rulesTable = new RangedIntegerHuffmanTable(previousRule, maxPresentRule);
-                _obs.writeHuffmanSymbol(rulesTable, pair.rule);
-                if (pair.rule != previousRule) {
+                final AgentAcceptationPair pair = pairs.keyAt(pairIndex);
+                final RangedIntegerHuffmanTable agentTable = new RangedIntegerHuffmanTable(previousAgentWithRuleIndex, maxAgentWithRule);
+                _obs.writeHuffmanSymbol(agentTable, pair.agentWithRuleIndex);
+                if (pair.agentWithRuleIndex != previousAgentWithRuleIndex) {
                     firstPossibleAcc = 0;
                 }
 
                 final RangedIntegerHuffmanTable mainAcceptationTable = new RangedIntegerHuffmanTable(firstPossibleAcc, mainAccCount - 1);
                 _obs.writeHuffmanSymbol(mainAcceptationTable, pair.acceptation);
 
-                previousRule = pair.rule;
+                previousAgentWithRuleIndex = pair.agentWithRuleIndex;
                 firstPossibleAcc = pair.acceptation + 1;
 
                 accIdMap.put(pairs.valueAt(pairIndex), accIdMapSize++);
@@ -1545,11 +1549,11 @@ public final class StreamedDatabaseWriter {
             writeBunchAcceptations(conceptIdMap, accIdMap);
 
             setProgress(0.8f, "Writing agents");
-            final ImmutableIntSet presentRules = writeAgents(conceptIdMap, correlationIdMap);
+            final ImmutableIntList agentsWithRule = writeAgents(conceptIdMap, correlationIdMap);
 
             setProgress(0.9f, "Writing dynamic acceptations");
             final MutableIntPairMap extendedAccIdMap = accIdMap.mutate();
-            writeRelevantRuledAcceptations(extendedAccIdMap, conceptIdMap, presentRules);
+            writeRelevantRuledAcceptations(extendedAccIdMap, agentsWithRule);
 
             setProgress(0.93f, "Writing sentence spans");
             writeSentenceSpans(extendedAccIdMap, symbolArrayWriterResult);

@@ -32,7 +32,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptati
 import static sword.langbook3.android.db.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;
 import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndMainAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByAgentAndBaseAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
 
@@ -334,7 +334,7 @@ public final class DatabaseInflater {
         }
     }
 
-    private void insertSentences(StreamedDatabaseReader.SentenceSpan[] spans, int[] accIdMap, StreamedDatabaseReader.RuleAcceptationPair[] ruleAcceptationPairs) {
+    private void insertSentences(StreamedDatabaseReader.SentenceSpan[] spans, int[] accIdMap, StreamedDatabaseReader.AgentAcceptationPair[] ruleAcceptationPairs) {
         for (StreamedDatabaseReader.SentenceSpan span : spans) {
             final ImmutableIntRange range = new ImmutableIntRange(span.start, span.start + span.length - 1);
             final int acc;
@@ -342,8 +342,8 @@ public final class DatabaseInflater {
                 acc = accIdMap[span.acceptationFileIndex];
             }
             else {
-                StreamedDatabaseReader.RuleAcceptationPair pair = ruleAcceptationPairs[span.acceptationFileIndex - accIdMap.length];
-                acc = findRuledAcceptationByRuleAndMainAcceptation(_db, pair.rule, pair.acceptation);
+                StreamedDatabaseReader.AgentAcceptationPair pair = ruleAcceptationPairs[span.acceptationFileIndex - accIdMap.length];
+                acc = findRuledAcceptationByAgentAndBaseAcceptation(_db, pair.agent, pair.acceptation);
             }
             insertSpan(_db, span.sentenceId, range, acc);
         }
@@ -362,7 +362,7 @@ public final class DatabaseInflater {
         applyConversions(result.conversions);
 
         setProgress(0.9f, "Inserting sentence spans");
-        insertSentences(result.spans, result.accIdMap, result.ruleAcceptationPairs);
+        insertSentences(result.spans, result.accIdMap, result.agentAcceptationPairs);
     }
 
     private static final class Listener implements ProgressListener {

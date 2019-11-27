@@ -540,12 +540,27 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    public static Integer findRuledAcceptationByRuleAndMainAcceptation(DbExporter.Database db, int rule, int mainAcceptation) {
+    public static Integer findRuledAcceptationByAgentAndBaseAcceptation(DbExporter.Database db, int agentId, int baseAcceptation) {
+        final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(ruledAccs)
+                .where(ruledAccs.getAcceptationColumnIndex(), baseAcceptation)
+                .where(ruledAccs.getAgentColumnIndex(), agentId)
+                .select(ruledAccs.getIdColumnIndex());
+        final DbResult dbResult = db.select(query);
+        final Integer result = dbResult.hasNext()? dbResult.next().get(0).toInt() : null;
+        if (dbResult.hasNext()) {
+            throw new AssertionError();
+        }
+
+        return result;
+    }
+
+    static Integer findRuledAcceptationByRuleAndBaseAcceptation(DbExporter.Database db, int rule, int baseAcceptation) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(ruledAccs)
                 .join(agents, ruledAccs.getAgentColumnIndex(), agents.getIdColumnIndex())
-                .where(ruledAccs.getAcceptationColumnIndex(), mainAcceptation)
+                .where(ruledAccs.getAcceptationColumnIndex(), baseAcceptation)
                 .where(ruledAccs.columns().size() + agents.getRuleColumnIndex(), rule)
                 .select(ruledAccs.getIdColumnIndex());
         final DbResult dbResult = db.select(query);

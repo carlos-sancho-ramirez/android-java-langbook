@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndMainAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 
 public final class LangbookManagerTest {
 
@@ -51,7 +51,7 @@ public final class LangbookManagerTest {
         assertNotNull(manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndMainAcceptation(db, pluralRule, carAcc);
+        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
         final String carPluralText = carText + pluralSuffix;
         final String text = "Los " + carPluralText + " son muy rápidos";
@@ -105,7 +105,7 @@ public final class LangbookManagerTest {
         assertNotNull(manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndMainAcceptation(db, pluralRule, carAcc);
+        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
         final String carPluralText = carText + pluralSuffix;
         final String text = "El mejor de los " + carPluralText + " es el " + mineText;
@@ -164,7 +164,7 @@ public final class LangbookManagerTest {
         final int agentId = manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndMainAcceptation(db, pluralRule, carAcc);
+        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
         final String carPluralText = carText + pluralSuffix;
         final String text = "El mejor de los " + carPluralText + " es el " + mineText;

@@ -461,7 +461,7 @@ public final class StreamedDatabaseReader {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
-        final MutableIntSet presentRules = MutableIntArraySet.empty();
+        final MutableIntSet agentsWithRule = MutableIntArraySet.empty();
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -529,38 +529,38 @@ public final class StreamedDatabaseReader {
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
 
                 if (hasRule) {
-                    presentRules.add(rule);
+                    agentsWithRule.add(agentId);
                 }
                 lastTarget = targetBunch;
             }
         }
 
-        return new AgentReadResult(builder.build(), presentRules.toImmutable());
+        return new AgentReadResult(builder.build(), agentsWithRule.toImmutable());
     }
 
-    public static class RuleAcceptationPair {
-        public final int rule;
+    public static class AgentAcceptationPair {
+        public final int agent;
         public final int acceptation;
 
-        RuleAcceptationPair(int rule, int acceptation) {
-            this.rule = rule;
+        AgentAcceptationPair(int agent, int acceptation) {
+            this.agent = agent;
             this.acceptation = acceptation;
         }
     }
 
-    private RuleAcceptationPair[] readRelevantRuledAcceptations(InputBitStream ibs, int[] accIdMap, ImmutableIntSet presentRules) throws IOException {
+    private AgentAcceptationPair[] readRelevantRuledAcceptations(InputBitStream ibs, int[] accIdMap, ImmutableIntSet agentsWithRule) throws IOException {
         final int pairsCount = ibs.readHuffmanSymbol(naturalNumberTable);
-        final RuleAcceptationPair[] pairs = new RuleAcceptationPair[pairsCount];
+        final AgentAcceptationPair[] pairs = new AgentAcceptationPair[pairsCount];
         if (pairsCount > 0) {
             final int maxMainAcc = accIdMap.length - 1;
-            final int maxPresentRule = presentRules.size() - 1;
-            int previousRuleIndex = 0;
+            final int maxAgentsWithRule = agentsWithRule.size() - 1;
+            int previousAgentWithRuleIndex = 0;
             int firstPossibleAcc = 0;
             for (int pairIndex = 0; pairIndex < pairsCount; pairIndex++) {
-                final RangedIntegerHuffmanTable rulesTable = new RangedIntegerHuffmanTable(previousRuleIndex, maxPresentRule);
-                final int ruleIndex = ibs.readHuffmanSymbol(rulesTable);
-                final int rule = presentRules.valueAt(ruleIndex);
-                if (ruleIndex != previousRuleIndex) {
+                final RangedIntegerHuffmanTable agentTable = new RangedIntegerHuffmanTable(previousAgentWithRuleIndex, maxAgentsWithRule);
+                final int agentWithRuleIndex = ibs.readHuffmanSymbol(agentTable);
+                final int agent = agentsWithRule.valueAt(agentWithRuleIndex);
+                if (agentWithRuleIndex != previousAgentWithRuleIndex) {
                     firstPossibleAcc = 0;
                 }
 
@@ -568,10 +568,10 @@ public final class StreamedDatabaseReader {
                 int mainAccIndex = ibs.readHuffmanSymbol(mainAcceptationTable);
                 int mainAcc = accIdMap[mainAccIndex];
 
-                previousRuleIndex = ruleIndex;
+                previousAgentWithRuleIndex = agentWithRuleIndex;
                 firstPossibleAcc = mainAccIndex + 1;
 
-                pairs[pairIndex] = new RuleAcceptationPair(rule, mainAcc);
+                pairs[pairIndex] = new AgentAcceptationPair(agent, mainAcc);
             }
         }
 
@@ -690,25 +690,25 @@ public final class StreamedDatabaseReader {
         public final Conversion[] conversions;
         public final IntKeyMap<AgentBunches> agents;
         public final int[] accIdMap;
-        public final RuleAcceptationPair[] ruleAcceptationPairs;
+        public final AgentAcceptationPair[] agentAcceptationPairs;
         public final SentenceSpan[] spans;
 
-        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, RuleAcceptationPair[] ruleAcceptationPairs, SentenceSpan[] spans) {
+        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, AgentAcceptationPair[] agentAcceptationPairs, SentenceSpan[] spans) {
             this.conversions = conversions;
             this.agents = agents;
             this.accIdMap = accIdMap;
-            this.ruleAcceptationPairs = ruleAcceptationPairs;
+            this.agentAcceptationPairs = agentAcceptationPairs;
             this.spans = spans;
         }
     }
 
     private static final class AgentReadResult {
         final ImmutableIntKeyMap<AgentBunches> agents;
-        final ImmutableIntSet presentRules;
+        final ImmutableIntSet agentsWithRule;
 
-        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet presentRules) {
+        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet agentsWithRule) {
             this.agents = agents;
-            this.presentRules = presentRules;
+            this.agentsWithRule = agentsWithRule;
         }
     }
 
@@ -725,7 +725,7 @@ public final class StreamedDatabaseReader {
                     throw new IOException();
                 }
 
-                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new RuleAcceptationPair[0], new SentenceSpan[0]);
+                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new AgentAcceptationPair[0], new SentenceSpan[0]);
             }
             else {
                 final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
@@ -806,20 +806,20 @@ public final class StreamedDatabaseReader {
                 final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap);
 
                 // Import relevant dynamic acceptations
-                setProgress(0.9f, "Writing dynamic acceptations");
-                final RuleAcceptationPair[] ruleAcceptationPairs = readRelevantRuledAcceptations(ibs, acceptationIdMap,
-                        agentReadResult.presentRules);
+                setProgress(0.9f, "Reading dynamic acceptations");
+                final AgentAcceptationPair[] agentAcceptationPairs = readRelevantRuledAcceptations(ibs, acceptationIdMap,
+                        agentReadResult.agentsWithRule);
 
                 // Import sentence spans
                 setProgress(0.93f, "Writing sentence spans");
                 final SentenceSpan[] spans = readSentenceSpans(ibs,
-                        acceptationIdMap.length + ruleAcceptationPairs.length, symbolArraysIdMap,
+                        acceptationIdMap.length + agentAcceptationPairs.length, symbolArraysIdMap,
                         symbolArraysReadResult.lengths);
 
                 setProgress(0.98f, "Writing sentence meanings");
                 readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
-                return new Result(conversions, agentReadResult.agents, acceptationIdMap, ruleAcceptationPairs, spans);
+                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans);
             }
         }
         finally {
