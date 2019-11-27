@@ -231,6 +231,10 @@ public final class StreamedDatabaseWriter {
         final ImmutableIntPairMap lengths;
 
         SymbolArrayWriterResult(ImmutableIntPairMap idMap, ImmutableIntPairMap lengths) {
+            if (!idMap.keySet().equalSet(lengths.keySet())) {
+                throw new IllegalArgumentException();
+            }
+
             this.idMap = idMap;
             this.lengths = lengths;
         }
@@ -1363,7 +1367,7 @@ public final class StreamedDatabaseWriter {
         }
     }
 
-    private void writeSentenceSpans(IntPairMap accIdMap, IntPairMap symbolArrayIdMap, IntPairMap symbolArrayLengths) throws IOException {
+    private void writeSentenceSpans(IntPairMap accIdMap, SymbolArrayWriterResult symbolArrays) throws IOException {
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final LangbookDbSchema.SentencesTable sentences = LangbookDbSchema.Tables.sentences;
         final DbQuery query = new DbQuery.Builder(table)
@@ -1386,24 +1390,24 @@ public final class StreamedDatabaseWriter {
             }
         }
 
-        final int symbolArrayCount = symbolArrayLengths.size();
+        final int symbolArrayCount = symbolArrays.idMap.size();
         final ImmutableSet<SentenceSpan> spans = builder.build().sort(SentenceSpan::lessThan);
         _obs.writeHuffmanSymbol(naturalNumberTable, spans.size());
         if (!spans.isEmpty()) {
             final RangedIntegerHuffmanTable accTable = new RangedIntegerHuffmanTable(0, accIdMap.size() - 1);
-            int previousSymbolArray = 0;
+            int previousSymbolArrayFileId = 0;
             int previousStart = 0;
 
             for (SentenceSpan span : spans) {
                 final int symbolArray = span.symbolArray;
-                final int symbolArrayFileId = symbolArrayIdMap.get(symbolArray);
-                final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(previousSymbolArray, symbolArrayCount - 1);
+                final int symbolArrayFileId = symbolArrays.idMap.get(symbolArray);
+                final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(previousSymbolArrayFileId, symbolArrayCount - 1);
                 _obs.writeHuffmanSymbol(symbolArrayTable, symbolArrayFileId);
-                if (symbolArrayFileId != previousSymbolArray) {
+                if (symbolArrayFileId != previousSymbolArrayFileId) {
                     previousStart = 0;
                 }
 
-                final int sentenceLength = symbolArrayLengths.get(symbolArray);
+                final int sentenceLength = symbolArrays.lengths.get(symbolArray);
                 final RangedIntegerHuffmanTable startTable = new RangedIntegerHuffmanTable(previousStart, sentenceLength - 1);
                 _obs.writeHuffmanSymbol(startTable, span.start);
 
@@ -1411,7 +1415,7 @@ public final class StreamedDatabaseWriter {
                 _obs.writeHuffmanSymbol(lengthTable, span.length);
 
                 _obs.writeHuffmanSymbol(accTable, accIdMap.get(span.acceptation));
-                previousSymbolArray = symbolArrayFileId;
+                previousSymbolArrayFileId = symbolArrayFileId;
                 previousStart = span.start;
             }
         }
@@ -1548,7 +1552,7 @@ public final class StreamedDatabaseWriter {
             writeRelevantRuledAcceptations(extendedAccIdMap, conceptIdMap, presentRules);
 
             setProgress(0.93f, "Writing sentence spans");
-            writeSentenceSpans(extendedAccIdMap, symbolArrayIdMap, symbolArrayLengths);
+            writeSentenceSpans(extendedAccIdMap, symbolArrayWriterResult);
 
             setProgress(0.98f, "Writing sentence meanings");
             writeSentenceMeanings(symbolArrayIdMap);
