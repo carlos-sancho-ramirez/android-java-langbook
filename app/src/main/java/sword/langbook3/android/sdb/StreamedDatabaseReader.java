@@ -670,7 +670,17 @@ public final class StreamedDatabaseReader {
                 for (int symbolArrayFileId : set) {
                     final int concept = baseConcept + meaningIndex;
                     final int symbolArray = symbolArrayIdMap[symbolArrayFileId];
-                    insertSentenceWithId(_db, sentenceIds.get(symbolArray), concept, symbolArray);
+                    final int knownSentenceId = sentenceIds.get(symbolArray, 0);
+                    final int sentenceId;
+                    if (knownSentenceId != 0) {
+                        sentenceId = knownSentenceId;
+                    }
+                    else {
+                        sentenceId = sentenceIds.size() + 1;
+                        sentenceIds.put(symbolArray, sentenceId);
+                    }
+
+                    insertSentenceWithId(_db, sentenceId, concept, symbolArray);
                 }
             }
         }
