@@ -349,7 +349,7 @@ public final class DatabaseInflater {
         }
     }
 
-    void read() throws IOException {
+    public void read() throws IOException {
         final StreamedDatabaseReader.Result result = _dbReader.read();
 
         setProgress(0.2f, "Indexing strings");

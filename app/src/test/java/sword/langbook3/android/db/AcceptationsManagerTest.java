@@ -163,7 +163,7 @@ public final class AcceptationsManagerTest {
         assertTrue(alphabetSet.contains(secondAlphabet));
     }
 
-    static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
+    public static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, text)
                 .build();
