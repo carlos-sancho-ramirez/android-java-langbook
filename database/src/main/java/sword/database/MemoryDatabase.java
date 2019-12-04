@@ -22,7 +22,7 @@ import sword.collections.MutableMap;
  */
 public final class MemoryDatabase implements Database {
 
-    private final MutableHashMap<DbView, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableHashMap.empty();
+    private final MutableHashMap<DbTable, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableHashMap.empty();
     private final MutableHashMap<DbColumn, MutableHashMap<Object, Integer>> _indexes = MutableHashMap.empty();
 
     private static final class Result extends AbstractTransformer<List<DbValue>> implements DbResult {
@@ -62,31 +62,20 @@ public final class MemoryDatabase implements Database {
         final int tableCount = query.getTableCount();
         for (int viewIndex = 1; viewIndex < tableCount; viewIndex++) {
             final DbView view = query.getView(viewIndex);
+            final DbTable viewAsTable = view.asTable();
+            final DbQuery viewAsQuery = view.asQuery();
             final DbQuery.JoinColumnPair joinPair = query.getJoinPair(viewIndex - 1);
+            if (viewAsQuery != null) {
+                final MutableList<ImmutableList<Object>> innerQueryResult = innerSelect(viewAsQuery);
+                for (int row = 0; row < result.size(); row++) {
+                    final ImmutableList<Object> oldRow = result.get(row);
+                    final Object rawValue = oldRow.get(joinPair.left());
+                    final int targetJoinColumnIndex = joinPair.right() - oldRow.size();
 
-            for (int row = 0; row < result.size(); row++) {
-                final ImmutableList<Object> oldRow = result.get(row);
-                final Object rawValue = oldRow.get(joinPair.left());
-                final MutableIntKeyMap<ImmutableList<Object>> viewContent = _tableMap.get(view, MutableIntKeyMap.empty());
-                final int targetJoinColumnIndex = joinPair.right() - oldRow.size();
-
-                if (targetJoinColumnIndex == 0) {
-                    final int id = (Integer) rawValue;
-                    final ImmutableList<Object> foundRow = viewContent.get(id, null);
-                    if (foundRow != null) {
-                        ImmutableList<Object> newRow = oldRow.append(id).appendAll(foundRow);
-                        result.put(row, newRow);
-                    }
-                    else {
-                        result.removeAt(row--);
-                    }
-                }
-                else {
                     boolean somethingReplaced = false;
-                    for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : viewContent.entries()) {
-                        if (equal(entry.value().get(targetJoinColumnIndex - 1), rawValue)) {
-                            final ImmutableList<Object> newRow = oldRow.append(entry.key())
-                                    .appendAll(entry.value());
+                    for (ImmutableList<Object> foundRow : innerQueryResult) {
+                        if (equal(foundRow.valueAt(targetJoinColumnIndex), rawValue)) {
+                            final ImmutableList<Object> newRow = oldRow.appendAll(foundRow);
                             if (!somethingReplaced) {
                                 result.put(row, newRow);
                                 somethingReplaced = true;
@@ -99,6 +88,47 @@ public final class MemoryDatabase implements Database {
 
                     if (!somethingReplaced) {
                         result.removeAt(row--);
+                    }
+                }
+            }
+            else {
+                final IntKeyMap<ImmutableList<Object>> viewContent = _tableMap.get(viewAsTable, MutableIntKeyMap.empty());
+
+                for (int row = 0; row < result.size(); row++) {
+                    final ImmutableList<Object> oldRow = result.get(row);
+                    final Object rawValue = oldRow.get(joinPair.left());
+                    final int targetJoinColumnIndex = joinPair.right() - oldRow.size();
+
+                    if (targetJoinColumnIndex == 0) {
+                        final int id = (Integer) rawValue;
+                        final ImmutableList<Object> foundRow = viewContent.get(id, null);
+                        if (foundRow != null) {
+                            ImmutableList<Object> newRow = oldRow.append(id).appendAll(foundRow);
+                            result.put(row, newRow);
+                        }
+                        else {
+                            result.removeAt(row--);
+                        }
+                    }
+                    else {
+                        boolean somethingReplaced = false;
+                        for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : viewContent.entries()) {
+                            if (equal(entry.value().get(targetJoinColumnIndex - 1), rawValue)) {
+                                final ImmutableList<Object> newRow = oldRow.append(entry.key())
+                                        .appendAll(entry.value());
+                                if (!somethingReplaced) {
+                                    result.put(row, newRow);
+                                    somethingReplaced = true;
+                                }
+                                else {
+                                    result.insert(++row, newRow);
+                                }
+                            }
+                        }
+
+                        if (!somethingReplaced) {
+                            result.removeAt(row--);
+                        }
                     }
                 }
             }
@@ -161,8 +191,7 @@ public final class MemoryDatabase implements Database {
         return groupBuilder.build();
     }
 
-    @Override
-    public DbResult select(DbQuery query) {
+    private MutableList<ImmutableList<Object>> innerSelect(DbQuery query) {
         for (DbQuery.Ordered ordered : query.ordering()) {
             if (query.getJoinColumn(ordered.columnIndex).isText()) {
                 throw new UnsupportedOperationException("Unimplemented");
@@ -170,33 +199,40 @@ public final class MemoryDatabase implements Database {
         }
 
         final DbView view = query.getView(0);
-        final MutableIntKeyMap<ImmutableList<Object>> content;
-        if (_tableMap.containsKey(view)) {
-            content = _tableMap.get(view);
-        }
-        else {
-            content = MutableIntKeyMap.empty();
-            _tableMap.put(view, content);
-        }
-
-        // Apply id restriction if found
+        final DbQuery innerQuery = view.asQuery();
+        final DbTable viewAsTable = view.asTable();
         final ImmutableIntKeyMap<DbQuery.Restriction> restrictions = query.restrictions();
         MutableList<ImmutableList<Object>> unselectedResult;
-        final MutableList.Builder<ImmutableList<Object>> unselectedResultBuilder = new MutableList.Builder<>();
-        if (restrictions.keySet().contains(0)) {
-            final int id = restrictions.get(0).value.toInt();
-            ImmutableList<Object> rawRegister = content.get(id, null);
-            if (rawRegister != null) {
-                unselectedResultBuilder.add(rawRegister.prepend(id));
-            }
+        if (innerQuery != null) {
+            unselectedResult = innerSelect(innerQuery);
         }
         else {
-            for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : content.entries()) {
-                final ImmutableList<Object> register = entry.value().prepend(entry.key());
-                unselectedResultBuilder.add(register);
+            final MutableIntKeyMap<ImmutableList<Object>> content;
+            if (_tableMap.containsKey(viewAsTable)) {
+                content = _tableMap.get(viewAsTable);
             }
+            else {
+                content = MutableIntKeyMap.empty();
+                _tableMap.put(viewAsTable, content);
+            }
+
+            // Apply id restriction if found
+            final MutableList.Builder<ImmutableList<Object>> unselectedResultBuilder = new MutableList.Builder<>();
+            if (restrictions.keySet().contains(0)) {
+                final int id = restrictions.get(0).value.toInt();
+                ImmutableList<Object> rawRegister = content.get(id, null);
+                if (rawRegister != null) {
+                    unselectedResultBuilder.add(rawRegister.prepend(id));
+                }
+            }
+            else {
+                for (MutableIntKeyMap.Entry<ImmutableList<Object>> entry : content.entries()) {
+                    final ImmutableList<Object> register = entry.value().prepend(entry.key());
+                    unselectedResultBuilder.add(register);
+                }
+            }
+            unselectedResult = unselectedResultBuilder.build();
         }
-        unselectedResult = unselectedResultBuilder.build();
 
         applyJoins(unselectedResult, query);
         applyColumnMatchRestrictions(unselectedResult, query.columnValueMatchPairs());
@@ -272,20 +308,25 @@ public final class MemoryDatabase implements Database {
                     --resultRow;
                 }
             }
-            return new Result(unselectedResult.toImmutable());
+            return unselectedResult;
         }
         else {
-            final ImmutableList.Builder<ImmutableList<Object>> builder = new ImmutableList.Builder<>(unselectedResult.size());
+            final MutableList<ImmutableList<Object>> builder = MutableList.empty();
             final ImmutableIntList selection = query.selection();
             for (ImmutableList<Object> register : unselectedResult) {
                 final ImmutableList.Builder<Object> regBuilder = new ImmutableList.Builder<>();
                 for (int columnIndex : selection) {
                     regBuilder.add(register.get(columnIndex));
                 }
-                builder.add(regBuilder.build());
+                builder.append(regBuilder.build());
             }
-            return new Result(builder.build());
+            return builder;
         }
+    }
+
+    @Override
+    public DbResult select(DbQuery query) {
+        return new Result(innerSelect(query).toImmutable());
     }
 
     private MutableIntKeyMap<ImmutableList<Object>> obtainTableContent(DbTable table) {
