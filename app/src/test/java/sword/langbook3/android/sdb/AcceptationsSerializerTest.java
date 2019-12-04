@@ -18,6 +18,7 @@ import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.db.LangbookDbSchema;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
@@ -62,7 +63,7 @@ public final class AcceptationsSerializerTest {
             return (data.valueAt(wordIndex) >>> (wordByteIndex * 8)) & 0xFF;
         }
 
-        public boolean allBytesRead() {
+        boolean allBytesRead() {
             return byteIndex == dataSizeInBytes;
         }
     }
@@ -84,7 +85,7 @@ public final class AcceptationsSerializerTest {
             }
         }
 
-        public AssertStream toInputStream() {
+        AssertStream toInputStream() {
             final ImmutableIntList inData = ((byteCount & 3) == 0)? data.toImmutable() : data.toImmutable().append(currentWord);
             return new AssertStream(inData, byteCount);
         }
@@ -138,5 +139,36 @@ public final class AcceptationsSerializerTest {
 
         final ImmutableIntSet outAcceptations = findAcceptationsWithSimpleCorrelationArray(outDb, outAlphabet, text);
         assertEquals(1, outAcceptations.size());
+    }
+
+    @Test
+    public void testSerializeMultipleSpanishAcceptations() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+
+        final String languageCode = "es";
+        final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int concept = inManager.getMaxConcept() + 1;
+
+        final String text1 = "cantar";
+        addSimpleAcceptation(inManager, inAlphabet, concept, text1);
+
+        final String text2 = "toser";
+        addSimpleAcceptation(inManager, inAlphabet, concept, text2);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+
+        final int outLang = outManager.findLanguageByCode(languageCode);
+        final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
+        assertEquals(1, outAlphabets.size());
+        final int outAlphabet = outAlphabets.valueAt(0);
+
+        final ImmutableIntSet outAcceptations1 = findAcceptationsWithSimpleCorrelationArray(outDb, outAlphabet, text1);
+        assertEquals(1, outAcceptations1.size());
+
+        final ImmutableIntSet outAcceptations2 = findAcceptationsWithSimpleCorrelationArray(outDb, outAlphabet, text2);
+        assertEquals(1, outAcceptations1.size());
+        assertNotEquals(outAcceptations1.valueAt(0), outAcceptations2.valueAt(0));
     }
 }
