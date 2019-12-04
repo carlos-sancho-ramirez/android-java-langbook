@@ -40,6 +40,11 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
+    public Integer findMainAlphabetForLanguage(int language) {
+        return LangbookReadableDatabase.findMainAlphabetForLanguage(getDatabase(), language);
+    }
+
+    @Override
     public ImmutableIntSet findAlphabetsByLanguage(int language) {
         return LangbookReadableDatabase.findAlphabetsByLanguage(getDatabase(), language);
     }

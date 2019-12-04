@@ -510,6 +510,15 @@ public final class LangbookReadableDatabase {
         return selectOptionalFirstIntColumn(db, query);
     }
 
+    static Integer findMainAlphabetForLanguage(DbExporter.Database db, int language) {
+        final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), language)
+                .select(table.getMainAlphabetColumnIndex());
+
+        return selectOptionalFirstIntColumn(db, query);
+    }
+
     static ImmutableIntSet findAlphabetsByLanguage(DbExporter.Database db, int language) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery query = new DbQuery.Builder(table)

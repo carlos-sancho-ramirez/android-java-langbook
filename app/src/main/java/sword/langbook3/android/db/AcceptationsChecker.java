@@ -14,6 +14,14 @@ import sword.langbook3.android.models.CorrelationDetailsModel;
 
 public interface AcceptationsChecker extends ConceptsChecker {
     Integer findLanguageByCode(String code);
+
+    /**
+     * Return the main alphabet for a given language
+     * @param language Identifier for an existing language.
+     * @return The identifier for the main alphabet, or null if language is not present
+     */
+    Integer findMainAlphabetForLanguage(int language);
+
     ImmutableIntSet findAlphabetsByLanguage(int language);
     ImmutableIntKeyMap<String> getAcceptationTexts(int acceptation);
     Conversion getConversion(ImmutableIntPair pair);
