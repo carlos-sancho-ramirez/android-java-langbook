@@ -117,6 +117,50 @@ public final class AcceptationsSerializerTest {
         }
     }
 
+    private static final String singFirstKanjiText = "歌";
+    private static final String singFirstKanaText = "うた";
+    private static final String singSecondText = "う";
+
+    private static final String singKanjiText = singFirstKanjiText + singSecondText;
+    private static final String singKanaText = singFirstKanaText + singSecondText;
+
+    private static void addJapaneseSingAcceptation(AcceptationsManager manager, int kanjiAlphabet, int kanaAlphabet, int concept) {
+        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+                .add(new ImmutableIntKeyMap.Builder<String>()
+                        .put(kanjiAlphabet, singFirstKanjiText)
+                        .put(kanaAlphabet, singFirstKanaText)
+                        .build())
+                .add(new ImmutableIntKeyMap.Builder<String>()
+                        .put(kanjiAlphabet, singSecondText)
+                        .put(kanaAlphabet, singSecondText)
+                        .build())
+                .build();
+
+        manager.addAcceptation(concept, correlationArray);
+    }
+
+    private static final String eatFirstKanjiText = "食べ";
+    private static final String eatFirstKanaText = "たべ";
+    private static final String eatSecondText = "る";
+
+    private static final String eatKanjiText = eatFirstKanjiText + eatSecondText;
+    private static final String eatKanaText = eatFirstKanaText + eatSecondText;
+
+    private static void addJapaneseEatAcceptation(AcceptationsManager manager, int kanjiAlphabet, int kanaAlphabet, int concept) {
+        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+                .add(new ImmutableIntKeyMap.Builder<String>()
+                        .put(kanjiAlphabet, eatFirstKanjiText)
+                        .put(kanaAlphabet, eatFirstKanaText)
+                        .build())
+                .add(new ImmutableIntKeyMap.Builder<String>()
+                        .put(kanjiAlphabet, eatSecondText)
+                        .put(kanaAlphabet, eatSecondText)
+                        .build())
+                .build();
+
+        manager.addAcceptation(concept, correlationArray);
+    }
+
     @Test
     public void testSerializeSingleSpanishAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
@@ -198,21 +242,7 @@ public final class AcceptationsSerializerTest {
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
 
         final int inConcept = inManager.getMaxConcept() + 1;
-        final String firstKanjiText = "歌";
-        final String firstKanaText = "うた";
-        final String secondText = "う";
-        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
-                .add(new ImmutableIntKeyMap.Builder<String>()
-                        .put(inKanjiAlphabet, firstKanjiText)
-                        .put(inKanaAlphabet, firstKanaText)
-                        .build())
-                .add(new ImmutableIntKeyMap.Builder<String>()
-                        .put(inKanjiAlphabet, secondText)
-                        .put(inKanaAlphabet, secondText)
-                        .build())
-                .build();
-
-        inManager.addAcceptation(inConcept, correlationArray);
+        addJapaneseSingAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
@@ -224,14 +254,14 @@ public final class AcceptationsSerializerTest {
         assertTrue(outAlphabets.contains(outKanjiAlphabet));
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).valueAt(0);
 
-        final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, firstKanjiText + secondText);
+        final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, singKanjiText);
         assertEquals(1, outAcceptations.size());
         final int outAcceptation = outAcceptations.valueAt(0);
 
         final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outAcceptation);
         assertEquals(2, outTexts.size());
-        assertEquals(firstKanjiText + secondText, outTexts.get(outKanjiAlphabet));
-        assertEquals(firstKanaText + secondText, outTexts.get(outKanaAlphabet));
+        assertEquals(singKanjiText, outTexts.get(outKanjiAlphabet));
+        assertEquals(singKanaText, outTexts.get(outKanaAlphabet));
     }
 
     @Test
@@ -246,38 +276,10 @@ public final class AcceptationsSerializerTest {
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
 
         final int inSingConcept = inManager.getMaxConcept() + 1;
-        final String firstKanjiTextForSing = "歌";
-        final String firstKanaTextForSing = "うた";
-        final String secondTextForSing = "う";
-        final ImmutableList<ImmutableIntKeyMap<String>> singCorrelationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
-                .add(new ImmutableIntKeyMap.Builder<String>()
-                        .put(inKanjiAlphabet, firstKanjiTextForSing)
-                        .put(inKanaAlphabet, firstKanaTextForSing)
-                        .build())
-                .add(new ImmutableIntKeyMap.Builder<String>()
-                        .put(inKanjiAlphabet, secondTextForSing)
-                        .put(inKanaAlphabet, secondTextForSing)
-                        .build())
-                .build();
-
-        inManager.addAcceptation(inSingConcept, singCorrelationArray);
+        addJapaneseSingAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inSingConcept);
 
         final int inEatConcept = inManager.getMaxConcept() + 1;
-        final String firstKanjiTextForEat = "食べ";
-        final String firstKanaTextForEat = "たべ";
-        final String secondTextForEat = "る";
-        final ImmutableList<ImmutableIntKeyMap<String>> eatCorrelationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
-                .add(new ImmutableIntKeyMap.Builder<String>()
-                        .put(inKanjiAlphabet, firstKanjiTextForEat)
-                        .put(inKanaAlphabet, firstKanaTextForEat)
-                        .build())
-                .add(new ImmutableIntKeyMap.Builder<String>()
-                        .put(inKanjiAlphabet, secondTextForEat)
-                        .put(inKanaAlphabet, secondTextForEat)
-                        .build())
-                .build();
-
-        inManager.addAcceptation(inEatConcept, eatCorrelationArray);
+        addJapaneseEatAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inEatConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
@@ -289,7 +291,6 @@ public final class AcceptationsSerializerTest {
         assertTrue(outAlphabets.contains(outKanjiAlphabet));
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).valueAt(0);
 
-        final String singKanjiText = firstKanjiTextForSing + secondTextForSing;
         final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singKanjiText);
         assertEquals(1, outSingAcceptations.size());
         final int outSingAcceptation = outSingAcceptations.valueAt(0);
@@ -297,9 +298,8 @@ public final class AcceptationsSerializerTest {
         final ImmutableIntKeyMap<String> outSingTexts = outManager.getAcceptationTexts(outSingAcceptation);
         assertEquals(2, outSingTexts.size());
         assertEquals(singKanjiText, outSingTexts.get(outKanjiAlphabet));
-        assertEquals(firstKanaTextForSing + secondTextForSing, outSingTexts.get(outKanaAlphabet));
+        assertEquals(singKanaText, outSingTexts.get(outKanaAlphabet));
 
-        final String eatKanjiText = firstKanjiTextForEat + secondTextForEat;
         final ImmutableIntSet outEatAcceptations = findAcceptationsMatchingText(outDb, eatKanjiText);
         assertEquals(1, outEatAcceptations.size());
         final int outEatAcceptation = outEatAcceptations.valueAt(0);
@@ -308,6 +308,6 @@ public final class AcceptationsSerializerTest {
         final ImmutableIntKeyMap<String> outEatTexts = outManager.getAcceptationTexts(outEatAcceptation);
         assertEquals(2, outEatTexts.size());
         assertEquals(eatKanjiText, outEatTexts.get(outKanjiAlphabet));
-        assertEquals(firstKanaTextForEat + secondTextForEat, outEatTexts.get(outKanaAlphabet));
+        assertEquals(eatKanaText, outEatTexts.get(outKanaAlphabet));
     }
 }
