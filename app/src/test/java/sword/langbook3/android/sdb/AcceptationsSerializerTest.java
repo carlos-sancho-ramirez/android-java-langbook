@@ -6,10 +6,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.Map;
 import sword.collections.MutableIntList;
 import sword.database.DbExporter;
 import sword.database.DbQuery;
@@ -18,6 +21,7 @@ import sword.langbook3.android.DatabaseInflater;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.models.Conversion;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -309,5 +313,59 @@ public final class AcceptationsSerializerTest {
         assertEquals(2, outEatTexts.size());
         assertEquals(eatKanjiText, outEatTexts.get(outKanjiAlphabet));
         assertEquals(eatKanaText, outEatTexts.get(outKanaAlphabet));
+    }
+
+    @Test
+    public void testSerializeSingleJapaneseAcceptationWithConversion() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+
+        final String languageCode = "ja";
+        final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+
+        final int inKanaAlphabet = inManager.getMaxConcept() + 1;
+        assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
+
+        final Map<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("う", "u")
+                .put("た", "ta")
+                .put("べ", "be")
+                .put("る", "ru")
+                .build();
+
+        final int inRoumajiAlphabet = inManager.getMaxConcept() + 1;
+        final Conversion conversion = new Conversion(inKanaAlphabet, inRoumajiAlphabet, conversionMap);
+        assertTrue(inManager.addAlphabetAsConversionTarget(conversion));
+
+        final int inConcept = inManager.getMaxConcept() + 1;
+        addJapaneseSingAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inConcept);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+
+        final int outLang = outManager.findLanguageByCode(languageCode);
+        final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
+        assertEquals(3, outAlphabets.size());
+        final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outLang);
+
+        final ImmutableIntPairMap conversionPairs = outManager.getConversionsMap();
+        final ImmutableIntSet outSourceConversionAlphabets = outAlphabets.filter(conversionPairs.keySet()::contains);
+        assertEquals(1, outSourceConversionAlphabets.size());
+        final int outRoumajiAlphabet = outSourceConversionAlphabets.valueAt(0);
+        assertNotEquals(outKanjiAlphabet, outRoumajiAlphabet);
+
+        final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).remove(outRoumajiAlphabet).valueAt(0);
+        assertEquals(outKanaAlphabet, conversionPairs.get(outRoumajiAlphabet));
+
+        final String singRoumajiText = "utau";
+        final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, singRoumajiText);
+        assertEquals(1, outAcceptations.size());
+        final int outAcceptation = outAcceptations.valueAt(0);
+
+        final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outAcceptation);
+        assertEquals(3, outTexts.size());
+        assertEquals(singKanjiText, outTexts.get(outKanjiAlphabet));
+        assertEquals(singKanaText, outTexts.get(outKanaAlphabet));
+        assertEquals(singRoumajiText, outTexts.get(outRoumajiAlphabet));
     }
 }
