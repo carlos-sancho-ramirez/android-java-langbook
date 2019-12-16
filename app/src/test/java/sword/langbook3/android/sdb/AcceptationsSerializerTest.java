@@ -311,6 +311,7 @@ public final class AcceptationsSerializerTest {
         assertEquals(1, outEatAcceptations.size());
         final int outEatAcceptation = outEatAcceptations.valueAt(0);
         assertNotEquals(outSingAcceptation, outEatAcceptation);
+        assertNotEquals(outManager.conceptFromAcceptation(outSingAcceptation), outManager.conceptFromAcceptation(outEatAcceptation));
 
         final ImmutableIntKeyMap<String> outEatTexts = outManager.getAcceptationTexts(outEatAcceptation);
         assertEquals(2, outEatTexts.size());
@@ -420,9 +421,9 @@ public final class AcceptationsSerializerTest {
         final String singRoumajiText = "utau";
         final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singRoumajiText);
         assertEquals(1, outSingAcceptations.size());
-        final int outAcceptation = outSingAcceptations.valueAt(0);
+        final int outSingAcceptation = outSingAcceptations.valueAt(0);
 
-        final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outAcceptation);
+        final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outSingAcceptation);
         assertEquals(3, outTexts.size());
         assertEquals(singKanjiText, outTexts.get(outKanjiAlphabet));
         assertEquals(singKanaText, outTexts.get(outKanaAlphabet));
@@ -432,6 +433,7 @@ public final class AcceptationsSerializerTest {
         final ImmutableIntSet outEatAcceptations = findAcceptationsMatchingText(outDb, eatRoumajiText);
         assertEquals(1, outEatAcceptations.size());
         final int outEatAcceptation = outEatAcceptations.valueAt(0);
+        assertNotEquals(outManager.conceptFromAcceptation(outSingAcceptation), outManager.conceptFromAcceptation(outEatAcceptation));
 
         final ImmutableIntKeyMap<String> outEatTexts = outManager.getAcceptationTexts(outEatAcceptation);
         assertEquals(3, outEatTexts.size());
