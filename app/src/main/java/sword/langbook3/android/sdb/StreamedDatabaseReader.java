@@ -387,7 +387,7 @@ public final class StreamedDatabaseReader {
         final int acceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
 
         final int[] acceptationsIdMap = new int[acceptationsLength];
-        if (acceptationsLength >= 0) {
+        if (acceptationsLength > 0) {
             final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
             final HuffmanTable<Integer> corrArraySetLengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());

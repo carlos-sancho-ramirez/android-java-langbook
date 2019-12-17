@@ -640,34 +640,35 @@ public final class StreamedDatabaseWriter {
             }
         }
 
-        final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(
-                composeJavaMap(lengthFrequencies), new IntComparator());
-        final RangedIntegerSetEncoder keyEncoder = new RangedIntegerSetEncoder(_obs,
-                lengthTable, alphabetIdMap.min(), alphabetIdMap.max());
-        final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(0, symbolArraysIdMap.size() - 1);
-        final ValueEncoder<Integer> symbolArrayEncoder = new ValueEncoder<>(symbolArrayTable);
-
-        final ImmutableIntKeyMap<ImmutableIntPairMap> correlations = builder.build();
         if (setCount != exportable.size()) {
             throw new AssertionError();
         }
 
         _obs.writeHuffmanSymbol(naturalNumberTable, setCount);
+        if (setCount > 0) {
+            final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(
+                    composeJavaMap(lengthFrequencies), new IntComparator());
 
-        boolean tableWritten = false;
-        for (ImmutableIntPairMap corr : correlations) {
-            if (!tableWritten) {
-                final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
-                _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
-                tableWritten = true;
+            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
+            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+
+            final RangedIntegerSetEncoder keyEncoder = new RangedIntegerSetEncoder(_obs,
+                    lengthTable, alphabetIdMap.min(), alphabetIdMap.max());
+            final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(0,
+                    symbolArraysIdMap.size() - 1);
+            final ValueEncoder<Integer> symbolArrayEncoder = new ValueEncoder<>(symbolArrayTable);
+
+            final ImmutableIntKeyMap<ImmutableIntPairMap> correlations = builder.build();
+
+            for (ImmutableIntPairMap corr : correlations) {
+                final HashMap<Integer, Integer> javaMap = new HashMap<>();
+                for (IntPairMap.Entry entry : corr.entries()) {
+                    javaMap.put(alphabetIdMap.get(entry.key()), entry.value());
+                }
+
+                _obs.writeMap(keyEncoder, keyEncoder, keyEncoder, keyEncoder, symbolArrayEncoder,
+                        javaMap);
             }
-
-            final HashMap<Integer, Integer> javaMap = new HashMap<>();
-            for (IntPairMap.Entry entry : corr.entries()) {
-                javaMap.put(alphabetIdMap.get(entry.key()), entry.value());
-            }
-
-            _obs.writeMap(keyEncoder, keyEncoder, keyEncoder, keyEncoder, symbolArrayEncoder, javaMap);
         }
 
         return idMapBuilder.build();
@@ -1277,7 +1278,7 @@ public final class StreamedDatabaseWriter {
 
     private void writeRelevantRuledAcceptations(MutableIntPairMap accIdMap, ImmutableIntList agentsWithRule) throws IOException {
         final ImmutableIntSet originalAccKeys = accIdMap.keySet().toImmutable();
-        if (accIdMap.max() + 1 != accIdMap.size()) {
+        if (!accIdMap.isEmpty() && accIdMap.max() + 1 != accIdMap.size()) {
             throw new AssertionError();
         }
 
