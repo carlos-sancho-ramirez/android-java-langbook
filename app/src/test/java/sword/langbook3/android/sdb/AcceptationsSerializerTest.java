@@ -97,7 +97,7 @@ public final class AcceptationsSerializerTest {
         }
     }
 
-    private static ImmutableIntSet findAcceptationsMatchingText(DbExporter.Database db, String text) {
+    static ImmutableIntSet findAcceptationsMatchingText(DbExporter.Database db, String text) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(strings)
                 .where(strings.getStringColumnIndex(), text)
@@ -105,7 +105,7 @@ public final class AcceptationsSerializerTest {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static MemoryDatabase cloneBySerializing(MemoryDatabase inDb) {
+    static MemoryDatabase cloneBySerializing(MemoryDatabase inDb) {
         final TestStream outStream = new TestStream();
         try {
             new StreamedDatabaseWriter(inDb, outStream, null).write();
