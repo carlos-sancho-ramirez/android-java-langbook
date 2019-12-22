@@ -2,16 +2,12 @@ package sword.langbook3.android.sdb;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
 
 import sword.bitstream.FunctionWithIOException;
-import sword.bitstream.InputBitStream;
-import sword.bitstream.IntegerDecoder;
-import sword.bitstream.NaturalDecoder;
-import sword.bitstream.RangedIntegerSetDecoder;
+import sword.bitstream.InputHuffmanStream;
+import sword.bitstream.InputStreamWrapper;
 import sword.bitstream.SupplierWithIOException;
 import sword.bitstream.huffman.CharHuffmanTable;
-import sword.bitstream.huffman.DefinedHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
@@ -20,8 +16,8 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
 import sword.collections.IntKeyMap;
+import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableIntArraySet;
@@ -30,6 +26,14 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
+import sword.bitstream.huffman.DefinedIntHuffmanTable;
+import sword.bitstream.IntDecoder;
+import sword.bitstream.huffman.IntHuffmanTable;
+import sword.bitstream.IntSupplierWithIOException;
+import sword.bitstream.IntToIntFunctionWithIOException;
+import sword.bitstream.NatDecoder;
+import sword.bitstream.huffman.RangedIntHuffmanTable;
+import sword.bitstream.RangedIntSetDecoder;
 import sword.langbook3.android.db.LangbookDbInserter;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
@@ -70,11 +74,10 @@ public final class StreamedDatabaseReader {
     }
 
     private static class CharReader implements SupplierWithIOException<Character> {
-
         private final CharHuffmanTable _table = new CharHuffmanTable(8);
-        private final InputBitStream _ibs;
+        private final InputHuffmanStream _ibs;
 
-        CharReader(InputBitStream ibs) {
+        CharReader(InputHuffmanStream ibs) {
             _ibs = ibs;
         }
 
@@ -86,10 +89,10 @@ public final class StreamedDatabaseReader {
 
     private static class CharHuffmanSymbolDiffReader implements FunctionWithIOException<Character, Character> {
 
-        private final InputBitStream _ibs;
+        private final InputHuffmanStream _ibs;
         private final NaturalNumberHuffmanTable _table;
 
-        CharHuffmanSymbolDiffReader(InputBitStream ibs, NaturalNumberHuffmanTable table) {
+        CharHuffmanSymbolDiffReader(InputHuffmanStream ibs, NaturalNumberHuffmanTable table) {
             _ibs = ibs;
             _table = table;
         }
@@ -101,72 +104,58 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private class IntReader implements SupplierWithIOException<Integer> {
+    private class IntReader implements IntSupplierWithIOException {
 
-        private final InputBitStream _ibs;
+        private final InputHuffmanStream _ibs;
 
-        IntReader(InputBitStream ibs) {
+        IntReader(InputHuffmanStream ibs) {
             _ibs = ibs;
         }
 
         @Override
-        public Integer apply() throws IOException {
+        public int apply() throws IOException {
             return _ibs.readHuffmanSymbol(naturalNumberTable);
         }
     }
 
-    private static class IntHuffmanSymbolReader implements SupplierWithIOException<Integer> {
+    private static class IntHuffmanSymbolReader implements IntSupplierWithIOException {
 
-        private final InputBitStream _ibs;
+        private final InputHuffmanStream _ibs;
         private final NaturalNumberHuffmanTable _table;
 
-        IntHuffmanSymbolReader(InputBitStream ibs, NaturalNumberHuffmanTable table) {
+        IntHuffmanSymbolReader(InputHuffmanStream ibs, NaturalNumberHuffmanTable table) {
             _ibs = ibs;
             _table = table;
         }
 
         @Override
-        public Integer apply() throws IOException {
+        public int apply() throws IOException {
             return _ibs.readHuffmanSymbol(_table);
         }
     }
 
-    private class IntDiffReader implements FunctionWithIOException<Integer, Integer> {
+    private static class IntHuffmanSymbolDiffReader implements IntToIntFunctionWithIOException {
 
-        private final InputBitStream _ibs;
-
-        IntDiffReader(InputBitStream ibs) {
-            _ibs = ibs;
-        }
-
-        @Override
-        public Integer apply(Integer previous) throws IOException {
-            return _ibs.readHuffmanSymbol(naturalNumberTable) + previous + 1;
-        }
-    }
-
-    private static class IntHuffmanSymbolDiffReader implements FunctionWithIOException<Integer, Integer> {
-
-        private final InputBitStream _ibs;
+        private final InputHuffmanStream _ibs;
         private final NaturalNumberHuffmanTable _table;
 
-        IntHuffmanSymbolDiffReader(InputBitStream ibs, NaturalNumberHuffmanTable table) {
+        IntHuffmanSymbolDiffReader(InputHuffmanStream ibs, NaturalNumberHuffmanTable table) {
             _ibs = ibs;
             _table = table;
         }
 
         @Override
-        public Integer apply(Integer previous) throws IOException {
+        public int apply(int previous) throws IOException {
             return _ibs.readHuffmanSymbol(_table) + previous + 1;
         }
     }
 
-    private static class ValueDecoder<E> implements SupplierWithIOException<E> {
+    private static class IntValueDecoder implements IntSupplierWithIOException {
 
-        private final InputBitStream _ibs;
-        private final HuffmanTable<E> _table;
+        private final InputHuffmanStream _ibs;
+        private final IntHuffmanTable _table;
 
-        ValueDecoder(InputBitStream ibs, HuffmanTable<E> table) {
+        IntValueDecoder(InputHuffmanStream ibs, IntHuffmanTable table) {
             if (ibs == null || table == null) {
                 throw new IllegalArgumentException();
             }
@@ -176,18 +165,14 @@ public final class StreamedDatabaseReader {
         }
 
         @Override
-        public E apply() throws IOException {
-            return _ibs.readHuffmanSymbol(_table);
+        public int apply() throws IOException {
+            return _ibs.readIntHuffmanSymbol(_table);
         }
     }
 
-    private ImmutableIntSet readRangedNumberSet(InputBitStream ibs, HuffmanTable<Integer> lengthTable, int min, int max) throws IOException {
-        final RangedIntegerSetDecoder decoder = new RangedIntegerSetDecoder(ibs, lengthTable, min, max);
-        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-        for (int value : ibs.readSet(decoder, decoder, decoder)) {
-            builder.add(value);
-        }
-        return builder.build();
+    private ImmutableIntSet readRangedNumberSet(InputStreamWrapper ibs, IntHuffmanTable lengthTable, int min, int max) throws IOException {
+        final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, lengthTable, min, max);
+        return ibs.readIntSet(decoder, decoder, decoder).toImmutable();
     }
 
     private static final class Language {
@@ -230,7 +215,6 @@ public final class StreamedDatabaseReader {
     }
 
     public static class AgentBunches {
-
         private final int _target;
         private final ImmutableIntSet _sources;
         private final ImmutableIntSet _diff;
@@ -271,7 +255,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private SymbolArrayReadResult readSymbolArrays(InputBitStream ibs) throws IOException {
+    private SymbolArrayReadResult readSymbolArrays(InputHuffmanStream ibs) throws IOException {
         final int symbolArraysLength = ibs.readHuffmanSymbol(naturalNumberTable);
         if (symbolArraysLength == 0) {
             final int[] emptyArray = new int[0];
@@ -284,13 +268,13 @@ public final class StreamedDatabaseReader {
         final HuffmanTable<Character> charHuffmanTable =
                 ibs.readHuffmanTable(new CharReader(ibs), new CharHuffmanSymbolDiffReader(ibs, nat4Table));
 
-        final HuffmanTable<Integer> symbolArraysLengthTable =
-                ibs.readHuffmanTable(new IntReader(ibs), new IntHuffmanSymbolDiffReader(ibs, nat3Table));
+        final IntHuffmanTable symbolArraysLengthTable =
+                ibs.readIntHuffmanTable(new IntReader(ibs), new IntHuffmanSymbolDiffReader(ibs, nat3Table));
 
         final int[] idMap = new int[symbolArraysLength];
         final int[] lengths = new int[symbolArraysLength];
         for (int index = 0; index < symbolArraysLength; index++) {
-            final int length = ibs.readHuffmanSymbol(symbolArraysLengthTable);
+            final int length = ibs.readIntHuffmanSymbol(symbolArraysLengthTable);
             final StringBuilder builder = new StringBuilder();
             for (int pos = 0; pos < length; pos++) {
                 builder.append(ibs.readHuffmanSymbol(charHuffmanTable));
@@ -303,7 +287,7 @@ public final class StreamedDatabaseReader {
         return new SymbolArrayReadResult(idMap, lengths);
     }
 
-    private Conversion[] readConversions(InputBitStream ibs, ImmutableIntSet validAlphabets, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
+    private Conversion[] readConversions(InputHuffmanStream ibs, ImmutableIntSet validAlphabets, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
         final int conversionsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final Conversion[] conversions = new Conversion[conversionsLength];
         final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex, maxSymbolArrayIndex);
@@ -341,21 +325,21 @@ public final class StreamedDatabaseReader {
         return conversions;
     }
 
-    private int[] readCorrelations(InputBitStream ibs, ImmutableIntSet validAlphabets, int[] symbolArraysIdMap) throws IOException {
+    private int[] readCorrelations(InputStreamWrapper ibs, ImmutableIntSet validAlphabets, int[] symbolArraysIdMap) throws IOException {
         final int correlationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final int[] result = new int[correlationsLength];
         if (correlationsLength > 0) {
-            final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(0, symbolArraysIdMap.length - 1);
-            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
-            final HuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
-            final RangedIntegerSetDecoder keyDecoder = new RangedIntegerSetDecoder(ibs, lengthTable, validAlphabets.min(), validAlphabets.max());
-            final ValueDecoder<Integer> valueDecoder = new ValueDecoder<>(ibs, symbolArrayTable);
+            final RangedIntHuffmanTable symbolArrayTable = new RangedIntHuffmanTable(0, symbolArraysIdMap.length - 1);
+            final IntDecoder intDecoder = new IntDecoder(ibs);
+            final IntHuffmanTable lengthTable = ibs.readIntHuffmanTable(intDecoder, intDecoder);
+            final RangedIntSetDecoder keyDecoder = new RangedIntSetDecoder(ibs, lengthTable, validAlphabets.min(), validAlphabets.max());
+            final IntValueDecoder valueDecoder = new IntValueDecoder(ibs, symbolArrayTable);
 
             for (int i = 0; i < correlationsLength; i++) {
-                Map<Integer, Integer> corrMap = ibs.readMap(keyDecoder, keyDecoder, keyDecoder, valueDecoder);
+                IntPairMap corrMap = ibs.readIntPairMap(keyDecoder, keyDecoder, keyDecoder, valueDecoder);
                 MutableIntPairMap corr = MutableIntPairMap.empty();
-                for (Map.Entry<Integer, Integer> entry : corrMap.entrySet()) {
-                    corr.put(entry.getKey(), symbolArraysIdMap[entry.getValue()]);
+                for (IntPairMap.Entry entry : corrMap.entries()) {
+                    corr.put(entry.key(), symbolArraysIdMap[entry.value()]);
                 }
                 result[i] = obtainCorrelation(_db, corr);
             }
@@ -364,16 +348,16 @@ public final class StreamedDatabaseReader {
         return result;
     }
 
-    private int[] readCorrelationArrays(InputBitStream ibs, int[] correlationIdMap) throws IOException {
+    private int[] readCorrelationArrays(InputHuffmanStream ibs, int[] correlationIdMap) throws IOException {
         final int arraysLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final int[] result = new int[arraysLength];
         if (arraysLength > 0) {
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
-            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
-            final HuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
+            final IntDecoder intDecoder = new IntDecoder(ibs);
+            final IntHuffmanTable lengthTable = ibs.readIntHuffmanTable(intDecoder, intDecoder);
 
             for (int i = 0; i < arraysLength; i++) {
-                final int arrayLength = ibs.readHuffmanSymbol(lengthTable);
+                final int arrayLength = ibs.readIntHuffmanSymbol(lengthTable);
 
                 final ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
                 for (int j = 0; j < arrayLength; j++) {
@@ -386,18 +370,18 @@ public final class StreamedDatabaseReader {
         return result;
     }
 
-    private int[] readAcceptations(InputBitStream ibs, ImmutableIntRange validConcepts, int[] correlationArrayIdMap) throws IOException {
+    private int[] readAcceptations(InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationArrayIdMap) throws IOException {
         final int acceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
 
         final int[] acceptationsIdMap = new int[acceptationsLength];
         if (acceptationsLength > 0) {
-            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
-            final HuffmanTable<Integer> corrArraySetLengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
+            final IntDecoder intDecoder = new IntDecoder(ibs);
+            final IntHuffmanTable corrArraySetLengthTable = ibs.readIntHuffmanTable(intDecoder, intDecoder);
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             for (int i = 0; i < acceptationsLength; i++) {
                 final int concept = ibs.readHuffmanSymbol(conceptTable);
-                final ImmutableIntSet corrArraySet = readRangedNumberSet(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
-                for (int corrArray : corrArraySet) {
+                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
+                for (int corrArray : ibs.readIntSet(decoder, decoder, decoder)) {
                     // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
                     acceptationsIdMap[i] = insertAcceptation(_db, concept, correlationArrayIdMap[corrArray]);
                 }
@@ -407,11 +391,11 @@ public final class StreamedDatabaseReader {
         return acceptationsIdMap;
     }
 
-    private void readComplementedConcepts(InputBitStream ibs, ImmutableIntRange validConcepts) throws IOException {
+    private void readComplementedConcepts(InputStreamWrapper ibs, ImmutableIntRange validConcepts) throws IOException {
         final int bunchConceptsLength = ibs.readHuffmanSymbol(naturalNumberTable);
-        final NaturalDecoder natDecoder = new NaturalDecoder(ibs);
-        final HuffmanTable<Integer> bunchConceptsLengthTable = (bunchConceptsLength > 0)?
-                ibs.readHuffmanTable(natDecoder, natDecoder) : null;
+        final NatDecoder natDecoder = new NatDecoder(ibs);
+        final IntHuffmanTable bunchConceptsLengthTable = (bunchConceptsLength > 0)?
+                ibs.readIntHuffmanTable(natDecoder, natDecoder) : null;
 
         int minBunchConcept = validConcepts.min();
         final int maxValidBunch = validConcepts.max();
@@ -419,8 +403,8 @@ public final class StreamedDatabaseReader {
             final int base = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept));
             minBunchConcept = base + 1;
 
-            final RangedIntegerSetDecoder decoder = new RangedIntegerSetDecoder(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
-            final java.util.Map<Integer, ImmutableIntSet> map = ibs.readMap(decoder, decoder, decoder, () -> {
+            final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
+            final IntKeyMap<ImmutableIntSet> map = ibs.readIntKeyMap(decoder, decoder, decoder, () -> {
                 final MutableIntSet complements = MutableIntArraySet.empty();
                 int minValidConcept = validConcepts.min();
                 while (minValidConcept < validConcepts.max() && ibs.readBoolean()) {
@@ -432,17 +416,17 @@ public final class StreamedDatabaseReader {
                 return complements.toImmutable();
             });
 
-            for (Map.Entry<Integer, ImmutableIntSet> entry : map.entrySet()) {
-                addDefinition(_db, base, entry.getKey(), entry.getValue());
+            for (IntKeyMap.Entry<ImmutableIntSet> entry : map.entries()) {
+                addDefinition(_db, base, entry.key(), entry.value());
             }
         }
     }
 
-    private void readBunchAcceptations(InputBitStream ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
+    private void readBunchAcceptations(InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
-        final NaturalDecoder natDecoder = new NaturalDecoder(ibs);
-        final HuffmanTable<Integer> bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
-                ibs.readHuffmanTable(natDecoder, natDecoder) : null;
+        final NatDecoder natDecoder = new NatDecoder(ibs);
+        final IntHuffmanTable bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
+                ibs.readIntHuffmanTable(natDecoder, natDecoder) : null;
 
         final int maxValidAcceptation = acceptationsIdMap.length - 1;
 
@@ -452,15 +436,15 @@ public final class StreamedDatabaseReader {
             final int bunch = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunch, maxBunch));
             minBunch = bunch + 1;
 
-            final ImmutableIntSet acceptations = readRangedNumberSet(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
-            for (int acceptation : acceptations) {
+            final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
+            for (int acceptation : ibs.readIntSet(decoder, decoder, decoder)) {
                 insertBunchAcceptation(_db, bunch, acceptationsIdMap[acceptation], 0);
             }
         }
     }
 
     private AgentReadResult readAgents(
-            InputBitStream ibs, ImmutableIntRange validConcepts, int[] correlationIdMap) throws IOException {
+            InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
@@ -469,7 +453,7 @@ public final class StreamedDatabaseReader {
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntHuffmanSymbolReader intHuffmanSymbolReader = new IntHuffmanSymbolReader(ibs, nat3Table);
-            final HuffmanTable<Integer> sourceSetLengthTable = ibs.readHuffmanTable(intHuffmanSymbolReader, null);
+            final IntHuffmanTable sourceSetLengthTable = ibs.readIntHuffmanTable(intHuffmanSymbolReader, null);
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = validConcepts.min();
@@ -487,8 +471,11 @@ public final class StreamedDatabaseReader {
                     minSource = validConcepts.min();
                 }
 
-                final ImmutableIntSet sourceSet = readRangedNumberSet(ibs, sourceSetLengthTable, minSource, validConcepts.max());
-                final ImmutableIntSet diffSet = readRangedNumberSet(ibs, sourceSetLengthTable, validConcepts.min(), validConcepts.max());
+                final RangedIntSetDecoder sourceDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, minSource, validConcepts.max());
+                final ImmutableIntSet sourceSet = ibs.readIntSet(sourceDecoder, sourceDecoder, sourceDecoder).toImmutable();
+
+                final RangedIntSetDecoder diffDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, validConcepts.min(), validConcepts.max());
+                final ImmutableIntSet diffSet = ibs.readIntSet(diffDecoder, diffDecoder, diffDecoder).toImmutable();
 
                 if (!sourceSet.isEmpty()) {
                     int min = Integer.MAX_VALUE;
@@ -551,7 +538,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private AgentAcceptationPair[] readRelevantRuledAcceptations(InputBitStream ibs, int[] accIdMap, ImmutableIntSet agentsWithRule) throws IOException {
+    private AgentAcceptationPair[] readRelevantRuledAcceptations(InputHuffmanStream ibs, int[] accIdMap, ImmutableIntSet agentsWithRule) throws IOException {
         final int pairsCount = ibs.readHuffmanSymbol(naturalNumberTable);
         final AgentAcceptationPair[] pairs = new AgentAcceptationPair[pairsCount];
         if (pairsCount > 0) {
@@ -612,7 +599,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private SentenceSpan[] readSentenceSpans(InputBitStream ibs, int extendedAccCount, int[] symbolArrayIdMap, int[] symbolArrayLengths) throws IOException {
+    private SentenceSpan[] readSentenceSpans(InputHuffmanStream ibs, int extendedAccCount, int[] symbolArrayIdMap, int[] symbolArrayLengths) throws IOException {
         final int maxSymbolArray = symbolArrayLengths.length - 1;
         final int spanCount = ibs.readHuffmanSymbol(naturalNumberTable);
         final SentenceSpan[] spans = new SentenceSpan[spanCount];
@@ -654,7 +641,7 @@ public final class StreamedDatabaseReader {
         return spans;
     }
 
-    private void readSentenceMeanings(InputBitStream ibs, int[] symbolArrayIdMap, SentenceSpan[] spans) throws IOException {
+    private void readSentenceMeanings(InputStreamWrapper ibs, int[] symbolArrayIdMap, SentenceSpan[] spans) throws IOException {
         final int meaningCount = ibs.readHuffmanSymbol(naturalNumberTable);
         if (meaningCount > 0) {
             final MutableIntPairMap sentenceIds = MutableIntPairMap.empty();
@@ -662,8 +649,8 @@ public final class StreamedDatabaseReader {
                 sentenceIds.put(span.symbolArray, span.sentenceId);
             }
 
-            final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
-            DefinedHuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
+            final IntDecoder intDecoder = new IntDecoder(ibs);
+            DefinedIntHuffmanTable lengthTable = ibs.readIntHuffmanTable(intDecoder, intDecoder);
 
             final int baseConcept = getMaxConcept(_db) + 1;
             int previousMin = 0;
@@ -715,7 +702,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private ImmutableIntSet readLanguagesAndAlphabets(InputBitStream ibs) throws IOException {
+    private ImmutableIntSet readLanguagesAndAlphabets(InputStreamWrapper ibs) throws IOException {
         final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
         final Language[] languages = new Language[languageCount];
 
@@ -759,7 +746,7 @@ public final class StreamedDatabaseReader {
     public Result read() throws IOException {
         try {
             setProgress(0, "Reading symbol arrays");
-            final InputBitStream ibs = new InputBitStream(_is);
+            final InputStreamWrapper ibs = new InputStreamWrapper(_is);
             final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs);
             final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;
 

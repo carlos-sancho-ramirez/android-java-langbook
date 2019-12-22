@@ -2,21 +2,13 @@ package sword.langbook3.android.sdb;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
-import sword.bitstream.IntegerEncoder;
-import sword.bitstream.NaturalEncoder;
-import sword.bitstream.OutputBitStream;
+import sword.bitstream.OutputHuffmanStream;
+import sword.bitstream.OutputStreamWrapper;
 import sword.bitstream.Procedure2WithIOException;
 import sword.bitstream.ProcedureWithIOException;
-import sword.bitstream.RangedIntegerSetEncoder;
 import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.DefinedHuffmanTable;
-import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableHashMap;
@@ -35,7 +27,6 @@ import sword.collections.ImmutableSortedSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.collections.IntValueMap;
 import sword.collections.List;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
@@ -54,6 +45,14 @@ import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
+import sword.bitstream.huffman.DefinedIntHuffmanTable;
+import sword.bitstream.IntEncoder;
+import sword.bitstream.huffman.IntHuffmanTable;
+import sword.bitstream.IntProcedure2WithIOException;
+import sword.bitstream.IntProcedureWithIOException;
+import sword.bitstream.NatEncoder;
+import sword.bitstream.huffman.RangedIntHuffmanTable;
+import sword.bitstream.RangedIntSetEncoder;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.AgentRegister;
@@ -64,7 +63,7 @@ import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTa
 public final class StreamedDatabaseWriter {
 
     private final Database _db;
-    private final OutputBitStream _obs;
+    private final OutputStreamWrapper _obs;
     private final ProgressListener _listener;
 
     /**
@@ -76,9 +75,9 @@ public final class StreamedDatabaseWriter {
     private static class CharWriter implements ProcedureWithIOException<Character> {
 
         private final CharHuffmanTable _table = new CharHuffmanTable(8);
-        private final OutputBitStream _obs;
+        private final OutputHuffmanStream _obs;
 
-        CharWriter(OutputBitStream obs) {
+        CharWriter(OutputHuffmanStream obs) {
             _obs = obs;
         }
 
@@ -90,10 +89,10 @@ public final class StreamedDatabaseWriter {
 
     private static class CharHuffmanSymbolDiffWriter implements Procedure2WithIOException<Character> {
 
-        private final OutputBitStream _obs;
+        private final OutputHuffmanStream _obs;
         private final NaturalNumberHuffmanTable _table;
 
-        CharHuffmanSymbolDiffWriter(OutputBitStream obs, NaturalNumberHuffmanTable table) {
+        CharHuffmanSymbolDiffWriter(OutputHuffmanStream obs, NaturalNumberHuffmanTable table) {
             _obs = obs;
             _table = table;
         }
@@ -104,15 +103,7 @@ public final class StreamedDatabaseWriter {
         }
     }
 
-    private static final class CharComparator implements Comparator<Character> {
-
-        @Override
-        public int compare(Character a, Character b) {
-            return a - b;
-        }
-    }
-
-    private class IntWriter implements ProcedureWithIOException<Integer> {
+    private class IntWriter implements IntProcedureWithIOException {
 
         private final NaturalNumberHuffmanTable _table;
 
@@ -125,40 +116,32 @@ public final class StreamedDatabaseWriter {
         }
 
         @Override
-        public void apply(Integer value) throws IOException {
+        public void apply(int value) throws IOException {
             _obs.writeHuffmanSymbol(_table, value);
         }
     }
 
-    private static class IntHuffmanSymbolDiffWriter implements Procedure2WithIOException<Integer> {
+    private static class IntHuffmanSymbolDiffWriter implements IntProcedure2WithIOException {
 
-        private final OutputBitStream _obs;
+        private final OutputHuffmanStream _obs;
         private final NaturalNumberHuffmanTable _table;
 
-        IntHuffmanSymbolDiffWriter(OutputBitStream obs, NaturalNumberHuffmanTable table) {
+        IntHuffmanSymbolDiffWriter(OutputHuffmanStream obs, NaturalNumberHuffmanTable table) {
             _obs = obs;
             _table = table;
         }
 
         @Override
-        public void apply(Integer previous, Integer element) throws IOException {
+        public void apply(int previous, int element) throws IOException {
             _obs.writeHuffmanSymbol(_table, element - previous - 1);
         }
     }
 
-    private static final class IntComparator implements Comparator<Integer> {
+    private class IntValueEncoder implements IntProcedureWithIOException {
 
-        @Override
-        public int compare(Integer a, Integer b) {
-            return a - b;
-        }
-    }
+        private final IntHuffmanTable _table;
 
-    private class ValueEncoder<E> implements ProcedureWithIOException<E> {
-
-        private final HuffmanTable<E> _table;
-
-        ValueEncoder(HuffmanTable<E> table) {
+        IntValueEncoder(IntHuffmanTable table) {
             if (table == null) {
                 throw new IllegalArgumentException();
             }
@@ -167,14 +150,14 @@ public final class StreamedDatabaseWriter {
         }
 
         @Override
-        public void apply(E element) throws IOException {
-            _obs.writeHuffmanSymbol(_table, element);
+        public void apply(int element) throws IOException {
+            _obs.writeIntHuffmanSymbol(_table, element);
         }
     }
 
     public StreamedDatabaseWriter(Database db, OutputStream os, ProgressListener listener) {
         _db = db;
-        _obs = new OutputBitStream(os);
+        _obs = new OutputStreamWrapper(os);
         _listener = listener;
     }
 
@@ -191,40 +174,6 @@ public final class StreamedDatabaseWriter {
         }
 
         return count;
-    }
-
-    private <E> java.util.Map<E, Integer> composeJavaMap(IntValueMap<E> map) {
-        final HashMap<E, Integer> result = new HashMap<>();
-        for (IntValueMap.Entry<E> entry : map.entries()) {
-            result.put(entry.key(), entry.value());
-        }
-        return result;
-    }
-
-    private java.util.Map<Integer, Integer> composeJavaMap(IntPairMap map) {
-        final HashMap<Integer, Integer> result = new HashMap<>();
-        for (IntPairMap.Entry entry : map.entries()) {
-            result.put(entry.key(), entry.value());
-        }
-        return result;
-    }
-
-    private Set<Integer> composeJavaSet(IntSet set) {
-        final HashSet<Integer> javaSet = new HashSet<>();
-        for (int value : set) {
-            javaSet.add(value);
-        }
-
-        return javaSet;
-    }
-
-    private void writeRangedNumberSet(RangedIntegerSetEncoder encoder, IntSet set) throws IOException {
-        _obs.writeSet(encoder, encoder, encoder, encoder, composeJavaSet(set));
-    }
-
-    private void writeRangedNumberSet(HuffmanTable<Integer> lengthTable, ImmutableIntRange range, IntSet set) throws IOException {
-        final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, range.min(), range.max());
-        writeRangedNumberSet(encoder, set);
     }
 
     private static final class SymbolArrayWriterResult {
@@ -275,14 +224,14 @@ public final class StreamedDatabaseWriter {
             return new SymbolArrayWriterResult(ImmutableIntPairMap.empty(), ImmutableIntPairMap.empty());
         }
         else {
-            final DefinedHuffmanTable<Character> charHuffmanTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(charFrequency), new CharComparator());
-            final DefinedHuffmanTable<Integer> symbolArraysLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequency), new IntComparator());
+            final DefinedHuffmanTable<Character> charHuffmanTable = DefinedHuffmanTable.withFrequencies(charFrequency, (a, b) -> a < b);
+            final DefinedIntHuffmanTable symbolArraysLengthTable = DefinedIntHuffmanTable.withFrequencies(lengthFrequency);
 
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final NaturalNumberHuffmanTable nat4Table = new NaturalNumberHuffmanTable(4);
 
             _obs.writeHuffmanTable(charHuffmanTable, new CharWriter(_obs), new CharHuffmanSymbolDiffWriter(_obs, nat4Table));
-            _obs.writeHuffmanTable(symbolArraysLengthTable, new IntWriter(), new IntHuffmanSymbolDiffWriter(_obs, nat3Table));
+            _obs.writeIntHuffmanTable(symbolArraysLengthTable, new IntWriter(), new IntHuffmanSymbolDiffWriter(_obs, nat3Table));
 
             final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
             final ImmutableIntPairMap.Builder lengthMapBuilder = new ImmutableIntPairMap.Builder();
@@ -297,7 +246,7 @@ public final class StreamedDatabaseWriter {
                         idMapBuilder.put(dbId, count++);
 
                         final int strLength = str.length();
-                        _obs.writeHuffmanSymbol(symbolArraysLengthTable, strLength);
+                        _obs.writeIntHuffmanSymbol(symbolArraysLengthTable, strLength);
                         lengthMapBuilder.put(dbId, strLength);
 
                         for (int i = 0; i < strLength; i++) {
@@ -492,79 +441,6 @@ public final class StreamedDatabaseWriter {
         }
     }
 
-    private ImmutableIntSet getConceptsFromAcceptations() {
-        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getConceptColumnIndex());
-
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
-    }
-
-    private ImmutableIntSet getConceptsFromComplementedConcepts() {
-        final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
-        final DbQuery query = new DbQuery.Builder(table).select(
-                table.getIdColumnIndex(),
-                table.getBaseColumnIndex());
-
-        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
-        try (DbResult dbResult = _db.select(query)) {
-            while (dbResult.hasNext()) {
-                final List<DbValue> row = dbResult.next();
-                builder.add(row.get(0).toInt());
-                builder.add(row.get(1).toInt());
-            }
-        }
-
-        return builder.build();
-    }
-
-    private ImmutableIntSet getConceptsFromBunchAcceptations() {
-        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getBunchColumnIndex());
-
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
-    }
-
-    private ImmutableIntSet getConceptsFromAlphabetsAndLanguages() {
-        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getIdColumnIndex(), table.getLanguageColumnIndex());
-
-        final MutableIntArraySet concepts = MutableIntArraySet.empty();
-        try (DbResult dbResult = _db.select(query)) {
-            while (dbResult.hasNext()) {
-                final List<DbValue> row = dbResult.next();
-                concepts.add(row.get(0).toInt());
-                concepts.add(row.get(1).toInt());
-            }
-        }
-
-        return concepts.toImmutable();
-    }
-
-    private ImmutableIntSet getConceptsFromAgentRules() {
-        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(table).select(
-                table.getStartMatcherColumnIndex(),
-                table.getStartAdderColumnIndex(),
-                table.getEndMatcherColumnIndex(),
-                table.getEndAdderColumnIndex(),
-                table.getRuleColumnIndex());
-
-        final MutableIntArraySet rules = MutableIntArraySet.empty();
-        try (DbResult dbResult = _db.select(query)) {
-            while (dbResult.hasNext()) {
-                final List<DbValue> row = dbResult.next();
-                if (row.get(0).toInt() != row.get(1).toInt() || row.get(2).toInt() != row.get(3).toInt()) {
-                    rules.add(row.get(4).toInt());
-                }
-            }
-        }
-
-        return rules.toImmutable();
-    }
-
     private ImmutableIntPairMap writeCorrelations(ImmutableIntSet exportable, ImmutableIntPairMap alphabetIdMap, ImmutableIntSet excludedAlphabets, ImmutableIntPairMap symbolArraysIdMap) throws IOException {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(table).select(
@@ -646,28 +522,27 @@ public final class StreamedDatabaseWriter {
 
         _obs.writeHuffmanSymbol(naturalNumberTable, setCount);
         if (setCount > 0) {
-            final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(
-                    composeJavaMap(lengthFrequencies), new IntComparator());
+            final DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.withFrequencies(lengthFrequencies);
 
-            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
-            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+            final IntEncoder intEncoder = new IntEncoder(_obs);
+            _obs.writeIntHuffmanTable(lengthTable, intEncoder, intEncoder);
 
-            final RangedIntegerSetEncoder keyEncoder = new RangedIntegerSetEncoder(_obs,
+            final RangedIntSetEncoder keyEncoder = new RangedIntSetEncoder(_obs,
                     lengthTable, alphabetIdMap.min(), alphabetIdMap.max());
-            final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(0,
+            final RangedIntHuffmanTable symbolArrayTable = new RangedIntHuffmanTable(0,
                     symbolArraysIdMap.size() - 1);
-            final ValueEncoder<Integer> symbolArrayEncoder = new ValueEncoder<>(symbolArrayTable);
+            final IntValueEncoder symbolArrayEncoder = new IntValueEncoder(symbolArrayTable);
 
             final ImmutableIntKeyMap<ImmutableIntPairMap> correlations = builder.build();
 
             for (ImmutableIntPairMap corr : correlations) {
-                final HashMap<Integer, Integer> javaMap = new HashMap<>();
+                final MutableIntPairMap mutableMap = MutableIntPairMap.empty();
                 for (IntPairMap.Entry entry : corr.entries()) {
-                    javaMap.put(alphabetIdMap.get(entry.key()), entry.value());
+                    mutableMap.put(alphabetIdMap.get(entry.key()), entry.value());
                 }
 
-                _obs.writeMap(keyEncoder, keyEncoder, keyEncoder, keyEncoder, symbolArrayEncoder,
-                        javaMap);
+                _obs.writeIntPairMap(keyEncoder, keyEncoder, keyEncoder, symbolArrayEncoder,
+                        mutableMap);
             }
         }
 
@@ -734,18 +609,16 @@ public final class StreamedDatabaseWriter {
         _obs.writeHuffmanSymbol(naturalNumberTable, index);
 
         if (!corrArrays.isEmpty()) {
-            final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(
-                    composeJavaMap(lengthFrequencies), new IntComparator());
-            final RangedIntegerHuffmanTable correlationTable =
-                    new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
+            final DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.withFrequencies(lengthFrequencies);
+            final RangedIntHuffmanTable correlationTable = new RangedIntHuffmanTable(0, correlationIdMap.size() - 1);
 
-            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
-            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+            final IntEncoder intEncoder = new IntEncoder(_obs);
+            _obs.writeIntHuffmanTable(lengthTable, intEncoder, intEncoder);
 
             for (ImmutableIntList array : corrArrays) {
-                _obs.writeHuffmanSymbol(lengthTable, array.size());
+                _obs.writeIntHuffmanSymbol(lengthTable, array.size());
                 for (int value : array) {
-                    _obs.writeHuffmanSymbol(correlationTable, value);
+                    _obs.writeIntHuffmanSymbol(correlationTable, value);
                 }
             }
         }
@@ -763,12 +636,10 @@ public final class StreamedDatabaseWriter {
             // The streamed database file allow having more than one representation for acceptation.
             // However, the database schema only allows 1 per each acceptation.
             // Because of that, the length table will have a single element, as all will be have length 1.
-            final Map<Integer, Integer> dummyFrequencyMap =
-                    composeJavaMap(new ImmutableIntPairMap.Builder().put(1, 50).build());
-            final DefinedHuffmanTable<Integer> lengthTable =
-                    DefinedHuffmanTable.withFrequencies(dummyFrequencyMap, new IntComparator());
-            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
-            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+            final IntPairMap dummyFrequencyMap = new ImmutableIntPairMap.Builder().put(1, 50).build();
+            final DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.withFrequencies(dummyFrequencyMap);
+            final IntEncoder intEncoder = new IntEncoder(_obs);
+            _obs.writeIntHuffmanTable(lengthTable, intEncoder, intEncoder);
 
             final DbQuery query = new DbQuery.Builder(table).select(
                     table.getIdColumnIndex(),
@@ -841,11 +712,11 @@ public final class StreamedDatabaseWriter {
                 lengthFrequencies.put(length, amount + 1);
             }
 
-            final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequencies), new IntComparator());
-            final NaturalEncoder natEncoder = new NaturalEncoder(_obs);
-            _obs.writeHuffmanTable(lengthTable, natEncoder, natEncoder);
+            final DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.withFrequencies(lengthFrequencies);
+            final NatEncoder natEncoder = new NatEncoder(_obs);
+            _obs.writeIntHuffmanTable(lengthTable, natEncoder, natEncoder);
 
-            final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, StreamedDatabaseConstants.minValidConcept, StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1);
+            final RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, StreamedDatabaseConstants.minValidConcept, StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1);
             int remainingBunches = bases.size();
             int minBunchConcept = StreamedDatabaseConstants.minValidConcept;
             for (IntKeyMap.Entry<MutableSet<ImmutableIntPair>> entry : bases.entries()) {
@@ -854,7 +725,7 @@ public final class StreamedDatabaseWriter {
                 minBunchConcept = entry.key() + 1;
                 --remainingBunches;
 
-                final java.util.Map<Integer, ImmutableIntSet> innerMap = new java.util.HashMap<>();
+                final MutableIntKeyMap<ImmutableIntSet> innerMap = MutableIntKeyMap.empty();
                 for (ImmutableIntPair pair : entry.value()) {
                     final ImmutableIntSet itemConcepts;
                     if (pair.right == 0) {
@@ -881,7 +752,7 @@ public final class StreamedDatabaseWriter {
                     innerMap.put(pair.left, itemConcepts);
                 }
 
-                _obs.writeMap(encoder, encoder, encoder, encoder, complements -> {
+                _obs.writeIntKeyMap(encoder, encoder, encoder, complements -> {
                     int minValidComplement = StreamedDatabaseConstants.minValidConcept;
                     final int maxValidComplement = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1;
                     for (int complement : complements) {
@@ -974,8 +845,8 @@ public final class StreamedDatabaseWriter {
         if (!agents.isEmpty()) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntWriter intWriter = new IntWriter(nat3Table);
-            final DefinedHuffmanTable<Integer> sourceSetLengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(bunchSetLengthFrequencyMap), new IntComparator());
-            _obs.writeHuffmanTable(sourceSetLengthTable, intWriter, null);
+            final DefinedIntHuffmanTable sourceSetLengthTable = DefinedIntHuffmanTable.withFrequencies(bunchSetLengthFrequencyMap);
+            _obs.writeIntHuffmanTable(sourceSetLengthTable, intWriter, null);
 
             int minSource = StreamedDatabaseConstants.minValidConcept;
             final int maxSource = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1;
@@ -991,13 +862,13 @@ public final class StreamedDatabaseWriter {
                     minSource = StreamedDatabaseConstants.minValidConcept;
                 }
 
-                final RangedIntegerSetEncoder sourceEncoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
+                final RangedIntSetEncoder sourceEncoder = new RangedIntSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
                 final IntSet sourceBunchSet = (agent.sourceBunchSetId != 0)? bunchSets.get(agent.sourceBunchSetId) : emptySet;
-                writeRangedNumberSet(sourceEncoder, sourceBunchSet);
+                _obs.writeIntSet(sourceEncoder, sourceEncoder, sourceEncoder, sourceBunchSet);
 
-                final RangedIntegerSetEncoder diffEncoder = new RangedIntegerSetEncoder(_obs, sourceSetLengthTable, StreamedDatabaseConstants.minValidConcept, maxSource);
+                final RangedIntSetEncoder diffEncoder = new RangedIntSetEncoder(_obs, sourceSetLengthTable, StreamedDatabaseConstants.minValidConcept, maxSource);
                 final IntSet diffBunchSet = (agent.diffBunchSetId != 0)? bunchSets.get(agent.diffBunchSetId) : emptySet;
-                writeRangedNumberSet(diffEncoder, diffBunchSet);
+                _obs.writeIntSet(diffEncoder, diffEncoder, diffEncoder, diffBunchSet);
 
                 if (!sourceBunchSet.isEmpty()) {
                     minSource = sourceBunchSet.min();
@@ -1060,11 +931,11 @@ public final class StreamedDatabaseWriter {
                 lengthFrequencies.put(length, amount + 1);
             }
 
-            final DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.withFrequencies(composeJavaMap(lengthFrequencies), new IntComparator());
-            final NaturalEncoder natEncoder = new NaturalEncoder(_obs);
-            _obs.writeHuffmanTable(lengthTable, natEncoder, natEncoder);
+            final DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.withFrequencies(lengthFrequencies);
+            final NatEncoder natEncoder = new NatEncoder(_obs);
+            _obs.writeIntHuffmanTable(lengthTable, natEncoder, natEncoder);
 
-            final RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, 0, accIdMap.size() - 1);
+            final RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, 0, accIdMap.size() - 1);
             int maxBunchConcept = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - bunches.size();
             int minBunchConcept = StreamedDatabaseConstants.minValidConcept;
             for (IntKeyMap.Entry<MutableIntSet> entry : bunches.entries()) {
@@ -1073,7 +944,7 @@ public final class StreamedDatabaseWriter {
                 minBunchConcept = entry.key() + 1;
                 ++maxBunchConcept;
 
-                writeRangedNumberSet(encoder, entry.value());
+                _obs.writeIntSet(encoder, encoder, encoder, entry.value());
             }
         }
     }
@@ -1480,15 +1351,15 @@ public final class StreamedDatabaseWriter {
         final int meaningCount = meanings.size();
         _obs.writeHuffmanSymbol(naturalNumberTable, meaningCount);
         if (meaningCount > 0) {
-            final IntegerEncoder intEncoder = new IntegerEncoder(_obs);
-            DefinedHuffmanTable<Integer> lengthTable = DefinedHuffmanTable.from(meanings.mapToInt(ImmutableIntSet::size), intEncoder);
-            _obs.writeHuffmanTable(lengthTable, intEncoder, intEncoder);
+            final IntEncoder intEncoder = new IntEncoder(_obs);
+            DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.from(meanings.mapToInt(ImmutableIntSet::size));
+            _obs.writeIntHuffmanTable(lengthTable, intEncoder, intEncoder);
 
             int previousMin = 0;
             for (ImmutableIntSet set : meanings) {
-                RangedIntegerSetEncoder encoder = new RangedIntegerSetEncoder(_obs, lengthTable, previousMin,
+                RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, previousMin,
                         symbolArrayIdMap.size() - 1);
-                writeRangedNumberSet(encoder, set);
+                _obs.writeIntSet(encoder, encoder, encoder, set);
                 previousMin = set.min();
             }
         }

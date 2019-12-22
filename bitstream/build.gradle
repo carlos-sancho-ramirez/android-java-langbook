@@ -15,7 +15,14 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:413abc35144ca3770e697a020849db21aa5a8382'
-    testImplementation 'junit:junit:4.12'
+    testImplementation('org.junit.jupiter:junit-jupiter:5.4.0')
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "skipped", "failed"
+    }
 }
 
 task sourceJar(type: Jar) {
@@ -31,7 +38,7 @@ task packageJavadoc(type: Jar) {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifactId 'database-access-library'
+            artifactId 'bit-streams-library'
             from components.java
 
             artifact sourceJar
@@ -48,6 +55,6 @@ javadoc {
         setMemberLevel JavadocMemberLevel.PUBLIC
         setAuthor false
 
-        links "https://docs.oracle.com/javase/7/docs/api/"
+        links "https://docs.oracle.com/javase/8/docs/api/"
     }
 }
