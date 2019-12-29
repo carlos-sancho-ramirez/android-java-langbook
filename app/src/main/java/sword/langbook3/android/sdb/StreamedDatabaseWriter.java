@@ -1503,8 +1503,9 @@ public final class StreamedDatabaseWriter {
         setProgress(0.1f, "Writing symbol arrays");
         final SymbolArrayWriterResult symbolArrayWriterResult = writeSymbolArrays(exportableSymbolArrays.symbolArrays);
         final ImmutableIntPairMap symbolArrayIdMap = symbolArrayWriterResult.idMap;
+        final LanguageAndAlphabetsMapping langAlphabetMappings = writeLanguages();
         if (symbolArrayIdMap.isEmpty()) {
-            // Without symbolArrays, it is possible to have languages and alphabets ss they do not depend on them,
+            // Without symbolArrays, it is possible to have languages and alphabets as they do not depend on them,
             // but not conversions, correlations, acceptations, sentences...
             //
             // The only thing that can exist without symbol arrays are concepts (languages and alphabets are concepts),
@@ -1519,7 +1520,6 @@ public final class StreamedDatabaseWriter {
             _obs.writeHuffmanSymbol(naturalNumberTable, validConcepts);
         }
         else {
-            final LanguageAndAlphabetsMapping langAlphabetMappings = writeLanguages();
             final ImmutableIntPairMap conceptIdMap = langAlphabetMappings.composeConceptMap(getUsedConcepts(_db));
             final ImmutableIntPairMap symbolArrayLengths = symbolArrayWriterResult.lengths;
 

@@ -15,6 +15,7 @@ import sword.bitstream.huffman.DefinedHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
+import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
@@ -302,13 +303,15 @@ public final class StreamedDatabaseReader {
         return new SymbolArrayReadResult(idMap, lengths);
     }
 
-    private Conversion[] readConversions(InputBitStream ibs, int minValidAlphabet, int maxValidAlphabet, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
+    private Conversion[] readConversions(InputBitStream ibs, ImmutableIntSet validAlphabets, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
         final int conversionsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final Conversion[] conversions = new Conversion[conversionsLength];
         final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex, maxSymbolArrayIndex);
 
-        int minSourceAlphabet = minValidAlphabet;
-        int minTargetAlphabet = minValidAlphabet;
+        final int minValidAlphabet = validAlphabets.min();
+        final int maxValidAlphabet = validAlphabets.max();
+        int minSourceAlphabet = validAlphabets.min();
+        int minTargetAlphabet = maxValidAlphabet;
         for (int i = 0; i < conversionsLength; i++) {
             final RangedIntegerHuffmanTable sourceAlphabetTable = new RangedIntegerHuffmanTable(minSourceAlphabet, maxValidAlphabet);
             final int sourceAlphabet = ibs.readHuffmanSymbol(sourceAlphabetTable);
@@ -338,14 +341,14 @@ public final class StreamedDatabaseReader {
         return conversions;
     }
 
-    private int[] readCorrelations(InputBitStream ibs, int minAlphabet, int maxAlphabet, int[] symbolArraysIdMap) throws IOException {
+    private int[] readCorrelations(InputBitStream ibs, ImmutableIntSet validAlphabets, int[] symbolArraysIdMap) throws IOException {
         final int correlationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final int[] result = new int[correlationsLength];
         if (correlationsLength > 0) {
             final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(0, symbolArraysIdMap.length - 1);
             final IntegerDecoder intDecoder = new IntegerDecoder(ibs);
             final HuffmanTable<Integer> lengthTable = ibs.readHuffmanTable(intDecoder, intDecoder);
-            final RangedIntegerSetDecoder keyDecoder = new RangedIntegerSetDecoder(ibs, lengthTable, minAlphabet, maxAlphabet);
+            final RangedIntegerSetDecoder keyDecoder = new RangedIntegerSetDecoder(ibs, lengthTable, validAlphabets.min(), validAlphabets.max());
             final ValueDecoder<Integer> valueDecoder = new ValueDecoder<>(ibs, symbolArrayTable);
 
             for (int i = 0; i < correlationsLength; i++) {
@@ -712,12 +715,58 @@ public final class StreamedDatabaseReader {
         }
     }
 
+    private ImmutableIntSet readLanguagesAndAlphabets(InputBitStream ibs) throws IOException {
+        final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
+        final Language[] languages = new Language[languageCount];
+
+        final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
+        final int minValidAlphabet = StreamedDatabaseConstants.minValidConcept + languageCount;
+        int nextMinAlphabet = minValidAlphabet;
+
+        final RangedIntegerHuffmanTable languageCodeSymbol = new RangedIntegerHuffmanTable('a', 'z');
+        for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
+            final char firstChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
+            final char secondChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
+            final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
+
+            final String code = "" + firstChar + secondChar;
+            languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
+
+            nextMinAlphabet += alphabetCount;
+        }
+
+        final int maxValidAlphabet = nextMinAlphabet - 1;
+        final int minLanguage = StreamedDatabaseConstants.minValidConcept;
+
+        for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
+            for (int j = 0; j < languageCount; j++) {
+                Language lang = languages[j];
+                if (lang.containsAlphabet(i)) {
+                    insertAlphabet(_db, i, minLanguage + j);
+                    break;
+                }
+            }
+        }
+
+        for (int i = 0; i < languageCount; i++) {
+            final Language lang = languages[i];
+            insertLanguage(_db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
+        }
+
+        return (languageCount == 0)? ImmutableIntArraySet.empty() : new ImmutableIntRange(minValidAlphabet, maxValidAlphabet);
+    }
+
     public Result read() throws IOException {
         try {
             setProgress(0, "Reading symbol arrays");
             final InputBitStream ibs = new InputBitStream(_is);
             final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs);
             final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;
+
+            // Read languages and its alphabets
+            setProgress(0.09f, "Reading languages and its alphabets");
+            final ImmutableIntSet validAlphabets = readLanguagesAndAlphabets(ibs);
+
             if (symbolArraysIdMap.length == 0) {
                 final int validConceptCount = ibs.readHuffmanSymbol(naturalNumberTable);
                 // Writer does always write a 0 here, so it is expected by the reader.
@@ -730,48 +779,9 @@ public final class StreamedDatabaseReader {
             else {
                 final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
 
-                // Read languages and its alphabets
-                setProgress(0.09f, "Reading languages and its alphabets");
-                final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
-                final Language[] languages = new Language[languageCount];
-
-                final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
-                final int minValidAlphabet = StreamedDatabaseConstants.minValidConcept + languageCount;
-                int nextMinAlphabet = minValidAlphabet;
-
-                final RangedIntegerHuffmanTable languageCodeSymbol = new RangedIntegerHuffmanTable('a', 'z');
-                for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
-                    final char firstChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
-                    final char secondChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
-                    final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
-
-                    final String code = "" + firstChar + secondChar;
-                    languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
-
-                    nextMinAlphabet += alphabetCount;
-                }
-
-                final int maxValidAlphabet = nextMinAlphabet - 1;
-                final int minLanguage = StreamedDatabaseConstants.minValidConcept;
-
-                for (int i = minValidAlphabet; i <= maxValidAlphabet; i++) {
-                    for (int j = 0; j < languageCount; j++) {
-                        Language lang = languages[j];
-                        if (lang.containsAlphabet(i)) {
-                            insertAlphabet(_db, i, minLanguage + j);
-                            break;
-                        }
-                    }
-                }
-
-                for (int i = 0; i < languageCount; i++) {
-                    final Language lang = languages[i];
-                    insertLanguage(_db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
-                }
-
                 // Read conversions
                 setProgress(0.1f, "Reading conversions");
-                final Conversion[] conversions = readConversions(ibs, minValidAlphabet, maxValidAlphabet, 0,
+                final Conversion[] conversions = readConversions(ibs, validAlphabets, 0,
                         maxSymbolArrayIndex, symbolArraysIdMap);
 
                 // Export the amount of words and concepts in order to range integers
@@ -781,8 +791,7 @@ public final class StreamedDatabaseReader {
 
                 // Import correlations
                 setProgress(0.15f, "Reading correlations");
-                int[] correlationIdMap = readCorrelations(ibs, minValidAlphabet,
-                        maxValidAlphabet, symbolArraysIdMap);
+                int[] correlationIdMap = readCorrelations(ibs, validAlphabets, symbolArraysIdMap);
 
                 // Import correlation arrays
                 setProgress(0.30f, "Reading correlation arrays");
