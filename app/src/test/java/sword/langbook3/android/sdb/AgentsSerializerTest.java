@@ -30,21 +30,22 @@ public abstract class AgentsSerializerTest extends BunchesSerializerTest {
     @Override
     abstract AgentsManager createManager(MemoryDatabase db);
 
+    private int assertSingleInt(ImmutableIntSet set) {
+        assertEquals(1, set.size());
+        return set.valueAt(0);
+    }
+
     @Test
     public void testSerializeCopyFromSingleSourceToTargetAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AgentsManager inManager = createManager(inDb);
 
-        final String languageCode = "es";
-        final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
-
+        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
-        final String arVerbBunchText = "verbo de primera conjugación";
-        addSimpleAcceptation(inManager, inAlphabet, arVerbBunch, arVerbBunchText);
+        addSimpleAcceptation(inManager, inAlphabet, arVerbBunch, "verbo de primera conjugación");
 
         final int verbBunch = inManager.getMaxConcept() + 1;
-        final String verbBunchText = "verbo";
-        addSimpleAcceptation(inManager, inAlphabet, verbBunch, verbBunchText);
+        addSimpleAcceptation(inManager, inAlphabet, verbBunch, "verbo");
 
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
@@ -54,18 +55,12 @@ public abstract class AgentsSerializerTest extends BunchesSerializerTest {
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = new LangbookDatabaseManager(outDb);
 
-        final ImmutableIntSet outAgentIds = outManager.getAgentIds();
-        assertEquals(1, outAgentIds.size());
-        final int outAgentId = outAgentIds.valueAt(0);
+        final int outAgentId = assertSingleInt(outManager.getAgentIds());
 
-        final ImmutableIntSet outArVerbAcceptations = findAcceptationsMatchingText(outDb, arVerbBunchText);
-        assertEquals(1, outArVerbAcceptations.size());
-        final int outArVerbAcceptation = outArVerbAcceptations.valueAt(0);
+        final int outArVerbAcceptation = assertSingleInt(findAcceptationsMatchingText(outDb, "verbo de primera conjugación"));
         final int outArVerbConcept = outManager.conceptFromAcceptation(outArVerbAcceptation);
 
-        final ImmutableIntSet outVerbAcceptations = findAcceptationsMatchingText(outDb, verbBunchText);
-        assertEquals(1, outVerbAcceptations.size());
-        final int outVerbAcceptation = outVerbAcceptations.valueAt(0);
+        final int outVerbAcceptation = assertSingleInt(findAcceptationsMatchingText(outDb, "verbo"));
         final int outVerbConcept = outManager.conceptFromAcceptation(outVerbAcceptation);
         assertNotEquals(outArVerbConcept, outVerbConcept);
 
