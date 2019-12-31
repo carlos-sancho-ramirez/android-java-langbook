@@ -54,5 +54,56 @@ public final class BunchesSerializerTest {
         final ImmutableIntSet acceptationsInBunch = outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outBunchAcceptation));
         assertEquals(1, acceptationsInBunch.size());
         assertEquals(outAcceptation, acceptationsInBunch.valueAt(0));
+
+        assertTrue(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outAcceptation)).isEmpty());
+    }
+
+    @Test
+    public void testSerializeBunchWithMultipleSpanishAcceptations() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final BunchesManager inManager = new LangbookDatabaseManager(inDb);
+
+        final String languageCode = "es";
+        final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+
+        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final String singText = "cantar";
+        final int inSingAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, singText);
+
+        final int inDrinkConcept = inManager.getMaxConcept() + 1;
+        final String drinkText = "beber";
+        final int inDrinkAcceptation = addSimpleAcceptation(inManager, inAlphabet, inDrinkConcept, drinkText);
+
+        final int bunch = inManager.getMaxConcept() + 1;
+        final String bunchText = "verbo de primera conjugación";
+        addSimpleAcceptation(inManager, inAlphabet, bunch, bunchText);
+        assertTrue(inManager.addAcceptationInBunch(bunch, inSingAcceptation));
+        assertTrue(inManager.addAcceptationInBunch(bunch, inDrinkAcceptation));
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final BunchesManager outManager = new LangbookDatabaseManager(outDb);
+
+        final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singText);
+        assertEquals(1, outSingAcceptations.size());
+        final int outSingAcceptation = outSingAcceptations.valueAt(0);
+
+        final ImmutableIntSet outDrinkAcceptations = findAcceptationsMatchingText(outDb, drinkText);
+        assertEquals(1, outDrinkAcceptations.size());
+        final int outDrinkAcceptation = outDrinkAcceptations.valueAt(0);
+        assertNotEquals(outDrinkAcceptation, outSingAcceptation);
+
+        final ImmutableIntSet outBunchAcceptations = findAcceptationsMatchingText(outDb, bunchText);
+        assertEquals(1, outBunchAcceptations.size());
+        final int outBunchAcceptation = outBunchAcceptations.valueAt(0);
+        assertNotEquals(outBunchAcceptation, outSingAcceptation);
+        assertNotEquals(outBunchAcceptation, outDrinkAcceptation);
+
+        final ImmutableIntSet acceptationsInBunch = outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outBunchAcceptation));
+        assertEquals(2, acceptationsInBunch.size());
+        assertTrue(acceptationsInBunch.contains(outSingAcceptation));
+        assertTrue(acceptationsInBunch.contains(outDrinkAcceptation));
+
+        assertTrue(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outSingAcceptation)).isEmpty());
+        assertTrue(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outDrinkAcceptation)).isEmpty());
     }
 }
