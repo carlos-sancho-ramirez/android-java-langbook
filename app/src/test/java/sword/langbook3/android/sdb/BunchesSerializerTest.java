@@ -106,4 +106,55 @@ public final class BunchesSerializerTest {
         assertTrue(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outSingAcceptation)).isEmpty());
         assertTrue(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outDrinkAcceptation)).isEmpty());
     }
+
+    @Test
+    public void testSerializeChainedBunches() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final BunchesManager inManager = new LangbookDatabaseManager(inDb);
+
+        final String languageCode = "es";
+        final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+
+        final int inConcept = inManager.getMaxConcept() + 1;
+        final String singText = "cantar";
+        final int singAcceptation = addSimpleAcceptation(inManager, inAlphabet, inConcept, singText);
+
+        final int arVerbBunch = inManager.getMaxConcept() + 1;
+        final String arVerbBunchText = "verbo de primera conjugación";
+        final int arVerbAcceptation = addSimpleAcceptation(inManager, inAlphabet, arVerbBunch, arVerbBunchText);
+        assertTrue(inManager.addAcceptationInBunch(arVerbBunch, singAcceptation));
+
+        final int verbBunch = inManager.getMaxConcept() + 1;
+        final String verbBunchText = "verbo";
+        addSimpleAcceptation(inManager, inAlphabet, verbBunch, verbBunchText);
+        assertTrue(inManager.addAcceptationInBunch(verbBunch, arVerbAcceptation));
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final BunchesManager outManager = new LangbookDatabaseManager(outDb);
+
+        final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singText);
+        assertEquals(1, outSingAcceptations.size());
+        final int outSingAcceptation = outSingAcceptations.valueAt(0);
+
+        final ImmutableIntSet outArVerbAcceptations = findAcceptationsMatchingText(outDb, arVerbBunchText);
+        assertEquals(1, outArVerbAcceptations.size());
+        final int outArVerbAcceptation = outArVerbAcceptations.valueAt(0);
+        assertNotEquals(outArVerbAcceptation, outSingAcceptation);
+
+        final ImmutableIntSet outVerbAcceptations = findAcceptationsMatchingText(outDb, verbBunchText);
+        assertEquals(1, outVerbAcceptations.size());
+        final int outVerbAcceptation = outVerbAcceptations.valueAt(0);
+        assertNotEquals(outVerbAcceptation, outSingAcceptation);
+        assertNotEquals(outVerbAcceptation, outArVerbAcceptation);
+
+        final ImmutableIntSet acceptationsInArVerbBunch = outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outArVerbAcceptation));
+        assertEquals(1, acceptationsInArVerbBunch.size());
+        assertEquals(outSingAcceptation, acceptationsInArVerbBunch.valueAt(0));
+
+        final ImmutableIntSet acceptationsInVerbBunch = outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outVerbAcceptation));
+        assertEquals(1, acceptationsInVerbBunch.size());
+        assertEquals(outArVerbAcceptation, acceptationsInVerbBunch.valueAt(0));
+
+        assertTrue(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outSingAcceptation)).isEmpty());
+    }
 }
