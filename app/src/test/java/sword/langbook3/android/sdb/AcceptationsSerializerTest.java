@@ -19,7 +19,6 @@ import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.DatabaseInflater;
 import sword.langbook3.android.db.AcceptationsManager;
-import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.Conversion;
 
@@ -40,7 +39,9 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
  * <li>Conversions</li>
  * <li>Acceptations</li>
  */
-public final class AcceptationsSerializerTest {
+public abstract class AcceptationsSerializerTest {
+
+    abstract AcceptationsManager createManager(MemoryDatabase db);
 
     private static final class AssertStream extends InputStream {
 
@@ -190,13 +191,13 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeSpanishLanguage() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "es";
         inManager.addLanguage(languageCode);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -206,7 +207,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeJapaneseLanguageWithoutConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "ja";
         final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -215,7 +216,7 @@ public final class AcceptationsSerializerTest {
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -225,7 +226,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeSingleSpanishAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "es";
         final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -235,7 +236,7 @@ public final class AcceptationsSerializerTest {
         addSimpleAcceptation(inManager, inAlphabet, inConcept, text);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -254,7 +255,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeMultipleSpanishAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "es";
         final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -268,7 +269,7 @@ public final class AcceptationsSerializerTest {
         addSimpleAcceptation(inManager, inAlphabet, inConcept2, text2);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -297,7 +298,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeSingleJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "ja";
         final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -309,7 +310,7 @@ public final class AcceptationsSerializerTest {
         addJapaneseSingAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -331,7 +332,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeMultipleJapaneseAcceptationsWithoutConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "ja";
         final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -346,7 +347,7 @@ public final class AcceptationsSerializerTest {
         addJapaneseEatAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inEatConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -379,7 +380,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeJustRoumajiConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "ja";
         final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -399,7 +400,7 @@ public final class AcceptationsSerializerTest {
         assertTrue(inManager.addAlphabetAsConversionTarget(conversion));
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -433,7 +434,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeSingleJapaneseAcceptationWithConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "ja";
         final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -456,7 +457,7 @@ public final class AcceptationsSerializerTest {
         addJapaneseSingAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -487,7 +488,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeMultipleJapaneseAcceptationsWithConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "ja";
         final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -513,7 +514,7 @@ public final class AcceptationsSerializerTest {
         addJapaneseEatAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inEatConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -556,7 +557,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeSpanishSynonyms() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "es";
         final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -569,7 +570,7 @@ public final class AcceptationsSerializerTest {
         addSimpleAcceptation(inManager, inAlphabet, inConcept, text2);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -599,7 +600,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeJapaneseSynonyms() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String languageCode = "ja";
         final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -612,7 +613,7 @@ public final class AcceptationsSerializerTest {
         addJapaneseEatSynonymAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outLang = outManager.findLanguageByCode(languageCode);
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
@@ -645,7 +646,7 @@ public final class AcceptationsSerializerTest {
     @Test
     public void testSerializeAPairOfTranslations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AcceptationsManager inManager = new LangbookDatabaseManager(inDb);
+        final AcceptationsManager inManager = createManager(inDb);
 
         final String spanishLangCode = "es";
         final int inSpanishAlphabet = inManager.addLanguage(spanishLangCode).mainAlphabet;
@@ -661,7 +662,7 @@ public final class AcceptationsSerializerTest {
         addJapaneseSingAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AcceptationsManager outManager = new LangbookDatabaseManager(outDb);
+        final AcceptationsManager outManager = createManager(outDb);
 
         final int outSpanish = outManager.findLanguageByCode(spanishLangCode);
         final ImmutableIntSet outSpanishAlphabets = outManager.findAlphabetsByLanguage(outSpanish);

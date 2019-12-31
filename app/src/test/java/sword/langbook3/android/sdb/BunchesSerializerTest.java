@@ -5,14 +5,11 @@ import org.junit.Test;
 import sword.collections.ImmutableIntSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.BunchesManager;
-import sword.langbook3.android.db.LangbookDatabaseManager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
-import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
-import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAcceptationsMatchingText;
 
 /**
  * Include all test related to all values that a BunchesSerializer should serialize.
@@ -20,12 +17,14 @@ import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAccepta
  * Values the the AcceptationsSerializer should serialize are limited to:
  * <li>Bunches</li>
  */
-public final class BunchesSerializerTest {
+public abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
+
+    abstract BunchesManager createManager(MemoryDatabase db);
 
     @Test
     public void testSerializeBunchWithASingleSpanishAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager inManager = new LangbookDatabaseManager(inDb);
+        final BunchesManager inManager = createManager(inDb);
 
         final String languageCode = "es";
         final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -40,7 +39,7 @@ public final class BunchesSerializerTest {
         assertTrue(inManager.addAcceptationInBunch(bunch, acceptation));
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager outManager = new LangbookDatabaseManager(outDb);
+        final BunchesManager outManager = createManager(outDb);
 
         final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, text);
         assertEquals(1, outAcceptations.size());
@@ -61,7 +60,7 @@ public final class BunchesSerializerTest {
     @Test
     public void testSerializeBunchWithMultipleSpanishAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager inManager = new LangbookDatabaseManager(inDb);
+        final BunchesManager inManager = createManager(inDb);
 
         final String languageCode = "es";
         final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -81,7 +80,7 @@ public final class BunchesSerializerTest {
         assertTrue(inManager.addAcceptationInBunch(bunch, inDrinkAcceptation));
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager outManager = new LangbookDatabaseManager(outDb);
+        final BunchesManager outManager = createManager(outDb);
 
         final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singText);
         assertEquals(1, outSingAcceptations.size());
@@ -110,7 +109,7 @@ public final class BunchesSerializerTest {
     @Test
     public void testSerializeChainedBunches() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager inManager = new LangbookDatabaseManager(inDb);
+        final BunchesManager inManager = createManager(inDb);
 
         final String languageCode = "es";
         final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
@@ -130,7 +129,7 @@ public final class BunchesSerializerTest {
         assertTrue(inManager.addAcceptationInBunch(verbBunch, arVerbAcceptation));
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager outManager = new LangbookDatabaseManager(outDb);
+        final BunchesManager outManager = createManager(outDb);
 
         final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singText);
         assertEquals(1, outSingAcceptations.size());
