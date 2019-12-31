@@ -1,53 +1,42 @@
 package sword.bitstream.huffman;
 
+import sword.collections.ImmutableIntRange;
 import sword.collections.IntTraversable;
 import sword.collections.IntTraverser;
 import sword.collections.Traverser;
 
 public final class RangedIntHuffmanTable implements IntHuffmanTable {
-    private final int _min;
-    private final int _max;
+    private final ImmutableIntRange _range;
 
     private final int _maxBits;
     private final int _limit;
 
-    public RangedIntHuffmanTable(int min, int max) {
-        if (max < min) {
-            throw new IllegalArgumentException("Invalid range");
-        }
-
-        _min = min;
-        _max = max;
-
-        final int possibilities = max - min + 1;
+    public RangedIntHuffmanTable(ImmutableIntRange range) {
+        final int possibilities = range.size();
         int maxBits = 0;
         while (possibilities > (1 << maxBits)) {
             maxBits++;
         }
 
+        _range = range;
         _maxBits = maxBits;
         _limit = (1 << maxBits) - possibilities;
     }
 
     @Override
     public int symbolsWithBits(int bits) {
-        if (bits == _maxBits) {
-            return _max - _min + 1 - _limit;
-        }
-        else if (bits == _maxBits - 1) {
-            return _limit;
-        }
-
-        return 0;
+        return (bits == _maxBits)? _range.size() - _limit :
+                (bits == _maxBits - 1)? _limit : 0;
     }
 
     @Override
     public int getSymbol(int bits, int index) {
+        final int min = _range.min();
         if (bits == _maxBits) {
-            return index + _limit + _min;
+            return index + _limit + min;
         }
         else if (bits == _maxBits - 1) {
-            return index + _min;
+            return index + min;
         }
 
         throw new IllegalArgumentException("Invalid number of bits");
@@ -135,6 +124,6 @@ public final class RangedIntHuffmanTable implements IntHuffmanTable {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '(' + _min + ',' + _max + ')';
+        return getClass().getSimpleName() + '(' + _range.min() + ',' + _range.max() + ')';
     }
 }

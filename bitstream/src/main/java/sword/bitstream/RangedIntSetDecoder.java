@@ -4,38 +4,37 @@ import java.io.IOException;
 
 import sword.bitstream.huffman.IntHuffmanTable;
 import sword.bitstream.huffman.RangedIntHuffmanTable;
+import sword.collections.ImmutableIntRange;
 
 public final class RangedIntSetDecoder implements CollectionLengthDecoder, IntSupplierWithIOException, IntToIntFunctionWithIOException {
     private final InputHuffmanStream _stream;
     private final IntHuffmanTable _lengthTable;
-    private final int _min;
-    private final int _max;
+    private final ImmutableIntRange _range;
     private int _length;
     private int _lastIndex;
 
-    public RangedIntSetDecoder(InputHuffmanStream stream, IntHuffmanTable lengthTable, int min, int max) {
-        if (max < min) {
-            throw new IllegalArgumentException("minimum should be lower or equal than maximum");
+    public RangedIntSetDecoder(InputHuffmanStream stream, IntHuffmanTable lengthTable, ImmutableIntRange range) {
+        if (range == null) {
+            throw new IllegalArgumentException("range should not be null");
         }
 
         _stream = stream;
         _lengthTable = lengthTable;
-        _min = min;
-        _max = max;
+        _range = range;
     }
 
     @Override
     public int apply() throws IOException {
-        RangedIntHuffmanTable table = new RangedIntHuffmanTable(_min, _max - _length + 1);
         _lastIndex = 0;
-        return _stream.readIntHuffmanSymbol(table);
+        final ImmutableIntRange range = new ImmutableIntRange(_range.min(), _range.max() - _length + 1);
+        return _stream.readIntHuffmanSymbol(new RangedIntHuffmanTable(range));
     }
 
     @Override
     public int apply(int previous) throws IOException {
         ++_lastIndex;
-        RangedIntHuffmanTable table = new RangedIntHuffmanTable(previous + 1, _max - _length + _lastIndex + 1);
-        return _stream.readIntHuffmanSymbol(table);
+        final ImmutableIntRange range = new ImmutableIntRange(previous + 1, _range.max() - _length + _lastIndex + 1);
+        return _stream.readIntHuffmanSymbol(new RangedIntHuffmanTable(range));
     }
 
     @Override
@@ -46,7 +45,7 @@ public final class RangedIntSetDecoder implements CollectionLengthDecoder, IntSu
             throw new IllegalArgumentException("length should not be a negative number");
         }
 
-        if (length > _max - _min + 1) {
+        if (length > _range.size()) {
             throw new IllegalArgumentException("length should not be bigger than the amount of possible values within the range");
         }
 

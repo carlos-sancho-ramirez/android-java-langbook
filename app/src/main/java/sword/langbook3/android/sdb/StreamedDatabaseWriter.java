@@ -527,10 +527,11 @@ public final class StreamedDatabaseWriter {
             final IntEncoder intEncoder = new IntEncoder(_obs);
             _obs.writeIntHuffmanTable(lengthTable, intEncoder, intEncoder);
 
-            final RangedIntSetEncoder keyEncoder = new RangedIntSetEncoder(_obs,
-                    lengthTable, alphabetIdMap.min(), alphabetIdMap.max());
-            final RangedIntHuffmanTable symbolArrayTable = new RangedIntHuffmanTable(0,
-                    symbolArraysIdMap.size() - 1);
+            final ImmutableIntRange keyRange = new ImmutableIntRange(alphabetIdMap.min(), alphabetIdMap.max());
+            final RangedIntSetEncoder keyEncoder = new RangedIntSetEncoder(_obs, lengthTable, keyRange);
+
+            final ImmutableIntRange symbolArraysIdRange = new ImmutableIntRange(0, symbolArraysIdMap.size() - 1);
+            final RangedIntHuffmanTable symbolArrayTable = new RangedIntHuffmanTable(symbolArraysIdRange);
             final IntValueEncoder symbolArrayEncoder = new IntValueEncoder(symbolArrayTable);
 
             final ImmutableIntKeyMap<ImmutableIntPairMap> correlations = builder.build();
@@ -610,7 +611,8 @@ public final class StreamedDatabaseWriter {
 
         if (!corrArrays.isEmpty()) {
             final DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.withFrequencies(lengthFrequencies);
-            final RangedIntHuffmanTable correlationTable = new RangedIntHuffmanTable(0, correlationIdMap.size() - 1);
+            final ImmutableIntRange range = new ImmutableIntRange(0, correlationIdMap.size() - 1);
+            final RangedIntHuffmanTable correlationTable = new RangedIntHuffmanTable(range);
 
             final IntEncoder intEncoder = new IntEncoder(_obs);
             _obs.writeIntHuffmanTable(lengthTable, intEncoder, intEncoder);
@@ -716,7 +718,8 @@ public final class StreamedDatabaseWriter {
             final NatEncoder natEncoder = new NatEncoder(_obs);
             _obs.writeIntHuffmanTable(lengthTable, natEncoder, natEncoder);
 
-            final RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, StreamedDatabaseConstants.minValidConcept, StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1);
+            final ImmutableIntRange range = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1);
+            final RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, range);
             int remainingBunches = bases.size();
             int minBunchConcept = StreamedDatabaseConstants.minValidConcept;
             for (IntKeyMap.Entry<MutableSet<ImmutableIntPair>> entry : bases.entries()) {
@@ -862,11 +865,13 @@ public final class StreamedDatabaseWriter {
                     minSource = StreamedDatabaseConstants.minValidConcept;
                 }
 
-                final RangedIntSetEncoder sourceEncoder = new RangedIntSetEncoder(_obs, sourceSetLengthTable, minSource, maxSource);
+                final ImmutableIntRange sourceRange = new ImmutableIntRange(minSource, maxSource);
+                final RangedIntSetEncoder sourceEncoder = new RangedIntSetEncoder(_obs, sourceSetLengthTable, sourceRange);
                 final IntSet sourceBunchSet = (agent.sourceBunchSetId != 0)? bunchSets.get(agent.sourceBunchSetId) : emptySet;
                 _obs.writeIntSet(sourceEncoder, sourceEncoder, sourceEncoder, sourceBunchSet);
 
-                final RangedIntSetEncoder diffEncoder = new RangedIntSetEncoder(_obs, sourceSetLengthTable, StreamedDatabaseConstants.minValidConcept, maxSource);
+                final ImmutableIntRange diffRange = new ImmutableIntRange(StreamedDatabaseConstants.minValidConcept, maxSource);
+                final RangedIntSetEncoder diffEncoder = new RangedIntSetEncoder(_obs, sourceSetLengthTable, diffRange);
                 final IntSet diffBunchSet = (agent.diffBunchSetId != 0)? bunchSets.get(agent.diffBunchSetId) : emptySet;
                 _obs.writeIntSet(diffEncoder, diffEncoder, diffEncoder, diffBunchSet);
 
@@ -935,7 +940,8 @@ public final class StreamedDatabaseWriter {
             final NatEncoder natEncoder = new NatEncoder(_obs);
             _obs.writeIntHuffmanTable(lengthTable, natEncoder, natEncoder);
 
-            final RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, 0, accIdMap.size() - 1);
+            final ImmutableIntRange range = new ImmutableIntRange(0, accIdMap.size() - 1);
+            final RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, range);
             int maxBunchConcept = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - bunches.size();
             int minBunchConcept = StreamedDatabaseConstants.minValidConcept;
             for (IntKeyMap.Entry<MutableIntSet> entry : bunches.entries()) {
@@ -1357,8 +1363,8 @@ public final class StreamedDatabaseWriter {
 
             int previousMin = 0;
             for (ImmutableIntSet set : meanings) {
-                RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, previousMin,
-                        symbolArrayIdMap.size() - 1);
+                final ImmutableIntRange range = new ImmutableIntRange(previousMin, symbolArrayIdMap.size() - 1);
+                final RangedIntSetEncoder encoder = new RangedIntSetEncoder(_obs, lengthTable, range);
                 _obs.writeIntSet(encoder, encoder, encoder, set);
                 previousMin = set.min();
             }

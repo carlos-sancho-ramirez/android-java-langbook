@@ -453,7 +453,8 @@ final class StreamWrapperTest {
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 final OutputStreamWrapper obs = new OutputStreamWrapper(baos);
 
-                final RangedIntSetEncoder encoder = new RangedIntSetEncoder(obs, lengthTable, min, max);
+                final ImmutableIntRange range = new ImmutableIntRange(min, max);
+                final RangedIntSetEncoder encoder = new RangedIntSetEncoder(obs, lengthTable, range);
                 obs.writeIntSet(encoder, encoder, encoder, set);
                 obs.close();
 
@@ -461,7 +462,7 @@ final class StreamWrapperTest {
                 final ByteArrayInputStream bais = new ByteArrayInputStream(array);
                 final InputStreamWrapper ibs = new InputStreamWrapper(bais);
 
-                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, lengthTable, min, max);
+                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, lengthTable, range);
                 final IntSet givenSet = ibs.readIntSet(decoder, decoder, decoder);
                 ibs.close();
 

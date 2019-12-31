@@ -11,7 +11,6 @@ import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
-import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
@@ -170,11 +169,6 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private ImmutableIntSet readRangedNumberSet(InputStreamWrapper ibs, IntHuffmanTable lengthTable, int min, int max) throws IOException {
-        final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, lengthTable, min, max);
-        return ibs.readIntSet(decoder, decoder, decoder).toImmutable();
-    }
-
     private static final class Language {
 
         private final String _code;
@@ -287,7 +281,7 @@ public final class StreamedDatabaseReader {
         return new SymbolArrayReadResult(idMap, lengths);
     }
 
-    private Conversion[] readConversions(InputHuffmanStream ibs, ImmutableIntSet validAlphabets, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
+    private Conversion[] readConversions(InputHuffmanStream ibs, ImmutableIntRange validAlphabets, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
         final int conversionsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final Conversion[] conversions = new Conversion[conversionsLength];
         final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex, maxSymbolArrayIndex);
@@ -325,14 +319,14 @@ public final class StreamedDatabaseReader {
         return conversions;
     }
 
-    private int[] readCorrelations(InputStreamWrapper ibs, ImmutableIntSet validAlphabets, int[] symbolArraysIdMap) throws IOException {
+    private int[] readCorrelations(InputStreamWrapper ibs, ImmutableIntRange validAlphabets, int[] symbolArraysIdMap) throws IOException {
         final int correlationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final int[] result = new int[correlationsLength];
         if (correlationsLength > 0) {
-            final RangedIntHuffmanTable symbolArrayTable = new RangedIntHuffmanTable(0, symbolArraysIdMap.length - 1);
+            final RangedIntHuffmanTable symbolArrayTable = new RangedIntHuffmanTable(new ImmutableIntRange(0, symbolArraysIdMap.length - 1));
             final IntDecoder intDecoder = new IntDecoder(ibs);
             final IntHuffmanTable lengthTable = ibs.readIntHuffmanTable(intDecoder, intDecoder);
-            final RangedIntSetDecoder keyDecoder = new RangedIntSetDecoder(ibs, lengthTable, validAlphabets.min(), validAlphabets.max());
+            final RangedIntSetDecoder keyDecoder = new RangedIntSetDecoder(ibs, lengthTable, validAlphabets);
             final IntValueDecoder valueDecoder = new IntValueDecoder(ibs, symbolArrayTable);
 
             for (int i = 0; i < correlationsLength; i++) {
@@ -380,7 +374,8 @@ public final class StreamedDatabaseReader {
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             for (int i = 0; i < acceptationsLength; i++) {
                 final int concept = ibs.readHuffmanSymbol(conceptTable);
-                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, corrArraySetLengthTable, 0, correlationArrayIdMap.length - 1);
+                final ImmutableIntRange range = new ImmutableIntRange(0, correlationArrayIdMap.length - 1);
+                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, corrArraySetLengthTable, range);
                 for (int corrArray : ibs.readIntSet(decoder, decoder, decoder)) {
                     // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
                     acceptationsIdMap[i] = insertAcceptation(_db, concept, correlationArrayIdMap[corrArray]);
@@ -403,7 +398,7 @@ public final class StreamedDatabaseReader {
             final int base = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunchConcept, maxBunchConcept));
             minBunchConcept = base + 1;
 
-            final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, bunchConceptsLengthTable, validConcepts.min(), validConcepts.max());
+            final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, bunchConceptsLengthTable, validConcepts);
             final IntKeyMap<ImmutableIntSet> map = ibs.readIntKeyMap(decoder, decoder, decoder, () -> {
                 final MutableIntSet complements = MutableIntArraySet.empty();
                 int minValidConcept = validConcepts.min();
@@ -428,15 +423,14 @@ public final class StreamedDatabaseReader {
         final IntHuffmanTable bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
                 ibs.readIntHuffmanTable(natDecoder, natDecoder) : null;
 
-        final int maxValidAcceptation = acceptationsIdMap.length - 1;
-
         int minBunch = validConcepts.min();
         final int maxValidBunch = validConcepts.max();
         for (int maxBunch = validConcepts.max() - bunchAcceptationsLength + 1; maxBunch <= maxValidBunch; maxBunch++) {
             final int bunch = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(minBunch, maxBunch));
             minBunch = bunch + 1;
 
-            final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, bunchAcceptationsLengthTable, 0, maxValidAcceptation);
+            final ImmutableIntRange range = new ImmutableIntRange(0, acceptationsIdMap.length - 1);
+            final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, bunchAcceptationsLengthTable, range);
             for (int acceptation : ibs.readIntSet(decoder, decoder, decoder)) {
                 insertBunchAcceptation(_db, bunch, acceptationsIdMap[acceptation], 0);
             }
@@ -471,10 +465,11 @@ public final class StreamedDatabaseReader {
                     minSource = validConcepts.min();
                 }
 
-                final RangedIntSetDecoder sourceDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, minSource, validConcepts.max());
+                final ImmutableIntRange sourceRange = new ImmutableIntRange(minSource, validConcepts.max());
+                final RangedIntSetDecoder sourceDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, sourceRange);
                 final ImmutableIntSet sourceSet = ibs.readIntSet(sourceDecoder, sourceDecoder, sourceDecoder).toImmutable();
 
-                final RangedIntSetDecoder diffDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, validConcepts.min(), validConcepts.max());
+                final RangedIntSetDecoder diffDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, validConcepts);
                 final ImmutableIntSet diffSet = ibs.readIntSet(diffDecoder, diffDecoder, diffDecoder).toImmutable();
 
                 if (!sourceSet.isEmpty()) {
@@ -655,7 +650,10 @@ public final class StreamedDatabaseReader {
             final int baseConcept = getMaxConcept(_db) + 1;
             int previousMin = 0;
             for (int meaningIndex = 0; meaningIndex < meaningCount; meaningIndex++) {
-                final ImmutableIntSet set = readRangedNumberSet(ibs, lengthTable, previousMin, symbolArrayIdMap.length - 1);
+                final ImmutableIntRange range = new ImmutableIntRange(previousMin, symbolArrayIdMap.length - 1);
+                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, lengthTable, range);
+                final ImmutableIntSet set = ibs.readIntSet(decoder, decoder, decoder).toImmutable();
+
                 previousMin = set.min();
                 for (int symbolArrayFileId : set) {
                     final int concept = baseConcept + meaningIndex;
@@ -702,7 +700,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private ImmutableIntSet readLanguagesAndAlphabets(InputStreamWrapper ibs) throws IOException {
+    private ImmutableIntRange readLanguagesAndAlphabets(InputStreamWrapper ibs) throws IOException {
         final int languageCount = ibs.readHuffmanSymbol(naturalNumberTable);
         final Language[] languages = new Language[languageCount];
 
@@ -740,7 +738,7 @@ public final class StreamedDatabaseReader {
             insertLanguage(_db, minLanguage + i, lang.getCode(), lang.getMainAlphabet());
         }
 
-        return (languageCount == 0)? ImmutableIntArraySet.empty() : new ImmutableIntRange(minValidAlphabet, maxValidAlphabet);
+        return (languageCount == 0)? null : new ImmutableIntRange(minValidAlphabet, maxValidAlphabet);
     }
 
     public Result read() throws IOException {
@@ -752,7 +750,7 @@ public final class StreamedDatabaseReader {
 
             // Read languages and its alphabets
             setProgress(0.09f, "Reading languages and its alphabets");
-            final ImmutableIntSet validAlphabets = readLanguagesAndAlphabets(ibs);
+            final ImmutableIntRange validAlphabets = readLanguagesAndAlphabets(ibs);
 
             if (symbolArraysIdMap.length == 0) {
                 final int validConceptCount = ibs.readHuffmanSymbol(naturalNumberTable);
