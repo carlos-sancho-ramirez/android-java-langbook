@@ -14,6 +14,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.Map;
 import sword.collections.MutableIntList;
+import sword.collections.Sizable;
 import sword.database.DbExporter;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
@@ -25,6 +26,7 @@ import sword.langbook3.android.models.Conversion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
 /**
@@ -104,6 +106,27 @@ public abstract class AcceptationsSerializerTest {
                 .where(strings.getStringColumnIndex(), text)
                 .select(strings.getDynamicAcceptationColumnIndex());
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    int getSingleInt(ImmutableIntSet set) {
+        final int setSize = set.size();
+        if (setSize != 1) {
+            fail("Expected set size was 1, but it was " + setSize);
+        }
+
+        return set.valueAt(0);
+    }
+
+    void assertSingleInt(int expectedValue, ImmutableIntSet set) {
+        final int actualValue = getSingleInt(set);
+        if (expectedValue != actualValue) {
+            fail("Value within the set was expected to be " + expectedValue + " but it was " + actualValue);
+        }
+    }
+
+    private <E> void assertSingleValue(int expectedKey, E expectedValue, ImmutableIntKeyMap<E> map) {
+        assertEquals(1, map.size());
+        assertEquals(expectedValue, map.get(expectedKey));
     }
 
     static MemoryDatabase cloneBySerializing(MemoryDatabase inDb) {
@@ -192,16 +215,13 @@ public abstract class AcceptationsSerializerTest {
     public void testSerializeSpanishLanguage() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
-
-        final String languageCode = "es";
-        inManager.addLanguage(languageCode);
+        inManager.addLanguage("es");
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
-        final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
-        assertEquals(1, outAlphabets.size());
+        final int outLang = outManager.findLanguageByCode("es");
+        assertEquals(1, outManager.findAlphabetsByLanguage(outLang).size());
     }
 
     @Test
@@ -209,16 +229,14 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "ja";
-        final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
-
+        final int inKanjiAlphabet = inManager.addLanguage("ja").mainAlphabet;
         final int inKanaAlphabet = inManager.getMaxConcept() + 1;
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
+        final int outLang = outManager.findLanguageByCode("ja");
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
         assertEquals(2, outAlphabets.size());
     }
@@ -228,28 +246,19 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "es";
-        final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int inConcept = inManager.getMaxConcept() + 1;
 
-        final String text = "cantar";
-        addSimpleAcceptation(inManager, inAlphabet, inConcept, text);
+        addSimpleAcceptation(inManager, inAlphabet, inConcept, "cantar");
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
-        final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
-        assertEquals(1, outAlphabets.size());
-        final int outAlphabet = outAlphabets.valueAt(0);
+        final int outLang = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleInt(outManager.findAlphabetsByLanguage(outLang));
+        final int outAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "cantar"));
 
-        final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, text);
-        assertEquals(1, outAcceptations.size());
-        final int outAcceptation = outAcceptations.valueAt(0);
-
-        final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outAcceptation);
-        assertEquals(1, outTexts.size());
-        assertEquals(text, outTexts.get(outAlphabet));
+        assertSingleValue(outAlphabet, "cantar", outManager.getAcceptationTexts(outAcceptation));
     }
 
     @Test
@@ -257,42 +266,26 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "es";
-        final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final String text1 = "cantar";
         final int inConcept1 = inManager.getMaxConcept() + 1;
-        addSimpleAcceptation(inManager, inAlphabet, inConcept1, text1);
+        addSimpleAcceptation(inManager, inAlphabet, inConcept1, "cantar");
 
-        final String text2 = "toser";
         final int inConcept2 = inManager.getMaxConcept() + 1;
-        addSimpleAcceptation(inManager, inAlphabet, inConcept2, text2);
+        addSimpleAcceptation(inManager, inAlphabet, inConcept2, "toser");
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
-        final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
-        assertEquals(1, outAlphabets.size());
-        final int outAlphabet = outAlphabets.valueAt(0);
+        final int outLang = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleInt(outManager.findAlphabetsByLanguage(outLang));
+        final int outAcceptation1 = getSingleInt(findAcceptationsMatchingText(outDb, "cantar"));
+        assertSingleValue(outAlphabet, "cantar", outManager.getAcceptationTexts(outAcceptation1));
 
-        final ImmutableIntSet outAcceptations1 = findAcceptationsMatchingText(outDb, text1);
-        assertEquals(1, outAcceptations1.size());
-        final int outAcceptation1 = outAcceptations1.valueAt(0);
-
-        final ImmutableIntKeyMap<String> outTexts1 = outManager.getAcceptationTexts(outAcceptations1.valueAt(0));
-        assertEquals(1, outTexts1.size());
-        assertEquals(text1, outTexts1.get(outAlphabet));
-
-        final ImmutableIntSet outAcceptations2 = findAcceptationsMatchingText(outDb, text2);
-        assertEquals(1, outAcceptations1.size());
-        final int outAcceptation2 = outAcceptations2.valueAt(0);
+        final int outAcceptation2 = getSingleInt(findAcceptationsMatchingText(outDb, "toser"));
         assertNotEquals(outAcceptation1, outAcceptation2);
         assertNotEquals(outManager.conceptFromAcceptation(outAcceptation1), outManager.conceptFromAcceptation(outAcceptation2));
-
-        final ImmutableIntKeyMap<String> outTexts2 = outManager.getAcceptationTexts(outAcceptations2.valueAt(0));
-        assertEquals(1, outTexts2.size());
-        assertEquals(text2, outTexts2.get(outAlphabet));
+        assertSingleValue(outAlphabet, "toser", outManager.getAcceptationTexts(outAcceptation2));
     }
 
     @Test
@@ -300,9 +293,7 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "ja";
-        final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
-
+        final int inKanjiAlphabet = inManager.addLanguage("ja").mainAlphabet;
         final int inKanaAlphabet = inManager.getMaxConcept() + 1;
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
 
@@ -312,16 +303,13 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
+        final int outLang = outManager.findLanguageByCode("ja");
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
         assertEquals(2, outAlphabets.size());
         final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outLang);
         assertTrue(outAlphabets.contains(outKanjiAlphabet));
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).valueAt(0);
-
-        final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, singKanjiText);
-        assertEquals(1, outAcceptations.size());
-        final int outAcceptation = outAcceptations.valueAt(0);
+        final int outAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, singKanjiText));
 
         final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outAcceptation);
         assertEquals(2, outTexts.size());
@@ -334,8 +322,7 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "ja";
-        final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int inKanjiAlphabet = inManager.addLanguage("ja").mainAlphabet;
 
         final int inKanaAlphabet = inManager.getMaxConcept() + 1;
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
@@ -349,25 +336,20 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
+        final int outLang = outManager.findLanguageByCode("ja");
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
         assertEquals(2, outAlphabets.size());
         final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outLang);
         assertTrue(outAlphabets.contains(outKanjiAlphabet));
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).valueAt(0);
-
-        final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singKanjiText);
-        assertEquals(1, outSingAcceptations.size());
-        final int outSingAcceptation = outSingAcceptations.valueAt(0);
+        final int outSingAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, singKanjiText));
 
         final ImmutableIntKeyMap<String> outSingTexts = outManager.getAcceptationTexts(outSingAcceptation);
         assertEquals(2, outSingTexts.size());
         assertEquals(singKanjiText, outSingTexts.get(outKanjiAlphabet));
         assertEquals(singKanaText, outSingTexts.get(outKanaAlphabet));
 
-        final ImmutableIntSet outEatAcceptations = findAcceptationsMatchingText(outDb, eatKanjiText);
-        assertEquals(1, outEatAcceptations.size());
-        final int outEatAcceptation = outEatAcceptations.valueAt(0);
+        final int outEatAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, eatKanjiText));
         assertNotEquals(outSingAcceptation, outEatAcceptation);
         assertNotEquals(outManager.conceptFromAcceptation(outSingAcceptation), outManager.conceptFromAcceptation(outEatAcceptation));
 
@@ -382,8 +364,7 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "ja";
-        final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int inKanjiAlphabet = inManager.addLanguage("ja").mainAlphabet;
 
         final int inKanaAlphabet = inManager.getMaxConcept() + 1;
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
@@ -402,15 +383,13 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
+        final int outLang = outManager.findLanguageByCode("ja");
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
         assertEquals(3, outAlphabets.size());
         final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outLang);
 
         final ImmutableIntPairMap conversionPairs = outManager.getConversionsMap();
-        final ImmutableIntSet outSourceConversionAlphabets = outAlphabets.filter(conversionPairs.keySet()::contains);
-        assertEquals(1, outSourceConversionAlphabets.size());
-        final int outRoumajiAlphabet = outSourceConversionAlphabets.valueAt(0);
+        final int outRoumajiAlphabet = getSingleInt(outAlphabets.filter(conversionPairs.keySet()::contains));
         assertNotEquals(outKanjiAlphabet, outRoumajiAlphabet);
 
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).remove(outRoumajiAlphabet).valueAt(0);
@@ -419,16 +398,13 @@ public abstract class AcceptationsSerializerTest {
         final int concept = outManager.getMaxConcept() + 1;
         addJapaneseSingAcceptation(outManager, outKanjiAlphabet, outKanaAlphabet, concept);
 
-        final String singRoumajiText = "utau";
-        final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, singRoumajiText);
-        assertEquals(1, outAcceptations.size());
-        final int outAcceptation = outAcceptations.valueAt(0);
+        final int outAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "utau"));
 
         final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outAcceptation);
         assertEquals(3, outTexts.size());
         assertEquals(singKanjiText, outTexts.get(outKanjiAlphabet));
         assertEquals(singKanaText, outTexts.get(outKanaAlphabet));
-        assertEquals(singRoumajiText, outTexts.get(outRoumajiAlphabet));
+        assertEquals("utau", outTexts.get(outRoumajiAlphabet));
     }
 
     @Test
@@ -436,8 +412,7 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "ja";
-        final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int inKanjiAlphabet = inManager.addLanguage("ja").mainAlphabet;
 
         final int inKanaAlphabet = inManager.getMaxConcept() + 1;
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
@@ -459,30 +434,24 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
+        final int outLang = outManager.findLanguageByCode("ja");
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
         assertEquals(3, outAlphabets.size());
         final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outLang);
 
         final ImmutableIntPairMap conversionPairs = outManager.getConversionsMap();
-        final ImmutableIntSet outSourceConversionAlphabets = outAlphabets.filter(conversionPairs.keySet()::contains);
-        assertEquals(1, outSourceConversionAlphabets.size());
-        final int outRoumajiAlphabet = outSourceConversionAlphabets.valueAt(0);
+        final int outRoumajiAlphabet = getSingleInt(outAlphabets.filter(conversionPairs.keySet()::contains));
         assertNotEquals(outKanjiAlphabet, outRoumajiAlphabet);
 
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).remove(outRoumajiAlphabet).valueAt(0);
         assertEquals(outKanaAlphabet, conversionPairs.get(outRoumajiAlphabet));
-
-        final String singRoumajiText = "utau";
-        final ImmutableIntSet outAcceptations = findAcceptationsMatchingText(outDb, singRoumajiText);
-        assertEquals(1, outAcceptations.size());
-        final int outAcceptation = outAcceptations.valueAt(0);
+        final int outAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "utau"));
 
         final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outAcceptation);
         assertEquals(3, outTexts.size());
         assertEquals(singKanjiText, outTexts.get(outKanjiAlphabet));
         assertEquals(singKanaText, outTexts.get(outKanaAlphabet));
-        assertEquals(singRoumajiText, outTexts.get(outRoumajiAlphabet));
+        assertEquals("utau", outTexts.get(outRoumajiAlphabet));
     }
 
     @Test
@@ -522,36 +491,27 @@ public abstract class AcceptationsSerializerTest {
         final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outLang);
 
         final ImmutableIntPairMap conversionPairs = outManager.getConversionsMap();
-        final ImmutableIntSet outSourceConversionAlphabets = outAlphabets.filter(conversionPairs.keySet()::contains);
-        assertEquals(1, outSourceConversionAlphabets.size());
-        final int outRoumajiAlphabet = outSourceConversionAlphabets.valueAt(0);
+        final int outRoumajiAlphabet = getSingleInt(outAlphabets.filter(conversionPairs.keySet()::contains));
         assertNotEquals(outKanjiAlphabet, outRoumajiAlphabet);
 
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).remove(outRoumajiAlphabet).valueAt(0);
         assertEquals(outKanaAlphabet, conversionPairs.get(outRoumajiAlphabet));
-
-        final String singRoumajiText = "utau";
-        final ImmutableIntSet outSingAcceptations = findAcceptationsMatchingText(outDb, singRoumajiText);
-        assertEquals(1, outSingAcceptations.size());
-        final int outSingAcceptation = outSingAcceptations.valueAt(0);
+        final int outSingAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "utau"));
 
         final ImmutableIntKeyMap<String> outTexts = outManager.getAcceptationTexts(outSingAcceptation);
         assertEquals(3, outTexts.size());
         assertEquals(singKanjiText, outTexts.get(outKanjiAlphabet));
         assertEquals(singKanaText, outTexts.get(outKanaAlphabet));
-        assertEquals(singRoumajiText, outTexts.get(outRoumajiAlphabet));
+        assertEquals("utau", outTexts.get(outRoumajiAlphabet));
 
-        final String eatRoumajiText = "taberu";
-        final ImmutableIntSet outEatAcceptations = findAcceptationsMatchingText(outDb, eatRoumajiText);
-        assertEquals(1, outEatAcceptations.size());
-        final int outEatAcceptation = outEatAcceptations.valueAt(0);
+        final int outEatAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "taberu"));
         assertNotEquals(outManager.conceptFromAcceptation(outSingAcceptation), outManager.conceptFromAcceptation(outEatAcceptation));
 
         final ImmutableIntKeyMap<String> outEatTexts = outManager.getAcceptationTexts(outEatAcceptation);
         assertEquals(3, outEatTexts.size());
         assertEquals(eatKanjiText, outEatTexts.get(outKanjiAlphabet));
         assertEquals(eatKanaText, outEatTexts.get(outKanaAlphabet));
-        assertEquals(eatRoumajiText, outEatTexts.get(outRoumajiAlphabet));
+        assertEquals("taberu", outEatTexts.get(outRoumajiAlphabet));
     }
 
     @Test
@@ -559,42 +519,24 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "es";
-        final int inAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final String text1 = "saltar";
         final int inConcept = inManager.getMaxConcept() + 1;
-        addSimpleAcceptation(inManager, inAlphabet, inConcept, text1);
-
-        final String text2 = "bricar";
-        addSimpleAcceptation(inManager, inAlphabet, inConcept, text2);
+        addSimpleAcceptation(inManager, inAlphabet, inConcept, "saltar");
+        addSimpleAcceptation(inManager, inAlphabet, inConcept, "brincar");
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
-        final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
-        assertEquals(1, outAlphabets.size());
-        final int outAlphabet = outAlphabets.valueAt(0);
+        final int outLang = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleInt(outManager.findAlphabetsByLanguage(outLang));
+        final int outAcceptation1 = getSingleInt(findAcceptationsMatchingText(outDb, "saltar"));
+        assertSingleValue(outAlphabet, "saltar", outManager.getAcceptationTexts(outAcceptation1));
 
-        final ImmutableIntSet outAcceptations1 = findAcceptationsMatchingText(outDb, text1);
-        assertEquals(1, outAcceptations1.size());
-        final int outAcceptation1 = outAcceptations1.valueAt(0);
-
-        final ImmutableIntKeyMap<String> outTexts1 = outManager.getAcceptationTexts(outAcceptations1.valueAt(0));
-        assertEquals(1, outTexts1.size());
-        assertEquals(text1, outTexts1.get(outAlphabet));
-
-        final ImmutableIntSet outAcceptations2 = findAcceptationsMatchingText(outDb, text2);
-        assertEquals(1, outAcceptations1.size());
-        final int outAcceptation2 = outAcceptations2.valueAt(0);
-
+        final int outAcceptation2 = getSingleInt(findAcceptationsMatchingText(outDb, "brincar"));
         assertNotEquals(outAcceptation1, outAcceptation2);
         assertEquals(outManager.conceptFromAcceptation(outAcceptation1), outManager.conceptFromAcceptation(outAcceptation2));
-
-        final ImmutableIntKeyMap<String> outTexts2 = outManager.getAcceptationTexts(outAcceptations2.valueAt(0));
-        assertEquals(1, outTexts2.size());
-        assertEquals(text2, outTexts2.get(outAlphabet));
+        assertSingleValue(outAlphabet, "brincar", outManager.getAcceptationTexts(outAcceptation2));
     }
 
     @Test
@@ -602,8 +544,7 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String languageCode = "ja";
-        final int inKanjiAlphabet = inManager.addLanguage(languageCode).mainAlphabet;
+        final int inKanjiAlphabet = inManager.addLanguage("ja").mainAlphabet;
 
         final int inKanaAlphabet = inManager.getMaxConcept() + 1;
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
@@ -615,25 +556,21 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outLang = outManager.findLanguageByCode(languageCode);
+        final int outLang = outManager.findLanguageByCode("ja");
         final ImmutableIntSet outAlphabets = outManager.findAlphabetsByLanguage(outLang);
         assertEquals(2, outAlphabets.size());
         final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outLang);
         assertTrue(outAlphabets.contains(outKanjiAlphabet));
         final int outKanaAlphabet = outAlphabets.remove(outKanjiAlphabet).valueAt(0);
 
-        final ImmutableIntSet outEatAcceptations = findAcceptationsMatchingText(outDb, eatKanjiText);
-        assertEquals(1, outEatAcceptations.size());
-        final int outEatAcceptation = outEatAcceptations.valueAt(0);
+        final int outEatAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, eatKanjiText));
 
         final ImmutableIntKeyMap<String> outEatTexts = outManager.getAcceptationTexts(outEatAcceptation);
         assertEquals(2, outEatTexts.size());
         assertEquals(eatKanjiText, outEatTexts.get(outKanjiAlphabet));
         assertEquals(eatKanaText, outEatTexts.get(outKanaAlphabet));
 
-        final ImmutableIntSet outEatSynonymAcceptations = findAcceptationsMatchingText(outDb, eatSynonymKanjiText);
-        assertEquals(1, outEatSynonymAcceptations.size());
-        final int outEatSynonymAcceptation = outEatSynonymAcceptations.valueAt(0);
+        final int outEatSynonymAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, eatSynonymKanjiText));
         assertNotEquals(outEatAcceptation, outEatSynonymAcceptation);
         assertEquals(outManager.conceptFromAcceptation(outEatAcceptation), outManager.conceptFromAcceptation(outEatSynonymAcceptation));
 
@@ -648,44 +585,31 @@ public abstract class AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
-        final String spanishLangCode = "es";
-        final int inSpanishAlphabet = inManager.addLanguage(spanishLangCode).mainAlphabet;
+        final int inSpanishAlphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final String japaneseLangCode = "ja";
-        final int inKanjiAlphabet = inManager.addLanguage(japaneseLangCode).mainAlphabet;
+        final int inKanjiAlphabet = inManager.addLanguage("ja").mainAlphabet;
         final int inKanaAlphabet = inManager.getMaxConcept() + 1;
         assertTrue(inManager.addAlphabetCopyingFromOther(inKanaAlphabet, inKanjiAlphabet));
 
-        final String singSpanishText = "cantar";
         final int inConcept = inManager.getMaxConcept() + 1;
-        addSimpleAcceptation(inManager, inSpanishAlphabet, inConcept, singSpanishText);
+        addSimpleAcceptation(inManager, inSpanishAlphabet, inConcept, "cantar");
         addJapaneseSingAcceptation(inManager, inKanjiAlphabet, inKanaAlphabet, inConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AcceptationsManager outManager = createManager(outDb);
 
-        final int outSpanish = outManager.findLanguageByCode(spanishLangCode);
-        final ImmutableIntSet outSpanishAlphabets = outManager.findAlphabetsByLanguage(outSpanish);
-        assertEquals(1, outSpanishAlphabets.size());
-        final int outSpanishAlphabet = outSpanishAlphabets.valueAt(0);
+        final int outSpanish = outManager.findLanguageByCode("es");
+        final int outSpanishAlphabet = getSingleInt(outManager.findAlphabetsByLanguage(outSpanish));
 
-        final int outJapanese = outManager.findLanguageByCode(japaneseLangCode);
+        final int outJapanese = outManager.findLanguageByCode("ja");
         final ImmutableIntSet outJapaneseAlphabets = outManager.findAlphabetsByLanguage(outJapanese);
         assertEquals(2, outJapaneseAlphabets.size());
         final int outKanjiAlphabet = outManager.findMainAlphabetForLanguage(outJapanese);
         final int outKanaAlphabet = outJapaneseAlphabets.remove(outKanjiAlphabet).valueAt(0);
+        final int outSpanishAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "cantar"));
+        assertSingleValue(outSpanishAlphabet, "cantar", outManager.getAcceptationTexts(outSpanishAcceptation));
 
-        final ImmutableIntSet outSpanishAcceptations = findAcceptationsMatchingText(outDb, singSpanishText);
-        assertEquals(1, outSpanishAcceptations.size());
-        final int outSpanishAcceptation = outSpanishAcceptations.valueAt(0);
-
-        final ImmutableIntKeyMap<String> outSpanishTexts = outManager.getAcceptationTexts(outSpanishAcceptation);
-        assertEquals(1, outSpanishTexts.size());
-        assertEquals(singSpanishText, outSpanishTexts.get(outSpanishAlphabet));
-
-        final ImmutableIntSet outJapaneseAcceptations = findAcceptationsMatchingText(outDb, singKanjiText);
-        assertEquals(1, outJapaneseAcceptations.size());
-        final int outJapaneseAcceptation = outJapaneseAcceptations.valueAt(0);
+        final int outJapaneseAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, singKanjiText));
 
         assertNotEquals(outSpanishAcceptation, outJapaneseAcceptation);
         final int outConcept = outManager.conceptFromAcceptation(outSpanishAcceptation);

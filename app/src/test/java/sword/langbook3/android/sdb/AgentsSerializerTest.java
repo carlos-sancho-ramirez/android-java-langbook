@@ -7,7 +7,6 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AgentsManager;
-import sword.langbook3.android.db.BunchesManager;
 import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.models.AgentDetails;
 
@@ -16,8 +15,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
-import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
-import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAcceptationsMatchingText;
 
 /**
  * Include all test related to all values that a BunchesSerializer should serialize.
@@ -29,11 +26,6 @@ public abstract class AgentsSerializerTest extends BunchesSerializerTest {
 
     @Override
     abstract AgentsManager createManager(MemoryDatabase db);
-
-    private int assertSingleInt(ImmutableIntSet set) {
-        assertEquals(1, set.size());
-        return set.valueAt(0);
-    }
 
     @Test
     public void testSerializeCopyFromSingleSourceToTargetAgentWithoutMatchingAcceptations() {
@@ -55,12 +47,12 @@ public abstract class AgentsSerializerTest extends BunchesSerializerTest {
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = new LangbookDatabaseManager(outDb);
 
-        final int outAgentId = assertSingleInt(outManager.getAgentIds());
+        final int outAgentId = getSingleInt(outManager.getAgentIds());
 
-        final int outArVerbAcceptation = assertSingleInt(findAcceptationsMatchingText(outDb, "verbo de primera conjugación"));
+        final int outArVerbAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "verbo de primera conjugación"));
         final int outArVerbConcept = outManager.conceptFromAcceptation(outArVerbAcceptation);
 
-        final int outVerbAcceptation = assertSingleInt(findAcceptationsMatchingText(outDb, "verbo"));
+        final int outVerbAcceptation = getSingleInt(findAcceptationsMatchingText(outDb, "verbo"));
         final int outVerbConcept = outManager.conceptFromAcceptation(outVerbAcceptation);
         assertNotEquals(outArVerbConcept, outVerbConcept);
 
@@ -68,13 +60,13 @@ public abstract class AgentsSerializerTest extends BunchesSerializerTest {
         assertEquals(outVerbConcept, outAgentDetails.targetBunch);
         assertEquals(1, outAgentDetails.sourceBunches.size());
         assertEquals(outArVerbConcept, outAgentDetails.sourceBunches.valueAt(0));
-        assertTrue(outAgentDetails.diffBunches.isEmpty());
-        assertTrue(outAgentDetails.startMatcher.isEmpty());
-        assertTrue(outAgentDetails.startAdder.isEmpty());
-        assertTrue(outAgentDetails.endMatcher.isEmpty());
-        assertTrue(outAgentDetails.endAdder.isEmpty());
+        assertEmpty(outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertEmpty(outAgentDetails.endMatcher);
+        assertEmpty(outAgentDetails.endAdder);
 
-        assertTrue(outManager.getAcceptationsInBunch(outArVerbConcept).isEmpty());
-        assertTrue(outManager.getAcceptationsInBunch(outVerbConcept).isEmpty());
+        assertEmpty(outManager.getAcceptationsInBunch(outArVerbConcept));
+        assertEmpty(outManager.getAcceptationsInBunch(outVerbConcept));
     }
 }
