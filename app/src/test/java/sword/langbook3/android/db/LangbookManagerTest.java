@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntArraySet;
@@ -13,20 +13,20 @@ import sword.database.Database;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 
-public final class LangbookManagerTest {
+final class LangbookManagerTest {
 
     private LangbookManager createManager(Database db) {
         return new LangbookDatabaseManager(db);
     }
 
     @Test
-    public void testAddDynamicAcceptationInASentenceSpan() {
+    void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
@@ -76,7 +76,7 @@ public final class LangbookManagerTest {
     }
 
     @Test
-    public void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
+    void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
@@ -135,7 +135,7 @@ public final class LangbookManagerTest {
     }
 
     @Test
-    public void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
+    void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 

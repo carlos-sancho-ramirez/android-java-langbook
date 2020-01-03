@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
@@ -16,11 +16,11 @@ import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.MorphologyResult;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
@@ -42,7 +42,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRo
  * <li>Ruled acceptations</li>
  * <li>Agents</li>
  */
-public final class AgentsManagerTest {
+final class AgentsManagerTest {
 
     private AgentsManager createManager(Database db) {
         return new LangbookDatabaseManager(db);
@@ -115,7 +115,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAddAgentApplyingRule() {
+    void testAddAgentApplyingRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -167,7 +167,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAddAgentComposingBunch() {
+    void testAddAgentComposingBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -268,12 +268,12 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAdd2ChainedAgents() {
+    void testAdd2ChainedAgents() {
         checkAdd2ChainedAgents(false);
     }
 
     @Test
-    public void testAdd2ChainedAgentsReversedAdditionOrder() {
+    void testAdd2ChainedAgentsReversedAdditionOrder() {
         checkAdd2ChainedAgents(true);
     }
 
@@ -329,22 +329,22 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAdd2ChainedAgentsFirstWithoutSourceBeforeMatchingAcceptation() {
+    void testAdd2ChainedAgentsFirstWithoutSourceBeforeMatchingAcceptation() {
         checkAdd2ChainedAgentsFirstWithoutSource(false, false);
     }
 
     @Test
-    public void testAdd2ChainedAgentsFirstWithoutSourceReversedAdditionOrderBeforeMatchingAcceptation() {
+    void testAdd2ChainedAgentsFirstWithoutSourceReversedAdditionOrderBeforeMatchingAcceptation() {
         checkAdd2ChainedAgentsFirstWithoutSource(true, false);
     }
 
     @Test
-    public void testAdd2ChainedAgentsFirstWithoutSourceAfterMatchingAcceptation() {
+    void testAdd2ChainedAgentsFirstWithoutSourceAfterMatchingAcceptation() {
         checkAdd2ChainedAgentsFirstWithoutSource(false, true);
     }
 
     @Test
-    public void testAdd2ChainedAgentsFirstWithoutSourceReversedAdditionOrderAfterMatchingAcceptation() {
+    void testAdd2ChainedAgentsFirstWithoutSourceReversedAdditionOrderAfterMatchingAcceptation() {
         checkAdd2ChainedAgentsFirstWithoutSource(true, true);
     }
 
@@ -386,12 +386,12 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAddAcceptationBeforeAgentWithDiffBunch() {
+    void testAddAcceptationBeforeAgentWithDiffBunch() {
         checkAddAgentWithDiffBunch(false);
     }
 
     @Test
-    public void testAddAcceptationAfterAgentWithDiffBunch() {
+    void testAddAcceptationAfterAgentWithDiffBunch() {
         checkAddAgentWithDiffBunch(true);
     }
 
@@ -432,7 +432,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAdd3ChainedAgents() {
+    void testAdd3ChainedAgents() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -515,7 +515,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveChainedAgent() {
+    void testRemoveChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -548,7 +548,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveAcceptationWithChainedAgent() {
+    void testRemoveAcceptationWithChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -580,7 +580,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveAcceptationWithBunchChainedAgent() {
+    void testRemoveAcceptationWithBunchChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -616,7 +616,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testReadAllMatchingBunches() {
+    void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -656,7 +656,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateCorrelationArrayForAcceptationWithRuleAgent() {
+    void testUpdateCorrelationArrayForAcceptationWithRuleAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -712,7 +712,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUnabletoRemoveAcceptationsWhenTheyAreUniqueAgentSourceOrTargetBunch() {
+    void testUnabletoRemoveAcceptationsWhenTheyAreUniqueAgentSourceOrTargetBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -743,7 +743,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testMultipleAgentsTargetingSameBunch() {
+    void testMultipleAgentsTargetingSameBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -766,7 +766,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAcceptationAddedInBunchBeforeAgent() {
+    void testAcceptationAddedInBunchBeforeAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -807,7 +807,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAcceptationAddedInBunchAfterAgent() {
+    void testAcceptationAddedInBunchAfterAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -848,7 +848,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateAgentTargetForNoChainedAgentWithoutRule() {
+    void testUpdateAgentTargetForNoChainedAgentWithoutRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -874,7 +874,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateAgentTargetForChainedAgentWithoutRule() {
+    void testUpdateAgentTargetForChainedAgentWithoutRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -907,7 +907,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveAgentTargetFromSecondChainedAgent() {
+    void testRemoveAgentTargetFromSecondChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -942,7 +942,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testIncludeAgentTargetToSecondChainedAgent() {
+    void testIncludeAgentTargetToSecondChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -979,7 +979,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testIncludeAgentSourceBunches() {
+    void testIncludeAgentSourceBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1009,7 +1009,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveAgentSourceBunches() {
+    void testRemoveAgentSourceBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1040,7 +1040,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testChangeAgentSourceBunches() {
+    void testChangeAgentSourceBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1075,7 +1075,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testIncludeExtraSourceBunch() {
+    void testIncludeExtraSourceBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1114,7 +1114,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveOneSourceBunch() {
+    void testRemoveOneSourceBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1152,7 +1152,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testIncludeAgentDiffBunchMatchingSource() {
+    void testIncludeAgentDiffBunchMatchingSource() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1188,7 +1188,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveAgentDiffBunchMatchingSource() {
+    void testRemoveAgentDiffBunchMatchingSource() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1225,7 +1225,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testIncludeAgentDiffBunchNoMatchingSource() {
+    void testIncludeAgentDiffBunchNoMatchingSource() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1260,7 +1260,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveAgentDiffBunchNoMatchingSource() {
+    void testRemoveAgentDiffBunchNoMatchingSource() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1295,7 +1295,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testChangeAgentEndMatcherAndAdder() {
+    void testChangeAgentEndMatcherAndAdder() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1320,7 +1320,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testChangeAgentStartMatcherAndAdder() {
+    void testChangeAgentStartMatcherAndAdder() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1345,7 +1345,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testChangeRule() {
+    void testChangeRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1368,7 +1368,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testChangeAdder() {
+    void testChangeAdder() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1388,7 +1388,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testChangeAdderForMultipleAcceptations() {
+    void testChangeAdderForMultipleAcceptations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1412,7 +1412,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testChangeAdderAndRule() {
+    void testChangeAdderAndRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1435,7 +1435,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testAddAdderAndRule() {
+    void testAddAdderAndRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1468,7 +1468,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testRemoveAdderAndRule() {
+    void testRemoveAdderAndRule() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1495,7 +1495,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateCorrelationArrayMatchingAgentBefore() {
+    void testUpdateCorrelationArrayMatchingAgentBefore() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1514,7 +1514,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateCorrelationArrayMatchingAgentAfter() {
+    void testUpdateCorrelationArrayMatchingAgentAfter() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1533,7 +1533,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateCorrelationArrayMatchingChainedAgentBefore() {
+    void testUpdateCorrelationArrayMatchingChainedAgentBefore() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -1558,7 +1558,7 @@ public final class AgentsManagerTest {
     }
 
     @Test
-    public void testUpdateCorrelationArrayMatchingChainedAgentAfter() {
+    void testUpdateCorrelationArrayMatchingChainedAgentAfter() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
         final int alphabet = manager.addLanguage("es").mainAlphabet;

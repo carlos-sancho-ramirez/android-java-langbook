@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
@@ -14,9 +14,9 @@ import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.AcceptationsManagerTest.upperCaseConversion;
@@ -30,7 +30,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRo
  * <li>Quizzes</li>
  * <li>Knowledge</li>
  */
-public final class QuizzesManagerTest {
+final class QuizzesManagerTest {
 
     private QuizzesManager createManager(Database db) {
         return new LangbookDatabaseManager(db);
@@ -56,7 +56,7 @@ public final class QuizzesManagerTest {
     }
 
     @Test
-    public void testAddAcceptationInBunchAndQuiz() {
+    void testAddAcceptationInBunchAndQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
@@ -94,7 +94,7 @@ public final class QuizzesManagerTest {
     }
 
     @Test
-    public void testAddQuizAndAcceptationInBunch() {
+    void testAddQuizAndAcceptationInBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
@@ -135,7 +135,7 @@ public final class QuizzesManagerTest {
     }
 
     @Test
-    public void testUpdateAcceptationCorrelationArray() {
+    void testUpdateAcceptationCorrelationArray() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
@@ -201,7 +201,7 @@ public final class QuizzesManagerTest {
     }
 
     @Test
-    public void testUpdateAcceptationCorrelationArrayFromMatching() {
+    void testUpdateAcceptationCorrelationArrayFromMatching() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 

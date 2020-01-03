@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntSet;
 import sword.database.Database;
@@ -8,9 +8,9 @@ import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
@@ -20,7 +20,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRo
  * BunchesManager responsibilities include all responsibilities from AcceptationsManager, and include the following ones:
  * <li>Bunches</li>
  */
-public final class BunchesManagerTest {
+final class BunchesManagerTest {
 
     private BunchesManager createManager(Database db) {
         return new LangbookDatabaseManager(db);
@@ -47,7 +47,7 @@ public final class BunchesManagerTest {
     }
 
     @Test
-    public void testRemoveLanguageThatIncludeAcceptationsAsBunches() {
+    void testRemoveLanguageThatIncludeAcceptationsAsBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
@@ -69,7 +69,7 @@ public final class BunchesManagerTest {
     }
 
     @Test
-    public void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
+    void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
@@ -96,7 +96,7 @@ public final class BunchesManagerTest {
     }
 
     @Test
-    public void testRemoveAcceptationForBunchWithAcceptationsInside() {
+    void testRemoveAcceptationForBunchWithAcceptationsInside() {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 

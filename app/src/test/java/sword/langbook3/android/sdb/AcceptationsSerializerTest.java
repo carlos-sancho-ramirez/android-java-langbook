@@ -1,6 +1,6 @@
 package sword.langbook3.android.sdb;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,7 +14,6 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.Map;
 import sword.collections.MutableIntList;
-import sword.collections.Sizable;
 import sword.database.DbExporter;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
@@ -23,10 +22,10 @@ import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.Conversion;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
 /**
@@ -41,7 +40,7 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
  * <li>Conversions</li>
  * <li>Acceptations</li>
  */
-public abstract class AcceptationsSerializerTest {
+abstract class AcceptationsSerializerTest {
 
     abstract AcceptationsManager createManager(MemoryDatabase db);
 
@@ -212,7 +211,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeSpanishLanguage() {
+    void testSerializeSpanishLanguage() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
         inManager.addLanguage("es");
@@ -225,7 +224,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeJapaneseLanguageWithoutConversion() {
+    void testSerializeJapaneseLanguageWithoutConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -242,7 +241,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeSingleSpanishAcceptation() {
+    void testSerializeSingleSpanishAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -262,7 +261,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeMultipleSpanishAcceptations() {
+    void testSerializeMultipleSpanishAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -289,7 +288,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeSingleJapaneseAcceptationWithoutConversion() {
+    void testSerializeSingleJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -318,7 +317,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeMultipleJapaneseAcceptationsWithoutConversion() {
+    void testSerializeMultipleJapaneseAcceptationsWithoutConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -360,7 +359,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeJustRoumajiConversion() {
+    void testSerializeJustRoumajiConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -408,7 +407,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeSingleJapaneseAcceptationWithConversion() {
+    void testSerializeSingleJapaneseAcceptationWithConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -455,7 +454,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeMultipleJapaneseAcceptationsWithConversion() {
+    void testSerializeMultipleJapaneseAcceptationsWithConversion() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -515,7 +514,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeSpanishSynonyms() {
+    void testSerializeSpanishSynonyms() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -540,7 +539,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeJapaneseSynonyms() {
+    void testSerializeJapaneseSynonyms() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 
@@ -581,7 +580,7 @@ public abstract class AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeAPairOfTranslations() {
+    void testSerializeAPairOfTranslations() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AcceptationsManager inManager = createManager(inDb);
 

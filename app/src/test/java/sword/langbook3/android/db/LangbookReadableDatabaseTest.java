@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
@@ -14,9 +14,9 @@ import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SearchResult;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookDatabase.addAlphabetCopyingFromOther;
 import static sword.langbook3.android.db.LangbookDatabase.addLanguage;
@@ -24,7 +24,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
-public final class LangbookReadableDatabaseTest {
+final class LangbookReadableDatabaseTest {
 
     private void addAgent(Database db, int sourceBunch, int alphabet, String endMatcherText, String endAdderText, int rule) {
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
@@ -38,7 +38,7 @@ public final class LangbookReadableDatabaseTest {
     }
 
     @Test
-    public void testReadAllMatchingBunches() {
+    void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
         final int alphabet = addLanguage(db, "es").mainAlphabet;
@@ -69,7 +69,7 @@ public final class LangbookReadableDatabaseTest {
         ImmutableIntKeyMap<String> obtain(int firstAlphabet, String text);
     }
 
-    public void checkFindAcceptationFromText(CorrelationObtainer corrObtainer) {
+    void checkFindAcceptationFromText(CorrelationObtainer corrObtainer) {
         final ImmutableSet<String> texts = new ImmutableHashSet.Builder<String>()
                 .add("hello")
                 .add("Hi")
@@ -131,14 +131,14 @@ public final class LangbookReadableDatabaseTest {
     }
 
     @Test
-    public void testFindAcceptationFromTextForOneAlphabetLanguageWord() {
+    void testFindAcceptationFromTextForOneAlphabetLanguageWord() {
         checkFindAcceptationFromText((firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>().put(firstAlphabet, text).build()
         );
     }
 
     @Test
-    public void testFindAcceptationFromTextForTwoAlphabetLanguageWord() {
+    void testFindAcceptationFromTextForTwoAlphabetLanguageWord() {
         checkFindAcceptationFromText((firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>()
                         .put(firstAlphabet, text)

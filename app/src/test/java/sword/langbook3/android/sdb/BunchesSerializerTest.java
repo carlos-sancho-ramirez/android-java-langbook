@@ -1,16 +1,16 @@
 package sword.langbook3.android.sdb;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntSet;
 import sword.collections.Sizable;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.BunchesManager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
 /**
@@ -19,7 +19,7 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
  * Values the the AcceptationsSerializer should serialize are limited to:
  * <li>Bunches</li>
  */
-public abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
+abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
 
     abstract BunchesManager createManager(MemoryDatabase db);
 
@@ -31,7 +31,7 @@ public abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeBunchWithASingleSpanishAcceptation() {
+    void testSerializeBunchWithASingleSpanishAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final BunchesManager inManager = createManager(inDb);
 
@@ -57,7 +57,7 @@ public abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeBunchWithMultipleSpanishAcceptations() {
+    void testSerializeBunchWithMultipleSpanishAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final BunchesManager inManager = createManager(inDb);
 
@@ -96,7 +96,7 @@ public abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
     }
 
     @Test
-    public void testSerializeChainedBunches() {
+    void testSerializeChainedBunches() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final BunchesManager inManager = createManager(inDb);
 

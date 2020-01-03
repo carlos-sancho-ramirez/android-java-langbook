@@ -1,22 +1,22 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntSetCreator;
 import sword.database.Database;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.DefinitionDetails;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public final class DefinitionsManagerTest {
+final class DefinitionsManagerTest {
 
     private DefinitionsManager createManager(Database db) {
         return new LangbookDatabaseManager(db);
     }
 
     @Test
-    public void testAddDefinitionForSingleComplement() {
+    void testAddDefinitionForSingleComplement() {
         final MemoryDatabase db = new MemoryDatabase();
         final DefinitionsManager manager = createManager(db);
 
@@ -33,7 +33,7 @@ public final class DefinitionsManagerTest {
     }
 
     @Test
-    public void testAddDefinitionForMultipleComplements() {
+    void testAddDefinitionForMultipleComplements() {
         final MemoryDatabase db = new MemoryDatabase();
         final DefinitionsManager manager = createManager(db);
 

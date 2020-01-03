@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
@@ -15,11 +15,11 @@ import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
 /**
@@ -66,7 +66,7 @@ public final class AcceptationsManagerTest {
             .build();
 
     @Test
-    public void testAddFirstLanguage() {
+    void testAddFirstLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -80,7 +80,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddSameLanguageTwice() {
+    void testAddSameLanguageTwice() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -95,7 +95,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testRemoveUniqueLanguage() {
+    void testRemoveUniqueLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -106,7 +106,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testRemoveFirstAddedLanguage() {
+    void testRemoveFirstAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -125,7 +125,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testRemoveLastAddedLanguage() {
+    void testRemoveLastAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -144,7 +144,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
+    void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -188,7 +188,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddAlphabetCopyingFromOtherWithCorrelations() {
+    void testAddAlphabetCopyingFromOtherWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -216,7 +216,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
+    void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -235,7 +235,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddAlphabetAsConversionTargetWithoutCorrelations() {
+    void testAddAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -266,7 +266,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddAlphabetAsConversionTargetWithCorrelations() {
+    void testAddAlphabetAsConversionTargetWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -299,7 +299,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
+    void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -321,7 +321,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testRemoveLanguageButLeaveOther() {
+    void testRemoveLanguageButLeaveOther() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -350,7 +350,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddSpanishAcceptation() {
+    void testAddSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -375,7 +375,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddJapaneseAcceptationWithoutConversion() {
+    void testAddJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -422,7 +422,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testAddJapaneseAcceptationWithConversion() {
+    void testAddJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -464,7 +464,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testUpdateAcceptationCorrelationArrayForSame() {
+    void testUpdateAcceptationCorrelationArrayForSame() {
         final MemoryDatabase db1 = new MemoryDatabase();
         final AcceptationsManager manager1 = new LangbookDatabaseManager(db1);
 
@@ -486,7 +486,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testReplaceConversionAfterAddingAcceptation() {
+    void testReplaceConversionAfterAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -530,7 +530,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    public void testReplaceConversionBeforeAddingAcceptation() {
+    void testReplaceConversionBeforeAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 

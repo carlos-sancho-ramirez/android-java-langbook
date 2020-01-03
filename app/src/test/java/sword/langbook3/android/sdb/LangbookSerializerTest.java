@@ -4,7 +4,7 @@ import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AgentsManager;
 import sword.langbook3.android.db.LangbookDatabaseManager;
 
-public final class LangbookSerializerTest extends AgentsSerializerTest {
+final class LangbookSerializerTest extends AgentsSerializerTest {
 
     @Override
     AgentsManager createManager(MemoryDatabase db) {

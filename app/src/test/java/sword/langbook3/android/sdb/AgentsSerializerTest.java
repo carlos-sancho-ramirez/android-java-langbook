@@ -1,6 +1,6 @@
 package sword.langbook3.android.sdb;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
@@ -10,10 +10,10 @@ import sword.langbook3.android.db.AgentsManager;
 import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.models.AgentDetails;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
 /**
@@ -22,13 +22,13 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
  * Values the the AcceptationsSerializer should serialize are limited to:
  * <li>Bunches</li>
  */
-public abstract class AgentsSerializerTest extends BunchesSerializerTest {
+abstract class AgentsSerializerTest extends BunchesSerializerTest {
 
     @Override
     abstract AgentsManager createManager(MemoryDatabase db);
 
     @Test
-    public void testSerializeCopyFromSingleSourceToTargetAgentWithoutMatchingAcceptations() {
+    void testSerializeCopyFromSingleSourceToTargetAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AgentsManager inManager = createManager(inDb);
 
@@ -71,7 +71,7 @@ public abstract class AgentsSerializerTest extends BunchesSerializerTest {
     }
 
     @Test
-    public void testSerializeCopyFromSingleSourceToTargetAgentWithAMatchingAcceptation() {
+    void testSerializeCopyFromSingleSourceToTargetAgentWithAMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AgentsManager inManager = createManager(inDb);
 

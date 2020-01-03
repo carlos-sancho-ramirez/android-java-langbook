@@ -1,7 +1,6 @@
 package sword.langbook3.android.sdb;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,7 +9,9 @@ import java.io.OutputStream;
 import sword.collections.ImmutableIntList;
 import sword.database.MemoryDatabase;
 
-public final class StreamedDatabaseTest {
+import static org.junit.jupiter.api.Assertions.fail;
+
+final class StreamedDatabaseTest {
 
     private static final class AssertingOutputStream extends OutputStream {
 
@@ -52,7 +53,7 @@ public final class StreamedDatabaseTest {
             _byteCount = -1;
         }
 
-        public boolean matchExpectations() {
+        boolean matchExpectations() {
             return _byteCount == -1;
         }
     }
@@ -108,7 +109,7 @@ public final class StreamedDatabaseTest {
             _builder = null;
         }
 
-        public AssertingOutputStream getAssertingOutputStream() {
+        AssertingOutputStream getAssertingOutputStream() {
             if (_result == null) {
                 throw new AssertionError("Stream not close yet");
             }
@@ -122,9 +123,8 @@ public final class StreamedDatabaseTest {
             // Nothing to be done
         };
 
-        final InputStream origIs = getClass().getClassLoader().getResourceAsStream(name);
         final MemoryDatabase db = new MemoryDatabase();
-        try {
+        try (InputStream origIs = getClass().getClassLoader().getResourceAsStream(name)) {
             origIs.skip(20);
             final TestInputStream is = new TestInputStream(origIs);
             final StreamedDatabaseReader reader = new StreamedDatabaseReader(db, is, progressListener);
@@ -136,29 +136,22 @@ public final class StreamedDatabaseTest {
             os.matchExpectations();
         }
         catch (IOException e) {
-            Assert.fail();
-        }
-        finally {
-            try {
-                origIs.close();
-            } catch (IOException e) {
-                // Nothing to be done
-            }
+            fail();
         }
     }
 
     @Test
-    public void testReadWriteJustEsLang() {
+    void testReadWriteJustEsLang() {
         checkReadWriteResource("justEsLang.sdb");
     }
 
     @Test
-    public void testReadWriteBasic() {
+    void testReadWriteBasic() {
         checkReadWriteResource("basic.sdb");
     }
 
     @Test
-    public void testReadWriteSingleAgent() {
+    void testReadWriteSingleAgent() {
         checkReadWriteResource("singleAgent.sdb");
     }
 }

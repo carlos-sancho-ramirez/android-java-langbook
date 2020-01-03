@@ -1,15 +1,15 @@
 package sword.langbook3.android.db;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SearchResult;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
@@ -21,10 +21,10 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getSearchHisto
  * LangbookDatabase is responsible of ensuring consistency within the database for all its features.
  * This class include tests for mixed features that cannot be added in QuizManagerTest.
  */
-public final class LangbookDatabaseTest {
+final class LangbookDatabaseTest {
 
     @Test
-    public void testSearchHistory() {
+    void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
 
