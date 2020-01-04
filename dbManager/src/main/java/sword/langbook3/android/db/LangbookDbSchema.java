@@ -174,10 +174,12 @@ public final class LangbookDbSchema implements DbSchema {
      * while complements can be understood as adjectives.
      *
      * Restrictions within the table (serialization is optimized based on this):
-     * <li>It is not possible to have 2 rows with the same complemented concept.</li>
-     * <li>Complemented concept will never match in value with the base concept nor the complement in the same row.</li>
-     * <li>Base concept and complement will never match in value in the same row.</li>
-     * <li>Complement can be 0 to determine that no suitable complement</li>
+     * <ul>
+     *   <li>It is not possible to have 2 rows with the same complemented concept.</li>
+     *   <li>Complemented concept will never match in value with the base concept nor the complement in the same row.</li>
+     *   <li>Base concept and complement will never match in value in the same row.</li>
+     *   <li>Complement can be 0 to determine that no suitable complement</li>
+     * </ul>
      */
     public static final class ComplementedConceptsTable extends DbTable {
 

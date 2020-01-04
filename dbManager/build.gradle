@@ -1,0 +1,61 @@
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+group = 'sword'
+version = '1.0'
+
+sourceCompatibility = "8"
+targetCompatibility = "8"
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(':database')
+    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:413abc35144ca3770e697a020849db21aa5a8382'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.4.0'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "skipped", "failed"
+    }
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+    archiveClassifier = 'sources'
+}
+
+task packageJavadoc(type: Jar) {
+    from javadoc
+    archiveClassifier = 'javadoc'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId 'langbook-database-manager'
+            from components.java
+
+            artifact sourceJar
+            artifact packageJavadoc
+        }
+    }
+}
+
+javadoc {
+    source = sourceSets.main.allJava
+    classpath = configurations.compileClasspath
+
+    options {
+        setMemberLevel JavadocMemberLevel.PUBLIC
+        setAuthor false
+
+        links "https://docs.oracle.com/javase/8/docs/api/"
+    }
+}

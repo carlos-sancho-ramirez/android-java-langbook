@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
 /**
  * Include all test related to all values that a BunchesSerializer should serialize.

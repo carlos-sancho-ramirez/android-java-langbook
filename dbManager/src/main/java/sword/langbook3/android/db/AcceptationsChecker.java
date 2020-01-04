@@ -7,10 +7,10 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.IntSet;
-import sword.langbook3.android.DisplayableItem;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
+import sword.langbook3.android.models.DisplayableItem;
 
 public interface AcceptationsChecker extends ConceptsChecker {
     Integer findLanguageByCode(String code);

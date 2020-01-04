@@ -36,7 +36,7 @@ public final class CorrelationDetailsModel {
 
     /**
      * Contains all correlations that contains at least one text representation in common for the same alphabet.
-     * The key of this map is its correlation identifier, while the value is the correlation itself (alphabet -> text representation).
+     * The key of this map is its correlation identifier, while the value is the correlation itself (alphabet -&gt; text representation).
      */
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> relatedCorrelations;
 

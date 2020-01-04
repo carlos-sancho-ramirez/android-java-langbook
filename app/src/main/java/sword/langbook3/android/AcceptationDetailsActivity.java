@@ -31,6 +31,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
+import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.SynonymTranslationResult;

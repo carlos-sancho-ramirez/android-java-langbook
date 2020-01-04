@@ -3,6 +3,8 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import sword.langbook3.android.models.DisplayableItem;
+
 public final class AcceptationDetailsActivityState implements Parcelable {
 
     public interface IntrinsicStates {
@@ -35,7 +37,8 @@ public final class AcceptationDetailsActivityState implements Parcelable {
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                _deleteTarget = DisplayableItem.CREATOR.createFromParcel(in);
+                final ParcelableDisplayableItem parcelable = ParcelableDisplayableItem.CREATOR.createFromParcel(in);
+                _deleteTarget = (parcelable != null)? parcelable.item : null;
                 break;
         }
     }
@@ -50,7 +53,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                _deleteTarget.writeToParcel(dest, flags);
+                new ParcelableDisplayableItem(_deleteTarget).writeToParcel(dest, flags);
                 break;
         }
     }

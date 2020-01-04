@@ -17,6 +17,7 @@ import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.AgentRegister;
+import sword.langbook3.android.models.DisplayableItem;
 
 import static sword.langbook3.android.SearchActivity.AGENT_QUERY_PREFIX;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;

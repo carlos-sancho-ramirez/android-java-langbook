@@ -44,7 +44,6 @@ import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.models.SentenceSpan;
-import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
@@ -141,6 +140,10 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.readCorrelatio
 import static sword.langbook3.android.db.LangbookReadableDatabase.readMainAlphabetFromAlphabet;
 
 public final class LangbookDatabase {
+
+    /** Reserved for empty correlations */
+    public static final int nullCorrelationId = 0;
+    public static final int nullCorrelationArrayId = 0;
 
     private LangbookDatabase() {
     }
@@ -1869,8 +1872,10 @@ public final class LangbookDatabase {
      * Add a new correlation array to the database.
      *
      * Correlations composing a correlation array:
-     * <li>must contain alphabets from the same language in relation with other correlations.</li>
-     * <li>must not include alphabets that are target of a conversion.</li>
+     * <ul>
+     *   <li>must contain alphabets from the same language in relation with other correlations.</li>
+     *   <li>must not include alphabets that are target of a conversion.</li>
+     * </ul>
      *
      * In addition the resulting string of concatenating all symbol arrays must be fully convertible
      * if its alphabets matches the source alphabet of an already entered conversion.
@@ -1920,7 +1925,7 @@ public final class LangbookDatabase {
         }
 
         final int maxArrayId = getMaxCorrelationArrayId(db);
-        final int newArrayId = maxArrayId + ((maxArrayId + 1 != StreamedDatabaseConstants.nullCorrelationArrayId)? 1 : 2);
+        final int newArrayId = maxArrayId + ((maxArrayId + 1 != nullCorrelationArrayId)? 1 : 2);
         LangbookDbInserter.insertCorrelationArray(db, newArrayId, correlations);
         return newArrayId;
     }

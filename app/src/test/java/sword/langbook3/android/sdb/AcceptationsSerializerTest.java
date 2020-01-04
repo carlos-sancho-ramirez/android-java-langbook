@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
 /**
  * Include all test related to all values that an AcceptationsSerializer should serialize.
@@ -97,6 +96,18 @@ abstract class AcceptationsSerializerTest {
             final ImmutableIntList inData = ((byteCount & 3) == 0)? data.toImmutable() : data.toImmutable().append(currentWord);
             return new AssertStream(inData, byteCount);
         }
+    }
+
+    static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, text)
+                .build();
+
+        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+                .append(correlation)
+                .build();
+
+        return manager.addAcceptation(concept, correlationArray);
     }
 
     static ImmutableIntSet findAcceptationsMatchingText(DbExporter.Database db, String text) {

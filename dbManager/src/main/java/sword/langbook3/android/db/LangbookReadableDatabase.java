@@ -43,7 +43,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
-import sword.langbook3.android.DisplayableItem;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
@@ -54,6 +53,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DefinitionDetails;
+import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.MorphologyResult;
@@ -66,8 +66,9 @@ import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.SynonymTranslationResult;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
-import sword.langbook3.android.sdb.StreamedDatabaseConstants;
 
+import static sword.langbook3.android.db.LangbookDatabase.nullCorrelationArrayId;
+import static sword.langbook3.android.db.LangbookDatabase.nullCorrelationId;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
@@ -336,7 +337,7 @@ public final class LangbookReadableDatabase {
 
     static Integer findCorrelation(DbExporter.Database db, IntKeyMap<String> correlation) {
         if (correlation.size() == 0) {
-            return StreamedDatabaseConstants.nullCorrelationId;
+            return nullCorrelationId;
         }
         final ImmutableIntKeyMap<String> corr = correlation.toImmutable();
 
@@ -391,7 +392,7 @@ public final class LangbookReadableDatabase {
 
     static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
-            return StreamedDatabaseConstants.nullCorrelationId;
+            return nullCorrelationId;
         }
         final ImmutableIntPairMap corr = correlation.toImmutable();
 
@@ -479,7 +480,7 @@ public final class LangbookReadableDatabase {
 
     static Integer findCorrelationArray(DbExporter.Database db, int... correlations) {
         if (correlations.length == 0) {
-            return StreamedDatabaseConstants.nullCorrelationArrayId;
+            return nullCorrelationArrayId;
         }
 
         LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
@@ -1259,7 +1260,7 @@ public final class LangbookReadableDatabase {
     }
 
     private static int[] getCorrelationArray(DbExporter.Database db, int id) {
-        if (id == StreamedDatabaseConstants.nullCorrelationArrayId) {
+        if (id == nullCorrelationArrayId) {
             return new int[0];
         }
 
