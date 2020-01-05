@@ -9,14 +9,12 @@ import sword.langbook3.android.models.DefinitionDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-final class DefinitionsManagerTest {
+interface DefinitionsManagerTest {
 
-    private DefinitionsManager createManager(Database db) {
-        return new LangbookDatabaseManager(db);
-    }
+    DefinitionsManager createManager(MemoryDatabase db);
 
     @Test
-    void testAddDefinitionForSingleComplement() {
+    default void testAddDefinitionForSingleComplement() {
         final MemoryDatabase db = new MemoryDatabase();
         final DefinitionsManager manager = createManager(db);
 
@@ -33,7 +31,7 @@ final class DefinitionsManagerTest {
     }
 
     @Test
-    void testAddDefinitionForMultipleComplements() {
+    default void testAddDefinitionForMultipleComplements() {
         final MemoryDatabase db = new MemoryDatabase();
         final DefinitionsManager manager = createManager(db);
 

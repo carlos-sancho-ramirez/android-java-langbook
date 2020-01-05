@@ -7,7 +7,6 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.List;
-import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.DbValue;
 import sword.database.MemoryDatabase;
@@ -19,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
-import static sword.langbook3.android.db.AcceptationsManagerTest.upperCaseConversion;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
@@ -30,13 +28,12 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRo
  * <li>Quizzes</li>
  * <li>Knowledge</li>
  */
-final class QuizzesManagerTest {
+interface QuizzesManagerTest extends AgentsManagerTest {
 
-    private QuizzesManager createManager(Database db) {
-        return new LangbookDatabaseManager(db);
-    }
+    @Override
+    QuizzesManager createManager(MemoryDatabase db);
 
-    private static int addJapaneseSingAcceptation(AcceptationsManager manager, int kanjiAlphabet, int kanaAlphabet, int concept) {
+    static int addJapaneseSingAcceptation(AcceptationsManager manager, int kanjiAlphabet, int kanaAlphabet, int concept) {
         final ImmutableIntKeyMap<String> correlation1 = new ImmutableIntKeyMap.Builder<String>()
                 .put(kanjiAlphabet, "歌")
                 .put(kanaAlphabet, "うた")
@@ -56,7 +53,7 @@ final class QuizzesManagerTest {
     }
 
     @Test
-    void testAddAcceptationInBunchAndQuiz() {
+    default void testAddAcceptationInBunchAndQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
@@ -94,7 +91,7 @@ final class QuizzesManagerTest {
     }
 
     @Test
-    void testAddQuizAndAcceptationInBunch() {
+    default void testAddQuizAndAcceptationInBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
@@ -135,7 +132,7 @@ final class QuizzesManagerTest {
     }
 
     @Test
-    void testUpdateAcceptationCorrelationArray() {
+    default void testUpdateAcceptationCorrelationArray() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
@@ -201,7 +198,7 @@ final class QuizzesManagerTest {
     }
 
     @Test
-    void testUpdateAcceptationCorrelationArrayFromMatching() {
+    default void testUpdateAcceptationCorrelationArrayFromMatching() {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 

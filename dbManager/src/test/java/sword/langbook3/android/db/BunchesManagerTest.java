@@ -20,11 +20,10 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRo
  * BunchesManager responsibilities include all responsibilities from AcceptationsManager, and include the following ones:
  * <li>Bunches</li>
  */
-final class BunchesManagerTest {
+interface BunchesManagerTest extends AcceptationsManagerTest {
 
-    private BunchesManager createManager(Database db) {
-        return new LangbookDatabaseManager(db);
-    }
+    @Override
+    BunchesManager createManager(MemoryDatabase db);
 
     static int addSpanishSingAcceptation(AcceptationsManager manager, int alphabet, int concept) {
         return addSimpleAcceptation(manager, alphabet, concept, "cantar");
@@ -47,7 +46,7 @@ final class BunchesManagerTest {
     }
 
     @Test
-    void testRemoveLanguageThatIncludeAcceptationsAsBunches() {
+    default void testRemoveLanguageThatIncludeAcceptationsAsBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
@@ -69,7 +68,7 @@ final class BunchesManagerTest {
     }
 
     @Test
-    void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
+    default void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
@@ -96,7 +95,7 @@ final class BunchesManagerTest {
     }
 
     @Test
-    void testRemoveAcceptationForBunchWithAcceptationsInside() {
+    default void testRemoveAcceptationForBunchWithAcceptationsInside() {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 

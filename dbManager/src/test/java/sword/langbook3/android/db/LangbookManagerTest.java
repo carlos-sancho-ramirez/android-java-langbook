@@ -19,14 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 
-final class LangbookManagerTest {
+interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
 
-    private LangbookManager createManager(Database db) {
-        return new LangbookDatabaseManager(db);
-    }
+    @Override
+    LangbookManager createManager(MemoryDatabase db);
 
     @Test
-    void testAddDynamicAcceptationInASentenceSpan() {
+    default void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
@@ -76,7 +75,7 @@ final class LangbookManagerTest {
     }
 
     @Test
-    void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
+    default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
@@ -135,7 +134,7 @@ final class LangbookManagerTest {
     }
 
     @Test
-    void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
+    default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 

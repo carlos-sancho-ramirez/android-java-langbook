@@ -34,9 +34,11 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRo
  * <li>Conversions</li>
  * <li>Acceptations</li>
  */
-public final class AcceptationsManagerTest {
+public interface AcceptationsManagerTest {
 
-    static final ImmutableHashMap<String, String> upperCaseConversion = new ImmutableHashMap.Builder<String, String>()
+    AcceptationsManager createManager(MemoryDatabase db);
+
+    ImmutableHashMap<String, String> upperCaseConversion = new ImmutableHashMap.Builder<String, String>()
             .put("a", "A")
             .put("b", "B")
             .put("c", "C")
@@ -65,105 +67,7 @@ public final class AcceptationsManagerTest {
             .put("z", "Z")
             .build();
 
-    @Test
-    void testAddFirstLanguage() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager manager = new LangbookDatabaseManager(db);
-
-        final String code = "es";
-        final LanguageCreationResult langPair = manager.addLanguage(code);
-
-        assertEquals(langPair.language, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.language);
-        assertEquals(1, alphabetSet.size());
-        assertEquals(langPair.mainAlphabet, alphabetSet.valueAt(0));
-    }
-
-    @Test
-    void testAddSameLanguageTwice() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager manager = new LangbookDatabaseManager(db);
-
-        final String code = "es";
-        final LanguageCreationResult langPair = manager.addLanguage(code);
-        assertNull(manager.addLanguage(code));
-
-        assertEquals(langPair.language, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.language);
-        assertEquals(1, alphabetSet.size());
-        assertEquals(langPair.mainAlphabet, alphabetSet.valueAt(0));
-    }
-
-    @Test
-    void testRemoveUniqueLanguage() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager manager = new LangbookDatabaseManager(db);
-
-        final String code = "es";
-        final int language = manager.addLanguage(code).language;
-        assertTrue(manager.removeLanguage(language));
-        assertNull(manager.findLanguageByCode(code));
-    }
-
-    @Test
-    void testRemoveFirstAddedLanguage() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager manager = new LangbookDatabaseManager(db);
-
-        final String code1 = "es";
-        final String code2 = "en";
-        final LanguageCreationResult langPair1 = manager.addLanguage(code1);
-        final LanguageCreationResult langPair2 = manager.addLanguage(code2);
-
-        assertTrue(manager.removeLanguage(langPair1.language));
-        assertNull(manager.findLanguageByCode(code1));
-        assertEquals(langPair2.language, manager.findLanguageByCode(code2).intValue());
-
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair2.language);
-        assertEquals(1, alphabetSet.size());
-        assertEquals(langPair2.mainAlphabet, alphabetSet.valueAt(0));
-    }
-
-    @Test
-    void testRemoveLastAddedLanguage() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager manager = new LangbookDatabaseManager(db);
-
-        final String code1 = "es";
-        final String code2 = "en";
-        final LanguageCreationResult langPair1 = manager.addLanguage(code1);
-        final LanguageCreationResult langPair2 = manager.addLanguage(code2);
-
-        assertTrue(manager.removeLanguage(langPair2.language));
-        assertNull(manager.findLanguageByCode(code2));
-        assertEquals(langPair1.language, manager.findLanguageByCode(code1).intValue());
-
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair1.language);
-        assertEquals(1, alphabetSet.size());
-        assertEquals(langPair1.mainAlphabet, alphabetSet.valueAt(0));
-    }
-
-    @Test
-    void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager manager = new LangbookDatabaseManager(db);
-
-        final String code = "es";
-        final LanguageCreationResult langPair = manager.addLanguage(code);
-
-        final int language = langPair.language;
-        final int mainAlphabet = langPair.mainAlphabet;
-        final int secondAlphabet = mainAlphabet + 1;
-        assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
-
-        assertEquals(language, manager.findLanguageByCode(code).intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
-        assertEquals(2, alphabetSet.size());
-        assertTrue(alphabetSet.contains(mainAlphabet));
-        assertTrue(alphabetSet.contains(secondAlphabet));
-    }
-
-    public static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
+    static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
         final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, text)
                 .build();
@@ -188,7 +92,105 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testAddAlphabetCopyingFromOtherWithCorrelations() {
+    default void testAddFirstLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager manager = new LangbookDatabaseManager(db);
+
+        final String code = "es";
+        final LanguageCreationResult langPair = manager.addLanguage(code);
+
+        assertEquals(langPair.language, manager.findLanguageByCode(code).intValue());
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.language);
+        assertEquals(1, alphabetSet.size());
+        assertEquals(langPair.mainAlphabet, alphabetSet.valueAt(0));
+    }
+
+    @Test
+    default void testAddSameLanguageTwice() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager manager = new LangbookDatabaseManager(db);
+
+        final String code = "es";
+        final LanguageCreationResult langPair = manager.addLanguage(code);
+        assertNull(manager.addLanguage(code));
+
+        assertEquals(langPair.language, manager.findLanguageByCode(code).intValue());
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair.language);
+        assertEquals(1, alphabetSet.size());
+        assertEquals(langPair.mainAlphabet, alphabetSet.valueAt(0));
+    }
+
+    @Test
+    default void testRemoveUniqueLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager manager = new LangbookDatabaseManager(db);
+
+        final String code = "es";
+        final int language = manager.addLanguage(code).language;
+        assertTrue(manager.removeLanguage(language));
+        assertNull(manager.findLanguageByCode(code));
+    }
+
+    @Test
+    default void testRemoveFirstAddedLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager manager = new LangbookDatabaseManager(db);
+
+        final String code1 = "es";
+        final String code2 = "en";
+        final LanguageCreationResult langPair1 = manager.addLanguage(code1);
+        final LanguageCreationResult langPair2 = manager.addLanguage(code2);
+
+        assertTrue(manager.removeLanguage(langPair1.language));
+        assertNull(manager.findLanguageByCode(code1));
+        assertEquals(langPair2.language, manager.findLanguageByCode(code2).intValue());
+
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair2.language);
+        assertEquals(1, alphabetSet.size());
+        assertEquals(langPair2.mainAlphabet, alphabetSet.valueAt(0));
+    }
+
+    @Test
+    default void testRemoveLastAddedLanguage() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager manager = new LangbookDatabaseManager(db);
+
+        final String code1 = "es";
+        final String code2 = "en";
+        final LanguageCreationResult langPair1 = manager.addLanguage(code1);
+        final LanguageCreationResult langPair2 = manager.addLanguage(code2);
+
+        assertTrue(manager.removeLanguage(langPair2.language));
+        assertNull(manager.findLanguageByCode(code2));
+        assertEquals(langPair1.language, manager.findLanguageByCode(code1).intValue());
+
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(langPair1.language);
+        assertEquals(1, alphabetSet.size());
+        assertEquals(langPair1.mainAlphabet, alphabetSet.valueAt(0));
+    }
+
+    @Test
+    default void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager manager = new LangbookDatabaseManager(db);
+
+        final String code = "es";
+        final LanguageCreationResult langPair = manager.addLanguage(code);
+
+        final int language = langPair.language;
+        final int mainAlphabet = langPair.mainAlphabet;
+        final int secondAlphabet = mainAlphabet + 1;
+        assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
+
+        assertEquals(language, manager.findLanguageByCode(code).intValue());
+        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
+        assertEquals(2, alphabetSet.size());
+        assertTrue(alphabetSet.contains(mainAlphabet));
+        assertTrue(alphabetSet.contains(secondAlphabet));
+    }
+
+    @Test
+    default void testAddAlphabetCopyingFromOtherWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -216,7 +218,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
+    default void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -235,7 +237,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testAddAlphabetAsConversionTargetWithoutCorrelations() {
+    default void testAddAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -266,7 +268,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testAddAlphabetAsConversionTargetWithCorrelations() {
+    default void testAddAlphabetAsConversionTargetWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -299,7 +301,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
+    default void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -321,7 +323,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testRemoveLanguageButLeaveOther() {
+    default void testRemoveLanguageButLeaveOther() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -350,7 +352,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testAddSpanishAcceptation() {
+    default void testAddSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -375,7 +377,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testAddJapaneseAcceptationWithoutConversion() {
+    default void testAddJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -422,7 +424,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testAddJapaneseAcceptationWithConversion() {
+    default void testAddJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -464,7 +466,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testUpdateAcceptationCorrelationArrayForSame() {
+    default void testUpdateAcceptationCorrelationArrayForSame() {
         final MemoryDatabase db1 = new MemoryDatabase();
         final AcceptationsManager manager1 = new LangbookDatabaseManager(db1);
 
@@ -486,7 +488,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testReplaceConversionAfterAddingAcceptation() {
+    default void testReplaceConversionAfterAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 
@@ -530,7 +532,7 @@ public final class AcceptationsManagerTest {
     }
 
     @Test
-    void testReplaceConversionBeforeAddingAcceptation() {
+    default void testReplaceConversionBeforeAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = new LangbookDatabaseManager(db);
 

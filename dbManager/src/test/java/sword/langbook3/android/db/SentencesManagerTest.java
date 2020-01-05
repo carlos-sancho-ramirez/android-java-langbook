@@ -6,7 +6,6 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableSet;
-import sword.database.Database;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
@@ -15,14 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 
-final class SentencesManagerTest {
+interface SentencesManagerTest extends AcceptationsManagerTest {
 
-    private SentencesManager createManager(Database db) {
-        return new LangbookDatabaseManager(db);
-    }
+    @Override
+    SentencesManager createManager(MemoryDatabase db);
 
     @Test
-    void testAddSentences() {
+    default void testAddSentences() {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
@@ -117,7 +115,7 @@ final class SentencesManagerTest {
     }
 
     @Test
-    void testReplaceSentence() {
+    default void testReplaceSentence() {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
@@ -202,7 +200,7 @@ final class SentencesManagerTest {
     }
 
     @Test
-    void testReplaceSentenceWithSameText() {
+    default void testReplaceSentenceWithSameText() {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
@@ -251,7 +249,7 @@ final class SentencesManagerTest {
     }
 
     @Test
-    void testRemoveSentence() {
+    default void testRemoveSentence() {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
@@ -286,7 +284,7 @@ final class SentencesManagerTest {
     }
 
     @Test
-    void testRemoveAcceptationIncludedInASpan() {
+    default void testRemoveAcceptationIncludedInASpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
