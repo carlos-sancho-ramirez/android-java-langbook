@@ -136,10 +136,6 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
-        final String text1 = "cantar";
-        final String text2 = "beber";
-        final String text2UpperCase = "BEBER";
-
         final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
         final int secondConjugationVerbBunch = concept + 1;
@@ -147,7 +143,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         final Conversion conversion = new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, text1);
+        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
@@ -163,7 +159,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .build();
         final int quizId = manager.obtainQuiz(secondConjugationVerbBunch, quizFields);
 
-        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, text2);
+        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
 
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         DbQuery query = new DbQuery.Builder(strings)
@@ -173,7 +169,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                         strings.getStringColumnIndex());
         List<DbValue> row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals(text2, row.get(1).toText());
+        assertEquals("beber", row.get(1).toText());
 
         query = new DbQuery.Builder(strings)
                 .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
@@ -182,7 +178,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                         strings.getStringColumnIndex());
         row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals(text2UpperCase, row.get(1).toText());
+        assertEquals("BEBER", row.get(1).toText());
 
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         query = new DbQuery.Builder(bunchAcceptations)
@@ -202,10 +198,6 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final QuizzesManager manager = createManager(db);
 
-        final String text1 = "cantar";
-        final String text2 = "beber";
-        final String text2UpperCase = "BEBER";
-
         final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
         final int firstConjugationVerbBunch = concept + 1;
@@ -213,7 +205,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         final Conversion conversion = new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, text1);
+        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
@@ -229,7 +221,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .build();
         final int quizId = manager.obtainQuiz(firstConjugationVerbBunch, quizFields);
 
-        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, text2);
+        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
 
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         DbQuery query = new DbQuery.Builder(strings)
@@ -239,7 +231,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                         strings.getStringColumnIndex());
         List<DbValue> row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals(text2, row.get(1).toText());
+        assertEquals("beber", row.get(1).toText());
 
         query = new DbQuery.Builder(strings)
                 .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
@@ -248,7 +240,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                         strings.getStringColumnIndex());
         row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals(text2UpperCase, row.get(1).toText());
+        assertEquals("BEBER", row.get(1).toText());
 
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         query = new DbQuery.Builder(bunchAcceptations)

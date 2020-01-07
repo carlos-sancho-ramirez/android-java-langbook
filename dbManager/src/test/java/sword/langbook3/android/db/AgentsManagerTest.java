@@ -4,10 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
-import sword.collections.ImmutableList;
 import sword.collections.List;
 import sword.database.Database;
 import sword.database.DbExporter;
@@ -26,11 +24,16 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptati
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
 import static sword.langbook3.android.db.BunchesManagerTest.findAcceptationsIncludedInBunch;
 import static sword.langbook3.android.db.BunchesManagerTest.findBunchesWhereAcceptationIsIncluded;
+import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
+import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertSingleValue;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readMorphologiesFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
+import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
+import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
 /**
  * Include all test related to all responsibilities of a AgentsManager.
@@ -104,13 +107,9 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     static void assertOnlyOneMorphology(DbExporter.Database db, int staticAcceptation, int preferredAlphabet, String expectedText, int expectedRule) {
-        final ImmutableList<MorphologyResult> morphologies = readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet).morphologies;
-        assertEquals(1, morphologies.size());
-        assertEquals(expectedText, morphologies.valueAt(0).text);
-
-        final ImmutableIntList rules = morphologies.valueAt(0).rules;
-        assertEquals(1, rules.size());
-        assertEquals(expectedRule, rules.valueAt(0));
+        final MorphologyResult morphology = getSingleValue(readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet).morphologies);
+        assertEquals(expectedText, morphology.text);
+        assertSingleValue(expectedRule, morphology.rules);
     }
 
     @Test
@@ -123,8 +122,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
 
-        final String verbText = "cantar";
-        final int acceptation = addSimpleAcceptation(manager, alphabet, concept, verbText);
+        final int acceptation = addSimpleAcceptation(manager, alphabet, concept, "cantar");
         assertTrue(manager.addAcceptationInBunch(verbConcept, acceptation));
 
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
@@ -177,12 +175,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int singConcept = erVerbConcept + 1;
         final int coughtConcept = singConcept + 1;
 
-        final String singText = "cantar";
-        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, singText);
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
         assertTrue(manager.addAcceptationInBunch(verbConcept, singAcceptation));
 
-        final String coughtText = "toser";
-        final int coughtAcceptation = addSimpleAcceptation(manager, alphabet, coughtConcept, coughtText);
+        final int coughtAcceptation = addSimpleAcceptation(manager, alphabet, coughtConcept, "toser");
         assertTrue(manager.addAcceptationInBunch(verbConcept, coughtAcceptation));
 
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
@@ -191,10 +187,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final ImmutableIntSet acceptationsInBunch = findAcceptationsIncludedInBunch(db, verbConcept);
         assertEquals(new ImmutableIntSetCreator().add(singAcceptation).add(coughtAcceptation).build(), acceptationsInBunch);
-
-        final ImmutableIntSet acceptationsInArVerbBunch = getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId);
-        assertEquals(1, acceptationsInArVerbBunch.size());
-        assertEquals(singAcceptation, acceptationsInArVerbBunch.valueAt(0));
+        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId));
     }
 
     default void checkAdd2ChainedAgents(boolean reversedAdditionOrder) {
@@ -320,11 +313,9 @@ interface AgentsManagerTest extends BunchesManagerTest {
             acceptation = addSimpleAcceptation(manager, alphabet, songConcept, "canción");
         }
 
-        final LangbookReadableDatabase.MorphologyReaderResult result = readMorphologiesFromAcceptation(db, acceptation, alphabet);
-        assertEquals(1, result.morphologies.size());
-        assertEquals("canciones", result.morphologies.valueAt(0).text);
-        assertEquals(1, result.morphologies.valueAt(0).rules.size());
-        assertEquals(pluralConcept, result.morphologies.valueAt(0).rules.valueAt(0));
+        final MorphologyResult morphology = getSingleValue(readMorphologiesFromAcceptation(db, acceptation, alphabet).morphologies);
+        assertEquals("canciones", morphology.text);
+        assertSingleValue(pluralConcept, morphology.rules);
     }
 
     @Test
@@ -357,7 +348,6 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int singConcept = arEndingNounConcept + 1;
         final int palateConcept = singConcept + 1;
 
-        final String palateText = "paladar";
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().build();
         final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().add(arEndingNounConcept).build();
 
@@ -366,11 +356,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int agentId;
         if (addAgentBeforeAcceptations) {
             agentId = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
-            palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, palateText);
+            palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, "paladar");
             manager.addAcceptationInBunch(arEndingNounConcept, palateAcceptation);
         }
         else {
-            palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, palateText);
+            palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, "paladar");
             manager.addAcceptationInBunch(arEndingNounConcept, palateAcceptation);
             agentId = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
         }
@@ -624,11 +614,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int verbArConcept = gerund + 1;
         final int verbErConcept = verbArConcept + 1;
 
-        final String verbArText = "verbo de primera conjugación";
-        addSimpleAcceptation(manager, alphabet, verbArConcept, verbArText);
-
-        final String verbErText = "verbo de segunda conjugación";
-        addSimpleAcceptation(manager, alphabet, verbErConcept, verbErText);
+        addSimpleAcceptation(manager, alphabet, verbArConcept, "verbo ar");
+        addSimpleAcceptation(manager, alphabet, verbErConcept, "verbo er");
 
         final ImmutableIntSet arSourceBunches = new ImmutableIntSetCreator().add(verbArConcept).build();
         final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
@@ -638,20 +625,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
         addSingleAlphabetAgent(manager, 0, erSourceBunches, diffBunches, alphabet, null, null, "er", "iendo", gerund);
 
         ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "jugar").build();
-        ImmutableIntKeyMap<String> result = manager.readAllMatchingBunches(texts, alphabet);
-        assertEquals(1, result.size());
-        assertEquals(verbArConcept, result.keyAt(0));
-        assertEquals(verbArText, result.valueAt(0));
+        assertSinglePair(verbArConcept, "verbo ar", manager.readAllMatchingBunches(texts, alphabet));
 
         texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();
-        result = manager.readAllMatchingBunches(texts, alphabet);
-        assertEquals(1, result.size());
-        assertEquals(verbErConcept, result.keyAt(0));
-        assertEquals(verbErText, result.valueAt(0));
+        assertSinglePair(verbErConcept, "verbo er", manager.readAllMatchingBunches(texts, alphabet));
 
         texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "dormir").build();
-        result = manager.readAllMatchingBunches(texts, alphabet);
-        assertEquals(0, result.size());
+        assertEmpty(manager.readAllMatchingBunches(texts, alphabet));
     }
 
     @Test
@@ -659,16 +639,12 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final String wrongText = "contar";
-        final String rightText = "cantar";
-        final String rightGerundText = "cantando";
-
         final int alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
         final int gerundRule = concept + 1;
         final int firstConjugationVerbBunch = gerundRule + 1;
 
-        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, wrongText);
+        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "contar");
         manager.addAcceptationInBunch(firstConjugationVerbBunch, acceptationId);
 
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
@@ -676,7 +652,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         addSingleAlphabetAgent(manager, NO_BUNCH, firstConjugationVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
-        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, rightText);
+        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "cantar");
 
         final LangbookDbSchema.RuledConceptsTable ruledConceptsTable = LangbookDbSchema.Tables.ruledConcepts;
         DbQuery query = new DbQuery.Builder(ruledConceptsTable)
@@ -694,10 +670,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int ruledAcceptation = row.get(0).toInt();
         final int rightGerundCorrelationArray = row.get(1).toInt();
 
-        final ImmutableIntKeyMap<String> rightGerundTexts = manager.readCorrelationArrayTexts(rightGerundCorrelationArray).toImmutable();
-        assertEquals(1, rightGerundTexts.size());
-        assertEquals(alphabet, rightGerundTexts.keyAt(0));
-        assertEquals(rightGerundText, rightGerundTexts.valueAt(0));
+        assertSinglePair(alphabet, "cantando", manager.readCorrelationArrayTexts(rightGerundCorrelationArray).toImmutable());
 
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         query = new DbQuery.Builder(strings)
@@ -707,7 +680,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
                         strings.getStringColumnIndex());
         row = selectSingleRow(db, query);
         assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals(rightGerundText, row.get(1).toText());
+        assertEquals("cantando", row.get(1).toText());
     }
 
     @Test
@@ -720,11 +693,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int firstConjugationVerbConcept = verbConcept + 1;
         final int singConcept = firstConjugationVerbConcept + 1;
 
-        final String verbText = "verbo";
-        final String firstConjugationVerbText = "verbo de primera conjugación";
-
-        final int verbAcc = addSimpleAcceptation(manager, alphabet, verbConcept, verbText);
-        final int firstConjugationVerbAcc = addSimpleAcceptation(manager, alphabet, firstConjugationVerbConcept, firstConjugationVerbText);
+        final int verbAcc = addSimpleAcceptation(manager, alphabet, verbConcept, "verbo");
+        final int firstConjugationVerbAcc = addSimpleAcceptation(manager, alphabet, firstConjugationVerbConcept, "verbo ar");
         final int singAcc = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
 
         assertTrue(manager.addAcceptationInBunch(verbConcept, singAcc));
@@ -737,8 +707,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertFalse(manager.removeAcceptation(verbAcc));
         assertFalse(manager.removeAcceptation(firstConjugationVerbAcc));
 
-        assertEquals(verbText, LangbookReadableDatabase.getAcceptationTexts(db, verbAcc).get(alphabet));
-        assertEquals(firstConjugationVerbText, LangbookReadableDatabase.getAcceptationTexts(db, firstConjugationVerbAcc).get(alphabet));
+        assertEquals("verbo", LangbookReadableDatabase.getAcceptationTexts(db, verbAcc).get(alphabet));
+        assertEquals("verbo ar", LangbookReadableDatabase.getAcceptationTexts(db, firstConjugationVerbAcc).get(alphabet));
     }
 
     @Test
@@ -749,8 +719,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int verbConcept = manager.getMaxConcept() + 1;
-        final String verbText = "desconfiar";
-        final int verbAcc = addSimpleAcceptation(manager, alphabet, verbConcept, verbText);
+        final int verbAcc = addSimpleAcceptation(manager, alphabet, verbConcept, "desconfiar");
 
         final int myBunch = manager.getMaxConcept() + 1;
         final String myBunchText = "palabaras raras";
@@ -761,7 +730,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int arAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
 
         final ImmutableIntSet expected = new ImmutableIntSetCreator().add(desAgent).add(arAgent).build();
-        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc)));
+        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc));
     }
 
     @Test
@@ -772,20 +741,16 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int bedConcept = manager.getMaxConcept() + 1;
-        final String bedText = "cama";
-        final int bedAcc = addSimpleAcceptation(manager, alphabet, bedConcept, bedText);
+        final int bedAcc = addSimpleAcceptation(manager, alphabet, bedConcept, "cama");
 
         final int verbConcept1 = manager.getMaxConcept() + 1;
-        final String verbText1 = "confiar";
-        final int verbAcc1 = addSimpleAcceptation(manager, alphabet, verbConcept1, verbText1);
+        final int verbAcc1 = addSimpleAcceptation(manager, alphabet, verbConcept1, "confiar");
 
         final int verbConcept2 = manager.getMaxConcept() + 1;
-        final String verbText2 = "desconfiar";
-        final int verbAcc2 = addSimpleAcceptation(manager, alphabet, verbConcept2, verbText2);
+        final int verbAcc2 = addSimpleAcceptation(manager, alphabet, verbConcept2, "desconfiar");
 
         final int myBunch = manager.getMaxConcept() + 1;
-        final String myBunchText = "palabaras raras";
-        addSimpleAcceptation(manager, alphabet, myBunch, myBunchText);
+        addSimpleAcceptation(manager, alphabet, myBunch, "palabras raras");
 
         assertTrue(manager.addAcceptationInBunch(myBunch, bedAcc));
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc1));
@@ -813,20 +778,16 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int bedConcept = manager.getMaxConcept() + 1;
-        final String bedText = "cama";
-        final int bedAcc = addSimpleAcceptation(manager, alphabet, bedConcept, bedText);
+        final int bedAcc = addSimpleAcceptation(manager, alphabet, bedConcept, "cama");
 
         final int verbConcept1 = manager.getMaxConcept() + 1;
-        final String verbText1 = "confiar";
-        final int verbAcc1 = addSimpleAcceptation(manager, alphabet, verbConcept1, verbText1);
+        final int verbAcc1 = addSimpleAcceptation(manager, alphabet, verbConcept1, "confiar");
 
         final int verbConcept2 = manager.getMaxConcept() + 1;
-        final String verbText2 = "desconfiar";
-        final int verbAcc2 = addSimpleAcceptation(manager, alphabet, verbConcept2, verbText2);
+        final int verbAcc2 = addSimpleAcceptation(manager, alphabet, verbConcept2, "desconfiar");
 
         final int myBunch = manager.getMaxConcept() + 1;
-        final String myBunchText = "palabaras raras";
-        addSimpleAcceptation(manager, alphabet, myBunch, myBunchText);
+        addSimpleAcceptation(manager, alphabet, myBunch, "palabras raras");
 
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
         final int desAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
@@ -837,13 +798,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc2));
 
         ImmutableIntSet expected = new ImmutableIntSetCreator().add(0).build();
-        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc)));
+        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc));
 
         expected = new ImmutableIntSetCreator().add(0).add(arAgent).build();
-        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc1)));
+        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc1));
 
         expected = new ImmutableIntSetCreator().add(0).add(desAgent).add(arAgent).build();
-        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc2)));
+        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc2));
     }
 
     @Test
@@ -853,8 +814,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
-        final String singText = "cantar";
-        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, singText);
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
@@ -866,10 +826,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int agentId = addSingleAlphabetAgent(manager, erVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet bunches = findBunchesWhereAcceptationIsIncluded(db, singAcceptation);
-        assertEquals(1, bunches.size());
-        assertEquals(arVerbConcept, bunches.valueAt(0));
+        assertSingleValue(arVerbConcept, findBunchesWhereAcceptationIsIncluded(db, singAcceptation));
     }
 
     @Test
@@ -879,8 +836,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
-        final String singText = "cantar";
-        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, singText);
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
@@ -899,10 +855,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(updateSingleAlphabetAgent(manager, agent1Id, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
-        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, dynamicAcceptation);
-        assertEquals(1, texts.size());
-        assertEquals(alphabet, texts.keyAt(0));
-        assertEquals("cantando", texts.valueAt(0));
+        assertSinglePair(alphabet, "cantando", getAcceptationTexts(db, dynamicAcceptation));
     }
 
     @Test
@@ -912,8 +865,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
-        final String singText = "cantar";
-        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, singText);
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
@@ -932,12 +884,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(updateSingleAlphabetAgent(manager, agent2Id, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
-        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, dynamicAcceptation);
-        assertEquals(1, texts.size());
-        assertEquals(alphabet, texts.keyAt(0));
-        assertEquals("cantando", texts.valueAt(0));
-
-        assertTrue(findAcceptationsIncludedInBunch(db, recentWordsConcept).isEmpty());
+        assertSinglePair(alphabet, "cantando", getAcceptationTexts(db, dynamicAcceptation));
+        assertEmpty(findAcceptationsIncludedInBunch(db, recentWordsConcept));
     }
 
     @Test
@@ -947,8 +895,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
-        final String singText = "cantar";
-        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, singText);
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
@@ -967,14 +914,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(updateSingleAlphabetAgent(manager, agent2Id, recentWordsConcept, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
-        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, dynamicAcceptation);
-        assertEquals(1, texts.size());
-        assertEquals(alphabet, texts.keyAt(0));
-        assertEquals("cantando", texts.valueAt(0));
-
-        final ImmutableIntSet included = findAcceptationsIncludedInBunch(db, recentWordsConcept);
-        assertEquals(1, included.size());
-        assertEquals(dynamicAcceptation, included.valueAt(0));
+        assertSinglePair(alphabet, "cantando", getAcceptationTexts(db, dynamicAcceptation));
+        assertSingleValue(dynamicAcceptation, findAcceptationsIncludedInBunch(db, recentWordsConcept));
     }
 
     @Test
@@ -1001,10 +942,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(singAcceptation, acceptations.valueAt(0));
+        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1032,10 +970,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(2, acceptations.size());
-        assertTrue(acceptations.contains(singAcceptation));
-        assertTrue(acceptations.contains(touchAcceptation));
+        final ImmutableIntSet expectedAcceptations = new ImmutableIntSetCreator().add(singAcceptation).add(touchAcceptation).build();
+        assertEqualSet(expectedAcceptations, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1067,10 +1003,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final ImmutableIntSet chapter2Only = new ImmutableIntSetCreator().add(chapter2).build();
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(touchAcceptation, acceptations.valueAt(0));
+        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1106,10 +1039,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final ImmutableIntSet chapter1And2 = new ImmutableIntSetCreator().add(chapter1).add(chapter2).build();
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1And2, noBunches, alphabet, null, null, "ar", "ar", 0));
 
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(2, acceptations.size());
-        assertTrue(acceptations.contains(singAcceptation));
-        assertTrue(acceptations.contains(touchAcceptation));
+        final ImmutableIntSet expectedAcceptations = new ImmutableIntSetCreator().add(singAcceptation).add(touchAcceptation).build();
+        assertEqualSet(expectedAcceptations, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1144,10 +1075,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(singAcceptation, acceptations.valueAt(0));
+        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1180,10 +1108,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(touchAcceptation, acceptations.valueAt(0));
+        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1217,10 +1142,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
 
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(2, acceptations.size());
-        assertTrue(acceptations.contains(singAcceptation));
-        assertTrue(acceptations.contains(touchAcceptation));
+        final ImmutableIntSet expectedAcceptations = new ImmutableIntSetCreator().add(singAcceptation).add(touchAcceptation).build();
+        assertEqualSet(expectedAcceptations, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1252,10 +1175,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(touchAcceptation, acceptations.valueAt(0));
+        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1287,10 +1207,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(touchAcceptation, acceptations.valueAt(0));
+        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1312,10 +1229,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int agentId = addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, alphabet, null, null, "er", "er", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(singAcceptation, acceptations.valueAt(0));
+        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId));
     }
 
     @Test
@@ -1453,17 +1367,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
-        final ImmutableList<MorphologyResult> morphologies = readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies;
-        assertEquals(1, morphologies.size());
-        assertEquals("cantando", morphologies.valueAt(0).text);
-
-        final ImmutableIntList rules = morphologies.valueAt(0).rules;
-        assertEquals(1, rules.size());
-        assertEquals(gerundConcept, rules.valueAt(0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(morphologies.valueAt(0).dynamicAcceptation, acceptations.valueAt(0));
+        final MorphologyResult morphology = getSingleValue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies);
+        assertEquals("cantando", morphology.text);
+        assertSingleValue(gerundConcept, morphology.rules);
+        assertSingleValue(morphology.dynamicAcceptation, getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId));
     }
 
     @Test
@@ -1487,10 +1394,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(updateSingleAlphabetAgent(manager, agentId, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
         assertTrue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies.isEmpty());
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(singAcceptation, acceptations.valueAt(0));
+        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId));
     }
 
     @Test
@@ -1509,7 +1413,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertNotNull(addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
-        assertTrue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies.isEmpty());
+        assertEmpty(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies);
     }
 
     @Test
@@ -1553,7 +1457,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertNotNull(addSingleAlphabetAgent(manager, 0, verbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
-        assertTrue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies.isEmpty());
+        assertEmpty(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies);
     }
 
     @Test

@@ -2,12 +2,14 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
-import sword.database.Database;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.DefinitionDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertSingleValue;
 
 interface DefinitionsManagerTest {
 
@@ -26,8 +28,7 @@ interface DefinitionsManagerTest {
 
         final DefinitionDetails definition = manager.getDefinition(catConcept);
         assertEquals(animalConcept, definition.baseConcept);
-        assertEquals(1, definition.complements.size());
-        assertEquals(quadrupedConcept, definition.complements.valueAt(0));
+        assertSingleValue(quadrupedConcept, definition.complements);
     }
 
     @Test
@@ -44,13 +45,8 @@ interface DefinitionsManagerTest {
 
         final DefinitionDetails definition = manager.getDefinition(catConcept);
         assertEquals(animalConcept, definition.baseConcept);
-        assertEquals(2, definition.complements.size());
-        if (quadrupedConcept == definition.complements.valueAt(0)) {
-            assertEquals(felineConcept, definition.complements.valueAt(1));
-        }
-        else {
-            assertEquals(felineConcept, definition.complements.valueAt(0));
-            assertEquals(quadrupedConcept, definition.complements.valueAt(1));
-        }
+
+        final ImmutableIntSet set = new ImmutableIntSetCreator().add(quadrupedConcept).add(felineConcept).build();
+        assertEqualSet(set, definition.complements);
     }
 }

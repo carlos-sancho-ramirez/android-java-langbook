@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
+import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 
 /**
  * Include all test related to all responsibilities of a BunchesManager.
@@ -50,8 +51,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
-        final String langCode = "es";
-        final LanguageCreationResult langPair = manager.addLanguage(langCode);
+        final LanguageCreationResult langPair = manager.addLanguage("es");
         final int language = langPair.language;
         final int alphabet = langPair.mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
@@ -62,9 +62,9 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         assertTrue(manager.addAcceptationInBunch(verbConcept, singAcceptation));
 
         assertTrue(manager.removeLanguage(language));
-        assertNull(manager.findLanguageByCode(langCode));
-        assertTrue(manager.getAcceptationTexts(singAcceptation).isEmpty());
-        assertTrue(manager.getAcceptationTexts(verbAcceptation).isEmpty());
+        assertNull(manager.findLanguageByCode("es"));
+        assertEmpty(manager.getAcceptationTexts(singAcceptation));
+        assertEmpty(manager.getAcceptationTexts(verbAcceptation));
     }
 
     @Test
@@ -108,6 +108,6 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
 
         assertTrue(manager.addAcceptationInBunch(animalConcept, catAcc));
         assertTrue(manager.removeAcceptation(animalAcc));
-        assertTrue(manager.getAcceptationsInBunch(animalConcept).isEmpty());
+        assertEmpty(manager.getAcceptationsInBunch(animalConcept));
     }
 }

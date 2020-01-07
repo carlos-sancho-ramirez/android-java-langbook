@@ -9,7 +9,6 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableSet;
-import sword.database.Database;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
 
@@ -17,7 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
+import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
+import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
 interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
 
@@ -31,20 +32,17 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
 
         final int esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final String carText = "coche";
         final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, carText);
+        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
-        final String substantiveText = "sustantivo";
         final int substantiveConcept = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, substantiveText);
+        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(substantiveConcept).build();
         final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
 
-        final String pluralSuffix = "s";
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, pluralSuffix);
+        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -52,11 +50,10 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
-        final String carPluralText = carText + pluralSuffix;
-        final String text = "Los " + carPluralText + " son muy rápidos";
+        final String text = "Los coches son muy rápidos";
 
-        final int carPluralStart = text.indexOf(carPluralText);
-        final int carPluralEnd = carPluralStart + carPluralText.length();
+        final int carPluralStart = text.indexOf("coches");
+        final int carPluralEnd = carPluralStart + "coches".length();
 
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
                 .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
@@ -65,13 +62,8 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int concept = manager.getMaxConcept() + 1;
         final int sentence = manager.addSentence(concept, text, spans);
 
-        final ImmutableIntKeyMap<String> matchingSentences = manager.getSampleSentences(carAcc);
-        assertEquals(1, matchingSentences.size());
-        assertEquals(text, matchingSentences.get(sentence));
-
-        final ImmutableSet<SentenceSpan> foundSpans = manager.getSentenceSpans(sentence);
-        assertEquals(1, foundSpans.size());
-        assertEquals(carPluralAcc, foundSpans.valueAt(0).acceptation);
+        assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
+        assertEquals(carPluralAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
     }
 
     @Test
@@ -81,24 +73,20 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
 
         final int esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final String carText = "coche";
         final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, carText);
+        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
-        final String mineText = "mío";
         final int mineConcept = manager.getMaxConcept() + 1;
-        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, mineText);
+        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
 
-        final String substantiveText = "sustantivo";
         final int substantiveConcept = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, substantiveText);
+        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(substantiveConcept).build();
         final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
 
-        final String pluralSuffix = "s";
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, pluralSuffix);
+        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -106,13 +94,12 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
-        final String carPluralText = carText + pluralSuffix;
-        final String text = "El mejor de los " + carPluralText + " es el " + mineText;
+        final String text = "El mejor de los coches es el mío";
 
-        final int carPluralStart = text.indexOf(carPluralText);
-        final int carPluralEnd = carPluralStart + carPluralText.length();
-        final int mineStart = text.indexOf(mineText);
-        final int mineEnd = mineStart + mineText.length();
+        final int carPluralStart = text.indexOf("coches");
+        final int carPluralEnd = carPluralStart + "coches".length();
+        final int mineStart = text.indexOf("mío");
+        final int mineEnd = mineStart + "mío".length();
 
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
                 .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
@@ -124,13 +111,8 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         assertTrue(manager.removeAcceptationFromBunch(substantiveConcept, carAcc));
         assertTrue(manager.getSampleSentences(carAcc).isEmpty());
 
-        final ImmutableIntKeyMap<String> matchingSentences = manager.getSampleSentences(mineAcc);
-        assertEquals(1, matchingSentences.size());
-        assertEquals(text, matchingSentences.get(sentence));
-
-        final ImmutableSet<SentenceSpan> foundSpans = manager.getSentenceSpans(sentence);
-        assertEquals(1, foundSpans.size());
-        assertEquals(mineAcc, foundSpans.valueAt(0).acceptation);
+        assertSinglePair(sentence, text, manager.getSampleSentences(mineAcc));
+        assertEquals(mineAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
     }
 
     @Test
@@ -140,24 +122,20 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
 
         final int esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final String carText = "coche";
         final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, carText);
+        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
-        final String mineText = "mío";
         final int mineConcept = manager.getMaxConcept() + 1;
-        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, mineText);
+        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
 
-        final String substantiveText = "sustantivo";
         final int substantiveConcept = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, substantiveText);
+        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
         final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(substantiveConcept).build();
         final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
 
-        final String pluralSuffix = "s";
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, pluralSuffix);
+        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         final int agentId = manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
@@ -165,13 +143,12 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
-        final String carPluralText = carText + pluralSuffix;
-        final String text = "El mejor de los " + carPluralText + " es el " + mineText;
+        final String text = "El mejor de los coches es el mío";
 
-        final int carPluralStart = text.indexOf(carPluralText);
-        final int carPluralEnd = carPluralStart + carPluralText.length();
-        final int mineStart = text.indexOf(mineText);
-        final int mineEnd = mineStart + mineText.length();
+        final int carPluralStart = text.indexOf("coches");
+        final int carPluralEnd = carPluralStart + "coches".length();
+        final int mineStart = text.indexOf("mío");
+        final int mineEnd = mineStart + "mío".length();
 
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
                 .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
@@ -183,12 +160,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         manager.removeAgent(agentId);
         assertTrue(manager.getSampleSentences(carAcc).isEmpty());
 
-        final ImmutableIntKeyMap<String> matchingSentences = manager.getSampleSentences(mineAcc);
-        assertEquals(1, matchingSentences.size());
-        assertEquals(text, matchingSentences.get(sentence));
-
-        final ImmutableSet<SentenceSpan> foundSpans = manager.getSentenceSpans(sentence);
-        assertEquals(1, foundSpans.size());
-        assertEquals(mineAcc, foundSpans.valueAt(0).acceptation);
+        assertSinglePair(sentence, text, manager.getSampleSentences(mineAcc));
+        assertEquals(mineAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
     }
 }
