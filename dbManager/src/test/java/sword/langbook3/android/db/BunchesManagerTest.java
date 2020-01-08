@@ -2,17 +2,13 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableIntSet;
-import sword.database.Database;
-import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 
 /**
@@ -28,22 +24,6 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
 
     static int addSpanishSingAcceptation(AcceptationsManager manager, int alphabet, int concept) {
         return addSimpleAcceptation(manager, alphabet, concept, "cantar");
-    }
-
-    static ImmutableIntSet findBunchesWhereAcceptationIsIncluded(Database db, int acceptation) {
-        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getAcceptationColumnIndex(), acceptation)
-                .select(table.getBunchColumnIndex());
-        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
-    }
-
-    static ImmutableIntSet findAcceptationsIncludedInBunch(Database db, int bunch) {
-        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getBunchColumnIndex(), bunch)
-                .select(table.getAcceptationColumnIndex());
-        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     @Test
@@ -83,15 +63,10 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         final int singConcept = pluralRule + 1;
 
         final int esAcceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
-
         manager.addAcceptationInBunch(myVocabularyConcept, esAcceptation);
         manager.addAcceptationInBunch(myVocabularyConcept, esAcceptation);
 
-        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getBunchColumnIndex(), myVocabularyConcept)
-                .select(table.getAcceptationColumnIndex());
-        assertEquals(esAcceptation, selectSingleRow(db, query).get(0).toInt());
+        assertContainsOnly(esAcceptation, manager.getAcceptationsInBunch(myVocabularyConcept));
     }
 
     @Test

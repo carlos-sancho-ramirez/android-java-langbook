@@ -6,10 +6,7 @@ import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.List;
 import sword.collections.MutableHashMap;
-import sword.database.DbQuery;
-import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
@@ -20,9 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
 import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 import static sword.langbook3.android.db.SizableTestUtils.assertSize;
 
 /**
@@ -318,20 +315,7 @@ public interface AcceptationsManagerTest {
         final int concept = manager.getMaxConcept() + 1;
 
         final int acceptation = addSimpleAcceptation(manager, alphabet, concept, "cantar");
-
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery stringQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringAlphabetColumnIndex(),
-                        strings.getStringColumnIndex());
-
-        final List<DbValue> stringRow = selectSingleRow(db, stringQuery);
-        assertEquals(acceptation, stringRow.get(0).toInt());
-        assertEquals("cantar", stringRow.get(1).toText());
-        assertEquals(alphabet, stringRow.get(2).toInt());
-        assertEquals("cantar", stringRow.get(3).toText());
+        assertSinglePair(alphabet, "cantar", manager.getAcceptationTexts(acceptation));
     }
 
     @Test
@@ -356,29 +340,10 @@ public interface AcceptationsManagerTest {
                 .build();
 
         final int acceptation = manager.addAcceptation(concept, correlationArrays);
-
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery kanjiQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .where(strings.getStringAlphabetColumnIndex(), kanji)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringColumnIndex());
-        final List<DbValue> kanjiRow = selectSingleRow(db, kanjiQuery);
-        assertEquals(acceptation, kanjiRow.get(0).toInt());
-        assertEquals("注文", kanjiRow.get(1).toText());
-        assertEquals("注文", kanjiRow.get(2).toText());
-
-        final DbQuery kanaQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .where(strings.getStringAlphabetColumnIndex(), kana)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringColumnIndex());
-        final List<DbValue> kanaRow = selectSingleRow(db, kanaQuery);
-        assertEquals(acceptation, kanaRow.get(0).toInt());
-        assertEquals("注文", kanaRow.get(1).toText());
-        assertEquals("ちゅうもん", kanaRow.get(2).toText());
+        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptation);
+        assertSize(2, texts);
+        assertEquals("注文", texts.get(kanji));
+        assertEquals("ちゅうもん", texts.get(kana));
     }
 
     @Test

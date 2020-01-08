@@ -47,6 +47,12 @@ public interface AcceptationsManager extends AcceptationsChecker {
 
     boolean removeAlphabet(int alphabet);
 
+    /**
+     * Include a new acceptation in the database, for the given concept and correlation array.
+     * @param concept Concept bound to this acceptation.
+     * @param correlationArray Correlation array for this acceptation.
+     * @return An identifier for the new acceptation just included, or null in case the acceptation cannot be added.
+     */
     Integer addAcceptation(int concept, ImmutableList<ImmutableIntKeyMap<String>> correlationArray);
 
     boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableIntKeyMap<String>> newCorrelationArray);

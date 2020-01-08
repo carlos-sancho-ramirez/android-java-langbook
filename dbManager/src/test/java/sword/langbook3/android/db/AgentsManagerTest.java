@@ -21,8 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
-import static sword.langbook3.android.db.BunchesManagerTest.findAcceptationsIncludedInBunch;
-import static sword.langbook3.android.db.BunchesManagerTest.findBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
 import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
@@ -49,6 +47,14 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
     @Override
     AgentsManager createManager(MemoryDatabase db);
+
+    static ImmutableIntSet findBunchesWhereAcceptationIsIncluded(Database db, int acceptation) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAcceptationColumnIndex(), acceptation)
+                .select(table.getBunchColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
 
     static ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(Database db, int bunch, int acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
@@ -181,7 +187,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final int agentId = addSingleAlphabetAgent(manager, arVerbConcept, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ar", 0);
 
-        assertContainsOnly(singAcceptation, coughtAcceptation, findAcceptationsIncludedInBunch(db, verbConcept));
+        assertContainsOnly(singAcceptation, coughtAcceptation, manager.getAcceptationsInBunch(verbConcept));
         assertContainsOnly(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId));
     }
 
@@ -856,7 +862,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
         assertSinglePair(alphabet, "cantando", getAcceptationTexts(db, dynamicAcceptation));
-        assertEmpty(findAcceptationsIncludedInBunch(db, recentWordsConcept));
+        assertEmpty(manager.getAcceptationsInBunch(recentWordsConcept));
     }
 
     @Test
@@ -885,7 +891,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
         assertSinglePair(alphabet, "cantando", getAcceptationTexts(db, dynamicAcceptation));
-        assertContainsOnly(dynamicAcceptation, findAcceptationsIncludedInBunch(db, recentWordsConcept));
+        assertContainsOnly(dynamicAcceptation, manager.getAcceptationsInBunch(recentWordsConcept));
     }
 
     @Test
