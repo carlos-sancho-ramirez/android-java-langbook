@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.database.MemoryDatabase;
@@ -16,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertEqualMap;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
+import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
@@ -46,27 +46,18 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
         final String text2 = "El coche es rojo";
         final String text3 = "The car is red";
 
-        final int carStart = text1.indexOf("coche");
-        final int carEnd = carStart + "coche".length();
-        final int greatStart = text1.indexOf("genial");
-        final int greatEnd = greatStart + "genial".length();
-        final int redEsStart = text2.indexOf("rojo");
-        final int redEsEnd = redEsStart + "rojo".length();
-        final int redEnStart = text3.indexOf("red");
-        final int redEnEnd = redEnStart + "red".length();
-
         final ImmutableSet<SentenceSpan> spans1 = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(greatStart, greatEnd - 1), greatAcc))
+                .add(newSpan(text1, "coche", carAcc))
+                .add(newSpan(text1, "genial", greatAcc))
                 .build();
 
         final ImmutableSet<SentenceSpan> spans2 = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(redEsStart, redEsEnd - 1), redEsAcc))
+                .add(newSpan(text2, "coche", carAcc))
+                .add(newSpan(text2, "rojo", redEsAcc))
                 .build();
 
         final ImmutableSet<SentenceSpan> spans3 = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(redEnStart, redEnEnd - 1), redEnAcc))
+                .add(newSpan(text3, "red", redEnAcc))
                 .build();
 
         final int concept1 = manager.getMaxConcept() + 1;
@@ -119,34 +110,24 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
 
         final int redConcept = manager.getMaxConcept() + 1;
         final int redEsAcc = addSimpleAcceptation(manager, esAlphabet, redConcept, "rojo");
-
         final int redEnAcc = addSimpleAcceptation(manager, enAlphabet, redConcept, "red");
 
         final String text1a = "El coche es genial";
         final String text1b = "El coche es rojo";
         final String text2 = "The car is red";
 
-        final int carStart = text1a.indexOf("coche");
-        final int carEnd = carStart + "coche".length();
-        final int greatStart = text1a.indexOf("genial");
-        final int greatEnd = greatStart + "genial".length();
-        final int redEsStart = text1b.indexOf("rojo");
-        final int redEsEnd = redEsStart + "rojo".length();
-        final int redEnStart = text2.indexOf("red");
-        final int redEnEnd = redEnStart + "red".length();
-
         final ImmutableSet<SentenceSpan> spans1a = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(greatStart, greatEnd - 1), greatAcc))
+                .add(newSpan(text1a, "coche", carAcc))
+                .add(newSpan(text1a, "genial", greatAcc))
                 .build();
 
         final ImmutableSet<SentenceSpan> spans1b = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(redEsStart, redEsEnd - 1), redEsAcc))
+                .add(newSpan(text1b, "coche", carAcc))
+                .add(newSpan(text1b, "rojo", redEsAcc))
                 .build();
 
         final ImmutableSet<SentenceSpan> spans2 = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(redEnStart, redEnEnd - 1), redEnAcc))
+                .add(newSpan(text2, "red", redEnAcc))
                 .build();
 
         final int concept1 = manager.getMaxConcept() + 1;
@@ -184,13 +165,8 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
 
         final String text = "Mi coche es genial";
 
-        final int carStart = text.indexOf("coche");
-        final int carEnd = carStart + "coche".length();
-        final int greatStart = text.indexOf("genial");
-        final int greatEnd = greatStart + "genial".length();
-
         final ImmutableSet<SentenceSpan> spans1 = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
+                .add(newSpan(text, "coche", carAcc))
                 .build();
 
         final int concept = manager.getMaxConcept() + 1;
@@ -199,8 +175,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
         final int greatConcept = manager.getMaxConcept() + 1;
         final int greatAcc = addSimpleAcceptation(manager, esAlphabet, greatConcept, "genial");
 
-        final ImmutableSet<SentenceSpan> spans2 = spans1
-                .add(new SentenceSpan(new ImmutableIntRange(greatStart, greatEnd - 1), greatAcc));
+        final ImmutableSet<SentenceSpan> spans2 = spans1.add(newSpan(text, "genial", greatAcc));
 
         assertTrue(manager.updateSentenceTextAndSpans(sentence, text, spans2));
         assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
@@ -228,19 +203,13 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
 
         final String text = "Mi coche es genial";
 
-        final int carStart = text.indexOf("coche");
-        final int carEnd = carStart + "coche".length();
-        final int greatStart = text.indexOf("genial");
-        final int greatEnd = greatStart + "genial".length();
-
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(greatStart, greatEnd - 1), greatAcc))
+                .add(newSpan(text, "coche", carAcc))
+                .add(newSpan(text, "genial", greatAcc))
                 .build();
 
         final int concept1 = manager.getMaxConcept() + 1;
-        final int sentence1 = manager.addSentence(concept1, text, spans);
-        manager.removeSentence(sentence1);
+        manager.removeSentence(manager.addSentence(concept1, text, spans));
 
         assertEmpty(manager.getSampleSentences(carAcc));
         assertEmpty(manager.getSampleSentences(greatAcc));
@@ -261,14 +230,9 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
 
         final String text = "El coche es rojo";
 
-        final int carStart = text.indexOf("coche");
-        final int carEnd = carStart + "coche".length();
-        final int redStart = text.indexOf("rojo");
-        final int redEnd = redStart + "rojo".length();
-
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carStart, carEnd - 1), carAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(redStart, redEnd - 1), redAcc))
+                .add(newSpan(text, "coche", carAcc))
+                .add(newSpan(text, "rojo", redAcc))
                 .build();
 
         final int concept = manager.getMaxConcept() + 1;
