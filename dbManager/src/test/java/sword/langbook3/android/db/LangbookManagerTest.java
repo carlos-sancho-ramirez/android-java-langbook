@@ -3,11 +3,8 @@ package sword.langbook3.android.db;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
-import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
-import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
@@ -17,7 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
+import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
+import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
 interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
@@ -38,14 +37,12 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(substantiveConcept).build();
-        final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
 
         final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
-        assertNotNull(manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
+        assertNotNull(manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
@@ -82,14 +79,11 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(substantiveConcept).build();
-        final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-
         final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
-        assertNotNull(manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
+        assertNotNull(manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
@@ -109,7 +103,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int concept = manager.getMaxConcept() + 1;
         final int sentence = manager.addSentence(concept, text, spans);
         assertTrue(manager.removeAcceptationFromBunch(substantiveConcept, carAcc));
-        assertTrue(manager.getSampleSentences(carAcc).isEmpty());
+        assertEmpty(manager.getSampleSentences(carAcc));
 
         assertSinglePair(sentence, text, manager.getSampleSentences(mineAcc));
         assertEquals(mineAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
@@ -131,14 +125,12 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(substantiveConcept).build();
-        final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
 
         final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
-        final int agentId = manager.addAgent(0, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
+        final int agentId = manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);

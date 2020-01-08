@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.List;
 import sword.database.DbQuery;
@@ -19,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
+import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 
 /**
@@ -145,7 +145,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
 
         final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, "er")
@@ -207,7 +207,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
 
         final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
         final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
                 .put(alphabet, "ar")

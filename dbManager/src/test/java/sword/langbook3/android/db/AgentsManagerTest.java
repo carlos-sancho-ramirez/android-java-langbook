@@ -2,7 +2,6 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
@@ -26,7 +25,8 @@ import static sword.langbook3.android.db.BunchesManagerTest.findAcceptationsIncl
 import static sword.langbook3.android.db.BunchesManagerTest.findBunchesWhereAcceptationIsIncluded;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertSingleValue;
+import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent;
@@ -109,7 +109,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     static void assertOnlyOneMorphology(DbExporter.Database db, int staticAcceptation, int preferredAlphabet, String expectedText, int expectedRule) {
         final MorphologyResult morphology = getSingleValue(readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet).morphologies);
         assertEquals(expectedText, morphology.text);
-        assertSingleValue(expectedRule, morphology.rules);
+        assertContainsOnly(expectedRule, morphology.rules);
     }
 
     @Test
@@ -125,9 +125,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int acceptation = addSimpleAcceptation(manager, alphabet, concept, "cantar");
         assertTrue(manager.addAcceptationInBunch(verbConcept, acceptation));
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
-        final int agentId = addSingleAlphabetAgent(manager, 0, sourceBunches, diffBunches, alphabet, null, null, "ar", "ando", gerund);
+        final int agentId = addSingleAlphabetAgent(manager, 0, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery ruledConceptQuery = new DbQuery.Builder(ruledConcepts)
@@ -181,13 +179,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int coughtAcceptation = addSimpleAcceptation(manager, alphabet, coughtConcept, "toser");
         assertTrue(manager.addAcceptationInBunch(verbConcept, coughtAcceptation));
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
-        final int agentId = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, arVerbConcept, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet acceptationsInBunch = findAcceptationsIncludedInBunch(db, verbConcept);
-        assertEquals(new ImmutableIntSetCreator().add(singAcceptation).add(coughtAcceptation).build(), acceptationsInBunch);
-        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId));
+        assertContainsOnly(singAcceptation, coughtAcceptation, findAcceptationsIncludedInBunch(db, verbConcept));
+        assertContainsOnly(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId));
     }
 
     default void checkAdd2ChainedAgents(boolean reversedAdditionOrder) {
@@ -211,9 +206,9 @@ interface AgentsManagerTest extends BunchesManagerTest {
                 .put(alphabet, "ando")
                 .build();
 
-        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final ImmutableIntSet verbBunchSet = new ImmutableIntSetCreator().add(verbConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet arVerbBunchSet = intSetOf(arVerbConcept);
+        final ImmutableIntSet verbBunchSet = intSetOf(verbConcept);
+        final ImmutableIntSet diffBunches = intSetOf();
 
         final int agent2Id;
         if (reversedAdditionOrder) {
@@ -293,8 +288,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
                 .put(alphabet, "ones")
                 .build();
 
-        final ImmutableIntSet middleBunchSet = new ImmutableIntSetCreator().add(bunchConcept).build();
-        final ImmutableIntSet noBunchSet = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet middleBunchSet = intSetOf(bunchConcept);
+        final ImmutableIntSet noBunchSet = intSetOf();
 
         final int pluralConcept;
         if (reversedAdditionOrder) {
@@ -315,7 +310,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final MorphologyResult morphology = getSingleValue(readMorphologiesFromAcceptation(db, acceptation, alphabet).morphologies);
         assertEquals("canciones", morphology.text);
-        assertSingleValue(pluralConcept, morphology.rules);
+        assertContainsOnly(pluralConcept, morphology.rules);
     }
 
     @Test
@@ -348,8 +343,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int singConcept = arEndingNounConcept + 1;
         final int palateConcept = singConcept + 1;
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().add(arEndingNounConcept).build();
+        final ImmutableIntSet sourceBunches = intSetOf();
+        final ImmutableIntSet diffBunches = intSetOf(arEndingNounConcept);
 
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
         final int palateAcceptation;
@@ -401,12 +396,9 @@ interface AgentsManagerTest extends BunchesManagerTest {
             int alphabet, ImmutableIntSet sourceBunchSet, int arVerbConcept, int actionConcept,
             int nominalizationRule, int pluralRule) {
 
-        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final ImmutableIntSet actionConceptBunchSet = new ImmutableIntSetCreator().add(actionConcept).build();
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-
-        final int agent3Id = addSingleAlphabetAgent(manager, 0, actionConceptBunchSet, noBunches, alphabet, null, null, null, "s", pluralRule);
-        final int agent2Id = addSingleAlphabetAgent(manager, actionConcept, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "o", nominalizationRule);
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agent3Id = addSingleAlphabetAgent(manager, 0, intSetOf(actionConcept), noBunches, alphabet, null, null, null, "s", pluralRule);
+        final int agent2Id = addSingleAlphabetAgent(manager, actionConcept, intSetOf(arVerbConcept), noBunches, alphabet, null, null, "ar", "o", nominalizationRule);
         final int agent1Id = addSingleAlphabetAgent(manager, arVerbConcept, sourceBunchSet, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         return new Add3ChainedAgentsResult(agent1Id, agent2Id, agent3Id);
@@ -617,12 +609,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         addSimpleAcceptation(manager, alphabet, verbArConcept, "verbo ar");
         addSimpleAcceptation(manager, alphabet, verbErConcept, "verbo er");
 
-        final ImmutableIntSet arSourceBunches = new ImmutableIntSetCreator().add(verbArConcept).build();
-        final ImmutableIntSet diffBunches = new ImmutableIntSetCreator().build();
-        addSingleAlphabetAgent(manager, 0, arSourceBunches, diffBunches, alphabet, null, null, "ar", "ando", gerund);
+        final ImmutableIntSet diffBunches = intSetOf();
+        addSingleAlphabetAgent(manager, 0, intSetOf(verbArConcept), diffBunches, alphabet, null, null, "ar", "ando", gerund);
 
-        final ImmutableIntSet erSourceBunches = new ImmutableIntSetCreator().add(verbErConcept).build();
-        addSingleAlphabetAgent(manager, 0, erSourceBunches, diffBunches, alphabet, null, null, "er", "iendo", gerund);
+        addSingleAlphabetAgent(manager, 0, intSetOf(verbErConcept), diffBunches, alphabet, null, null, "er", "iendo", gerund);
 
         ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "jugar").build();
         assertSinglePair(verbArConcept, "verbo ar", manager.readAllMatchingBunches(texts, alphabet));
@@ -647,10 +637,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "contar");
         manager.addAcceptationInBunch(firstConjugationVerbBunch, acceptationId);
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet firstConjugationVerbBunchSet = new ImmutableIntSetCreator().add(firstConjugationVerbBunch).build();
-
-        addSingleAlphabetAgent(manager, NO_BUNCH, firstConjugationVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
+        addSingleAlphabetAgent(manager, NO_BUNCH, intSetOf(firstConjugationVerbBunch), intSetOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "cantar");
 
@@ -699,10 +686,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         assertTrue(manager.addAcceptationInBunch(verbConcept, singAcc));
 
-        final ImmutableIntSet sourceBunches = new ImmutableIntSetCreator().add(verbConcept).build();
-        final ImmutableIntSet diffBunches = ImmutableIntArraySet.empty();
-
-        assertNotEquals(null, addSingleAlphabetAgent(manager, firstConjugationVerbConcept, sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0));
+        assertNotEquals(null, addSingleAlphabetAgent(manager, firstConjugationVerbConcept, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ar", 0));
 
         assertFalse(manager.removeAcceptation(verbAcc));
         assertFalse(manager.removeAcceptation(firstConjugationVerbAcc));
@@ -725,12 +709,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final String myBunchText = "palabaras raras";
         addSimpleAcceptation(manager, alphabet, myBunch, myBunchText);
 
-        final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet emptyBunchSet = intSetOf();
         final int desAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
         final int arAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet expected = new ImmutableIntSetCreator().add(desAgent).add(arAgent).build();
-        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc));
+        assertContainsOnly(desAgent, arAgent, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc));
     }
 
     @Test
@@ -756,18 +739,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc1));
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc2));
 
-        final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet emptyBunchSet = intSetOf();
         final int desAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
         final int arAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
 
-        ImmutableIntSet expected = new ImmutableIntSetCreator().add(0).build();
-        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc)));
-
-        expected = new ImmutableIntSetCreator().add(0).add(arAgent).build();
-        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc1)));
-
-        expected = new ImmutableIntSetCreator().add(0).add(desAgent).add(arAgent).build();
-        assertTrue(expected.equalSet(findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc2)));
+        assertContainsOnly(0, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc));
+        assertContainsOnly(0, arAgent, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc1));
+        assertContainsOnly(0, desAgent, arAgent, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc2));
     }
 
     @Test
@@ -789,7 +767,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int myBunch = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, myBunch, "palabras raras");
 
-        final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet emptyBunchSet = intSetOf();
         final int desAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
         final int arAgent = addSingleAlphabetAgent(manager, myBunch, emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
 
@@ -797,14 +775,9 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc1));
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc2));
 
-        ImmutableIntSet expected = new ImmutableIntSetCreator().add(0).build();
-        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc));
-
-        expected = new ImmutableIntSetCreator().add(0).add(arAgent).build();
-        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc1));
-
-        expected = new ImmutableIntSetCreator().add(0).add(desAgent).add(arAgent).build();
-        assertEqualSet(expected, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc2));
+        assertContainsOnly(0, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, bedAcc));
+        assertContainsOnly(0, arAgent, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc1));
+        assertContainsOnly(0, desAgent, arAgent, findAllAgentsThatIncludedAcceptationInBunch(db, myBunch, verbAcc2));
     }
 
     @Test
@@ -822,11 +795,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int erVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, erVerbConcept, "verbo de segunda conjugación");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, erVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(arVerbConcept, findBunchesWhereAcceptationIsIncluded(db, singAcceptation));
+        assertContainsOnly(arVerbConcept, findBunchesWhereAcceptationIsIncluded(db, singAcceptation));
     }
 
     @Test
@@ -847,11 +820,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agent1Id = addSingleAlphabetAgent(manager, erVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final int agent2Id = addSingleAlphabetAgent(manager, 0, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        final int agent2Id = addSingleAlphabetAgent(manager, 0, intSetOf(arVerbConcept), noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
         assertTrue(updateSingleAlphabetAgent(manager, agent1Id, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
@@ -876,11 +848,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final int agent2Id = addSingleAlphabetAgent(manager, recentWordsConcept, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        final int agent2Id = addSingleAlphabetAgent(manager, recentWordsConcept, intSetOf(arVerbConcept), noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
         assertTrue(updateSingleAlphabetAgent(manager, agent2Id, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
@@ -906,16 +877,15 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet arVerbBunchSet = new ImmutableIntSetCreator().add(arVerbConcept).build();
-        final int agent2Id = addSingleAlphabetAgent(manager, 0, arVerbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        final int agent2Id = addSingleAlphabetAgent(manager, 0, intSetOf(arVerbConcept), noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
         assertTrue(updateSingleAlphabetAgent(manager, agent2Id, recentWordsConcept, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         final int dynamicAcceptation = findDynamicAcceptation(db, singAcceptation, agent2Id);
         assertSinglePair(alphabet, "cantando", getAcceptationTexts(db, dynamicAcceptation));
-        assertSingleValue(dynamicAcceptation, findAcceptationsIncludedInBunch(db, recentWordsConcept));
+        assertContainsOnly(dynamicAcceptation, findAcceptationsIncludedInBunch(db, recentWordsConcept));
     }
 
     @Test
@@ -937,12 +907,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, allVocabulary, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, intSetOf(chapter1), noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertContainsOnly(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -964,14 +933,12 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, intSetOf(chapter1), noBunches, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
-        final ImmutableIntSet expectedAcceptations = new ImmutableIntSetCreator().add(singAcceptation).add(touchAcceptation).build();
-        assertEqualSet(expectedAcceptations, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
+        assertContainsOnly(singAcceptation, touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -997,13 +964,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, intSetOf(chapter1), noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet chapter2Only = new ImmutableIntSetCreator().add(chapter2).build();
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, intSetOf(chapter2), noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertContainsOnly(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1032,12 +997,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, intSetOf(chapter1), noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        final ImmutableIntSet chapter1And2 = new ImmutableIntSetCreator().add(chapter1).add(chapter2).build();
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1And2, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, intSetOf(chapter1, chapter2), noBunches, alphabet, null, null, "ar", "ar", 0));
 
         final ImmutableIntSet expectedAcceptations = new ImmutableIntSetCreator().add(singAcceptation).add(touchAcceptation).build();
         assertEqualSet(expectedAcceptations, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
@@ -1069,13 +1032,12 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1And2 = new ImmutableIntSetCreator().add(chapter1).add(chapter2).build();
-        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter1And2, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, intSetOf(chapter1, chapter2), noBunches, alphabet, null, null, "ar", "ar", 0);
 
         final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
+        assertContainsOnly(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1102,13 +1064,12 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        final ImmutableIntSet chapter2Only = new ImmutableIntSetCreator().add(chapter2).build();
+        final ImmutableIntSet noBunches = intSetOf();
+        final ImmutableIntSet chapter2Only = intSetOf(chapter2);
         final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, intSetOf(chapter1), alphabet, null, null, "ar", "ar", 0));
+        assertContainsOnly(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1135,10 +1096,9 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        final ImmutableIntSet chapter2Only = new ImmutableIntSetCreator().add(chapter2).build();
-        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0);
+        final ImmutableIntSet noBunches = intSetOf();
+        final ImmutableIntSet chapter2Only = intSetOf(chapter2);
+        final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, intSetOf(chapter1), alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
 
@@ -1169,13 +1129,12 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        final ImmutableIntSet chapter2Only = new ImmutableIntSetCreator().add(chapter2).build();
+        final ImmutableIntSet noBunches = intSetOf();
+        final ImmutableIntSet chapter2Only = intSetOf(chapter2);
         final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, intSetOf(chapter1), alphabet, null, null, "ar", "ar", 0));
+        assertContainsOnly(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1201,13 +1160,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int allVocabulary = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, allVocabulary, "vocabulario a repasar");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
-        final ImmutableIntSet chapter1Only = new ImmutableIntSetCreator().add(chapter1).build();
-        final ImmutableIntSet chapter2Only = new ImmutableIntSetCreator().add(chapter2).build();
+        final ImmutableIntSet noBunches = intSetOf();
+        final ImmutableIntSet chapter1Only = intSetOf(chapter1);
+        final ImmutableIntSet chapter2Only = intSetOf(chapter2);
         final int agentId = addSingleAlphabetAgent(manager, allVocabulary, chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, allVocabulary, chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
+        assertContainsOnly(touchAcceptation, getAcceptationsInBunchByBunchAndAgent(db, allVocabulary, agentId));
     }
 
     @Test
@@ -1225,11 +1184,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int arVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, alphabet, null, null, "er", "er", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, arVerbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
-        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId));
+        assertContainsOnly(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, arVerbConcept, agentId));
     }
 
     @Test
@@ -1247,14 +1206,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int unVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, unVerbConcept, "verbo que comienza por des");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, unVerbConcept, noBunches, noBunches, alphabet, "con", "con", null, null, 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, unVerbConcept, noBunches, noBunches, alphabet, "des", "des", null, null, 0));
-
-        final ImmutableIntSet acceptations = getAcceptationsInBunchByBunchAndAgent(db, unVerbConcept, agentId);
-        assertEquals(1, acceptations.size());
-        assertEquals(untrustAcceptation, acceptations.valueAt(0));
+        assertContainsOnly(untrustAcceptation, getAcceptationsInBunchByBunchAndAgent(db, unVerbConcept, agentId));
     }
 
     @Test
@@ -1272,11 +1228,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", pastConcept);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
-
         assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
     }
 
@@ -1292,11 +1247,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "aba", gerundConcept);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
-
         assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);
     }
 
@@ -1339,7 +1293,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "aba", pastConcept);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
@@ -1362,15 +1316,15 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         final MorphologyResult morphology = getSingleValue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies);
         assertEquals("cantando", morphology.text);
-        assertSingleValue(gerundConcept, morphology.rules);
-        assertSingleValue(morphology.dynamicAcceptation, getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId));
+        assertContainsOnly(gerundConcept, morphology.rules);
+        assertContainsOnly(morphology.dynamicAcceptation, getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId));
     }
 
     @Test
@@ -1388,13 +1342,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, myTargetBunch, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
-        assertTrue(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies.isEmpty());
-        assertSingleValue(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId));
+        assertEmpty(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies);
+        assertContainsOnly(singAcceptation, getAcceptationsInBunchByBunchAndAgent(db, myTargetBunch, agentId));
     }
 
     @Test
@@ -1409,7 +1363,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         assertNotNull(addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
@@ -1428,7 +1382,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         assertNotNull(addSingleAlphabetAgent(manager, 0, noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar"));
@@ -1450,11 +1404,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int verbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, verbConcept, "verbo");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         assertNotNull(addSingleAlphabetAgent(manager, verbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
-        final ImmutableIntSet verbBunchSet = new ImmutableIntSetCreator().add(verbConcept).build();
-        assertNotNull(addSingleAlphabetAgent(manager, 0, verbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        assertNotNull(addSingleAlphabetAgent(manager, 0, intSetOf(verbConcept), noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
         assertEmpty(readMorphologiesFromAcceptation(db, singAcceptation, alphabet).morphologies);
@@ -1475,11 +1428,10 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int verbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, verbConcept, "verbo");
 
-        final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
+        final ImmutableIntSet noBunches = intSetOf();
         assertNotNull(addSingleAlphabetAgent(manager, verbConcept, noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
 
-        final ImmutableIntSet verbBunchSet = new ImmutableIntSetCreator().add(verbConcept).build();
-        assertNotNull(addSingleAlphabetAgent(manager, 0, verbBunchSet, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        assertNotNull(addSingleAlphabetAgent(manager, 0, intSetOf(verbConcept), noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar"));
         assertOnlyOneMorphology(db, singAcceptation, alphabet, "cantando", gerundConcept);

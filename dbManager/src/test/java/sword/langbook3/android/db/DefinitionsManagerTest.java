@@ -2,14 +2,12 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.DefinitionDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertSingleValue;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
 
 interface DefinitionsManagerTest {
 
@@ -28,7 +26,7 @@ interface DefinitionsManagerTest {
 
         final DefinitionDetails definition = manager.getDefinition(catConcept);
         assertEquals(animalConcept, definition.baseConcept);
-        assertSingleValue(quadrupedConcept, definition.complements);
+        assertContainsOnly(quadrupedConcept, definition.complements);
     }
 
     @Test
@@ -45,8 +43,6 @@ interface DefinitionsManagerTest {
 
         final DefinitionDetails definition = manager.getDefinition(catConcept);
         assertEquals(animalConcept, definition.baseConcept);
-
-        final ImmutableIntSet set = new ImmutableIntSetCreator().add(quadrupedConcept).add(felineConcept).build();
-        assertEqualSet(set, definition.complements);
+        assertContainsOnly(quadrupedConcept, felineConcept, definition.complements);
     }
 }

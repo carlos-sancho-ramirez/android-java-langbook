@@ -21,8 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertContains;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertSingleValue;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
 import static sword.langbook3.android.db.SizableTestUtils.assertSize;
 
@@ -103,7 +102,7 @@ public interface AcceptationsManagerTest {
         final LanguageCreationResult langPair = manager.addLanguage("es");
 
         assertEquals(langPair.language, manager.findLanguageByCode("es").intValue());
-        assertSingleValue(langPair.mainAlphabet, manager.findAlphabetsByLanguage(langPair.language));
+        assertContainsOnly(langPair.mainAlphabet, manager.findAlphabetsByLanguage(langPair.language));
     }
 
     @Test
@@ -115,7 +114,7 @@ public interface AcceptationsManagerTest {
         assertNull(manager.addLanguage("es"));
 
         assertEquals(langPair.language, manager.findLanguageByCode("es").intValue());
-        assertSingleValue(langPair.mainAlphabet, manager.findAlphabetsByLanguage(langPair.language));
+        assertContainsOnly(langPair.mainAlphabet, manager.findAlphabetsByLanguage(langPair.language));
     }
 
     @Test
@@ -139,7 +138,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.removeLanguage(langPair1.language));
         assertNull(manager.findLanguageByCode("es"));
         assertEquals(langPair2.language, manager.findLanguageByCode("en").intValue());
-        assertSingleValue(langPair2.mainAlphabet, manager.findAlphabetsByLanguage(langPair2.language));
+        assertContainsOnly(langPair2.mainAlphabet, manager.findAlphabetsByLanguage(langPair2.language));
     }
 
     @Test
@@ -153,7 +152,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.removeLanguage(langPair2.language));
         assertNull(manager.findLanguageByCode("en"));
         assertEquals(langPair1.language, manager.findLanguageByCode("es").intValue());
-        assertSingleValue(langPair1.mainAlphabet, manager.findAlphabetsByLanguage(langPair1.language));
+        assertContainsOnly(langPair1.mainAlphabet, manager.findAlphabetsByLanguage(langPair1.language));
     }
 
     @Test
@@ -168,10 +167,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
         assertEquals(language, manager.findLanguageByCode("es").intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
-        assertSize(2, alphabetSet);
-        assertContains(mainAlphabet, alphabetSet);
-        assertContains(secondAlphabet, alphabetSet);
+        assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
     }
 
     @Test
@@ -190,9 +186,7 @@ public interface AcceptationsManagerTest {
 
         assertEquals(language, manager.findLanguageByCode("ja").intValue());
         final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
-        assertSize(2, alphabetSet);
-        assertContains(mainAlphabet, alphabetSet);
-        assertContains(secondAlphabet, alphabetSet);
+        assertContainsOnly(mainAlphabet, secondAlphabet, alphabetSet);
 
         final ImmutableIntKeyMap<String> acceptationTexts = manager.getAcceptationTexts(acceptation);
         assertSize(2, acceptationTexts);
@@ -232,10 +226,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
         assertEquals(language, manager.findLanguageByCode("es").intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
-        assertSize(2, alphabetSet);
-        assertContains(mainAlphabet, alphabetSet);
-        assertContains(secondAlphabet, alphabetSet);
+        assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
 
         final String convertedText = manager.getConversion(new ImmutableIntPair(mainAlphabet, secondAlphabet)).convert("casa");
 
@@ -265,10 +256,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
         assertEquals(language, manager.findLanguageByCode("es").intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
-        assertSize(2, alphabetSet);
-        assertContains(mainAlphabet, alphabetSet);
-        assertContains(secondAlphabet, alphabetSet);
+        assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
 
         final String convertedText = manager.getConversion(new ImmutableIntPair(mainAlphabet, secondAlphabet)).convert("casa");
 
@@ -310,18 +298,15 @@ public interface AcceptationsManagerTest {
 
         final int enMainAlphabet = manager.addLanguage("en").mainAlphabet;
 
-        final String esText = "casa";
-        final String enText = "house";
-
         final int concept = manager.getMaxConcept() + 1;
-        final int esAcc = addSimpleAcceptation(manager, esMainAlphabet, concept, esText);
-        final int enAcc = addSimpleAcceptation(manager, enMainAlphabet, concept, enText);
+        final int esAcc = addSimpleAcceptation(manager, esMainAlphabet, concept, "casa");
+        final int enAcc = addSimpleAcceptation(manager, enMainAlphabet, concept, "house");
         assertNotEquals(esAcc, enAcc);
 
         assertTrue(manager.removeLanguage(esLanguage));
         assertNull(manager.findLanguageByCode("es"));
         assertNotNull(manager.findLanguageByCode("en"));
-        assertSingleValue(enAcc, manager.findAcceptationsByConcept(concept));
+        assertContainsOnly(enAcc, manager.findAcceptationsByConcept(concept));
     }
 
     @Test
