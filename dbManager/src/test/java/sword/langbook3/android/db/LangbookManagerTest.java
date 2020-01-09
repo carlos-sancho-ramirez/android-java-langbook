@@ -1,158 +1,191 @@
 package sword.langbook3.android.db;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
+import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
-interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
+abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
 
     @Override
-    LangbookManager createManager(MemoryDatabase db);
+    public abstract LangbookManager createManager(MemoryDatabase db);
 
-    @Test
-    default void testAddDynamicAcceptationInASentenceSpan() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager manager = createManager(db);
-
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-
-        final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
-
-        final int substantiveConcept = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
-
-        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
-
-        final int pluralRule = manager.getMaxConcept() + 1;
-        assertNotNull(manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
-
-        assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
-
-        final String text = "Los coches son muy rápidos";
-
-        final int carPluralStart = text.indexOf("coches");
-        final int carPluralEnd = carPluralStart + "coches".length();
-
-        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
-                .build();
-
-        final int concept = manager.getMaxConcept() + 1;
-        final int sentence = manager.addSentence(concept, text, spans);
-
-        assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
-        assertEquals(carPluralAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
+    private static class State {
+        MemoryDatabase db;
+        LangbookManager manager;
+        String text;
+        int substantiveConcept;
+        int carAcc;
+        int sentence;
+        int mineAcc;
+        int agentId;
+        int pluralRule;
     }
 
-    @Test
-    default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager manager = createManager(db);
+    interface ThereIsNoSampleSentencesForTheRemovedAcceptationAssertion {
+        State getState();
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-
-        final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
-
-        final int mineConcept = manager.getMaxConcept() + 1;
-        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
-
-        final int substantiveConcept = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
-
-        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
-
-        final int pluralRule = manager.getMaxConcept() + 1;
-        assertNotNull(manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
-
-        assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
-
-        final String text = "El mejor de los coches es el mío";
-
-        final int carPluralStart = text.indexOf("coches");
-        final int carPluralEnd = carPluralStart + "coches".length();
-        final int mineStart = text.indexOf("mío");
-        final int mineEnd = mineStart + "mío".length();
-
-        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(mineStart, mineEnd - 1), mineAcc))
-                .build();
-
-        final int concept = manager.getMaxConcept() + 1;
-        final int sentence = manager.addSentence(concept, text, spans);
-        assertTrue(manager.removeAcceptationFromBunch(substantiveConcept, carAcc));
-        assertEmpty(manager.getSampleSentences(carAcc));
-
-        assertSinglePair(sentence, text, manager.getSampleSentences(mineAcc));
-        assertEquals(mineAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
+        @Test
+        default void thenThereIsNoSampleSentencesForTheRemovedAcceptation() {
+            final State s = getState();
+            assertEmpty(s.manager.getSampleSentences(s.carAcc));
+        }
     }
 
-    @Test
-    default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager manager = createManager(db);
+    interface ThereIsAUniqueSampleSentenceForTheOtherAcceptationAssertion {
+        State getState();
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        @Test
+        default void thenThereIsAUniqueSampleSentenceForTheOtherAcceptation() {
+            final State s = getState();
+            assertSinglePair(s.sentence, s.text, s.manager.getSampleSentences(s.mineAcc));
+        }
+    }
 
-        final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+    interface ThereIsAUniqueSpanInTheSentenceAssertion {
+        State getState();
 
-        final int mineConcept = manager.getMaxConcept() + 1;
-        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
+        @Test
+        default void thenThereIsAUniqueSpanInTheSentence() {
+            final State s = getState();
+            assertEquals(s.mineAcc, getSingleValue(s.manager.getSentenceSpans(s.sentence)).acceptation);
+        }
+    }
 
-        final int substantiveConcept = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
+    @Nested
+    class GivenAnAgentThatCreatesDynamicAcceptationsFromABunch extends State {
+        @BeforeEach
+        void setUp() {
+            db = new MemoryDatabase();
+            manager = createManager(db);
 
-        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
+            final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+            final int carConcept = manager.getMaxConcept() + 1;
+            carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
+            substantiveConcept = manager.getMaxConcept() + 1;
+            addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final int pluralRule = manager.getMaxConcept() + 1;
-        final int agentId = manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
+            final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
+            final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
-        assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
+            pluralRule = manager.getMaxConcept() + 1;
+            agentId = manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
 
-        final String text = "El mejor de los coches es el mío";
+            assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
+        }
 
-        final int carPluralStart = text.indexOf("coches");
-        final int carPluralEnd = carPluralStart + "coches".length();
-        final int mineStart = text.indexOf("mío");
-        final int mineEnd = mineStart + "mío".length();
+        @Nested
+        class WhenAddingASentence {
+            @BeforeEach
+            void performAction() {
+                final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
-        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(mineStart, mineEnd - 1), mineAcc))
-                .build();
+                text = "Los coches son muy rápidos";
+                final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+                        .add(newSpan(text, "coches", carPluralAcc))
+                        .build();
 
-        final int concept = manager.getMaxConcept() + 1;
-        final int sentence = manager.addSentence(concept, text, spans);
-        manager.removeAgent(agentId);
-        assertTrue(manager.getSampleSentences(carAcc).isEmpty());
+                final int concept = manager.getMaxConcept() + 1;
+                sentence = manager.addSentence(concept, text, spans);
+            }
 
-        assertSinglePair(sentence, text, manager.getSampleSentences(mineAcc));
-        assertEquals(mineAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
+            @Test
+            void thenThereIsAUniqueSampleSentenceForTheAcceptation() {
+                assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
+            }
+
+            @Test
+            void thenThereIsAUniqueSpanInTheSentence() {
+                final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
+                assertEquals(carPluralAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
+            }
+        }
+    }
+
+    @Nested
+    class GivenASentenceThatUsesAsASpanWithDynamicAcceptation extends State {
+        @BeforeEach
+        void setUp() {
+            final MemoryDatabase db = new MemoryDatabase();
+            manager = createManager(db);
+
+            final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+
+            final int carConcept = manager.getMaxConcept() + 1;
+            carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+
+            final int mineConcept = manager.getMaxConcept() + 1;
+            mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
+
+            substantiveConcept = manager.getMaxConcept() + 1;
+            addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
+
+            final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
+            final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
+
+            final int pluralRule = manager.getMaxConcept() + 1;
+            agentId = manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
+
+            assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
+            final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
+
+            text = "El mejor de los coches es el mío";
+            final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+                    .add(newSpan(text, "coches", carPluralAcc))
+                    .add(newSpan(text, "mío", mineAcc))
+                    .build();
+
+            final int concept = manager.getMaxConcept() + 1;
+            sentence = manager.addSentence(concept, text, spans);
+        }
+
+        @Nested
+        class WhenRemovingAcceptationFromAgentSourceBunch implements
+                ThereIsAUniqueSampleSentenceForTheOtherAcceptationAssertion,
+                ThereIsAUniqueSpanInTheSentenceAssertion,
+                ThereIsNoSampleSentencesForTheRemovedAcceptationAssertion {
+
+            @BeforeEach
+            void performAction() {
+                assertTrue(manager.removeAcceptationFromBunch(substantiveConcept, carAcc));
+            }
+
+            @Override
+            public State getState() {
+                return GivenASentenceThatUsesAsASpanWithDynamicAcceptation.this;
+            }
+        }
+
+        @Nested
+        class WhenRemovingAgent implements
+                ThereIsAUniqueSampleSentenceForTheOtherAcceptationAssertion,
+                ThereIsAUniqueSpanInTheSentenceAssertion,
+                ThereIsNoSampleSentencesForTheRemovedAcceptationAssertion {
+            @BeforeEach
+            void performAction() {
+                manager.removeAgent(agentId);
+            }
+
+            @Override
+            public State getState() {
+                return GivenASentenceThatUsesAsASpanWithDynamicAcceptation.this;
+            }
+        }
     }
 }
