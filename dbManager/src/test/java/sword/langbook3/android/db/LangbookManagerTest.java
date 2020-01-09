@@ -28,6 +28,7 @@ abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsMan
     private static class State {
         MemoryDatabase db;
         LangbookManager manager;
+        int esAlphabet;
         String text;
         int substantiveConcept;
         int carAcc;
@@ -67,14 +68,13 @@ abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsMan
         }
     }
 
-    @Nested
-    class GivenAnAgentThatCreatesDynamicAcceptationsFromABunch extends State {
+    class SetUpForAnAgentThatCreatesDynamicAcceptationsFromABunch extends State {
         @BeforeEach
         void setUp() {
             db = new MemoryDatabase();
             manager = createManager(db);
 
-            final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+            esAlphabet = manager.addLanguage("es").mainAlphabet;
             final int carConcept = manager.getMaxConcept() + 1;
             carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
@@ -89,7 +89,32 @@ abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsMan
 
             assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         }
+    }
 
+    class SetUpForASentenceThatUsesASpanWithDynamicAcceptation extends SetUpForAnAgentThatCreatesDynamicAcceptationsFromABunch {
+        @Override
+        @BeforeEach
+        void setUp() {
+            super.setUp();
+
+            final int mineConcept = manager.getMaxConcept() + 1;
+            mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
+
+            final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
+
+            text = "El mejor de los coches es el mío";
+            final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+                    .add(newSpan(text, "coches", carPluralAcc))
+                    .add(newSpan(text, "mío", mineAcc))
+                    .build();
+
+            final int concept = manager.getMaxConcept() + 1;
+            sentence = manager.addSentence(concept, text, spans);
+        }
+    }
+
+    @Nested
+    class GivenAnAgentThatCreatesDynamicAcceptationsFromABunch extends SetUpForAnAgentThatCreatesDynamicAcceptationsFromABunch {
         @Nested
         class WhenAddingASentence {
             @BeforeEach
@@ -119,42 +144,7 @@ abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsMan
     }
 
     @Nested
-    class GivenASentenceThatUsesAsASpanWithDynamicAcceptation extends State {
-        @BeforeEach
-        void setUp() {
-            final MemoryDatabase db = new MemoryDatabase();
-            manager = createManager(db);
-
-            final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-
-            final int carConcept = manager.getMaxConcept() + 1;
-            carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
-
-            final int mineConcept = manager.getMaxConcept() + 1;
-            mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
-
-            substantiveConcept = manager.getMaxConcept() + 1;
-            addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
-
-            final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-            final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
-
-            final int pluralRule = manager.getMaxConcept() + 1;
-            agentId = manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
-
-            assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-            final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
-
-            text = "El mejor de los coches es el mío";
-            final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                    .add(newSpan(text, "coches", carPluralAcc))
-                    .add(newSpan(text, "mío", mineAcc))
-                    .build();
-
-            final int concept = manager.getMaxConcept() + 1;
-            sentence = manager.addSentence(concept, text, spans);
-        }
-
+    class GivenASentenceThatUsesASpanWithDynamicAcceptation extends SetUpForASentenceThatUsesASpanWithDynamicAcceptation {
         @Nested
         class WhenRemovingAcceptationFromAgentSourceBunch implements
                 ThereIsAUniqueSampleSentenceForTheOtherAcceptationAssertion,
@@ -168,7 +158,7 @@ abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsMan
 
             @Override
             public State getState() {
-                return GivenASentenceThatUsesAsASpanWithDynamicAcceptation.this;
+                return GivenASentenceThatUsesASpanWithDynamicAcceptation.this;
             }
         }
 
@@ -184,7 +174,7 @@ abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsMan
 
             @Override
             public State getState() {
-                return GivenASentenceThatUsesAsASpanWithDynamicAcceptation.this;
+                return GivenASentenceThatUsesASpanWithDynamicAcceptation.this;
             }
         }
     }
