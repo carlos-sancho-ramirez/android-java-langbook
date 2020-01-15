@@ -20,7 +20,7 @@ import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
-abstract class LangbookManagerTest implements QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
+abstract class LangbookManagerTest extends QuizzesManagerTest implements DefinitionsManagerTest, SentencesManagerTest {
 
     @Override
     public abstract LangbookManager createManager(MemoryDatabase db);

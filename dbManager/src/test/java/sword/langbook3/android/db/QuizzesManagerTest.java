@@ -1,25 +1,25 @@
 package sword.langbook3.android.db;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.List;
-import sword.database.DbQuery;
-import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
-import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
+import static sword.langbook3.android.db.IntPairMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
-import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
+import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 
 /**
  * Include all test related to all responsibilities of a QuizzesManager.
@@ -28,10 +28,10 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRo
  * <li>Quizzes</li>
  * <li>Knowledge</li>
  */
-interface QuizzesManagerTest extends AgentsManagerTest {
+abstract class QuizzesManagerTest implements AgentsManagerTest {
 
     @Override
-    QuizzesManager createManager(MemoryDatabase db);
+    public abstract QuizzesManager createManager(MemoryDatabase db);
 
     static int addJapaneseSingAcceptation(AcceptationsManager manager, int kanjiAlphabet, int kanaAlphabet, int concept) {
         final ImmutableIntKeyMap<String> correlation1 = new ImmutableIntKeyMap.Builder<String>()
@@ -52,206 +52,269 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    @Test
-    default void testAddAcceptationInBunchAndQuiz() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager manager = createManager(db);
+    private class State {
+        MemoryDatabase db;
+        QuizzesManager manager;
+        int esAlphabet;
+        int kanjiAlphabet;
+        int myVocabularyConcept;
+        int esAcceptation;
+        int quizId;
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        void setSingAcceptationForBothSpanishAndJapanese() {
+            db = new MemoryDatabase();
+            manager = createManager(db);
+            esAlphabet = manager.addLanguage("es").mainAlphabet;
+            kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
+            final int kanaAlphabet = kanjiAlphabet + 1;
+            assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
 
-        final int kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
-        final int kanaAlphabet = kanjiAlphabet + 1;
-        assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
+            myVocabularyConcept = manager.getMaxConcept() + 1;
+            final int singConcept = myVocabularyConcept + 1;
+            esAcceptation = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
+            addJapaneseSingAcceptation(manager, kanjiAlphabet, kanaAlphabet, singConcept);
+        }
 
-        final int myVocabularyConcept = manager.getMaxConcept() + 1;
-        final int arVerbConcept = myVocabularyConcept + 1;
-        final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
+        void addSingAcceptationInTheQuizBunch() {
+            manager.addAcceptationInBunch(myVocabularyConcept, esAcceptation);
+        }
 
-        final int esAcceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
-        manager.addAcceptationInBunch(myVocabularyConcept, esAcceptation);
+        void addTheQuiz() {
+            final ImmutableList<QuestionFieldDetails> fields = new ImmutableList.Builder<QuestionFieldDetails>()
+                    .add(new QuestionFieldDetails(esAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
+                    .add(new QuestionFieldDetails(kanjiAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.IS_ANSWER | LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT))
+                    .build();
 
-        addJapaneseSingAcceptation(manager, kanjiAlphabet, kanaAlphabet, singConcept);
-
-        final ImmutableList<QuestionFieldDetails> fields = new ImmutableList.Builder<QuestionFieldDetails>()
-                .add(new QuestionFieldDetails(alphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
-                .add(new QuestionFieldDetails(kanjiAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.IS_ANSWER | LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT))
-                .build();
-
-        final int quizId = manager.obtainQuiz(myVocabularyConcept, fields);
-
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        final DbQuery query = new DbQuery.Builder(knowledge)
-                .select(knowledge.getAcceptationColumnIndex(), knowledge.getQuizDefinitionColumnIndex());
-        final List<DbValue> row = selectSingleRow(db, query);
-        assertEquals(esAcceptation, row.get(0).toInt());
-        assertEquals(quizId, row.get(1).toInt());
+            quizId = manager.obtainQuiz(myVocabularyConcept, fields);
+        }
     }
 
-    @Test
-    default void testAddQuizAndAcceptationInBunch() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager manager = createManager(db);
+    @Nested
+    class GivenTheSingAcceptationForBothSpanishAndJapanese extends State {
+        @BeforeEach
+        void setUp() {
+            setSingAcceptationForBothSpanishAndJapanese();
+        }
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
-        final int kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
-        final int kanaAlphabet = kanjiAlphabet + 1;
-        assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
+        @Nested
+        class WhenCreatingTheQuiz {
+            @BeforeEach
+            void performAction() {
+                addTheQuiz();
+            }
 
-        final int myVocabularyConcept = manager.getMaxConcept() + 1;
-        final int arVerbConcept = myVocabularyConcept + 1;
-        final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
-
-        final int esAcceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
-        addJapaneseSingAcceptation(manager, kanjiAlphabet, kanaAlphabet, singConcept);
-
-        final ImmutableList<QuestionFieldDetails> fields = new ImmutableList.Builder<QuestionFieldDetails>()
-                .add(new QuestionFieldDetails(alphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
-                .add(new QuestionFieldDetails(kanjiAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.IS_ANSWER | LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT))
-                .build();
-
-        final int quizId = manager.obtainQuiz(myVocabularyConcept, fields);
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        final DbQuery knowledgeQuery = new DbQuery.Builder(knowledge)
-                .select(knowledge.getAcceptationColumnIndex(), knowledge.getQuizDefinitionColumnIndex());
-        assertFalse(db.select(knowledgeQuery).hasNext());
-
-        manager.addAcceptationInBunch(myVocabularyConcept, esAcceptation);
-
-        final List<DbValue> row = selectSingleRow(db, knowledgeQuery);
-        assertEquals(esAcceptation, row.get(0).toInt());
-        assertEquals(quizId, row.get(1).toInt());
-
-        manager.removeAcceptationFromBunch(myVocabularyConcept, esAcceptation);
-        assertFalse(db.select(knowledgeQuery).hasNext());
+            @Test
+            void thenNoKnowledgeShouldBePresent() {
+                assertEmpty(manager.getCurrentKnowledge(quizId));
+            }
+        }
     }
 
-    @Test
-    default void testUpdateAcceptationCorrelationArray() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager manager = createManager(db);
+    @Nested
+    class GivenTheSingAcceptationIncludedInTheQuizBunch extends State {
+        @BeforeEach
+        void setUp() {
+            setSingAcceptationForBothSpanishAndJapanese();
+            addSingAcceptationInTheQuizBunch();
+        }
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
-        final int concept = manager.getMaxConcept() + 1;
-        final int secondConjugationVerbBunch = concept + 1;
-        final int upperCaseAlphabet = secondConjugationVerbBunch + 1;
-        final Conversion conversion = new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion);
-        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+        @Nested
+        class WhenCreatingTheQuiz {
+            @BeforeEach
+            void performAction() {
+                addTheQuiz();
+            }
 
-        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
-
-        final ImmutableIntSet noBunches = intSetOf();
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "er")
-                .build();
-
-        manager.addAgent(secondConjugationVerbBunch, noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
-
-        final ImmutableList<QuestionFieldDetails> quizFields = new ImmutableList.Builder<QuestionFieldDetails>()
-                .add(new QuestionFieldDetails(alphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
-                .add(new QuestionFieldDetails(upperCaseAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC | LangbookDbSchema.QuestionFieldFlags.IS_ANSWER))
-                .build();
-        final int quizId = manager.obtainQuiz(secondConjugationVerbBunch, quizFields);
-
-        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
-
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        DbQuery query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), alphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        List<DbValue> row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("beber", row.get(1).toText());
-
-        query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), upperCaseAlphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("BEBER", row.get(1).toText());
-
-        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
-        query = new DbQuery.Builder(bunchAcceptations)
-                .where(bunchAcceptations.getBunchColumnIndex(), secondConjugationVerbBunch)
-                .select(bunchAcceptations.getAcceptationColumnIndex());
-        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
-
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        query = new DbQuery.Builder(knowledge)
-                .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
-                .select(knowledge.getAcceptationColumnIndex());
-        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
+            @Test
+            void thenKnowledgeShouldBePresent() {
+                assertSinglePair(esAcceptation, NO_SCORE, manager.getCurrentKnowledge(quizId));
+            }
+        }
     }
 
-    @Test
-    default void testUpdateAcceptationCorrelationArrayFromMatching() {
-        final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager manager = createManager(db);
+    @Nested
+    class GivenTheSingAcceptationAndTheQuiz extends State {
+        @BeforeEach
+        void setUp() {
+            setSingAcceptationForBothSpanishAndJapanese();
+            addTheQuiz();
+        }
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
-        final int concept = manager.getMaxConcept() + 1;
-        final int firstConjugationVerbBunch = concept + 1;
-        final int upperCaseAlphabet = firstConjugationVerbBunch + 1;
-        final Conversion conversion = new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion);
-        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+        @Nested
+        class WhenTheSingAcceptationIsIncludedInTheQuizBunch {
+            @BeforeEach
+            void performAction() {
+                addSingAcceptationInTheQuizBunch();
+            }
 
-        final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
+            @Test
+            void thenKnowledgeShouldBePresent() {
+                assertSinglePair(esAcceptation, NO_SCORE, manager.getCurrentKnowledge(quizId));
+            }
+        }
+    }
 
-        final ImmutableIntSet noBunches = intSetOf();
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
-                .put(alphabet, "ar")
-                .build();
+    @Nested
+    class GivenTheSingAcceptationIncludedInTheQuizBunchAndTheQuiz extends State {
+        @BeforeEach
+        void setUp() {
+            setSingAcceptationForBothSpanishAndJapanese();
+            addTheQuiz();
+            addSingAcceptationInTheQuizBunch();
+        }
 
-        manager.addAgent(firstConjugationVerbBunch, noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
+        @Nested
+        class WhenRemovingTheQuiz {
+            @BeforeEach
+            void performAction() {
+                assertTrue(manager.removeAcceptationFromBunch(myVocabularyConcept, esAcceptation));
+            }
 
-        final ImmutableList<QuestionFieldDetails> quizFields = new ImmutableList.Builder<QuestionFieldDetails>()
-                .add(new QuestionFieldDetails(alphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
-                .add(new QuestionFieldDetails(upperCaseAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC | LangbookDbSchema.QuestionFieldFlags.IS_ANSWER))
-                .build();
-        final int quizId = manager.obtainQuiz(firstConjugationVerbBunch, quizFields);
+            @Test
+            void thenNoKnowledgeShouldBePresent() {
+                assertEmpty(manager.getCurrentKnowledge(quizId));
+            }
+        }
+    }
 
-        updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
+    class State2 {
+        QuizzesManager manager;
+        MemoryDatabase db;
 
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        DbQuery query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), alphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        List<DbValue> row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("beber", row.get(1).toText());
+        int alphabet;
+        int upperCaseAlphabet;
+        int conjugationVerbBunch;
+        int acceptation;
+        int quizId;
 
-        query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), upperCaseAlphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("BEBER", row.get(1).toText());
+        void setSingAcceptationAndUpperCaseConversion() {
+            db = new MemoryDatabase();
+            manager = createManager(db);
+            alphabet = manager.addLanguage("es").mainAlphabet;
 
-        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
-        query = new DbQuery.Builder(bunchAcceptations)
-                .where(bunchAcceptations.getBunchColumnIndex(), firstConjugationVerbBunch)
-                .select(bunchAcceptations.getAcceptationColumnIndex());
-        assertFalse(db.select(query).hasNext());
+            final int concept = manager.getMaxConcept() + 1;
+            conjugationVerbBunch = concept + 1;
+            upperCaseAlphabet = conjugationVerbBunch + 1;
+            final Conversion conversion = new Conversion(alphabet, upperCaseAlphabet, upperCaseConversion);
+            assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        query = new DbQuery.Builder(knowledge)
-                .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
-                .select(knowledge.getAcceptationColumnIndex());
-        assertFalse(db.select(query).hasNext());
+            acceptation = addSimpleAcceptation(manager, alphabet, concept, "cantar");
+        }
+
+        private void addAgentForConjugationVerbs(String matcherText) {
+            final ImmutableIntSet noBunches = intSetOf();
+            final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
+            final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+                    .put(alphabet, matcherText)
+                    .build();
+
+            manager.addAgent(conjugationVerbBunch, noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
+        }
+
+        void addAgentForFirstConjugationVerbs() {
+            addAgentForConjugationVerbs("ar");
+        }
+
+        void addAgentForSecondConjugationVerbs() {
+            addAgentForConjugationVerbs("er");
+        }
+
+        void addTheQuiz() {
+            final ImmutableList<QuestionFieldDetails> quizFields = new ImmutableList.Builder<QuestionFieldDetails>()
+                    .add(new QuestionFieldDetails(alphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
+                    .add(new QuestionFieldDetails(upperCaseAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC | LangbookDbSchema.QuestionFieldFlags.IS_ANSWER))
+                    .build();
+            quizId = manager.obtainQuiz(conjugationVerbBunch, quizFields);
+        }
+
+        void updateCorrelationArray() {
+            updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptation, "beber");
+        }
+    }
+
+    @Nested
+    class GivenTheSingAcceptationAndTheQuizForSecondConjugationVerbs extends State2 {
+        @BeforeEach
+        void setUp() {
+            setSingAcceptationAndUpperCaseConversion();
+            addAgentForSecondConjugationVerbs();
+            addTheQuiz();
+        }
+
+        @Nested
+        class WhenUpdatingTheCorrelationArray {
+            @BeforeEach
+            void performAction() {
+                updateCorrelationArray();
+            }
+
+            @Test
+            void thenStaticAndDynamicAcceptationMatches() {
+                assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(acceptation).intValue());
+            }
+
+            @Test
+            void thenTextIsUpdated() {
+                assertEquals("beber", manager.getAcceptationTexts(acceptation).get(alphabet));
+            }
+
+            @Test
+            void thenUpperCaseTextIsUpdated() {
+                assertEquals("BEBER", manager.getAcceptationTexts(acceptation).get(upperCaseAlphabet));
+            }
+
+            @Test
+            void thenSecondConjugationVerbBunchOnlyContainsTheAcceptation() {
+                assertContainsOnly(acceptation, manager.getAcceptationsInBunch(conjugationVerbBunch));
+            }
+
+            @Test
+            void thenOnlyKnowledgeForTheAcceptationIsPresent() {
+                assertContainsOnly(acceptation, manager.getCurrentKnowledge(quizId).keySet());
+            }
+        }
+    }
+
+    @Nested
+    class GivenTheSingAcceptationAndTheQuizForFirstConjugationVerbs extends State2 {
+        @BeforeEach
+        void setUp() {
+            setSingAcceptationAndUpperCaseConversion();
+            addAgentForFirstConjugationVerbs();
+            addTheQuiz();
+        }
+
+        @Nested
+        class WhenUpdatingTheCorrelationArray {
+            @BeforeEach
+            void performAction() {
+                updateCorrelationArray();
+            }
+
+            @Test
+            void thenStaticAndDynamicAcceptationMatches() {
+                assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(acceptation).intValue());
+            }
+
+            @Test
+            void thenTextIsUpdated() {
+                assertEquals("beber", manager.getAcceptationTexts(acceptation).get(alphabet));
+            }
+
+            @Test
+            void thenUpperCaseTextIsUpdated() {
+                assertEquals("BEBER", manager.getAcceptationTexts(acceptation).get(upperCaseAlphabet));
+            }
+
+            @Test
+            void thenFirstConjugationVerbBunchIsEmpty() {
+                assertEmpty(manager.getAcceptationsInBunch(conjugationVerbBunch));
+            }
+
+            @Test
+            void thenNoKnowledgeIsPresent() {
+                assertEmpty(manager.getCurrentKnowledge(quizId));
+            }
+        }
     }
 }
