@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
@@ -16,6 +15,7 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
+import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
@@ -48,12 +48,8 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
         final String text = "Los coches son muy rápidos";
-
-        final int carPluralStart = text.indexOf("coches");
-        final int carPluralEnd = carPluralStart + "coches".length();
-
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
+                .add(newSpan(text, "coches", carPluralAcc))
                 .build();
 
         final int concept = manager.getMaxConcept() + 1;
@@ -89,15 +85,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
         final String text = "El mejor de los coches es el mío";
-
-        final int carPluralStart = text.indexOf("coches");
-        final int carPluralEnd = carPluralStart + "coches".length();
-        final int mineStart = text.indexOf("mío");
-        final int mineEnd = mineStart + "mío".length();
-
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(mineStart, mineEnd - 1), mineAcc))
+                .add(newSpan(text, "coches", carPluralAcc))
+                .add(newSpan(text, "mío", mineAcc))
                 .build();
 
         final int concept = manager.getMaxConcept() + 1;
@@ -136,15 +126,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
 
         final String text = "El mejor de los coches es el mío";
-
-        final int carPluralStart = text.indexOf("coches");
-        final int carPluralEnd = carPluralStart + "coches".length();
-        final int mineStart = text.indexOf("mío");
-        final int mineEnd = mineStart + "mío".length();
-
         final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
-                .add(new SentenceSpan(new ImmutableIntRange(carPluralStart, carPluralEnd - 1), carPluralAcc))
-                .add(new SentenceSpan(new ImmutableIntRange(mineStart, mineEnd - 1), mineAcc))
+                .add(newSpan(text, "coches", carPluralAcc))
+                .add(newSpan(text, "mío", mineAcc))
                 .build();
 
         final int concept = manager.getMaxConcept() + 1;
