@@ -5,21 +5,20 @@ import org.junit.jupiter.api.Test;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.List;
-import sword.database.DbQuery;
-import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
+import static sword.langbook3.android.db.IntPairMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
-import static sword.langbook3.android.db.LangbookReadableDatabase.selectSingleRow;
+import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
+import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 
 /**
  * Include all test related to all responsibilities of a QuizzesManager.
@@ -81,13 +80,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .build();
 
         final int quizId = manager.obtainQuiz(myVocabularyConcept, fields);
-
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        final DbQuery query = new DbQuery.Builder(knowledge)
-                .select(knowledge.getAcceptationColumnIndex(), knowledge.getQuizDefinitionColumnIndex());
-        final List<DbValue> row = selectSingleRow(db, query);
-        assertEquals(esAcceptation, row.get(0).toInt());
-        assertEquals(quizId, row.get(1).toInt());
+        assertSinglePair(esAcceptation, NO_SCORE, manager.getCurrentKnowledge(quizId));
     }
 
     @Test
@@ -116,19 +109,13 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .build();
 
         final int quizId = manager.obtainQuiz(myVocabularyConcept, fields);
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        final DbQuery knowledgeQuery = new DbQuery.Builder(knowledge)
-                .select(knowledge.getAcceptationColumnIndex(), knowledge.getQuizDefinitionColumnIndex());
-        assertFalse(db.select(knowledgeQuery).hasNext());
+        assertEmpty(manager.getCurrentKnowledge(quizId));
 
         manager.addAcceptationInBunch(myVocabularyConcept, esAcceptation);
-
-        final List<DbValue> row = selectSingleRow(db, knowledgeQuery);
-        assertEquals(esAcceptation, row.get(0).toInt());
-        assertEquals(quizId, row.get(1).toInt());
+        assertSinglePair(esAcceptation, NO_SCORE, manager.getCurrentKnowledge(quizId));
 
         manager.removeAcceptationFromBunch(myVocabularyConcept, esAcceptation);
-        assertFalse(db.select(knowledgeQuery).hasNext());
+        assertEmpty(manager.getCurrentKnowledge(quizId));
     }
 
     @Test
@@ -161,36 +148,13 @@ interface QuizzesManagerTest extends AgentsManagerTest {
 
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
 
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        DbQuery query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), alphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        List<DbValue> row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("beber", row.get(1).toText());
+        assertEquals(acceptationId, manager.getStaticAcceptationFromDynamic(acceptationId));
+        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptationId);
+        assertEquals("beber", texts.get(alphabet));
+        assertEquals("BEBER", texts.get(upperCaseAlphabet));
 
-        query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), upperCaseAlphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("BEBER", row.get(1).toText());
-
-        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
-        query = new DbQuery.Builder(bunchAcceptations)
-                .where(bunchAcceptations.getBunchColumnIndex(), secondConjugationVerbBunch)
-                .select(bunchAcceptations.getAcceptationColumnIndex());
-        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
-
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        query = new DbQuery.Builder(knowledge)
-                .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
-                .select(knowledge.getAcceptationColumnIndex());
-        assertEquals(acceptationId, selectSingleRow(db, query).get(0).toInt());
+        assertContainsOnly(acceptationId, manager.getAcceptationsInBunch(secondConjugationVerbBunch));
+        assertSinglePair(acceptationId, NO_SCORE, manager.getCurrentKnowledge(quizId));
     }
 
     @Test
@@ -223,35 +187,12 @@ interface QuizzesManagerTest extends AgentsManagerTest {
 
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
 
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        DbQuery query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), alphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        List<DbValue> row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("beber", row.get(1).toText());
+        assertEquals(acceptationId, manager.getStaticAcceptationFromDynamic(acceptationId));
+        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptationId);
+        assertEquals("beber", texts.get(alphabet));
+        assertEquals("BEBER", texts.get(upperCaseAlphabet));
 
-        query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), acceptationId)
-                .where(strings.getStringAlphabetColumnIndex(), upperCaseAlphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("BEBER", row.get(1).toText());
-
-        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
-        query = new DbQuery.Builder(bunchAcceptations)
-                .where(bunchAcceptations.getBunchColumnIndex(), firstConjugationVerbBunch)
-                .select(bunchAcceptations.getAcceptationColumnIndex());
-        assertFalse(db.select(query).hasNext());
-
-        final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
-        query = new DbQuery.Builder(knowledge)
-                .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
-                .select(knowledge.getAcceptationColumnIndex());
-        assertFalse(db.select(query).hasNext());
+        assertEmpty(manager.getAcceptationsInBunch(firstConjugationVerbBunch));
+        assertEmpty(manager.getCurrentKnowledge(quizId));
     }
 }
