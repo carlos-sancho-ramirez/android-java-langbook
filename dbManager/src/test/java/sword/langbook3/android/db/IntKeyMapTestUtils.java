@@ -16,7 +16,7 @@ final class IntKeyMapTestUtils {
         }
 
         final V actualValue = map.valueAt(0);
-        if (equal(expectedValue, actualKey)) {
+        if (!equal(expectedValue, actualValue)) {
             fail("Single value in map was expected to be " + expectedValue + ", but it was " + actualValue);
         }
     }
