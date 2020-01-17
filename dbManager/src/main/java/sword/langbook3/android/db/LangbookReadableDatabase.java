@@ -2251,7 +2251,7 @@ public final class LangbookReadableDatabase {
         return new ImmutablePair<>(builder.build(), mainAcc);
     }
 
-    private static String readAcceptationMainText(DbExporter.Database db, int acceptation) {
+    static String readAcceptationMainText(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), acceptation)

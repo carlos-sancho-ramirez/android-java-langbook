@@ -133,38 +133,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final int agentId = addSingleAlphabetAgent(manager, 0, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
-        final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
-        final DbQuery ruledConceptQuery = new DbQuery.Builder(ruledConcepts)
-                .where(ruledConcepts.getRuleColumnIndex(), gerund)
-                .where(ruledConcepts.getConceptColumnIndex(), concept)
-                .select(ruledConcepts.getIdColumnIndex());
-        final int ruledConcept = selectSingleRow(db, ruledConceptQuery).get(0).toInt();
+        final int ruledConcept = manager.findRuledConcept(gerund, concept);
+        final int ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, acceptation);
+        assertEquals(ruledConcept, manager.conceptFromAcceptation(ruledAcceptation));
 
-        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbQuery ruledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
-                .where(ruledAcceptations.getAgentColumnIndex(), agentId)
-                .where(ruledAcceptations.getAcceptationColumnIndex(), acceptation)
-                .select(ruledAcceptations.getIdColumnIndex());
-        final int ruledAcceptation = selectSingleRow(db, ruledAcceptationsQuery).get(0).toInt();
-
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
-                .where(acceptations.getIdColumnIndex(), ruledAcceptation)
-                .select(acceptations.getConceptColumnIndex());
-        assertEquals(ruledConcept, selectSingleRow(db, acceptationQuery).get(0).toInt());
-
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery stringQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), ruledAcceptation)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringAlphabetColumnIndex(),
-                        strings.getStringColumnIndex());
-        final List<DbValue> stringRow = selectSingleRow(db, stringQuery);
-        assertEquals(acceptation, stringRow.get(0).toInt());
-        assertEquals("cantando", stringRow.get(1).toText());
-        assertEquals(alphabet, stringRow.get(2).toInt());
-        assertEquals("cantando", stringRow.get(3).toText());
+        assertSinglePair(alphabet, "cantando", manager.getAcceptationTexts(ruledAcceptation));
+        assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(ruledAcceptation));
+        assertEquals("cantando", manager.readAcceptationMainText(ruledAcceptation));
     }
 
     @Test
@@ -226,38 +201,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
             agent2Id = manager.addAgent(0, arVerbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerund);
         }
 
-        final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
-        final DbQuery ruledConceptQuery = new DbQuery.Builder(ruledConcepts)
-                .where(ruledConcepts.getRuleColumnIndex(), gerund)
-                .where(ruledConcepts.getConceptColumnIndex(), singConcept)
-                .select(ruledConcepts.getIdColumnIndex());
-        final int ruledConcept = selectSingleRow(db, ruledConceptQuery).get(0).toInt();
+        final int ruledConcept = manager.findRuledConcept(gerund, singConcept);
+        final int ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2Id, acceptation);
+        assertEquals(ruledConcept, manager.conceptFromAcceptation(ruledAcceptation));
 
-        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbQuery ruledAcceptationsQuery = new DbQuery.Builder(ruledAcceptations)
-                .where(ruledAcceptations.getAgentColumnIndex(), agent2Id)
-                .where(ruledAcceptations.getAcceptationColumnIndex(), acceptation)
-                .select(ruledAcceptations.getIdColumnIndex());
-        final int ruledAcceptation = selectSingleRow(db, ruledAcceptationsQuery).get(0).toInt();
-
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final DbQuery acceptationQuery = new DbQuery.Builder(acceptations)
-                .where(acceptations.getIdColumnIndex(), ruledAcceptation)
-                .select(acceptations.getConceptColumnIndex());
-        assertEquals(ruledConcept, selectSingleRow(db, acceptationQuery).get(0).toInt());
-
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery stringQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), ruledAcceptation)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringAlphabetColumnIndex(),
-                        strings.getStringColumnIndex());
-        final List<DbValue> stringRow = selectSingleRow(db, stringQuery);
-        assertEquals(acceptation, stringRow.get(0).toInt());
-        assertEquals("cantando", stringRow.get(1).toText());
-        assertEquals(alphabet, stringRow.get(2).toInt());
-        assertEquals("cantando", stringRow.get(3).toText());
+        assertSinglePair(alphabet, "cantando", manager.getAcceptationTexts(ruledAcceptation));
+        assertEquals("cantando", manager.readAcceptationMainText(ruledAcceptation));
+        assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(acceptation));
     }
 
     @Test
@@ -470,35 +420,15 @@ interface AgentsManagerTest extends BunchesManagerTest {
                 .select(acceptations.getConceptColumnIndex());
         assertEquals(nounRuledConcept, selectSingleRow(db, nounAcceptationQuery).get(0).toInt());
 
-        final DbQuery pluralAcceptationQuery = new DbQuery.Builder(acceptations)
-                .where(acceptations.getIdColumnIndex(), pluralRuledAcceptation)
-                .select(acceptations.getConceptColumnIndex());
-        assertEquals(pluralRuledConcept, selectSingleRow(db, pluralAcceptationQuery).get(0).toInt());
+        assertEquals(pluralRuledConcept, manager.conceptFromAcceptation(pluralRuledAcceptation));
 
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        DbQuery stringQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), nounRuledAcceptation)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringAlphabetColumnIndex(),
-                        strings.getStringColumnIndex());
-        List<DbValue> stringRow = selectSingleRow(db, stringQuery);
-        assertEquals(acceptation, stringRow.get(0).toInt());
-        assertEquals("canto", stringRow.get(1).toText());
-        assertEquals(alphabet, stringRow.get(2).toInt());
-        assertEquals("canto", stringRow.get(3).toText());
+        assertSinglePair(alphabet, "canto", manager.getAcceptationTexts(nounRuledAcceptation));
+        assertEquals("canto", manager.readAcceptationMainText(nounRuledAcceptation));
+        assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(nounRuledAcceptation));
 
-        stringQuery = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), pluralRuledAcceptation)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getMainStringColumnIndex(),
-                        strings.getStringAlphabetColumnIndex(),
-                        strings.getStringColumnIndex());
-        stringRow = selectSingleRow(db, stringQuery);
-        assertEquals(acceptation, stringRow.get(0).toInt());
-        assertEquals("cantos", stringRow.get(1).toText());
-        assertEquals(alphabet, stringRow.get(2).toInt());
-        assertEquals("cantos", stringRow.get(3).toText());
+        assertSinglePair(alphabet, "cantos", manager.getAcceptationTexts(pluralRuledAcceptation));
+        assertEquals("cantos", manager.readAcceptationMainText(pluralRuledAcceptation));
+        assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(pluralRuledAcceptation));
     }
 
     @Test
@@ -647,16 +577,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "cantar");
 
-        final LangbookDbSchema.RuledConceptsTable ruledConceptsTable = LangbookDbSchema.Tables.ruledConcepts;
-        DbQuery query = new DbQuery.Builder(ruledConceptsTable)
-                .where(ruledConceptsTable.getConceptColumnIndex(), concept)
-                .where(ruledConceptsTable.getRuleColumnIndex(), gerundRule)
-                .select(ruledConceptsTable.getIdColumnIndex());
-        final int ruledConcept = selectSingleRow(db, query).get(0).toInt();
+        final int ruledConcept = manager.findRuledConcept(gerundRule, concept);
         assertNotEquals(concept, ruledConcept);
 
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        query = new DbQuery.Builder(acceptations)
+        DbQuery query = new DbQuery.Builder(acceptations)
                 .where(acceptations.getConceptColumnIndex(), ruledConcept)
                 .select(acceptations.getIdColumnIndex(), acceptations.getCorrelationArrayColumnIndex());
         List<DbValue> row = selectSingleRow(db, query);
@@ -664,16 +589,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int rightGerundCorrelationArray = row.get(1).toInt();
 
         assertSinglePair(alphabet, "cantando", manager.readCorrelationArrayTexts(rightGerundCorrelationArray).toImmutable());
-
-        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-        query = new DbQuery.Builder(strings)
-                .where(strings.getDynamicAcceptationColumnIndex(), ruledAcceptation)
-                .where(strings.getStringAlphabetColumnIndex(), alphabet)
-                .select(strings.getMainAcceptationColumnIndex(),
-                        strings.getStringColumnIndex());
-        row = selectSingleRow(db, query);
-        assertEquals(acceptationId, row.get(0).toInt());
-        assertEquals("cantando", row.get(1).toText());
+        assertEquals("cantando", manager.readAcceptationMainText(ruledAcceptation));
+        assertEquals(acceptationId, manager.getStaticAcceptationFromDynamic(ruledAcceptation));
     }
 
     @Test

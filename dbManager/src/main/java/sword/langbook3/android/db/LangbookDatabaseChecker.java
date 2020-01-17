@@ -205,6 +205,21 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
+    public Integer findRuledConcept(int rule, int concept) {
+        return LangbookReadableDatabase.findRuledConcept(getDatabase(), rule, concept);
+    }
+
+    @Override
+    public Integer findRuledAcceptationByAgentAndBaseAcceptation(int agentId, int baseAcceptation) {
+        return LangbookReadableDatabase.findRuledAcceptationByAgentAndBaseAcceptation(getDatabase(), agentId, baseAcceptation);
+    }
+
+    @Override
+    public String readAcceptationMainText(int acceptation) {
+        return LangbookReadableDatabase.readAcceptationMainText(getDatabase(), acceptation);
+    }
+
+    @Override
     public String getSentenceText(int sentenceId) {
         return LangbookReadableDatabase.getSentenceText(getDatabase(), sentenceId);
     }

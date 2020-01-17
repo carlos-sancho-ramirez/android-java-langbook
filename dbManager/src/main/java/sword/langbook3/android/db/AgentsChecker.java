@@ -24,4 +24,7 @@ public interface AgentsChecker extends BunchesChecker {
     ImmutableList<SearchResult> findAcceptationAndRulesFromText(String queryText, int restrictionStringType);
     ImmutableMap<TableCellReference, TableCellValue> readTableContent(int dynamicAcceptation, int preferredAlphabet);
     Integer getStaticAcceptationFromDynamic(int dynamicAcceptation);
+    Integer findRuledConcept(int rule, int concept);
+    Integer findRuledAcceptationByAgentAndBaseAcceptation(int agentId, int baseAcceptation);
+    String readAcceptationMainText(int acceptation);
 }
