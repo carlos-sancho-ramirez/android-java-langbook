@@ -1946,6 +1946,17 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).filter(agentId -> agentId != 0).toSet().toImmutable();
     }
 
+    static ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(DbExporter.Database db, int bunch, int acceptation) {
+        final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
+
+        final DbQuery query = new DbQuery.Builder(bunchAcceptations)
+                .where(bunchAcceptations.getBunchColumnIndex(), bunch)
+                .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
+                .select(bunchAcceptations.getAgentColumnIndex());
+
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
         final int conceptCount = concepts.size();
         if (conceptCount == 0) {
@@ -2417,6 +2428,14 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    static ImmutableIntSet findBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAcceptationColumnIndex(), acceptation)
+                .select(table.getBunchColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     private static ImmutableList<DynamizableResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, int preferredAlphabet) {

@@ -1,6 +1,7 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
@@ -27,4 +28,6 @@ public interface AgentsChecker extends BunchesChecker {
     Integer findRuledConcept(int rule, int concept);
     Integer findRuledAcceptationByAgentAndBaseAcceptation(int agentId, int baseAcceptation);
     String readAcceptationMainText(int acceptation);
+    ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(int bunch, int acceptation);
+    ImmutableIntPairMap getAgentProcessedMap(int agentId);
 }

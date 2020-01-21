@@ -80,6 +80,11 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
+    public ImmutableIntSet findBunchesWhereAcceptationIsIncluded(int acceptation) {
+        return LangbookReadableDatabase.findBunchesWhereAcceptationIsIncluded(getDatabase(), acceptation);
+    }
+
+    @Override
     public ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableIntKeyMap<String> texts, int preferredAlphabet) {
         return LangbookReadableDatabase.readAllMatchingBunches(getDatabase(), texts, preferredAlphabet);
     }
@@ -217,6 +222,16 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     @Override
     public String readAcceptationMainText(int acceptation) {
         return LangbookReadableDatabase.readAcceptationMainText(getDatabase(), acceptation);
+    }
+
+    @Override
+    public ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(int bunch, int acceptation) {
+        return LangbookReadableDatabase.findAllAgentsThatIncludedAcceptationInBunch(getDatabase(), bunch, acceptation);
+    }
+
+    @Override
+    public ImmutableIntPairMap getAgentProcessedMap(int agentId) {
+        return LangbookReadableDatabase.getAgentProcessedMap(getDatabase(), agentId);
     }
 
     @Override
