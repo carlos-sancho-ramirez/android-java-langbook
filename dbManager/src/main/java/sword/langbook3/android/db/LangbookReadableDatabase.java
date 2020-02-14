@@ -1714,7 +1714,7 @@ public final class LangbookReadableDatabase {
 
     private static ImmutableIntKeyMap<String> readDefinitionComponentsText(DbExporter.Database db, int compositionId, int preferredAlphabet) {
         final LangbookDbSchema.ConceptCompositionsTable compositions = LangbookDbSchema.Tables.conceptCompositions;
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int accOffset = compositions.columns().size();
@@ -2351,7 +2351,7 @@ public final class LangbookReadableDatabase {
     }
 
     static DisplayableItem readConceptAcceptationAndText(DbExporter.Database db, int concept, int preferredAlphabet) {
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int j1Offset = acceptations.columns().size();
@@ -2953,7 +2953,7 @@ public final class LangbookReadableDatabase {
         final int agentOffset = ruledAccOffset + ruledAcceptations.columns().size();
         final int strOffset = agentOffset + agents.columns().size();
         final DbQuery query = new DbQuery.Builder(bunchAcceptations)
-                .join(ruledAcceptations, bunchAcceptations.getAcceptationColumnIndex(), ruledAcceptations. getAcceptationColumnIndex())
+                .join(ruledAcceptations, bunchAcceptations.getAcceptationColumnIndex(), ruledAcceptations.getAcceptationColumnIndex())
                 .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
                 .join(strings, ruledAccOffset + ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(bunchAcceptations.getBunchColumnIndex(), bunch)
@@ -2984,7 +2984,7 @@ public final class LangbookReadableDatabase {
 
     static ImmutableIntSet readAllPossibleAcceptations(DbExporter.Database db, int bunch, ImmutableSet<QuestionFieldDetails> fields) {
         final Function<QuestionFieldDetails, ImmutableIntSet> mapFunc = field -> readAllPossibleAcceptationForField(db, bunch, field);
-        return fields.map(mapFunc).reduce((a,b) -> a.filter(b::contains));
+        return fields.map(mapFunc).reduce((a, b) -> a.filter(b::contains));
     }
 
     static ImmutableIntSet getAllRuledAcceptationsForAgent(DbExporter.Database db, int agentId) {

@@ -1,7 +1,5 @@
 package sword.bitstream.huffman;
 
-import java.util.*;
-
 /**
  * Huffman table that allow encoding natural numbers.
  * Negative numbers are not part of the this table.
@@ -65,72 +63,5 @@ public final class NaturalNumberHuffmanTable extends AbstractNaturalNumberHuffma
         }
 
         return (int) value;
-    }
-
-    /**
-     * Build a new instance based on the given map of frequencies.
-     * Check {@link DefinedHuffmanTable#withFrequencies(sword.collections.IntValueMap, sword.collections.SortFunction)} for more detail.
-     *
-     * @param frequency Map of frequencies.
-     * @return A new instance create.
-     * @see DefinedHuffmanTable#withFrequencies(sword.collections.IntValueMap, sword.collections.SortFunction)
-     */
-    public static NaturalNumberHuffmanTable withFrequencies(Map<Integer, Integer> frequency) {
-
-        int maxValue = Integer.MIN_VALUE;
-        for (int symbol : frequency.keySet()) {
-            if (symbol < 0) {
-                throw new IllegalArgumentException("Found a negative number");
-            }
-
-            if (symbol > maxValue) {
-                maxValue = symbol;
-            }
-        }
-
-        if (maxValue < 0) {
-            throw new IllegalArgumentException("map should not be empty");
-        }
-
-        int requiredBits = 0;
-        int possibilities = 1;
-        while (maxValue > possibilities) {
-            possibilities <<= 1;
-            requiredBits++;
-        }
-
-        final int minValidBitAlign = 2;
-
-        // Any maxCheckedBitAlign bigger than requiredBits + 1 will always increase
-        // for sure the number of required bits. That's why the limit is set here.
-        final int maxCheckedBitAlign = requiredBits + 1;
-
-        int minSize = Integer.MAX_VALUE;
-        int bestBitAlign = 0;
-
-        for (int bitAlign = minValidBitAlign; bitAlign <= maxCheckedBitAlign; bitAlign++) {
-            int length = 0;
-            for (Map.Entry<Integer, Integer> entry : frequency.entrySet()) {
-                final int symbol = entry.getKey();
-                int packs = 1;
-                int nextBase = 1 << (bitAlign - 1);
-                while (symbol >= nextBase) {
-                    packs++;
-                    nextBase += 1 << ((bitAlign - 1) * packs);
-                }
-
-                length += bitAlign * packs * entry.getValue();
-                if (length > minSize) {
-                    break;
-                }
-            }
-
-            if (length < minSize) {
-                minSize = length;
-                bestBitAlign = bitAlign;
-            }
-        }
-
-        return new NaturalNumberHuffmanTable(bestBitAlign);
     }
 }

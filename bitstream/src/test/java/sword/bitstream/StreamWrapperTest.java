@@ -1,10 +1,11 @@
 package sword.bitstream;
 
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import org.junit.jupiter.api.Test;
 import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.DefinedHuffmanTable;
 import sword.bitstream.huffman.DefinedIntHuffmanTable;
@@ -28,7 +29,8 @@ import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class StreamWrapperTest {
 
@@ -443,30 +445,46 @@ final class StreamWrapperTest {
         final IntList possibleLengths = new ImmutableIntRange(0, 3).toList();
         final DefinedIntHuffmanTable lengthTable = DefinedIntHuffmanTable.from(possibleLengths);
 
-        for (int min : intValues) for (int max : intValues) if (min <= max) {
-            for (int a : intValues) for (int b : intValues) for (int c : intValues) {
-                final MutableIntSet set = MutableIntArraySet.empty();
-                if (a >= min && a <= max) set.add(a);
-                if (b >= min && b <= max) set.add(b);
-                if (c >= min && c <= max) set.add(c);
+        for (int min : intValues) {
+            for (int max : intValues) {
+                if (min <= max) {
+                    for (int a : intValues) {
+                        for (int b : intValues) {
+                            for (int c : intValues) {
+                                final MutableIntSet set = MutableIntArraySet.empty();
+                                if (a >= min && a <= max) {
+                                    set.add(a);
+                                }
 
-                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                final OutputStreamWrapper obs = new OutputStreamWrapper(baos);
+                                if (b >= min && b <= max) {
+                                    set.add(b);
+                                }
 
-                final ImmutableIntRange range = new ImmutableIntRange(min, max);
-                final RangedIntSetEncoder encoder = new RangedIntSetEncoder(obs, lengthTable, range);
-                obs.writeIntSet(encoder, encoder, encoder, set);
-                obs.close();
+                                if (c >= min && c <= max) {
+                                    set.add(c);
+                                }
 
-                final byte[] array = baos.toByteArray();
-                final ByteArrayInputStream bais = new ByteArrayInputStream(array);
-                final InputStreamWrapper ibs = new InputStreamWrapper(bais);
+                                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                                final OutputStreamWrapper obs = new OutputStreamWrapper(baos);
 
-                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, lengthTable, range);
-                final IntSet givenSet = ibs.readIntSet(decoder, decoder, decoder);
-                ibs.close();
+                                final ImmutableIntRange range = new ImmutableIntRange(min, max);
+                                final RangedIntSetEncoder encoder = new RangedIntSetEncoder(obs, lengthTable, range);
+                                obs.writeIntSet(encoder, encoder, encoder, set);
+                                obs.close();
 
-                assertTrue(set.equalSet(givenSet));
+                                final byte[] array = baos.toByteArray();
+                                final ByteArrayInputStream bais = new ByteArrayInputStream(array);
+                                final InputStreamWrapper ibs = new InputStreamWrapper(bais);
+
+                                final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, lengthTable, range);
+                                final IntSet givenSet = ibs.readIntSet(decoder, decoder, decoder);
+                                ibs.close();
+
+                                assertTrue(set.equalSet(givenSet));
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -642,39 +660,41 @@ final class StreamWrapperTest {
 
         final RangedIntegerHuffmanTable table = new RangedIntegerHuffmanTable(0, values.length - 1);
 
-        for (String a : values) for (String b : values) {
-            final ImmutableList<String> list = new ImmutableList.Builder<String>().append(a).append(b).build();
+        for (String a : values) {
+            for (String b : values) {
+                final ImmutableList<String> list = new ImmutableList.Builder<String>().append(a).append(b).build();
 
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final OutputStreamWrapper obs = new OutputStreamWrapper(baos);
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                final OutputStreamWrapper obs = new OutputStreamWrapper(baos);
 
-            final ProcedureWithIOException<String> writer = element -> {
-                final int valuesLength = values.length;
-                for (int i = 0; i < valuesLength; i++) {
-                    if (element == values[i]) {
-                        obs.writeHuffmanSymbol(table, i);
-                        return;
+                final ProcedureWithIOException<String> writer = element -> {
+                    final int valuesLength = values.length;
+                    for (int i = 0; i < valuesLength; i++) {
+                        if (element == values[i]) {
+                            obs.writeHuffmanSymbol(table, i);
+                            return;
+                        }
                     }
-                }
 
-                throw new AssertionError("Unexpected symbol");
-            };
+                    throw new AssertionError("Unexpected symbol");
+                };
 
-            obs.writeList(new LengthEncoder(obs), writer, list);
-            obs.close();
+                obs.writeList(new LengthEncoder(obs), writer, list);
+                obs.close();
 
-            final byte[] array = baos.toByteArray();
-            final ByteArrayInputStream bais = new ByteArrayInputStream(array);
-            final InputStreamWrapper ibs = new InputStreamWrapper(bais);
+                final byte[] array = baos.toByteArray();
+                final ByteArrayInputStream bais = new ByteArrayInputStream(array);
+                final InputStreamWrapper ibs = new InputStreamWrapper(bais);
 
-            final SupplierWithIOException<String> supplier = () -> values[ibs.readHuffmanSymbol(table)];
+                final SupplierWithIOException<String> supplier = () -> values[ibs.readHuffmanSymbol(table)];
 
-            final List<String> givenList = ibs.readList(new LengthDecoder(ibs), supplier);
-            ibs.close();
+                final List<String> givenList = ibs.readList(new LengthDecoder(ibs), supplier);
+                ibs.close();
 
-            assertEquals(2, givenList.size());
-            assertEquals(list.get(0), givenList.get(0));
-            assertEquals(list.get(1), givenList.get(1));
+                assertEquals(2, givenList.size());
+                assertEquals(list.get(0), givenList.get(0));
+                assertEquals(list.get(1), givenList.get(1));
+            }
         }
     }
 }

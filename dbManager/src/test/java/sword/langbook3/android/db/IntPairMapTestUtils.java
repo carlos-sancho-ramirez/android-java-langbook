@@ -19,4 +19,7 @@ final class IntPairMapTestUtils {
             fail("Single value in map was expected to be " + expectedValue + ", but it was " + actualValue);
         }
     }
+
+    private IntPairMapTestUtils() {
+    }
 }

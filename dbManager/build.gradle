@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'maven-publish'
+apply plugin: 'checkstyle'
 
 group = 'sword'
 version = '1.0'

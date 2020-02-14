@@ -10,7 +10,7 @@ before_install:
   -in keystore.tar.gz.enc -out keystore.tar.gz -d
 - tar -xvf keystore.tar.gz
 script:
-- "./gradlew clean build test"
+- "./gradlew clean build check"
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -rf $HOME/.gradle/caches/*/plugin-resolution/

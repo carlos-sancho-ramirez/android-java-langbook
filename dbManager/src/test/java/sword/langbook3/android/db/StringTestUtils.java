@@ -13,4 +13,7 @@ final class StringTestUtils {
         final int end = start + segment.length();
         return new ImmutableIntRange(start, end - 1);
     }
+
+    private StringTestUtils() {
+    }
 }

@@ -49,7 +49,7 @@ public interface OutputCollectionStream {
         final Object dummy = new Object();
         final sword.collections.Map<E, Object> map = set.assign(key -> dummy);
 
-        final ProcedureWithIOException<Object> nullWriter = element -> {};
+        final ProcedureWithIOException<Object> nullWriter = element -> { };
         writeMap(lengthEncoder, writer, diffWriter, sortFunction, nullWriter, map);
     }
 
@@ -61,7 +61,7 @@ public interface OutputCollectionStream {
 
         final Object dummy = new Object();
         final IntKeyMap<Object> map = set.assign(key -> dummy);
-        writeIntKeyMap(lengthEncoder, writer, diffWriter, element -> {}, map);
+        writeIntKeyMap(lengthEncoder, writer, diffWriter, element -> { }, map);
     }
 
     default <E> void writeList(

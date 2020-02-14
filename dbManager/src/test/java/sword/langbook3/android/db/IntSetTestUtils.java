@@ -21,4 +21,7 @@ final class IntSetTestUtils {
         }
         return builder.build();
     }
+
+    private IntSetTestUtils() {
+    }
 }

@@ -4,6 +4,25 @@ import java.util.Iterator;
 
 abstract class AbstractIntegerNumberHuffmanTable<T> implements HuffmanTable<T> {
 
+    private static final Iterator _invalidLevelIterator = new Iterator() {
+
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public Object next() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    };
+
+    private static final Iterable _invalidLevelIterable = () -> _invalidLevelIterator;
     private final int _bitAlign;
 
     AbstractIntegerNumberHuffmanTable(int bitAlign) {
@@ -110,26 +129,6 @@ abstract class AbstractIntegerNumberHuffmanTable<T> implements HuffmanTable<T> {
             return new LevelIterator(_level);
         }
     }
-
-    private static final Iterator _invalidLevelIterator = new Iterator() {
-
-        @Override
-        public boolean hasNext() {
-            return false;
-        }
-
-        @Override
-        public Object next() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-    };
-
-    private static final Iterable _invalidLevelIterable = () -> _invalidLevelIterator;
 
     private class TableIterator implements Iterator<Iterable<T>> {
 

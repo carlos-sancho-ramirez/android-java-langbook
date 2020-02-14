@@ -1,10 +1,6 @@
 package sword.bitstream;
 
 import java.io.IOException;
-
-import sword.bitstream.CollectionLengthDecoder;
-import sword.bitstream.FunctionWithIOException;
-import sword.bitstream.SupplierWithIOException;
 import sword.collections.MutableHashMap;
 
 public final class MutableHashMapSupplier<K, V> implements SupplierWithIOException<MutableHashMap<K, V>> {

@@ -18,4 +18,7 @@ final class SizableTestUtils {
             fail("Expected an empty collection, but had size " + sizable.size());
         }
     }
+
+    private SizableTestUtils() {
+    }
 }

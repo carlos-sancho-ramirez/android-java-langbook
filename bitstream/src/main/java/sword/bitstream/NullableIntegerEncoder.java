@@ -1,12 +1,9 @@
 package sword.bitstream;
 
 import java.io.IOException;
-import java.util.Comparator;
 
 import sword.bitstream.huffman.IntNumberHuffmanTable;
-import sword.bitstream.huffman.IntegerNumberHuffmanTable;
 import sword.bitstream.huffman.NatNumberHuffmanTable;
-import sword.bitstream.huffman.NaturalNumberHuffmanTable;
 import sword.collections.SortFunction;
 
 /**
@@ -20,7 +17,7 @@ public final class NullableIntegerEncoder implements SortFunction<Integer>, Proc
 
     private final OutputHuffmanStream _stream;
 
-    public NullableIntegerEncoder(OutputHuffmanStream stream) {
+    NullableIntegerEncoder(OutputHuffmanStream stream) {
         _stream = stream;
     }
 

@@ -10,4 +10,7 @@ final class TraversableTestUtils {
         assertSize(1, traversable);
         return traversable.valueAt(0);
     }
+
+    private TraversableTestUtils() {
+    }
 }

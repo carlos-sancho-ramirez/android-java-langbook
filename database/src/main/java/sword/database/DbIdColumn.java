@@ -2,7 +2,7 @@ package sword.database;
 
 public final class DbIdColumn extends DbColumn {
 
-    public static final String idColumnName = "id";
+    private static final String idColumnName = "id";
 
     DbIdColumn() {
         super(idColumnName);

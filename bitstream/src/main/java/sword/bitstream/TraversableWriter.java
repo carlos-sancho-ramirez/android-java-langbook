@@ -2,8 +2,6 @@ package sword.bitstream;
 
 import java.io.IOException;
 
-import sword.bitstream.CollectionLengthEncoder;
-import sword.bitstream.ProcedureWithIOException;
 import sword.collections.Traversable;
 
 public final class TraversableWriter<T> implements ProcedureWithIOException<Traversable<T>> {

@@ -26,4 +26,7 @@ final class IntKeyMapTestUtils {
             fail("Maps do not match");
         }
     }
+
+    private IntKeyMapTestUtils() {
+    }
 }

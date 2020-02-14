@@ -42,4 +42,7 @@ final class IntTraversableTestUtils {
         assertContains(value2, actual);
         assertContains(value3, actual);
     }
+
+    private IntTraversableTestUtils() {
+    }
 }

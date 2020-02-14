@@ -8,11 +8,11 @@ import static sword.bitstream.NullableIntegerEncoder.naturalTable;
 /**
  * Decode Integer values from the stream. This implementation allow having null values.
  */
-public class NullableIntegerDecoder implements SupplierWithIOException<Integer>, FunctionWithIOException<Integer, Integer> {
+public final class NullableIntegerDecoder implements SupplierWithIOException<Integer>, FunctionWithIOException<Integer, Integer> {
 
     private final InputHuffmanStream _stream;
 
-    public NullableIntegerDecoder(InputHuffmanStream stream) {
+    NullableIntegerDecoder(InputHuffmanStream stream) {
         _stream = stream;
     }
 

@@ -17,26 +17,26 @@ public class DbTable implements DbView {
         _columns = builder.build();
     }
 
-    public String name() {
+    public final String name() {
         return _name;
     }
 
     @Override
-    public ImmutableList<DbColumn> columns() {
+    public final ImmutableList<DbColumn> columns() {
         return _columns;
     }
 
-    public int getIdColumnIndex() {
+    public final int getIdColumnIndex() {
         return 0;
     }
 
     @Override
-    public DbTable asTable() {
+    public final DbTable asTable() {
         return this;
     }
 
     @Override
-    public DbQuery asQuery() {
+    public final DbQuery asQuery() {
         return null;
     }
 }

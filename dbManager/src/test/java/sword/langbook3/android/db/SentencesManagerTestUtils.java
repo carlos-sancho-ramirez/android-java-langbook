@@ -9,4 +9,7 @@ final class SentencesManagerTestUtils {
     static SentenceSpan newSpan(String text, String segment, int acceptation) {
         return new SentenceSpan(rangeOf(text, segment), acceptation);
     }
+
+    private SentencesManagerTestUtils() {
+    }
 }

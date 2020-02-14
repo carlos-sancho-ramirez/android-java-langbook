@@ -3,15 +3,6 @@ package sword.bitstream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import sword.bitstream.huffman.DefinedHuffmanTable;
-import sword.bitstream.huffman.HuffmanTable;
-import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 
 /**
  * Set of methods to read serialiazed content.

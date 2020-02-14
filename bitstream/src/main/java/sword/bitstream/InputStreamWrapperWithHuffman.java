@@ -13,7 +13,7 @@ public class InputStreamWrapperWithHuffman implements InputHuffmanStream {
      * Create a new instance wrapping the given InputStream.
      * @param is InputStream used to read.
      */
-    public InputStreamWrapperWithHuffman(InputStream is) {
+    InputStreamWrapperWithHuffman(InputStream is) {
         if (is == null) {
             throw new IllegalArgumentException();
         }
@@ -27,13 +27,13 @@ public class InputStreamWrapperWithHuffman implements InputHuffmanStream {
      *                     This is usually because it is already closed.
      */
     @Override
-    public void close() throws IOException {
+    public final void close() throws IOException {
         _is.close();
         _closed = true;
     }
 
     @Override
-    public boolean readBoolean() throws IOException {
+    public final boolean readBoolean() throws IOException {
         if (_closed) {
             throw new IllegalArgumentException("Stream already closed");
         }

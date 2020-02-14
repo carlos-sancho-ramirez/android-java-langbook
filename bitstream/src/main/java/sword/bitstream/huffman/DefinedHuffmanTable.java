@@ -1,6 +1,8 @@
 package sword.bitstream.huffman;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 
 import sword.collections.EmptyCollectionException;
 import sword.collections.ImmutableSet;
@@ -113,7 +115,7 @@ public final class DefinedHuffmanTable<E> implements HuffmanTable<E> {
         return new DefinedHuffmanTable<>(indexesArray, symbolsArray);
     }
 
-    private class HuffmanLevelIterator implements Iterator<E> {
+    private final class HuffmanLevelIterator implements Iterator<E> {
         private final int _last;
         private int _index;
 
@@ -142,13 +144,12 @@ public final class DefinedHuffmanTable<E> implements HuffmanTable<E> {
         }
     }
 
-    private class LevelIterable implements Iterable<E> {
+    private final class LevelIterable implements Iterable<E> {
 
         private final int _bits;
 
         private LevelIterable(int bits) {
             _bits = bits;
-            //_level = _table[tableIndex];
         }
 
         @Override

@@ -2,8 +2,6 @@ package sword.bitstream;
 
 import java.io.IOException;
 
-import sword.bitstream.CollectionLengthDecoder;
-import sword.bitstream.SupplierWithIOException;
 import sword.collections.MutableList;
 
 public final class MutableListSupplier<T> implements SupplierWithIOException<MutableList<T>> {

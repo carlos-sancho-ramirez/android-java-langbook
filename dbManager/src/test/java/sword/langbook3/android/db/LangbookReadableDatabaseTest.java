@@ -78,53 +78,57 @@ final class LangbookReadableDatabaseTest {
                 .add("byebye")
                 .build();
 
-        for (String text1 : texts) for (String text2 : texts) for (String text3 : texts) {
-            final ImmutableList.Builder<String> textListBuilder = new ImmutableList.Builder<>();
-            textListBuilder.append(text1);
+        for (String text1 : texts) {
+            for (String text2 : texts) {
+                for (String text3 : texts) {
+                    final ImmutableList.Builder<String> textListBuilder = new ImmutableList.Builder<>();
+                    textListBuilder.append(text1);
 
-            if (text2 != text1) {
-                textListBuilder.append(text2);
-            }
-
-            if (text3 != text1 && text3 != text2) {
-                textListBuilder.append(text3);
-            }
-
-            final ImmutableList<String> textList = textListBuilder.build();
-
-            final MemoryDatabase db = new MemoryDatabase();
-            final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
-            final int alphabet1 = addLanguage(db, "xx").mainAlphabet;
-            final int alphabet2 = manager.getMaxConcept() + 1;
-            assertTrue(addAlphabetCopyingFromOther(db, alphabet2, alphabet1));
-
-            final int concept1 = getMaxConcept(db) + 1;
-            final int concept2 = concept1 + 1;
-            final int concept3 = concept2 + 1;
-
-            final ImmutableIntList.Builder accListBuilder = new ImmutableIntList.Builder();
-            for (int i = 0; i < textList.size(); i++) {
-                accListBuilder.append(addSimpleAcceptation(manager, alphabet1, concept1 + i, textList.valueAt(i)));
-            }
-            final ImmutableIntList accList = accListBuilder.build();
-
-            final int restrictionStringType = DbQuery.RestrictionStringTypes.STARTS_WITH;
-            for (int length = 1; length <= text1.length(); length++) {
-                final String queryText = text1.substring(0, length);
-                final ImmutableList<SearchResult> results = findAcceptationFromText(db, queryText, restrictionStringType);
-                final ImmutableIntSet.Builder matchingIndexesBuilder = new ImmutableIntSetCreator();
-                for (int i = 0; i < textList.size(); i++) {
-                    if (textList.valueAt(i).startsWith(queryText)) {
-                        matchingIndexesBuilder.add(i);
+                    if (text2 != text1) {
+                        textListBuilder.append(text2);
                     }
-                }
-                final ImmutableIntSet matchingIndexes = matchingIndexesBuilder.build();
-                assertEquals(matchingIndexes.size(), results.size());
-                for (int textIndex : matchingIndexes) {
-                    final SearchResult result = results.findFirst(r -> r.getId() == accList.valueAt(textIndex), null);
-                    assertNotNull(result);
-                    assertEquals(textList.valueAt(textIndex), result.getStr());
-                    assertEquals(SearchResult.Types.ACCEPTATION, result.getType());
+
+                    if (text3 != text1 && text3 != text2) {
+                        textListBuilder.append(text3);
+                    }
+
+                    final ImmutableList<String> textList = textListBuilder.build();
+
+                    final MemoryDatabase db = new MemoryDatabase();
+                    final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
+                    final int alphabet1 = addLanguage(db, "xx").mainAlphabet;
+                    final int alphabet2 = manager.getMaxConcept() + 1;
+                    assertTrue(addAlphabetCopyingFromOther(db, alphabet2, alphabet1));
+
+                    final int concept1 = getMaxConcept(db) + 1;
+                    final int concept2 = concept1 + 1;
+                    final int concept3 = concept2 + 1;
+
+                    final ImmutableIntList.Builder accListBuilder = new ImmutableIntList.Builder();
+                    for (int i = 0; i < textList.size(); i++) {
+                        accListBuilder.append(addSimpleAcceptation(manager, alphabet1, concept1 + i, textList.valueAt(i)));
+                    }
+                    final ImmutableIntList accList = accListBuilder.build();
+
+                    final int restrictionStringType = DbQuery.RestrictionStringTypes.STARTS_WITH;
+                    for (int length = 1; length <= text1.length(); length++) {
+                        final String queryText = text1.substring(0, length);
+                        final ImmutableList<SearchResult> results = findAcceptationFromText(db, queryText, restrictionStringType);
+                        final ImmutableIntSet.Builder matchingIndexesBuilder = new ImmutableIntSetCreator();
+                        for (int i = 0; i < textList.size(); i++) {
+                            if (textList.valueAt(i).startsWith(queryText)) {
+                                matchingIndexesBuilder.add(i);
+                            }
+                        }
+                        final ImmutableIntSet matchingIndexes = matchingIndexesBuilder.build();
+                        assertEquals(matchingIndexes.size(), results.size());
+                        for (int textIndex : matchingIndexes) {
+                            final SearchResult result = results.findFirst(r -> r.getId() == accList.valueAt(textIndex), null);
+                            assertNotNull(result);
+                            assertEquals(textList.valueAt(textIndex), result.getStr());
+                            assertEquals(SearchResult.Types.ACCEPTATION, result.getType());
+                        }
+                    }
                 }
             }
         }

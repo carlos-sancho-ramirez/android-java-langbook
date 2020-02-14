@@ -82,7 +82,7 @@ public final class DefinedIntHuffmanTable implements IntHuffmanTable {
         return new DefinedIntHuffmanTable(indexesArray, symbolsArray);
     }
 
-    private class HuffmanLevelIterator implements IntTraverser {
+    private final class HuffmanLevelIterator implements IntTraverser {
         private final int _last;
         private int _index;
 
@@ -111,7 +111,7 @@ public final class DefinedIntHuffmanTable implements IntHuffmanTable {
         }
     }
 
-    private class LevelIterable implements IntTraversable {
+    private final class LevelIterable implements IntTraversable {
 
         private final int _bits;
 

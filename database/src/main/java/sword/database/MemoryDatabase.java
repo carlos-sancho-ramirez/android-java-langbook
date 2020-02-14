@@ -240,7 +240,7 @@ public final class MemoryDatabase implements Database {
         applyRestrictions(unselectedResult, restrictions);
 
         final ImmutableList<DbQuery.Ordered> ordering = query.ordering();
-        unselectedResult.sort((a,b) -> {
+        unselectedResult.sort((a, b) -> {
             for (DbQuery.Ordered ordered : ordering) {
                 // Assumed that they are numeric fields. Other types are not supported
                 final int aValue = (Integer) a.get(ordered.columnIndex);
@@ -531,7 +531,8 @@ public final class MemoryDatabase implements Database {
                     if (matches) {
                         table.removeAt(index);
                         removed = true;
-                    } else {
+                    }
+                    else {
                         index++;
                     }
                 }
