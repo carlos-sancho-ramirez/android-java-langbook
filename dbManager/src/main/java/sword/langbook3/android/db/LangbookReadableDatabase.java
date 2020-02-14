@@ -56,6 +56,7 @@ import sword.langbook3.android.models.DefinitionDetails;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.IdentifiableResult;
+import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.Progress;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -764,6 +765,23 @@ public final class LangbookReadableDatabase {
             }
             return id;
         }
+    }
+
+    static ImmutableIntPairMap findRuledConceptsByRule(DbExporter.Database db, int rule) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getRuleColumnIndex(), rule)
+                .select(table.getIdColumnIndex(), table.getConceptColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> list = result.next();
+                builder.put(list.get(0).toInt(), list.get(1).toInt());
+            }
+        }
+
+        return builder.build();
     }
 
     static Integer getRuleByRuledConcept(DbExporter.Database db, int ruledConcept) {
@@ -1787,18 +1805,6 @@ public final class LangbookReadableDatabase {
                 .where(table.getCorrelationArrayColumnIndex(), correlationArrayId)
                 .select(table.getIdColumnIndex());
         return selectOptionalFirstIntColumn(db, query);
-    }
-
-    static final class MorphologyReaderResult {
-        final ImmutableList<MorphologyResult> morphologies;
-        final ImmutableIntKeyMap<String> ruleTexts;
-        final ImmutableIntPairMap agentRules;
-
-        MorphologyReaderResult(ImmutableList<MorphologyResult> morphologies, ImmutableIntKeyMap<String> ruleTexts, ImmutableIntPairMap agentRules) {
-            this.morphologies = morphologies;
-            this.ruleTexts = ruleTexts;
-            this.agentRules = agentRules;
-        }
     }
 
     static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {

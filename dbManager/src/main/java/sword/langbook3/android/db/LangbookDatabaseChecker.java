@@ -21,6 +21,7 @@ import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DefinitionDetails;
 import sword.langbook3.android.models.DisplayableItem;
+import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.Progress;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
@@ -215,6 +216,11 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
+    public ImmutableIntPairMap findRuledConceptsByRule(int rule) {
+        return LangbookReadableDatabase.findRuledConceptsByRule(getDatabase(), rule);
+    }
+
+    @Override
     public Integer findRuledAcceptationByAgentAndBaseAcceptation(int agentId, int baseAcceptation) {
         return LangbookReadableDatabase.findRuledAcceptationByAgentAndBaseAcceptation(getDatabase(), agentId, baseAcceptation);
     }
@@ -232,6 +238,16 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     @Override
     public ImmutableIntPairMap getAgentProcessedMap(int agentId) {
         return LangbookReadableDatabase.getAgentProcessedMap(getDatabase(), agentId);
+    }
+
+    @Override
+    public MorphologyReaderResult readMorphologiesFromAcceptation(int acceptation, int preferredAlphabet) {
+        return LangbookReadableDatabase.readMorphologiesFromAcceptation(getDatabase(), acceptation, preferredAlphabet);
+    }
+
+    @Override
+    public ImmutableIntSet getAcceptationsInBunchByBunchAndAgent(int bunch, int agent) {
+        return LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent(getDatabase(), bunch, agent);
     }
 
     @Override
