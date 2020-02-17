@@ -11,6 +11,7 @@ import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
 
@@ -23,7 +24,7 @@ import sword.collections.MutableMap;
 public final class MemoryDatabase implements Database {
 
     private final MutableHashMap<DbTable, MutableIntKeyMap<ImmutableList<Object>>> _tableMap = MutableHashMap.empty();
-    private final MutableHashMap<DbColumn, MutableHashMap<Object, Integer>> _indexes = MutableHashMap.empty();
+    private final MutableHashMap<DbColumn, MutableIntValueHashMap<Object>> _indexes = MutableHashMap.empty();
 
     private static final class Result extends AbstractTransformer<List<DbValue>> implements DbResult {
         private final ImmutableList<ImmutableList<Object>> _content;
@@ -397,16 +398,15 @@ public final class MemoryDatabase implements Database {
                 throw new IllegalArgumentException("Unable to find value for column " + column.name());
             }
         }
-        final ImmutableList<Object> register = builder.build();
-        content.put(id, register);
+        content.put(id, builder.build());
 
         for (MutableMap.Entry<DbColumn, Object> entry : uniqueMap.entries()) {
-            final MutableHashMap<Object, Integer> map;
+            final MutableIntValueHashMap<Object> map;
             if (_indexes.containsKey(entry.key())) {
                 map = _indexes.get(entry.key());
             }
             else {
-                map = MutableHashMap.empty();
+                map = MutableIntValueHashMap.empty();
                 _indexes.put(entry.key(), map);
             }
 
@@ -552,6 +552,11 @@ public final class MemoryDatabase implements Database {
         final MemoryDatabase that = (MemoryDatabase) other;
         return _tableMap.toImmutable().filterNot(MutableIntKeyMap::isEmpty)
                 .equals(that._tableMap.toImmutable().filterNot(MutableIntKeyMap::isEmpty));
+    }
+
+    @Override
+    public int hashCode() {
+        return _tableMap.hashCode();
     }
 
     private static boolean equal(Object a, Object b) {
