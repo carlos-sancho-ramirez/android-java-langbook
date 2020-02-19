@@ -6,18 +6,26 @@ import java.io.InputStream;
 import sword.bitstream.FunctionWithIOException;
 import sword.bitstream.InputHuffmanStream;
 import sword.bitstream.InputStreamWrapper;
+import sword.bitstream.IntDecoder;
+import sword.bitstream.IntSupplierWithIOException;
+import sword.bitstream.IntToIntFunctionWithIOException;
+import sword.bitstream.NatDecoder;
+import sword.bitstream.RangedIntSetDecoder;
 import sword.bitstream.SupplierWithIOException;
 import sword.bitstream.huffman.CharHuffmanTable;
+import sword.bitstream.huffman.DefinedIntHuffmanTable;
 import sword.bitstream.huffman.HuffmanTable;
+import sword.bitstream.huffman.IntHuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
+import sword.bitstream.huffman.RangedIntHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
+import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
-import sword.collections.IntSet;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntPairMap;
@@ -25,15 +33,8 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
 import sword.database.DbImporter.Database;
-import sword.bitstream.huffman.DefinedIntHuffmanTable;
-import sword.bitstream.IntDecoder;
-import sword.bitstream.huffman.IntHuffmanTable;
-import sword.bitstream.IntSupplierWithIOException;
-import sword.bitstream.IntToIntFunctionWithIOException;
-import sword.bitstream.NatDecoder;
-import sword.bitstream.huffman.RangedIntHuffmanTable;
-import sword.bitstream.RangedIntSetDecoder;
 import sword.langbook3.android.db.LangbookDbInserter;
+import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 
@@ -48,8 +49,6 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptati
 import static sword.langbook3.android.db.LangbookDbInserter.insertConversion;
 import static sword.langbook3.android.db.LangbookDbInserter.insertLanguage;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceWithId;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findBunchSet;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxBunchSetId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
 
@@ -60,6 +59,17 @@ public final class StreamedDatabaseReader {
     private final InputStream _is;
     private final ProgressListener _listener;
 
+    /**
+     * Prepares the reader with the given parameters.
+     *
+     * @param db It is assumed to be a database where all the tables and indexes has been
+     *           initialized according to the {@link sword.langbook3.android.db.LangbookDbSchema},
+     *           but they are empty.
+     * @param is Input stream for the file to be read.
+     *           This input stream should not be in the first position of the file, but 20 bytes
+     *           after, skipping the header and hash.
+     * @param listener Optional callback to display in the UI the current state. This can be null.
+     */
     public StreamedDatabaseReader(Database db, InputStream is, ProgressListener listener) {
         _db = db;
         _is = is;
@@ -223,20 +233,6 @@ public final class StreamedDatabaseReader {
             final int target = agent._target;
             return _sources.contains(target) || _diff.contains(target);
         }
-    }
-
-    private int obtainBunchSet(int setId, IntSet bunches) {
-        if (bunches.isEmpty()) {
-            return 0;
-        }
-
-        final Integer foundId = findBunchSet(_db, bunches);
-        if (foundId != null) {
-            return foundId;
-        }
-
-        LangbookDbInserter.insertBunchSet(_db, setId, bunches);
-        return setId;
     }
 
     private static final class SymbolArrayReadResult {
@@ -451,11 +447,14 @@ public final class StreamedDatabaseReader {
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = validConcepts.min();
-            int desiredSetId = getMaxBunchSetId(_db) + 1;
+            int lastBunchSetId = LangbookDbSchema.Tables.bunchSets.nullReference();
             final MutableIntValueHashMap<ImmutableIntSet> insertedBunchSets = MutableIntValueHashMap.empty();
+            insertedBunchSets.put(ImmutableIntArraySet.empty(), lastBunchSetId);
+
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 
+            final int noPresent = -1;
             for (int i = 0; i < agentsLength; i++) {
                 setProgress((0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f, "Reading agent " + (i + 1) + "/" + agentsLength);
                 final RangedIntegerHuffmanTable targetTable = new RangedIntegerHuffmanTable(lastTarget, validConcepts.max());
@@ -492,21 +491,18 @@ public final class StreamedDatabaseReader {
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final int noPresent = -1;
                 final int reusedBunchSetId = insertedBunchSets.get(sourceSet, noPresent);
                 final int sourceBunchSetId;
                 if (reusedBunchSetId != noPresent) {
                     sourceBunchSetId = reusedBunchSetId;
                 }
                 else {
-                    sourceBunchSetId = obtainBunchSet(desiredSetId, sourceSet);
-                    if (sourceBunchSetId == desiredSetId) {
-                        ++desiredSetId;
-                    }
-                    insertedBunchSets.put(sourceSet, sourceBunchSetId);
+                    LangbookDbInserter.insertBunchSet(_db, ++lastBunchSetId, sourceSet);
+                    insertedBunchSets.put(sourceSet, lastBunchSetId);
+                    sourceBunchSetId = lastBunchSetId;
                 }
 
-                final int diffBunchSetId = 0;
+                final int diffBunchSetId = LangbookDbSchema.Tables.bunchSets.nullReference();
 
                 final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 final int agentId = insertAgent(_db, register);
