@@ -17,7 +17,6 @@ import sword.collections.MutableIntList;
 import sword.database.DbExporter;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
-import sword.langbook3.android.DatabaseInflater;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.Conversion;

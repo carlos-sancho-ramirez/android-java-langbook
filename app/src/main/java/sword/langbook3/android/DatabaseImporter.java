@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import sword.database.DbImporter;
+import sword.langbook3.android.sdb.DatabaseInflater;
 import sword.langbook3.android.sdb.ProgressListener;
 
 public final class DatabaseImporter implements DbImporter {

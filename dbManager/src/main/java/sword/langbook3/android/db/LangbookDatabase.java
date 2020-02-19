@@ -148,7 +148,7 @@ public final class LangbookDatabase {
     private LangbookDatabase() {
     }
 
-    public static int obtainSymbolArray(DbImporter.Database db, String str) {
+    private static int obtainSymbolArray(DbImporter.Database db, String str) {
         Integer id = insertSymbolArray(db, str);
         if (id != null) {
             return id;
@@ -183,7 +183,7 @@ public final class LangbookDatabase {
         return ruledConcept;
     }
 
-    public static int obtainRuledConcept(DbImporter.Database db, int rule, int concept) {
+    private static int obtainRuledConcept(DbImporter.Database db, int rule, int concept) {
         final Integer id = LangbookReadableDatabase.findRuledConcept(db, rule, concept);
         return (id != null)? id : insertRuledConcept(db, rule, concept);
     }
@@ -1437,7 +1437,7 @@ public final class LangbookDatabase {
         return compositionConcept;
     }
 
-    public static void addDefinition(DbImporter.Database db, int baseConcept, int concept, ImmutableIntSet complements) {
+    static void addDefinition(DbImporter.Database db, int baseConcept, int concept, ImmutableIntSet complements) {
         LangbookDbInserter.insertComplementedConcept(db, baseConcept, concept, obtainConceptComposition(db, complements));
     }
 
@@ -1544,7 +1544,7 @@ public final class LangbookDatabase {
         }
     }
 
-    public static void applyConversion(DbImporter.Database db, Conversion conversion) {
+    private static void applyConversion(DbImporter.Database db, Conversion conversion) {
         final int sourceAlphabet = conversion.getSourceAlphabet();
 
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
@@ -1825,7 +1825,7 @@ public final class LangbookDatabase {
      * @param correlation IntPairMap whose keys are alphabets and values are symbol arrays identifiers.
      * @return An identifier for the new correlation included, or null in case of error.
      */
-    public static Integer obtainCorrelation(DbImporter.Database db, IntPairMap correlation) {
+    private static Integer obtainCorrelation(DbImporter.Database db, IntPairMap correlation) {
         final Integer foundId = findCorrelation(db, correlation);
         if (foundId != null) {
             return foundId;
@@ -1854,7 +1854,7 @@ public final class LangbookDatabase {
      * @param correlation IntKeyMap whose keys are alphabets and values are symbol arrays to be included as well.
      * @return An identifier for the new correlation included, or null in case of error.
      */
-    public static Integer obtainCorrelation(DbImporter.Database db, IntKeyMap<String> correlation) {
+    private static Integer obtainCorrelation(DbImporter.Database db, IntKeyMap<String> correlation) {
         if (correlation.anyMatch(str -> findSymbolArray(db, str) == null)) {
             if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
                 return null;
@@ -1886,7 +1886,7 @@ public final class LangbookDatabase {
      * @param correlations list of correlations to be entered.
      * @return An identifier for the correlation array, or null if it cannot be inserted into the database.
      */
-    public static Integer obtainCorrelationArray(DbImporter.Database db, IntList correlations) {
+    private static Integer obtainCorrelationArray(DbImporter.Database db, IntList correlations) {
         final Integer foundId = findCorrelationArray(db, correlations);
         if (foundId != null) {
             return foundId;
@@ -1933,7 +1933,7 @@ public final class LangbookDatabase {
     /**
      * Shortcut for {@link #obtainCorrelationArray(DbImporter.Database, IntList)}.
      */
-    public static Integer obtainSimpleCorrelationArray(DbImporter.Database db, int correlationId) {
+    private static Integer obtainSimpleCorrelationArray(DbImporter.Database db, int correlationId) {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 }

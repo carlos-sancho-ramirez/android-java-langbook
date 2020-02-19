@@ -1,15 +1,19 @@
-package sword.langbook3.android;
+package sword.langbook3.android.sdb;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
+import sword.database.DbExporter;
 import sword.database.DbImporter;
+import sword.database.DbInsertQuery;
+import sword.database.DbInserter;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
@@ -17,24 +21,15 @@ import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
-import sword.langbook3.android.sdb.ProgressListener;
-import sword.langbook3.android.sdb.StreamedDatabaseConstants;
-import sword.langbook3.android.sdb.StreamedDatabaseReader;
 
 import static sword.database.DbQuery.concat;
-import static sword.langbook3.android.db.LangbookDatabase.applyConversion;
-import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.db.LangbookDatabase.obtainRuledConcept;
-import static sword.langbook3.android.db.LangbookDatabase.obtainSimpleCorrelationArray;
-import static sword.langbook3.android.db.LangbookDatabase.obtainSymbolArray;
-import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertRuledAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;
-import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByAgentAndBaseAcceptation;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainCorrelationArray;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.getMaxConcept;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.getCorrelationWithText;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertBunchAcceptation;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainCorrelation;
 
 public final class DatabaseInflater {
 
@@ -52,6 +47,146 @@ public final class DatabaseInflater {
         if (_listener != null) {
             _listener.setProgress(progress, message);
         }
+    }
+
+    private static List<DbValue> selectOptionalSingleRow(DbExporter.Database db, DbQuery query) {
+        try (DbResult result = db.select(query)) {
+            return result.hasNext()? result.next() : null;
+        }
+    }
+
+    private static AgentRegister getAgentRegister(DbExporter.Database db, int agentId) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), agentId)
+                .select(table.getTargetBunchColumnIndex(),
+                        table.getSourceBunchSetColumnIndex(),
+                        table.getDiffBunchSetColumnIndex(),
+                        table.getStartMatcherColumnIndex(),
+                        table.getStartAdderColumnIndex(),
+                        table.getEndMatcherColumnIndex(),
+                        table.getEndAdderColumnIndex(),
+                        table.getRuleColumnIndex());
+
+        final List<DbValue> agentRow = selectOptionalSingleRow(db, query);
+        if (agentRow != null) {
+            final int sourceBunchSetId = agentRow.get(1).toInt();
+            final int diffBunchSetId = agentRow.get(2).toInt();
+            final int startMatcherId = agentRow.get(3).toInt();
+            final int startAdderId = agentRow.get(4).toInt();
+            final int endMatcherId = agentRow.get(5).toInt();
+            final int endAdderId = agentRow.get(6).toInt();
+            return new AgentRegister(agentRow.get(0).toInt(), sourceBunchSetId, diffBunchSetId,
+                    startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
+        }
+
+        return null;
+    }
+
+    private static Integer findRuledConcept(DbExporter.Database db, int rule, int concept) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getRuleColumnIndex(), rule)
+                .where(table.getConceptColumnIndex(), concept)
+                .select(table.getIdColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            final Integer id = result.hasNext()? result.next().get(0).toInt() : null;
+            if (result.hasNext()) {
+                throw new AssertionError("There should not be repeated ruled concepts");
+            }
+            return id;
+        }
+    }
+
+    private static Integer findRuledAcceptationByAgentAndBaseAcceptation(DbExporter.Database db, int agentId, int baseAcceptation) {
+        final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(ruledAccs)
+                .where(ruledAccs.getAcceptationColumnIndex(), baseAcceptation)
+                .where(ruledAccs.getAgentColumnIndex(), agentId)
+                .select(ruledAccs.getIdColumnIndex());
+        final DbResult dbResult = db.select(query);
+        final Integer result = dbResult.hasNext()? dbResult.next().get(0).toInt() : null;
+        if (dbResult.hasNext()) {
+            throw new AssertionError();
+        }
+
+        return result;
+    }
+
+    private static void insertRuledConcept(DbInserter db, int ruledConcept, int rule, int baseConcept) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), ruledConcept)
+                .put(table.getRuleColumnIndex(), rule)
+                .put(table.getConceptColumnIndex(), baseConcept)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static int insertRuledConcept(DbImporter.Database db, int rule, int concept) {
+        final int ruledConcept = getMaxConcept(db) + 1;
+        insertRuledConcept(db, ruledConcept, rule, concept);
+        return ruledConcept;
+    }
+
+    private static void insertRuledAcceptation(DbInserter db, int ruledAcceptation, int agent, int baseAcceptation) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), ruledAcceptation)
+                .put(table.getAgentColumnIndex(), agent)
+                .put(table.getAcceptationColumnIndex(), baseAcceptation)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static void insertSpan(DbInserter db, int sentenceId, ImmutableIntRange range, int dynamicAcceptation) {
+        if (range == null || range.min() < 0) {
+            throw new IllegalArgumentException();
+        }
+
+        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getSentenceIdColumnIndex(), sentenceId)
+                .put(table.getStartColumnIndex(), range.min())
+                .put(table.getLengthColumnIndex(), range.size())
+                .put(table.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static void insertStringQuery(DbInserter db, String str,
+            String mainStr, int mainAcceptation, int dynAcceptation, int strAlphabet) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getStringColumnIndex(), str)
+                .put(table.getMainStringColumnIndex(), mainStr)
+                .put(table.getMainAcceptationColumnIndex(), mainAcceptation)
+                .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
+                .put(table.getStringAlphabetColumnIndex(), strAlphabet)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static int obtainRuledConcept(DbImporter.Database db, int rule, int concept) {
+        final Integer id = findRuledConcept(db, rule, concept);
+        return (id != null)? id : insertRuledConcept(db, rule, concept);
+    }
+
+    private static Integer obtainSimpleCorrelationArray(DbImporter.Database db, int correlationId) {
+        return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 
     private void fillSearchQueryTable() {
@@ -110,6 +245,35 @@ public final class DatabaseInflater {
         }
         finally {
             result.close();
+        }
+    }
+
+    private static void applyConversion(DbImporter.Database db, Conversion conversion) {
+        final int sourceAlphabet = conversion.getSourceAlphabet();
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final String str = conversion.convert(row.get(0).toText());
+                if (str == null) {
+                    throw new AssertionError("Unable to convert word " + row.get(0).toText());
+                }
+
+                final String mainStr = row.get(1).toText();
+                final int mainAcc = row.get(2).toInt();
+                final int dynAcc = row.get(3).toInt();
+
+                insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+            }
         }
     }
 

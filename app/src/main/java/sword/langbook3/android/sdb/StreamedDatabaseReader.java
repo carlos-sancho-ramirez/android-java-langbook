@@ -22,39 +22,724 @@ import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
+import sword.collections.IntList;
 import sword.collections.IntPairMap;
+import sword.collections.IntSet;
+import sword.collections.IntTraverser;
+import sword.collections.List;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableIntArraySet;
+import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
+import sword.database.DbExporter;
+import sword.database.DbImporter;
 import sword.database.DbImporter.Database;
-import sword.langbook3.android.db.LangbookDbInserter;
+import sword.database.DbInsertQuery;
+import sword.database.DbInserter;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbTable;
+import sword.database.DbValue;
+import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.db.LangbookDatabase.addDefinition;
-import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelation;
-import static sword.langbook3.android.db.LangbookDatabase.obtainCorrelationArray;
-import static sword.langbook3.android.db.LangbookDatabase.obtainSymbolArray;
-import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertAgent;
-import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
-import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertConversion;
-import static sword.langbook3.android.db.LangbookDbInserter.insertLanguage;
-import static sword.langbook3.android.db.LangbookDbInserter.insertSentenceWithId;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSymbolArray;
+import static sword.langbook3.android.sdb.StreamedDatabaseConstants.nullCorrelationArrayId;
+import static sword.langbook3.android.sdb.StreamedDatabaseConstants.nullCorrelationId;
 
 public final class StreamedDatabaseReader {
 
     static final NaturalNumberHuffmanTable naturalNumberTable = new NaturalNumberHuffmanTable(8);
+
+    private static boolean selectExistingRow(DbExporter.Database db, DbQuery query) {
+        boolean result = false;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                dbResult.next();
+                result = true;
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError();
+            }
+        }
+
+        return result;
+    }
+
+    private static Integer selectOptionalFirstIntColumn(DbExporter.Database db, DbQuery query) {
+        Integer result = null;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                result = dbResult.next().get(0).toInt();
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError("Only 0 or 1 row was expected");
+            }
+        }
+
+        return result;
+    }
+
+    private static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(DbQuery.max(columnIndex));
+
+        try (DbResult result = db.select(query)) {
+            return result.hasNext()? result.next().get(0).toInt() : 0;
+        }
+    }
+
+    private static int getMaxLanguage(DbExporter.Database db) {
+        LangbookDbSchema.LanguagesTable table = Tables.languages;
+        return getColumnMax(db, table, table.getIdColumnIndex());
+    }
+
+    private static int getMaxAlphabet(DbExporter.Database db) {
+        LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
+        return getColumnMax(db, table, table.getIdColumnIndex());
+    }
+
+    private static int getMaxCorrelationId(DbExporter.Database db) {
+        final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
+        return getColumnMax(db, table, table.getCorrelationIdColumnIndex());
+    }
+
+    private static int getMaxCorrelationArrayId(DbExporter.Database db) {
+        final LangbookDbSchema.CorrelationArraysTable table = Tables.correlationArrays;
+        return getColumnMax(db, table, table.getArrayIdColumnIndex());
+    }
+
+    private static int getMaxConceptInAcceptations(DbExporter.Database db) {
+        LangbookDbSchema.AcceptationsTable table = Tables.acceptations;
+        return getColumnMax(db, table, table.getConceptColumnIndex());
+    }
+
+    private static int getMaxConceptInRuledConcepts(DbExporter.Database db) {
+        LangbookDbSchema.RuledConceptsTable table = Tables.ruledConcepts;
+        return getColumnMax(db, table, table.getIdColumnIndex());
+    }
+
+    private static int getMaxConceptInComplementedConcepts(DbExporter.Database db) {
+        LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getIdColumnIndex(), table.getBaseColumnIndex(), table.getComplementColumnIndex());
+
+        int max = 0;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int id = row.get(0).toInt();
+                final int base = row.get(1).toInt();
+                final int complement = row.get(2).toInt();
+                final int localMax = (id > base && id > complement)? id : (base > complement)? base : complement;
+                if (localMax > max) {
+                    max = localMax;
+                }
+            }
+        }
+
+        return max;
+    }
+
+    private static int getMaxConceptInConceptCompositions(DbExporter.Database db) {
+        LangbookDbSchema.ConceptCompositionsTable table = LangbookDbSchema.Tables.conceptCompositions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getComposedColumnIndex(), table.getItemColumnIndex());
+
+        int max = 0;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int compositionId = row.get(0).toInt();
+                final int item = row.get(1).toInt();
+                final int localMax = (item > compositionId)? item : compositionId;
+                if (localMax > max) {
+                    max = localMax;
+                }
+            }
+        }
+
+        return max;
+    }
+
+    private static int getMaxConceptInSentences(DbExporter.Database db) {
+        LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+        return getColumnMax(db, table, table.getConceptColumnIndex());
+    }
+
+    static int getMaxConcept(DbExporter.Database db) {
+        int max = getMaxConceptInAcceptations(db);
+        int temp = getMaxConceptInRuledConcepts(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxLanguage(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxAlphabet(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxConceptInComplementedConcepts(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxConceptInConceptCompositions(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        temp = getMaxConceptInSentences(db);
+        if (temp > max) {
+            max = temp;
+        }
+
+        return max;
+    }
+
+    private static String getSymbolArray(DbExporter.Database db, int id) {
+        final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), id)
+                .select(table.getStrColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            final String str = result.hasNext()? result.next().get(0).toText() : null;
+            if (result.hasNext()) {
+                throw new AssertionError("There should not be repeated identifiers");
+            }
+            return str;
+        }
+    }
+
+    private static Integer getLanguageFromAlphabet(DbExporter.Database db, int alphabet) {
+        final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), alphabet)
+                .select(table.getLanguageColumnIndex());
+
+        return selectOptionalFirstIntColumn(db, query);
+    }
+
+    static ImmutableIntKeyMap<String> getCorrelationWithText(DbExporter.Database db, int correlationId) {
+        final LangbookDbSchema.CorrelationsTable correlations = Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = Tables.symbolArrays;
+
+        final DbQuery query = new DbQuery.Builder(correlations)
+                .join(symbolArrays, correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(correlations.getCorrelationIdColumnIndex(), correlationId)
+                .select(correlations.getAlphabetColumnIndex(), correlations.columns().size() + symbolArrays.getStrColumnIndex());
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toText());
+            }
+        }
+        return builder.build();
+    }
+
+    private static ImmutableIntPairMap getConversionsMap(DbExporter.Database db) {
+        final LangbookDbSchema.ConversionsTable conversions = Tables.conversions;
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
+                .select(
+                        conversions.getSourceAlphabetColumnIndex(),
+                        conversions.getTargetAlphabetColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.put(row.get(1).toInt(), row.get(0).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    private static Conversion getConversion(DbExporter.Database db, ImmutableIntPair pair) {
+        final LangbookDbSchema.ConversionsTable conversions = Tables.conversions;
+        final LangbookDbSchema.SymbolArraysTable symbols = Tables.symbolArrays;
+
+        final int off1Symbols = conversions.columns().size();
+        final int off2Symbols = off1Symbols + symbols.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(conversions)
+                .join(symbols, conversions.getSourceColumnIndex(), symbols.getIdColumnIndex())
+                .join(symbols, conversions.getTargetColumnIndex(), symbols.getIdColumnIndex())
+                .where(conversions.getSourceAlphabetColumnIndex(), pair.left)
+                .where(conversions.getTargetAlphabetColumnIndex(), pair.right)
+                .select(
+                        off1Symbols + symbols.getStrColumnIndex(),
+                        off2Symbols + symbols.getStrColumnIndex());
+
+        final MutableMap<String, String> resultMap = MutableHashMap.empty();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final String sourceText = row.get(0).toText();
+                final String targetText = row.get(1).toText();
+                resultMap.put(sourceText, targetText);
+            }
+        }
+
+        return new Conversion(pair.left, pair.right, resultMap);
+    }
+
+    private static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
+        final int conceptCount = concepts.size();
+        if (conceptCount == 0) {
+            return 0;
+        }
+        else if (conceptCount == 1) {
+            return concepts.valueAt(0);
+        }
+
+        final LangbookDbSchema.ConceptCompositionsTable table = Tables.conceptCompositions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getComposedColumnIndex(), table.getComposedColumnIndex())
+                .where(table.getItemColumnIndex(), concepts.valueAt(0))
+                .select(table.getComposedColumnIndex(), table.columns().size() + table.getItemColumnIndex());
+
+        final MutableIntKeyMap<ImmutableIntSet> possibleSets = MutableIntKeyMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int compositionId = row.get(0).toInt();
+                final int item = row.get(1).toInt();
+
+                final ImmutableIntSet set = possibleSets.get(compositionId, ImmutableIntArraySet.empty());
+                possibleSets.put(compositionId, set.add(item));
+            }
+        }
+
+        final int mapSize = possibleSets.size();
+        for (int i = 0; i < mapSize; i++) {
+            if (possibleSets.valueAt(i).equalSet(concepts)) {
+                return possibleSets.keyAt(i);
+            }
+        }
+
+        return null;
+    }
+
+    private static Integer findSymbolArray(DbExporter.Database db, String str) {
+        final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStrColumnIndex(), str)
+                .select(table.getIdColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
+            if (result.hasNext()) {
+                throw new AssertionError();
+            }
+
+            return value;
+        }
+    }
+
+    private static boolean isSymbolArrayPresent(DbExporter.Database db, int symbolArray) {
+        final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getIdColumnIndex(), symbolArray)
+                .select(table.getIdColumnIndex());
+
+        return selectExistingRow(db, query);
+    }
+
+    private static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
+        if (correlation.size() == 0) {
+            return nullCorrelationId;
+        }
+        final ImmutableIntPairMap corr = correlation.toImmutable();
+
+        final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
+        final int offset = table.columns().size();
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getCorrelationIdColumnIndex(), table.getCorrelationIdColumnIndex())
+                .where(table.getAlphabetColumnIndex(), corr.keyAt(0))
+                .where(table.getSymbolArrayColumnIndex(), corr.valueAt(0))
+                .select(
+                        table.getCorrelationIdColumnIndex(),
+                        offset + table.getAlphabetColumnIndex(),
+                        offset + table.getSymbolArrayColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            if (result.hasNext()) {
+                List<DbValue> row = result.next();
+                int correlationId = row.get(0).toInt();
+                ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+                builder.put(row.get(1).toInt(), row.get(2).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newCorrelationId = row.get(0).toInt();
+                    if (newCorrelationId != correlationId) {
+                        if (builder.build().equals(corr)) {
+                            return correlationId;
+                        }
+
+                        correlationId = newCorrelationId;
+                        builder = new ImmutableIntPairMap.Builder();
+                    }
+
+                    builder.put(row.get(1).toInt(), row.get(2).toInt());
+                }
+
+                if (builder.build().equals(corr)) {
+                    return correlationId;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
+        final LangbookDbSchema.CorrelationArraysTable table = Tables.correlationArrays;
+        final int offset = table.columns().size();
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
+                .where(table.getArrayPositionColumnIndex(), 0)
+                .where(table.getCorrelationColumnIndex(), array.get(0))
+                .orderBy(table.getArrayIdColumnIndex(), offset + table.getArrayPositionColumnIndex())
+                .select(table.getArrayIdColumnIndex(), offset + table.getCorrelationColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            if (result.hasNext()) {
+                List<DbValue> row = result.next();
+                int arrayId = row.get(0).toInt();
+                ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
+                builder.add(row.get(1).toInt());
+
+                while (result.hasNext()) {
+                    row = result.next();
+                    int newArrayId = row.get(0).toInt();
+                    if (arrayId != newArrayId) {
+                        if (builder.build().equals(array)) {
+                            return arrayId;
+                        }
+
+                        arrayId = newArrayId;
+                        builder = new ImmutableIntList.Builder();
+                    }
+                    builder.add(row.get(1).toInt());
+                }
+
+                if (builder.build().equals(array)) {
+                    return arrayId;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean areAllAlphabetsFromSameLanguage(DbExporter.Database db, IntSet alphabets) {
+        final Integer language = getLanguageFromAlphabet(db, alphabets.valueAt(0));
+        if (language == null) {
+            return false;
+        }
+
+        final int size = alphabets.size();
+        for (int i = 1; i < size; i++) {
+            final Integer lang = getLanguageFromAlphabet(db, alphabets.valueAt(i));
+            if (lang == null || language.intValue() != lang.intValue()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void insertAlphabet(DbInserter db, int id, int language) {
+        final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getLanguageColumnIndex(), language)
+                .build();
+
+        if (db.insert(query) != id) {
+            throw new AssertionError();
+        }
+    }
+
+    private static void insertLanguage(DbInserter db, int id, String code, int mainAlphabet) {
+        final LangbookDbSchema.LanguagesTable table = Tables.languages;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getCodeColumnIndex(), code)
+                .put(table.getMainAlphabetColumnIndex(), mainAlphabet)
+                .build();
+        db.insert(query);
+    }
+
+    private static void insertComplementedConcept(DbInserter db, int base, int complementedConcept, int complement) {
+        final LangbookDbSchema.ComplementedConceptsTable table = Tables.complementedConcepts;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), complementedConcept)
+                .put(table.getBaseColumnIndex(), base)
+                .put(table.getComplementColumnIndex(), complement)
+                .build();
+        db.insert(query);
+    }
+
+    private static void insertConceptCompositionEntry(DbInserter db, int compositionId, int item) {
+        final LangbookDbSchema.ConceptCompositionsTable table = Tables.conceptCompositions;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getComposedColumnIndex(), compositionId)
+                .put(table.getItemColumnIndex(), item)
+                .build();
+        db.insert(query);
+    }
+
+    private static Integer insertSymbolArray(DbInserter db, String str) {
+        final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getStrColumnIndex(), str)
+                .build();
+        return db.insert(query);
+    }
+
+    private static void insertCorrelationEntry(DbInserter db, int correlationId, int alphabet, int symbolArray) {
+        final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getCorrelationIdColumnIndex(), correlationId)
+                .put(table.getAlphabetColumnIndex(), alphabet)
+                .put(table.getSymbolArrayColumnIndex(), symbolArray)
+                .build();
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static void insertCorrelation(DbInserter db, int correlationId, IntPairMap correlation) {
+        final int mapLength = correlation.size();
+        if (mapLength == 0) {
+            throw new IllegalArgumentException();
+        }
+
+        for (int i = 0; i < mapLength; i++) {
+            insertCorrelationEntry(db, correlationId, correlation.keyAt(i), correlation.valueAt(i));
+        }
+    }
+
+    private static void insertCorrelationArray(DbInserter db, int arrayId, IntList array) {
+        final IntTraverser iterator = array.iterator();
+        if (!array.iterator().hasNext()) {
+            throw new IllegalArgumentException();
+        }
+
+        final LangbookDbSchema.CorrelationArraysTable table = Tables.correlationArrays;
+        for (int i = 0; iterator.hasNext(); i++) {
+            final int correlation = iterator.next();
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getArrayIdColumnIndex(), arrayId)
+                    .put(table.getArrayPositionColumnIndex(), i)
+                    .put(table.getCorrelationColumnIndex(), correlation)
+                    .build();
+
+            if (db.insert(query) == null) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    private static void insertConversion(DbInserter db, int sourceAlphabet, int targetAlphabet, int source, int target) {
+        final LangbookDbSchema.ConversionsTable table = Tables.conversions;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
+                .put(table.getTargetAlphabetColumnIndex(), targetAlphabet)
+                .put(table.getSourceColumnIndex(), source)
+                .put(table.getTargetColumnIndex(), target)
+                .build();
+        db.insert(query);
+    }
+
+    static int insertAcceptation(DbInserter db, int concept, int correlationArray) {
+        final LangbookDbSchema.AcceptationsTable table = Tables.acceptations;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getConceptColumnIndex(), concept)
+                .put(table.getCorrelationArrayColumnIndex(), correlationArray)
+                .build();
+        return db.insert(query);
+    }
+
+    static void insertBunchAcceptation(DbInserter db, int bunch, int acceptation, int agent) {
+        final LangbookDbSchema.BunchAcceptationsTable table = Tables.bunchAcceptations;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getBunchColumnIndex(), bunch)
+                .put(table.getAcceptationColumnIndex(), acceptation)
+                .put(table.getAgentColumnIndex(), agent)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static void insertBunchSet(DbInserter db, int setId, IntSet bunches) {
+        if (bunches.isEmpty()) {
+            throw new IllegalArgumentException();
+        }
+
+        final LangbookDbSchema.BunchSetsTable table = Tables.bunchSets;
+        for (int bunch : bunches) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getSetIdColumnIndex(), setId)
+                    .put(table.getBunchColumnIndex(), bunch)
+                    .build();
+
+            if (db.insert(query) == null) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    private static Integer insertAgent(DbInserter db, AgentRegister register) {
+        final LangbookDbSchema.AgentsTable table = Tables.agents;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getTargetBunchColumnIndex(), register.targetBunch)
+                .put(table.getSourceBunchSetColumnIndex(), register.sourceBunchSetId)
+                .put(table.getDiffBunchSetColumnIndex(), register.diffBunchSetId)
+                .put(table.getStartMatcherColumnIndex(), register.startMatcherId)
+                .put(table.getStartAdderColumnIndex(), register.startAdderId)
+                .put(table.getEndMatcherColumnIndex(), register.endMatcherId)
+                .put(table.getEndAdderColumnIndex(), register.endAdderId)
+                .put(table.getRuleColumnIndex(), register.rule)
+                .build();
+        return db.insert(query);
+    }
+
+    private static void insertSentenceWithId(DbInserter db, int sentenceId, int concept, int symbolArray) {
+        final LangbookDbSchema.SentencesTable table = Tables.sentences;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), sentenceId)
+                .put(table.getConceptColumnIndex(), concept)
+                .put(table.getSymbolArrayColumnIndex(), symbolArray)
+                .build();
+
+        db.insert(query);
+    }
+
+    private static int obtainConceptComposition(DbImporter.Database db, ImmutableIntSet concepts) {
+        final Integer compositionConcept = findConceptComposition(db, concepts);
+        if (compositionConcept == null) {
+            int newCompositionConcept = getMaxConcept(db) + 1;
+            if (concepts.max() >= newCompositionConcept) {
+                newCompositionConcept = concepts.max() + 1;
+            }
+
+            for (int item : concepts) {
+                insertConceptCompositionEntry(db, newCompositionConcept, item);
+            }
+
+            return newCompositionConcept;
+        }
+
+        return compositionConcept;
+    }
+
+    private static void addDefinition(DbImporter.Database db, int baseConcept, int concept, ImmutableIntSet complements) {
+        insertComplementedConcept(db, baseConcept, concept, obtainConceptComposition(db, complements));
+    }
+
+    static int obtainSymbolArray(DbImporter.Database db, String str) {
+        Integer id = insertSymbolArray(db, str);
+        if (id != null) {
+            return id;
+        }
+
+        id = findSymbolArray(db, str);
+        if (id == null) {
+            throw new AssertionError("Unable to insert, and not present");
+        }
+
+        return id;
+    }
+
+    static Integer obtainCorrelation(DbImporter.Database db, IntPairMap correlation) {
+        final Integer foundId = findCorrelation(db, correlation);
+        if (foundId != null) {
+            return foundId;
+        }
+
+        if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
+            return null;
+        }
+
+        if (correlation.anyMatch(strId -> !isSymbolArrayPresent(db, strId))) {
+            return null;
+        }
+
+        final int newCorrelationId = getMaxCorrelationId(db) + 1;
+        insertCorrelation(db, newCorrelationId, correlation);
+        return newCorrelationId;
+    }
+
+    static Integer obtainCorrelationArray(DbImporter.Database db, IntList correlations) {
+        final Integer foundId = findCorrelationArray(db, correlations);
+        if (foundId != null) {
+            return foundId;
+        }
+
+        if (correlations.isEmpty()) {
+            return null;
+        }
+
+        final List<ImmutableIntKeyMap<String>> array = correlations.map(id -> getCorrelationWithText(db, id));
+        if (array.anyMatch(ImmutableIntKeyMap::isEmpty)) {
+            return null;
+        }
+
+        final ImmutableIntSet alphabets = array.map(ImmutableIntKeyMap::keySet).reduce(ImmutableIntSet::addAll);
+        if (!areAllAlphabetsFromSameLanguage(db, alphabets)) {
+            return null;
+        }
+
+        final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+        if (alphabets.anyMatch(conversionMap.keySet()::contains)) {
+            return null;
+        }
+
+        for (int alphabet : alphabets) {
+            final int index = conversionMap.indexOf(alphabet);
+            if (index >= 0) {
+                final int targetAlphabet = conversionMap.keyAt(index);
+                final Conversion conversion = getConversion(db, new ImmutableIntPair(alphabet, targetAlphabet));
+                final String sourceText = array.map(c -> c.get(alphabet, "")).reduce((a, b) -> a + b);
+                final String targetText = conversion.convert(sourceText);
+                if (targetText == null) {
+                    return null;
+                }
+            }
+        }
+
+        final int maxArrayId = getMaxCorrelationArrayId(db);
+        final int newArrayId = maxArrayId + ((maxArrayId + 1 != nullCorrelationArrayId)? 1 : 2);
+        insertCorrelationArray(db, newArrayId, correlations);
+        return newArrayId;
+    }
+
     private final Database _db;
     private final InputStream _is;
     private final ProgressListener _listener;
@@ -497,7 +1182,7 @@ public final class StreamedDatabaseReader {
                     sourceBunchSetId = reusedBunchSetId;
                 }
                 else {
-                    LangbookDbInserter.insertBunchSet(_db, ++lastBunchSetId, sourceSet);
+                    insertBunchSet(_db, ++lastBunchSetId, sourceSet);
                     insertedBunchSets.put(sourceSet, lastBunchSetId);
                     sourceBunchSetId = lastBunchSetId;
                 }

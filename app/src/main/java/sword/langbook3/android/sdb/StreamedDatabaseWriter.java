@@ -3,13 +3,21 @@ package sword.langbook3.android.sdb;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import sword.bitstream.IntEncoder;
+import sword.bitstream.IntProcedure2WithIOException;
+import sword.bitstream.IntProcedureWithIOException;
+import sword.bitstream.NatEncoder;
 import sword.bitstream.OutputHuffmanStream;
 import sword.bitstream.OutputStreamWrapper;
 import sword.bitstream.Procedure2WithIOException;
 import sword.bitstream.ProcedureWithIOException;
+import sword.bitstream.RangedIntSetEncoder;
 import sword.bitstream.huffman.CharHuffmanTable;
 import sword.bitstream.huffman.DefinedHuffmanTable;
+import sword.bitstream.huffman.DefinedIntHuffmanTable;
+import sword.bitstream.huffman.IntHuffmanTable;
 import sword.bitstream.huffman.NaturalNumberHuffmanTable;
+import sword.bitstream.huffman.RangedIntHuffmanTable;
 import sword.bitstream.huffman.RangedIntegerHuffmanTable;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
@@ -39,25 +47,17 @@ import sword.collections.MutableIntValueSortedMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
 import sword.collections.SortFunction;
+import sword.database.DbExporter;
 import sword.database.DbExporter.Database;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
-import sword.bitstream.huffman.DefinedIntHuffmanTable;
-import sword.bitstream.IntEncoder;
-import sword.bitstream.huffman.IntHuffmanTable;
-import sword.bitstream.IntProcedure2WithIOException;
-import sword.bitstream.IntProcedureWithIOException;
-import sword.bitstream.NatEncoder;
-import sword.bitstream.huffman.RangedIntHuffmanTable;
-import sword.bitstream.RangedIntSetEncoder;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.AgentRegister;
 
-import static sword.langbook3.android.db.LangbookReadableDatabase.getUsedConcepts;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 
 public final class StreamedDatabaseWriter {
@@ -795,6 +795,96 @@ public final class StreamedDatabaseWriter {
         return bunchSets.toImmutable();
     }
 
+    private static ImmutableIntSet getConceptsInAcceptations(DbExporter.Database db) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getConceptColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    private static ImmutableIntSet getConceptsInRuledConcepts(DbExporter.Database db) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(),
+                table.getRuleColumnIndex(),
+                table.getConceptColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+                builder.add(row.get(2).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    private static ImmutableIntSet getConceptsFromAlphabets(DbExporter.Database db) {
+        final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(),
+                table.getLanguageColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+            }
+        }
+
+        return builder.build();
+    }
+
+    private static ImmutableIntSet getConceptsInComplementedConcepts(DbExporter.Database db) {
+        final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
+        final DbQuery query = new DbQuery.Builder(table).select(
+                table.getIdColumnIndex(),
+                table.getBaseColumnIndex(),
+                table.getComplementColumnIndex());
+
+        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+
+                final int complement = row.get(2).toInt();
+                if (complement != 0) {
+                    builder.add(complement);
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
+    private static ImmutableIntSet getConceptsInConceptCompositions(DbExporter.Database db) {
+        final LangbookDbSchema.ConceptCompositionsTable table = LangbookDbSchema.Tables.conceptCompositions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getItemColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    private static ImmutableIntSet getUsedConcepts(DbExporter.Database db) {
+        final ImmutableIntSet set = getConceptsInAcceptations(db)
+                .addAll(getConceptsInRuledConcepts(db))
+                .addAll(getConceptsFromAlphabets(db))
+                .addAll(getConceptsInComplementedConcepts(db))
+                .addAll(getConceptsInConceptCompositions(db));
+
+        if (set.contains(0)) {
+            throw new AssertionError();
+        }
+
+        return set;
+    }
+
     private ImmutableIntList writeAgents(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap correlationIdMap) throws IOException {
         final ImmutableIntKeyMap<ImmutableIntSet> bunchSets = getBunchSets(conceptIdMap);
         final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
@@ -1398,7 +1488,6 @@ public final class StreamedDatabaseWriter {
         }
         else {
             final ImmutableIntPairMap conceptIdMap = langAlphabetMappings.composeConceptMap(getUsedConcepts(_db));
-            final ImmutableIntPairMap symbolArrayLengths = symbolArrayWriterResult.lengths;
 
             setProgress(0.2f, "Writing conversions");
             writeConversions(langAlphabetMappings.alphabets, symbolArrayIdMap);

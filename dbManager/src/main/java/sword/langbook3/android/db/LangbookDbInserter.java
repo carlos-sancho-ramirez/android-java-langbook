@@ -13,7 +13,7 @@ import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 
-public final class LangbookDbInserter {
+final class LangbookDbInserter {
 
     private LangbookDbInserter() {
     }
@@ -26,7 +26,7 @@ public final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    public static void insertAlphabet(DbInserter db, int id, int language) {
+    static void insertAlphabet(DbInserter db, int id, int language) {
         final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
@@ -38,7 +38,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertLanguage(DbInserter db, int id, String code, int mainAlphabet) {
+    static void insertLanguage(DbInserter db, int id, String code, int mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = Tables.languages;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
@@ -48,7 +48,7 @@ public final class LangbookDbInserter {
         db.insert(query);
     }
 
-    public static void insertConversion(DbInserter db, int sourceAlphabet, int targetAlphabet, int source, int target) {
+    static void insertConversion(DbInserter db, int sourceAlphabet, int targetAlphabet, int source, int target) {
         final LangbookDbSchema.ConversionsTable table = Tables.conversions;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
@@ -103,7 +103,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static int insertAcceptation(DbInserter db, int concept, int correlationArray) {
+    static int insertAcceptation(DbInserter db, int concept, int correlationArray) {
         final LangbookDbSchema.AcceptationsTable table = Tables.acceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getConceptColumnIndex(), concept)
@@ -131,7 +131,7 @@ public final class LangbookDbInserter {
         db.insert(query);
     }
 
-    public static void insertBunchAcceptation(DbInserter db, int bunch, int acceptation, int agent) {
+    static void insertBunchAcceptation(DbInserter db, int bunch, int acceptation, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = Tables.bunchAcceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getBunchColumnIndex(), bunch)
@@ -144,7 +144,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertBunchSet(DbInserter db, int setId, IntSet bunches) {
+    static void insertBunchSet(DbInserter db, int setId, IntSet bunches) {
         if (bunches.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -162,7 +162,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static Integer insertAgent(DbInserter db, AgentRegister register) {
+    static Integer insertAgent(DbInserter db, AgentRegister register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getTargetBunchColumnIndex(), register.targetBunch)
@@ -190,7 +190,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertRuledAcceptation(DbInserter db, int ruledAcceptation, int agent, int baseAcceptation) {
+    static void insertRuledAcceptation(DbInserter db, int ruledAcceptation, int agent, int baseAcceptation) {
         final LangbookDbSchema.RuledAcceptationsTable table = Tables.ruledAcceptations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), ruledAcceptation)
@@ -203,7 +203,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertStringQuery(DbInserter db, String str,
+    static void insertStringQuery(DbInserter db, String str,
             String mainStr, int mainAcceptation, int dynAcceptation, int strAlphabet) {
         final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -271,7 +271,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static void insertSpan(DbInserter db, int sentenceId, ImmutableIntRange range, int dynamicAcceptation) {
+    static void insertSpan(DbInserter db, int sentenceId, ImmutableIntRange range, int dynamicAcceptation) {
         if (range == null || range.min() < 0) {
             throw new IllegalArgumentException();
         }
@@ -289,7 +289,7 @@ public final class LangbookDbInserter {
         }
     }
 
-    public static int insertSentence(DbInserter db, int concept, int symbolArray) {
+    static int insertSentence(DbInserter db, int concept, int symbolArray) {
         final LangbookDbSchema.SentencesTable table = Tables.sentences;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getConceptColumnIndex(), concept)
@@ -297,16 +297,5 @@ public final class LangbookDbInserter {
                 .build();
 
         return db.insert(query);
-    }
-
-    public static void insertSentenceWithId(DbInserter db, int sentenceId, int concept, int symbolArray) {
-        final LangbookDbSchema.SentencesTable table = Tables.sentences;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), sentenceId)
-                .put(table.getConceptColumnIndex(), concept)
-                .put(table.getSymbolArrayColumnIndex(), symbolArray)
-                .build();
-
-        db.insert(query);
     }
 }
