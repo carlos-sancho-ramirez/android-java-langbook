@@ -1,1 +1,1 @@
-include ':app', ':dbManager', ':database', ':bitstream'
+include ':app', ':dbManager', ':dbSerializer', ':dbSchema', ':database', ':bitstream'

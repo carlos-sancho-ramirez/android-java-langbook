@@ -478,7 +478,7 @@ public final class DatabaseInflater {
                 result[firstDependency] = result[index];
                 result[index++] = temp;
             }
-        } while(index > 0);
+        } while (index > 0);
 
         return ids;
     }

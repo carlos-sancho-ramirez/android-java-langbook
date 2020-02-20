@@ -53,8 +53,8 @@ import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.sdb.StreamedDatabaseConstants.nullCorrelationArrayId;
-import static sword.langbook3.android.sdb.StreamedDatabaseConstants.nullCorrelationId;
+import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
+import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ID;
 
 public final class StreamedDatabaseReader {
 
@@ -368,7 +368,7 @@ public final class StreamedDatabaseReader {
 
     private static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
-            return nullCorrelationId;
+            return NULL_CORRELATION_ID;
         }
         final ImmutableIntPairMap corr = correlation.toImmutable();
 
@@ -735,7 +735,7 @@ public final class StreamedDatabaseReader {
         }
 
         final int maxArrayId = getMaxCorrelationArrayId(db);
-        final int newArrayId = maxArrayId + ((maxArrayId + 1 != nullCorrelationArrayId)? 1 : 2);
+        final int newArrayId = maxArrayId + ((maxArrayId + 1 != NULL_CORRELATION_ARRAY_ID)? 1 : 2);
         insertCorrelationArray(db, newArrayId, correlations);
         return newArrayId;
     }
@@ -903,7 +903,7 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    public static class AgentBunches {
+    static final class AgentBunches {
         private final int _target;
         private final ImmutableIntSet _sources;
         private final ImmutableIntSet _diff;
@@ -914,7 +914,7 @@ public final class StreamedDatabaseReader {
             _diff = diff;
         }
 
-        public boolean dependsOn(AgentBunches agent) {
+        boolean dependsOn(AgentBunches agent) {
             final int target = agent._target;
             return _sources.contains(target) || _diff.contains(target);
         }

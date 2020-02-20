@@ -68,12 +68,12 @@ import sword.langbook3.android.models.SynonymTranslationResult;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
-import static sword.langbook3.android.db.LangbookDatabase.nullCorrelationArrayId;
-import static sword.langbook3.android.db.LangbookDatabase.nullCorrelationId;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
+import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
 public final class LangbookReadableDatabase {
@@ -338,7 +338,7 @@ public final class LangbookReadableDatabase {
 
     static Integer findCorrelation(DbExporter.Database db, IntKeyMap<String> correlation) {
         if (correlation.size() == 0) {
-            return nullCorrelationId;
+            return NULL_CORRELATION_ID;
         }
         final ImmutableIntKeyMap<String> corr = correlation.toImmutable();
 
@@ -393,7 +393,7 @@ public final class LangbookReadableDatabase {
 
     static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
-            return nullCorrelationId;
+            return NULL_CORRELATION_ID;
         }
         final ImmutableIntPairMap corr = correlation.toImmutable();
 
@@ -481,7 +481,7 @@ public final class LangbookReadableDatabase {
 
     static Integer findCorrelationArray(DbExporter.Database db, int... correlations) {
         if (correlations.length == 0) {
-            return nullCorrelationArrayId;
+            return NULL_CORRELATION_ARRAY_ID;
         }
 
         LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
@@ -1173,7 +1173,7 @@ public final class LangbookReadableDatabase {
     }
 
     private static int[] getCorrelationArray(DbExporter.Database db, int id) {
-        if (id == nullCorrelationArrayId) {
+        if (id == NULL_CORRELATION_ARRAY_ID) {
             return new int[0];
         }
 

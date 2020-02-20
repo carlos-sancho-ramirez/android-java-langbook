@@ -39,6 +39,16 @@ public final class LangbookDbSchema implements DbSchema {
      */
     public static final int MAX_ALLOWED_SCORE = 20;
 
+    /**
+     * Reserved for empty correlations
+     */
+    public static final int NULL_CORRELATION_ID = 0;
+
+    /**
+     * Reserved for empty correlation arrays
+     */
+    public static final int NULL_CORRELATION_ARRAY_ID = 0;
+
     public static final class AcceptationsTable extends DbTable {
 
         private AcceptationsTable() {

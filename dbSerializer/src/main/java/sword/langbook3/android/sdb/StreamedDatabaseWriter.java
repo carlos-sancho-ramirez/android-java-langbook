@@ -1120,7 +1120,7 @@ public final class StreamedDatabaseWriter {
         final DbQuery query = new DbQuery.Builder(table).select(table.getArrayIdColumnIndex(), table.getCorrelationColumnIndex());
 
         try (DbResult result = _db.select(query)) {
-            while(result.hasNext()) {
+            while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 if (correlationArrays.contains(row.get(0).toInt())) {
                     correlations.add(row.get(1).toInt());

@@ -61,6 +61,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertSymbolArray;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromCorrelations;
@@ -140,10 +141,6 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.readCorrelatio
 import static sword.langbook3.android.db.LangbookReadableDatabase.readMainAlphabetFromAlphabet;
 
 public final class LangbookDatabase {
-
-    /** Reserved for empty correlations */
-    public static final int nullCorrelationId = 0;
-    public static final int nullCorrelationArrayId = 0;
 
     private LangbookDatabase() {
     }
@@ -1925,7 +1922,7 @@ public final class LangbookDatabase {
         }
 
         final int maxArrayId = getMaxCorrelationArrayId(db);
-        final int newArrayId = maxArrayId + ((maxArrayId + 1 != nullCorrelationArrayId)? 1 : 2);
+        final int newArrayId = maxArrayId + ((maxArrayId + 1 != NULL_CORRELATION_ARRAY_ID)? 1 : 2);
         LangbookDbInserter.insertCorrelationArray(db, newArrayId, correlations);
         return newArrayId;
     }
