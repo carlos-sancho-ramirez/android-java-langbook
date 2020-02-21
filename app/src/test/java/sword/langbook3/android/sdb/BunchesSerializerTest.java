@@ -2,10 +2,22 @@ package sword.langbook3.android.sdb;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableList;
+import sword.collections.MutableIntList;
 import sword.collections.Sizable;
+import sword.database.DbExporter;
+import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
+import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.BunchesManager;
+import sword.langbook3.android.db.LangbookDbSchema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -18,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Values the the AcceptationsSerializer should serialize are limited to:
  * <li>Bunches</li>
  */
-abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
+abstract class BunchesSerializerTest {
 
     abstract BunchesManager createManager(MemoryDatabase db);
 
@@ -26,6 +38,112 @@ abstract class BunchesSerializerTest extends AcceptationsSerializerTest {
         final int size = sizable.size();
         if (size != 0) {
             fail("Expected empty, but had size " + size);
+        }
+    }
+
+    private static final class AssertStream extends InputStream {
+        private final ImmutableIntList data;
+        private final int dataSizeInBytes;
+        private int byteIndex;
+
+        private AssertStream(ImmutableIntList data, int dataSizeInBytes) {
+            if (((dataSizeInBytes + 3) >>> 2) != data.size()) {
+                throw new IllegalArgumentException();
+            }
+
+            this.data = data;
+            this.dataSizeInBytes = dataSizeInBytes;
+        }
+
+        @Override
+        public int read() {
+            if (byteIndex >= dataSizeInBytes) {
+                throw new AssertionError("End of the stream already reached");
+            }
+
+            final int wordIndex = byteIndex >>> 2;
+            final int wordByteIndex = byteIndex & 3;
+            ++byteIndex;
+            return (data.valueAt(wordIndex) >>> (wordByteIndex * 8)) & 0xFF;
+        }
+
+        boolean allBytesRead() {
+            return byteIndex == dataSizeInBytes;
+        }
+    }
+
+    private static final class TestStream extends OutputStream {
+        private final MutableIntList data = MutableIntList.empty();
+        private int currentWord;
+        private int byteCount;
+
+        @Override
+        public void write(int b) {
+            final int wordByte = byteCount & 3;
+            currentWord |= (b & 0xFF) << (wordByte * 8);
+
+            ++byteCount;
+            if ((byteCount & 3) == 0) {
+                data.append(currentWord);
+                currentWord = 0;
+            }
+        }
+
+        AssertStream toInputStream() {
+            final ImmutableIntList inData = ((byteCount & 3) == 0)? data.toImmutable() : data.toImmutable().append(currentWord);
+            return new AssertStream(inData, byteCount);
+        }
+    }
+
+    static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
+        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+                .put(alphabet, text)
+                .build();
+
+        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+                .append(correlation)
+                .build();
+
+        return manager.addAcceptation(concept, correlationArray);
+    }
+
+    static ImmutableIntSet findAcceptationsMatchingText(DbExporter.Database db, String text) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getStringColumnIndex(), text)
+                .select(strings.getDynamicAcceptationColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
+    int getSingleInt(ImmutableIntSet set) {
+        final int setSize = set.size();
+        if (setSize != 1) {
+            fail("Expected set size was 1, but it was " + setSize);
+        }
+
+        return set.valueAt(0);
+    }
+
+    void assertSingleInt(int expectedValue, ImmutableIntSet set) {
+        final int actualValue = getSingleInt(set);
+        if (expectedValue != actualValue) {
+            fail("Value within the set was expected to be " + expectedValue + " but it was " + actualValue);
+        }
+    }
+
+    static MemoryDatabase cloneBySerializing(MemoryDatabase inDb) {
+        final TestStream outStream = new TestStream();
+        try {
+            new StreamedDatabaseWriter(inDb, outStream, null).write();
+            final AssertStream inStream = outStream.toInputStream();
+
+            final MemoryDatabase newDb = new MemoryDatabase();
+            new DatabaseInflater(newDb, inStream, null).read();
+            assertTrue(inStream.allBytesRead());
+            return newDb;
+        }
+        catch (IOException e) {
+            throw new AssertionError("IOException thrown");
         }
     }
 

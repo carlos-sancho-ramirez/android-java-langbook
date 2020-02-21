@@ -424,7 +424,7 @@ public final class StreamedDatabaseWriter {
             _obs.writeHuffmanSymbol(sourceAlphabetTable, sourceAlphabetIndex);
 
             if (minSourceAlphabetIndex != sourceAlphabetIndex) {
-                minTargetAlphabetIndex = minSourceAlphabetIndex;
+                minTargetAlphabetIndex = alphabetIdMap.min();
                 minSourceAlphabetIndex = sourceAlphabetIndex;
             }
 

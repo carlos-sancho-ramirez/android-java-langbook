@@ -37,6 +37,17 @@ public final class DatabaseInflater {
     private final ProgressListener _listener;
     private final StreamedDatabaseReader _dbReader;
 
+    /**
+     * Prepares the reader with the given parameters.
+     *
+     * @param db It is assumed to be a database where all the tables and indexes has been
+     *           initialized according to {@link sword.langbook3.android.db.LangbookDbSchema},
+     *           but they are empty.
+     * @param is Input stream for the data to be decoded.
+     *           This input stream should not be in the first position of the file, but 20 bytes
+     *           after, skipping the header and hash.
+     * @param listener Optional callback to display in the UI the current state. This can be null.
+     */
     public DatabaseInflater(DbImporter.Database db, InputStream is, ProgressListener listener) {
         _db = db;
         _listener = listener;

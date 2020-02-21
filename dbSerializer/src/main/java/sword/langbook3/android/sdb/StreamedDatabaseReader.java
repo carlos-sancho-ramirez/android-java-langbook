@@ -970,7 +970,7 @@ public final class StreamedDatabaseReader {
         final int minValidAlphabet = validAlphabets.min();
         final int maxValidAlphabet = validAlphabets.max();
         int minSourceAlphabet = validAlphabets.min();
-        int minTargetAlphabet = maxValidAlphabet;
+        int minTargetAlphabet = minValidAlphabet;
         for (int i = 0; i < conversionsLength; i++) {
             final RangedIntegerHuffmanTable sourceAlphabetTable = new RangedIntegerHuffmanTable(minSourceAlphabet, maxValidAlphabet);
             final int sourceAlphabet = ibs.readHuffmanSymbol(sourceAlphabetTable);

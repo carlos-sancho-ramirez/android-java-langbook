@@ -1,6 +1,7 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntValueMap;
@@ -68,6 +69,11 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     @Override
     public ImmutableIntPairMap getConversionsMap() {
         return LangbookReadableDatabase.getConversionsMap(getDatabase());
+    }
+
+    @Override
+    public ImmutableIntList getAcceptationCorrelationArray(int acceptation) {
+        return LangbookReadableDatabase.getAcceptationCorrelations(getDatabase(), acceptation).left;
     }
 
     @Override
