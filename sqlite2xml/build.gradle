@@ -9,6 +9,13 @@ version '1.0'
 sourceCompatibility = 1.8
 mainClassName = "sword.langbook3.sqlite2xml.Main"
 
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
 dependencies {
+    implementation project(':database')
+    implementation project(':dbSchema')
+    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:413abc35144ca3770e697a020849db21aa5a8382'
     implementation 'org.xerial:sqlite-jdbc:3.19.3'
 }

@@ -1,32 +1,16 @@
 package sword.langbook3.sqlite2xml;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import sword.database.DbQuery;
+import sword.langbook3.android.db.LangbookDbSchema;
 
 public final class Main {
     public static void main(String[] args) {
-        System.out.println("Hello World");
-
-        int count = 0;
-        try {
-            try (Connection connection = DriverManager.getConnection("jdbc:sqlite:sample.db")) {
-                try (Statement statement = connection.createStatement()) {
-                    statement.setQueryTimeout(60);
-                    try (ResultSet resultSet = statement.executeQuery("SELECT id FROM Acceptations")) {
-                        while (resultSet.next()) {
-                            count++;
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        try (SqliteExporterDatabase db = new SqliteExporterDatabase("sample.db")) {
+            final DbQuery query = new DbQuery.Builder(LangbookDbSchema.Tables.acceptations)
+                    .select(LangbookDbSchema.Tables.acceptations.getIdColumnIndex());
+            final int size = db.select(query).toList().size();
+            System.out.println("Found " + size + " acceptation in the database");
         }
-
-        System.out.println("Found " + count + " acceptation within the database");
     }
 
     private Main() {
