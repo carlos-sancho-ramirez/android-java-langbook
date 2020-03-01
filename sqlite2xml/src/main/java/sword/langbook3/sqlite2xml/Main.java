@@ -4,7 +4,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import sword.collections.ImmutableList;
 import sword.collections.List;
 import sword.database.DbQuery;
 import sword.database.DbResult;

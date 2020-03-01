@@ -105,7 +105,7 @@ final class SQLiteDbQuery {
         }
 
         final ImmutableList<String> conditions = builder.build();
-        return !conditions.isEmpty()? " WHERE " + conditions.reduce((a,b) -> a + " AND " + b) : "";
+        return !conditions.isEmpty()? " WHERE " + conditions.reduce((a, b) -> a + " AND " + b) : "";
     }
 
     private String getGroupingClause(int subQueryIndex) {

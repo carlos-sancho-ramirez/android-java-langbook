@@ -1,10 +1,8 @@
 package sword.langbook3.sqlite2xml;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -31,7 +29,8 @@ final class SqliteExporterDatabase implements DbExporter.Database, Closeable {
             final Statement statement = _connection.createStatement();
             statement.setQueryTimeout(60);
             return new SQLiteDbResult(statement, query.columns(), statement.executeQuery(sqlQuery));
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             e.printStackTrace();
         }
 
@@ -42,7 +41,8 @@ final class SqliteExporterDatabase implements DbExporter.Database, Closeable {
     public void close() {
         try {
             _connection.close();
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             e.printStackTrace();
         }
         _connection = null;

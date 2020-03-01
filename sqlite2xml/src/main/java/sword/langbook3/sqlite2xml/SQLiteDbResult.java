@@ -5,9 +5,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import sword.collections.AbstractTransformer;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.IntFunction;
 import sword.collections.List;
 import sword.database.DbColumn;
 import sword.database.DbIntValue;
@@ -28,7 +26,8 @@ final class SQLiteDbResult extends AbstractTransformer<List<DbValue>> implements
         _resultSet = resultSet;
         try {
             _hasNext = resultSet.next();
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             e.printStackTrace();
         }
     }
@@ -38,7 +37,8 @@ final class SQLiteDbResult extends AbstractTransformer<List<DbValue>> implements
         try {
             _resultSet.close();
             _statement.close();
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             // Nothing to be done
         }
     }
@@ -68,7 +68,8 @@ final class SQLiteDbResult extends AbstractTransformer<List<DbValue>> implements
                 else {
                     return new DbIntValue(_resultSet.getInt(column.name()));
                 }
-            } catch (SQLException e) {
+            }
+            catch (SQLException e) {
                 e.printStackTrace();
             }
 
@@ -78,7 +79,8 @@ final class SQLiteDbResult extends AbstractTransformer<List<DbValue>> implements
 
         try {
             _hasNext = _resultSet.next();
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             // Nothing to be done
         }
 
