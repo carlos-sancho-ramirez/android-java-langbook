@@ -8,3 +8,7 @@ version '1.0'
 
 sourceCompatibility = 1.8
 mainClassName = "sword.langbook3.sqlite2xml.Main"
+
+dependencies {
+    implementation 'org.xerial:sqlite-jdbc:3.19.3'
+}
