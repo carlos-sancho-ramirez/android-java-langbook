@@ -1,1 +1,1 @@
-include ':app', ':dbManager', ':dbSerializer', ':dbSchema', ':database', ':bitstream'
+include ':app', ':sqlite2xml', ':dbManager', ':dbSerializer', ':dbSchema', ':database', ':bitstream'
