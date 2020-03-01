@@ -62,7 +62,12 @@ final class SQLiteDbResult extends AbstractTransformer<List<DbValue>> implements
         final ImmutableList<DbValue> row = _columns.map(column -> {
             // Assuming for now that it is an integer column
             try {
-                return new DbIntValue(_resultSet.getInt(column.name()));
+                if (column.isText()) {
+                    return new DbStringValue(_resultSet.getString(column.name()));
+                }
+                else {
+                    return new DbIntValue(_resultSet.getInt(column.name()));
+                }
             } catch (SQLException e) {
                 e.printStackTrace();
             }
