@@ -469,7 +469,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     @Test
-    default void testReadAllMatchingBunches() {
+    default void testReadAllMatchingBunchesForSingleMatching() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -485,8 +485,43 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         addSingleAlphabetAgent(manager, 0, intSetOf(verbErConcept), diffBunches, alphabet, null, null, "er", "iendo", gerund);
 
-        ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "jugar").build();
+        ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "provocar").build();
         assertSinglePair(verbArConcept, "verbo ar", manager.readAllMatchingBunches(texts, alphabet));
+
+        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();
+        assertSinglePair(verbErConcept, "verbo er", manager.readAllMatchingBunches(texts, alphabet));
+
+        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "dormir").build();
+        assertEmpty(manager.readAllMatchingBunches(texts, alphabet));
+    }
+
+    @Test
+    default void testReadAllMatchingBunchesForMultipleMatching() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int gerund = manager.getMaxConcept() + 1;
+        final int verbArConcept = gerund + 1;
+        final int verbErConcept = verbArConcept + 1;
+        final int sustantivable = verbErConcept + 1;
+        final int noun = sustantivable + 1;
+
+        addSimpleAcceptation(manager, alphabet, verbArConcept, "verbo ar");
+        addSimpleAcceptation(manager, alphabet, verbErConcept, "verbo er");
+        addSimpleAcceptation(manager, alphabet, sustantivable, "sustantivable");
+
+        final ImmutableIntSet diffBunches = intSetOf();
+        addSingleAlphabetAgent(manager, 0, intSetOf(verbArConcept), diffBunches, alphabet, null, null, "ar", "ando", gerund);
+
+        addSingleAlphabetAgent(manager, 0, intSetOf(verbErConcept), diffBunches, alphabet, null, null, "er", "iendo", gerund);
+
+        addSingleAlphabetAgent(manager, noun, intSetOf(sustantivable), diffBunches, alphabet, null, null, "ar", "ación", gerund);
+
+        ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "provocar").build();
+        final ImmutableIntKeyMap<String> bunches = manager.readAllMatchingBunches(texts, alphabet);
+        assertContainsOnly(verbArConcept, sustantivable, bunches.keySet());
+        assertEquals("verbo ar", bunches.get(verbArConcept));
+        assertEquals("sustantivable", bunches.get(sustantivable));
 
         texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();
         assertSinglePair(verbErConcept, "verbo er", manager.readAllMatchingBunches(texts, alphabet));

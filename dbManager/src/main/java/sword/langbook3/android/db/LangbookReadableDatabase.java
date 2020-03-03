@@ -2718,7 +2718,7 @@ public final class LangbookReadableDatabase {
      * Check all bunches including agents that may match the given texts.
      *
      * For simplicity, this will only pick bunches declared as source bunches
-     * in agents that are applying a rule and has no diff bunches nor target bunch.
+     * in agents that are applying a rule and has no diff bunches.
      *
      * Required conditions are:
      * <li>The agent's matchers must match the given string</li>
@@ -2733,7 +2733,6 @@ public final class LangbookReadableDatabase {
     static ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, ImmutableIntKeyMap<String> texts, int preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
-                .where(agents.getTargetBunchColumnIndex(), NO_BUNCH)
                 .where(agents.getDiffBunchSetColumnIndex(), 0)
                 .select(agents.getSourceBunchSetColumnIndex(),
                         agents.getStartMatcherColumnIndex(),
