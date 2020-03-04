@@ -301,27 +301,32 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_PICK_BUNCHES && resultCode == RESULT_OK && data != null) {
-            final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
-            final LangbookManager manager = DbManager.getInstance().getManager();
-            if (allValidAlphabets(manager, getTexts())) {
-                final int accId = addAcceptation(manager);
-                for (int bunch : bunchSet) {
-                    manager.addAcceptationInBunch(bunch, accId);
+        if (requestCode == REQUEST_CODE_PICK_BUNCHES) {
+            if (resultCode == RESULT_OK && data != null) {
+                final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
+                final LangbookManager manager = DbManager.getInstance().getManager();
+                if (allValidAlphabets(manager, getTexts())) {
+                    final int accId = addAcceptation(manager);
+                    for (int bunch : bunchSet) {
+                        manager.addAcceptationInBunch(bunch, accId);
+                    }
+                    Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
+
+                    final Intent intent = new Intent();
+                    intent.putExtra(ResultKeys.ACCEPTATION, accId);
+                    setResult(RESULT_OK, intent);
+                    finish();
                 }
-                Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
+                else {
+                    final ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
 
-                final Intent intent = new Intent();
-                intent.putExtra(ResultKeys.ACCEPTATION, accId);
-                setResult(RESULT_OK, intent);
-                finish();
+                    final Intent intent = new Intent();
+                    intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));
+                    setResult(RESULT_OK, intent);
+                    finish();
+                }
             }
-            else {
-                final ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
-
-                final Intent intent = new Intent();
-                intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));
-                setResult(RESULT_OK, intent);
+            else if (_options.size() == 1) {
                 finish();
             }
         }
