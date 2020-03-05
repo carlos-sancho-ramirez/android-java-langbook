@@ -18,7 +18,6 @@ import sword.collections.IntFunction;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.Traversable;
-import sword.database.Database;
 import sword.database.DbColumn;
 import sword.database.DbDeleteQuery;
 import sword.database.DbExporter;
@@ -55,6 +54,8 @@ class DbManager extends SQLiteOpenHelper {
     private DatabaseExportTask _databaseExportTask;
     private ProgressListener _externalProgressListener;
     private TaskProgress _lastProgress;
+    private ManagerDatabase _managerDatabase;
+    private LangbookDatabaseManager _langbookManager;
 
     static DbManager getInstance() {
         return _instance;
@@ -89,10 +90,6 @@ class DbManager extends SQLiteOpenHelper {
 
         final long returnId = db.insert(query.getTable().name(), null, cv);
         return (returnId >= 0)? (int) returnId : null;
-    }
-
-    public Integer insert(DbInsertQuery query) {
-        return insert(getWritableDatabase(), query);
     }
 
     private static boolean delete(SQLiteDatabase db, DbDeleteQuery query) {
@@ -444,6 +441,8 @@ class DbManager extends SQLiteOpenHelper {
 
     private final class ManagerDatabase implements Database {
 
+        private int _dbWriteVersion = 1;
+
         @Override
         public DbResult select(DbQuery query) {
             return DbManager.select(getReadableDatabase(), query);
@@ -451,25 +450,59 @@ class DbManager extends SQLiteOpenHelper {
 
         @Override
         public Integer insert(DbInsertQuery query) {
+            ++_dbWriteVersion;
             return DbManager.insert(getWritableDatabase(), query);
         }
 
         @Override
         public boolean delete(DbDeleteQuery query) {
+            ++_dbWriteVersion;
             return DbManager.delete(getWritableDatabase(), query);
         }
 
         @Override
         public boolean update(DbUpdateQuery query) {
+            ++_dbWriteVersion;
             return DbManager.update(getWritableDatabase(), query);
+        }
+
+        @Override
+        public int getWriteVersion() {
+            return _dbWriteVersion;
         }
     }
 
     public Database getDatabase() {
-        return new ManagerDatabase();
+        if (_managerDatabase == null) {
+            _managerDatabase = new ManagerDatabase();
+        }
+        return _managerDatabase;
     }
 
     public LangbookManager getManager() {
-        return new LangbookDatabaseManager(getDatabase());
+        if (_langbookManager == null) {
+            _langbookManager = new LangbookDatabaseManager(getDatabase());
+        }
+
+        return _langbookManager;
+    }
+
+    public interface Database extends sword.database.Database {
+        /**
+         * Returns an integer that its incremented every time that an insert, update or delete
+         * operation is performed in this database.
+         *
+         * The idea behind this method is to call this method just after updating the UI,
+         * and keep its value in a field within that class. This method can be called later again.
+         * If the value is still the same as it was before, that no changes were performed into
+         * the database, and then the data in the UI should still be valid. But if the value is
+         * different, the data in that screen may had changed, and then a refresh may be required.
+         *
+         * Do not save the returned within the Android task (bundles or intents), as this class
+         * can disappear if the process is finished.
+         *
+         * @return A numeric value reflecting the current version of this database.
+         */
+        int getWriteVersion();
     }
 }

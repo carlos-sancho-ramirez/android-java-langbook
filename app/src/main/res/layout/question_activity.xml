@@ -21,7 +21,8 @@
         android:id="@+id/revealAnswerButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/revealAnswerButton"/>
+        android:text="@string/revealAnswerButton"
+        android:visibility="invisible"/>
 
     <LinearLayout
         android:id="@+id/rateButtonBar"

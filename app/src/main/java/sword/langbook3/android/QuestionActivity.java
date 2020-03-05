@@ -71,6 +71,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private TextView _scoreTextView;
     private long _lastClickTime;
     private ImmutableIntSet _possibleAcceptations;
+    private int _dbWriteVersion;
 
     private void readQuizDefinition(LangbookChecker checker) {
         _quizDetails = checker.getQuizDetails(_quizId);
@@ -117,7 +118,8 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
         final int fieldCount = fields.size();
         for (int i = 0; i < fieldCount; i++) {
-            final String text = !fields.get(i).isAnswer()? readFieldText(DbManager.getInstance().getManager(), i) : "?";
+            final boolean shouldDisplayText = _isAnswerVisible || !fields.get(i).isAnswer();
+            final String text = shouldDisplayText? readFieldText(DbManager.getInstance().getManager(), i) : "?";
             _fieldTextViews[i].setText(text);
         }
 
@@ -174,55 +176,74 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         setContentView(R.layout.question_activity);
 
         _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
-        final LangbookChecker checker = DbManager.getInstance().getManager();
-        readQuizDefinition(checker);
-        readCurrentKnowledge(checker);
+        findViewById(R.id.revealAnswerButton).setOnClickListener(this);
+        findViewById(R.id.goodAnswerButton).setOnClickListener(this);
+        findViewById(R.id.badAnswerButton).setOnClickListener(this);
 
-        if (_possibleAcceptations.isEmpty()) {
-            Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
-        boolean shouldRevealAnswer = false;
         boolean leaveDialogPresent = false;
         if (savedInstanceState != null) {
             _acceptation = savedInstanceState.getInt(SavedKeys.ACCEPTATION, 0);
             _goodAnswerCount = savedInstanceState.getInt(SavedKeys.GOOD_ANSWER_COUNT);
             _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_COUNT);
-            shouldRevealAnswer = savedInstanceState.getBoolean(SavedKeys.IS_ANSWER_VISIBLE);
+            _isAnswerVisible = savedInstanceState.getBoolean(SavedKeys.IS_ANSWER_VISIBLE);
             leaveDialogPresent = savedInstanceState.getBoolean(SavedKeys.LEAVE_DIALOG_PRESENT);
-        }
-
-        if (_acceptation == 0) {
-            selectAcceptation();
-        }
-
-        final LinearLayout fieldsPanel = findViewById(R.id.fieldsPanel);
-        final LayoutInflater inflater = getLayoutInflater();
-
-        final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
-        for (int i = 0; i < fields.size(); i++) {
-            inflater.inflate(R.layout.question_field, fieldsPanel, true);
-            _fieldTextViews[i] = (TextView) fieldsPanel.getChildAt(fieldsPanel.getChildCount() - 1);
-            if (!fields.get(i).isAnswer()) {
-                _fieldTextViews[i].setOnClickListener(mFieldClickListener);
-            }
-        }
-        _scoreTextView = findViewById(R.id.scoreTextView);
-
-        updateTextFields();
-
-        findViewById(R.id.revealAnswerButton).setOnClickListener(this);
-        findViewById(R.id.goodAnswerButton).setOnClickListener(this);
-        findViewById(R.id.badAnswerButton).setOnClickListener(this);
-
-        if (shouldRevealAnswer) {
-            toggleAnswerVisibility();
         }
 
         if (leaveDialogPresent) {
             showLeaveConfirmation();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        final int dbWriteVersion = DbManager.getInstance().getDatabase().getWriteVersion();
+        if (dbWriteVersion != _dbWriteVersion) {
+            _dbWriteVersion = dbWriteVersion;
+
+            final LangbookChecker checker = DbManager.getInstance().getManager();
+            readQuizDefinition(checker);
+            readCurrentKnowledge(checker);
+
+            if (_possibleAcceptations.isEmpty()) {
+                Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
+
+            if (_acceptation == 0 || !_possibleAcceptations.contains(_acceptation)) {
+                selectAcceptation();
+                _isAnswerVisible = false;
+            }
+
+            final LinearLayout fieldsPanel = findViewById(R.id.fieldsPanel);
+            fieldsPanel.removeAllViews();
+
+            final LayoutInflater inflater = getLayoutInflater();
+            final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
+            for (int i = 0; i < fields.size(); i++) {
+                inflater.inflate(R.layout.question_field, fieldsPanel, true);
+                _fieldTextViews[i] = (TextView) fieldsPanel.getChildAt(fieldsPanel.getChildCount() - 1);
+                if (!fields.get(i).isAnswer()) {
+                    _fieldTextViews[i].setOnClickListener(mFieldClickListener);
+                }
+            }
+            _scoreTextView = findViewById(R.id.scoreTextView);
+
+            updateTextFields();
+
+            final View revealAnswerButton = findViewById(R.id.revealAnswerButton);
+            final LinearLayout rateButtonBar = findViewById(R.id.rateButtonBar);
+
+            if (_isAnswerVisible) {
+                revealAnswerButton.setVisibility(View.GONE);
+                rateButtonBar.setVisibility(View.VISIBLE);
+            }
+            else {
+                revealAnswerButton.setVisibility(View.VISIBLE);
+                rateButtonBar.setVisibility(View.GONE);
+            }
         }
     }
 
