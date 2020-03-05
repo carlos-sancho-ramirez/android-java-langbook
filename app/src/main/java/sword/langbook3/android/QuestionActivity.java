@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -14,7 +13,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
@@ -54,7 +55,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private final SparseIntArray _knowledge = new SparseIntArray();
+    private MutableIntPairMap _knowledge = MutableIntPairMap.empty();
 
     private int _quizId;
     private QuizDetails _quizDetails;
@@ -69,7 +70,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private AlertDialog _dialog;
     private TextView _scoreTextView;
     private long _lastClickTime;
-    private int[] _possibleAcceptations;
+    private ImmutableIntSet _possibleAcceptations;
 
     private void readQuizDefinition(LangbookChecker checker) {
         _quizDetails = checker.getQuizDetails(_quizId);
@@ -81,14 +82,15 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     }
 
     private void selectAcceptation() {
-        final int size = _possibleAcceptations.length;
+        final int size = _possibleAcceptations.size();
         final int ponderationThreshold = MIN_ALLOWED_SCORE + (MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE) * 3 / 4;
 
-        final int[] ponders = new int[size];
+        final MutableIntPairMap ponders = MutableIntPairMap.empty();
         int ponderationCount = 0;
         for (int i = 0; i < size; i++) {
-            ponders[i] = ponderationCount;
-            final int score = _knowledge.get(_possibleAcceptations[i], INITIAL_SCORE);
+            final int acceptation = _possibleAcceptations.valueAt(i);
+            ponders.put(acceptation, ponderationCount);
+            final int score = _knowledge.get(acceptation, INITIAL_SCORE);
             final int diff = ponderationThreshold - score;
             ponderationCount += (diff > 0)? diff * diff : 1;
         }
@@ -100,7 +102,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         int max = size;
         do {
             int middle = min + (max - min) / 2;
-            if (ponders[middle] <= randomIndex) {
+            if (ponders.valueAt(middle) <= randomIndex) {
                 min = middle;
             }
             else {
@@ -108,7 +110,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
             }
         } while(max - min > 1);
 
-        _acceptation = _possibleAcceptations[min];
+        _acceptation = ponders.keyAt(min);
     }
 
     private void updateTextFields() {
@@ -176,7 +178,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         readQuizDefinition(checker);
         readCurrentKnowledge(checker);
 
-        if (_possibleAcceptations.length == 0) {
+        if (_possibleAcceptations.isEmpty()) {
             Toast.makeText(this, R.string.noValidQuestions, Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -226,16 +228,8 @@ public final class QuestionActivity extends Activity implements View.OnClickList
 
     private void readCurrentKnowledge(LangbookChecker checker) {
         final ImmutableIntPairMap knowledgeMap = checker.getCurrentKnowledge(_quizId);
-        _possibleAcceptations = new int[knowledgeMap.size()];
-        for (ImmutableIntPairMap.Entry entry : knowledgeMap.entries()) {
-            final int acceptation = entry.key();
-            _possibleAcceptations[entry.index()] = acceptation;
-
-            final int score = entry.value();
-            if (score != NO_SCORE) {
-                _knowledge.put(acceptation, score);
-            }
-        }
+        _possibleAcceptations = knowledgeMap.keySet();
+        _knowledge = knowledgeMap.filter(score -> score != NO_SCORE).mutate();
     }
 
     private void registerGoodAnswer() {
@@ -313,14 +307,12 @@ public final class QuestionActivity extends Activity implements View.OnClickList
 
     @Override
     public void onClick(DialogInterface dialogInterface, int which) {
-        switch (which) {
-            case DialogInterface.BUTTON_POSITIVE:
-                final Intent intent = new Intent();
-                intent.putExtra(ReturnKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
-                intent.putExtra(ReturnKeys.BAD_ANSWER_COUNT, _badAnswerCount);
-                setResult(Activity.RESULT_CANCELED, intent);
-                finish();
-                break;
+        if (which == DialogInterface.BUTTON_POSITIVE) {
+            final Intent intent = new Intent();
+            intent.putExtra(ReturnKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
+            intent.putExtra(ReturnKeys.BAD_ANSWER_COUNT, _badAnswerCount);
+            setResult(Activity.RESULT_CANCELED, intent);
+            finish();
         }
     }
 
