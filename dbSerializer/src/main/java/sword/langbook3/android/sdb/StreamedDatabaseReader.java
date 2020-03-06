@@ -1176,10 +1176,10 @@ public final class StreamedDatabaseReader {
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final int reusedBunchSetId = insertedBunchSets.get(sourceSet, noPresent);
+                final int reusedSourceBunchSetId = insertedBunchSets.get(sourceSet, noPresent);
                 final int sourceBunchSetId;
-                if (reusedBunchSetId != noPresent) {
-                    sourceBunchSetId = reusedBunchSetId;
+                if (reusedSourceBunchSetId != noPresent) {
+                    sourceBunchSetId = reusedSourceBunchSetId;
                 }
                 else {
                     insertBunchSet(_db, ++lastBunchSetId, sourceSet);
@@ -1187,7 +1187,16 @@ public final class StreamedDatabaseReader {
                     sourceBunchSetId = lastBunchSetId;
                 }
 
-                final int diffBunchSetId = LangbookDbSchema.Tables.bunchSets.nullReference();
+                final int reusedDiffBunchSetId = insertedBunchSets.get(diffSet, noPresent);
+                final int diffBunchSetId;
+                if (reusedDiffBunchSetId != noPresent) {
+                    diffBunchSetId = reusedDiffBunchSetId;
+                }
+                else {
+                    insertBunchSet(_db, ++lastBunchSetId, diffSet);
+                    insertedBunchSets.put(diffSet, lastBunchSetId);
+                    diffBunchSetId = lastBunchSetId;
+                }
 
                 final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 final int agentId = insertAgent(_db, register);
