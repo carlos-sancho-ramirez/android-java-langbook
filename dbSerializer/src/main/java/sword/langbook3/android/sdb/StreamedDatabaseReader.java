@@ -28,6 +28,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
+import sword.collections.IntResultFunction;
 import sword.collections.IntSet;
 import sword.collections.IntTraverser;
 import sword.collections.List;
@@ -36,7 +37,6 @@ import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
-import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableMap;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
@@ -48,6 +48,7 @@ import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.AgentRegister;
@@ -1132,14 +1133,24 @@ public final class StreamedDatabaseReader {
 
             int lastTarget = StreamedDatabaseConstants.nullBunchId;
             int minSource = validConcepts.min();
-            int lastBunchSetId = LangbookDbSchema.Tables.bunchSets.nullReference();
-            final MutableIntValueHashMap<ImmutableIntSet> insertedBunchSets = MutableIntValueHashMap.empty();
-            insertedBunchSets.put(ImmutableIntArraySet.empty(), lastBunchSetId);
+            final SyncCacheIntValueMap<ImmutableIntSet> insertedBunchSets = new SyncCacheIntValueMap<>(new IntResultFunction<ImmutableIntSet>() {
+                private int lastAssignedKey = LangbookDbSchema.Tables.bunchSets.nullReference();
+
+                @Override
+                public int apply(ImmutableIntSet bunchSet) {
+                    if (bunchSet.isEmpty()) {
+                        return LangbookDbSchema.Tables.bunchSets.nullReference();
+                    }
+                    else {
+                        insertBunchSet(_db, ++lastAssignedKey, bunchSet);
+                        return lastAssignedKey;
+                    }
+                }
+            });
 
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 
-            final int noPresent = -1;
             for (int i = 0; i < agentsLength; i++) {
                 setProgress((0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f, "Reading agent " + (i + 1) + "/" + agentsLength);
                 final RangedIntegerHuffmanTable targetTable = new RangedIntegerHuffmanTable(lastTarget, validConcepts.max());
@@ -1176,27 +1187,8 @@ public final class StreamedDatabaseReader {
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final int reusedSourceBunchSetId = insertedBunchSets.get(sourceSet, noPresent);
-                final int sourceBunchSetId;
-                if (reusedSourceBunchSetId != noPresent) {
-                    sourceBunchSetId = reusedSourceBunchSetId;
-                }
-                else {
-                    insertBunchSet(_db, ++lastBunchSetId, sourceSet);
-                    insertedBunchSets.put(sourceSet, lastBunchSetId);
-                    sourceBunchSetId = lastBunchSetId;
-                }
-
-                final int reusedDiffBunchSetId = insertedBunchSets.get(diffSet, noPresent);
-                final int diffBunchSetId;
-                if (reusedDiffBunchSetId != noPresent) {
-                    diffBunchSetId = reusedDiffBunchSetId;
-                }
-                else {
-                    insertBunchSet(_db, ++lastBunchSetId, diffSet);
-                    insertedBunchSets.put(diffSet, lastBunchSetId);
-                    diffBunchSetId = lastBunchSetId;
-                }
+                final int sourceBunchSetId = insertedBunchSets.get(sourceSet);
+                final int diffBunchSetId = insertedBunchSets.get(diffSet);
 
                 final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 final int agentId = insertAgent(_db, register);
