@@ -13,6 +13,7 @@ import sword.langbook3.android.models.AgentDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static sword.langbook3.android.sdb.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
@@ -62,7 +63,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
     AgentsManager createManager(MemoryDatabase db);
 
     @Test
-    default void testSerializeAgentApplyingRule() {
+    default void testSerializeAgentApplyingRuleNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AgentsManager inManager = createManager(inDb);
 
@@ -71,6 +72,59 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
 
+        addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
+        addSimpleAcceptation(inManager, alphabet, verbConcept, "verbo");
+        addSimpleAcceptation(inManager, alphabet, concept, "cantar");
+
+        addSingleAlphabetAgent(inManager, 0, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outLanguage = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
+
+        final int outGerundAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "gerundio"));
+        final int outGerundConcept = outManager.conceptFromAcceptation(outGerundAcceptation);
+
+        final int outVerbAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "verbo"));
+        final int outVerbConcept = outManager.conceptFromAcceptation(outVerbAcceptation);
+        assertNotEquals(outGerundConcept, outVerbConcept);
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+        assertNotEquals(outGerundConcept, outSingConcept);
+        assertNotEquals(outVerbConcept, outSingConcept);
+
+        assertEmpty(outManager.getAcceptationsInBunch(outVerbConcept));
+        assertEmpty(outManager.findBunchesWhereAcceptationIsIncluded(outSingAcceptation));
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(0, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.sourceBunches);
+        assertEmpty(outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
+        assertSinglePair(outAlphabet, "ando", outAgentDetails.endAdder);
+        assertEquals(outGerundConcept, outAgentDetails.rule);
+
+        assertNull(outManager.findRuledConcept(outGerundConcept, outSingConcept));
+        assertNull(outManager.findRuledAcceptationByAgentAndBaseAcceptation(outAgentId, outSingAcceptation));
+    }
+
+    @Test
+    default void testSerializeAgentApplyingRuleMatchingAcceptation() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+        final int gerund = inManager.getMaxConcept() + 1;
+        final int verbConcept = gerund + 1;
+        final int concept = verbConcept + 1;
+
+        addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
         final int acceptation = addSimpleAcceptation(inManager, alphabet, concept, "cantar");
         addSimpleAcceptation(inManager, alphabet, verbConcept, "verbo");
         inManager.addAcceptationInBunch(verbConcept, acceptation);
@@ -83,12 +137,17 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int outLanguage = outManager.findLanguageByCode("es");
         final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
-        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+        final int outGerundAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "gerundio"));
+        final int outGerundConcept = outManager.conceptFromAcceptation(outGerundAcceptation);
 
         final int outVerbAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "verbo"));
         final int outVerbConcept = outManager.conceptFromAcceptation(outVerbAcceptation);
-        assertNotEquals(outSingConcept, outVerbConcept);
+        assertNotEquals(outGerundConcept, outVerbConcept);
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+        assertNotEquals(outGerundConcept, outSingConcept);
+        assertNotEquals(outVerbConcept, outSingConcept);
 
         assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outVerbConcept));
         assertContainsOnly(outVerbConcept, outManager.findBunchesWhereAcceptationIsIncluded(outSingAcceptation));
@@ -102,12 +161,9 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertEmpty(outAgentDetails.startAdder);
         assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
         assertSinglePair(outAlphabet, "ando", outAgentDetails.endAdder);
+        assertEquals(outGerundConcept, outAgentDetails.rule);
 
-        final int outGerund = outAgentDetails.rule;
-        assertNotEquals(outSingConcept, outGerund);
-        assertNotEquals(outVerbConcept, outGerund);
-
-        final int outSingingConcept = outManager.findRuledConcept(outGerund, outSingConcept);
+        final int outSingingConcept = outManager.findRuledConcept(outGerundConcept, outSingConcept);
         final int outSingingAcceptation = outManager.findRuledAcceptationByAgentAndBaseAcceptation(outAgentId, outSingAcceptation);
         assertNotEquals(outSingAcceptation, outSingingAcceptation);
 
