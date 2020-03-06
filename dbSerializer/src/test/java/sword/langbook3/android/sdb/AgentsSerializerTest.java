@@ -13,8 +13,8 @@ import sword.langbook3.android.models.AgentDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static sword.langbook3.android.sdb.IntKeyMapTestUtils.assertSinglePair;
+import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAcceptationsMatchingText;
 import static sword.langbook3.android.sdb.IntTraversableTestUtils.assertContainsOnly;
@@ -41,7 +41,79 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         return manager.addAcceptation(concept, correlationArray);
     }
 
+    static void addSingleAlphabetAgent(AgentsManager manager, int targetBunch, ImmutableIntSet sourceBunches,
+            ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
+            String endAdderText, int rule) {
+        final ImmutableIntKeyMap<String> startMatcher = (startMatcherText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startMatcherText).build();
+
+        final ImmutableIntKeyMap<String> startAdder = (startAdderText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startAdderText).build();
+
+        final ImmutableIntKeyMap<String> endMatcher = (endMatcherText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endMatcherText).build();
+
+        final ImmutableIntKeyMap<String> endAdder = (endAdderText == null)? ImmutableIntKeyMap.empty() :
+                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
+
+        manager.addAgent(targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+    }
+
     AgentsManager createManager(MemoryDatabase db);
+
+    @Test
+    default void testSerializeAgentApplyingRule() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+        final int gerund = inManager.getMaxConcept() + 1;
+        final int verbConcept = gerund + 1;
+        final int concept = verbConcept + 1;
+
+        final int acceptation = addSimpleAcceptation(inManager, alphabet, concept, "cantar");
+        addSimpleAcceptation(inManager, alphabet, verbConcept, "verbo");
+        inManager.addAcceptationInBunch(verbConcept, acceptation);
+
+        addSingleAlphabetAgent(inManager, 0, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outLanguage = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+
+        final int outVerbAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "verbo"));
+        final int outVerbConcept = outManager.conceptFromAcceptation(outVerbAcceptation);
+        assertNotEquals(outSingConcept, outVerbConcept);
+
+        assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outVerbConcept));
+        assertContainsOnly(outVerbConcept, outManager.findBunchesWhereAcceptationIsIncluded(outSingAcceptation));
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(0, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.sourceBunches);
+        assertEmpty(outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
+        assertSinglePair(outAlphabet, "ando", outAgentDetails.endAdder);
+
+        final int outGerund = outAgentDetails.rule;
+        assertNotEquals(outSingConcept, outGerund);
+        assertNotEquals(outVerbConcept, outGerund);
+
+        final int outSingingConcept = outManager.findRuledConcept(outGerund, outSingConcept);
+        final int outSingingAcceptation = outManager.findRuledAcceptationByAgentAndBaseAcceptation(outAgentId, outSingAcceptation);
+        assertNotEquals(outSingAcceptation, outSingingAcceptation);
+
+        assertEquals(outSingingConcept, outManager.conceptFromAcceptation(outSingingAcceptation));
+        assertSinglePair(outAlphabet, "cantando", outManager.getAcceptationTexts(outSingingAcceptation));
+    }
 
     @Test
     default void testSerializeCopyFromSingleSourceToTargetAgentWithoutMatchingAcceptations() {
@@ -58,7 +130,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        assertNotNull(inManager.addAgent(verbBunch, sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0));
+        inManager.addAgent(verbBunch, sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -99,12 +171,12 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int inSingConcept = inManager.getMaxConcept() + 1;
         final int inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
-        assertTrue(inManager.addAcceptationInBunch(arVerbBunch, inAcceptation));
+        inManager.addAcceptationInBunch(arVerbBunch, inAcceptation);
 
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        assertNotNull(inManager.addAgent(verbBunch, sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0));
+        inManager.addAgent(verbBunch, sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
