@@ -5,10 +5,12 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
@@ -52,9 +54,18 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
 
         if (isQueryModifiable()) {
             searchField.addTextChangedListener(this);
+            searchField.setOnTouchListener((v, event) -> {
+                final int paddingRight = ((TextView) v).getTotalPaddingRight();
+                if (event.getAction() == MotionEvent.ACTION_UP && event.getX() >= v.getWidth() - paddingRight) {
+                    searchField.setText(null);
+                    return true;
+                }
+                return false;
+            });
         }
         else {
             searchField.setEnabled(false);
+            searchField.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
         }
     }
 
