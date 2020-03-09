@@ -534,6 +534,7 @@ public final class LangbookDatabase {
                         deleteKnowledge(db, acc);
                         deleteBunchAcceptation(db, agentDetails.targetBunch, acc, agentId);
                         deleteStringQueriesForDynamicAcceptation(db, acc);
+                        deleteSpansByDynamicAcceptation(db, acc);
                         if (!deleteAcceptation(db, acc) | !deleteRuledAcceptation(db, acc)) {
                             throw new AssertionError();
                         }
