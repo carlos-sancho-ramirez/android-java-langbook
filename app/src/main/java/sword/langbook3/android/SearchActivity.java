@@ -56,8 +56,10 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
             searchField.addTextChangedListener(this);
             searchField.setOnTouchListener((v, event) -> {
                 final int paddingRight = ((TextView) v).getTotalPaddingRight();
-                if (event.getAction() == MotionEvent.ACTION_UP && event.getX() >= v.getWidth() - paddingRight) {
-                    searchField.setText(null);
+                if (event.getX() >= v.getWidth() - paddingRight) {
+                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                        searchField.setText(null);
+                    }
                     return true;
                 }
                 return false;
