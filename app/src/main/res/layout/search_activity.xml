@@ -16,7 +16,8 @@
             android:maxLines="1"
             android:inputType="textNoSuggestions"
             android:drawableEnd="@drawable/ic_clear_black_24dp"
-            android:hint="@string/searchFieldHint"/>
+            android:hint="@string/searchFieldHint"
+            android:imeOptions="actionDone"/>
 
         <Button
             android:id="@+id/addWordButton"
