@@ -158,13 +158,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         boolean morphologyLinkedAcceptationFound = false;
         for (IntKeyMap.Entry<ImmutableIntKeyMap<String>> entry : _model.morphologyLinkedAcceptations.entries()) {
             final int dynAcc = entry.key();
+            final String morphStr = _model.morphologies.findFirst(morph -> morph.dynamicAcceptation == dynAcc, null).text;
             for (IntKeyMap.Entry<String> innerEntry : entry.value().entries()) {
                 if (!morphologyLinkedAcceptationFound) {
                     result.add(new HeaderItem(getString(R.string.accDetailsSectionMorphologyLinkedAcceptations)));
                     morphologyLinkedAcceptationFound = true;
                 }
 
-                final String morphStr = _model.morphologies.findFirst(morph -> morph.dynamicAcceptation == dynAcc, null).text;
                 result.add(new AcceptationNavigableItem(innerEntry.key(), "" + morphStr + " -> " + innerEntry.value(), false));
             }
         }

@@ -2991,6 +2991,27 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().assign(sentenceId -> getSentenceText(db, sentenceId));
     }
 
+    private static ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readMorphologyLinkedAcceptations(DbExporter.Database db, IntSet dynamicAcceptations, int staticAcceptation, int concept) {
+        final MutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations = MutableIntKeyMap.empty();
+        for (int dynAcc : dynamicAcceptations) {
+            final ImmutableIntKeyMap<String> conceptMap = readAcceptationSynonymsAndTranslations(db, dynAcc).map(r -> r.text);
+            final int indexForThis = conceptMap.indexOfKey(staticAcceptation);
+            ImmutableIntKeyMap<String> shrunkMap = (indexForThis >= 0)? conceptMap.removeAt(indexForThis) : conceptMap;
+
+            for (int thatStaticAcc : shrunkMap.keySet().toImmutable()) {
+                if (conceptFromAcceptation(db, thatStaticAcc) == concept) {
+                    shrunkMap = shrunkMap.removeAt(shrunkMap.indexOfKey(thatStaticAcc));
+                }
+            }
+
+            if (!shrunkMap.isEmpty()) {
+                morphologyLinkedAcceptations.put(dynAcc, shrunkMap);
+            }
+        }
+
+        return morphologyLinkedAcceptations.toImmutable();
+    }
+
     static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
         final int concept = conceptFromAcceptation(db, staticAcceptation);
         if (concept == 0) {
@@ -3020,15 +3041,8 @@ public final class LangbookReadableDatabase {
         final ImmutableList<DynamizableResult> bunchChildren = readAcceptationBunchChildren(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(db, staticAcceptation);
 
-        final MutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations = MutableIntKeyMap.empty();
-        for (int dynAcc : morphologyResults.morphologies.mapToInt(m -> m.dynamicAcceptation).toSet()) {
-            final ImmutableIntKeyMap<String> conceptMap = readAcceptationSynonymsAndTranslations(db, dynAcc).map(r -> r.text);
-            final int indexForThis = conceptMap.indexOfKey(staticAcceptation);
-            final ImmutableIntKeyMap<String> shrunkMap = (indexForThis >= 0)? conceptMap.removeAt(indexForThis) : conceptMap;
-            if (!shrunkMap.isEmpty()) {
-                morphologyLinkedAcceptations.put(dynAcc, shrunkMap);
-            }
-        }
+        final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations = readMorphologyLinkedAcceptations(db,
+                morphologyResults.morphologies.mapToInt(m -> m.dynamicAcceptation).toSet(), staticAcceptation, concept);
 
         final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, staticAcceptation);
         final int baseConceptAcceptationId = (definition.left != null)? definition.left.id : 0;
@@ -3036,7 +3050,7 @@ public final class LangbookReadableDatabase {
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
                 correlationResultPair.right, acceptationsSharingCorrelationArray, baseConceptAcceptationId,
                 baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
-                bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyLinkedAcceptations.toImmutable(),
+                bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyLinkedAcceptations,
                 morphologyResults.ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
     }
 
