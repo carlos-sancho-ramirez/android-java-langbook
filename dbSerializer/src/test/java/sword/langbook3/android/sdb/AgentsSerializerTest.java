@@ -619,4 +619,64 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outArEndedNoundConcept));
         assertEmpty(outManager.getAcceptationsInBunch(outVerbConcept));
     }
+
+    @Test
+    default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithMatchingAcceptationsOnlyInDiffBunch() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
+        final int arVerbBunch = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, inAlphabet, arVerbBunch, "verbo de primera conjugación");
+
+        final int arEndedNounsBunch = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, inAlphabet, arEndedNounsBunch, "sustantivos acabados en ar");
+
+        final int verbBunch = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, inAlphabet, verbBunch, "verbo");
+
+        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
+        inManager.addAcceptationInBunch(arEndedNounsBunch, inAcceptation);
+
+        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
+        inManager.addAgent(verbBunch, intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
+                emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+
+        final int outArVerbAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "verbo de primera conjugación"));
+        final int outArVerbConcept = outManager.conceptFromAcceptation(outArVerbAcceptation);
+
+        final int outArEndedNounsAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "sustantivos acabados en ar"));
+        final int outArEndedNoundConcept = outManager.conceptFromAcceptation(outArEndedNounsAcceptation);
+        assertNotEquals(outArVerbConcept, outArEndedNoundConcept);
+
+        final int outVerbAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "verbo"));
+        final int outVerbConcept = outManager.conceptFromAcceptation(outVerbAcceptation);
+        assertNotEquals(outArEndedNoundConcept, outVerbConcept);
+        assertNotEquals(outArVerbConcept, outVerbConcept);
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+        assertNotEquals(outArEndedNoundConcept, outSingConcept);
+        assertNotEquals(outArVerbConcept, outSingConcept);
+        assertNotEquals(outVerbConcept, outSingConcept);
+
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(outVerbConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outArVerbConcept, outAgentDetails.sourceBunches);
+        assertContainsOnly(outArEndedNoundConcept, outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertEmpty(outAgentDetails.endMatcher);
+        assertEmpty(outAgentDetails.endAdder);
+
+        assertEmpty(outManager.getAcceptationsInBunch(outArVerbConcept));
+        assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outArEndedNoundConcept));
+        assertEmpty(outManager.getAcceptationsInBunch(outVerbConcept));
+    }
 }
