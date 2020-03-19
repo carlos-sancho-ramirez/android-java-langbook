@@ -3,9 +3,11 @@ package sword.langbook3.android.sdb;
 import java.io.IOException;
 import java.io.InputStream;
 
+import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableIntSet;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
@@ -23,13 +25,13 @@ import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.database.DbQuery.concat;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainCorrelationArray;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.getMaxConcept;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.getCorrelationWithText;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.getMaxConcept;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertBunchAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainCorrelation;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainCorrelationArray;
+import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
 
 public final class DatabaseInflater {
 
@@ -395,7 +397,18 @@ public final class DatabaseInflater {
         final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
         final int acceptationsOffset = stringsOffset + strings.columns().size();
 
-        // TODO: This query does not manage the case where diff is different from null
+        final ImmutableIntSet diffAccs;
+        if (register.diffBunchSetId == 0) {
+            diffAccs = ImmutableIntArraySet.empty();
+        }
+        else {
+            final DbQuery query = new DbQuery.Builder(bunchSets)
+                    .join(bunchAccs, bunchSets.getBunchColumnIndex(), bunchAccs.getBunchColumnIndex())
+                    .where(bunchSets.getSetIdColumnIndex(), register.diffBunchSetId)
+                    .select(bunchAccsOffset + bunchAccs.getAcceptationColumnIndex());
+            diffAccs = _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        }
+
         final DbQuery query;
         if (register.sourceBunchSetId == 0) {
             query = new DbQuery.Builder(strings)
@@ -425,9 +438,12 @@ public final class DatabaseInflater {
         try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
-                final MutableIntKeyMap<String> corr = MutableIntKeyMap.empty();
                 int accId = row.get(0).toInt();
-                corr.put(row.get(1).toInt(), row.get(2).toText());
+                boolean noExcludedAcc = !diffAccs.contains(accId);
+                final MutableIntKeyMap<String> corr = MutableIntKeyMap.empty();
+                if (noExcludedAcc) {
+                    corr.put(row.get(1).toInt(), row.get(2).toText());
+                }
                 int concept = row.get(3).toInt();
 
                 int newAccId;
@@ -435,21 +451,28 @@ public final class DatabaseInflater {
                     row = result.next();
                     newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
-                        applyAgent(agentId, accId, concept, register.targetBunch,
-                                startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
+                        if (noExcludedAcc) {
+                            applyAgent(agentId, accId, concept, register.targetBunch,
+                                    startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
+                        }
 
                         accId = newAccId;
+                        noExcludedAcc = !diffAccs.contains(accId);
                         corr.clear();
-                        corr.put(row.get(1).toInt(), row.get(2).toText());
-                        concept = row.get(3).toInt();
+                        if (noExcludedAcc) {
+                            corr.put(row.get(1).toInt(), row.get(2).toText());
+                            concept = row.get(3).toInt();
+                        }
                     }
-                    else {
+                    else if (noExcludedAcc) {
                         corr.put(row.get(1).toInt(), row.get(2).toText());
                     }
                 }
 
-                applyAgent(agentId, accId, concept, register.targetBunch,
-                        startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
+                if (noExcludedAcc) {
+                    applyAgent(agentId, accId, concept, register.targetBunch,
+                            startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
+                }
             }
         }
     }
