@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.database.MemoryDatabase;
@@ -14,10 +15,10 @@ import sword.langbook3.android.models.AgentDetails;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static sword.langbook3.android.sdb.IntKeyMapTestUtils.assertSinglePair;
-import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAcceptationsMatchingText;
+import static sword.langbook3.android.sdb.IntKeyMapTestUtils.assertSinglePair;
+import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.sdb.IntTraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.sdb.IntTraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.sdb.SizableTestUtils.assertEmpty;
@@ -95,6 +96,56 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertEquals(outGerundConcept, outAgentDetails.rule);
 
         assertEmpty(outManager.findRuledConceptsByRule(outGerundConcept));
+    }
+
+    @Test
+    default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptation() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+
+        final int gerund = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
+
+        final int singConcept = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
+
+        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outLanguage = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
+
+        final int outGerundAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "gerundio"));
+        final int outGerundConcept = outManager.conceptFromAcceptation(outGerundAcceptation);
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        assertNotEquals(outGerundAcceptation, outSingAcceptation);
+
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+        assertNotEquals(outGerundConcept, outSingConcept);
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.sourceBunches);
+        assertEmpty(outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
+        assertSinglePair(outAlphabet, "ando", outAgentDetails.endAdder);
+        assertEquals(outGerundConcept, outAgentDetails.rule);
+
+        final ImmutableIntPairMap outRuledConcepts = outManager.findRuledConceptsByRule(outGerundConcept);
+        assertContainsOnly(outSingConcept, outRuledConcepts);
+        final int outSingRuledConcept = outRuledConcepts.keyAt(0);
+
+        final ImmutableIntPairMap processedMap = outManager.getAgentProcessedMap(outAgentId);
+        assertContainsOnly(outSingAcceptation, processedMap.keySet());
+        assertEquals(outSingRuledConcept, outManager.conceptFromAcceptation(processedMap.valueAt(0)));
     }
 
     @Test
