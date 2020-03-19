@@ -149,6 +149,56 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
     }
 
     @Test
+    default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingBothStaticAndDynamicAcceptation() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+
+        final int repeat = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, repeat, "repetición");
+
+        final int singConcept = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
+
+        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(), alphabet, null, null, "ar", "arar", repeat);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outLanguage = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
+
+        final int outRepeatAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "repetición"));
+        final int outRepeatConcept = outManager.conceptFromAcceptation(outRepeatAcceptation);
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        assertNotEquals(outRepeatAcceptation, outSingAcceptation);
+
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+        assertNotEquals(outRepeatConcept, outSingConcept);
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.sourceBunches);
+        assertEmpty(outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
+        assertSinglePair(outAlphabet, "arar", outAgentDetails.endAdder);
+        assertEquals(outRepeatConcept, outAgentDetails.rule);
+
+        final ImmutableIntPairMap outRuledConcepts = outManager.findRuledConceptsByRule(outRepeatConcept);
+        assertContainsOnly(outSingConcept, outRuledConcepts);
+        final int outSingRuledConcept = outRuledConcepts.keyAt(0);
+
+        final ImmutableIntPairMap processedMap = outManager.getAgentProcessedMap(outAgentId);
+        assertContainsOnly(outSingAcceptation, processedMap.keySet());
+        assertEquals(outSingRuledConcept, outManager.conceptFromAcceptation(processedMap.valueAt(0)));
+    }
+
+    @Test
     default void testSerializeAgentApplyingRuleWithEmptySourceBunch() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AgentsManager inManager = createManager(inDb);
