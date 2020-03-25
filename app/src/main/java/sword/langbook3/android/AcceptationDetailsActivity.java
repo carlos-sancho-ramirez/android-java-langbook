@@ -198,7 +198,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 morphologyFound = true;
             }
 
-            final String ruleText = r.rules.map(_model.ruleTexts::get).reduce((a, b) -> a + " + " + b);
+            final String ruleText = r.rules.reverse().map(_model.ruleTexts::get).reduce((a, b) -> a + " + " + b);
             result.add(new RuleNavigableItem(r.dynamicAcceptation, ruleText + " -> " + r.text));
         }
 

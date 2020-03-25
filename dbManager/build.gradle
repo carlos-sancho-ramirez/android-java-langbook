@@ -18,7 +18,7 @@ dependencies {
     implementation project(':collectionExtensions')
     implementation project(':database')
     implementation project(':dbSchema')
-    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:413abc35144ca3770e697a020849db21aa5a8382'
+    implementation 'com.github.carlos-sancho-ramirez:lib-java-collections:21f168543e49b7fec55de19bcc5c400fe52ad380'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.4.0'
 }
 
