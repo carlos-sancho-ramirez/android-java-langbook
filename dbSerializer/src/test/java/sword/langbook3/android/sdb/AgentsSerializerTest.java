@@ -247,6 +247,112 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
     }
 
     @Test
+    default void testSerializeAgentApplyingRuleWithoutSourceBunchNoMatchingAcceptationWithMatchingAcceptationInDiff() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+
+        final int gerund = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
+
+        final int exceptions = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, exceptions, "excepciones");
+
+        final int palate = inManager.getMaxConcept() + 1;
+        final int palateAcc = addSimpleAcceptation(inManager, alphabet, palate, "paladar");
+        inManager.addAcceptationInBunch(exceptions, palateAcc);
+
+        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outLanguage = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
+
+        final int outGerundAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "gerundio"));
+        final int outGerundConcept = outManager.conceptFromAcceptation(outGerundAcceptation);
+
+        final int outExceptionsAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "excepciones"));
+        final int outExceptionsConcept = outManager.conceptFromAcceptation(outExceptionsAcceptation);
+        assertNotEquals(outGerundConcept, outExceptionsConcept);
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.sourceBunches);
+        assertContainsOnly(outExceptionsConcept, outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
+        assertSinglePair(outAlphabet, "ando", outAgentDetails.endAdder);
+        assertEquals(outGerundConcept, outAgentDetails.rule);
+
+        assertEmpty(outManager.findRuledConceptsByRule(outGerundConcept));
+    }
+
+    @Test
+    default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptationWithMatchingAcceptationInDiff() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+
+        final int gerund = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
+
+        final int exceptions = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, exceptions, "excepciones");
+
+        final int singConcept = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
+
+        final int palate = inManager.getMaxConcept() + 1;
+        final int palateAcc = addSimpleAcceptation(inManager, alphabet, palate, "paladar");
+        inManager.addAcceptationInBunch(exceptions, palateAcc);
+
+        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outLanguage = outManager.findLanguageByCode("es");
+        final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
+
+        final int outGerundAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "gerundio"));
+        final int outGerundConcept = outManager.conceptFromAcceptation(outGerundAcceptation);
+
+        final int outExceptionsAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "excepciones"));
+        final int outExceptionsConcept = outManager.conceptFromAcceptation(outExceptionsAcceptation);
+        assertNotEquals(outGerundConcept, outExceptionsConcept);
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+        assertNotEquals(outGerundConcept, outSingConcept);
+        assertNotEquals(outExceptionsConcept, outSingConcept);
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.sourceBunches);
+        assertContainsOnly(outExceptionsConcept, outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
+        assertSinglePair(outAlphabet, "ando", outAgentDetails.endAdder);
+        assertEquals(outGerundConcept, outAgentDetails.rule);
+
+        final ImmutableIntPairMap outRuledConcepts = outManager.findRuledConceptsByRule(outGerundConcept);
+        assertContainsOnly(outSingConcept, outRuledConcepts);
+        final int outSingRuledConcept = outRuledConcepts.keyAt(0);
+
+        final ImmutableIntPairMap processedMap = outManager.getAgentProcessedMap(outAgentId);
+        assertContainsOnly(outSingAcceptation, processedMap.keySet());
+        assertEquals(outSingRuledConcept, outManager.conceptFromAcceptation(processedMap.valueAt(0)));
+    }
+
+    @Test
     default void testSerializeAgentApplyingRuleWithTargetWithoutSourceBunchNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final AgentsManager inManager = createManager(inDb);
