@@ -11,6 +11,7 @@ import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AgentsManager;
 import sword.langbook3.android.models.AgentDetails;
+import sword.langbook3.android.models.Conversion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -22,6 +23,7 @@ import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.sdb.IntTraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.sdb.IntTraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.sdb.SizableTestUtils.assertEmpty;
+import static sword.langbook3.android.sdb.SizableTestUtils.assertSize;
 
 /**
  * Include all test related to all values that a BunchesSerializer should serialize.
@@ -985,5 +987,62 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertEmpty(outManager.getAcceptationsInBunch(outArVerbConcept));
         assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outArEndedNoundConcept));
         assertEmpty(outManager.getAcceptationsInBunch(outVerbConcept));
+    }
+
+    @Test
+    default void testSerializeAgentApplyingRuleWithConversionPresent() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager inManager = createManager(inDb);
+
+        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+        final int upperCaseAlphabet = inManager.getMaxConcept() + 1;
+        final Conversion conversion = new Conversion(alphabet, upperCaseAlphabet, AcceptationsSerializerTest.upperCaseConversion);
+        inManager.addAlphabetAsConversionTarget(conversion);
+
+        final int gerund = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
+
+        final int singConcept = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
+
+        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final ImmutableIntPairMap conversionMap = outManager.getConversionsMap();
+        assertSize(1, conversionMap);
+        final int outAlphabet = conversionMap.valueAt(0);
+        final int outUpperCaseAlphabet = conversionMap.keyAt(0);
+
+        final int outGerundAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "gerundio"));
+        final int outGerundConcept = outManager.conceptFromAcceptation(outGerundAcceptation);
+
+        final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
+        final int outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
+
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
+        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.sourceBunches);
+        assertEmpty(outAgentDetails.diffBunches);
+        assertEmpty(outAgentDetails.startMatcher);
+        assertEmpty(outAgentDetails.startAdder);
+        assertSinglePair(outAlphabet, "ar", outAgentDetails.endMatcher);
+        assertSinglePair(outAlphabet, "ando", outAgentDetails.endAdder);
+        assertEquals(outGerundConcept, outAgentDetails.rule);
+
+        final ImmutableIntPairMap outRuledConcepts = outManager.findRuledConceptsByRule(outGerundConcept);
+        assertContainsOnly(outSingConcept, outRuledConcepts);
+        final int outSingRuledConcept = outRuledConcepts.keyAt(0);
+
+        final ImmutableIntPairMap processedMap = outManager.getAgentProcessedMap(outAgentId);
+        assertContainsOnly(outSingAcceptation, processedMap.keySet());
+        assertEquals(outSingRuledConcept, outManager.conceptFromAcceptation(processedMap.valueAt(0)));
+
+        final ImmutableIntKeyMap<String> texts = outManager.getAcceptationTexts(processedMap.valueAt(0));
+        assertSize(2, texts);
+        assertEquals("cantando", texts.get(outAlphabet));
+        assertEquals("CANTANDO", texts.get(outUpperCaseAlphabet));
     }
 }
