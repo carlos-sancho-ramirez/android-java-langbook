@@ -276,27 +276,46 @@ public final class LangbookDatabase {
     private static boolean applyMatchersAddersAndConversions(MutableIntKeyMap<String> correlation,
             AgentDetails details, ImmutableIntPairMap conversionMap,
             SyncCacheMap<ImmutableIntPair, Conversion> conversions) {
+        final ImmutableIntSet correlationAlphabets = correlation.keySet().toImmutable();
         for (IntKeyMap.Entry<String> entry : details.startMatcher.entries()) {
+            final int key = entry.key();
+            if (!correlationAlphabets.contains(key)) {
+                return false;
+            }
+
             final int length = entry.value().length();
-            final String text = correlation.get(entry.key()).substring(length);
-            correlation.put(entry.key(), text);
+            final String text = correlation.get(key).substring(length);
+            correlation.put(key, text);
         }
 
         for (IntKeyMap.Entry<String> entry : details.startAdder.entries()) {
-            final String text = entry.value() + correlation.get(entry.key());
-            correlation.put(entry.key(), text);
+            final int key = entry.key();
+            if (!correlationAlphabets.contains(key)) {
+                return false;
+            }
+
+            correlation.put(key, entry.value() + correlation.get(key));
         }
 
         for (IntKeyMap.Entry<String> entry : details.endMatcher.entries()) {
+            final int key = entry.key();
+            if (!correlationAlphabets.contains(key)) {
+                return false;
+            }
+
             final int length = entry.value().length();
-            String text = correlation.get(entry.key());
+            String text = correlation.get(key);
             text = text.substring(0, text.length() - length);
-            correlation.put(entry.key(), text);
+            correlation.put(key, text);
         }
 
         for (IntKeyMap.Entry<String> entry : details.endAdder.entries()) {
-            final String text = correlation.get(entry.key()) + entry.value();
-            correlation.put(entry.key(), text);
+            final int key = entry.key();
+            if (!correlationAlphabets.contains(key)) {
+                return false;
+            }
+
+            correlation.put(key, correlation.get(key) + entry.value());
         }
 
         boolean validConversion = true;

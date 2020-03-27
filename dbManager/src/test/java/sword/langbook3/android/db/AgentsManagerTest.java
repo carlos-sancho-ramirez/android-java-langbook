@@ -1289,4 +1289,29 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar"));
         assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundConcept);
     }
+
+    @Test
+    default void testAgentWithJustEndAdderForAcceptationFromOtherLanguage() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
+
+        final int myBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, myBunch, "palabras");
+        manager.addAcceptationInBunch(myBunch, singAcceptation);
+
+        final int verbalitationConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, verbalitationConcept, "verbalización");
+
+        final int agentId = addSingleAlphabetAgent(manager, 0, intSetOf(myBunch), intSetOf(), jaAlphabet, null, null, null, "する", verbalitationConcept);
+        assertEmpty(manager.getAgentProcessedMap(agentId));
+
+        final int studyConcept = manager.getMaxConcept() + 1;
+        final int studyAcceptation = addSimpleAcceptation(manager, jaAlphabet, studyConcept, "べんきょう");
+        manager.addAcceptationInBunch(myBunch, studyAcceptation);
+        assertContainsOnly(studyAcceptation, manager.getAgentProcessedMap(agentId).keySet());
+    }
 }
