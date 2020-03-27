@@ -311,6 +311,9 @@ public final class DatabaseInflater {
             matching = corrStr != null && corrStr.endsWith(matcherStr);
         }
 
+        matching &= !startAdder.keySet().anyMatch(key -> corr.get(key, null) == null);
+        matching &= !endAdder.keySet().anyMatch(key -> corr.get(key, null) == null);
+
         if (matching) {
             int targetAccId = accId;
             final boolean modifyWords = !startMatcher.equals(startAdder) || !endMatcher.equals(endAdder);

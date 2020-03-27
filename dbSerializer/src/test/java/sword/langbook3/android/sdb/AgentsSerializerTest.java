@@ -1045,4 +1045,35 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertEquals("cantando", texts.get(outAlphabet));
         assertEquals("CANTANDO", texts.get(outUpperCaseAlphabet));
     }
+
+    @Test
+    default void testSerializeAgentWithJustEndAdderForAcceptationFromOtherLanguage() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager manager = createManager(inDb);
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
+
+        final int myBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, myBunch, "palabras");
+        manager.addAcceptationInBunch(myBunch, singAcceptation);
+
+        final int studyConcept = manager.getMaxConcept() + 1;
+        final int studyAcceptation = addSimpleAcceptation(manager, jaAlphabet, studyConcept, "べんきょう");
+        manager.addAcceptationInBunch(myBunch, studyAcceptation);
+
+        final int verbalitationConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, verbalitationConcept, "verbalización");
+
+        addSingleAlphabetAgent(manager, 0, intSetOf(myBunch), intSetOf(), jaAlphabet, null, null, null, "する", verbalitationConcept);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outStudyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "べんきょう"));
+        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        assertContainsOnly(outStudyAcceptation, manager.getAgentProcessedMap(outAgentId).keySet());
+    }
 }
