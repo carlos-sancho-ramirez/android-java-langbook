@@ -165,7 +165,7 @@ final class LangbookDbInserter {
     static Integer insertAgent(DbInserter db, AgentRegister register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getTargetBunchColumnIndex(), register.targetBunch)
+                .put(table.getTargetBunchSetColumnIndex(), register.targetBunchSetId)
                 .put(table.getSourceBunchSetColumnIndex(), register.sourceBunchSetId)
                 .put(table.getDiffBunchSetColumnIndex(), register.diffBunchSetId)
                 .put(table.getStartMatcherColumnIndex(), register.startMatcherId)

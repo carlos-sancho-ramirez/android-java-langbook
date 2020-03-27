@@ -5,7 +5,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 
 public final class AgentDetails {
-    public final int targetBunch;
+    public final ImmutableIntSet targetBunches;
     public final ImmutableIntSet sourceBunches;
     public final ImmutableIntSet diffBunches;
     public final ImmutableIntKeyMap<String> startMatcher;
@@ -14,7 +14,7 @@ public final class AgentDetails {
     public final ImmutableIntKeyMap<String> endAdder;
     public final int rule;
 
-    public AgentDetails(int targetBunch, ImmutableIntSet sourceBunches,
+    public AgentDetails(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule) {
@@ -36,7 +36,7 @@ public final class AgentDetails {
         }
 
         if (startMatcher.equals(startAdder) && endMatcher.equals(endAdder)) {
-            if (targetBunch == 0) {
+            if (targetBunches.isEmpty()) {
                 throw new IllegalArgumentException();
             }
             rule = 0;
@@ -65,7 +65,7 @@ public final class AgentDetails {
             throw new IllegalArgumentException();
         }
 
-        this.targetBunch = targetBunch;
+        this.targetBunches = targetBunches;
         this.sourceBunches = sourceBunches;
         this.diffBunches = diffBunches;
         this.startMatcher = startMatcher;

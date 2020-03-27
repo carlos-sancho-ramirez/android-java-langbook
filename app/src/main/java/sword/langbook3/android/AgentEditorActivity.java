@@ -13,9 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -37,7 +34,7 @@ import sword.langbook3.android.models.AgentDetails;
 import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
-public final class AgentEditorActivity extends Activity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
+public final class AgentEditorActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_PICK_TARGET_BUNCH = 1;
     private static final int REQUEST_CODE_PICK_SOURCE_BUNCH = 2;
@@ -48,9 +45,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
+        String TARGET_BUNCH = BundleKeys.TARGET_BUNCH;
         String SOURCE_BUNCH = BundleKeys.SOURCE_BUNCH;
         String DIFF_BUNCH = BundleKeys.DIFF_BUNCH;
-        String TARGET_BUNCH = BundleKeys.TARGET_BUNCH;
     }
 
     private interface SavedKeys {
@@ -62,21 +59,21 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         activity.startActivityForResult(intent, requestCode);
     }
 
+    public static void openWithTarget(Activity activity, int requestCode, int targetBunch) {
+        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+        intent.putExtra(ArgKeys.TARGET_BUNCH, targetBunch);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     public static void openWithSource(Activity activity, int requestCode, int sourceBunch) {
         final Intent intent = new Intent(activity, AgentEditorActivity.class);
         intent.putExtra(ArgKeys.SOURCE_BUNCH, sourceBunch);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void openWithDiff(Activity activity, int requestCode, int sourceBunch) {
+    public static void openWithDiff(Activity activity, int requestCode, int diffBunch) {
         final Intent intent = new Intent(activity, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.DIFF_BUNCH, sourceBunch);
-        activity.startActivityForResult(intent, requestCode);
-    }
-
-    public static void openWithTarget(Activity activity, int requestCode, int sourceBunch) {
-        final Intent intent = new Intent(activity, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.TARGET_BUNCH, sourceBunch);
+        intent.putExtra(ArgKeys.DIFF_BUNCH, diffBunch);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -121,8 +118,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     public static final class State implements Parcelable {
-        boolean includeTargetBunch;
-        int targetBunch;
+        MutableIntList targetBunches = MutableIntList.empty();
         MutableIntList sourceBunches = MutableIntList.empty();
         MutableIntList diffBunches = MutableIntList.empty();
         MutableList<CorrelationEntry> startMatcher = MutableList.empty();
@@ -135,8 +131,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         private State(Parcel in) {
-            includeTargetBunch = (in.readByte() & 1) != 0;
-            targetBunch = in.readInt();
+            final int targetBunchesCount = in.readInt();
+            for (int i = 0; i < targetBunchesCount; i++) {
+                targetBunches.append(in.readInt());
+            }
 
             final int sourceBunchesCount = in.readInt();
             for (int i = 0; i < sourceBunchesCount; i++) {
@@ -173,8 +171,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
         @Override
         public void writeToParcel(Parcel dest, int flags) {
-            dest.writeByte((byte) (includeTargetBunch? 1 : 0));
-            dest.writeInt(targetBunch);
+            dest.writeInt(targetBunches.size());
+            for (int value : targetBunches) {
+                dest.writeInt(value);
+            }
 
             dest.writeInt(sourceBunches.size());
             for (int value : sourceBunches) {
@@ -237,8 +237,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private ImmutableIntKeyMap<String> _alphabets;
     private boolean _enabledFlagAndRuleFields;
 
-    private CheckBox _includeTargetBunchCheckBox;
-    private Button _targetBunchChangeButton;
+    private LinearLayout _targetBunchesContainer;
     private LinearLayout _sourceBunchesContainer;
     private LinearLayout _diffBunchesContainer;
     private LinearLayout _startMatchersContainer;
@@ -302,14 +301,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private void setStateValues() {
         final LangbookChecker checker = DbManager.getInstance().getManager();
-        _includeTargetBunchCheckBox.setChecked(_state.includeTargetBunch);
 
-        if (_state.targetBunch != NO_BUNCH) {
-            final TextView textView = findViewById(R.id.targetBunchText);
-            textView.setText(checker.readConceptText(_state.targetBunch, _preferredAlphabet));
-            _targetBunchChangeButton.setEnabled(_state.includeTargetBunch);
-        }
-
+        updateBunchSet(checker, _targetBunchesContainer, _state.targetBunches);
         updateBunchSet(checker, _sourceBunchesContainer, _state.sourceBunches);
         updateBunchSet(checker, _diffBunchesContainer, _state.diffBunches);
 
@@ -360,8 +353,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             final int targetBunch = getTargetBunch();
             if (agentId != 0) {
                 final AgentDetails agentDetails = checker.getAgentDetails(agentId);
-                _state.targetBunch = agentDetails.targetBunch;
-                _state.includeTargetBunch = agentDetails.targetBunch != 0;
+                _state.targetBunches = agentDetails.targetBunches.toList().mutate();
                 _state.sourceBunches = agentDetails.sourceBunches.toList().mutate();
                 _state.diffBunches = agentDetails.diffBunches.toList().mutate();
                 _state.startMatcher = toCorrelationEntryList(agentDetails.startMatcher);
@@ -370,27 +362,22 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 _state.endAdder = toCorrelationEntryList(agentDetails.endAdder);
                 _state.rule = agentDetails.rule;
             }
+            else if (targetBunch != 0) {
+                _state.targetBunches.append(targetBunch);
+            }
             else if (sourceBunch != 0) {
                 _state.sourceBunches.append(sourceBunch);
             }
             else if (diffBunch != 0) {
                 _state.diffBunches.append(diffBunch);
             }
-            else if (targetBunch != 0) {
-                _state.targetBunch = targetBunch;
-                _state.includeTargetBunch = true;
-            }
         }
 
-        _includeTargetBunchCheckBox = findViewById(R.id.includeTargetBunch);
-        _includeTargetBunchCheckBox.setOnCheckedChangeListener(this);
-
-        _targetBunchChangeButton = findViewById(R.id.targetBunchChangeButton);
-        _targetBunchChangeButton.setOnClickListener(this);
-
+        findViewById(R.id.addTargetBunchButton).setOnClickListener(this);
         findViewById(R.id.addSourceBunchButton).setOnClickListener(this);
         findViewById(R.id.addDiffBunchButton).setOnClickListener(this);
 
+        _targetBunchesContainer = findViewById(R.id.targetBunchesContainer);
         _sourceBunchesContainer = findViewById(R.id.sourceBunchesContainer);
         _diffBunchesContainer = findViewById(R.id.diffBunchesContainer);
 
@@ -559,23 +546,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         bunches.removeAt(index);
     }
 
-    @Override
-    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        if (isChecked) {
-            if (_state.targetBunch == NO_BUNCH) {
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH);
-            }
-            else {
-                _targetBunchChangeButton.setEnabled(true);
-            }
-        }
-        else {
-            _targetBunchChangeButton.setEnabled(false);
-        }
-
-        _state.includeTargetBunch = isChecked;
-    }
-
     private static ImmutableIntKeyMap<String> buildCorrelation(List<CorrelationEntry> entries) {
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         for (CorrelationEntry corrEntry : entries) {
@@ -587,7 +557,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.targetBunchChangeButton:
+            case R.id.addTargetBunchButton:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH);
                 break;
 
@@ -633,8 +603,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
                 }
                 else {
-                    final int targetBunch = _state.includeTargetBunch ? _state.targetBunch : NO_BUNCH;
-
                     final ImmutableIntKeyMap<String> startMatcher = buildCorrelation(_state.startMatcher);
                     final ImmutableIntKeyMap<String> startAdder = buildCorrelation(_state.startAdder);
                     final ImmutableIntKeyMap<String> endMatcher = buildCorrelation(_state.endMatcher);
@@ -644,10 +612,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
                     final int givenAgentId = getAgentId();
                     final LangbookManager manager = DbManager.getInstance().getManager();
+                    final ImmutableIntSet targetBunches = _state.targetBunches.toImmutable().toSet();
                     final ImmutableIntSet sourceBunches = _state.sourceBunches.toImmutable().toSet();
                     final ImmutableIntSet diffBunches = _state.diffBunches.toImmutable().toSet();
                     if (givenAgentId == 0) {
-                        final Integer agentId = manager.addAgent(targetBunch, sourceBunches, diffBunches,
+                        final Integer agentId = manager.addAgent(targetBunches, sourceBunches, diffBunches,
                                 startMatcher, startAdder, endMatcher, endAdder, rule);
                         final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
@@ -657,7 +626,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                         }
                     }
                     else {
-                        final boolean success = manager.updateAgent(givenAgentId, targetBunch, sourceBunches, diffBunches,
+                        final boolean success = manager.updateAgent(givenAgentId, targetBunches, sourceBunches, diffBunches,
                                 startMatcher, startAdder, endMatcher, endAdder, rule);
                         final int message = success? R.string.updateAgentFeedback : R.string.updateAgentError;
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
@@ -674,26 +643,15 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         final LangbookManager manager = DbManager.getInstance().getManager();
-        if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH) {
-            if (resultCode == RESULT_OK) {
-                final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-                if (acceptation == 0) {
-                    throw new AssertionError();
-                }
-
-                final int concept = manager.conceptFromAcceptation(acceptation);
-                _state.targetBunch = concept;
-
-                final String text = manager.readConceptText(concept, _preferredAlphabet);
-
-                final TextView textView = findViewById(R.id.targetBunchText);
-                textView.setText(text);
-                _targetBunchChangeButton.setEnabled(true);
+        if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH && resultCode == RESULT_OK) {
+            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
+            if (acceptation == 0) {
+                throw new AssertionError();
             }
-            else if (_state.targetBunch == NO_BUNCH) {
-                _targetBunchChangeButton.setEnabled(false);
-                _includeTargetBunchCheckBox.setChecked(false);
-            }
+
+            final int concept = manager.conceptFromAcceptation(acceptation);
+            _state.targetBunches.append(concept);
+            addBunch(DbManager.getInstance().getManager(), concept, _targetBunchesContainer, _state.targetBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_SOURCE_BUNCH && resultCode == RESULT_OK) {
             final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
@@ -737,20 +695,20 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     private String getErrorMessage() {
-        if (_state.includeTargetBunch && _state.targetBunch == NO_BUNCH) {
-            return "No valid target bunch";
+        final ImmutableIntSet targets = _state.targetBunches.toSet().toImmutable();
+        final ImmutableIntSet sources = _state.sourceBunches.toSet().toImmutable();
+        final ImmutableIntSet diffs = _state.diffBunches.toSet().toImmutable();
+
+        if (targets.anyMatch(bunch -> bunch == NO_BUNCH || sources.contains(bunch) || diffs.contains(bunch))) {
+            return "Invalid target bunch selection";
         }
 
-        for (int bunch : _state.sourceBunches) {
-            if (bunch == NO_BUNCH || _state.includeTargetBunch && bunch == _state.targetBunch || _state.diffBunches.contains(bunch)) {
-                return "Invalid bunch selection";
-            }
+        if (sources.anyMatch(bunch -> bunch == NO_BUNCH || targets.contains(bunch) || diffs.contains(bunch))) {
+            return "Invalid target bunch selection";
         }
 
-        for (int bunch : _state.diffBunches) {
-            if (bunch == NO_BUNCH || _state.includeTargetBunch && bunch == _state.targetBunch) {
-                return "Invalid bunch selection";
-            }
+        if (diffs.anyMatch(bunch -> bunch == NO_BUNCH || targets.contains(bunch) || sources.contains(bunch))) {
+            return "Invalid bunch selection";
         }
 
         final MutableIntSet alphabets = MutableIntArraySet.empty();
@@ -793,7 +751,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             alphabets.add(entry.alphabet);
         }
 
-        if (_state.sourceBunches.isEmpty() && _state.startMatcher.isEmpty() && _state.endMatcher.isEmpty()) {
+        if (sources.isEmpty() && _state.startMatcher.isEmpty() && _state.endMatcher.isEmpty()) {
             // This would select all acceptations from the database, which has no sense
             return "Source bunches and matchers cannot be both empty";
         }

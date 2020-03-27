@@ -56,7 +56,6 @@ import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema;
-import sword.langbook3.android.models.AgentRegister;
 
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 
@@ -885,6 +884,39 @@ public final class StreamedDatabaseWriter {
         return set;
     }
 
+    private static final class SingleTargetAgentRegister {
+        final int targetBunch;
+        final int sourceBunchSetId;
+        final int diffBunchSetId;
+        final int startMatcherId;
+        final int startAdderId;
+        final int endMatcherId;
+        final int endAdderId;
+        final int rule;
+
+        SingleTargetAgentRegister(int targetBunch, int sourceBunchSetId, int diffBunchSetId,
+                int startMatcherId, int startAdderId, int endMatcherId, int endAdderId, int rule) {
+
+            if (startMatcherId == startAdderId && endMatcherId == endAdderId) {
+                if (targetBunch == 0 || rule != 0) {
+                    throw new IllegalArgumentException();
+                }
+            }
+            else if (rule == 0) {
+                throw new IllegalArgumentException();
+            }
+
+            this.targetBunch = targetBunch;
+            this.sourceBunchSetId = sourceBunchSetId;
+            this.diffBunchSetId = diffBunchSetId;
+            this.startMatcherId = startMatcherId;
+            this.startAdderId = startAdderId;
+            this.endMatcherId = endMatcherId;
+            this.endAdderId = endAdderId;
+            this.rule = rule;
+        }
+    }
+
     private ImmutableIntList writeAgents(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap correlationIdMap) throws IOException {
         final ImmutableIntKeyMap<ImmutableIntSet> bunchSets = getBunchSets(conceptIdMap);
         final ImmutableIntSet emptySet = ImmutableIntArraySet.empty();
@@ -892,7 +924,7 @@ public final class StreamedDatabaseWriter {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table).select(
                         table.getIdColumnIndex(),
-                        table.getTargetBunchColumnIndex(),
+                        table.getTargetBunchSetColumnIndex(),
                         table.getSourceBunchSetColumnIndex(),
                         table.getDiffBunchSetColumnIndex(),
                         table.getStartMatcherColumnIndex(),
@@ -901,17 +933,28 @@ public final class StreamedDatabaseWriter {
                         table.getEndAdderColumnIndex(),
                         table.getRuleColumnIndex());
 
-        final SortFunction<AgentRegister> sortFunc = (a, b) -> a.targetBunch < b.targetBunch || a.targetBunch == b.targetBunch &&
+        final SortFunction<SingleTargetAgentRegister> sortFunc = (a, b) -> a.targetBunch < b.targetBunch || a.targetBunch == b.targetBunch &&
                 b.sourceBunchSetId != 0 && (a.sourceBunchSetId == 0 || bunchSets.get(a.sourceBunchSetId).min() < bunchSets.get(b.sourceBunchSetId).min());
 
-        final ImmutableHashSet.Builder<AgentRegister> agentsBuilder = new ImmutableHashSet.Builder<>();
-        final MutableIntValueHashMap<AgentRegister> agentIds = MutableIntValueHashMap.empty();
+        final ImmutableHashSet.Builder<SingleTargetAgentRegister> agentsBuilder = new ImmutableHashSet.Builder<>();
+        final MutableIntValueHashMap<SingleTargetAgentRegister> agentIds = MutableIntValueHashMap.empty();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int agentId = row.get(0).toInt();
-                final int rawTargetBunch = row.get(1).toInt();
-                final int targetBunch = (rawTargetBunch == 0)? 0 : conceptIdMap.get(rawTargetBunch);
+                final int targetBunchSetId = row.get(1).toInt();
+                final int targetBunch;
+                if (targetBunchSetId == LangbookDbSchema.Tables.bunchSets.nullReference()) {
+                    targetBunch = 0;
+                }
+                else {
+                    final ImmutableIntSet bunchSet = bunchSets.get(targetBunchSetId);
+                    if (bunchSet.size() != 1) {
+                        throw new UnsupportedOperationException("Unable to include multiple targets per agent in the version of the serializer");
+                    }
+                    targetBunch = bunchSet.valueAt(0);
+                }
+
                 final int sourceBunchSetId = row.get(2).toInt();
                 final int diffBunchSetId = row.get(3).toInt();
                 final int startMatcherId = row.get(4).toInt();
@@ -919,12 +962,12 @@ public final class StreamedDatabaseWriter {
                 final int endMatcherId = row.get(6).toInt();
                 final int endAdderId = row.get(7).toInt();
                 final int rule = row.get(8).toInt();
-                final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
+                final SingleTargetAgentRegister register = new SingleTargetAgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 agentsBuilder.add(register);
                 agentIds.put(register, agentId);
             }
         }
-        final ImmutableSortedSet<AgentRegister> agents = agentsBuilder.build().sort(sortFunc);
+        final ImmutableSortedSet<SingleTargetAgentRegister> agents = agentsBuilder.build().sort(sortFunc);
 
         final ImmutableIntPairMap bunchSetLengthFrequencyMap = agents
                 .mapToInt(agent -> bunchSets.get(agent.sourceBunchSetId, emptySet).size())
@@ -947,7 +990,7 @@ public final class StreamedDatabaseWriter {
 
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
             int lastTarget = 0;
-            for (AgentRegister agent : agents) {
+            for (SingleTargetAgentRegister agent : agents) {
                 final RangedIntegerHuffmanTable targetBunchTable = new RangedIntegerHuffmanTable(lastTarget, conceptIdMap.size());
                 _obs.writeHuffmanSymbol(targetBunchTable, agent.targetBunch);
 

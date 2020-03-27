@@ -817,9 +817,9 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    static ImmutableIntPairMap findAffectedAgentsByItsSourceWithTarget(DbExporter.Database db, int bunch) {
+    static ImmutableIntKeyMap<ImmutableIntSet> findAffectedAgentsByItsSourceWithTarget(DbExporter.Database db, int bunch) {
         if (bunch == 0) {
-            return ImmutableIntPairMap.empty();
+            return ImmutableIntKeyMap.empty();
         }
 
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
@@ -828,22 +828,22 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(bunchSets)
                 .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
                 .where(bunchSets.getBunchColumnIndex(), bunch)
-                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchColumnIndex());
+                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchSetColumnIndex());
 
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntKeyMap.Builder<ImmutableIntSet> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), row.get(1).toInt());
+                builder.put(row.get(0).toInt(), getBunchSet(db, row.get(1).toInt()));
             }
         }
 
         return builder.build();
     }
 
-    static ImmutableIntPairMap findAffectedAgentsByItsDiffWithTarget(DbExporter.Database db, int bunch) {
+    static ImmutableIntKeyMap<ImmutableIntSet> findAffectedAgentsByItsDiffWithTarget(DbExporter.Database db, int bunch) {
         if (bunch == 0) {
-            return ImmutableIntPairMap.empty();
+            return ImmutableIntKeyMap.empty();
         }
 
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
@@ -852,13 +852,13 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(bunchSets)
                 .join(agents, bunchSets.getSetIdColumnIndex(), agents.getDiffBunchSetColumnIndex())
                 .where(bunchSets.getBunchColumnIndex(), bunch)
-                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchColumnIndex());
+                .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchSetColumnIndex());
 
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntKeyMap.Builder<ImmutableIntSet> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), row.get(1).toInt());
+                builder.put(row.get(0).toInt(), getBunchSet(db, row.get(1).toInt()));
             }
         }
 
@@ -874,17 +874,17 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static ImmutableIntPairMap findAgentsWithoutSourceBunchesWithTarget(DbExporter.Database db) {
+    static ImmutableIntKeyMap<ImmutableIntSet> findAgentsWithoutSourceBunchesWithTarget(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
-                .select(agents.getIdColumnIndex(), agents.getTargetBunchColumnIndex());
+                .select(agents.getIdColumnIndex(), agents.getTargetBunchSetColumnIndex());
 
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntKeyMap.Builder<ImmutableIntSet> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), row.get(1).toInt());
+                builder.put(row.get(0).toInt(), getBunchSet(db, row.get(1).toInt()));
             }
         }
 
@@ -1315,7 +1315,7 @@ public final class LangbookReadableDatabase {
         return new ImmutablePair<>(correlationIds.toImmutable(), correlationMap.toImmutable());
     }
 
-    private static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
+    static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSetIdColumnIndex(), setId)
@@ -1790,12 +1790,16 @@ public final class LangbookReadableDatabase {
 
     private static ImmutableIntSet readAgentsWhereAcceptationIsTarget(DbExporter.Database db, int staticAcceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
 
+        final int bunchSetsOffset = acceptations.columns().size();
+        final int agentsOffset = bunchSetsOffset + bunchSets.columns().size();
         final DbQuery query = new DbQuery.Builder(acceptations)
-                .join(agents, acceptations.getConceptColumnIndex(), agents.getTargetBunchColumnIndex())
+                .join(bunchSets, acceptations.getConceptColumnIndex(), bunchSets.getBunchColumnIndex())
+                .join(agents, bunchSetsOffset + bunchSets.getSetIdColumnIndex(), agents.getTargetBunchSetColumnIndex())
                 .where(acceptations.getIdColumnIndex(), staticAcceptation)
-                .select(acceptations.columns().size() + agents.getIdColumnIndex());
+                .select(agentsOffset + agents.getIdColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
@@ -1895,22 +1899,22 @@ public final class LangbookReadableDatabase {
     static boolean hasAgentsRequiringAcceptation(DbExporter.Database db, int concept) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         DbQuery query = new DbQuery.Builder(agents)
-                .select(agents.getTargetBunchColumnIndex(), agents.getRuleColumnIndex(), agents.getSourceBunchSetColumnIndex(), agents.getDiffBunchSetColumnIndex());
+                .select(agents.getRuleColumnIndex(), agents.getTargetBunchSetColumnIndex(), agents.getSourceBunchSetColumnIndex(), agents.getDiffBunchSetColumnIndex());
 
         final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int target = row.get(0).toInt();
-                final int rule = row.get(1).toInt();
+                final int rule = row.get(0).toInt();
 
-                if (target == concept || rule == concept) {
+                if (rule == concept) {
                     return true;
                 }
 
+                final int targetBunchSet = row.get(1).toInt();
                 final int sourceBunchSet = row.get(2).toInt();
                 final int diffBunchSet = row.get(3).toInt();
-                builder.add(sourceBunchSet).add(diffBunchSet);
+                builder.add(sourceBunchSet).add(diffBunchSet).add(targetBunchSet);
             }
         }
         final ImmutableIntSet requiredBunchSets = builder.build();
@@ -2893,7 +2897,7 @@ public final class LangbookReadableDatabase {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), agentId)
-                .select(table.getTargetBunchColumnIndex(),
+                .select(table.getTargetBunchSetColumnIndex(),
                         table.getSourceBunchSetColumnIndex(),
                         table.getDiffBunchSetColumnIndex(),
                         table.getStartMatcherColumnIndex(),
@@ -2904,13 +2908,14 @@ public final class LangbookReadableDatabase {
 
         final List<DbValue> agentRow = selectOptionalSingleRow(db, query);
         if (agentRow != null) {
+            final int targetBunchSetId = agentRow.get(0).toInt();
             final int sourceBunchSetId = agentRow.get(1).toInt();
             final int diffBunchSetId = agentRow.get(2).toInt();
             final int startMatcherId = agentRow.get(3).toInt();
             final int startAdderId = agentRow.get(4).toInt();
             final int endMatcherId = agentRow.get(5).toInt();
             final int endAdderId = agentRow.get(6).toInt();
-            return new AgentRegister(agentRow.get(0).toInt(), sourceBunchSetId, diffBunchSetId,
+            return new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId,
                     startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
         }
 
@@ -2919,6 +2924,7 @@ public final class LangbookReadableDatabase {
 
     static AgentDetails getAgentDetails(DbExporter.Database db, int agentId) {
         final AgentRegister register = getAgentRegister(db, agentId);
+        final ImmutableIntSet targetBunches = getBunchSet(db, register.targetBunchSetId);
         final ImmutableIntSet sourceBunches = getBunchSet(db, register.sourceBunchSetId);
         final ImmutableIntSet diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
                 getBunchSet(db, register.diffBunchSetId) : sourceBunches;
@@ -2930,7 +2936,7 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap<String> endMatcher = correlationCache.get(register.endMatcherId);
         final ImmutableIntKeyMap<String> endAdder = correlationCache.get(register.endAdderId);
 
-        return new AgentDetails(register.targetBunch, sourceBunches, diffBunches,
+        return new AgentDetails(targetBunches, sourceBunches, diffBunches,
                 startMatcher, startAdder, endMatcher, endAdder, register.rule);
     }
 
@@ -3354,20 +3360,21 @@ public final class LangbookReadableDatabase {
     static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntSet>> getAgentExecutionOrder(DbExporter.Database db) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getIdColumnIndex(), table.getTargetBunchColumnIndex(), table.getSourceBunchSetColumnIndex(), table.getDiffBunchSetColumnIndex());
+                .select(table.getIdColumnIndex(), table.getTargetBunchSetColumnIndex(), table.getSourceBunchSetColumnIndex(), table.getDiffBunchSetColumnIndex());
 
         final MutableIntKeyMap<ImmutableIntSet> agentDependencies = MutableIntKeyMap.empty();
         final MutableIntKeyMap<ImmutableIntSet> agentDependenciesWithZero = MutableIntKeyMap.empty();
 
         final MutableIntSet agentsWithoutSource = MutableIntArraySet.empty();
-        final MutableIntPairMap agentTargets = MutableIntPairMap.empty();
+        final MutableIntKeyMap<ImmutableIntSet> agentTargets = MutableIntKeyMap.empty();
         final SyncCacheIntKeyNonNullValueMap<ImmutableIntSet> bunchSets = new SyncCacheIntKeyNonNullValueMap<>(setId -> getBunchSet(db, setId));
         try (DbResult dbResult = db.select(query)) {
             final ImmutableIntSet justZeroDependency = ImmutableIntArraySet.empty().add(0);
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int id = row.get(0).toInt();
-                agentTargets.put(id, row.get(1).toInt());
+
+                agentTargets.put(id, bunchSets.get(row.get(1).toInt()));
 
                 final ImmutableIntSet sourceBunches = bunchSets.get(row.get(2).toInt());
                 final ImmutableIntSet diffBunches = bunchSets.get(row.get(3).toInt());
@@ -3386,10 +3393,10 @@ public final class LangbookReadableDatabase {
         final int[] agentList = new int[agentCount];
         for (int i = 0; i < agentCount; i++) {
             final int agentId = agentDependencies.keyAt(i);
-            final int target = agentTargets.get(agentId);
+            final ImmutableIntSet targets = agentTargets.get(agentId);
             boolean inserted = false;
             for (int j = 0; j < i; j++) {
-                if (agentDependencies.get(agentList[j]).contains(target)) {
+                if (agentDependencies.get(agentList[j]).anyMatch(targets::contains)) {
                     for (int k = i; k > j; k--) {
                         agentList[k] = agentList[k - 1];
                     }

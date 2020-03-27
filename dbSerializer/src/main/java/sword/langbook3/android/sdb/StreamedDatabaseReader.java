@@ -25,6 +25,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntSetCreator;
 import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
@@ -619,7 +620,7 @@ public final class StreamedDatabaseReader {
     private static Integer insertAgent(DbInserter db, AgentRegister register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getTargetBunchColumnIndex(), register.targetBunch)
+                .put(table.getTargetBunchSetColumnIndex(), register.targetBunchSetId)
                 .put(table.getSourceBunchSetColumnIndex(), register.sourceBunchSetId)
                 .put(table.getDiffBunchSetColumnIndex(), register.diffBunchSetId)
                 .put(table.getStartMatcherColumnIndex(), register.startMatcherId)
@@ -1187,10 +1188,12 @@ public final class StreamedDatabaseReader {
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
+                final int targetBunchSetId = (targetBunch == 0)? Tables.bunchSets.nullReference() :
+                        insertedBunchSets.get(new ImmutableIntSetCreator().add(targetBunch).build());
                 final int sourceBunchSetId = insertedBunchSets.get(sourceSet);
                 final int diffBunchSetId = insertedBunchSets.get(diffSet);
 
-                final AgentRegister register = new AgentRegister(targetBunch, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
+                final AgentRegister register = new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 final int agentId = insertAgent(_db, register);
 
                 builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));

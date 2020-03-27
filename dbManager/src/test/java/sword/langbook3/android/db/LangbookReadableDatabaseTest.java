@@ -18,9 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
+import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.LangbookDatabase.addAlphabetCopyingFromOther;
 import static sword.langbook3.android.db.LangbookDatabase.addLanguage;
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
@@ -34,7 +34,7 @@ final class LangbookReadableDatabaseTest {
         final ImmutableIntKeyMap<String> endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
         final ImmutableIntKeyMap<String> endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
 
-        LangbookDatabase.addAgent(db, NO_BUNCH, verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
+        LangbookDatabase.addAgent(db, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
     }
 
     @Test

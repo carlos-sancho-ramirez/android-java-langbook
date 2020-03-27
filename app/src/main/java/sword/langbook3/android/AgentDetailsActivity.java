@@ -20,7 +20,6 @@ import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.DisplayableItem;
 
 import static sword.langbook3.android.SearchActivity.AGENT_QUERY_PREFIX;
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
 public final class AgentDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
@@ -95,17 +94,21 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         _register = checker.getAgentRegister(_agentId);
 
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder = new ImmutableList.Builder<>();
-        if (_register.targetBunch != NO_BUNCH) {
-            builder.add(new AcceptationDetailsAdapter.HeaderItem("Target bunches"));
-            DisplayableItem targetResult = checker.readConceptAcceptationAndText(_register.targetBunch, _preferredAlphabet);
-            builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(targetResult.id, targetResult.text, false));
+        boolean headerAdded = false;
+        for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.targetBunchSetId, _preferredAlphabet)) {
+            if (!headerAdded) {
+                headerAdded = true;
+                builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentTargetBunchesHeader)));
+            }
+
+            builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
         }
 
-        boolean headerAdded = false;
+        headerAdded = false;
         for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.sourceBunchSetId, _preferredAlphabet)) {
             if (!headerAdded) {
                 headerAdded = true;
-                builder.add(new AcceptationDetailsAdapter.HeaderItem("Source bunches"));
+                builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentSourceBunchesHeader)));
             }
 
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
@@ -115,7 +118,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.diffBunchSetId, _preferredAlphabet)) {
             if (!headerAdded) {
                 headerAdded = true;
-                builder.add(new AcceptationDetailsAdapter.HeaderItem("Diff bunches"));
+                builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentDiffBunchesHeader)));
             }
 
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
@@ -123,13 +126,13 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
         final SyncCacheIntKeyNonNullValueMap<String> alphabetTexts = new SyncCacheIntKeyNonNullValueMap<>(alphabet -> checker.readConceptText(alphabet, _preferredAlphabet));
 
-        addCorrelationSection(checker, "Start Matcher", _register.startMatcherId, alphabetTexts, builder);
-        addCorrelationSection(checker, "Start Adder", _register.startAdderId, alphabetTexts, builder);
-        addCorrelationSection(checker, "End Matcher", _register.endMatcherId, alphabetTexts, builder);
-        addCorrelationSection(checker, "End Adder", _register.endAdderId, alphabetTexts, builder);
+        addCorrelationSection(checker, getString(R.string.agentStartMatcherHeader), _register.startMatcherId, alphabetTexts, builder);
+        addCorrelationSection(checker, getString(R.string.agentStartAdderHeader), _register.startAdderId, alphabetTexts, builder);
+        addCorrelationSection(checker, getString(R.string.agentEndMatcherHeader), _register.endMatcherId, alphabetTexts, builder);
+        addCorrelationSection(checker, getString(R.string.agentEndAdderHeader), _register.endAdderId, alphabetTexts, builder);
 
         if (_register.rule != 0) {
-            builder.add(new AcceptationDetailsAdapter.HeaderItem("Applying rules"));
+            builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentRuleHeader)));
 
             final DisplayableItem ruleResult = checker.readConceptAcceptationAndText(_register.rule, _preferredAlphabet);
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(ruleResult.id, ruleResult.text, false));

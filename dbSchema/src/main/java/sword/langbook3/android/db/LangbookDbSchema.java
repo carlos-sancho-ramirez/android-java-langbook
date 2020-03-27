@@ -11,9 +11,7 @@ import sword.database.DbUniqueTextColumn;
 public final class LangbookDbSchema implements DbSchema {
 
     /**
-     * Bunch identifier used within a quiz definition, and the agent target, to denote that no bunch should be used.
-     * When this identifier is used in agent definitions as target, it indicates that its run resulting acceptations
-     * should not be stored in any bunch.
+     * Bunch identifier used within a quiz definition to denote that no bunch should be used.
      * When this identifier is used in a quiz definition, questions are not coming from acceptations within an
      * specific bunch, but it can be any acceptation within the database that matches the field restrictions.
      */
@@ -67,20 +65,19 @@ public final class LangbookDbSchema implements DbSchema {
     public static final class AgentsTable extends DbTable {
 
         private AgentsTable() {
-            super("Agents", new DbIntColumn("target"), new DbIntColumn("sourceSet"), new DbIntColumn("diffSet"),
+            super("Agents", new DbIntColumn("targetSet"), new DbIntColumn("sourceSet"), new DbIntColumn("diffSet"),
                     new DbIntColumn("startMatcher"), new DbIntColumn("startAdder"),
                     new DbIntColumn("endMatcher"), new DbIntColumn("endAdder"),
                     new DbIntColumn("rule"));
         }
 
         /**
-         * Bunch where all result coming from the agent should be stored.
+         * Bunch set where all results coming from the agent should be stored.
          *
-         * This may be 0 to indicate that the result should no be stored in any bunch.
-         * As a bunch can only be pointed as target uniquely by 0 or 1 agents (never more),
-         * then in case this column is not 0, it must be unique among all agents within the table.
+         * This may be 0, reserved for empty bunch sets, to indicate that the
+         * result should not be stored in any bunch.
          */
-        public int getTargetBunchColumnIndex() {
+        public int getTargetBunchSetColumnIndex() {
             return 1;
         }
 

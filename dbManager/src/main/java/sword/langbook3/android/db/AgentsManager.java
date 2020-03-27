@@ -11,8 +11,8 @@ public interface AgentsManager extends BunchesManager, AgentsChecker {
      *
      * This method will ensure that all affected acceptations will be refreshed before the method returns.
      *
-     * @param targetBunch Identifier for the bunch where all processed acceptations should be included,
-     *                    or 0 if the processed acceptation should not be included in any bunch.
+     * @param targetBunches Set of bunches where all processed acceptations should be included,
+     *                      or 0 if the processed acceptation should not be included in any bunch.
      * @param sourceBunches Set of bunches from where acceptations to be processed will be picked.
      *                      Any acceptation included in at least one of the bunches within the set
      *                      will be processed, except if the same acceptation is included in any of the <code>diffBunches</code>.
@@ -35,12 +35,12 @@ public interface AgentsManager extends BunchesManager, AgentsChecker {
      *             If the resulting text matches the source text, then 0 is expected here.
      * @return An identifier for the new agent if all OK, or null if not possible to add the agent.
      */
-    Integer addAgent(int targetBunch, ImmutableIntSet sourceBunches,
+    Integer addAgent(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule);
 
-    boolean updateAgent(int agentId, int targetBunch, ImmutableIntSet sourceBunches,
+    boolean updateAgent(int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
             ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
             ImmutableIntKeyMap<String> endAdder, int rule);

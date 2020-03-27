@@ -45,7 +45,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
-        assertNotNull(manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
+        assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
@@ -82,7 +82,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
-        assertNotNull(manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
+        assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
@@ -123,7 +123,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
-        final int agentId = manager.addAgent(0, intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
+        final int agentId = manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
         final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
@@ -157,23 +157,23 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int toothAcc = addSimpleAcceptation(manager, esAlphabet, toothConcept, "diente");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
-        final int arVerbAcc = addSimpleAcceptation(manager, esAlphabet, arVerbConcept, "verbo de primera conjugación");
+        addSimpleAcceptation(manager, esAlphabet, arVerbConcept, "verbo de primera conjugación");
 
         final int pluralableConcept = manager.getMaxConcept() + 1;
-        final int pluralableAcc = addSimpleAcceptation(manager, esAlphabet, pluralableConcept, "pluralizable");
+        addSimpleAcceptation(manager, esAlphabet, pluralableConcept, "pluralizable");
 
         final int firstPersonConcept = manager.getMaxConcept() + 1;
-        final int firstPersonAcc = addSimpleAcceptation(manager, esAlphabet, firstPersonConcept, "primera persona");
+        addSimpleAcceptation(manager, esAlphabet, firstPersonConcept, "primera persona");
 
         final int pluralConcept = manager.getMaxConcept() + 1;
-        final int pluralAcc = addSimpleAcceptation(manager, esAlphabet, pluralConcept, "plural");
+        addSimpleAcceptation(manager, esAlphabet, pluralConcept, "plural");
 
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
-        final int headAgent = addSingleAlphabetAgent(manager, arVerbConcept, noBunches, noBunches, esAlphabet, null, null, "ar", "ar", 0);
+        final int headAgent = addSingleAlphabetAgent(manager, intSetOf(arVerbConcept), noBunches, noBunches, esAlphabet, null, null, "ar", "ar", 0);
 
-        final int tailAgent = addSingleAlphabetAgent(manager, 0, intSetOf(arVerbConcept), noBunches, esAlphabet, null, null, "ar", "o", firstPersonConcept);
+        final int tailAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(arVerbConcept), noBunches, esAlphabet, null, null, "ar", "o", firstPersonConcept);
 
-        final int pluralAgent = addSingleAlphabetAgent(manager, 0, intSetOf(pluralableConcept), noBunches, esAlphabet, null, null, "", "s", pluralConcept);
+        final int pluralAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(pluralableConcept), noBunches, esAlphabet, null, null, "", "s", pluralConcept);
 
         assertTrue(manager.addAcceptationInBunch(pluralableConcept, toothAcc));
 

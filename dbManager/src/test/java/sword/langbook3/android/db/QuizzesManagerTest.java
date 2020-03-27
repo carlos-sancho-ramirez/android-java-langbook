@@ -138,7 +138,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .put(alphabet, "er")
                 .build();
 
-        manager.addAgent(secondConjugationVerbBunch, noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
+        manager.addAgent(intSetOf(secondConjugationVerbBunch), noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
 
         final ImmutableList<QuestionFieldDetails> quizFields = new ImmutableList.Builder<QuestionFieldDetails>()
                 .add(new QuestionFieldDetails(alphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
@@ -177,7 +177,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .put(alphabet, "ar")
                 .build();
 
-        manager.addAgent(firstConjugationVerbBunch, noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
+        manager.addAgent(intSetOf(firstConjugationVerbBunch), noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
 
         final ImmutableList<QuestionFieldDetails> quizFields = new ImmutableList.Builder<QuestionFieldDetails>()
                 .add(new QuestionFieldDetails(alphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))

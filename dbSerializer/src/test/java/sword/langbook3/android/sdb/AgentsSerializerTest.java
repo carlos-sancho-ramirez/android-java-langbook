@@ -45,7 +45,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static void addSingleAlphabetAgent(AgentsManager manager, int targetBunch, ImmutableIntSet sourceBunches,
+    static void addSingleAlphabetAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
         final ImmutableIntKeyMap<String> startMatcher = (startMatcherText == null)? ImmutableIntKeyMap.empty() :
@@ -60,7 +60,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final ImmutableIntKeyMap<String> endAdder = (endAdderText == null)? ImmutableIntKeyMap.empty() :
                 new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
 
-        manager.addAgent(targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+        manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     AgentsManager createManager(MemoryDatabase db);
@@ -75,7 +75,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int gerund = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -88,7 +88,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -113,7 +113,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int singConcept = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -132,7 +132,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -163,7 +163,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int exceptions = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, exceptions, "excepciones");
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -180,7 +180,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertContainsOnly(outExceptionsConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -208,7 +208,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int singConcept = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -230,7 +230,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertContainsOnly(outExceptionsConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -265,7 +265,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int palateAcc = addSimpleAcceptation(inManager, alphabet, palate, "paladar");
         inManager.addAcceptationInBunch(exceptions, palateAcc);
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -282,7 +282,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertContainsOnly(outExceptionsConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -314,7 +314,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int palateAcc = addSimpleAcceptation(inManager, alphabet, palate, "paladar");
         inManager.addAcceptationInBunch(exceptions, palateAcc);
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -336,7 +336,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertContainsOnly(outExceptionsConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -367,7 +367,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int gerundBunch = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, gerundBunch, "gerundios");
 
-        addSingleAlphabetAgent(inManager, gerundBunch, intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(gerundBunch), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -383,7 +383,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outGerundBunchConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outGerundBunchConcept, outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -412,7 +412,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int singConcept = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
-        addSingleAlphabetAgent(inManager, gerundBunch, intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(gerundBunch), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -438,7 +438,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outGerundBunchConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outGerundBunchConcept, outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -470,7 +470,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int singConcept = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(), alphabet, null, null, "ar", "arar", repeat);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "arar", repeat);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -489,7 +489,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -521,7 +521,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         addSimpleAcceptation(inManager, alphabet, verbConcept, "verbo");
         addSimpleAcceptation(inManager, alphabet, concept, "cantar");
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -546,7 +546,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertContainsOnly(outVerbConcept, outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -574,7 +574,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         addSimpleAcceptation(inManager, alphabet, verbConcept, "verbo");
         inManager.addAcceptationInBunch(verbConcept, acceptation);
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "er", "iendo", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(verbConcept), intSetOf(), alphabet, null, null, "er", "iendo", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -599,7 +599,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertContainsOnly(outVerbConcept, outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -627,7 +627,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         addSimpleAcceptation(inManager, alphabet, verbConcept, "verbo");
         inManager.addAcceptationInBunch(verbConcept, acceptation);
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -652,7 +652,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertContainsOnly(outVerbConcept, outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -682,7 +682,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         addSimpleAcceptation(inManager, inAlphabet, verbBunch, "verbo");
 
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        inManager.addAgent(verbBunch, intSetOf(arVerbBunch), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
+        inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -697,7 +697,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertNotEquals(outArVerbConcept, outVerbConcept);
 
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outVerbConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.targetBunches);
         assertContainsOnly(outArVerbConcept, outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -728,7 +728,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        inManager.addAgent(verbBunch, sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
+        inManager.addAgent(intSetOf(verbBunch), sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -743,7 +743,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertNotEquals(outArVerbConcept, outVerbConcept);
 
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outVerbConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.targetBunches);
         assertContainsOnly(outArVerbConcept, outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -775,7 +775,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
         final ImmutableIntSet diffBunches = noBunches.add(arEndedNounsBunch);
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        inManager.addAgent(verbBunch, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
+        inManager.addAgent(intSetOf(verbBunch), sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -795,7 +795,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertNotEquals(outArVerbConcept, outVerbConcept);
 
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outVerbConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.targetBunches);
         assertContainsOnly(outArVerbConcept, outAgentDetails.sourceBunches);
         assertContainsOnly(outArEndedNoundConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -828,7 +828,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         inManager.addAcceptationInBunch(arVerbBunch, inAcceptation);
 
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        inManager.addAgent(verbBunch, intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
+        inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -855,7 +855,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertNotEquals(outVerbConcept, outSingConcept);
 
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outVerbConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.targetBunches);
         assertContainsOnly(outArVerbConcept, outAgentDetails.sourceBunches);
         assertContainsOnly(outArEndedNoundConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -889,7 +889,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         inManager.addAcceptationInBunch(arEndedNounsBunch, inAcceptation);
 
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        inManager.addAgent(verbBunch, intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
+        inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -916,7 +916,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertNotEquals(outVerbConcept, outSingConcept);
 
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outVerbConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.targetBunches);
         assertContainsOnly(outArVerbConcept, outAgentDetails.sourceBunches);
         assertContainsOnly(outArEndedNoundConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -949,7 +949,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         inManager.addAcceptationInBunch(arEndedNounsBunch, inAcceptation);
 
         final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        inManager.addAgent(verbBunch, intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
+        inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -976,7 +976,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertNotEquals(outVerbConcept, outSingConcept);
 
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(outVerbConcept, outAgentDetails.targetBunch);
+        assertContainsOnly(outVerbConcept, outAgentDetails.targetBunches);
         assertContainsOnly(outArVerbConcept, outAgentDetails.sourceBunches);
         assertContainsOnly(outArEndedNoundConcept, outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -1005,7 +1005,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int singConcept = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
-        addSingleAlphabetAgent(inManager, 0, intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
+        addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);
@@ -1023,7 +1023,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails outAgentDetails = outManager.getAgentDetails(outAgentId);
-        assertEquals(0, outAgentDetails.targetBunch);
+        assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
         assertEmpty(outAgentDetails.diffBunches);
         assertEmpty(outAgentDetails.startMatcher);
@@ -1067,7 +1067,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int verbalitationConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, verbalitationConcept, "verbalización");
 
-        addSingleAlphabetAgent(manager, 0, intSetOf(myBunch), intSetOf(), jaAlphabet, null, null, null, "する", verbalitationConcept);
+        addSingleAlphabetAgent(manager, intSetOf(), intSetOf(myBunch), intSetOf(), jaAlphabet, null, null, null, "する", verbalitationConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
         final AgentsManager outManager = createManager(outDb);

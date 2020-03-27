@@ -72,7 +72,7 @@ public final class DatabaseInflater {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), agentId)
-                .select(table.getTargetBunchColumnIndex(),
+                .select(table.getTargetBunchSetColumnIndex(),
                         table.getSourceBunchSetColumnIndex(),
                         table.getDiffBunchSetColumnIndex(),
                         table.getStartMatcherColumnIndex(),
@@ -83,13 +83,14 @@ public final class DatabaseInflater {
 
         final List<DbValue> agentRow = selectOptionalSingleRow(db, query);
         if (agentRow != null) {
+            final int targetBunchSetId = agentRow.get(0).toInt();
             final int sourceBunchSetId = agentRow.get(1).toInt();
             final int diffBunchSetId = agentRow.get(2).toInt();
             final int startMatcherId = agentRow.get(3).toInt();
             final int startAdderId = agentRow.get(4).toInt();
             final int endMatcherId = agentRow.get(5).toInt();
             final int endAdderId = agentRow.get(6).toInt();
-            return new AgentRegister(agentRow.get(0).toInt(), sourceBunchSetId, diffBunchSetId,
+            return new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId,
                     startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
         }
 
@@ -291,7 +292,7 @@ public final class DatabaseInflater {
     }
 
     private void applyAgent(int agentId, int accId, int concept,
-            int targetBunch, IntKeyMap<String> startMatcher, IntKeyMap<String> startAdder,
+            ImmutableIntSet targetBunches, IntKeyMap<String> startMatcher, IntKeyMap<String> startAdder,
             IntKeyMap<String> endMatcher, IntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr) {
         boolean matching = true;
 
@@ -376,7 +377,7 @@ public final class DatabaseInflater {
                 targetAccId = dynAccId;
             }
 
-            if (targetBunch != StreamedDatabaseConstants.nullBunchId) {
+            for (int targetBunch : targetBunches) {
                 insertBunchAcceptation(_db, targetBunch, targetAccId, agentId);
             }
         }
@@ -399,6 +400,17 @@ public final class DatabaseInflater {
         final int bunchAccsOffset = bunchSets.columns().size();
         final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
         final int acceptationsOffset = stringsOffset + strings.columns().size();
+
+        final ImmutableIntSet targetBunches;
+        if (register.targetBunchSetId == 0) {
+            targetBunches = ImmutableIntArraySet.empty();
+        }
+        else {
+            final DbQuery query = new DbQuery.Builder(bunchSets)
+                    .where(bunchSets.getSetIdColumnIndex(), register.targetBunchSetId)
+                    .select(bunchSets.getBunchColumnIndex());
+            targetBunches = _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        }
 
         final ImmutableIntSet diffAccs;
         if (register.diffBunchSetId == 0) {
@@ -455,7 +467,7 @@ public final class DatabaseInflater {
                     newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
                         if (noExcludedAcc) {
-                            applyAgent(agentId, accId, concept, register.targetBunch,
+                            applyAgent(agentId, accId, concept, targetBunches,
                                     startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
                         }
 
@@ -473,7 +485,7 @@ public final class DatabaseInflater {
                 }
 
                 if (noExcludedAcc) {
-                    applyAgent(agentId, accId, concept, register.targetBunch,
+                    applyAgent(agentId, accId, concept, targetBunches,
                             startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
                 }
             }

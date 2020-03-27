@@ -25,18 +25,18 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
 
     @Override
     public Integer addAgent(
-            int targetBunch, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
+            ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
             ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
             ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule) {
-        return LangbookDatabase.addAgent(_db, targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+        return LangbookDatabase.addAgent(_db, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     @Override
     public boolean updateAgent(
-            int agentId, int targetBunch, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
+            int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
             ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
             ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule) {
-        return LangbookDatabase.updateAgent(_db, agentId, targetBunch, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+        return LangbookDatabase.updateAgent(_db, agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     @Override

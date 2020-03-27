@@ -78,18 +78,6 @@
     <string name="wordEditorNextButton">Next</string>
     <string name="wordEditorWrongTextError">Invalid values present</string>
 
-    <string name="agentEditorIncludeTargetBunchCheckBoxText">Include target bunch</string>
-    <string name="agentEditorSourceBunchesHeader">Source bunches</string>
-    <string name="agentEditorDiffBunchesHeader">Differential bunches</string>
-    <string name="agentEditorStartMatchersHeader">Start Matchers</string>
-    <string name="agentEditorStartAddersHeader">Start Adders</string>
-    <string name="agentEditorEndMatchersHeader">End Matchers</string>
-    <string name="agentEditorEndAddersHeader">End Adders</string>
-    <string name="agentEditorRuleHeader">Rule</string>
-    <string name="agentEditorChangeButton">Change</string>
-    <string name="agentEditorAddButton">Add</string>
-    <string name="agentEditorSaveButton">Save</string>
-    <string name="agentEditorRuleDefaultText">Select a Rule</string>
     <string name="removeButton">Remove</string>
 
     <string name="correlationPickerNextButton">Next</string>
@@ -194,4 +182,19 @@
     <string name="newLanguageNameActivityTitle">Language name</string>
     <string name="newMainAlphabetNameActivityTitle">Main alphabet name</string>
     <string name="newAuxAlphabetNameActivityTitle">Additional alphabet name</string>
+
+    <!-- Agents -->
+    <string name="agentTargetBunchesHeader">Target bunches</string>
+    <string name="agentSourceBunchesHeader">Source bunches</string>
+    <string name="agentDiffBunchesHeader">Differential bunches</string>
+    <string name="agentStartMatcherHeader">Start matcher</string>
+    <string name="agentStartAdderHeader">Start adder</string>
+    <string name="agentEndMatcherHeader">End matcher</string>
+    <string name="agentEndAdderHeader">End adder</string>
+    <string name="agentRuleHeader">Applying rule</string>
+    <string name="agentEditorChangeButton">Change</string>
+    <string name="agentEditorAddButton">Add</string>
+    <string name="agentEditorSaveButton">Save</string>
+    <string name="agentEditorRuleDefaultText">Select a rule</string>
+
 </resources>
