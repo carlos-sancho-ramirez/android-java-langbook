@@ -405,22 +405,21 @@ public final class LangbookDatabase {
         final boolean ruleApplied = agentDetails.modifyCorrelations();
         final ImmutableIntPairMap processedAcceptationsMap;
         if (!ruleApplied) {
-            final ImmutableIntSet alreadyProcessedAcceptations;
+            final ImmutableIntKeyMap<ImmutableIntSet> alreadyProcessedAcceptations;
             // TODO: Ruled concept should also be removed if they are not used by other agent
             if (deleteRuledAcceptationByAgent(db, agentId)) {
                 deleteBunchAcceptationsByAgent(db, agentId);
                 targetChanged = true;
-                alreadyProcessedAcceptations = ImmutableIntArraySet.empty();
+                alreadyProcessedAcceptations = ImmutableIntKeyMap.empty();
             }
             else {
                 alreadyProcessedAcceptations = agentDetails.targetBunches
-                        .map(targetBunch -> getAcceptationsInBunchByBunchAndAgent(db, targetBunch, agentId))
-                        .reduce(ImmutableIntSet::addAll, ImmutableIntArraySet.empty());
+                        .assign(targetBunch -> getAcceptationsInBunchByBunchAndAgent(db, targetBunch, agentId));
             }
 
-            for (int acc : alreadyProcessedAcceptations) {
-                if (!matchingAcceptations.contains(acc)) {
-                    for (int targetBunch : agentDetails.targetBunches) {
+            for (int targetBunch : alreadyProcessedAcceptations.keySet()) {
+                for (int acc : alreadyProcessedAcceptations.get(targetBunch)) {
+                    if (!matchingAcceptations.contains(acc)) {
                         if (!deleteBunchAcceptation(db, targetBunch, acc, agentId)) {
                             throw new AssertionError();
                         }
@@ -428,7 +427,10 @@ public final class LangbookDatabase {
                     }
                 }
             }
-            final ImmutableIntSet processedAcceptations = matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains);
+
+            final ImmutableIntSet allAlreadyProcessedAcceptations = alreadyProcessedAcceptations
+                    .reduce((a, b) -> a.filter(b::contains), ImmutableIntArraySet.empty());
+            final ImmutableIntSet processedAcceptations = matchingAcceptations.filterNot(allAlreadyProcessedAcceptations::contains);
             processedAcceptationsMap = processedAcceptations.assignToInt(key -> key);
         }
         else {

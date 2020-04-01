@@ -600,7 +600,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     @Test
-    default void testUnabletoRemoveAcceptationsWhenTheyAreUniqueAgentSourceOrTargetBunch() {
+    default void testUnableToRemoveAcceptationsWhenTheyAreUniqueAgentSourceOrTargetBunch() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
         final int alphabet = manager.addLanguage("es").mainAlphabet;
@@ -718,6 +718,48 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         final ImmutableIntSet noBunches = intSetOf();
         final int agentId = addSingleAlphabetAgent(manager, intSetOf(erVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, intSetOf(arVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertContainsOnly(arVerbConcept, manager.findBunchesWhereAcceptationIsIncluded(singAcceptation));
+    }
+
+    @Test
+    default void testIncludeExtraTargetForNoChainedAgentWithoutRule() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int arVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
+
+        final int erVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, erVerbConcept, "verbo de segunda conjugación");
+
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(erVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, intSetOf(arVerbConcept, erVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertContainsOnly(arVerbConcept, erVerbConcept, manager.findBunchesWhereAcceptationIsIncluded(singAcceptation));
+    }
+
+    @Test
+    default void testRemoveExtraTargetForNoChainedAgentWithoutRule() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int arVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
+
+        final int erVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, erVerbConcept, "verbo de segunda conjugación");
+
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(arVerbConcept, erVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, intSetOf(arVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
         assertContainsOnly(arVerbConcept, manager.findBunchesWhereAcceptationIsIncluded(singAcceptation));
