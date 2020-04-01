@@ -136,6 +136,31 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(arVerbConcept, agentId));
     }
 
+    @Test
+    default void testAddAgentCopyingToTwoBunches() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int arVerbConcept = manager.getMaxConcept() + 1;
+        final int erVerbConcept = arVerbConcept + 1;
+        final int actionConcept = erVerbConcept + 1;
+        final int verbConcept = actionConcept + 1;
+        final int singConcept = erVerbConcept + 1;
+        final int coughtConcept = singConcept + 1;
+
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+        assertTrue(manager.addAcceptationInBunch(verbConcept, singAcceptation));
+
+        final int coughtAcceptation = addSimpleAcceptation(manager, alphabet, coughtConcept, "toser");
+        assertTrue(manager.addAcceptationInBunch(verbConcept, coughtAcceptation));
+
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(arVerbConcept, actionConcept), intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ar", 0);
+
+        assertContainsOnly(singAcceptation, coughtAcceptation, manager.getAcceptationsInBunch(verbConcept));
+        assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(arVerbConcept, agentId));
+        assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(actionConcept, agentId));
+    }
+
     default void checkAdd2ChainedAgents(boolean reversedAdditionOrder) {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
