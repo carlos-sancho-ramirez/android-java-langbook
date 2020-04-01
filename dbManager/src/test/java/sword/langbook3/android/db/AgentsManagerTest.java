@@ -766,6 +766,33 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     @Test
+    default void testIncludeExtraTargetForNoChainedAgentWithRule() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int gerundRule = manager.getMaxConcept() + 1;
+        final int singConcept = gerundRule + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int arVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, arVerbConcept, "verbo de primera conjugación");
+
+        final int erVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, erVerbConcept, "verbo de segunda conjugación");
+
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(erVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, intSetOf(arVerbConcept, erVerbConcept), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
+
+        final int dynamicAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, singAcceptation);
+        assertSinglePair(alphabet, "cantando", manager.getAcceptationTexts(dynamicAcceptation));
+
+        assertEmpty(manager.findBunchesWhereAcceptationIsIncluded(singAcceptation));
+        assertContainsOnly(arVerbConcept, erVerbConcept, manager.findBunchesWhereAcceptationIsIncluded(dynamicAcceptation));
+    }
+
+    @Test
     default void testUpdateAgentTargetForChainedAgentWithoutRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
         final int alphabet = manager.addLanguage("es").mainAlphabet;
