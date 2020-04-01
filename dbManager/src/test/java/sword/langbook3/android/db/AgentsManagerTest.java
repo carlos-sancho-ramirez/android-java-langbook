@@ -1311,6 +1311,33 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int myTargetBunch = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, myTargetBunch, "mi lista");
 
+        final int myTargetBunch2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, myTargetBunch2, "mi otra lista");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, intSetOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+
+        assertEmpty(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
+        assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch, agentId));
+        assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch2, agentId));
+    }
+
+    @Test
+    default void testRemoveAdderAndRuleForMultipleTargetBunches() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int myTargetBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, myTargetBunch, "mi lista");
+
         final int gerundConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
