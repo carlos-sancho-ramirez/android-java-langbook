@@ -107,7 +107,6 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findSentencesB
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentExecutionOrder;
@@ -133,6 +132,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.hasAgentsRequi
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationStaticallyInBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isBunchAcceptationPresentByAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAcceptationTextsAndMain;
@@ -398,9 +398,6 @@ public final class LangbookDatabase {
                 agentDetails.sourceBunches, agentDetails.diffBunches,
                 agentDetails.startMatcher, agentDetails.endMatcher);
 
-        final ImmutablePair<Integer, ImmutableIntSet> acceptationsInBunchResult = getAcceptationsInBunchByAgent(db, agentId);
-        final ImmutableIntSet acceptationsInBunch = acceptationsInBunchResult.right;
-
         boolean targetChanged = false;
         final boolean ruleApplied = agentDetails.modifyCorrelations();
         final ImmutableIntPairMap processedAcceptationsMap;
@@ -466,7 +463,8 @@ public final class LangbookDatabase {
             }
             else {
                 final ImmutableIntSet alreadyProcessedAcceptations = oldProcessedMap.keySet();
-                final boolean noRuleBefore = alreadyProcessedAcceptations.isEmpty() && !acceptationsInBunch.isEmpty();
+                final boolean noRuleBefore = alreadyProcessedAcceptations.isEmpty() &&
+                        isBunchAcceptationPresentByAgent(db, agentId);
                 if (noRuleBefore && !deleteBunchAcceptationsByAgent(db, agentId)) {
                     throw new AssertionError();
                 }

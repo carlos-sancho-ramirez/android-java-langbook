@@ -1212,28 +1212,13 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static ImmutablePair<Integer, ImmutableIntSet> getAcceptationsInBunchByAgent(DbExporter.Database db, int agentId) {
+    static boolean isBunchAcceptationPresentByAgent(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getAgentColumnIndex(), agentId)
-                .select(table.getBunchColumnIndex(), table.getAcceptationColumnIndex());
+                .select(table.getIdColumnIndex());
 
-        Integer bunch = null;
-        final MutableIntSet acceptations = MutableIntArraySet.empty();
-        try (DbResult dbResult = db.select(query)) {
-            while (dbResult.hasNext()) {
-                final List<DbValue> row = dbResult.next();
-                final int thisBunch = row.get(0).toInt();
-                if (bunch != null && thisBunch != bunch) {
-                    throw new AssertionError();
-                }
-
-                bunch = thisBunch;
-                acceptations.add(row.get(1).toInt());
-            }
-        }
-
-        return new ImmutablePair<>(bunch, acceptations.toImmutable());
+        return selectExistAtLeastOneRow(db, query);
     }
 
     static ImmutableIntSet getAcceptationsInBunch(DbExporter.Database db, int bunch) {

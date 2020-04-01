@@ -1272,6 +1272,35 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     @Test
+    default void testAddAdderAndRuleForMultipleTargetBunches() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
+
+        final int myTargetBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, myTargetBunch, "mi lista");
+
+        final int myTargetBunch2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, myTargetBunch2, "mi otra lista");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
+
+        final ImmutableIntSet noBunches = intSetOf();
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, intSetOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+
+        final MorphologyResult morphology = getSingleValue(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
+        assertEquals("cantando", morphology.text);
+        assertContainsOnly(gerundConcept, morphology.rules);
+        assertContainsOnly(morphology.dynamicAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch, agentId));
+        assertContainsOnly(morphology.dynamicAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch2, agentId));
+    }
+
+    @Test
     default void testRemoveAdderAndRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
         final int alphabet = manager.addLanguage("es").mainAlphabet;
