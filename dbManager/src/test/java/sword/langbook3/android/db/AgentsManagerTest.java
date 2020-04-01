@@ -161,7 +161,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(actionConcept, agentId));
     }
 
-    default void checkAdd2ChainedAgents(boolean reversedAdditionOrder) {
+    default void checkAdd2ChainedAgents(boolean reversedAdditionOrder, boolean addExtraMiddleTargetBunch) {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -169,7 +169,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int gerund = manager.getMaxConcept() + 1;
         final int verbConcept = gerund + 1;
         final int arVerbConcept = verbConcept + 1;
-        final int singConcept = arVerbConcept + 1;
+        final int extraBunch = arVerbConcept + 1;
+        final int singConcept = extraBunch + 1;
 
         final int acceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
         assertTrue(manager.addAcceptationInBunch(verbConcept, acceptation));
@@ -185,14 +186,16 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final ImmutableIntSet arVerbBunchSet = intSetOf(arVerbConcept);
         final ImmutableIntSet verbBunchSet = intSetOf(verbConcept);
         final ImmutableIntSet diffBunches = intSetOf();
+        final ImmutableIntSet firstTargetBunches = addExtraMiddleTargetBunch? arVerbBunchSet.add(extraBunch) :
+                arVerbBunchSet;
 
         final int agent2Id;
         if (reversedAdditionOrder) {
             agent2Id = manager.addAgent(intSetOf(), arVerbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerund);
-            manager.addAgent(arVerbBunchSet, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
+            manager.addAgent(firstTargetBunches, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
         }
         else {
-            manager.addAgent(arVerbBunchSet, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
+            manager.addAgent(firstTargetBunches, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
             agent2Id = manager.addAgent(intSetOf(), arVerbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerund);
         }
 
@@ -203,16 +206,33 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertSinglePair(alphabet, "cantando", manager.getAcceptationTexts(ruledAcceptation));
         assertEquals("cantando", manager.readAcceptationMainText(ruledAcceptation));
         assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(acceptation));
+
+        if (addExtraMiddleTargetBunch) {
+            assertContainsOnly(acceptation, manager.getAcceptationsInBunch(extraBunch));
+        }
+        else {
+            assertEmpty(manager.getAcceptationsInBunch(extraBunch));
+        }
     }
 
     @Test
     default void testAdd2ChainedAgents() {
-        checkAdd2ChainedAgents(false);
+        checkAdd2ChainedAgents(false, false);
     }
 
     @Test
     default void testAdd2ChainedAgentsReversedAdditionOrder() {
-        checkAdd2ChainedAgents(true);
+        checkAdd2ChainedAgents(true, false);
+    }
+
+    @Test
+    default void testAdd2ChainedAgentsWithExtraMiddleTargetBunch() {
+        checkAdd2ChainedAgents(false, true);
+    }
+
+    @Test
+    default void testAdd2ChainedAgentsReversedAdditionOrderWithExtraMiddleTargetBunch() {
+        checkAdd2ChainedAgents(true, true);
     }
 
     default void checkAdd2ChainedAgentsFirstWithoutSource(boolean reversedAdditionOrder, boolean acceptationBeforeAgents) {
