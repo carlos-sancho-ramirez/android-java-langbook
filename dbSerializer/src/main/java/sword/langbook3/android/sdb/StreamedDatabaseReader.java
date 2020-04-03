@@ -25,7 +25,6 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
 import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
@@ -906,19 +905,18 @@ public final class StreamedDatabaseReader {
     }
 
     static final class AgentBunches {
-        private final int _target;
+        private final ImmutableIntSet _targets;
         private final ImmutableIntSet _sources;
         private final ImmutableIntSet _diff;
 
-        AgentBunches(int target, ImmutableIntSet sources, ImmutableIntSet diff) {
-            _target = target;
+        AgentBunches(ImmutableIntSet targets, ImmutableIntSet sources, ImmutableIntSet diff) {
+            _targets = targets;
             _sources = sources;
             _diff = diff;
         }
 
         boolean dependsOn(AgentBunches agent) {
-            final int target = agent._target;
-            return _sources.contains(target) || _diff.contains(target);
+            return agent._targets.anyMatch(target -> _sources.contains(target) || _diff.contains(target));
         }
     }
 
@@ -1130,10 +1128,11 @@ public final class StreamedDatabaseReader {
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntHuffmanSymbolReader intHuffmanSymbolReader = new IntHuffmanSymbolReader(ibs, nat3Table);
-            final IntHuffmanTable sourceSetLengthTable = ibs.readIntHuffmanTable(intHuffmanSymbolReader, null);
+            final IntHuffmanTable bunchSetLengthTable = ibs.readIntHuffmanTable(intHuffmanSymbolReader, null);
 
-            int lastTarget = StreamedDatabaseConstants.nullBunchId;
+            int minTarget = validConcepts.min();
             int minSource = validConcepts.min();
+            int minDiff = validConcepts.min();
             final SyncCacheIntValueMap<ImmutableIntSet> insertedBunchSets = new SyncCacheIntValueMap<>(new IntResultFunction<ImmutableIntSet>() {
                 private int lastAssignedKey = LangbookDbSchema.Tables.bunchSets.nullReference();
 
@@ -1152,30 +1151,44 @@ public final class StreamedDatabaseReader {
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
 
+            ImmutableIntSet lastTargets = ImmutableIntArraySet.empty();
+            ImmutableIntSet lastSources = ImmutableIntArraySet.empty();
             for (int i = 0; i < agentsLength; i++) {
                 setProgress((0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f, "Reading agent " + (i + 1) + "/" + agentsLength);
-                final RangedIntegerHuffmanTable targetTable = new RangedIntegerHuffmanTable(lastTarget, validConcepts.max());
-                final int targetBunch = ibs.readHuffmanSymbol(targetTable);
+                final ImmutableIntRange targetRange = new ImmutableIntRange(minTarget, validConcepts.max());
+                final RangedIntSetDecoder targetDecoder = new RangedIntSetDecoder(ibs, bunchSetLengthTable, targetRange);
+                final ImmutableIntSet targetBunches = ibs.readIntSet(targetDecoder, targetDecoder, targetDecoder).toImmutable();
 
-                if (targetBunch != lastTarget) {
+                if (!targetBunches.equalSet(lastTargets)) {
                     minSource = validConcepts.min();
+                    minDiff = validConcepts.min();
+                    lastSources = ImmutableIntArraySet.empty();
                 }
 
+                if (!targetBunches.isEmpty()) {
+                    minTarget = targetBunches.min();
+                }
+                lastTargets = targetBunches;
+
                 final ImmutableIntRange sourceRange = new ImmutableIntRange(minSource, validConcepts.max());
-                final RangedIntSetDecoder sourceDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, sourceRange);
-                final ImmutableIntSet sourceSet = ibs.readIntSet(sourceDecoder, sourceDecoder, sourceDecoder).toImmutable();
+                final RangedIntSetDecoder sourceDecoder = new RangedIntSetDecoder(ibs, bunchSetLengthTable, sourceRange);
+                final ImmutableIntSet sourceBunches = ibs.readIntSet(sourceDecoder, sourceDecoder, sourceDecoder).toImmutable();
 
-                final RangedIntSetDecoder diffDecoder = new RangedIntSetDecoder(ibs, sourceSetLengthTable, validConcepts);
-                final ImmutableIntSet diffSet = ibs.readIntSet(diffDecoder, diffDecoder, diffDecoder).toImmutable();
+                if (!sourceBunches.equalSet(lastSources)) {
+                    minDiff = validConcepts.min();
+                }
 
-                if (!sourceSet.isEmpty()) {
-                    int min = Integer.MAX_VALUE;
-                    for (int value : sourceSet) {
-                        if (value < min) {
-                            min = value;
-                        }
-                    }
-                    minSource = min;
+                if (!sourceBunches.isEmpty()) {
+                    minSource = sourceBunches.min();
+                }
+                lastSources = sourceBunches;
+
+                final ImmutableIntRange diffRange = new ImmutableIntRange(minDiff, validConcepts.max());
+                final RangedIntSetDecoder diffDecoder = new RangedIntSetDecoder(ibs, bunchSetLengthTable, diffRange);
+                final ImmutableIntSet diffBunches = ibs.readIntSet(diffDecoder, diffDecoder, diffDecoder).toImmutable();
+
+                if (!diffBunches.isEmpty()) {
+                    minDiff = diffBunches.min();
                 }
 
                 final int startMatcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
@@ -1188,20 +1201,18 @@ public final class StreamedDatabaseReader {
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
-                final int targetBunchSetId = (targetBunch == 0)? Tables.bunchSets.nullReference() :
-                        insertedBunchSets.get(new ImmutableIntSetCreator().add(targetBunch).build());
-                final int sourceBunchSetId = insertedBunchSets.get(sourceSet);
-                final int diffBunchSetId = insertedBunchSets.get(diffSet);
+                final int targetBunchSetId = insertedBunchSets.get(targetBunches);
+                final int sourceBunchSetId = insertedBunchSets.get(sourceBunches);
+                final int diffBunchSetId = insertedBunchSets.get(diffBunches);
 
                 final AgentRegister register = new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
                 final int agentId = insertAgent(_db, register);
 
-                builder.put(agentId, new AgentBunches(targetBunch, sourceSet, diffSet));
+                builder.put(agentId, new AgentBunches(targetBunches, sourceBunches, diffBunches));
 
                 if (hasRule) {
                     agentsWithRule.add(agentId);
                 }
-                lastTarget = targetBunch;
             }
         }
 
