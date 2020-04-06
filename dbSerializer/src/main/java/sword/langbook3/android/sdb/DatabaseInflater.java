@@ -293,7 +293,7 @@ public final class DatabaseInflater {
 
     private void applyAgent(int agentId, int accId, int concept,
             ImmutableIntSet targetBunches, IntKeyMap<String> startMatcher, IntKeyMap<String> startAdder,
-            IntKeyMap<String> endMatcher, IntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr) {
+            IntKeyMap<String> endMatcher, IntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr, int mainAcc) {
         boolean matching = true;
 
         final int startMatcherLength = startMatcher.size();
@@ -371,7 +371,7 @@ public final class DatabaseInflater {
                 insertRuledAcceptation(_db, dynAccId, agentId, accId);
 
                 for (int i = 0; i < resultCorrLength; i++) {
-                    insertStringQuery(_db, resultCorr.valueAt(i), resultCorr.valueAt(0), accId, dynAccId, resultCorr.keyAt(i));
+                    insertStringQuery(_db, resultCorr.valueAt(i), resultCorr.valueAt(0), mainAcc, dynAccId, resultCorr.keyAt(i));
                 }
 
                 targetAccId = dynAccId;
@@ -434,6 +434,7 @@ public final class DatabaseInflater {
                             strings.getDynamicAcceptationColumnIndex(),
                             strings.getStringAlphabetColumnIndex(),
                             strings.getStringColumnIndex(),
+                            strings.getMainAcceptationColumnIndex(),
                             strings.columns().size() + acceptations.getConceptColumnIndex());
         }
         else {
@@ -447,6 +448,7 @@ public final class DatabaseInflater {
                             bunchAccsOffset + bunchAccs.getAcceptationColumnIndex(),
                             stringsOffset + strings.getStringAlphabetColumnIndex(),
                             stringsOffset + strings.getStringColumnIndex(),
+                            stringsOffset + strings.getMainAcceptationColumnIndex(),
                             acceptationsOffset + acceptations.getConceptColumnIndex());
         }
 
@@ -459,7 +461,8 @@ public final class DatabaseInflater {
                 if (noExcludedAcc) {
                     corr.put(row.get(1).toInt(), row.get(2).toText());
                 }
-                int concept = row.get(3).toInt();
+                int mainAcc = row.get(3).toInt();
+                int concept = row.get(4).toInt();
 
                 int newAccId;
                 while (result.hasNext()) {
@@ -468,7 +471,7 @@ public final class DatabaseInflater {
                     if (newAccId != accId) {
                         if (noExcludedAcc) {
                             applyAgent(agentId, accId, concept, targetBunches,
-                                    startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
+                                    startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc);
                         }
 
                         accId = newAccId;
@@ -476,7 +479,8 @@ public final class DatabaseInflater {
                         corr.clear();
                         if (noExcludedAcc) {
                             corr.put(row.get(1).toInt(), row.get(2).toText());
-                            concept = row.get(3).toInt();
+                            mainAcc = row.get(3).toInt();
+                            concept = row.get(4).toInt();
                         }
                     }
                     else if (noExcludedAcc) {
@@ -486,7 +490,7 @@ public final class DatabaseInflater {
 
                 if (noExcludedAcc) {
                     applyAgent(agentId, accId, concept, targetBunches,
-                            startMatcher, startAdder, endMatcher, endAdder, register.rule, corr);
+                            startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc);
                 }
             }
         }

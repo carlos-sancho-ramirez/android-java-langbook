@@ -7,11 +7,13 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AgentsManager;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.MorphologyResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -19,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAcceptationsMatchingText;
 import static sword.langbook3.android.sdb.IntKeyMapTestUtils.assertSinglePair;
+import static sword.langbook3.android.sdb.IntPairMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.sdb.IntTraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.sdb.IntTraversableTestUtils.getSingleValue;
@@ -1075,5 +1078,69 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int outStudyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "べんきょう"));
         final int outAgentId = getSingleValue(outManager.getAgentIds());
         assertContainsOnly(outStudyAcceptation, manager.getAgentProcessedMap(outAgentId).keySet());
+    }
+
+    @Test
+    default void testSerializeChainedAgentsApplyingRules() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AgentsManager manager = createManager(inDb);
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int studentConcept = manager.getMaxConcept() + 1;
+        final int studentAcceptation = addSimpleAcceptation(manager, esAlphabet, studentConcept, "alumno");
+
+        final int bunch1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, bunch1, "palabras masculinas");
+        manager.addAcceptationInBunch(bunch1, studentAcceptation);
+
+        final int bunch2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, bunch2, "palabras femeninas");
+
+        final int femenineRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, femenineRule, "femenino");
+
+        final int pluralRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, pluralRule, "plural");
+
+        addSingleAlphabetAgent(manager, intSetOf(bunch2), intSetOf(bunch1), intSetOf(), esAlphabet, null, null, "o", "a", femenineRule);
+
+        addSingleAlphabetAgent(manager, intSetOf(), intSetOf(bunch1, bunch2), intSetOf(), esAlphabet, null, null, null, "s", pluralRule);
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AgentsManager outManager = createManager(outDb);
+
+        final int outStudentAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "alumno"));
+        final int outStudentConcept = outManager.conceptFromAcceptation(outStudentAcceptation);
+
+        final int outFemaleStudentAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "alumna"));
+        final int outFemaleStudentConcept = outManager.conceptFromAcceptation(outFemaleStudentAcceptation);
+
+        final int outStudentsAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "alumnos"));
+        final int outStudentsConcept = outManager.conceptFromAcceptation(outStudentsAcceptation);
+
+        final int outFemaleStudentsAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "alumnas"));
+        final int outFemaleStudentsConcept = outManager.conceptFromAcceptation(outFemaleStudentsAcceptation);
+
+        final int outFemenineRuleAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "femenino"));
+        final int outFemenineRule = outManager.conceptFromAcceptation(outFemenineRuleAcceptation);
+
+        final int outPluralRuleAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "plural"));
+        final int outPluralRule = outManager.conceptFromAcceptation(outPluralRuleAcceptation);
+
+        assertSinglePair(outFemaleStudentConcept, outStudentConcept, outManager.findRuledConceptsByRule(outFemenineRule));
+
+        final ImmutableIntPairMap pluralProcessedConcepts = outManager.findRuledConceptsByRule(outPluralRule);
+        assertSize(2, pluralProcessedConcepts);
+        assertEquals(outStudentConcept, pluralProcessedConcepts.get(outStudentsConcept));
+        assertEquals(outFemaleStudentConcept, pluralProcessedConcepts.get(outFemaleStudentsConcept));
+
+        final int outLanguage = outManager.findLanguageByCode("es").intValue();
+        final int outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
+
+        final ImmutableSet<MorphologyResult> morphologies = outManager.readMorphologiesFromAcceptation(outStudentAcceptation, outAlphabet).morphologies.toSet();
+        assertSize(3, morphologies);
+        assertContainsOnly(outFemenineRule, morphologies.findFirst(result -> result.dynamicAcceptation == outFemaleStudentAcceptation, null).rules);
+        assertContainsOnly(outPluralRule, morphologies.findFirst(result -> result.dynamicAcceptation == outStudentsAcceptation, null).rules);
+        assertContainsOnly(outFemenineRule, outPluralRule, morphologies.findFirst(result -> result.dynamicAcceptation == outFemaleStudentsAcceptation, null).rules);
     }
 }
