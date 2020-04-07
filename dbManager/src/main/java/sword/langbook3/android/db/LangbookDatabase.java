@@ -1096,6 +1096,10 @@ public final class LangbookDatabase {
                 throw new AssertionError();
             }
 
+            if (!deleteAcceptation(db, ruleAcceptation)) {
+                throw new AssertionError();
+            }
+
             deleteSpansByDynamicAcceptation(db, ruleAcceptation);
         }
 

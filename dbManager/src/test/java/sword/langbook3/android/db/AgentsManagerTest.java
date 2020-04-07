@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
@@ -417,6 +418,28 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertSinglePair(alphabet, "cantos", manager.getAcceptationTexts(pluralRuledAcceptation));
         assertEquals("cantos", manager.readAcceptationMainText(pluralRuledAcceptation));
         assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(pluralRuledAcceptation));
+    }
+
+    @Test
+    default void testRemoveDynamicAcceptationsWhenRemovingAgent() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int studentConcept = manager.getMaxConcept() + 1;
+        final int studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
+
+        final int femenineRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "o", "a", femenineRule);
+
+        final int femaleStudentAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation);
+        manager.removeAgent(agentId);
+
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation));
+        assertEmpty(manager.getAcceptationTexts(femaleStudentAcceptation));
+        assertEquals(0, manager.conceptFromAcceptation(femaleStudentAcceptation));
     }
 
     @Test
