@@ -18,9 +18,27 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static boolean deleteCorrelation(Deleter db, int correlationId) {
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getCorrelationIdColumnIndex(), correlationId)
+                .build();
+
+        return db.delete(query);
+    }
+
+    static boolean deleteCorrelationArray(Deleter db, int correlationArrayId) {
+        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getArrayIdColumnIndex(), correlationArrayId)
+                .build();
+
+        return db.delete(query);
+    }
+
     static boolean deleteAcceptation(Deleter db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(LangbookDbSchema.Tables.acceptations)
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
                 .where(table.getIdColumnIndex(), acceptation)
                 .build();
 

@@ -3,6 +3,7 @@ package sword.langbook3.android.db;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
@@ -435,11 +436,15 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int agentId = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "o", "a", femenineRule);
 
         final int femaleStudentAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation);
+        final ImmutableIntList correlationArray = manager.getAcceptationCorrelationArray(femaleStudentAcceptation);
         manager.removeAgent(agentId);
 
         assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation));
         assertEmpty(manager.getAcceptationTexts(femaleStudentAcceptation));
         assertEquals(0, manager.conceptFromAcceptation(femaleStudentAcceptation));
+        for (int correlationId : correlationArray) {
+            assertEmpty(manager.getCorrelationWithText(correlationId));
+        }
     }
 
     @Test

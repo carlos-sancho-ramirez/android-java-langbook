@@ -71,6 +71,8 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptations
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
+import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelationArray;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
@@ -133,6 +135,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationS
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isBunchAcceptationPresentByAgent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isCorrelationInUse;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAcceptationTextsAndMain;
@@ -1096,11 +1099,28 @@ public final class LangbookDatabase {
                 throw new AssertionError();
             }
 
+            final int correlationArray = LangbookReadableDatabase.correlationArrayFromAcceptation(db, ruleAcceptation);
             if (!deleteAcceptation(db, ruleAcceptation)) {
                 throw new AssertionError();
             }
 
             deleteSpansByDynamicAcceptation(db, ruleAcceptation);
+
+            if (!LangbookReadableDatabase.isCorrelationArrayInUse(db, correlationArray)) {
+                final int[] correlationIds = LangbookReadableDatabase.getCorrelationArray(db, correlationArray);
+                if (!deleteCorrelationArray(db, correlationArray)) {
+                    throw new AssertionError();
+                }
+
+                for (int correlationId : correlationIds) {
+                    if (!isCorrelationInUse(db, correlationId)) {
+                        // TODO: Unused symbol arrays should be deleted as well
+                        if (!deleteCorrelation(db, correlationId)) {
+                            throw new AssertionError();
+                        }
+                    }
+                }
+            }
         }
 
         if (!LangbookDeleter.deleteAgent(db, agentId)) {

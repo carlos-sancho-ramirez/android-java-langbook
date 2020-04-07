@@ -1172,7 +1172,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static int[] getCorrelationArray(DbExporter.Database db, int id) {
+    static int[] getCorrelationArray(DbExporter.Database db, int id) {
         if (id == NULL_CORRELATION_ARRAY_ID) {
             return new int[0];
         }
@@ -1336,6 +1336,35 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    private static boolean isCorrelationUsedInAnyCorrelationArray(DbExporter.Database db, int correlationId) {
+        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getCorrelationColumnIndex(), correlationId)
+                .select(table.getIdColumnIndex());
+
+        return selectExistAtLeastOneRow(db, query);
+    }
+
+    private static boolean isCorrelationUsedInAnyAgent(DbExporter.Database db, int correlationId) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getStartMatcherColumnIndex(), table.getEndMatcherColumnIndex(), table.getStartAdderColumnIndex(), table.getEndAdderColumnIndex());
+
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                if (dbResult.next().anyMatch(v -> v.toInt() == correlationId)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    static boolean isCorrelationInUse(DbExporter.Database db, int correlationId) {
+        return isCorrelationUsedInAnyCorrelationArray(db, correlationId) || isCorrelationUsedInAnyAgent(db, correlationId);
     }
 
     private static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, int preferredAlphabet) {
@@ -1523,6 +1552,16 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    static boolean isCorrelationArrayInUse(DbExporter.Database db, int correlationArrayId) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .where(acceptations.getCorrelationArrayColumnIndex(), correlationArrayId)
+                .select(acceptations.getIdColumnIndex());
+
+        return selectExistAtLeastOneRow(db, query);
     }
 
     private static ImmutableIntSet readAcceptationsMatchingCorrelationArray(DbExporter.Database db, int acceptation) {
