@@ -1057,6 +1057,14 @@ public final class StreamedDatabaseWriter {
         return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
+    private ImmutableIntSet listSearchableStaticAcceptations() {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .whereColumnValueMatch(table.getDynamicAcceptationColumnIndex(), table.getMainAcceptationColumnIndex())
+                .select(table.getDynamicAcceptationColumnIndex());
+        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     private static class ExportableAcceptationsAndCorrelationArrays {
         final ImmutableIntSet acceptations;
         final ImmutableIntSet correlationArrays;
@@ -1069,6 +1077,7 @@ public final class StreamedDatabaseWriter {
 
     private ExportableAcceptationsAndCorrelationArrays listExportableAcceptationsAndCorrelationArrays() {
         final ImmutableIntSet ruledAcceptations = listRuledAcceptations();
+        final ImmutableIntSet searchableStaticAcceptations = listSearchableStaticAcceptations();
 
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table).select(
@@ -1081,7 +1090,7 @@ public final class StreamedDatabaseWriter {
                 final List<DbValue> row = result.next();
                 final int accId = row.get(0).toInt();
 
-                if (!ruledAcceptations.contains(accId)) {
+                if (!ruledAcceptations.contains(accId) && searchableStaticAcceptations.contains(accId)) {
                     acceptations.add(accId);
                     correlationArrays.add(row.get(1).toInt());
                 }
