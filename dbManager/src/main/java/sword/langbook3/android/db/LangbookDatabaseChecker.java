@@ -257,6 +257,11 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
+    public ImmutableIntSet getBunchSet(int setId) {
+        return LangbookReadableDatabase.getBunchSet(getDatabase(), setId);
+    }
+
+    @Override
     public String getSentenceText(int sentenceId) {
         return LangbookReadableDatabase.getSentenceText(getDatabase(), sentenceId);
     }

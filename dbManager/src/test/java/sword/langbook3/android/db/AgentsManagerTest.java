@@ -8,6 +8,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.database.MemoryDatabase;
+import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.MorphologyResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -445,6 +446,47 @@ interface AgentsManagerTest extends BunchesManagerTest {
         for (int correlationId : correlationArray) {
             assertEmpty(manager.getCorrelationWithText(correlationId));
         }
+    }
+
+    @Test
+    default void testRemoveUnusedBunchSetsWhenRemovingAgent() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int studentConcept = manager.getMaxConcept() + 1;
+        final int studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
+
+        final int femenineRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+
+        final int targetBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, targetBunch, "destino");
+
+        final int sourceBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, sourceBunch, "origen");
+        manager.addAcceptationInBunch(sourceBunch, studentAcceptation);
+
+        final int diffBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, diffBunch, "diferencial");
+
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(targetBunch), intSetOf(sourceBunch), intSetOf(diffBunch), alphabet, null, null, "o", "a", femenineRule);
+
+        final int femaleStudentAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation);
+        final ImmutableIntList correlationArray = manager.getAcceptationCorrelationArray(femaleStudentAcceptation);
+        final AgentRegister agentRegister = manager.getAgentRegister(agentId);
+        manager.removeAgent(agentId);
+
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation));
+        assertEmpty(manager.getAcceptationTexts(femaleStudentAcceptation));
+        assertEquals(0, manager.conceptFromAcceptation(femaleStudentAcceptation));
+        for (int correlationId : correlationArray) {
+            assertEmpty(manager.getCorrelationWithText(correlationId));
+        }
+
+        assertEmpty(manager.getBunchSet(agentRegister.targetBunchSetId));
+        assertEmpty(manager.getBunchSet(agentRegister.sourceBunchSetId));
+        assertEmpty(manager.getBunchSet(agentRegister.diffBunchSetId));
     }
 
     @Test

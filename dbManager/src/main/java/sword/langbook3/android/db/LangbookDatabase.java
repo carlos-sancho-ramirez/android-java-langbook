@@ -69,6 +69,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgent;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
+import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
 import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelation;
@@ -110,12 +111,12 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypes
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationTexts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAcceptationsInBunchByBunchAndAgent;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentDetails;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentExecutionOrder;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentProcessedMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAgentRegister;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAllRuledAcceptationsForAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getAlphabetAndLanguageConcepts;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getBunchSet;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
@@ -135,6 +136,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.isAcceptationS
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isBunchAcceptationPresentByAgent;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isBunchSetInUse;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isCorrelationInUse;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayInUse;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
@@ -1088,7 +1090,8 @@ public final class LangbookDatabase {
         // TODO: Improve this logic once it is centralised and better defined
 
         deleteBunchAcceptationsByAgent(db, agentId);
-        final ImmutableIntSet targetBunches = getAgentDetails(db, agentId).targetBunches;
+        final AgentRegister agentRegister = getAgentRegister(db, agentId);
+        final ImmutableIntSet targetBunches = getBunchSet(db, agentRegister.targetBunchSetId);
 
         final ImmutableIntSet ruledAcceptations = getAllRuledAcceptationsForAgent(db, agentId);
         for (int ruleAcceptation : ruledAcceptations) {
@@ -1132,6 +1135,24 @@ public final class LangbookDatabase {
         }
 
         if (!LangbookDeleter.deleteAgent(db, agentId)) {
+            throw new AssertionError();
+        }
+
+        if (agentRegister.targetBunchSetId != 0 &&
+                !isBunchSetInUse(db, agentRegister.targetBunchSetId) &&
+                !deleteBunchSet(db, agentRegister.targetBunchSetId)) {
+            throw new AssertionError();
+        }
+
+        if (agentRegister.sourceBunchSetId != 0 &&
+                !isBunchSetInUse(db, agentRegister.sourceBunchSetId) &&
+                !deleteBunchSet(db, agentRegister.sourceBunchSetId)) {
+            throw new AssertionError();
+        }
+
+        if (agentRegister.diffBunchSetId != 0 &&
+                !isBunchSetInUse(db, agentRegister.diffBunchSetId) &&
+                !deleteBunchSet(db, agentRegister.diffBunchSetId)) {
             throw new AssertionError();
         }
 

@@ -34,4 +34,5 @@ public interface AgentsChecker extends BunchesChecker {
     ImmutableIntPairMap getAgentProcessedMap(int agentId);
     MorphologyReaderResult readMorphologiesFromAcceptation(int acceptation, int preferredAlphabet);
     ImmutableIntSet getAcceptationsInBunchByBunchAndAgent(int bunch, int agent);
+    ImmutableIntSet getBunchSet(int setId);
 }

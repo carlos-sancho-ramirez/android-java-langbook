@@ -1602,6 +1602,18 @@ public final class LangbookReadableDatabase {
         return selectExistAtLeastOneRow(db, query);
     }
 
+    static boolean isBunchSetInUse(DbExporter.Database db, int setId) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+
+        final DbQuery query = new DbQuery.Builder(agents).select(
+                agents.getTargetBunchSetColumnIndex(),
+                agents.getSourceBunchSetColumnIndex(),
+                agents.getDiffBunchSetColumnIndex());
+
+        return db.select(query).anyMatch(row -> row.get(0).toInt() == setId ||
+                row.get(1).toInt() == setId || row.get(2).toInt() == setId);
+    }
+
     private static ImmutableIntSet readAcceptationsMatchingCorrelationArray(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
 
