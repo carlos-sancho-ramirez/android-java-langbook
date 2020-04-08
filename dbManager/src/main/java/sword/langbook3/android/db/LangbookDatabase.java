@@ -136,6 +136,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetPres
 import static sword.langbook3.android.db.LangbookReadableDatabase.isAlphabetUsedInQuestions;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isBunchAcceptationPresentByAgent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isCorrelationInUse;
+import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayInUse;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayMerelyASentence;
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAcceptationTextsAndMain;
@@ -1114,9 +1115,16 @@ public final class LangbookDatabase {
 
                 for (int correlationId : correlationIds) {
                     if (!isCorrelationInUse(db, correlationId)) {
-                        // TODO: Unused symbol arrays should be deleted as well
+                        final ImmutableIntSet symbolArrayIds = LangbookReadableDatabase.getCorrelationSymbolArrayIds(db, correlationId);
+
                         if (!deleteCorrelation(db, correlationId)) {
                             throw new AssertionError();
+                        }
+
+                        for (int symbolArrayId : symbolArrayIds) {
+                            if (!isSymbolArrayInUse(db, symbolArrayId) && !deleteSymbolArray(db, symbolArrayId)) {
+                                throw new AssertionError();
+                            }
                         }
                     }
                 }

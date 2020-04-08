@@ -1172,6 +1172,15 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    static ImmutableIntSet getCorrelationSymbolArrayIds(DbExporter.Database db, int correlationId) {
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+
+        final DbQuery query = new DbQuery.Builder(correlations)
+                .where(correlations.getCorrelationIdColumnIndex(), correlationId)
+                .select(correlations.getSymbolArrayColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     static int[] getCorrelationArray(DbExporter.Database db, int id) {
         if (id == NULL_CORRELATION_ARRAY_ID) {
             return new int[0];
@@ -1336,6 +1345,35 @@ public final class LangbookReadableDatabase {
         }
 
         return builder.build();
+    }
+
+    private static boolean isSymbolArrayUsedInAnyCorrelation(DbExporter.Database db, int symbolArrayId) {
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSymbolArrayColumnIndex(), symbolArrayId)
+                .select(table.getIdColumnIndex());
+        return selectExistAtLeastOneRow(db, query);
+    }
+
+    private static boolean isSymbolArrayUsedInAnyConversion(DbExporter.Database db, int symbolArrayId) {
+        final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getSourceColumnIndex(), table.getTargetColumnIndex());
+        return db.select(query).anyMatch(row -> row.get(0).toInt() == symbolArrayId || row.get(1).toInt() == symbolArrayId);
+    }
+
+    private static boolean isSymbolArrayUsedInAnySentence(DbExporter.Database db, int symbolArrayId) {
+        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSymbolArrayColumnIndex(), symbolArrayId)
+                .select(table.getIdColumnIndex());
+        return selectExistAtLeastOneRow(db, query);
+    }
+
+    static boolean isSymbolArrayInUse(DbExporter.Database db, int symbolArrayId) {
+        return isSymbolArrayUsedInAnyCorrelation(db, symbolArrayId) ||
+                isSymbolArrayUsedInAnyConversion(db, symbolArrayId) ||
+                isSymbolArrayUsedInAnySentence(db, symbolArrayId);
     }
 
     private static boolean isCorrelationUsedInAnyCorrelationArray(DbExporter.Database db, int correlationId) {
@@ -3214,37 +3252,7 @@ public final class LangbookReadableDatabase {
      * and then it is merely a sentence.
      */
     static boolean isSymbolArrayMerelyASentence(DbExporter.Database db, int symbolArrayId) {
-        final LangbookDbSchema.CorrelationsTable corrTable = LangbookDbSchema.Tables.correlations;
-
-        DbQuery query = new DbQuery.Builder(corrTable)
-                .where(corrTable.getSymbolArrayColumnIndex(), symbolArrayId)
-                .select(corrTable.getIdColumnIndex());
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                return false;
-            }
-        }
-
-        final LangbookDbSchema.ConversionsTable convTable = LangbookDbSchema.Tables.conversions;
-        query = new DbQuery.Builder(convTable)
-                .where(convTable.getSourceColumnIndex(), symbolArrayId)
-                .select(convTable.getIdColumnIndex());
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                return false;
-            }
-        }
-
-        query = new DbQuery.Builder(convTable)
-                .where(convTable.getTargetColumnIndex(), symbolArrayId)
-                .select(convTable.getIdColumnIndex());
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                return false;
-            }
-        }
-
-        return true;
+        return !isSymbolArrayUsedInAnyCorrelation(db, symbolArrayId) && !isSymbolArrayUsedInAnyConversion(db, symbolArrayId);
     }
 
     /**
