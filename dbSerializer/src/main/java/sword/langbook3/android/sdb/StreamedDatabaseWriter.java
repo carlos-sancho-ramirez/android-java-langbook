@@ -785,14 +785,14 @@ public final class StreamedDatabaseWriter {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int setId = row.get(0).toInt();
-                final int bunch = conceptIdMap.get(row.get(1).toInt());
+                final int bunch = conceptIdMap.get(row.get(1).toInt(), -1);
 
                 final ImmutableIntSet set = bunchSets.get(setId, emptySet);
                 bunchSets.put(setId, set.add(bunch));
             }
         }
 
-        return bunchSets.toImmutable();
+        return bunchSets.toImmutable().filterNot(set -> set.contains(-1));
     }
 
     private static ImmutableIntSet getConceptsInAcceptations(DbExporter.Database db) {
