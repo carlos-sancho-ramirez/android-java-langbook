@@ -449,6 +449,42 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     @Test
+    default void testRemoveDynamicAcceptationsWhenAcceptationFromSourceBunch() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int studentConcept = manager.getMaxConcept() + 1;
+        final int studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
+
+        final int sourceBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, sourceBunch, "mis palabras");
+        manager.addAcceptationInBunch(sourceBunch, studentAcceptation);
+
+        final int femenineRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+
+        final int agentId = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(sourceBunch), intSetOf(), alphabet, null, null, "o", "a", femenineRule);
+
+        final int femaleStudentAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation);
+        final ImmutableIntList studentCorrelationArray = manager.getAcceptationCorrelationArray(studentAcceptation);
+        final ImmutableIntList femaleStudentCorrelationArray = manager.getAcceptationCorrelationArray(femaleStudentAcceptation);
+        assertTrue(manager.removeAcceptation(studentAcceptation));
+
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation));
+        assertEmpty(manager.getAcceptationTexts(studentAcceptation));
+        assertEmpty(manager.getAcceptationTexts(femaleStudentAcceptation));
+        assertEquals(0, manager.conceptFromAcceptation(studentAcceptation));
+        assertEquals(0, manager.conceptFromAcceptation(femaleStudentAcceptation));
+        for (int correlationId : studentCorrelationArray) {
+            assertEmpty(manager.getCorrelationWithText(correlationId));
+        }
+        for (int correlationId : femaleStudentCorrelationArray) {
+            assertEmpty(manager.getCorrelationWithText(correlationId));
+        }
+    }
+
+    @Test
     default void testRemoveUnusedBunchSetsWhenRemovingAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 

@@ -566,6 +566,14 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
+    static ImmutableIntSet findRuledAcceptationByBaseAcceptation(DbExporter.Database db, int baseAcceptation) {
+        final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(ruledAccs)
+                .where(ruledAccs.getAcceptationColumnIndex(), baseAcceptation)
+                .select(ruledAccs.getIdColumnIndex());
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+    }
+
     static Integer findRuledAcceptationByRuleAndBaseAcceptation(DbExporter.Database db, int rule, int baseAcceptation) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;

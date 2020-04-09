@@ -96,7 +96,6 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAg
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAffectedAgentsByItsSourceWithTarget;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsByRule;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsWithoutSourceBunches;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findAgentsWithoutSourceBunchesWithTarget;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAlphabetsByLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findBunchConceptsLinkedToJustThisLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findBunchSet;
@@ -106,6 +105,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findIncludedAc
 import static sword.langbook3.android.db.LangbookReadableDatabase.findQuestionFieldSet;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findQuizzesByBunch;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByBaseAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSentencesBySymbolArrayId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
@@ -742,7 +742,7 @@ public final class LangbookDatabase {
     private static void removeFromStringQueryTable(Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getMainAcceptationColumnIndex(), acceptation)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
                 .build();
 
         db.delete(query);
@@ -766,52 +766,76 @@ public final class LangbookDatabase {
         db.delete(query);
     }
 
-    static boolean removeAcceptation(Database db, int acceptation) {
+    private static boolean canAcceptationBeRemoved(Database db, int acceptation) {
         final int concept = conceptFromAcceptation(db, acceptation);
-        final boolean withoutSynonymsOrTranslations = LangbookReadableDatabase.findAcceptationsByConcept(db, concept).remove(acceptation).isEmpty();
-        if (withoutSynonymsOrTranslations && hasAgentsRequiringAcceptation(db, concept)) {
-            return false;
+        final boolean withSynonymsOrTranslations = !LangbookReadableDatabase.findAcceptationsByConcept(db, concept).remove(acceptation).isEmpty();
+        return (withSynonymsOrTranslations || !hasAgentsRequiringAcceptation(db, concept)) &&
+                !findRuledAcceptationByBaseAcceptation(db, acceptation).anyMatch(acc -> !canAcceptationBeRemoved(db, acc));
+    }
+
+    private static void removeCorrelationArrayIfUnused(Database db, int correlationArray) {
+        if (!LangbookReadableDatabase.isCorrelationArrayInUse(db, correlationArray)) {
+            final int[] correlationIds = LangbookReadableDatabase.getCorrelationArray(db, correlationArray);
+            if (!deleteCorrelationArray(db, correlationArray)) {
+                throw new AssertionError();
+            }
+
+            for (int correlationId : correlationIds) {
+                if (!isCorrelationInUse(db, correlationId)) {
+                    final ImmutableIntSet symbolArrayIds = LangbookReadableDatabase.getCorrelationSymbolArrayIds(db, correlationId);
+
+                    if (!deleteCorrelation(db, correlationId)) {
+                        throw new AssertionError();
+                    }
+
+                    for (int symbolArrayId : symbolArrayIds) {
+                        if (!isSymbolArrayInUse(db, symbolArrayId) && !deleteSymbolArray(db, symbolArrayId)) {
+                            throw new AssertionError();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean removeAcceptationInternal(Database db, int acceptation) {
+        if (findRuledAcceptationByBaseAcceptation(db, acceptation).anyMatch(acc -> !removeAcceptationInternal(db, acc))) {
+            throw new AssertionError();
         }
 
         LangbookDeleter.deleteKnowledge(db, acceptation);
         removeFromBunches(db, acceptation);
         removeFromStringQueryTable(db, acceptation);
         removeFromSentenceSpans(db, acceptation);
+
+        final int concept = conceptFromAcceptation(db, acceptation);
+        final int correlationArray = correlationArrayFromAcceptation(db, acceptation);
         final boolean removed = LangbookDeleter.deleteAcceptation(db, acceptation);
         deleteSearchHistoryForAcceptation(db, acceptation);
 
-        if (removed && withoutSynonymsOrTranslations) {
-            deleteBunch(db, concept);
-        }
-
-        final ImmutableIntKeyMap<ImmutableIntSet> affectedAgents = findAgentsWithoutSourceBunchesWithTarget(db);
-        for (int agent : affectedAgents.keySet()) {
-            rerunAgent(db, agent, false, null);
-        }
-
-        ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-        for (ImmutableIntSet bunchSet : affectedAgents) {
-            for (int bunch : bunchSet) {
-                if (bunch != 0) {
-                    builder.add(bunch);
-                }
+        if (removed) {
+            final boolean withoutSynonymsOrTranslations = LangbookReadableDatabase.findAcceptationsByConcept(db, concept).size() <= 1;
+            if (withoutSynonymsOrTranslations) {
+                deleteBunch(db, concept);
             }
+
+            deleteRuledAcceptation(db, acceptation);
+            removeCorrelationArrayIfUnused(db, correlationArray);
         }
 
-        ImmutableIntSet updatedBunches = builder.build();
-        while (!updatedBunches.isEmpty()) {
-            builder = new ImmutableIntSetCreator();
-            for (int bunch : updatedBunches) {
-                for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, entry.key(), false, null);
-                    for (int b : entry.value()) {
-                        builder.add(b);
-                    }
-                }
-            }
-            updatedBunches = builder.build();
-        }
         return removed;
+    }
+
+    static boolean removeAcceptation(Database db, int acceptation) {
+        if (!canAcceptationBeRemoved(db, acceptation)) {
+            return false;
+        }
+
+        if (!removeAcceptationInternal(db, acceptation)) {
+            throw new AssertionError();
+        }
+
+        return true;
     }
 
     static boolean removeDefinition(Database db, int complementedConcept) {
@@ -1109,29 +1133,7 @@ public final class LangbookDatabase {
             }
 
             deleteSpansByDynamicAcceptation(db, ruleAcceptation);
-
-            if (!LangbookReadableDatabase.isCorrelationArrayInUse(db, correlationArray)) {
-                final int[] correlationIds = LangbookReadableDatabase.getCorrelationArray(db, correlationArray);
-                if (!deleteCorrelationArray(db, correlationArray)) {
-                    throw new AssertionError();
-                }
-
-                for (int correlationId : correlationIds) {
-                    if (!isCorrelationInUse(db, correlationId)) {
-                        final ImmutableIntSet symbolArrayIds = LangbookReadableDatabase.getCorrelationSymbolArrayIds(db, correlationId);
-
-                        if (!deleteCorrelation(db, correlationId)) {
-                            throw new AssertionError();
-                        }
-
-                        for (int symbolArrayId : symbolArrayIds) {
-                            if (!isSymbolArrayInUse(db, symbolArrayId) && !deleteSymbolArray(db, symbolArrayId)) {
-                                throw new AssertionError();
-                            }
-                        }
-                    }
-                }
-            }
+            removeCorrelationArrayIfUnused(db, correlationArray);
         }
 
         if (!LangbookDeleter.deleteAgent(db, agentId)) {
