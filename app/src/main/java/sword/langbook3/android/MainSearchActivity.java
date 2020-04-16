@@ -18,6 +18,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
     private ImmutableIntKeyMap<String> _ruleTexts;
+    private int _dbWriteVersion;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -97,9 +98,11 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     SearchResultAdapter createAdapter(ImmutableList<SearchResult> results) {
-        if (_ruleTexts == null) {
+        final int dbWriteVersion = DbManager.getInstance().getDatabase().getWriteVersion();
+        if (_ruleTexts == null || dbWriteVersion != _dbWriteVersion) {
             final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
             _ruleTexts = DbManager.getInstance().getManager().readAllRules(preferredAlphabet);
+            _dbWriteVersion = dbWriteVersion;
         }
 
         return new SearchResultAdapter(results, _ruleTexts);
