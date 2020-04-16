@@ -2647,7 +2647,6 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(ruledConcepts)
                 .join(acceptations, ruledConcepts.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .groupBy(ruledConcepts.getRuleColumnIndex())
                 .select(ruledConcepts.getRuleColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());
