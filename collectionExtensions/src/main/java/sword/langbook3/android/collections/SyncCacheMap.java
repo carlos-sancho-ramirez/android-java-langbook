@@ -5,10 +5,10 @@ import sword.collections.MutableHashMap;
 
 public final class SyncCacheMap<K, V> {
 
-    private final Function<K, V> _supplier;
+    private final Function<? super K, ? extends V> _supplier;
     private final MutableHashMap<K, V> _map;
 
-    public SyncCacheMap(Function<K, V> supplier) {
+    public SyncCacheMap(Function<? super K, ? extends V> supplier) {
         _supplier = supplier;
         _map = MutableHashMap.empty();
     }

@@ -5,10 +5,10 @@ import sword.collections.MutableIntValueHashMap;
 
 public final class SyncCacheIntValueMap<T> {
 
-    private final IntResultFunction<T> _supplier;
+    private final IntResultFunction<? super T> _supplier;
     private final MutableIntValueHashMap<T> _map;
 
-    public SyncCacheIntValueMap(IntResultFunction<T> supplier) {
+    public SyncCacheIntValueMap(IntResultFunction<? super T> supplier) {
         _supplier = supplier;
         _map = MutableIntValueHashMap.empty();
     }
