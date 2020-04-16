@@ -72,7 +72,7 @@ class SearchResultAdapter extends BaseAdapter {
             auxTv.setVisibility(View.GONE);
         }
         else {
-            auxTv.setText(item.getMainAccMainStr() + " + " + rules.map(_ruleTexts::get).reduce((a, b) -> a + " + " + b));
+            auxTv.setText(item.getMainAccMainStr() + " + " + rules.reverse().map(_ruleTexts::get).reduce((a, b) -> a + " + " + b));
             auxTv.setVisibility(View.VISIBLE);
         }
 
