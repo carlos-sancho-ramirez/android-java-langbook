@@ -2638,16 +2638,16 @@ public final class LangbookReadableDatabase {
     }
 
     static ImmutableIntKeyMap<String> readAllRules(DbExporter.Database db, int preferredAlphabet) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
-        final LangbookDbSchema.RuledConceptsTable ruledConcepts = LangbookDbSchema.Tables.ruledConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
-        final int accOffset = ruledConcepts.columns().size();
+        final int accOffset = agents.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
-        final DbQuery query = new DbQuery.Builder(ruledConcepts)
-                .join(acceptations, ruledConcepts.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(acceptations, agents.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .select(ruledConcepts.getRuleColumnIndex(),
+                .select(agents.getRuleColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());
 
