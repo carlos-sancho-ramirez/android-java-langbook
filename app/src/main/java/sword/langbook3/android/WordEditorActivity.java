@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -85,10 +86,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, int acceptation) {
-        final Intent intent = new Intent(activity, WordEditorActivity.class);
+    public static void open(Context context, int acceptation) {
+        final Intent intent = new Intent(context, WordEditorActivity.class);
         intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
-        activity.startActivityForResult(intent, requestCode);
+        context.startActivity(intent);
     }
 
     private static final class FieldConversion {

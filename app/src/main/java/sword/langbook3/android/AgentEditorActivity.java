@@ -60,22 +60,22 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         context.startActivity(intent);
     }
 
-    public static void openWithTarget(Activity activity, int requestCode, int targetBunch) {
-        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+    public static void openWithTarget(Context context, int targetBunch) {
+        final Intent intent = new Intent(context, AgentEditorActivity.class);
         intent.putExtra(ArgKeys.TARGET_BUNCH, targetBunch);
-        activity.startActivityForResult(intent, requestCode);
+        context.startActivity(intent);
     }
 
-    public static void openWithSource(Activity activity, int requestCode, int sourceBunch) {
-        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+    public static void openWithSource(Context context, int sourceBunch) {
+        final Intent intent = new Intent(context, AgentEditorActivity.class);
         intent.putExtra(ArgKeys.SOURCE_BUNCH, sourceBunch);
-        activity.startActivityForResult(intent, requestCode);
+        context.startActivity(intent);
     }
 
-    public static void openWithDiff(Activity activity, int requestCode, int diffBunch) {
-        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+    public static void openWithDiff(Context context, int diffBunch) {
+        final Intent intent = new Intent(context, AgentEditorActivity.class);
         intent.putExtra(ArgKeys.DIFF_BUNCH, diffBunch);
-        activity.startActivityForResult(intent, requestCode);
+        context.startActivity(intent);
     }
 
     public static void open(Context context, int agentId) {
@@ -622,7 +622,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                         final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                         if (agentId != null) {
-                            setResult(RESULT_OK);
                             finish();
                         }
                     }
@@ -632,7 +631,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                         final int message = success? R.string.updateAgentFeedback : R.string.updateAgentError;
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                         if (success) {
-                            setResult(RESULT_OK);
                             finish();
                         }
                     }

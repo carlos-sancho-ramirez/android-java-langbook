@@ -40,13 +40,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_CLICK_NAVIGATION = 1;
-    private static final int REQUEST_CODE_CREATE_AGENT = 2;
-    private static final int REQUEST_CODE_CREATE_SENTENCE = 3;
-    private static final int REQUEST_CODE_EDIT = 4;
-    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 5;
-    private static final int REQUEST_CODE_PICK_ACCEPTATION = 6;
-    private static final int REQUEST_CODE_PICK_BUNCH = 7;
-    private static final int REQUEST_CODE_PICK_DEFINITION = 8;
+    private static final int REQUEST_CODE_CREATE_SENTENCE = 2;
+    private static final int REQUEST_CODE_LINKED_ACCEPTATION = 3;
+    private static final int REQUEST_CODE_PICK_ACCEPTATION = 4;
+    private static final int REQUEST_CODE_PICK_BUNCH = 5;
+    private static final int REQUEST_CODE_PICK_DEFINITION = 6;
 
     private interface ArgKeys {
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
@@ -66,6 +64,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private int _preferredAlphabet;
     private int _staticAcceptation;
     private AcceptationDetailsModel _model;
+    private int _dbWriteVersion;
     private boolean _confirmOnly;
 
     private boolean _hasDefinition;
@@ -262,6 +261,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private boolean updateModelAndUi() {
         _model = DbManager.getInstance().getManager().getAcceptationsDetails(_staticAcceptation, _preferredAlphabet);
+        _dbWriteVersion = DbManager.getInstance().getDatabase().getWriteVersion();
         if (_model != null) {
             setTitle(_model.getTitle(_preferredAlphabet));
             _listAdapter = new AcceptationDetailsAdapter(this, REQUEST_CODE_CLICK_NAVIGATION, getAdapterItems());
@@ -403,7 +403,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemEdit:
-                WordEditorActivity.open(this, REQUEST_CODE_EDIT, _staticAcceptation);
+                WordEditorActivity.open(this, _staticAcceptation);
                 return true;
 
             case R.id.menuItemLinkConcept:
@@ -445,15 +445,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemNewAgentAsSource:
-                AgentEditorActivity.openWithSource(this, REQUEST_CODE_CREATE_AGENT, _model.concept);
+                AgentEditorActivity.openWithSource(this, _model.concept);
                 return true;
 
             case R.id.menuItemNewAgentAsDiff:
-                AgentEditorActivity.openWithDiff(this, REQUEST_CODE_CREATE_AGENT, _model.concept);
+                AgentEditorActivity.openWithDiff(this, _model.concept);
                 return true;
 
             case R.id.menuItemNewAgentAsTarget:
-                AgentEditorActivity.openWithTarget(this, REQUEST_CODE_CREATE_AGENT, _model.concept);
+                AgentEditorActivity.openWithTarget(this, _model.concept);
                 return true;
         }
 
@@ -560,6 +560,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (DbManager.getInstance().getDatabase().getWriteVersion() != _dbWriteVersion) {
+            updateModelAndUi();
+        }
+    }
+
     private void deleteAcceptation() {
         if (DbManager.getInstance().getManager().removeAcceptation(_staticAcceptation)) {
             showFeedback(getString(R.string.deleteAcceptationFeedback));
@@ -573,10 +582,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_CLICK_NAVIGATION) {
-            updateModelAndUi();
-        }
-        else if (resultCode == RESULT_OK) {
+        if (resultCode == RESULT_OK) {
             final LangbookManager manager = DbManager.getInstance().getManager();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 final boolean usedConcept = data
@@ -585,21 +591,16 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                     _state.setLinkedAcceptation(data.getIntExtra(AcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0));
                     showLinkModeSelectorDialog();
                 }
-                else {
-                    updateModelAndUi();
-                }
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
                 final int message = manager.addAcceptationInBunch(_model.concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
-                updateModelAndUi();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
                 final int pickedBunch = (pickedAcceptation != 0)? manager.conceptFromAcceptation(pickedAcceptation) : 0;
                 final int message = manager.addAcceptationInBunch(pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
-                updateModelAndUi();
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {
@@ -615,12 +616,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 if (sentenceId != 0) {
                     SentenceDetailsActivity.open(this, REQUEST_CODE_CLICK_NAVIGATION, sentenceId);
                 }
-                else {
-                    updateModelAndUi();
-                }
-            }
-            else if (requestCode == REQUEST_CODE_EDIT || requestCode == REQUEST_CODE_CREATE_AGENT) {
-                updateModelAndUi();
             }
         }
     }
