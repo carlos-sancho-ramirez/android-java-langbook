@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -54,9 +55,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         String STATE = "st";
     }
 
-    public static void open(Activity activity, int requestCode) {
-        final Intent intent = new Intent(activity, AgentEditorActivity.class);
-        activity.startActivityForResult(intent, requestCode);
+    public static void open(Context context) {
+        final Intent intent = new Intent(context, AgentEditorActivity.class);
+        context.startActivity(intent);
     }
 
     public static void openWithTarget(Activity activity, int requestCode, int targetBunch) {
@@ -77,10 +78,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, int agentId) {
-        final Intent intent = new Intent(activity, AgentEditorActivity.class);
+    public static void open(Context context, int agentId) {
+        final Intent intent = new Intent(context, AgentEditorActivity.class);
         intent.putExtra(ArgKeys.AGENT, agentId);
-        activity.startActivityForResult(intent, requestCode);
+        context.startActivity(intent);
     }
 
     static final class CorrelationEntry {

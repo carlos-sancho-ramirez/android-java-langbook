@@ -52,7 +52,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 return true;
 
             case R.id.menuItemNewAgent:
-                AgentEditorActivity.open(this, REQUEST_CODE_NEW_AGENT);
+                AgentEditorActivity.open(this);
                 return true;
 
             case R.id.menuItemSettings:

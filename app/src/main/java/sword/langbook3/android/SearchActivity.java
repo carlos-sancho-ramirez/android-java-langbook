@@ -22,8 +22,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
 
     static final int REQUEST_CODE_WELCOME = 1;
     static final int REQUEST_CODE_NEW_ACCEPTATION = 2;
-    static final int REQUEST_CODE_NEW_AGENT = 3;
-    static final int REQUEST_CODE_OPEN_SETTINGS = 4;
+    static final int REQUEST_CODE_OPEN_SETTINGS = 3;
 
     private ListView _listView;
     private SearchResultAdapter _listAdapter;

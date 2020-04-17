@@ -24,7 +24,6 @@ import static sword.langbook3.android.SearchActivity.AGENT_QUERY_PREFIX;
 public final class AgentDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
     private static final int REQUEST_CODE_CLICK_NAVIGATION = 1;
-    private static final int REQUEST_CODE_EDIT_AGENT = 2;
 
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
@@ -46,7 +45,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
     boolean _deleteDialogPresent;
 
     AgentRegister _register;
-    private boolean _uiJustUpdated;
+    private int _dbWriteVersion;
 
     private ListView _listView;
 
@@ -70,7 +69,6 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
         setTitle(AGENT_QUERY_PREFIX + '#' + _agentId);
         updateUi();
-        _uiJustUpdated = true;
     }
 
     private static void addCorrelationSection(LangbookChecker checker, String title, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
@@ -138,17 +136,11 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(ruleResult.id, ruleResult.text, false));
         }
 
+        _dbWriteVersion = DbManager.getInstance().getDatabase().getWriteVersion();
         _listView.setAdapter(new AcceptationDetailsAdapter(this, REQUEST_CODE_CLICK_NAVIGATION, builder.build()));
 
         if (_deleteDialogPresent) {
             showDeleteConfirmationDialog();
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_EDIT_AGENT && resultCode == RESULT_OK && !_uiJustUpdated) {
-            updateUi();
         }
     }
 
@@ -163,7 +155,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemEdit:
-                AgentEditorActivity.open(this, REQUEST_CODE_EDIT_AGENT, _agentId);
+                AgentEditorActivity.open(this, _agentId);
                 return true;
 
             case R.id.menuItemDeleteAgent:
@@ -179,7 +171,10 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
     @Override
     public void onResume() {
-        _uiJustUpdated = false;
+        if (DbManager.getInstance().getDatabase().getWriteVersion() != _dbWriteVersion) {
+            updateUi();
+        }
+
         super.onResume();
     }
 
