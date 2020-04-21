@@ -1318,6 +1318,10 @@ public final class LangbookReadableDatabase {
     }
 
     static ImmutableIntSet getBunchSet(DbExporter.Database db, int setId) {
+        if (setId == 0) {
+            return ImmutableIntArraySet.empty();
+        }
+
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getSetIdColumnIndex(), setId)

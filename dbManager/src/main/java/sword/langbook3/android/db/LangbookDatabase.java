@@ -875,35 +875,22 @@ public final class LangbookDatabase {
 
         LangbookDbInserter.insertBunchAcceptation(db, bunch, acceptation, 0);
 
-        final ImmutableIntSet.Builder allUpdatedBunchesBuilder = new ImmutableIntSetCreator();
-        ImmutableIntSet updatedBunches = new ImmutableIntSetCreator().add(bunch).build();
-        MutableIntSet removedDynamicAcceptations = MutableIntArraySet.empty();
-        while (!updatedBunches.isEmpty()) {
-            final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
-            for (int b : updatedBunches) {
-                allUpdatedBunchesBuilder.add(b);
-                for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
-                    rerunAgent(db, entry.key(), false, removedDynamicAcceptations);
-                    for (int bb : entry.value()) {
-                        builder.add(bb);
-                    }
-                }
+        final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntSet>> agentSortingResult = getAgentExecutionOrder(db);
+        final MutableIntSet updatedBunches = MutableIntArraySet.empty();
+        updatedBunches.add(bunch);
 
-                for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
-                    rerunAgent(db, entry.key(), false, removedDynamicAcceptations);
-                    for (int bb : entry.value()) {
-                        builder.add(bb);
-                    }
-                }
+        MutableIntSet removedDynamicAcceptations = MutableIntArraySet.empty();
+        for (int agentId : agentSortingResult.left) {
+            if (agentSortingResult.right.get(agentId).anyMatch(updatedBunches::contains)) {
+                updatedBunches.addAll(rerunAgent(db, agentId, false, removedDynamicAcceptations));
             }
-            updatedBunches = builder.build();
         }
 
         for (int dynAcc : removedDynamicAcceptations) {
             deleteSpansByDynamicAcceptation(db, dynAcc);
         }
 
-        recheckQuizzes(db, allUpdatedBunchesBuilder.build());
+        recheckQuizzes(db, updatedBunches.toImmutable());
         return true;
     }
 
