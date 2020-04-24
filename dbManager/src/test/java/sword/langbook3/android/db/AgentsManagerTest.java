@@ -238,6 +238,43 @@ interface AgentsManagerTest extends BunchesManagerTest {
         checkAdd2ChainedAgents(true, true);
     }
 
+    @Test
+    default void testAddAcceptationInFirstAgentSourceBunchForChainedAgents() {
+        final AgentsManager manager = createManager(new MemoryDatabase());
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+
+        final int maleStudentConcept = manager.getMaxConcept() + 1;
+        final int maleStudentAcc = addSimpleAcceptation(manager, alphabet, maleStudentConcept, "alumno");
+
+        final int femenineRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+
+        final int pluralRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineRule, "plural");
+
+        final int feminableWordsBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, feminableWordsBunch, "feminizable");
+
+        final int pluralableWordsBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, pluralableWordsBunch, "pluralizable");
+
+        final int agent1 = addSingleAlphabetAgent(manager, intSetOf(pluralableWordsBunch), intSetOf(feminableWordsBunch), intSetOf(), alphabet, null, null, "o", "a", femenineRule);
+
+        final int agent2 = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(pluralableWordsBunch), intSetOf(), alphabet, null, null, null, "s", pluralRule);
+
+        manager.addAcceptationInBunch(feminableWordsBunch, maleStudentAcc);
+
+        final int femaleStudentConcept = manager.findRuledConcept(femenineRule, maleStudentConcept);
+        final int femaleStudentAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, maleStudentAcc);
+        assertEquals(femaleStudentConcept, manager.conceptFromAcceptation(femaleStudentAcc));
+        assertSinglePair(alphabet, "alumna", manager.getAcceptationTexts(femaleStudentAcc));
+
+        final int pluralFemaleStudentConcept = manager.findRuledConcept(pluralRule, femaleStudentConcept);
+        final int pluralFemaleStudentAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, femaleStudentAcc);
+        assertEquals(pluralFemaleStudentConcept, manager.conceptFromAcceptation(pluralFemaleStudentAcc));
+        assertSinglePair(alphabet, "alumnas", manager.getAcceptationTexts(pluralFemaleStudentAcc));
+    }
+
     default void checkAdd2ChainedAgentsFirstWithoutSource(boolean reversedAdditionOrder, boolean acceptationBeforeAgents) {
         final AgentsManager manager = createManager(new MemoryDatabase());
 

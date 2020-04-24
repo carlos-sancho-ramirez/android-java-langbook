@@ -2961,6 +2961,26 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
+    static ImmutableIntPairMap getFilteredAgentProcessedMap(DbExporter.Database db, int agentId, IntSet acceptations) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getAgentColumnIndex(), agentId)
+                .select(table.getAcceptationColumnIndex(), table.getIdColumnIndex());
+
+        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final int acceptation = row.get(0).toInt();
+                if (acceptations.contains(acceptation)) {
+                    builder.put(acceptation, row.get(1).toInt());
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
     static ImmutableIntPairMap getAgentProcessedMap(DbExporter.Database db, int agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery query = new DbQuery.Builder(table)

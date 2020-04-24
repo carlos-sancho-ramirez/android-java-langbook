@@ -68,6 +68,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromStrin
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgent;
+import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
@@ -121,6 +122,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getConversion;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getConversionsMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCorrelationWithText;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getCurrentKnowledge;
+import static sword.langbook3.android.db.LangbookReadableDatabase.getFilteredAgentProcessedMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getLanguageFromAlphabet;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxCorrelationArrayId;
@@ -856,6 +858,151 @@ public final class LangbookDatabase {
         }
     }
 
+    private static ImmutableIntSet findMatchingAcceptationsAmongGiven(DbExporter.Database db,
+            IntSet acceptations, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
+            ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> endMatcher) {
+
+        final MutableIntSet filteredAcceptations = acceptations.mutate();
+        for (int bunch : diffBunches) {
+            final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+            final DbQuery query = new DbQuery.Builder(table)
+                    .where(table.getBunchColumnIndex(), bunch)
+                    .select(table.getAcceptationColumnIndex());
+            try (DbResult result = db.select(query)) {
+                while (result.hasNext()) {
+                    filteredAcceptations.remove(result.next().get(0).toInt());
+                }
+            }
+        }
+
+        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
+        if (!sourceBunches.isEmpty()) {
+            for (int bunch : sourceBunches) {
+                final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+                final DbQuery query = new DbQuery.Builder(table)
+                        .where(table.getBunchColumnIndex(), bunch)
+                        .select(table.getAcceptationColumnIndex());
+                try (DbResult result = db.select(query)) {
+                    while (result.hasNext()) {
+                        final int acc = result.next().get(0).toInt();
+                        if (filteredAcceptations.contains(acc)) {
+                            builder.add(acc);
+                        }
+                    }
+                }
+            }
+        }
+        final ImmutableIntSet matchingAcceptations = builder.build();
+
+        final ImmutableIntSet matchingAlphabets = startMatcher.keySet().addAll(endMatcher.keySet());
+        for (int alphabet : matchingAlphabets) {
+            if (startMatcher.get(alphabet, null) == null) {
+                startMatcher = startMatcher.put(alphabet, "");
+            }
+
+            if (endMatcher.get(alphabet, null) == null) {
+                endMatcher = endMatcher.put(alphabet, "");
+            }
+        }
+
+        final ImmutableIntKeyMap<String> sMatcher = startMatcher;
+        final ImmutableIntKeyMap<String> eMatcher = endMatcher;
+
+        return matchingAcceptations.filterNot(acc -> {
+            final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acc);
+            return matchingAlphabets.anyMatch(alphabet -> {
+                final String text = texts.get(alphabet, null);
+                return text == null || !text.startsWith(sMatcher.get(alphabet)) || !text.endsWith(eMatcher.get(alphabet));
+            });
+        });
+    }
+
+    private static ImmutableIntSet rerunAgentWhenAcceptationIncludedInBunch(Database db, int agentId, MutableIntSet addedAcceptations) {
+        final AgentDetails agentDetails = LangbookReadableDatabase.getAgentDetails(db, agentId);
+        final ImmutableIntSet matchingAcceptations = findMatchingAcceptationsAmongGiven(db,
+                addedAcceptations, agentDetails.sourceBunches, agentDetails.diffBunches,
+                agentDetails.startMatcher, agentDetails.endMatcher);
+
+        boolean targetChanged = false;
+        final boolean ruleApplied = agentDetails.modifyCorrelations();
+        if (!ruleApplied) {
+            final ImmutableIntSet acceptationAlreadyInTarget = getAcceptationsInBunchByBunchAndAgent(db, agentDetails.targetBunches.valueAt(0), agentId).filter(addedAcceptations::contains);
+
+            for (int acc : addedAcceptations) {
+                final boolean alreadyInTarget = acceptationAlreadyInTarget.contains(acc);
+                final boolean isMatching = matchingAcceptations.contains(acc);
+                if (isMatching && !alreadyInTarget) {
+                    for (int target : agentDetails.targetBunches) {
+                        insertBunchAcceptation(db, target, acc, agentId);
+                    }
+
+                    targetChanged = true;
+                }
+                else if (!isMatching && alreadyInTarget) {
+                    if (!deleteBunchAcceptationsByAgentAndAcceptation(db, agentId, acc)) {
+                        throw new AssertionError();
+                    }
+
+                    targetChanged = true;
+                }
+            }
+        }
+        else {
+            final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+            final ImmutableIntSet conversionTargets = conversionMap.keySet();
+            final SyncCacheMap<ImmutableIntPair, Conversion> conversions = new SyncCacheMap<>(key -> getConversion(db, key));
+            final SyncCacheIntPairMap mainAlphabets = new SyncCacheIntPairMap(key -> readMainAlphabetFromAlphabet(db, key));
+
+            // This is assuming that matcher, adder, rule and flags did not change from last run,
+            // only its source and diff bunches and its contents
+            final ImmutableIntPairMap oldProcessedMap = getFilteredAgentProcessedMap(db, agentId, addedAcceptations);
+            for (int acc : addedAcceptations.toImmutable()) {
+                final boolean isMatching = matchingAcceptations.contains(acc);
+                final int dynAcc = oldProcessedMap.get(acc, 0);
+                if (!isMatching && dynAcc != 0) {
+                    targetChanged |= !agentDetails.targetBunches.isEmpty();
+                    removeAcceptationInternal(db, dynAcc);
+                }
+                else if (isMatching && dynAcc == 0) {
+                    final ImmutablePair<ImmutableIntKeyMap<String>, Integer> textsAndMain = readAcceptationTextsAndMain(
+                            db, acc);
+                    final MutableIntKeyMap<String> correlation = textsAndMain.left.mutate();
+
+                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
+                            conversionMap, conversions);
+                    if (validConversion) {
+                        final ImmutableIntPairMap.Builder corrBuilder = new ImmutableIntPairMap.Builder();
+                        for (ImmutableIntKeyMap.Entry<String> entry : correlation.entries()) {
+                            if (!conversionTargets.contains(entry.key())) {
+                                corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                            }
+                        }
+
+                        final int correlationId = LangbookDatabase.obtainCorrelation(db, corrBuilder.build());
+                        final int correlationArrayId = obtainSimpleCorrelationArray(db, correlationId);
+                        final int baseConcept = conceptFromAcceptation(db, acc);
+                        final int ruledConcept = obtainRuledConcept(db, agentDetails.rule, baseConcept);
+                        final int newAcc = insertAcceptation(db, ruledConcept, correlationArrayId);
+                        insertRuledAcceptation(db, newAcc, agentId, acc);
+                        addedAcceptations.add(newAcc);
+
+                        for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+                            final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
+                            insertStringQuery(db, entry.value(), mainText, textsAndMain.right, newAcc, entry.key());
+                        }
+
+                        for (int targetBunch : agentDetails.targetBunches) {
+                            insertBunchAcceptation(db, targetBunch, newAcc, agentId);
+                            targetChanged = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return targetChanged? agentDetails.targetBunches : ImmutableIntArraySet.empty();
+    }
+
     /**
      * Include an acceptation within a bunch in a secure way.
      *
@@ -879,15 +1026,13 @@ public final class LangbookDatabase {
         final MutableIntSet updatedBunches = MutableIntArraySet.empty();
         updatedBunches.add(bunch);
 
-        MutableIntSet removedDynamicAcceptations = MutableIntArraySet.empty();
+        MutableIntSet addedAcceptations = MutableIntArraySet.empty();
+        addedAcceptations.add(acceptation);
+
         for (int agentId : agentSortingResult.left) {
             if (agentSortingResult.right.get(agentId).anyMatch(updatedBunches::contains)) {
-                updatedBunches.addAll(rerunAgent(db, agentId, false, removedDynamicAcceptations));
+                updatedBunches.addAll(rerunAgentWhenAcceptationIncludedInBunch(db, agentId, addedAcceptations));
             }
-        }
-
-        for (int dynAcc : removedDynamicAcceptations) {
-            deleteSpansByDynamicAcceptation(db, dynAcc);
         }
 
         recheckQuizzes(db, updatedBunches.toImmutable());
