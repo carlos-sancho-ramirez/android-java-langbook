@@ -551,17 +551,22 @@ public final class DatabaseInflater {
         }
     }
 
+    private int findDynamicAcceptationFromPairs(int acceptationFileIndex, int[] accIdMap,
+            StreamedDatabaseReader.AgentAcceptationPair[] ruleAcceptationPairs) {
+        if (acceptationFileIndex < accIdMap.length) {
+            return accIdMap[acceptationFileIndex];
+        }
+        else {
+            final StreamedDatabaseReader.AgentAcceptationPair pair = ruleAcceptationPairs[acceptationFileIndex - accIdMap.length];
+            final int dynAcc = findDynamicAcceptationFromPairs(pair.acceptation, accIdMap, ruleAcceptationPairs);
+            return findRuledAcceptationByAgentAndBaseAcceptation(_db, pair.agent, dynAcc);
+        }
+    }
+
     private void insertSentences(StreamedDatabaseReader.SentenceSpan[] spans, int[] accIdMap, StreamedDatabaseReader.AgentAcceptationPair[] ruleAcceptationPairs) {
         for (StreamedDatabaseReader.SentenceSpan span : spans) {
             final ImmutableIntRange range = new ImmutableIntRange(span.start, span.start + span.length - 1);
-            final int acc;
-            if (span.acceptationFileIndex < accIdMap.length) {
-                acc = accIdMap[span.acceptationFileIndex];
-            }
-            else {
-                StreamedDatabaseReader.AgentAcceptationPair pair = ruleAcceptationPairs[span.acceptationFileIndex - accIdMap.length];
-                acc = findRuledAcceptationByAgentAndBaseAcceptation(_db, pair.agent, pair.acceptation);
-            }
+            final int acc = findDynamicAcceptationFromPairs(span.acceptationFileIndex, accIdMap, ruleAcceptationPairs);
             insertSpan(_db, span.sentenceId, range, acc);
         }
     }

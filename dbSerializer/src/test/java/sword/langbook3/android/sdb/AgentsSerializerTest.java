@@ -77,7 +77,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static void addSingleAlphabetAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
+    static int addSingleAlphabetAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
         final ImmutableIntKeyMap<String> startMatcher = (startMatcherText == null)? ImmutableIntKeyMap.empty() :
@@ -92,7 +92,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final ImmutableIntKeyMap<String> endAdder = (endAdderText == null)? ImmutableIntKeyMap.empty() :
                 new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
 
-        manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+        return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     AgentsManager createManager(MemoryDatabase db);

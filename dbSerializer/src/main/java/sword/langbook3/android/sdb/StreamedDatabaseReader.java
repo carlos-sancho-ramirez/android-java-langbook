@@ -1233,26 +1233,16 @@ public final class StreamedDatabaseReader {
         final int pairsCount = ibs.readHuffmanSymbol(naturalNumberTable);
         final AgentAcceptationPair[] pairs = new AgentAcceptationPair[pairsCount];
         if (pairsCount > 0) {
-            final int maxMainAcc = accIdMap.length - 1;
+            final int maxAcc = accIdMap.length + pairsCount - 1;
             final int maxAgentsWithRule = agentsWithRule.size() - 1;
-            int previousAgentWithRuleIndex = 0;
-            int firstPossibleAcc = 0;
+            final RangedIntegerHuffmanTable agentTable = new RangedIntegerHuffmanTable(0, maxAgentsWithRule);
+            final RangedIntegerHuffmanTable mainAcceptationTable = new RangedIntegerHuffmanTable(0, maxAcc);
             for (int pairIndex = 0; pairIndex < pairsCount; pairIndex++) {
-                final RangedIntegerHuffmanTable agentTable = new RangedIntegerHuffmanTable(previousAgentWithRuleIndex, maxAgentsWithRule);
                 final int agentWithRuleIndex = ibs.readHuffmanSymbol(agentTable);
                 final int agent = agentsWithRule.valueAt(agentWithRuleIndex);
-                if (agentWithRuleIndex != previousAgentWithRuleIndex) {
-                    firstPossibleAcc = 0;
-                }
+                int baseAccIndex = ibs.readHuffmanSymbol(mainAcceptationTable);
 
-                final RangedIntegerHuffmanTable mainAcceptationTable = new RangedIntegerHuffmanTable(firstPossibleAcc, maxMainAcc);
-                int mainAccIndex = ibs.readHuffmanSymbol(mainAcceptationTable);
-                int mainAcc = accIdMap[mainAccIndex];
-
-                previousAgentWithRuleIndex = agentWithRuleIndex;
-                firstPossibleAcc = mainAccIndex + 1;
-
-                pairs[pairIndex] = new AgentAcceptationPair(agent, mainAcc);
+                pairs[pairIndex] = new AgentAcceptationPair(agent, baseAccIndex);
             }
         }
 
@@ -1332,7 +1322,8 @@ public final class StreamedDatabaseReader {
         return spans;
     }
 
-    private void readSentenceMeanings(InputStreamWrapper ibs, int[] symbolArrayIdMap, SentenceSpan[] spans) throws IOException {
+    private ImmutableIntSet readSentenceMeanings(InputStreamWrapper ibs, int[] symbolArrayIdMap, SentenceSpan[] spans) throws IOException {
+        final MutableIntSet insertedSentences = MutableIntArraySet.empty();
         final int meaningCount = ibs.readHuffmanSymbol(naturalNumberTable);
         if (meaningCount > 0) {
             final MutableIntPairMap sentenceIds = MutableIntPairMap.empty();
@@ -1365,9 +1356,14 @@ public final class StreamedDatabaseReader {
                     }
 
                     insertSentenceWithId(_db, sentenceId, concept, symbolArray);
+                    if (!insertedSentences.add(sentenceId)) {
+                        throw new AssertionError();
+                    }
                 }
             }
         }
+
+        return insertedSentences.toImmutable();
     }
 
     public static final class Result {
@@ -1435,6 +1431,18 @@ public final class StreamedDatabaseReader {
         }
 
         return (languageCount == 0)? null : new ImmutableIntRange(minValidAlphabet, maxValidAlphabet);
+    }
+
+    private void insertMissingSentences(SentenceSpan[] spans, ImmutableIntSet insertedSentences) {
+        final MutableIntPairMap map = MutableIntPairMap.empty();
+        for (SentenceSpan span : spans) {
+            map.put(span.sentenceId, span.symbolArray);
+        }
+
+        int concept = getMaxConcept(_db);
+        for (int sentenceId : map.keySet().filterNot(insertedSentences::contains)) {
+            insertSentenceWithId(_db, sentenceId, ++concept, map.get(sentenceId));
+        }
     }
 
     public Result read() throws IOException {
@@ -1507,8 +1515,9 @@ public final class StreamedDatabaseReader {
                         symbolArraysReadResult.lengths);
 
                 setProgress(0.98f, "Writing sentence meanings");
-                readSentenceMeanings(ibs, symbolArraysIdMap, spans);
+                final ImmutableIntSet insertedSentences = readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
+                insertMissingSentences(spans, insertedSentences);
                 return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans);
             }
         }

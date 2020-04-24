@@ -43,7 +43,6 @@ import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
-import sword.collections.MutableIntValueSortedMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
 import sword.collections.SortFunction;
@@ -1310,7 +1309,8 @@ public final class StreamedDatabaseWriter {
                 .join(ruledAcceptations, spans.getDynamicAcceptationColumnIndex(), ruledAcceptations.getIdColumnIndex())
                 .select(spans.getDynamicAcceptationColumnIndex(), ruledAccOffset + ruledAcceptations.getAcceptationColumnIndex(), ruledAccOffset + ruledAcceptations.getAgentColumnIndex());
 
-        final MutableIntValueSortedMap<AgentAcceptationPair> pairs = MutableIntValueSortedMap.empty(AgentAcceptationPair::lessThan);
+        final MutableIntKeyMap<AgentAcceptationPair> rawPairs = MutableIntKeyMap.empty();
+        final MutableIntArraySet intermediateDynamicAcceptations = MutableIntArraySet.empty();
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
@@ -1324,37 +1324,64 @@ public final class StreamedDatabaseWriter {
                 if (originalAccKeys.contains(dynamicAcc)) {
                     throw new AssertionError();
                 }
-                if (!originalAccKeys.contains(baseAcc)) {
-                    throw new AssertionError();
+
+                if (!originalAccKeys.contains(baseAcc) && rawPairs.get(baseAcc, null) == null) {
+                    intermediateDynamicAcceptations.add(baseAcc);
                 }
 
-                pairs.put(new AgentAcceptationPair(agentWithRuleIndex, accIdMap.get(baseAcc)), dynamicAcc);
+                rawPairs.put(dynamicAcc, new AgentAcceptationPair(agentWithRuleIndex, baseAcc));
+                intermediateDynamicAcceptations.remove(dynamicAcc);
             }
         }
 
-        final int pairsCount = pairs.size();
-        _obs.writeHuffmanSymbol(naturalNumberTable, pairsCount);
-        if (pairsCount > 0) {
-            final int mainAccCount = originalAccKeys.size();
-            final int maxAgentWithRule = agentsWithRule.size() - 1;
-            int accIdMapSize = accIdMap.size();
-            int previousAgentWithRuleIndex = 0;
-            int firstPossibleAcc = 0;
-            for (int pairIndex = 0; pairIndex < pairsCount; pairIndex++) {
-                final AgentAcceptationPair pair = pairs.keyAt(pairIndex);
-                final RangedIntegerHuffmanTable agentTable = new RangedIntegerHuffmanTable(previousAgentWithRuleIndex, maxAgentWithRule);
-                _obs.writeHuffmanSymbol(agentTable, pair.agentWithRuleIndex);
-                if (pair.agentWithRuleIndex != previousAgentWithRuleIndex) {
-                    firstPossibleAcc = 0;
+        while (!intermediateDynamicAcceptations.isEmpty()) {
+            final int size = intermediateDynamicAcceptations.size();
+            final int ruledAcc = intermediateDynamicAcceptations.valueAt(size - 1);
+            intermediateDynamicAcceptations.removeAt(size - 1);
+
+            final DbQuery query2 = new DbQuery.Builder(ruledAcceptations)
+                    .where(ruledAcceptations.getIdColumnIndex(), ruledAcc)
+                    .select(ruledAcceptations.getAcceptationColumnIndex(), ruledAcceptations.getAgentColumnIndex());
+            try (DbResult dbResult = _db.select(query2)) {
+                if (!dbResult.hasNext()) {
+                    throw new AssertionError();
                 }
 
-                final RangedIntegerHuffmanTable mainAcceptationTable = new RangedIntegerHuffmanTable(firstPossibleAcc, mainAccCount - 1);
+                final List<DbValue> row = dbResult.next();
+                final int baseAcc = row.get(0).toInt();
+                final int agentWithRuleIndex = agentsWithRule.indexOf(row.get(1).toInt());
+
+                rawPairs.put(ruledAcc, new AgentAcceptationPair(agentWithRuleIndex, baseAcc));
+                if (!originalAccKeys.contains(baseAcc) && rawPairs.get(baseAcc) == null) {
+                    intermediateDynamicAcceptations.add(baseAcc);
+                }
+            }
+        }
+
+        final int pairsCount = rawPairs.size();
+        final int mainAccCount = originalAccKeys.size();
+        final int allAccCount = mainAccCount + pairsCount;
+
+        _obs.writeHuffmanSymbol(naturalNumberTable, pairsCount);
+        if (pairsCount > 0) {
+            final MutableIntKeyMap<AgentAcceptationPair> pairs = MutableIntKeyMap.empty();
+            for (int i = 0; i < pairsCount; i++) {
+                final int dynAcc = rawPairs.keyAt(i);
+                final AgentAcceptationPair rawPair = rawPairs.valueAt(i);
+                final int accIndex = originalAccKeys.contains(rawPair.acceptation)? accIdMap.get(rawPair.acceptation) :
+                        rawPairs.indexOfKey(rawPair.acceptation) + mainAccCount;
+                pairs.put(dynAcc, new AgentAcceptationPair(rawPair.agentWithRuleIndex, accIndex));
+            }
+
+            int accIdMapSize = accIdMap.size();
+            final RangedIntegerHuffmanTable agentTable = new RangedIntegerHuffmanTable(0, agentsWithRule.size() - 1);
+            final RangedIntegerHuffmanTable mainAcceptationTable = new RangedIntegerHuffmanTable(0, allAccCount - 1);
+            for (int pairIndex = 0; pairIndex < pairsCount; pairIndex++) {
+                final AgentAcceptationPair pair = pairs.valueAt(pairIndex);
+                _obs.writeHuffmanSymbol(agentTable, pair.agentWithRuleIndex);
                 _obs.writeHuffmanSymbol(mainAcceptationTable, pair.acceptation);
 
-                previousAgentWithRuleIndex = pair.agentWithRuleIndex;
-                firstPossibleAcc = pair.acceptation + 1;
-
-                accIdMap.put(pairs.valueAt(pairIndex), accIdMapSize++);
+                accIdMap.put(pairs.keyAt(pairIndex), accIdMapSize++);
             }
         }
     }
