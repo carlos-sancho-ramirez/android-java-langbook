@@ -2,9 +2,11 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.LanguageCreationResult;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
@@ -84,5 +86,35 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         assertTrue(manager.addAcceptationInBunch(animalConcept, catAcc));
         assertTrue(manager.removeAcceptation(animalAcc));
         assertEmpty(manager.getAcceptationsInBunch(animalConcept));
+    }
+
+    @Test
+    default void testShareConceptRemovesDuplicatedBunchAcceptations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final BunchesManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int guyConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
+
+        final int personConcept = manager.getMaxConcept() + 1;
+        final int personAcc = addSimpleAcceptation(manager, alphabet, personConcept, "persona");
+
+        final int johnConcept = manager.getMaxConcept() + 1;
+        final int johnAcc = addSimpleAcceptation(manager, alphabet, johnConcept, "John");
+        manager.addAcceptationInBunch(guyConcept, johnAcc);
+        manager.addAcceptationInBunch(personConcept, johnAcc);
+
+        assertTrue(manager.shareConcept(personAcc, guyConcept));
+        assertEmpty(manager.findAcceptationsByConcept(guyConcept));
+        assertEmpty(manager.getAcceptationsInBunch(guyConcept));
+        assertContainsOnly(johnAcc, manager.getAcceptationsInBunch(personConcept));
+
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), personConcept)
+                .select(table.getAcceptationColumnIndex());
+
+        assertEquals(1, db.select(query).size());
     }
 }

@@ -34,6 +34,7 @@ import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
 import sword.database.Deleter;
 import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.collections.SyncCacheIntPairMap;
 import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.collections.SyncCacheMap;
@@ -1817,9 +1818,50 @@ public final class LangbookDatabase {
         db.update(query);
     }
 
+    private static MutableIntKeyMap<MutableIntSet> getAcceptationsInBunchGroupedByAgent(Database db, int bunch) {
+        final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+        DbQuery oldConceptQuery = new DbQuery.Builder(table)
+                .where(table.getBunchColumnIndex(), bunch)
+                .select(table.getAgentColumnIndex(), table.getAcceptationColumnIndex());
+        final MutableIntKeyMap<MutableIntSet> map = MutableIntKeyMap.empty();
+        final SyncCacheIntKeyNonNullValueMap<MutableIntSet> syncCache = new SyncCacheIntKeyNonNullValueMap<>(map, k -> MutableIntArraySet.empty());
+        try (DbResult dbResult = db.select(oldConceptQuery)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                syncCache.get(row.get(0).toInt()).add(row.get(1).toInt());
+            }
+        }
+
+        return map;
+    }
+
     private static void updateBunchAcceptationConcepts(Database db, int oldConcept, int newConcept) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        final MutableIntKeyMap<MutableIntSet> oldBunchAcceptations = getAcceptationsInBunchGroupedByAgent(db, oldConcept);
+        if (oldBunchAcceptations.isEmpty()) {
+            return;
+        }
+
+        final MutableIntKeyMap<MutableIntSet> newBunchAcceptations = getAcceptationsInBunchGroupedByAgent(db, newConcept);
+        final ImmutableIntSet involvedAgents = oldBunchAcceptations.keySet().toImmutable().addAll(newBunchAcceptations.keySet());
+
+        final ImmutableIntKeyMap<IntSet> duplicated = involvedAgents.assign(agent -> {
+            MutableIntSet rawNewAccSet = newBunchAcceptations.get(agent, null);
+            final MutableIntSet newAccSet = (rawNewAccSet == null)? MutableIntArraySet.empty() : rawNewAccSet;
+            MutableIntSet rawOldAccSet = oldBunchAcceptations.get(agent, null);
+            final MutableIntSet oldAccSet = (rawOldAccSet == null)? MutableIntArraySet.empty() : rawOldAccSet;
+            return newAccSet.filter(oldAccSet::contains);
+        }).filterNot(IntSet::isEmpty);
+
+        for (int agent : duplicated.keySet()) {
+            for (int acc : duplicated.get(agent)) {
+                if (!deleteBunchAcceptation(db, oldConcept, acc, agent)) {
+                    throw new AssertionError();
+                }
+            }
+        }
+
+        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), oldConcept)
                 .put(table.getBunchColumnIndex(), newConcept)
                 .build();

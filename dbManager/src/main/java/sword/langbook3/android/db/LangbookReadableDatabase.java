@@ -1244,14 +1244,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getBunchColumnIndex(), bunch)
                 .select(table.getAcceptationColumnIndex());
 
-        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toInt());
-            }
-        }
-
-        return builder.build();
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
     static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {

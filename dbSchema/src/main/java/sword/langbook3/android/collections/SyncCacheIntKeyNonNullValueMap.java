@@ -6,12 +6,17 @@ import sword.collections.MutableIntKeyMap;
 public final class SyncCacheIntKeyNonNullValueMap<T> {
 
     private final T noFound = null;
-    private final IntFunction<T> _supplier;
+    private final IntFunction<? extends T> _supplier;
     private final MutableIntKeyMap<T> _map;
 
-    public SyncCacheIntKeyNonNullValueMap(IntFunction<T> supplier) {
+    public SyncCacheIntKeyNonNullValueMap(IntFunction<? extends T> supplier) {
         _supplier = supplier;
         _map = MutableIntKeyMap.empty();
+    }
+
+    public SyncCacheIntKeyNonNullValueMap(MutableIntKeyMap<T> map, IntFunction<? extends T> supplier) {
+        _supplier = supplier;
+        _map = map;
     }
 
     public T get(int key) {
