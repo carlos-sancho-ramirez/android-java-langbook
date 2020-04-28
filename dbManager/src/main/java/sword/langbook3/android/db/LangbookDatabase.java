@@ -68,6 +68,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromCorre
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabetFromStringQueries;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptation;
+import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgent;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
@@ -1979,12 +1980,35 @@ public final class LangbookDatabase {
 
         final IntPairMap oldAcceptations = getAcceptationsByConcept(db, oldConcept);
         if (!oldAcceptations.isEmpty()) {
-            final IntPairMap newAcceptations = getAcceptationsByConcept(db, oldConcept);
+            final IntPairMap newAcceptations = getAcceptationsByConcept(db, linkedConcept);
             final IntPairMap repeatedAcceptations = oldAcceptations.filter(newAcceptations::contains);
-            for (int acc : repeatedAcceptations.keySet()) {
-                if (!deleteAcceptation(db, acc) || !deleteStringQueriesForDynamicAcceptation(db, acc)) {
+            for (int oldAcc : repeatedAcceptations.keySet()) {
+                if (!deleteAcceptation(db, oldAcc) || !deleteStringQueriesForDynamicAcceptation(db, oldAcc)) {
                     throw new AssertionError();
                 }
+
+                final int correlationArray = oldAcceptations.get(oldAcc);
+                final int newAcc = newAcceptations.keyAt(newAcceptations.indexOf(correlationArray));
+
+                final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
+                DbQuery oldConceptQuery = new DbQuery.Builder(table)
+                        .where(table.getAcceptationColumnIndex(), oldAcc)
+                        .select(table.getAgentColumnIndex(), table.getBunchColumnIndex());
+                final MutableIntKeyMap<MutableIntSet> map = MutableIntKeyMap.empty();
+                final SyncCacheIntKeyNonNullValueMap<MutableIntSet> syncCache = new SyncCacheIntKeyNonNullValueMap<>(map, k -> MutableIntArraySet.empty());
+                try (DbResult dbResult = db.select(oldConceptQuery)) {
+                    while (dbResult.hasNext()) {
+                        final List<DbValue> row = dbResult.next();
+                        syncCache.get(row.get(0).toInt()).add(row.get(1).toInt());
+                    }
+                }
+
+                for (int agent : map.keySet()) {
+                    for (int bunch : map.get(agent)) {
+                        insertBunchAcceptation(db, bunch, newAcc, agent);
+                    }
+                }
+                deleteBunchAcceptationsByAcceptation(db, oldAcc);
             }
 
             updateAcceptationConcepts(db, oldConcept, linkedConcept);

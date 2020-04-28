@@ -117,4 +117,32 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
 
         assertEquals(1, db.select(query).size());
     }
+
+    @Test
+    default void testShareConceptKeepAcceptationsInBunchWhenRemovingDuplicatedAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final BunchesManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int guyConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
+
+        final int personConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, personConcept, "persona");
+
+        final int johnConcept = manager.getMaxConcept() + 1;
+        final int johnAcc = addSimpleAcceptation(manager, alphabet, johnConcept, "John");
+        manager.addAcceptationInBunch(guyConcept, johnAcc);
+
+        final int johnConcept2 = manager.getMaxConcept() + 1;
+        final int johnAcc2 = addSimpleAcceptation(manager, alphabet, johnConcept2, "John");
+        manager.addAcceptationInBunch(personConcept, johnAcc2);
+
+        assertTrue(manager.shareConcept(johnAcc, johnConcept2));
+        assertContainsOnly(johnAcc, manager.findAcceptationsByConcept(johnConcept));
+        assertEmpty(manager.findAcceptationsByConcept(johnConcept2));
+
+        assertContainsOnly(johnAcc, manager.getAcceptationsInBunch(guyConcept));
+        assertContainsOnly(johnAcc, manager.getAcceptationsInBunch(personConcept));
+    }
 }
