@@ -1904,9 +1904,26 @@ public final class LangbookDatabase {
         db.update(query);
     }
 
+    private static IntPairMap getAcceptationsByConcept(Database db, int concept) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery readQuery = new DbQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), concept)
+                .select(table.getIdColumnIndex(), table.getCorrelationArrayColumnIndex());
+
+        final MutableIntPairMap map = MutableIntPairMap.empty();
+        try (DbResult dbResult = db.select(readQuery)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                map.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return map;
+    }
+
     private static void updateAcceptationConcepts(Database db, int oldConcept, int newConcept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getConceptColumnIndex(), oldConcept)
                 .put(table.getConceptColumnIndex(), newConcept)
                 .build();
@@ -1959,7 +1976,20 @@ public final class LangbookDatabase {
         updateQuizBunches(db, oldConcept, linkedConcept);
         updateBunchSetBunches(db, oldConcept, linkedConcept);
         updateAgentRules(db, oldConcept, linkedConcept);
-        updateAcceptationConcepts(db, oldConcept, linkedConcept);
+
+        final IntPairMap oldAcceptations = getAcceptationsByConcept(db, oldConcept);
+        if (!oldAcceptations.isEmpty()) {
+            final IntPairMap newAcceptations = getAcceptationsByConcept(db, oldConcept);
+            final IntPairMap repeatedAcceptations = oldAcceptations.filter(newAcceptations::contains);
+            for (int acc : repeatedAcceptations.keySet()) {
+                if (!deleteAcceptation(db, acc) || !deleteStringQueriesForDynamicAcceptation(db, acc)) {
+                    throw new AssertionError();
+                }
+            }
+
+            updateAcceptationConcepts(db, oldConcept, linkedConcept);
+        }
+
         return true;
     }
 

@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
 import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
+import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.SizableTestUtils.assertSize;
 
 /**
@@ -483,5 +484,25 @@ public interface AcceptationsManagerTest {
         assertSize(2, texts);
         assertEquals("ねこ", texts.get(kanaAlphabet));
         assertEquals("neko", texts.get(roumajiAlphabet));
+    }
+
+    @Test
+    default void testShareConceptRemovesDuplicatedAcceptations() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int guyConcept = manager.getMaxConcept() + 1;
+        final int guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "persona");
+
+        final int personConcept = manager.getMaxConcept() + 1;
+        final int personAcc = addSimpleAcceptation(manager, alphabet, personConcept, "persona");
+        assertNotEquals(guyAcc, personAcc);
+
+        assertTrue(manager.shareConcept(personAcc, guyConcept));
+        assertEquals(personConcept, manager.conceptFromAcceptation(personAcc));
+        assertSinglePair(alphabet, "persona", manager.getAcceptationTexts(personAcc));
+        assertEquals(0, manager.conceptFromAcceptation(guyAcc));
+        assertEmpty(manager.getAcceptationTexts(guyAcc));
     }
 }
