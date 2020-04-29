@@ -1247,6 +1247,24 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
+    static MutableIntKeyMap<MutableIntSet> readBunchSetsWhereBunchIsIncluded(DbExporter.Database db, int bunch) {
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
+                .where(table.getBunchColumnIndex(), bunch)
+                .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
+        final MutableIntKeyMap<MutableIntSet> map = MutableIntKeyMap.empty();
+        final SyncCacheIntKeyNonNullValueMap<MutableIntSet> cache = new SyncCacheIntKeyNonNullValueMap<>(map, id -> MutableIntArraySet.empty());
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                cache.get(row.get(0).toInt()).add(row.get(1).toInt());
+            }
+        }
+
+        return map;
+    }
+
     static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;

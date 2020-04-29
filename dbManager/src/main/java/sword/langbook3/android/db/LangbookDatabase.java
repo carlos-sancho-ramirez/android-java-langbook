@@ -147,6 +147,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayM
 import static sword.langbook3.android.db.LangbookReadableDatabase.isSymbolArrayPresent;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAcceptationTextsAndMain;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readAllPossibleAcceptations;
+import static sword.langbook3.android.db.LangbookReadableDatabase.readBunchSetsWhereBunchIsIncluded;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readCorrelationArrayTextAndItsAppliedConversions;
 import static sword.langbook3.android.db.LangbookReadableDatabase.readMainAlphabetFromAlphabet;
 
@@ -1887,8 +1888,50 @@ public final class LangbookDatabase {
         db.update(query);
     }
 
+    private static void updateBunchSetsInAgents(Database db, int oldBunchSetId, int newBunchSetId) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getTargetBunchSetColumnIndex(), oldBunchSetId)
+                .put(table.getTargetBunchSetColumnIndex(), newBunchSetId)
+                .build();
+        db.update(query);
+
+        query = new DbUpdateQuery.Builder(table)
+                .where(table.getSourceBunchSetColumnIndex(), oldBunchSetId)
+                .put(table.getSourceBunchSetColumnIndex(), newBunchSetId)
+                .build();
+        db.update(query);
+
+        query = new DbUpdateQuery.Builder(table)
+                .where(table.getDiffBunchSetColumnIndex(), oldBunchSetId)
+                .put(table.getDiffBunchSetColumnIndex(), newBunchSetId)
+                .build();
+        db.update(query);
+    }
+
     private static void updateBunchSetBunches(Database db, int oldBunch, int newBunch) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final IntKeyMap<MutableIntSet> oldBunchSets = readBunchSetsWhereBunchIsIncluded(db, oldBunch);
+        if (oldBunchSets.isEmpty()) {
+            return;
+        }
+
+        final IntKeyMap<MutableIntSet> newBunchSets = readBunchSetsWhereBunchIsIncluded(db, newBunch);
+        if (!newBunchSets.isEmpty()) {
+            for (int index : oldBunchSets.indexes()) {
+                final ImmutableIntSet set = oldBunchSets.valueAt(index).filterNot(v -> v == oldBunch).toImmutable().add(newBunch);
+                final int foundIndex = newBunchSets.indexWhere(set::equalSet);
+                if (foundIndex >= 0) {
+                    final int oldSetId = oldBunchSets.keyAt(index);
+                    if (!deleteBunchSet(db, oldSetId)) {
+                        throw new AssertionError();
+                    }
+
+                    updateBunchSetsInAgents(db, oldSetId, newBunchSets.keyAt(foundIndex));
+                }
+            }
+        }
+
         DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getBunchColumnIndex(), oldBunch)
                 .put(table.getBunchColumnIndex(), newBunch)
