@@ -1685,4 +1685,36 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertContainsOnly(guyConcept, manager.getBunchSet(setId));
         assertEmpty(manager.getBunchSet(oldSetId));
     }
+
+    @Test
+    default void testAvoidDuplicatedBunchInBunchSetWhenSharingConcept() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int guyConcept = manager.getMaxConcept() + 1;
+        final int guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
+
+        final int personConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, personConcept, "persona");
+
+        final int targetConcept1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, targetConcept1, "mis palabras 1");
+
+        final int targetConcept2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, targetConcept2, "mis palabras 2");
+
+        final int agent1 = addSingleAlphabetAgent(manager, intSetOf(targetConcept1), intSetOf(guyConcept), intSetOf(), alphabet, null, null, null, null, 0);
+
+        final int agent2 = addSingleAlphabetAgent(manager, intSetOf(targetConcept2), intSetOf(guyConcept, personConcept), intSetOf(), alphabet, null, null, null, null, 0);
+
+        final int setId = manager.getAgentRegister(agent1).sourceBunchSetId;
+        final int oldAgent2SetId = manager.getAgentRegister(agent2).sourceBunchSetId;
+        assertTrue(manager.shareConcept(guyAcc, personConcept));
+
+        assertEquals(setId, manager.getAgentRegister(agent1).sourceBunchSetId);
+        assertEquals(setId, manager.getAgentRegister(agent2).sourceBunchSetId);
+        assertContainsOnly(guyConcept, manager.getBunchSet(setId));
+        assertEmpty(manager.getBunchSet(oldAgent2SetId));
+    }
 }
