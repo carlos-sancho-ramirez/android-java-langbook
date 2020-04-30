@@ -130,6 +130,16 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static boolean deleteBunchSetBunch(Deleter db, int setId, int bunch) {
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getSetIdColumnIndex(), setId)
+                .where(table.getBunchColumnIndex(), bunch)
+                .build();
+
+        return db.delete(query);
+    }
+
     static boolean deleteRuledAcceptation(Deleter db, int id) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)

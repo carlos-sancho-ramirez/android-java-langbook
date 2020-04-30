@@ -73,6 +73,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptations
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSet;
+import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSetBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
 import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelation;
@@ -1916,18 +1917,36 @@ public final class LangbookDatabase {
             return;
         }
 
-        final IntKeyMap<MutableIntSet> newBunchSets = readBunchSetsWhereBunchIsIncluded(db, newBunch);
+        final MutableIntKeyMap<MutableIntSet> newBunchSets = readBunchSetsWhereBunchIsIncluded(db, newBunch);
         if (!newBunchSets.isEmpty()) {
             for (int index : oldBunchSets.indexes()) {
-                final ImmutableIntSet set = oldBunchSets.valueAt(index).filterNot(v -> v == oldBunch).toImmutable().add(newBunch);
-                final int foundIndex = newBunchSets.indexWhere(set::equalSet);
-                if (foundIndex >= 0) {
-                    final int oldSetId = oldBunchSets.keyAt(index);
-                    if (!deleteBunchSet(db, oldSetId)) {
-                        throw new AssertionError();
-                    }
+                final int oldSetId = oldBunchSets.keyAt(index);
+                final MutableIntSet oldSet = oldBunchSets.valueAt(index);
 
-                    updateBunchSetsInAgents(db, oldSetId, newBunchSets.keyAt(foundIndex));
+                final boolean hasBoth = oldSet.contains(newBunch);
+                if (hasBoth) {
+                    final ImmutableIntSet desiredBunch = oldSet.toImmutable().remove(oldBunch);
+                    final int reusableBunchIndex = newBunchSets.indexWhere(desiredBunch::equalSet);
+                    if (reusableBunchIndex >= 0) {
+                        updateBunchSetsInAgents(db, oldSetId, newBunchSets.keyAt(reusableBunchIndex));
+                        deleteBunchSet(db, oldSetId);
+                    }
+                    else {
+                        if (!deleteBunchSetBunch(db, oldSetId, oldBunch)) {
+                            throw new AssertionError();
+                        }
+                    }
+                }
+                else {
+                    final ImmutableIntSet set = oldSet.filterNot(v -> v == oldBunch).toImmutable().add(newBunch);
+                    final int foundIndex = newBunchSets.indexWhere(set::equalSet);
+                    if (foundIndex >= 0) {
+                        if (!deleteBunchSet(db, oldSetId)) {
+                            throw new AssertionError();
+                        }
+
+                        updateBunchSetsInAgents(db, oldSetId, newBunchSets.keyAt(foundIndex));
+                    }
                 }
             }
         }

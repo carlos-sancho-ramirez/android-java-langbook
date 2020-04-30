@@ -7,6 +7,7 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
+import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.MorphologyResult;
@@ -1687,7 +1688,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     @Test
-    default void testAvoidDuplicatedBunchInBunchSetWhenSharingConcept() {
+    default void testReuseBunchSetWhenSharingConcept() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
@@ -1716,5 +1717,37 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertEquals(setId, manager.getAgentRegister(agent2).sourceBunchSetId);
         assertContainsOnly(guyConcept, manager.getBunchSet(setId));
         assertEmpty(manager.getBunchSet(oldAgent2SetId));
+    }
+
+    @Test
+    default void testAvoidDuplicatedBunchInBunchSetWhenSharingConcept() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int guyConcept = manager.getMaxConcept() + 1;
+        final int guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
+
+        final int personConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, personConcept, "persona");
+
+        final int targetConcept1 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, targetConcept1, "mis palabras 1");
+
+        final int targetConcept2 = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, targetConcept2, "mis palabras 2");
+
+        final int agent = addSingleAlphabetAgent(manager, intSetOf(targetConcept2), intSetOf(guyConcept, personConcept), intSetOf(), alphabet, null, null, null, null, 0);
+
+        final int setId = manager.getAgentRegister(agent).sourceBunchSetId;
+        assertTrue(manager.shareConcept(guyAcc, personConcept));
+
+        assertEquals(setId, manager.getAgentRegister(agent).sourceBunchSetId);
+
+        final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getSetIdColumnIndex(), setId)
+                .select(table.getBunchColumnIndex());
+        assertContainsOnly(guyConcept, db.select(query).mapToInt(row -> row.get(0).toInt()).toList());
     }
 }
