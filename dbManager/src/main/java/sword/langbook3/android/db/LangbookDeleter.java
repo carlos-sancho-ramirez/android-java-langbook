@@ -140,6 +140,14 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static boolean deleteRuledConcept(Deleter db, int id) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+                .where(table.getIdColumnIndex(), id)
+                .build();
+        return db.delete(query);
+    }
+
     static boolean deleteRuledAcceptation(Deleter db, int id) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)

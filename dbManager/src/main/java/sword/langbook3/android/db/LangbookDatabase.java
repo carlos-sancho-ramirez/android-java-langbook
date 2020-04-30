@@ -83,6 +83,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptationByAgent;
+import static sword.langbook3.android.db.LangbookDeleter.deleteRuledConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSearchHistoryForAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSentence;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSpan;
@@ -110,6 +111,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.findQuestionFi
 import static sword.langbook3.android.db.LangbookReadableDatabase.findQuizDefinition;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findQuizzesByBunch;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByBaseAcceptation;
+import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledConceptsByConceptInvertedMap;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSentencesBySymbolArrayId;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSuperTypesLinkedToJustThisLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findSymbolArray;
@@ -1967,6 +1969,15 @@ public final class LangbookDatabase {
         db.update(query);
     }
 
+    private static void updateRuledConceptsConcept(Database db, int oldConcept, int newConcept) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), oldConcept)
+                .put(table.getConceptColumnIndex(), newConcept)
+                .build();
+        db.update(query);
+    }
+
     private static IntPairMap getAcceptationsByConcept(Database db, int concept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery readQuery = new DbQuery.Builder(table)
@@ -2019,7 +2030,10 @@ public final class LangbookDatabase {
      * @return Whether the database has changed.
      */
     static boolean shareConcept(Database db, int linkedAcceptation, int oldConcept) {
-        final int linkedConcept = conceptFromAcceptation(db, linkedAcceptation);
+        return mergeConcepts(db, conceptFromAcceptation(db, linkedAcceptation), oldConcept);
+    }
+
+    private static boolean mergeConcepts(Database db, int linkedConcept, int oldConcept) {
         if (oldConcept == linkedConcept) {
             return false;
         }
@@ -2074,6 +2088,28 @@ public final class LangbookDatabase {
             }
 
             updateAcceptationConcepts(db, oldConcept, linkedConcept);
+        }
+
+        final MutableIntPairMap oldRuledConcepts = findRuledConceptsByConceptInvertedMap(db, oldConcept);
+        if (!oldRuledConcepts.isEmpty()) {
+            final MutableIntPairMap newRuledConcepts = findRuledConceptsByConceptInvertedMap(db, linkedConcept);
+            final ImmutableIntSet newRuledConceptsRules = newRuledConcepts.keySet().toImmutable();
+            for (int oldRuledConceptIndex : oldRuledConcepts.indexes()) {
+                final int rule = oldRuledConcepts.keyAt(oldRuledConceptIndex);
+                final int oldRuledConcept = oldRuledConcepts.valueAt(oldRuledConceptIndex);
+                final boolean isCommonRule = newRuledConceptsRules.contains(rule);
+                if (isCommonRule) {
+                    final int newRuledConcept = newRuledConcepts.get(rule);
+                    if (!deleteRuledConcept(db, oldRuledConcept)) {
+                        throw new AssertionError();
+                    }
+
+                    mergeConcepts(db, newRuledConcept, oldRuledConcept);
+                }
+                else {
+                    updateRuledConceptsConcept(db, oldConcept, linkedConcept);
+                }
+            }
         }
 
         return true;

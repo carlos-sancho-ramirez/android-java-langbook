@@ -7,7 +7,12 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
+import sword.collections.List;
+import sword.collections.MutableIntPairMap;
+import sword.database.DbExporter;
 import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.MorphologyResult;
@@ -22,6 +27,7 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
 import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
+import static sword.langbook3.android.db.IntPairMapTestUtils.assertSinglePair;
 import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
 import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
@@ -44,6 +50,23 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
     @Override
     AgentsManager createManager(MemoryDatabase db);
+
+    static ImmutableIntPairMap findRuledAcceptationsByAgent(DbExporter.Database db, int agent) {
+        final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQuery.Builder(ruledAccs)
+                .where(ruledAccs.getAgentColumnIndex(), agent)
+                .select(ruledAccs.getIdColumnIndex(), ruledAccs.getAcceptationColumnIndex());
+
+        final MutableIntPairMap map = MutableIntPairMap.empty();
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                map.put(row.get(0).toInt(), row.get(1).toInt());
+            }
+        }
+
+        return map.toImmutable();
+    }
 
     static Integer addSingleAlphabetAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
@@ -1749,5 +1772,70 @@ interface AgentsManagerTest extends BunchesManagerTest {
                 .where(table.getSetIdColumnIndex(), setId)
                 .select(table.getBunchColumnIndex());
         assertContainsOnly(guyConcept, db.select(query).mapToInt(row -> row.get(0).toInt()).toList());
+    }
+
+    @Test
+    default void testAvoidDuplicatedRuledConceptsAndAcceptationsWhenSharingConcept() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final int jumpConcept = manager.getMaxConcept() + 1;
+        final int jumpAcc = addSimpleAcceptation(manager, alphabet, jumpConcept, "saltar");
+
+        final int jumpConcept2 = manager.getMaxConcept() + 1;
+        final int jumpAcc2 = addSimpleAcceptation(manager, alphabet, jumpConcept2, "brincar");
+
+        final int bunchConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, bunchConcept, "mi lista");
+
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, gerundConcept, "gerundio");
+
+        final int continuousConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, continuousConcept, "continuo");
+
+        final int agent1 = addSingleAlphabetAgent(manager, intSetOf(bunchConcept), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerundConcept);
+
+        final int agent2 = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(bunchConcept), intSetOf(), alphabet, null, "estoy ", null, null, continuousConcept);
+
+        final int ruledJumpAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, jumpAcc);
+        final int ruledJumpAcc2 = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, jumpAcc2);
+        assertNotEquals(ruledJumpAcc, ruledJumpAcc2);
+
+        final int ruled2JumpAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, ruledJumpAcc);
+        final int ruled2JumpAcc2 = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, ruledJumpAcc2);
+        assertNotEquals(ruled2JumpAcc, ruled2JumpAcc2);
+
+        final int ruledJumpConcept = manager.conceptFromAcceptation(ruledJumpAcc);
+        final int ruledJumpConcept2 = manager.conceptFromAcceptation(ruledJumpAcc2);
+        assertNotEquals(ruledJumpConcept, ruledJumpConcept2);
+
+        final int ruled2JumpConcept = manager.conceptFromAcceptation(ruled2JumpAcc);
+        final int ruled2JumpConcept2 = manager.conceptFromAcceptation(ruled2JumpAcc2);
+        assertNotEquals(ruled2JumpConcept, ruled2JumpConcept2);
+
+        assertTrue(manager.shareConcept(jumpAcc, jumpConcept2));
+        assertSinglePair(ruledJumpConcept, jumpConcept, manager.findRuledConceptsByRule(gerundConcept));
+        final ImmutableIntPairMap ruledAcceptations = findRuledAcceptationsByAgent(db, agent1);
+        assertSize(2, ruledAcceptations);
+        assertEquals(jumpAcc, ruledAcceptations.get(ruledJumpAcc));
+        assertEquals(jumpAcc2, ruledAcceptations.get(ruledJumpAcc2));
+        assertEquals(ruledJumpConcept, manager.conceptFromAcceptation(ruledJumpAcc));
+        assertEquals(ruledJumpConcept, manager.conceptFromAcceptation(ruledJumpAcc2));
+
+        assertSinglePair(alphabet, "saltando", manager.getAcceptationTexts(ruledJumpAcc));
+        assertSinglePair(alphabet, "brincando", manager.getAcceptationTexts(ruledJumpAcc2));
+
+        assertSinglePair(ruled2JumpConcept, ruledJumpConcept, manager.findRuledConceptsByRule(continuousConcept));
+        final ImmutableIntPairMap ruled2Acceptations = findRuledAcceptationsByAgent(db, agent2);
+        assertSize(2, ruled2Acceptations);
+        assertEquals(ruledJumpAcc, ruled2Acceptations.get(ruled2JumpAcc));
+        assertEquals(ruledJumpAcc2, ruled2Acceptations.get(ruled2JumpAcc2));
+        assertEquals(ruled2JumpConcept, manager.conceptFromAcceptation(ruled2JumpAcc));
+        assertEquals(ruled2JumpConcept, manager.conceptFromAcceptation(ruled2JumpAcc2));
+
+        assertSinglePair(alphabet, "estoy saltando", manager.getAcceptationTexts(ruled2JumpAcc));
+        assertSinglePair(alphabet, "estoy brincando", manager.getAcceptationTexts(ruled2JumpAcc2));
     }
 }

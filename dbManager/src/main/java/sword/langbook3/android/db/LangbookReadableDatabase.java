@@ -775,6 +775,23 @@ public final class LangbookReadableDatabase {
         }
     }
 
+    static MutableIntPairMap findRuledConceptsByConceptInvertedMap(DbExporter.Database db, int concept) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getConceptColumnIndex(), concept)
+                .select(table.getIdColumnIndex(), table.getRuleColumnIndex());
+
+        final MutableIntPairMap ruledConcepts = MutableIntPairMap.empty();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                ruledConcepts.put(row.get(1).toInt(), row.get(0).toInt());
+            }
+        }
+
+        return ruledConcepts;
+    }
+
     static ImmutableIntPairMap findRuledConceptsByRule(DbExporter.Database db, int rule) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery query = new DbQuery.Builder(table)
