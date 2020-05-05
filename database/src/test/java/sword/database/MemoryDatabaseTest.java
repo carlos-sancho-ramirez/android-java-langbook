@@ -327,20 +327,11 @@ public final class MemoryDatabaseTest {
                 .join(textTable, setTable.columns().indexOf(itemIdColumn), textTable.getIdColumnIndex())
                 .where(setTable.columns().indexOf(setIdColumn), developersSetId)
                 .select(setTable.columns().size() + textTable.columns().indexOf(textColumn));
-        final DbResult result = state.db.select(query);
-        final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>(result.getRemainingRows());
-        try {
-            while (result.hasNext()) {
-                builder.add(result.next().get(0).toText());
-            }
-        }
-        finally {
-            result.close();
-        }
 
+        final ImmutableList<String> result = state.db.select(query).map(row -> row.get(0).toText()).toList().toImmutable();
         final ImmutableList<String> devNames = new ImmutableList.Builder<String>()
                 .add(name2).add(name4).build();
-        assertEquals(devNames, builder.build());
+        assertEquals(devNames, result);
     }
 
     @Test

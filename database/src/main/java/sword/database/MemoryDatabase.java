@@ -349,7 +349,8 @@ public final class MemoryDatabase implements Database {
         final int queryColumnCount = query.getColumnCount();
         final ImmutableList<DbColumn> columns = table.columns();
 
-        final ImmutableList.Builder<Object> builder = new ImmutableList.Builder<>(columns.size());
+        final int columnsSize = columns.size();
+        final ImmutableList.Builder<Object> builder = new ImmutableList.Builder<>((currentLength, newSize) -> columnsSize);
         final MutableHashMap<DbColumn, Object> uniqueMap = MutableHashMap.empty();
         Integer id = null;
         for (DbColumn column : columns) {

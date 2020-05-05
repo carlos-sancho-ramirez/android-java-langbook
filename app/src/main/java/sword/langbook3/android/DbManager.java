@@ -94,33 +94,35 @@ class DbManager extends SQLiteOpenHelper {
 
     private static boolean delete(SQLiteDatabase db, DbDeleteQuery query) {
         final ImmutableIntKeyMap<DbValue> constraints = query.constraints();
-        final ImmutableList.Builder<String> whereList = new ImmutableList.Builder<>(constraints.size());
-        final String[] values = new String[constraints.size()];
         final ImmutableList<DbColumn> columns = query.table().columns();
-        for (IntKeyMap.Entry<DbValue> entry : constraints.entries()) {
-            whereList.add(columns.get(entry.key()).name() + "=?");
+        final String whereClause = constraints.keySet()
+                .map(key -> columns.get(key).name() + "=?")
+                .reduce((a, b) -> a + " AND " + b);
 
-            final DbValue value = entry.value();
-            values[entry.index()] = value.isText()? value.toText() : Integer.toString(value.toInt());
+        final int constraintsSize = constraints.size();
+        final String[] values = new String[constraintsSize];
+        for (int i = 0; i < constraintsSize; i++) {
+            final DbValue value = constraints.valueAt(i);
+            values[i] = value.isText()? value.toText() : Integer.toString(value.toInt());
         }
 
-        final String whereClause = whereList.build().reduce((a,b) -> a + " AND " + b);
         return db.delete(query.table().name(), whereClause, values) > 0;
     }
 
     private static boolean update(SQLiteDatabase db, DbUpdateQuery query) {
         final ImmutableIntKeyMap<DbValue> constraints = query.constraints();
-        final ImmutableList.Builder<String> whereList = new ImmutableList.Builder<>(constraints.size());
-        final String[] values = new String[constraints.size()];
-        for (IntKeyMap.Entry<DbValue> entry : constraints.entries()) {
-            whereList.add(query.table().columns().get(entry.key()).name() + "=?");
-
-            final DbValue value = entry.value();
-            values[entry.index()] = value.isText()? value.toText() : Integer.toString(value.toInt());
+        final ImmutableList<DbColumn> columns = query.table().columns();
+        final String whereClause = constraints.keySet()
+                .map(key -> columns.get(key).name() + "=?")
+                .reduce((a, b) -> a + " AND " + b);
+        final int constraintsSize = constraints.size();
+        final String[] values = new String[constraintsSize];
+        for (int i = 0; i < constraintsSize; i++) {
+            final DbValue value = constraints.valueAt(i);
+            values[i] = value.isText()? value.toText() : Integer.toString(value.toInt());
         }
 
-        final String whereClause = whereList.build().reduce((a,b) -> a + " AND " + b);
-        ContentValues cv = new ContentValues();
+        final ContentValues cv = new ContentValues();
         for (IntKeyMap.Entry<DbValue> entry : query.values().entries()) {
             final String columnName = query.table().columns().get(entry.key()).name();
             final DbValue value = entry.value();
