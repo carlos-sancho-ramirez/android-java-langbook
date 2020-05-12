@@ -2527,7 +2527,7 @@ public final class LangbookReadableDatabase {
                 .join(bunchAcceptations, acceptations.getConceptColumnIndex(), bunchAcceptations.getBunchColumnIndex())
                 .join(strings, bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(acceptations.getIdColumnIndex(), acceptation)
-                .select(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(),
+                .select(strOffset + strings.getMainAcceptationColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex(),
                         bunchAccOffset + bunchAcceptations.getAgentColumnIndex());
