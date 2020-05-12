@@ -168,14 +168,27 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
         }
 
+        final ImmutableIntSet alphabets = _model.texts.keySet();
         boolean acceptationSharingCorrelationArrayFound = false;
-        for (int acc : _model.acceptationsSharingCorrelationArray) {
+        final ImmutableIntSet accsSharingCorrelationArray = _model.acceptationsSharingTexts.filter(alphabets::equalSet).keySet();
+        for (int acc : accsSharingCorrelationArray) {
             if (!acceptationSharingCorrelationArrayFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsSharingCorrelationArray)));
                 acceptationSharingCorrelationArrayFound = true;
             }
 
             result.add(new AcceptationNavigableItem(acc, _model.getTitle(_preferredAlphabet), false));
+        }
+
+        boolean acceptationSharingTextsFound = false;
+        for (int acc : _model.acceptationsSharingTexts.keySet().filterNot(accsSharingCorrelationArray::contains)) {
+            if (!acceptationSharingTextsFound) {
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsSharingTexts)));
+                acceptationSharingTextsFound = true;
+            }
+
+            final String text = _model.texts.get(_model.acceptationsSharingTexts.get(acc).valueAt(0));
+            result.add(new AcceptationNavigableItem(acc, text, false));
         }
 
         boolean parentBunchFound = false;

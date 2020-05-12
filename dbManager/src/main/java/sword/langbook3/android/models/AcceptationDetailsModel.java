@@ -21,7 +21,8 @@ public final class AcceptationDetailsModel {
     public final IdentifiableResult language;
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
-    public final ImmutableIntSet acceptationsSharingCorrelationArray;
+    public final ImmutableIntKeyMap<String> texts;
+    public final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts;
     public final int baseConceptAcceptationId;
     public final String baseConceptText;
     public final ImmutableIntKeyMap<String> definitionComplementTexts;
@@ -46,7 +47,8 @@ public final class AcceptationDetailsModel {
             IdentifiableResult language,
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
-            ImmutableIntSet acceptationsSharingCorrelationArray,
+            ImmutableIntKeyMap<String> texts,
+            ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts,
             int baseConceptAcceptationId,
             String baseConceptText,
             ImmutableIntKeyMap<String> definitionComplementTexts,
@@ -63,7 +65,8 @@ public final class AcceptationDetailsModel {
             ImmutableIntKeyMap<String> sampleSentences
     ) {
         if (language == null || correlationIds == null || correlations == null ||
-                definitionComplementTexts == null || subtypes == null || synonymsAndTranslations == null ||
+                texts == null || acceptationsSharingTexts == null || definitionComplementTexts == null ||
+                subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
                 morphologies == null || morphologyLinkedAcceptations == null || ruleTexts == null ||
                 involvedAgents == null || agentRules == null || languageTexts == null || sampleSentences == null) {
@@ -87,7 +90,8 @@ public final class AcceptationDetailsModel {
         this.language = language;
         this.correlationIds = correlationIds;
         this.correlations = correlations;
-        this.acceptationsSharingCorrelationArray = acceptationsSharingCorrelationArray;
+        this.texts = texts;
+        this.acceptationsSharingTexts = acceptationsSharingTexts;
         this.baseConceptAcceptationId = baseConceptAcceptationId;
         this.baseConceptText = baseConceptText;
         this.definitionComplementTexts = definitionComplementTexts;

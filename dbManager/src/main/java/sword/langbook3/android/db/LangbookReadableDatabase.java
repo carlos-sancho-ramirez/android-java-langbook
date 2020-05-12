@@ -1654,16 +1654,48 @@ public final class LangbookReadableDatabase {
                 row.get(1).toInt() == setId || row.get(2).toInt() == setId);
     }
 
-    private static ImmutableIntSet readAcceptationsMatchingCorrelationArray(DbExporter.Database db, int acceptation) {
-        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+    private static ImmutableIntKeyMap<ImmutableIntSet> readAcceptationsSharingTexts(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
-        final int offset = acceptations.columns().size();
-        final DbQuery query = new DbQuery.Builder(acceptations)
-                .join(acceptations, acceptations.getCorrelationArrayColumnIndex(), acceptations.getCorrelationArrayColumnIndex())
-                .where(acceptations.getIdColumnIndex(), acceptation)
-                .select(offset + acceptations.getIdColumnIndex());
+        final int offset = strings.columns().size();
+        final DbQuery query = new DbQuery.Builder(strings)
+                .join(strings, strings.getStringColumnIndex(), strings.getStringColumnIndex())
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .whereColumnValueMatch(strings.getStringAlphabetColumnIndex(), offset + strings.getStringAlphabetColumnIndex())
+                .whereColumnValueMatch(offset + strings.getDynamicAcceptationColumnIndex(), offset + strings.getMainAcceptationColumnIndex())
+                .select(strings.getStringAlphabetColumnIndex(), offset + strings.getDynamicAcceptationColumnIndex());
 
-        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().remove(acceptation);
+        final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
+        final MutableIntList sortedAlphabets = MutableIntList.empty();
+        final MutableIntKeyMap<ImmutableIntSet> alphabetSets = MutableIntKeyMap.empty();
+        alphabetSets.put(0, ImmutableIntArraySet.empty());
+        final MutableIntPairMap result = MutableIntPairMap.empty();
+
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int alphabet = row.get(0).toInt();
+                final int acc = row.get(1).toInt();
+
+                if (acc != acceptation) {
+                    if (!foundAlphabets.contains(alphabet)) {
+                        final int bitMask = 1 << foundAlphabets.size();
+                        foundAlphabets.add(alphabet);
+                        sortedAlphabets.append(alphabet);
+
+                        for (int key : alphabetSets.keySet().toImmutable()) {
+                            alphabetSets.put(bitMask | key, alphabetSets.get(key).add(alphabet));
+                        }
+                    }
+
+                    final int alphabetBitPosition = 1 << sortedAlphabets.indexOf(alphabet);
+                    final int value = result.get(acc, 0);
+                    result.put(acc, value | alphabetBitPosition);
+                }
+            }
+        }
+
+        return result.map(alphabetSets::get).toImmutable();
     }
 
     private static ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> readDefinitionFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
@@ -3163,7 +3195,8 @@ public final class LangbookReadableDatabase {
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
         languageStrs.put(languageResult.id, languageResult.text);
 
-        final ImmutableIntSet acceptationsSharingCorrelationArray = readAcceptationsMatchingCorrelationArray(db, staticAcceptation);
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, staticAcceptation);
+        final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts = readAcceptationsSharingTexts(db, staticAcceptation);
         final ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> definition = readDefinitionFromAcceptation(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, staticAcceptation, preferredAlphabet);
         final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
@@ -3187,7 +3220,7 @@ public final class LangbookReadableDatabase {
         final int baseConceptAcceptationId = (definition.left != null)? definition.left.id : 0;
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
         return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
-                correlationResultPair.right, acceptationsSharingCorrelationArray, baseConceptAcceptationId,
+                correlationResultPair.right, texts, acceptationsSharingTexts, baseConceptAcceptationId,
                 baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
                 bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyLinkedAcceptations,
                 morphologyResults.ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
