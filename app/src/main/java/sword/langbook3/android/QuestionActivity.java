@@ -165,7 +165,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         @Override
         public void onClick(View view) {
             if (_isAnswerVisible) {
-                AcceptationDetailsActivity.open(QuestionActivity.this, _acceptation, _acceptation);
+                AcceptationDetailsActivity.open(QuestionActivity.this, _acceptation);
             }
         }
     };

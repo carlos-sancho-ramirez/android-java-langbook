@@ -31,7 +31,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
         DbManager.getInstance().getManager().updateSearchHistory(dynamicAcceptation);
-        AcceptationDetailsActivity.open(this, staticAcceptation, dynamicAcceptation);
+        AcceptationDetailsActivity.open(this, staticAcceptation);
     }
 
     @Override
@@ -86,7 +86,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_NEW_ACCEPTATION) {
             final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
             if (acceptationId != 0) {
-                AcceptationDetailsActivity.open(this, acceptationId, acceptationId);
+                AcceptationDetailsActivity.open(this, acceptationId);
             }
         }
     }

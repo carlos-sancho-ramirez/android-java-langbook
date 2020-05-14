@@ -47,8 +47,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private static final int REQUEST_CODE_PICK_DEFINITION = 6;
 
     private interface ArgKeys {
-        String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
-        String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CONFIRM_ONLY = BundleKeys.CONFIRM_ONLY;
     }
 
@@ -57,12 +56,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     interface ResultKeys {
-        String STATIC_ACCEPTATION = BundleKeys.ACCEPTATION;
-        String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
     private int _preferredAlphabet;
-    private int _staticAcceptation;
+    private int _acceptation;
     private AcceptationDetailsModel _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
@@ -75,17 +73,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private ListView _listView;
     private AcceptationDetailsAdapter _listAdapter;
 
-    public static void open(Context context, int staticAcceptation, int dynamicAcceptation) {
+    public static void open(Context context, int acceptation) {
         Intent intent = new Intent(context, AcceptationDetailsActivity.class);
-        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
-        intent.putExtra(ArgKeys.DYNAMIC_ACCEPTATION, dynamicAcceptation);
+        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
         context.startActivity(intent);
     }
 
-    public static void open(Activity activity, int requestCode, int staticAcceptation, int dynamicAcceptation, boolean confirmOnly) {
+    public static void open(Activity activity, int requestCode, int acceptation, boolean confirmOnly) {
         Intent intent = new Intent(activity, AcceptationDetailsActivity.class);
-        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
-        intent.putExtra(ArgKeys.DYNAMIC_ACCEPTATION, dynamicAcceptation);
+        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
 
         if (confirmOnly) {
             intent.putExtra(ArgKeys.CONFIRM_ONLY, true);
@@ -106,7 +102,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new CorrelationArrayItem(_model.correlationIds, _model.correlations, mainAlphabet, pronunciationAlphabet));
         }
 
-        result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _staticAcceptation)));
+        result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _acceptation)));
         result.add(new NonNavigableItem(getString(R.string.accDetailsSectionLanguage) + ": " + _model.language.text));
 
         _hasDefinition = _model.baseConceptAcceptationId != 0;
@@ -273,7 +269,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private boolean updateModelAndUi() {
-        _model = DbManager.getInstance().getManager().getAcceptationsDetails(_staticAcceptation, _preferredAlphabet);
+        _model = DbManager.getInstance().getManager().getAcceptationsDetails(_acceptation, _preferredAlphabet);
         _dbWriteVersion = DbManager.getInstance().getDatabase().getWriteVersion();
         if (_model != null) {
             setTitle(_model.getTitle(_preferredAlphabet));
@@ -292,8 +288,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.list_activity);
 
-        if (!getIntent().hasExtra(ArgKeys.STATIC_ACCEPTATION)) {
-            throw new IllegalArgumentException("staticAcceptation not provided");
+        if (!getIntent().hasExtra(ArgKeys.ACCEPTATION)) {
+            throw new IllegalArgumentException("acceptation not provided");
         }
 
         if (savedInstanceState != null) {
@@ -305,7 +301,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _staticAcceptation = getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+        _acceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
         _confirmOnly = getIntent().getBooleanExtra(ArgKeys.CONFIRM_ONLY, false);
 
         _listView = findViewById(R.id.listView);
@@ -416,7 +412,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemEdit:
-                WordEditorActivity.open(this, _staticAcceptation);
+                WordEditorActivity.open(this, _acceptation);
                 return true;
 
             case R.id.menuItemLinkConcept:
@@ -447,14 +443,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case R.id.menuItemConfirm:
                 final Intent intent = new Intent();
-                intent.putExtra(ResultKeys.STATIC_ACCEPTATION, _staticAcceptation);
-                intent.putExtra(ResultKeys.DYNAMIC_ACCEPTATION, getIntent().getIntExtra(ArgKeys.DYNAMIC_ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.ACCEPTATION, _acceptation);
                 setResult(Activity.RESULT_OK, intent);
                 finish();
                 return true;
 
             case R.id.menuItemNewSentence:
-                SentenceEditorActivity.openWithStaticAcceptation(this, REQUEST_CODE_CREATE_SENTENCE, _staticAcceptation);
+                SentenceEditorActivity.openWithStaticAcceptation(this, REQUEST_CODE_CREATE_SENTENCE, _acceptation);
                 return true;
 
             case R.id.menuItemNewAgentAsSource:
@@ -546,7 +541,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String bunchText = item.text;
                 _state.clearDeleteTarget();
 
-                if (!manager.removeAcceptationFromBunch(bunch, _staticAcceptation)) {
+                if (!manager.removeAcceptationFromBunch(bunch, _acceptation)) {
                     throw new AssertionError();
                 }
 
@@ -583,7 +578,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void deleteAcceptation() {
-        if (DbManager.getInstance().getManager().removeAcceptation(_staticAcceptation)) {
+        if (DbManager.getInstance().getManager().removeAcceptation(_acceptation)) {
             showFeedback(getString(R.string.deleteAcceptationFeedback));
             finish();
         }
@@ -613,7 +608,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
                 final int pickedBunch = (pickedAcceptation != 0)? manager.conceptFromAcceptation(pickedAcceptation) : 0;
-                final int message = manager.addAcceptationInBunch(pickedBunch, _staticAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                final int message = manager.addAcceptationInBunch(pickedBunch, _acceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {

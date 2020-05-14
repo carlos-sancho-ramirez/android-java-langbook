@@ -103,7 +103,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
         @Override
         void navigate(Activity activity, int requestCode) {
-            AcceptationDetailsActivity.open(activity, requestCode, _id, _id, false);
+            AcceptationDetailsActivity.open(activity, requestCode, _id, false);
         }
 
         @Override

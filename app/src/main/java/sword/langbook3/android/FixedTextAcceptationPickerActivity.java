@@ -2,6 +2,7 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Bundle;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
@@ -24,6 +25,16 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     }
 
     private ImmutableIntKeyMap<String> _ruleTexts;
+    private int _confirmDynamicAcceptation;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        if (savedInstanceState != null) {
+            _confirmDynamicAcceptation = savedInstanceState.getInt(AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION);
+        }
+    }
 
     @Override
     boolean isQueryModifiable() {
@@ -57,7 +68,8 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
     @Override
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
-        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, staticAcceptation, dynamicAcceptation, true);
+        _confirmDynamicAcceptation = dynamicAcceptation;
+        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, staticAcceptation, true);
     }
 
     @Override
@@ -67,8 +79,8 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
             final int staticAcc;
             final int dynamicAcc;
             if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                staticAcc = data.getIntExtra(AcceptationDetailsActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-                dynamicAcc = data.getIntExtra(AcceptationDetailsActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0);
+                staticAcc = data.getIntExtra(AcceptationDetailsActivity.ResultKeys.ACCEPTATION, 0);
+                dynamicAcc = _confirmDynamicAcceptation;
             }
             else {
                 staticAcc = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
@@ -80,5 +92,11 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
             setResult(RESULT_OK, intent);
             finish();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION, _confirmDynamicAcceptation);
     }
 }

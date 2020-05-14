@@ -56,19 +56,17 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     private boolean _displayingDeleteDialog;
 
-    private class ClickableSentenceSpan extends ClickableSpan {
+    private final class ClickableSentenceSpan extends ClickableSpan {
         private final int staticAcceptation;
-        private final int dynamicAcceptation;
 
-        ClickableSentenceSpan(int staticAcceptation, int dynamicAcceptation) {
+        ClickableSentenceSpan(int staticAcceptation) {
             this.staticAcceptation = staticAcceptation;
-            this.dynamicAcceptation = dynamicAcceptation;
         }
 
         @Override
         public void onClick(View widget) {
             AcceptationDetailsActivity.open(SentenceDetailsActivity.this,
-                    REQUEST_CODE_OPEN_ACCEPTATION, staticAcceptation, dynamicAcceptation, false);
+                    REQUEST_CODE_OPEN_ACCEPTATION, staticAcceptation, false);
         }
     }
 
@@ -88,7 +86,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
             final LangbookChecker checker = DbManager.getInstance().getManager();
             for (SentenceSpan span : spans) {
                 final int staticAcceptation = checker.getStaticAcceptationFromDynamic(span.acceptation);
-                string.setSpan(new ClickableSentenceSpan(staticAcceptation, span.acceptation),
+                string.setSpan(new ClickableSentenceSpan(staticAcceptation),
                         span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             }
             _sentenceTextView.setText(string);

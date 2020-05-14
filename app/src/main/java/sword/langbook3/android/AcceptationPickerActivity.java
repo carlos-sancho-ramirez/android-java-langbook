@@ -2,13 +2,19 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Bundle;
 
 public final class AcceptationPickerActivity extends SearchActivity {
 
     private static final int REQUEST_CODE_VIEW_DETAILS = 1;
+    private int _confirmDynamicAcceptation;
 
     interface ArgKeys {
         String CONCEPT = BundleKeys.CONCEPT;
+    }
+
+    interface SavedKeys {
+        String CONFIRM_DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
     }
 
     interface ResultKeys {
@@ -29,6 +35,15 @@ public final class AcceptationPickerActivity extends SearchActivity {
     }
 
     @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        if (savedInstanceState != null) {
+            _confirmDynamicAcceptation = savedInstanceState.getInt(SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION);
+        }
+    }
+
+    @Override
     void openLanguagePicker(int requestCode, String query) {
         final int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
         LanguagePickerActivity.open(this, requestCode, query, concept);
@@ -36,7 +51,8 @@ public final class AcceptationPickerActivity extends SearchActivity {
 
     @Override
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
-        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, staticAcceptation, dynamicAcceptation, true);
+        _confirmDynamicAcceptation = dynamicAcceptation;
+        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, staticAcceptation, true);
     }
 
     @Override
@@ -44,8 +60,8 @@ public final class AcceptationPickerActivity extends SearchActivity {
         if (resultCode == RESULT_OK) {
             final Intent intent = new Intent();
             if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                intent.putExtra(ResultKeys.STATIC_ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.STATIC_ACCEPTATION, 0));
-                intent.putExtra(ResultKeys.DYNAMIC_ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.STATIC_ACCEPTATION, data.getIntExtra(AcceptationDetailsActivity.ResultKeys.ACCEPTATION, 0));
+                intent.putExtra(ResultKeys.DYNAMIC_ACCEPTATION, _confirmDynamicAcceptation);
             }
             else {
                 // When a new acceptation has been created
@@ -56,5 +72,11 @@ public final class AcceptationPickerActivity extends SearchActivity {
             setResult(RESULT_OK, intent);
             finish();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION, _confirmDynamicAcceptation);
     }
 }
