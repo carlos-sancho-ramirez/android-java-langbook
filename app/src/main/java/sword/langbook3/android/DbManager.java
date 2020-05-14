@@ -14,9 +14,9 @@ import sword.collections.Function;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.IntFunction;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
+import sword.collections.MutableList;
 import sword.collections.Traversable;
 import sword.database.DbColumn;
 import sword.database.DbDeleteQuery;
@@ -24,11 +24,9 @@ import sword.database.DbExporter;
 import sword.database.DbImporter;
 import sword.database.DbIndex;
 import sword.database.DbInsertQuery;
-import sword.database.DbIntValue;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbSchema;
-import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
@@ -199,11 +197,51 @@ class DbManager extends SQLiteOpenHelper {
             throw new AssertionError();
         }
 
-        final ImmutableList<DbValue> row = result.next();
+        final ImmutableList<DbValue> row = result.next().toImmutable();
         if (result.hasNext()) {
             throw new AssertionError();
         }
         return row;
+    }
+
+    private static final class SQLiteDbIntValue implements DbValue {
+
+        int _value;
+
+        @Override
+        public boolean isText() {
+            return false;
+        }
+
+        @Override
+        public int toInt() throws UnsupportedOperationException {
+            return _value;
+        }
+
+        @Override
+        public String toText() {
+            return Integer.toString(_value);
+        }
+    }
+
+    private static final class SQLiteDbTextValue implements DbValue {
+
+        String _value;
+
+        @Override
+        public boolean isText() {
+            return true;
+        }
+
+        @Override
+        public int toInt() throws UnsupportedOperationException {
+            throw new UnsupportedOperationException("String column should not be converted to integer");
+        }
+
+        @Override
+        public String toText() {
+            return _value;
+        }
     }
 
     static class SQLiteDbResult extends AbstractTransformer<List<DbValue>> implements DbResult {
@@ -212,13 +250,12 @@ class DbManager extends SQLiteOpenHelper {
         private final int _rowCount;
         private int _nextRowIndex;
 
-        private ImmutableIntSet _columnIndexes;
-        private IntFunction<DbValue> _mapFunc;
+        private final ImmutableIntSet _columnIndexes;
+        private MutableList<DbValue> _rowHolder;
 
         SQLiteDbResult(ImmutableList<DbColumn> columns, Cursor cursor) {
             _columns = columns;
             _columnIndexes = columns.indexes();
-            _mapFunc = this::cursorToDbValue;
             _cursor = cursor;
             _rowCount = cursor.getCount();
 
@@ -243,23 +280,46 @@ class DbManager extends SQLiteOpenHelper {
             return getRemainingRows() > 0;
         }
 
-        private DbValue cursorToDbValue(int index) {
-            return _columns.get(index).isText()? new DbStringValue(_cursor.getString(index)) : new DbIntValue(_cursor.getInt(index));
+        private DbValue cursorToDbValue(int index, DbValue recyclable) {
+            if (_columns.get(index).isText()) {
+                final SQLiteDbTextValue holder = (recyclable instanceof SQLiteDbTextValue)?
+                    (SQLiteDbTextValue) recyclable : new SQLiteDbTextValue();
+                holder._value = _cursor.getString(index);
+                return holder;
+            }
+            else {
+                final SQLiteDbIntValue holder = (recyclable instanceof SQLiteDbIntValue)?
+                        (SQLiteDbIntValue) recyclable : new SQLiteDbIntValue();
+                holder._value = _cursor.getInt(index);
+                return holder;
+            }
         }
 
         @Override
-        public ImmutableList<DbValue> next() {
+        public List<DbValue> next() {
             if (!hasNext()) {
                 throw new UnsupportedOperationException("End already reached");
             }
 
-            final ImmutableList<DbValue> result = _columnIndexes.map(_mapFunc);
+            final int columnCount = _columnIndexes.size();
+            if (_rowHolder == null) {
+                _rowHolder = MutableList.empty((currentLength, newSize) -> columnCount);
+                for (int i = 0; i < columnCount; i++) {
+                    _rowHolder.append(cursorToDbValue(i, null));
+                }
+            }
+            else {
+                for (int i = 0; i < columnCount; i++) {
+                    cursorToDbValue(i, _rowHolder.get(i));
+                }
+            }
+
             if (!_cursor.moveToNext()) {
                 close();
             }
             _nextRowIndex++;
 
-            return result;
+            return _rowHolder;
         }
     }
 
