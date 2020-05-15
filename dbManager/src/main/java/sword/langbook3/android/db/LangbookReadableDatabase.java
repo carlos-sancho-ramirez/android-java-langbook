@@ -1696,7 +1696,6 @@ public final class LangbookReadableDatabase {
                 .join(strings, strings.getStringColumnIndex(), strings.getStringColumnIndex())
                 .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
                 .whereColumnValueMatch(strings.getStringAlphabetColumnIndex(), offset + strings.getStringAlphabetColumnIndex())
-                .whereColumnValueMatch(offset + strings.getDynamicAcceptationColumnIndex(), offset + strings.getMainAcceptationColumnIndex())
                 .select(strings.getStringAlphabetColumnIndex(), offset + strings.getDynamicAcceptationColumnIndex());
 
         final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
