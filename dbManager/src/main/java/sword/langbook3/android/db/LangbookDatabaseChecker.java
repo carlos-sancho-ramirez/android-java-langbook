@@ -327,8 +327,8 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(int staticAcceptation) {
-        return LangbookReadableDatabase.readTextAndDynamicAcceptationsMapFromStaticAcceptation(getDatabase(), staticAcceptation);
+    public ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromAcceptation(int staticAcceptation) {
+        return LangbookReadableDatabase.readTextAndDynamicAcceptationsMapFromAcceptation(getDatabase(), staticAcceptation);
     }
 
     public ImmutableIntKeyMap<String> getSampleSentences(int staticAcceptation) {

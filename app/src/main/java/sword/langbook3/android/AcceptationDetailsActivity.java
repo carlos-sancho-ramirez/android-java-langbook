@@ -449,7 +449,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemNewSentence:
-                SentenceEditorActivity.openWithStaticAcceptation(this, REQUEST_CODE_CREATE_SENTENCE, _acceptation);
+                SentenceEditorActivity.openWithAcceptation(this, REQUEST_CODE_CREATE_SENTENCE, _acceptation);
                 return true;
 
             case R.id.menuItemNewAgentAsSource:

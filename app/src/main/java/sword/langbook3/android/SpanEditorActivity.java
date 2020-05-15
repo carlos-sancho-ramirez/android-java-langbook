@@ -30,8 +30,8 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
 
     private interface ArgKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CONCEPT = BundleKeys.CONCEPT;
-        String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
         String SENTENCE_ID = BundleKeys.SENTENCE_ID;
         String TEXT = BundleKeys.TEXT;
     }
@@ -56,10 +56,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void openWithStaticAcceptation(Activity activity, int requestCode, String text, int staticAcceptation) {
+    static void openWithAcceptation(Activity activity, int requestCode, String text, int acceptation) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
-        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
+        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -94,8 +94,8 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, NO_SENTENCE_ID);
     }
 
-    private int getStaticAcceptationId() {
-        return getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+    private int getAcceptationId() {
+        return getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
     }
 
     private int getConcept() {
@@ -134,9 +134,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
     }
 
-    private void insertSuggestedSpans(int staticAcceptation) {
+    private void insertSuggestedSpans(int acceptation) {
         final LangbookChecker checker = DbManager.getInstance().getManager();
-        final ImmutableIntValueMap<String> map = checker.readTextAndDynamicAcceptationsMapFromStaticAcceptation(staticAcceptation);
+        final ImmutableIntValueMap<String> map = checker.readTextAndDynamicAcceptationsMapFromAcceptation(acceptation);
         final String text = getText();
         for (IntValueMap.Entry<String> entry : map.entries()) {
             final int index = text.indexOf(entry.key());
@@ -157,12 +157,12 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             _state = new SpanEditorActivityState();
 
             final int sentenceId = getSentenceId();
-            final int staticAcceptation = getStaticAcceptationId();
+            final int acceptation = getAcceptationId();
             if (sentenceId != NO_SENTENCE_ID) {
                 insertInitialSpans(sentenceId);
             }
-            else if (staticAcceptation != 0) {
-                insertSuggestedSpans(staticAcceptation);
+            else if (acceptation != 0) {
+                insertSuggestedSpans(acceptation);
             }
         }
         else {

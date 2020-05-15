@@ -44,5 +44,5 @@ public interface AcceptationsChecker extends ConceptsChecker {
     boolean isAnyLanguagePresent();
     ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndLanguage(int acceptation);
     ImmutableIntPairMap findConversions(IntSet alphabets);
-    ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(int staticAcceptation);
+    ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromAcceptation(int acceptation);
 }

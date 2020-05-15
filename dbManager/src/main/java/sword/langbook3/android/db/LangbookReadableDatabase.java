@@ -2069,7 +2069,7 @@ public final class LangbookReadableDatabase {
         return new DerivedAcceptationsReaderResult(acceptations, ruleTexts, agentRules.toImmutable());
     }
 
-    static ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(DbExporter.Database db, int staticAcceptation) {
+    private static ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromStaticAcceptation(DbExporter.Database db, int staticAcceptation) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final DbQuery query = new DbQuery.Builder(strings)
@@ -2100,6 +2100,10 @@ public final class LangbookReadableDatabase {
         }
 
         return result.toImmutable();
+    }
+
+    static ImmutableIntValueMap<String> readTextAndDynamicAcceptationsMapFromAcceptation(DbExporter.Database db, int acceptation) {
+        return readTextAndDynamicAcceptationsMapFromStaticAcceptation(db, getMainAcceptation(db, acceptation));
     }
 
     private static ImmutableIntSet readAgentsWhereAcceptationIsTarget(DbExporter.Database db, int staticAcceptation) {

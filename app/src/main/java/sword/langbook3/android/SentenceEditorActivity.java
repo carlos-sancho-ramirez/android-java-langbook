@@ -14,8 +14,8 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
     private static final int REQUEST_CODE_ADD_SPAN = 1;
 
     interface ArgKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CONCEPT = BundleKeys.CONCEPT;
-        String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
         String SENTENCE_ID = BundleKeys.SENTENCE_ID;
     }
 
@@ -29,9 +29,9 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void openWithStaticAcceptation(Activity activity, int requestCode, int staticAcceptation) {
+    static void openWithAcceptation(Activity activity, int requestCode, int acceptation) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
-        intent.putExtra(ArgKeys.STATIC_ACCEPTATION, staticAcceptation);
+        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -47,8 +47,8 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, NO_SENTENCE_ID);
     }
 
-    private int getStaticAcceptationId() {
-        return getIntent().getIntExtra(ArgKeys.STATIC_ACCEPTATION, 0);
+    private int getAcceptationId() {
+        return getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
     }
 
     private int getConcept() {
@@ -84,11 +84,11 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     private void openSpanEditor() {
         final int sentenceId = getSentenceId();
-        final int staticAcceptation = getStaticAcceptationId();
+        final int acceptation = getAcceptationId();
         final String text = _textField.getText().toString();
 
-        if (staticAcceptation != 0) {
-            SpanEditorActivity.openWithStaticAcceptation(this, REQUEST_CODE_ADD_SPAN, text, staticAcceptation);
+        if (acceptation != 0) {
+            SpanEditorActivity.openWithAcceptation(this, REQUEST_CODE_ADD_SPAN, text, acceptation);
         }
         else if (sentenceId == NO_SENTENCE_ID) {
             SpanEditorActivity.openWithConcept(this, REQUEST_CODE_ADD_SPAN, text, getConcept());
