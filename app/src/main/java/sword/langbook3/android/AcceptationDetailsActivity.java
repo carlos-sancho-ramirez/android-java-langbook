@@ -224,7 +224,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         boolean sentenceFound = false;
         final int sampleSentenceCount = _model.sampleSentences.size();
         for (int i = 0; i < sampleSentenceCount; i++) {
-            final int symbolArray = _model.sampleSentences.keyAt(i);
+            final int sentenceId = _model.sampleSentences.keyAt(i);
             final String sentence = _model.sampleSentences.valueAt(i);
 
             if (!sentenceFound) {
@@ -232,7 +232,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 sentenceFound = true;
             }
 
-            result.add(new SentenceNavigableItem(symbolArray, sentence));
+            result.add(new SentenceNavigableItem(sentenceId, sentence));
         }
 
         boolean agentFound = false;

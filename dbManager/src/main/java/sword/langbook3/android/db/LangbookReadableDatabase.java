@@ -3317,14 +3317,25 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static ImmutableIntKeyMap<String> getSampleSentences(DbExporter.Database db, int staticAcceptation) {
+    private static int getMainAcceptation(DbExporter.Database db, int acceptation) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(strings.getMainAcceptationColumnIndex());
+
+        try (DbResult result = db.select(query)) {
+            return result.hasNext()? result.next().get(0).toInt() : acceptation;
+        }
+    }
+
+    static ImmutableIntKeyMap<String> getSampleSentences(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
         final int offset = strings.columns().size();
 
         final DbQuery query = new DbQuery.Builder(strings)
                 .join(spans, strings.getDynamicAcceptationColumnIndex(), spans.getDynamicAcceptationColumnIndex())
-                .where(strings.getMainAcceptationColumnIndex(), staticAcceptation)
+                .where(strings.getMainAcceptationColumnIndex(), getMainAcceptation(db, acceptation))
                 .select(offset + spans.getSentenceIdColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().assign(sentenceId -> getSentenceText(db, sentenceId));
