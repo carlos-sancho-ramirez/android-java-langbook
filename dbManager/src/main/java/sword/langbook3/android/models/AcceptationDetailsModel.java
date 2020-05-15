@@ -5,7 +5,6 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.Sizable;
 
 public final class AcceptationDetailsModel {
 
@@ -35,8 +34,7 @@ public final class AcceptationDetailsModel {
     public final ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations;
     public final ImmutableList<DynamizableResult> bunchChildren;
     public final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded;
-    public final ImmutableList<MorphologyResult> morphologies;
-    public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations;
+    public final ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations;
     public final ImmutableIntKeyMap<String> ruleTexts;
     public final ImmutableIntPairMap involvedAgents;
     public final ImmutableIntPairMap agentRules;
@@ -66,8 +64,7 @@ public final class AcceptationDetailsModel {
             ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations,
             ImmutableList<DynamizableResult> bunchChildren,
             ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded,
-            ImmutableList<MorphologyResult> morphologies,
-            ImmutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations,
+            ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations,
             ImmutableIntKeyMap<String> ruleTexts,
             ImmutableIntPairMap involvedAgents,
             ImmutableIntPairMap agentRules,
@@ -80,7 +77,7 @@ public final class AcceptationDetailsModel {
                 texts == null || acceptationsSharingTexts == null || definitionComplementTexts == null ||
                 subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
-                morphologies == null || morphologyLinkedAcceptations == null || ruleTexts == null ||
+                derivedAcceptations == null || ruleTexts == null ||
                 involvedAgents == null || agentRules == null || languageTexts == null || sampleSentences == null) {
             throw new IllegalArgumentException();
         }
@@ -94,11 +91,6 @@ public final class AcceptationDetailsModel {
         }
 
         if (synonymsAndTranslations.anyMatch(value -> !languageTexts.keySet().contains(value.language))) {
-            throw new IllegalArgumentException();
-        }
-
-        if (morphologyLinkedAcceptations.keySet().anyMatch(dynAcc -> !morphologies.anyMatch(morph -> morph.dynamicAcceptation == dynAcc)) ||
-                morphologyLinkedAcceptations.anyMatch(Sizable::isEmpty)) {
             throw new IllegalArgumentException();
         }
 
@@ -120,8 +112,7 @@ public final class AcceptationDetailsModel {
         this.synonymsAndTranslations = synonymsAndTranslations;
         this.bunchChildren = bunchChildren;
         this.bunchesWhereAcceptationIsIncluded = bunchesWhereAcceptationIsIncluded;
-        this.morphologies = morphologies;
-        this.morphologyLinkedAcceptations = morphologyLinkedAcceptations;
+        this.derivedAcceptations = derivedAcceptations;
         this.ruleTexts = ruleTexts;
         this.involvedAgents = involvedAgents;
         this.agentRules = agentRules;

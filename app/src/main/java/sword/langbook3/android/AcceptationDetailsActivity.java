@@ -30,9 +30,9 @@ import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
+import sword.langbook3.android.models.DerivedAcceptationResult;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
-import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.SynonymTranslationResult;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
@@ -161,20 +161,6 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        boolean morphologyLinkedAcceptationFound = false;
-        for (IntKeyMap.Entry<ImmutableIntKeyMap<String>> entry : _model.morphologyLinkedAcceptations.entries()) {
-            final int dynAcc = entry.key();
-            final String morphStr = _model.morphologies.findFirst(morph -> morph.dynamicAcceptation == dynAcc, null).text;
-            for (IntKeyMap.Entry<String> innerEntry : entry.value().entries()) {
-                if (!morphologyLinkedAcceptationFound) {
-                    result.add(new HeaderItem(getString(R.string.accDetailsSectionMorphologyLinkedAcceptations)));
-                    morphologyLinkedAcceptationFound = true;
-                }
-
-                result.add(new AcceptationNavigableItem(innerEntry.key(), "" + morphStr + " -> " + innerEntry.value(), false));
-            }
-        }
-
         final ImmutableIntSet alphabets = _model.texts.keySet();
         boolean acceptationSharingCorrelationArrayFound = false;
         final ImmutableIntSet accsSharingCorrelationArray = _model.acceptationsSharingTexts.filter(alphabets::equalSet).keySet();
@@ -210,15 +196,18 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        final ImmutableList<MorphologyResult> morphologyResults = _model.morphologies;
-        for (MorphologyResult r : morphologyResults) {
+        final ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations = _model.derivedAcceptations;
+        final int derivedAcceptationsCount = derivedAcceptations.size();
+        for (int i = 0; i < derivedAcceptationsCount; i++) {
+            final int accId = derivedAcceptations.keyAt(i);
+            final DerivedAcceptationResult r = derivedAcceptations.valueAt(i);
             if (!morphologyFound) {
-                result.add(new HeaderItem(getString(R.string.accDetailsSectionMorphologies)));
+                result.add(new HeaderItem(getString(R.string.accDetailsSectionDerivedAcceptations)));
                 morphologyFound = true;
             }
 
-            final String ruleText = r.rules.reverse().map(_model.ruleTexts::get).reduce((a, b) -> a + " + " + b);
-            result.add(new AcceptationNavigableItem(r.dynamicAcceptation, ruleText + " -> " + r.text, true));
+            final String ruleText = _model.ruleTexts.get(_model.agentRules.get(r.agent));
+            result.add(new AcceptationNavigableItem(accId, ruleText + " -> " + r.text, true));
         }
 
         boolean bunchChildFound = false;

@@ -34,11 +34,10 @@
     <string name="accDetailsSectionSubtypes">Subtypes</string>
     <string name="accDetailsSectionSynonyms">Synonyms</string>
     <string name="accDetailsSectionTranslations">Translations</string>
-    <string name="accDetailsSectionMorphologyLinkedAcceptations">Acceptations linked to morphologies</string>
     <string name="accDetailsSectionAcceptationsSharingCorrelationArray">Other acceptations written in the same way</string>
     <string name="accDetailsSectionAcceptationsSharingTexts">Other acceptations sharing some alphabets</string>
     <string name="accDetailsSectionBunchesWhereIncluded">Bunches where included</string>
-    <string name="accDetailsSectionMorphologies">Morphologies</string>
+    <string name="accDetailsSectionDerivedAcceptations">Derived acceptations</string>
     <string name="accDetailsSectionAcceptationsInThisBunch">Acceptations included in this bunch</string>
     <string name="accDetailsSectionSampleSentences">Sample sentences</string>
     <string name="accDetailsSectionInvolvedAgents">Involved agents</string>
