@@ -3,6 +3,7 @@ package sword.langbook3.android;
 import android.content.Context;
 import android.net.Uri;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,8 +37,9 @@ public final class DatabaseExporter implements DbExporter {
                     os.write(0);
                 }
 
+                final BufferedOutputStream bos = new BufferedOutputStream(os, 4096);
                 MessageDigest md = MessageDigest.getInstance("MD5");
-                final DigestOutputStream dos = new DigestOutputStream(os, md);
+                final DigestOutputStream dos = new DigestOutputStream(bos, md);
                 final StreamedDatabaseWriter writer = new StreamedDatabaseWriter(db, dos, _listener);
                 writer.write();
 

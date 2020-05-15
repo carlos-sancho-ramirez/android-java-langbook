@@ -3,6 +3,7 @@ package sword.langbook3.android;
 import android.content.Context;
 import android.net.Uri;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -28,7 +29,8 @@ public final class DatabaseImporter implements DbImporter {
             final InputStream is = _context.getContentResolver().openInputStream(_uri);
             if (is != null) {
                 is.skip(20);
-                final DatabaseInflater reader = new DatabaseInflater(db, is, _listener);
+                final BufferedInputStream bis = new BufferedInputStream(is, 4096);
+                final DatabaseInflater reader = new DatabaseInflater(db, bis, _listener);
                 reader.read();
             }
         }
