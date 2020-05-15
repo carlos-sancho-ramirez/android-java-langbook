@@ -1839,7 +1839,19 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static ImmutablePair<Integer, String> readOriginalAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static final class AcceptationOrigin {
+        final int originalAcceptationId;
+        final int appliedAgent;
+        final String originalAcceptationText;
+
+        AcceptationOrigin(int originalAcceptationId, int appliedAgent, String originalAcceptationText) {
+            this.originalAcceptationId = originalAcceptationId;
+            this.appliedAgent = appliedAgent;
+            this.originalAcceptationText = originalAcceptationText;
+        }
+    }
+
+    private static AcceptationOrigin readOriginalAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final int offset = ruledAcceptations.columns().size();
@@ -1848,22 +1860,70 @@ public final class LangbookReadableDatabase {
                 .join(strings, ruledAcceptations.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(ruledAcceptations.getIdColumnIndex(), acceptation)
                 .select(ruledAcceptations.getAcceptationColumnIndex(),
+                        ruledAcceptations.getAgentColumnIndex(),
                         offset + strings.getStringAlphabetColumnIndex(),
                         offset + strings.getStringColumnIndex());
 
         int id = 0;
+        int agentId = 0;
         String text = null;
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                if (id == 0 || row.get(1).toInt() == preferredAlphabet) {
+                if (id == 0 || row.get(2).toInt() == preferredAlphabet) {
                     id = row.get(0).toInt();
-                    text = row.get(2).toText();
+                    agentId = row.get(1).toInt();
+                    text = row.get(3).toText();
                 }
             }
         }
 
-        return (id == 0)? null : new ImmutablePair<>(id, text);
+        return (id == 0)? null : new AcceptationOrigin(id, agentId, text);
+    }
+
+    private static final class AppliedRule {
+        final int acceptationId;
+        final int rule;
+        final String text;
+
+        AppliedRule(int acceptationId, int rule, String text) {
+            this.acceptationId = acceptationId;
+            this.rule = rule;
+            this.text = text;
+        }
+    }
+
+    private static AppliedRule readRulePreferredTextByAgent(DbExporter.Database db, int agentId, int preferredAlphabet) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final int accOffset = agents.columns().size();
+        final int strOffset = accOffset + acceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(acceptations, agents.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(agents.getIdColumnIndex(), agentId)
+                .select(agents.getRuleColumnIndex(),
+                        accOffset + acceptations.getIdColumnIndex(),
+                        strOffset + strings.getStringAlphabetColumnIndex(),
+                        strOffset + strings.getStringColumnIndex());
+
+        int acceptationId = 0;
+        int ruleId = 0;
+        String text = null;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                if (ruleId == 0 || row.get(2).toInt() == preferredAlphabet) {
+                    ruleId = row.get(0).toInt();
+                    acceptationId = row.get(1).toInt();
+                    text = row.get(3).toText();
+                }
+            }
+        }
+
+        return (ruleId == 0)? null : new AppliedRule(acceptationId, ruleId, text);
     }
 
     static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
@@ -2331,7 +2391,7 @@ public final class LangbookReadableDatabase {
         return selectFirstRow(db, query).get(0).toText();
     }
 
-    public static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
+    static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
@@ -3216,9 +3276,25 @@ public final class LangbookReadableDatabase {
             return null;
         }
 
-        final ImmutablePair<Integer, String> originalAcceptation = readOriginalAcceptation(db, acceptation, preferredAlphabet);
-        final int originalAcceptationId = (originalAcceptation != null)? originalAcceptation.left : 0;
-        final String originalAcceptationText = (originalAcceptation != null)? originalAcceptation.right : null;
+        final AcceptationOrigin origin = readOriginalAcceptation(db, acceptation, preferredAlphabet);
+        final int originalAcceptationId = (origin != null)? origin.originalAcceptationId : 0;
+        final int appliedAgentId = (origin != null)? origin.appliedAgent : 0;
+        final String originalAcceptationText = (origin != null)? origin.originalAcceptationText : null;
+
+        final int appliedRuleAcceptationId;
+        final int appliedRuleId;
+        final String appliedRuleAcceptationText;
+        if (appliedAgentId != 0) {
+            final AppliedRule appliedRule = readRulePreferredTextByAgent(db, appliedAgentId, preferredAlphabet);
+            appliedRuleAcceptationId = appliedRule.acceptationId;
+            appliedRuleId = appliedRule.rule;
+            appliedRuleAcceptationText = appliedRule.text;
+        }
+        else {
+            appliedRuleAcceptationId = 0;
+            appliedRuleId = 0;
+            appliedRuleAcceptationText = null;
+        }
 
         ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, acceptation);
         final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
@@ -3247,14 +3323,18 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations = readMorphologyLinkedAcceptations(db,
                 morphologyResults.morphologies.mapToInt(m -> m.dynamicAcceptation).toSet(), acceptation, concept);
 
+        final ImmutableIntKeyMap<String> ruleTexts = (appliedRuleAcceptationId == 0)? morphologyResults.ruleTexts :
+                morphologyResults.ruleTexts.put(appliedRuleId, appliedRuleAcceptationText);
+
         final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, acceptation);
         final int baseConceptAcceptationId = (definition.left != null)? definition.left.id : 0;
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
         return new AcceptationDetailsModel(concept, languageResult, originalAcceptationId, originalAcceptationText,
-                correlationResultPair.left, correlationResultPair.right, texts, acceptationsSharingTexts,
-                baseConceptAcceptationId, baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
+                appliedAgentId, appliedRuleId, appliedRuleAcceptationId, correlationResultPair.left,
+                correlationResultPair.right, texts, acceptationsSharingTexts, baseConceptAcceptationId,
+                baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
                 bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyLinkedAcceptations,
-                morphologyResults.ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
+                ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
     }
 
     static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {

@@ -113,9 +113,16 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             _hasDefinition = true;
         }
 
+        final String agentTextPrefix = "Agent #";
         if (_model.originalAcceptationId != 0) {
             final String text = getString(R.string.accDetailsSectionOrigin) + ": " + _model.originalAcceptationText;
             result.add(new AcceptationNavigableItem(_model.originalAcceptationId, text, false));
+
+            final String ruleText = getString(R.string.accDetailsSectionAppliedRule) + ": " + _model.ruleTexts.get(_model.appliedRuleId);
+            result.add(new AcceptationNavigableItem(_model.appliedRuleAcceptationId, ruleText, false));
+
+            final String agentText = getString(R.string.accDetailsSectionAppliedAgent) + ": " + agentTextPrefix + _model.appliedAgentId;
+            result.add(new AgentNavigableItem(_model.appliedAgentId, agentText));
         }
 
         boolean subTypeFound = false;
@@ -246,7 +253,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 agentFound = true;
             }
 
-            final StringBuilder s = new StringBuilder("Agent #");
+            final StringBuilder s = new StringBuilder(agentTextPrefix);
             s.append(entry.key()).append(" (");
             final int flags = entry.value();
             s.append(((flags & InvolvedAgentResultFlags.target) != 0)? 'T' : '-');

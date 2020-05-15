@@ -21,6 +21,9 @@ public final class AcceptationDetailsModel {
     public final IdentifiableResult language;
     public final int originalAcceptationId;
     public final String originalAcceptationText;
+    public final int appliedAgentId;
+    public final int appliedRuleId;
+    public final int appliedRuleAcceptationId;
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
     public final ImmutableIntKeyMap<String> texts;
@@ -49,6 +52,9 @@ public final class AcceptationDetailsModel {
             IdentifiableResult language,
             int originalAcceptationId,
             String originalAcceptationText,
+            int appliedAgentId,
+            int appliedRuleId,
+            int appliedRuleAcceptationId,
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
             ImmutableIntKeyMap<String> texts,
@@ -68,13 +74,18 @@ public final class AcceptationDetailsModel {
             ImmutableIntKeyMap<String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
-        if (language == null || originalAcceptationId != 0 && originalAcceptationText == null ||
+        if (language == null || originalAcceptationId != 0 && (originalAcceptationText == null ||
+                appliedAgentId == 0 || appliedRuleId == 0 || appliedRuleAcceptationId == 0) ||
                 correlationIds == null || correlations == null ||
                 texts == null || acceptationsSharingTexts == null || definitionComplementTexts == null ||
                 subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
                 morphologies == null || morphologyLinkedAcceptations == null || ruleTexts == null ||
                 involvedAgents == null || agentRules == null || languageTexts == null || sampleSentences == null) {
+            throw new IllegalArgumentException();
+        }
+
+        if (appliedRuleId != 0 && ruleTexts.get(appliedRuleId, null) == null) {
             throw new IllegalArgumentException();
         }
 
@@ -95,6 +106,9 @@ public final class AcceptationDetailsModel {
         this.language = language;
         this.originalAcceptationId = originalAcceptationId;
         this.originalAcceptationText = originalAcceptationText;
+        this.appliedAgentId = appliedAgentId;
+        this.appliedRuleId = appliedRuleId;
+        this.appliedRuleAcceptationId = appliedRuleAcceptationId;
         this.correlationIds = correlationIds;
         this.correlations = correlations;
         this.texts = texts;
