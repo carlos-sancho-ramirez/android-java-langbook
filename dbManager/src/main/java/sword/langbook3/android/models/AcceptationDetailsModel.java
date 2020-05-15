@@ -19,6 +19,8 @@ public final class AcceptationDetailsModel {
 
     public final int concept;
     public final IdentifiableResult language;
+    public final int originalAcceptationId;
+    public final String originalAcceptationText;
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
     public final ImmutableIntKeyMap<String> texts;
@@ -45,6 +47,8 @@ public final class AcceptationDetailsModel {
     public AcceptationDetailsModel(
             int concept,
             IdentifiableResult language,
+            int originalAcceptationId,
+            String originalAcceptationText,
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
             ImmutableIntKeyMap<String> texts,
@@ -64,7 +68,8 @@ public final class AcceptationDetailsModel {
             ImmutableIntKeyMap<String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
-        if (language == null || correlationIds == null || correlations == null ||
+        if (language == null || originalAcceptationId != 0 && originalAcceptationText == null ||
+                correlationIds == null || correlations == null ||
                 texts == null || acceptationsSharingTexts == null || definitionComplementTexts == null ||
                 subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
@@ -88,6 +93,8 @@ public final class AcceptationDetailsModel {
 
         this.concept = concept;
         this.language = language;
+        this.originalAcceptationId = originalAcceptationId;
+        this.originalAcceptationText = originalAcceptationText;
         this.correlationIds = correlationIds;
         this.correlations = correlations;
         this.texts = texts;

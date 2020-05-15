@@ -28,6 +28,7 @@
     <string name="accDetailsSectionSummary">Displaying details for acceptation %d</string>
     <string name="accDetailsSectionLanguage">Language</string>
     <string name="accDetailsSectionDefinition">Definition</string>
+    <string name="accDetailsSectionOrigin">Coming from</string>
     <string name="accDetailsSectionSubtypes">Subtypes</string>
     <string name="accDetailsSectionSynonyms">Synonyms</string>
     <string name="accDetailsSectionTranslations">Translations</string>

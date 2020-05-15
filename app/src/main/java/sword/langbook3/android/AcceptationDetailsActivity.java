@@ -114,6 +114,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             _hasDefinition = true;
         }
 
+        if (_model.originalAcceptationId != 0) {
+            final String text = getString(R.string.accDetailsSectionOrigin) + ": " + _model.originalAcceptationText;
+            result.add(new AcceptationNavigableItem(_model.originalAcceptationId, text, false));
+        }
+
         boolean subTypeFound = false;
         for (ImmutableIntKeyMap.Entry<String> subtype : _model.subtypes.entries()) {
             if (!subTypeFound) {

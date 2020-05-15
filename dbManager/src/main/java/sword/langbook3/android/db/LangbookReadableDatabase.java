@@ -1839,6 +1839,33 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    private static ImmutablePair<Integer, String> readOriginalAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final int offset = ruledAcceptations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(ruledAcceptations)
+                .join(strings, ruledAcceptations.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .where(ruledAcceptations.getIdColumnIndex(), acceptation)
+                .select(ruledAcceptations.getAcceptationColumnIndex(),
+                        offset + strings.getStringAlphabetColumnIndex(),
+                        offset + strings.getStringColumnIndex());
+
+        int id = 0;
+        String text = null;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                if (id == 0 || row.get(1).toInt() == preferredAlphabet) {
+                    id = row.get(0).toInt();
+                    text = row.get(2).toText();
+                }
+            }
+        }
+
+        return (id == 0)? null : new ImmutablePair<>(id, text);
+    }
+
     static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
@@ -3183,24 +3210,28 @@ public final class LangbookReadableDatabase {
         return morphologyLinkedAcceptations.toImmutable();
     }
 
-    static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int staticAcceptation, int preferredAlphabet) {
-        final int concept = conceptFromAcceptation(db, staticAcceptation);
+    static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final int concept = conceptFromAcceptation(db, acceptation);
         if (concept == 0) {
             return null;
         }
 
-        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, staticAcceptation);
+        final ImmutablePair<Integer, String> originalAcceptation = readOriginalAcceptation(db, acceptation, preferredAlphabet);
+        final int originalAcceptationId = (originalAcceptation != null)? originalAcceptation.left : 0;
+        final String originalAcceptationText = (originalAcceptation != null)? originalAcceptation.right : null;
+
+        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, acceptation);
         final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
         final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, preferredAlphabet);
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
         languageStrs.put(languageResult.id, languageResult.text);
 
-        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, staticAcceptation);
-        final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts = readAcceptationsSharingTexts(db, staticAcceptation);
-        final ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> definition = readDefinitionFromAcceptation(db, staticAcceptation, preferredAlphabet);
-        final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, staticAcceptation, preferredAlphabet);
+        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptation);
+        final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts = readAcceptationsSharingTexts(db, acceptation);
+        final ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> definition = readDefinitionFromAcceptation(db, acceptation, preferredAlphabet);
+        final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, acceptation, preferredAlphabet);
         final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
-                readAcceptationSynonymsAndTranslations(db, staticAcceptation);
+                readAcceptationSynonymsAndTranslations(db, acceptation);
         for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
             final int language = entry.value().language;
             if (languageStrs.get(language, null) == null) {
@@ -3208,20 +3239,20 @@ public final class LangbookReadableDatabase {
             }
         }
 
-        final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded = readBunchesWhereAcceptationIsIncluded(db, staticAcceptation, preferredAlphabet);
-        final MorphologyReaderResult morphologyResults = readMorphologiesFromAcceptation(db, staticAcceptation, preferredAlphabet);
-        final ImmutableList<DynamizableResult> bunchChildren = readAcceptationBunchChildren(db, staticAcceptation, preferredAlphabet);
-        final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(db, staticAcceptation);
+        final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded = readBunchesWhereAcceptationIsIncluded(db, acceptation, preferredAlphabet);
+        final MorphologyReaderResult morphologyResults = readMorphologiesFromAcceptation(db, acceptation, preferredAlphabet);
+        final ImmutableList<DynamizableResult> bunchChildren = readAcceptationBunchChildren(db, acceptation, preferredAlphabet);
+        final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(db, acceptation);
 
         final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> morphologyLinkedAcceptations = readMorphologyLinkedAcceptations(db,
-                morphologyResults.morphologies.mapToInt(m -> m.dynamicAcceptation).toSet(), staticAcceptation, concept);
+                morphologyResults.morphologies.mapToInt(m -> m.dynamicAcceptation).toSet(), acceptation, concept);
 
-        final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, staticAcceptation);
+        final ImmutableIntKeyMap<String> sampleSentences = getSampleSentences(db, acceptation);
         final int baseConceptAcceptationId = (definition.left != null)? definition.left.id : 0;
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
-        return new AcceptationDetailsModel(concept, languageResult, correlationResultPair.left,
-                correlationResultPair.right, texts, acceptationsSharingTexts, baseConceptAcceptationId,
-                baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
+        return new AcceptationDetailsModel(concept, languageResult, originalAcceptationId, originalAcceptationText,
+                correlationResultPair.left, correlationResultPair.right, texts, acceptationsSharingTexts,
+                baseConceptAcceptationId, baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
                 bunchesWhereAcceptationIsIncluded, morphologyResults.morphologies, morphologyLinkedAcceptations,
                 morphologyResults.ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
     }
