@@ -1632,6 +1632,40 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
+    private static MutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+
+        final int accOffset = acceptations.columns().size();
+        final int stringsOffset = accOffset * 2;
+        final int alphabetsOffset = stringsOffset + strings.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
+                .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
+                .join(alphabets, stringsOffset + strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptation)
+                .select(stringsOffset + strings.getMainAcceptationColumnIndex(),
+                        stringsOffset + strings.getDynamicAcceptationColumnIndex(),
+                        alphabetsOffset + alphabets.getLanguageColumnIndex(),
+                        stringsOffset + strings.getStringAlphabetColumnIndex(),
+                        stringsOffset + strings.getStringColumnIndex());
+
+        final MutableIntKeyMap<SynonymTranslationResult> builder = MutableIntKeyMap.empty();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final int accId = row.get(1).toInt();
+                if (accId != acceptation && (builder.get(accId, null) == null || row.get(3).toInt() == preferredAlphabet)) {
+                    builder.put(accId, new SynonymTranslationResult(row.get(2).toInt(), row.get(4).toText(), row.get(0).toInt() != accId));
+                }
+            }
+        }
+
+        return builder;
+    }
+
     static boolean isCorrelationArrayInUse(DbExporter.Database db, int correlationArrayId) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
 
@@ -3307,7 +3341,7 @@ public final class LangbookReadableDatabase {
         final ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> definition = readDefinitionFromAcceptation(db, acceptation, preferredAlphabet);
         final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, acceptation, preferredAlphabet);
         final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
-                readAcceptationSynonymsAndTranslations(db, acceptation);
+                readAcceptationSynonymsAndTranslations(db, acceptation, preferredAlphabet).toImmutable();
         for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
             final int language = entry.value().language;
             if (languageStrs.get(language, null) == null) {
