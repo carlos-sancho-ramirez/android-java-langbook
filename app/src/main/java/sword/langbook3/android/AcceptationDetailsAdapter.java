@@ -149,35 +149,6 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    /**
-     * Item including a dynamic acceptation and its text representation.
-     * This will open a new {@link RuleTableActivity} on clicking the item.
-     */
-    static final class RuleNavigableItem extends Item {
-
-        private final int _id;
-
-        RuleNavigableItem(int id, String text) {
-            super(ItemTypes.UNKNOWN, text);
-            _id = id;
-        }
-
-        @Override
-        void navigate(Activity activity, int requestCode) {
-            RuleTableActivity.open(activity, _id);
-        }
-
-        @Override
-        boolean isEnabled() {
-            return true;
-        }
-
-        @Override
-        int getTextColorRes() {
-            return R.color.agentDynamicTextColor;
-        }
-    }
-
     static final class AgentNavigableItem extends Item {
 
         private final int _id;

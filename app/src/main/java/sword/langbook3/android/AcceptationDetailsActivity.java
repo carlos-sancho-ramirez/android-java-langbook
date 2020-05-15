@@ -26,7 +26,6 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationArrayItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
-import sword.langbook3.android.AcceptationDetailsAdapter.RuleNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.AcceptationDetailsModel;
@@ -212,7 +211,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
 
             final String ruleText = r.rules.reverse().map(_model.ruleTexts::get).reduce((a, b) -> a + " + " + b);
-            result.add(new RuleNavigableItem(r.dynamicAcceptation, ruleText + " -> " + r.text));
+            result.add(new AcceptationNavigableItem(r.dynamicAcceptation, ruleText + " -> " + r.text, true));
         }
 
         boolean bunchChildFound = false;

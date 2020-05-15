@@ -33,7 +33,6 @@
             android:name=".QuizSelectorActivity"
             android:label="@string/quizSelectorActivityTitle"/>
 
-        <activity android:name=".RuleTableActivity"/>
         <activity
             android:name=".SettingsActivity"
             android:label="@string/menuItemSettings"/>
