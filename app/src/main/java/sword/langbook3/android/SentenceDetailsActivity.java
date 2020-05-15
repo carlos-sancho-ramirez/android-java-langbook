@@ -18,7 +18,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
@@ -57,16 +56,16 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     private boolean _displayingDeleteDialog;
 
     private final class ClickableSentenceSpan extends ClickableSpan {
-        private final int staticAcceptation;
+        private final int acceptation;
 
-        ClickableSentenceSpan(int staticAcceptation) {
-            this.staticAcceptation = staticAcceptation;
+        ClickableSentenceSpan(int acceptation) {
+            this.acceptation = acceptation;
         }
 
         @Override
         public void onClick(View widget) {
             AcceptationDetailsActivity.open(SentenceDetailsActivity.this,
-                    REQUEST_CODE_OPEN_ACCEPTATION, staticAcceptation, false);
+                    REQUEST_CODE_OPEN_ACCEPTATION, acceptation, false);
         }
     }
 
@@ -83,10 +82,8 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
             final ImmutableSet<SentenceSpan> spans = _model.spans;
 
             final SpannableString string = new SpannableString(text);
-            final LangbookChecker checker = DbManager.getInstance().getManager();
             for (SentenceSpan span : spans) {
-                final int staticAcceptation = checker.getStaticAcceptationFromDynamic(span.acceptation);
-                string.setSpan(new ClickableSentenceSpan(staticAcceptation),
+                string.setSpan(new ClickableSentenceSpan(span.acceptation),
                         span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             }
             _sentenceTextView.setText(string);

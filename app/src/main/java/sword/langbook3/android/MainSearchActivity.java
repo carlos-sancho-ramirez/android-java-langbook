@@ -31,7 +31,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
         DbManager.getInstance().getManager().updateSearchHistory(dynamicAcceptation);
-        AcceptationDetailsActivity.open(this, staticAcceptation);
+        AcceptationDetailsActivity.open(this, dynamicAcceptation);
     }
 
     @Override

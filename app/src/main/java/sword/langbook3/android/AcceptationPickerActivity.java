@@ -52,7 +52,7 @@ public final class AcceptationPickerActivity extends SearchActivity {
     @Override
     void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
         _confirmDynamicAcceptation = dynamicAcceptation;
-        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, staticAcceptation, true);
+        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, dynamicAcceptation, true);
     }
 
     @Override
