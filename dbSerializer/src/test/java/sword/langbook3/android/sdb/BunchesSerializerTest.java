@@ -11,12 +11,12 @@ import sword.langbook3.android.db.BunchesManager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static sword.collections.IntTraversableTestUtils.assertContains;
+import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
+import static sword.collections.IntTraversableTestUtils.getSingleValue;
+import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAcceptationsMatchingText;
-import static sword.langbook3.android.sdb.IntTraversableTestUtils.assertContains;
-import static sword.langbook3.android.sdb.IntTraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.sdb.IntTraversableTestUtils.getSingleValue;
-import static sword.langbook3.android.sdb.SizableTestUtils.assertEmpty;
 
 /**
  * Include all test related to all responsibilities of a BunchesManager.

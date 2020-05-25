@@ -7,7 +7,7 @@ import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.DefinitionDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
+import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
 
 interface DefinitionsManagerTest {
 

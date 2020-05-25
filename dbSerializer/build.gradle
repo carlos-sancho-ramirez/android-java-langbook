@@ -21,6 +21,7 @@ dependencies {
     implementation project(':bitstream')
     implementation "com.github.carlos-sancho-ramirez:lib-java-collections:$COLLECTIONS_VERSION"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.4.0'
+    testImplementation "com.github.carlos-sancho-ramirez:lib-java-collection-assertions:$COLLECTION_ASSERTIONS_VERSION"
     testImplementation project(":dbManager")
 }
 

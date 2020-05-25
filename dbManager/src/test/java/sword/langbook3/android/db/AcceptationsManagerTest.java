@@ -17,11 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
-import static sword.langbook3.android.db.IntSetTestUtils.assertEqualSet;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
-import static sword.langbook3.android.db.SizableTestUtils.assertSize;
+import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
+import static sword.collections.IntSetTestUtils.assertEqualSet;
+import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
+import static sword.collections.SizableTestUtils.assertEmpty;
+import static sword.collections.SizableTestUtils.assertSize;
 
 /**
  * Include all test related to all responsibilities of an AcceptationsManager.

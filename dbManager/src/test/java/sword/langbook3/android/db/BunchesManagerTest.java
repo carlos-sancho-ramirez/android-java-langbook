@@ -9,9 +9,9 @@ import sword.langbook3.android.models.LanguageCreationResult;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
+import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 
 /**
  * Include all test related to all responsibilities of a BunchesManager.

@@ -23,15 +23,15 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
+import static sword.collections.IntPairMapTestUtils.assertSinglePair;
+import static sword.collections.IntSetTestUtils.intSetOf;
+import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
+import static sword.collections.IntTraversableTestUtils.getSingleValue;
+import static sword.collections.SizableTestUtils.assertEmpty;
+import static sword.collections.SizableTestUtils.assertSize;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAcceptationsMatchingText;
-import static sword.langbook3.android.sdb.IntKeyMapTestUtils.assertSinglePair;
-import static sword.langbook3.android.sdb.IntPairMapTestUtils.assertSinglePair;
-import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
-import static sword.langbook3.android.sdb.IntTraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.sdb.IntTraversableTestUtils.getSingleValue;
-import static sword.langbook3.android.sdb.SizableTestUtils.assertEmpty;
-import static sword.langbook3.android.sdb.SizableTestUtils.assertSize;
 
 /**
  * Include all test related to all values that a BunchesSerializer should serialize.

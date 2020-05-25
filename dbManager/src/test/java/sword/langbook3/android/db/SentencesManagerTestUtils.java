@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.langbook3.android.models.SentenceSpan;
 
-import static sword.langbook3.android.db.StringTestUtils.rangeOf;
+import static sword.collections.StringTestUtils.rangeOf;
 
 final class SentencesManagerTestUtils {
 

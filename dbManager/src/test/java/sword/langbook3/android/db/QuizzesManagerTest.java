@@ -11,14 +11,14 @@ import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static sword.collections.IntPairMapTestUtils.assertSinglePair;
+import static sword.collections.IntSetTestUtils.intSetOf;
+import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
+import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
-import static sword.langbook3.android.db.IntPairMapTestUtils.assertSinglePair;
-import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
-import static sword.langbook3.android.db.IntTraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
-import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
 
 /**
  * Include all test related to all responsibilities of a QuizzesManager.

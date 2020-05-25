@@ -15,12 +15,12 @@ import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.SentenceSpan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static sword.collections.IntSetTestUtils.intSetOf;
+import static sword.collections.IntTraversableTestUtils.getSingleValue;
+import static sword.collections.StringTestUtils.rangeOf;
+import static sword.collections.TraversableTestUtils.assertContainsOnly;
+import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
-import static sword.langbook3.android.sdb.IntSetTestUtils.intSetOf;
-import static sword.langbook3.android.sdb.IntTraversableTestUtils.getSingleValue;
-import static sword.langbook3.android.sdb.StringTestUtils.rangeOf;
-import static sword.langbook3.android.sdb.TraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.sdb.TraversableTestUtils.getSingleValue;
 
 final class StreamedDatabaseTest implements AgentsSerializerTest {
     @Override

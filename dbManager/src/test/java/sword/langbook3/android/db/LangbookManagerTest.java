@@ -13,14 +13,14 @@ import sword.langbook3.android.models.SentenceSpan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
+import static sword.collections.IntSetTestUtils.intSetOf;
+import static sword.collections.SizableTestUtils.assertEmpty;
+import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgent;
-import static sword.langbook3.android.db.IntKeyMapTestUtils.assertSinglePair;
-import static sword.langbook3.android.db.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
-import static sword.langbook3.android.db.SizableTestUtils.assertEmpty;
-import static sword.langbook3.android.db.TraversableTestUtils.getSingleValue;
 
 interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
 
