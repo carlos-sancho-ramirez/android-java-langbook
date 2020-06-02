@@ -210,6 +210,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AcceptationNavigableItem(accId, ruleText + " -> " + r.text, true));
         }
 
+        _shouldShowBunchChildrenQuizMenuOption = false;
         boolean bunchChildFound = false;
         for (DynamizableResult r : _model.bunchChildren) {
             if (!bunchChildFound) {
@@ -572,8 +573,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     public void onResume() {
         super.onResume();
 
-        if (DbManager.getInstance().getDatabase().getWriteVersion() != _dbWriteVersion) {
-            updateModelAndUi();
+        if (DbManager.getInstance().getDatabase().getWriteVersion() != _dbWriteVersion && updateModelAndUi()) {
+            invalidateOptionsMenu();
         }
     }
 
