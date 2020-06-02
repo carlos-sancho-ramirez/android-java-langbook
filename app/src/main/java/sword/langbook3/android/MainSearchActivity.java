@@ -8,6 +8,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.EditText;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
@@ -86,6 +87,10 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_NEW_ACCEPTATION) {
             final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
             if (acceptationId != 0) {
+                final EditText searchField = findViewById(R.id.searchField);
+                if (searchField.getText().length() > 0) {
+                    DbManager.getInstance().getManager().updateSearchHistory(acceptationId);
+                }
                 AcceptationDetailsActivity.open(this, acceptationId);
             }
         }
