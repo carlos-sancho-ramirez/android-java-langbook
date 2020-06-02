@@ -27,6 +27,7 @@ import sword.database.Database;
 import sword.database.DbDeleteQuery;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
+import sword.database.DbInsertQuery;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbStringValue;
@@ -61,6 +62,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSymbolArray;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
+import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteAlphabet;
@@ -1239,6 +1241,48 @@ public final class LangbookDatabase {
             final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
             if (thisAgentId == agentId || dependencies.anyMatch(touchedBunches::contains)) {
                 touchedBunches.addAll(rerunAgent(db, thisAgentId, false, null));
+            }
+        }
+
+        final LangbookDbSchema.QuizDefinitionsTable quizzesTable = LangbookDbSchema.Tables.quizDefinitions;
+        final DbQuery quizDefQuery = new DbQuery.Builder(quizzesTable)
+                .select(quizzesTable.getIdColumnIndex(), quizzesTable.getBunchColumnIndex());
+
+        final MutableIntArraySet quizzesToUpdate = MutableIntArraySet.empty();
+        try (DbResult quizResult = db.select(quizDefQuery)) {
+            while (quizResult.hasNext()) {
+                final List<DbValue> row = quizResult.next();
+                final int bunch = row.get(1).toInt();
+                if (touchedBunches.contains(bunch)) {
+                    quizzesToUpdate.add(row.get(0).toInt());
+                }
+            }
+        }
+
+        final LangbookDbSchema.KnowledgeTable knowledgeTable = LangbookDbSchema.Tables.knowledge;
+        for (int quizId : quizzesToUpdate) {
+            final QuizDetails details = getQuizDetails(db, quizId);
+            final ImmutableIntSet accs = readAllPossibleAcceptations(db, details.bunch, details.fields.toSet());
+            final ImmutableIntSet accsInKnowledge = getCurrentKnowledge(db, quizId).keySet();
+            for (int acc : accsInKnowledge.filterNot(accs::contains)) {
+                final DbDeleteQuery deleteQuery = new DbDeleteQuery.Builder(knowledgeTable)
+                        .where(knowledgeTable.getQuizDefinitionColumnIndex(), quizId)
+                        .where(knowledgeTable.getAcceptationColumnIndex(), acc)
+                        .build();
+
+                if (!db.delete(deleteQuery)) {
+                    throw new AssertionError();
+                }
+            }
+
+            for (int acc : accs.filterNot(accsInKnowledge::contains)) {
+                final DbInsertQuery insertQuery = new DbInsertQuery.Builder(knowledgeTable)
+                        .put(knowledgeTable.getQuizDefinitionColumnIndex(), quizId)
+                        .put(knowledgeTable.getAcceptationColumnIndex(), acc)
+                        .put(knowledgeTable.getScoreColumnIndex(), NO_SCORE)
+                        .build();
+
+                db.insert(insertQuery);
             }
         }
 

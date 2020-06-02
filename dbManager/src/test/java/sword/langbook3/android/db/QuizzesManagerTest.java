@@ -2,7 +2,9 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.database.MemoryDatabase;
@@ -12,6 +14,7 @@ import sword.langbook3.android.models.QuestionFieldDetails;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.collections.IntPairMapTestUtils.assertSinglePair;
+import static sword.collections.IntSetTestUtils.assertEqualSet;
 import static sword.collections.IntSetTestUtils.intSetOf;
 import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
 import static sword.collections.SizableTestUtils.assertEmpty;
@@ -49,6 +52,16 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .build();
 
         return manager.addAcceptation(concept, correlationArray);
+    }
+
+    static Integer addAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches) {
+        final ImmutableIntKeyMap<String> empty = ImmutableIntKeyMap.empty();
+        return manager.addAgent(targetBunches, sourceBunches, ImmutableIntArraySet.empty(), empty, empty, empty, empty, 0);
+    }
+
+    static boolean updateAgent(AgentsManager manager, int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches) {
+        final ImmutableIntKeyMap<String> empty = ImmutableIntKeyMap.empty();
+        return manager.updateAgent(agentId, targetBunches, sourceBunches, ImmutableIntArraySet.empty(), empty, empty, empty, empty, 0);
     }
 
     @Test
@@ -194,5 +207,53 @@ interface QuizzesManagerTest extends AgentsManagerTest {
 
         assertEmpty(manager.getAcceptationsInBunch(firstConjugationVerbBunch));
         assertEmpty(manager.getCurrentKnowledge(quizId));
+    }
+
+    @Test
+    default void testIncludeExtraTargetBunchInAgentFillingBunchForQuiz() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final QuizzesManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int enAlphabet = manager.addLanguage("en").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int esSingAcc = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
+        final int enSingAcc = addSimpleAcceptation(manager, enAlphabet, singConcept, "sing");
+
+        final int eatConcept = manager.getMaxConcept() + 1;
+        final int esEatAcc = addSimpleAcceptation(manager, esAlphabet, eatConcept, "comer");
+        final int enEatAcc = addSimpleAcceptation(manager, enAlphabet, eatConcept, "eat");
+
+        final int bigConcept = manager.getMaxConcept() + 1;
+        final int esBigAcc = addSimpleAcceptation(manager, esAlphabet, bigConcept, "grande");
+        final int enBigAcc = addSimpleAcceptation(manager, enAlphabet, bigConcept, "big");
+
+        final int smallConcept = manager.getMaxConcept() + 1;
+        final int esSmallAcc = addSimpleAcceptation(manager, esAlphabet, smallConcept, "pequeño");
+        final int enSmallAcc = addSimpleAcceptation(manager, enAlphabet, smallConcept, "small");
+
+        final int verbsBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, verbsBunch, "verbos");
+        manager.addAcceptationInBunch(verbsBunch, esSingAcc);
+        manager.addAcceptationInBunch(verbsBunch, esEatAcc);
+
+        final int adjBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, adjBunch, "adjetivos");
+        manager.addAcceptationInBunch(adjBunch, esBigAcc);
+        manager.addAcceptationInBunch(adjBunch, esSmallAcc);
+
+        final int targetBunch = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, targetBunch, "palabras");
+
+        final int agent = addAgent(manager, intSetOf(targetBunch), intSetOf(verbsBunch));
+        final int quiz = manager.obtainQuiz(targetBunch, ImmutableList.<QuestionFieldDetails>empty()
+                .append(new QuestionFieldDetails(esAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))
+                .append(new QuestionFieldDetails(enAlphabet, 0, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT | LangbookDbSchema.QuestionFieldFlags.IS_ANSWER)));
+
+        assertTrue(updateAgent(manager, agent, intSetOf(targetBunch), intSetOf(verbsBunch, adjBunch)));
+        final ImmutableIntPairMap knowledge = manager.getCurrentKnowledge(quiz);
+        assertEqualSet(intSetOf(esSingAcc, esEatAcc, esBigAcc, esSmallAcc), knowledge.keySet());
+        assertContainsOnly(NO_SCORE, knowledge.toSet());
     }
 }
