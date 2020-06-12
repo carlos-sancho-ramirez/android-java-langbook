@@ -180,7 +180,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 acceptationSharingTextsFound = true;
             }
 
-            final String text = _model.texts.get(_model.acceptationsSharingTexts.get(acc).valueAt(0));
+            final String text = _model.acceptationsSharingTextsDisplayableTexts.get(acc);
             result.add(new AcceptationNavigableItem(acc, text, false));
         }
 

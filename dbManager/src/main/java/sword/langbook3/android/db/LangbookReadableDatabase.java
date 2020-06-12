@@ -3443,6 +3443,15 @@ public final class LangbookReadableDatabase {
 
         final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptation);
         final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts = readAcceptationsSharingTexts(db, acceptation);
+
+        final ImmutableIntSet allAphabets = texts.keySet();
+        final ImmutableIntSet accsSharingSome = acceptationsSharingTexts.filterNot(allAphabets::equalSet).keySet();
+        final int accSharingSomeSize = accsSharingSome.size();
+        final MutableIntKeyMap<String> accSharingSomeText = MutableIntKeyMap.empty((currentSize, desiredSize) -> accSharingSomeSize);
+        for (int acc : accsSharingSome) {
+            accSharingSomeText.put(acc, getAcceptationDisplayableText(db, acc, preferredAlphabet));
+        }
+
         final ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> definition = readDefinitionFromAcceptation(db, acceptation, preferredAlphabet);
         final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, acceptation, preferredAlphabet);
         final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
@@ -3467,7 +3476,7 @@ public final class LangbookReadableDatabase {
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
         return new AcceptationDetailsModel(concept, languageResult, originalAcceptationId, originalAcceptationText,
                 appliedAgentId, appliedRuleId, appliedRuleAcceptationId, correlationResultPair.left,
-                correlationResultPair.right, texts, acceptationsSharingTexts, baseConceptAcceptationId,
+                correlationResultPair.right, texts, acceptationsSharingTexts, accSharingSomeText.toImmutable(), baseConceptAcceptationId,
                 baseConceptText, definition.right, subtypes, synonymTranslationResults, bunchChildren,
                 bunchesWhereAcceptationIsIncluded, morphologyResults.acceptations,
                 ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
@@ -3596,6 +3605,25 @@ public final class LangbookReadableDatabase {
                 .where(strings.getStringAlphabetColumnIndex(), alphabet)
                 .select(strings.getStringColumnIndex());
         return selectSingleRow(db, query).get(0).toText();
+    }
+
+    private static String getAcceptationDisplayableText(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+        final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(strings)
+                .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(strings.getStringAlphabetColumnIndex(), strings.getStringColumnIndex());
+
+        String text = null;
+        try (DbResult dbResult = db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                if (text == null || row.get(0).toInt() == preferredAlphabet) {
+                    text = row.get(1).toText();
+                }
+            }
+        }
+
+        return text;
     }
 
     /**

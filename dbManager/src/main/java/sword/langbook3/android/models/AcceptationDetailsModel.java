@@ -27,6 +27,7 @@ public final class AcceptationDetailsModel {
     public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
     public final ImmutableIntKeyMap<String> texts;
     public final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts;
+    public final ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts;
     public final int baseConceptAcceptationId;
     public final String baseConceptText;
     public final ImmutableIntKeyMap<String> definitionComplementTexts;
@@ -57,6 +58,7 @@ public final class AcceptationDetailsModel {
             ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
             ImmutableIntKeyMap<String> texts,
             ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts,
+            ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts,
             int baseConceptAcceptationId,
             String baseConceptText,
             ImmutableIntKeyMap<String> definitionComplementTexts,
@@ -74,7 +76,8 @@ public final class AcceptationDetailsModel {
         if (language == null || originalAcceptationId != 0 && (originalAcceptationText == null ||
                 appliedAgentId == 0 || appliedRuleId == 0 || appliedRuleAcceptationId == 0) ||
                 correlationIds == null || correlations == null ||
-                texts == null || acceptationsSharingTexts == null || definitionComplementTexts == null ||
+                texts == null || acceptationsSharingTexts == null ||
+                acceptationsSharingTextsDisplayableTexts == null || definitionComplementTexts == null ||
                 subtypes == null || synonymsAndTranslations == null ||
                 bunchChildren == null || bunchesWhereAcceptationIsIncluded == null ||
                 derivedAcceptations == null || ruleTexts == null ||
@@ -105,6 +108,7 @@ public final class AcceptationDetailsModel {
         this.correlations = correlations;
         this.texts = texts;
         this.acceptationsSharingTexts = acceptationsSharingTexts;
+        this.acceptationsSharingTextsDisplayableTexts = acceptationsSharingTextsDisplayableTexts;
         this.baseConceptAcceptationId = baseConceptAcceptationId;
         this.baseConceptText = baseConceptText;
         this.definitionComplementTexts = definitionComplementTexts;
