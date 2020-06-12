@@ -211,12 +211,14 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         private final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> _correlations;
         private final int _mainAlphabet;
         private final int _pronunciationAlphabet;
+        private final boolean _isNavigable;
 
         CorrelationArrayItem(
                 ImmutableIntList correlationIds,
                 ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
                 int mainAlphabet,
-                int pronunciationAlphabet) {
+                int pronunciationAlphabet,
+                boolean isNavigable) {
             super(ItemTypes.UNKNOWN, "");
 
             if (mainAlphabet == pronunciationAlphabet) {
@@ -238,6 +240,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             _correlations = correlations;
             _mainAlphabet = mainAlphabet;
             _pronunciationAlphabet = pronunciationAlphabet;
+            _isNavigable = isNavigable;
         }
 
         @Override
@@ -268,9 +271,11 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
                 final String furiganaText = pronunciationText.equals(mainText)? "" : pronunciationText;
                 pronunciationTv.setText(furiganaText);
 
-                corrLayout.setOnClickListener(v -> {
-                    CorrelationDetailsActivity.open(activity, requestCode, correlationId);
-                });
+                if (_isNavigable) {
+                    corrLayout.setOnClickListener(v -> {
+                        CorrelationDetailsActivity.open(activity, requestCode, correlationId);
+                    });
+                }
             }
         }
     }

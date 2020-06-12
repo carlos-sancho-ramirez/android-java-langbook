@@ -98,7 +98,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (commonAlphabets.size() > 1) {
             final int mainAlphabet = commonAlphabets.valueAt(0);
             final int pronunciationAlphabet = commonAlphabets.valueAt(1);
-            result.add(new CorrelationArrayItem(_model.correlationIds, _model.correlations, mainAlphabet, pronunciationAlphabet));
+            result.add(new CorrelationArrayItem(_model.correlationIds, _model.correlations, mainAlphabet, pronunciationAlphabet, !_confirmOnly));
         }
 
         result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _acceptation)));
