@@ -44,15 +44,15 @@ public final class AcceptationPickerActivity extends SearchActivity {
     }
 
     @Override
-    void openLanguagePicker(int requestCode, String query) {
+    void openLanguagePicker(String query) {
         final int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
-        LanguagePickerActivity.open(this, requestCode, query, concept);
+        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, query, concept);
     }
 
     @Override
-    void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
-        _confirmDynamicAcceptation = dynamicAcceptation;
-        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, dynamicAcceptation, true);
+    void onAcceptationSelected(int acceptation) {
+        _confirmDynamicAcceptation = acceptation;
+        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, acceptation, true);
     }
 
     @Override

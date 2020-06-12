@@ -157,7 +157,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         SearchResult item = _listAdapter.getItem(position);
         switch (item.getType()) {
             case SearchResult.Types.ACCEPTATION:
-                onAcceptationSelected(item.getId(), item.getAuxiliarId());
+                onAcceptationSelected(item.getAuxiliarId());
                 break;
 
             case SearchResult.Types.AGENT:
@@ -169,11 +169,11 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         }
     }
 
-    abstract void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation);
-    abstract void openLanguagePicker(int requestCode, String query);
+    abstract void onAcceptationSelected(int acceptation);
+    abstract void openLanguagePicker(String query);
 
     @Override
     public void onClick(View v) {
-        openLanguagePicker(REQUEST_CODE_NEW_ACCEPTATION, _query);
+        openLanguagePicker(_query);
     }
 }

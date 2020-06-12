@@ -62,14 +62,14 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     }
 
     @Override
-    void openLanguagePicker(int requestCode, String query) {
-        LanguagePickerActivity.open(this, requestCode, query);
+    void openLanguagePicker(String query) {
+        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, query);
     }
 
     @Override
-    void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
-        _confirmDynamicAcceptation = dynamicAcceptation;
-        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, dynamicAcceptation, true);
+    void onAcceptationSelected(int acceptation) {
+        _confirmDynamicAcceptation = acceptation;
+        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, acceptation, true);
     }
 
     @Override

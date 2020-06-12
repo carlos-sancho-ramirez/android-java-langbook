@@ -30,9 +30,9 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         }
     }
 
-    void onAcceptationSelected(int staticAcceptation, int dynamicAcceptation) {
-        DbManager.getInstance().getManager().updateSearchHistory(dynamicAcceptation);
-        AcceptationDetailsActivity.open(this, dynamicAcceptation);
+    void onAcceptationSelected(int acceptation) {
+        DbManager.getInstance().getManager().updateSearchHistory(acceptation);
+        AcceptationDetailsActivity.open(this, acceptation);
     }
 
     @Override
@@ -74,8 +74,8 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     }
 
     @Override
-    void openLanguagePicker(int requestCode, String query) {
-        LanguagePickerActivity.open(this, requestCode, query);
+    void openLanguagePicker(String query) {
+        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, query);
     }
 
     @Override
