@@ -613,15 +613,60 @@ public final class LangbookReadableDatabase {
                 final int acc = row.get(2).toInt();
                 final int dynAcc = row.get(3).toInt();
 
-                map.put(dynAcc, new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, acc, dynAcc));
+                map.put(dynAcc, new SearchResult(str, mainStr, SearchResult.Types.ACCEPTATION, dynAcc, dynAcc != acc));
             }
         }
 
         return map.toList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
+    private static final class AcceptationFromTextResult {
+        final String str;
+        final String mainStr;
+        final int acceptation;
+        final int baseAcceptation;
+
+        AcceptationFromTextResult(String str, String mainStr, int acceptation, int baseAcceptation) {
+            this.str = str;
+            this.mainStr = mainStr;
+            this.acceptation = acceptation;
+            this.baseAcceptation = baseAcceptation;
+        }
+
+        boolean isDynamic() {
+            return acceptation != baseAcceptation;
+        }
+    }
+
+    private static ImmutableList<AcceptationFromTextResult> findAcceptationFromText2(DbExporter.Database db, String queryText, int restrictionStringType) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(queryText),
+                        restrictionStringType))
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
+
+        final MutableIntKeyMap<AcceptationFromTextResult> map = MutableIntKeyMap.empty();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final String str = row.get(0).toText();
+                final String mainStr = row.get(1).toText();
+                final int acc = row.get(2).toInt();
+                final int dynAcc = row.get(3).toInt();
+
+                map.put(dynAcc, new AcceptationFromTextResult(str, mainStr, dynAcc, acc));
+            }
+        }
+
+        return map.toList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.str, b.str));
+    }
+
     static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
-        final ImmutableList<SearchResult> rawResult = findAcceptationFromText(db, queryText, restrictionStringType);
+        final ImmutableList<AcceptationFromTextResult> rawResult = findAcceptationFromText2(db, queryText, restrictionStringType);
         final SyncCacheIntKeyNonNullValueMap<String> mainTexts = new SyncCacheIntKeyNonNullValueMap<>(id -> readAcceptationMainText(db, id));
 
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
@@ -631,24 +676,24 @@ public final class LangbookReadableDatabase {
         return rawResult.map(rawEntry -> {
             if (rawEntry.isDynamic()) {
                 ImmutableIntList rules = ImmutableIntList.empty();
-                int dynAcc = rawEntry.getAuxiliarId();
-                while (dynAcc != rawEntry.getId()) {
+                int acc = rawEntry.acceptation;
+                while (acc != rawEntry.baseAcceptation) {
                     final DbQuery query = new DbQuery.Builder(ruledAcceptations)
                             .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
-                            .where(ruledAcceptations.getIdColumnIndex(), dynAcc)
+                            .where(ruledAcceptations.getIdColumnIndex(), acc)
                             .select(ruledAcceptations.getAcceptationColumnIndex(), offset + agents.getRuleColumnIndex());
 
                     final List<DbValue> row = selectSingleRow(db, query);
-                    dynAcc = row.get(0).toInt();
+                    acc = row.get(0).toInt();
                     rules = rules.append(row.get(1).toInt());
                 }
 
-                return rawEntry
-                        .withMainAccMainStr(mainTexts.get(rawEntry.getId()))
-                        .withRules(rules);
+                return new SearchResult(rawEntry.str, rawEntry.mainStr, SearchResult.Types.ACCEPTATION, rawEntry.acceptation,
+                        true, mainTexts.get(acc), rules);
             }
             else {
-                return rawEntry;
+                return new SearchResult(rawEntry.str, rawEntry.mainStr, SearchResult.Types.ACCEPTATION, rawEntry.acceptation,
+                        false);
             }
         });
     }
@@ -1398,7 +1443,7 @@ public final class LangbookReadableDatabase {
                 final int acceptation = row.get(0).toInt();
                 if (!acceptations.contains(acceptation)) {
                     acceptations.add(acceptation);
-                    builder.add(new SearchResult(row.get(2).toText(), row.get(3).toText(), SearchResult.Types.ACCEPTATION, row.get(1).toInt(), acceptation));
+                    builder.add(new SearchResult(row.get(2).toText(), row.get(3).toText(), SearchResult.Types.ACCEPTATION, acceptation, row.get(1).toInt() != acceptation));
                 }
             }
         }

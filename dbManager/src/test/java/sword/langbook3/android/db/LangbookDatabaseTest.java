@@ -39,7 +39,7 @@ final class LangbookDatabaseTest {
         final ImmutableList<SearchResult> history = getSearchHistory(db);
         assertEquals(1, history.size());
 
-        final SearchResult expectedEntry = new SearchResult(text, text, SearchResult.Types.ACCEPTATION, acceptation, acceptation);
+        final SearchResult expectedEntry = new SearchResult(text, text, SearchResult.Types.ACCEPTATION, acceptation, false);
         assertEquals(expectedEntry, history.get(0));
 
         manager.removeAcceptation(acceptation);

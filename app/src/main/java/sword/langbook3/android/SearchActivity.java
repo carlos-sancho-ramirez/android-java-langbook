@@ -120,7 +120,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     private ImmutableList<SearchResult> agentSearchResults() {
         return DbManager.getInstance().getManager().getAgentIds().map(agentId -> {
             final String str = AGENT_QUERY_PREFIX + agentId;
-            return new SearchResult(str, str, SearchResult.Types.AGENT, agentId, 0);
+            return new SearchResult(str, str, SearchResult.Types.AGENT, agentId, false);
         });
     }
 
@@ -157,7 +157,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         SearchResult item = _listAdapter.getItem(position);
         switch (item.getType()) {
             case SearchResult.Types.ACCEPTATION:
-                onAcceptationSelected(item.getAuxiliarId());
+                onAcceptationSelected(item.getId());
                 break;
 
             case SearchResult.Types.AGENT:
