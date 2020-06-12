@@ -1838,4 +1838,149 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertSinglePair(alphabet, "estoy saltando", manager.getAcceptationTexts(ruled2JumpAcc));
         assertSinglePair(alphabet, "estoy brincando", manager.getAcceptationTexts(ruled2JumpAcc2));
     }
+
+    @Test
+    default void testUpdateAgentRuleFromAlreadyUsedRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int getWetConcept = manager.getMaxConcept() + 1;
+        final int getWetEsAcc = addSimpleAcceptation(manager, esAlphabet, getWetConcept, "mojarse");
+        final int getWetJaAcc = addSimpleAcceptation(manager, jaAlphabet, getWetConcept, "濡れる");
+
+        final int esVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, esVerbConcept, "Verbo español");
+        manager.addAcceptationInBunch(esVerbConcept, getWetEsAcc);
+
+        final int jaVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, jaVerbConcept, "Verbo japonés");
+        manager.addAcceptationInBunch(jaVerbConcept, getWetJaAcc);
+
+        final int badCausalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, badCausalRule, "causalización");
+
+        final int causalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, causalRule, "causal");
+
+        final int esAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(esVerbConcept), intSetOf(), esAlphabet, null, "hacer que se ", "arse", "e", causalRule);
+
+        final int jaAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(jaVerbConcept), intSetOf(), jaAlphabet, null, null, "る", "させる", causalRule);
+
+        updateSingleAlphabetAgent(manager, esAgent, intSetOf(), intSetOf(esVerbConcept), intSetOf(), esAlphabet, null, "hacer que se ", "arse", "e", badCausalRule);
+
+        final int makeWetEsAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(esAgent, getWetEsAcc);
+        assertSinglePair(esAlphabet, "hacer que se moje", manager.getAcceptationTexts(makeWetEsAcc));
+
+        final int makeWetJaAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(jaAgent, getWetJaAcc);
+        assertSinglePair(jaAlphabet, "濡れさせる", manager.getAcceptationTexts(makeWetJaAcc));
+
+        final int makeWetJaConcept = manager.conceptFromAcceptation(makeWetJaAcc);
+        assertNotEquals(makeWetJaConcept, manager.conceptFromAcceptation(makeWetEsAcc));
+    }
+
+    @Test
+    default void testUpdateAgentRuleToAlreadyUsedRule() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int getWetConcept = manager.getMaxConcept() + 1;
+        final int getWetEsAcc = addSimpleAcceptation(manager, esAlphabet, getWetConcept, "mojarse");
+        final int getWetJaAcc = addSimpleAcceptation(manager, jaAlphabet, getWetConcept, "濡れる");
+
+        final int esVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, esVerbConcept, "Verbo español");
+        manager.addAcceptationInBunch(esVerbConcept, getWetEsAcc);
+
+        final int jaVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, jaVerbConcept, "Verbo japonés");
+        manager.addAcceptationInBunch(jaVerbConcept, getWetJaAcc);
+
+        final int badCausalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, badCausalRule, "causalización");
+
+        final int esAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(esVerbConcept), intSetOf(), esAlphabet, null, "hacer que se ", "arse", "e", badCausalRule);
+
+        final int causalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, causalRule, "causal");
+
+        final int jaAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(jaVerbConcept), intSetOf(), jaAlphabet, null, null, "る", "させる", causalRule);
+
+        assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(badCausalRule));
+
+        updateSingleAlphabetAgent(manager, esAgent, intSetOf(), intSetOf(esVerbConcept), intSetOf(), esAlphabet, null, "hacer que se ", "arse", "e", causalRule);
+
+        final int makeWetEsAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(esAgent, getWetEsAcc);
+        assertSinglePair(esAlphabet, "hacer que se moje", manager.getAcceptationTexts(makeWetEsAcc));
+
+        final int makeWetJaAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(jaAgent, getWetJaAcc);
+        assertSinglePair(jaAlphabet, "濡れさせる", manager.getAcceptationTexts(makeWetJaAcc));
+
+        final int makeWetConcept = manager.conceptFromAcceptation(makeWetJaAcc);
+        assertEquals(makeWetConcept, manager.conceptFromAcceptation(makeWetEsAcc));
+        assertEmpty(manager.findRuledConceptsByRule(badCausalRule));
+        assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(causalRule));
+    }
+
+    @Test
+    default void testUpdateAgentRuleBetweenUsedRules() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int getWetConcept = manager.getMaxConcept() + 1;
+        final int getWetEsAcc = addSimpleAcceptation(manager, esAlphabet, getWetConcept, "mojarse");
+        final int getWetJaAcc = addSimpleAcceptation(manager, jaAlphabet, getWetConcept, "濡れる");
+        final int getWetNaruAcc = addSimpleAcceptation(manager, jaAlphabet, getWetConcept, "びしょびしょになる");
+
+        final int esVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, esVerbConcept, "Verbo español");
+        manager.addAcceptationInBunch(esVerbConcept, getWetEsAcc);
+
+        final int jaVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, jaVerbConcept, "Verbo japonés");
+        manager.addAcceptationInBunch(jaVerbConcept, getWetJaAcc);
+
+        final int naruVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, naruVerbConcept, "Adjetivo con naru");
+        manager.addAcceptationInBunch(naruVerbConcept, getWetNaruAcc);
+
+        final int badCausalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, badCausalRule, "causalización");
+
+        final int esAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(esVerbConcept), intSetOf(), esAlphabet, null, "hacer que se ", "arse", "e", badCausalRule);
+
+        final int causalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, causalRule, "causal");
+
+        final int jaAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(jaVerbConcept), intSetOf(), jaAlphabet, null, null, "る", "させる", causalRule);
+
+        final int naruAgent = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(naruVerbConcept), intSetOf(), jaAlphabet, null, null, "になる", "にする", badCausalRule);
+
+        assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(badCausalRule));
+
+        updateSingleAlphabetAgent(manager, esAgent, intSetOf(), intSetOf(esVerbConcept), intSetOf(), esAlphabet, null, "hacer que se ", "arse", "e", causalRule);
+
+        final int makeWetEsAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(esAgent, getWetEsAcc);
+        assertSinglePair(esAlphabet, "hacer que se moje", manager.getAcceptationTexts(makeWetEsAcc));
+
+        final int makeWetJaAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(jaAgent, getWetJaAcc);
+        assertSinglePair(jaAlphabet, "濡れさせる", manager.getAcceptationTexts(makeWetJaAcc));
+
+        final int makeWetNaruAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(naruAgent, getWetNaruAcc);
+        assertSinglePair(jaAlphabet, "びしょびしょにする", manager.getAcceptationTexts(makeWetNaruAcc));
+
+        final int makeWetConcept = manager.conceptFromAcceptation(makeWetJaAcc);
+        assertEquals(makeWetConcept, manager.conceptFromAcceptation(makeWetEsAcc));
+        assertNotEquals(makeWetConcept, manager.conceptFromAcceptation(makeWetNaruAcc));
+        assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(badCausalRule));
+        assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(causalRule));
+    }
 }
