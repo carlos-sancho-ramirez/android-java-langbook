@@ -2,6 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
@@ -19,11 +20,11 @@ public interface AgentsChecker extends BunchesChecker {
     MutableIntKeyMap<String> readCorrelationArrayTexts(int correlationArrayId);
     ImmutableIntKeyMap<String> readAllRules(int preferredAlphabet);
     ImmutableIntSet getAgentIds();
-    ImmutableList<SearchResult> findAcceptationFromText(String queryText, int restrictionStringType);
+    ImmutableList<SearchResult> findAcceptationFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
     AgentRegister getAgentRegister(int agentId);
     AgentDetails getAgentDetails(int agentId);
     ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(int bunchSet, int preferredAlphabet);
-    ImmutableList<SearchResult> findAcceptationAndRulesFromText(String queryText, int restrictionStringType);
+    ImmutableList<SearchResult> findAcceptationAndRulesFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
     ImmutableMap<TableCellReference, TableCellValue> readTableContent(int dynamicAcceptation, int preferredAlphabet);
     Integer getStaticAcceptationFromDynamic(int dynamicAcceptation);
     Integer findRuledConcept(int rule, int concept);

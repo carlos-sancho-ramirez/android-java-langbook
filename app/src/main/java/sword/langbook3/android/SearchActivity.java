@@ -18,6 +18,7 @@ import sword.langbook3.android.models.SearchResult;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
+    static final int MAX_RESULTS = 300;
     static final String AGENT_QUERY_PREFIX = "Agent ";
 
     static final int REQUEST_CODE_WELCOME = 1;
@@ -130,9 +131,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
                 _query.toLowerCase().startsWith(str.toLowerCase()));
     }
 
-    ImmutableList<SearchResult> queryAcceptationResults(String query) {
-        return DbManager.getInstance().getManager().findAcceptationFromText(query, getSearchRestrictionType());
-    }
+    abstract ImmutableList<SearchResult> queryAcceptationResults(String query);
 
     final void queryAllResults() {
         ImmutableList<SearchResult> results = queryAcceptationResults(_query);

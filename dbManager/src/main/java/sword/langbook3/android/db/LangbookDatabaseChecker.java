@@ -3,6 +3,7 @@ package sword.langbook3.android.db;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
@@ -182,8 +183,8 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableList<SearchResult> findAcceptationFromText(String queryText, int restrictionStringType) {
-        return LangbookReadableDatabase.findAcceptationFromText(getDatabase(), queryText, restrictionStringType);
+    public ImmutableList<SearchResult> findAcceptationFromText(String queryText, int restrictionStringType, ImmutableIntRange range) {
+        return LangbookReadableDatabase.findAcceptationFromText(getDatabase(), queryText, restrictionStringType, range);
     }
 
     @Override
@@ -202,8 +203,8 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableList<SearchResult> findAcceptationAndRulesFromText(String queryText, int restrictionStringType) {
-        return LangbookReadableDatabase.findAcceptationAndRulesFromText(getDatabase(), queryText, restrictionStringType);
+    public ImmutableList<SearchResult> findAcceptationAndRulesFromText(String queryText, int restrictionStringType, ImmutableIntRange range) {
+        return LangbookReadableDatabase.findAcceptationAndRulesFromText(getDatabase(), queryText, restrictionStringType, range);
     }
 
     @Override

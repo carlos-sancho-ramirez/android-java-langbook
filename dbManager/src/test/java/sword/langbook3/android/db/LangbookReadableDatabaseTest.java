@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
@@ -113,7 +114,7 @@ final class LangbookReadableDatabaseTest {
                     final int restrictionStringType = DbQuery.RestrictionStringTypes.STARTS_WITH;
                     for (int length = 1; length <= text1.length(); length++) {
                         final String queryText = text1.substring(0, length);
-                        final ImmutableList<SearchResult> results = findAcceptationFromText(db, queryText, restrictionStringType);
+                        final ImmutableList<SearchResult> results = findAcceptationFromText(db, queryText, restrictionStringType, new ImmutableIntRange(0, Integer.MAX_VALUE));
                         final ImmutableIntSet.Builder matchingIndexesBuilder = new ImmutableIntSetCreator();
                         for (int i = 0; i < textList.size(); i++) {
                             if (textList.valueAt(i).startsWith(queryText)) {

@@ -593,11 +593,12 @@ public final class LangbookReadableDatabase {
         return result;
     }
 
-    static ImmutableList<SearchResult> findAcceptationFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
+    static ImmutableList<SearchResult> findAcceptationFromText(DbExporter.Database db, String queryText, int restrictionStringType, ImmutableIntRange range) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(queryText),
                         restrictionStringType))
+                .range(range)
                 .select(
                         table.getStringColumnIndex(),
                         table.getMainStringColumnIndex(),
@@ -638,11 +639,12 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    private static ImmutableList<AcceptationFromTextResult> findAcceptationFromText2(DbExporter.Database db, String queryText, int restrictionStringType) {
+    private static ImmutableList<AcceptationFromTextResult> findAcceptationFromText2(DbExporter.Database db, String queryText, int restrictionStringType, ImmutableIntRange range) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(queryText),
                         restrictionStringType))
+                .range(range)
                 .select(
                         table.getStringColumnIndex(),
                         table.getMainStringColumnIndex(),
@@ -665,8 +667,8 @@ public final class LangbookReadableDatabase {
         return map.toList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.str, b.str));
     }
 
-    static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType) {
-        final ImmutableList<AcceptationFromTextResult> rawResult = findAcceptationFromText2(db, queryText, restrictionStringType);
+    static ImmutableList<SearchResult> findAcceptationAndRulesFromText(DbExporter.Database db, String queryText, int restrictionStringType, ImmutableIntRange range) {
+        final ImmutableList<AcceptationFromTextResult> rawResult = findAcceptationFromText2(db, queryText, restrictionStringType, range);
         final SyncCacheIntKeyNonNullValueMap<String> mainTexts = new SyncCacheIntKeyNonNullValueMap<>(id -> readAcceptationMainText(db, id));
 
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;

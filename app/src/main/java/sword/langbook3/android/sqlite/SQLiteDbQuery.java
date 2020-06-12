@@ -1,5 +1,6 @@
 package sword.langbook3.android.sqlite;
 
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.database.DbQuery;
@@ -139,10 +140,24 @@ public final class SQLiteDbQuery {
         return sb.toString();
     }
 
+    private String getLimitClause() {
+        final StringBuilder sb = new StringBuilder();
+        final ImmutableIntRange range = _query.range();
+        if (range.min() > 0 || range.max() < Integer.MAX_VALUE) {
+            sb.append(" LIMIT ").append(range.size());
+            if (range.min() > 0) {
+                sb.append(" OFFSET ").append(range.min());
+            }
+        }
+
+        return sb.toString();
+    }
+
     private String toSql(int subQueryIndex) {
         return "SELECT " + getSqlSelectedColumnNames(subQueryIndex) +
                 getSqlFromClause(subQueryIndex) + getSqlWhereClause(subQueryIndex) +
-                getGroupingClause(subQueryIndex) + getOrderingClause(subQueryIndex);
+                getGroupingClause(subQueryIndex) + getOrderingClause(subQueryIndex) +
+                getLimitClause();
     }
 
     public String toSql() {

@@ -4,6 +4,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 
+import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableList;
+import sword.langbook3.android.models.SearchResult;
+
 public final class AcceptationPickerActivity extends SearchActivity {
 
     private static final int REQUEST_CODE_VIEW_DETAILS = 1;
@@ -72,6 +76,11 @@ public final class AcceptationPickerActivity extends SearchActivity {
             setResult(RESULT_OK, intent);
             finish();
         }
+    }
+
+    @Override
+    ImmutableList<SearchResult> queryAcceptationResults(String query) {
+        return DbManager.getInstance().getManager().findAcceptationFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 
     @Override

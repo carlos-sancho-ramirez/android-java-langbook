@@ -11,6 +11,7 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.models.SearchResult;
 
@@ -115,6 +116,6 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     ImmutableList<SearchResult> queryAcceptationResults(String query) {
-        return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType());
+        return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 }

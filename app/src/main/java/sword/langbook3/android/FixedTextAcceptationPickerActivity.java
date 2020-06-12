@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
 import sword.langbook3.android.models.SearchResult;
@@ -48,7 +49,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
     @Override
     ImmutableList<SearchResult> queryAcceptationResults(String query) {
-        return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType());
+        return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 
     @Override
