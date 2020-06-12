@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
@@ -17,6 +18,7 @@ public final class DbQuery implements DbView {
 
     private static final int FLAG_COLUMN_FUNCTION_MAX = 0x10000;
     private static final int FLAG_COLUMN_FUNCTION_CONCAT = 0x20000;
+    private static final ImmutableIntRange ALL_ROWS_RANGE = new ImmutableIntRange(0, Integer.MAX_VALUE);
 
     private final DbView[] _tables;
     private final int[] _joinPairs;
@@ -24,6 +26,7 @@ public final class DbQuery implements DbView {
     private final ImmutableIntKeyMap<Restriction> _restrictions;
     private final int[] _groupBy;
     private final Ordered[] _orderBy;
+    private final ImmutableIntRange _range;
 
     // column indexes for the selection in the given order
     private final ImmutableIntList _selection;
@@ -35,9 +38,9 @@ public final class DbQuery implements DbView {
     private transient ImmutableList<DbColumn> _columns;
 
     private DbQuery(DbView[] tables, int[] joinPairs, ImmutableSet<JoinColumnPair> columnValueMatchPairs,
-            ImmutableIntKeyMap<Restriction> restrictions, int[] groupBy, Ordered[] orderBy, int[] selection) {
+            ImmutableIntKeyMap<Restriction> restrictions, int[] groupBy, Ordered[] orderBy, ImmutableIntRange range, int[] selection) {
 
-        if (tables == null || tables.length == 0 || selection == null || selection.length == 0) {
+        if (tables == null || tables.length == 0 || selection == null || selection.length == 0 || range == null || range.min() < 0) {
             throw new IllegalArgumentException();
         }
 
@@ -132,6 +135,7 @@ public final class DbQuery implements DbView {
         _restrictions = restrictions;
         _groupBy = groupBy;
         _orderBy = orderBy;
+        _range = range;
         _selection = selectionBuilder.build();
         _selectionFunctions = selectionFuncBuilder.build();
 
@@ -161,6 +165,21 @@ public final class DbQuery implements DbView {
 
     public ImmutableIntList selection() {
         return _selection;
+    }
+
+    /**
+     * Return the range of rows that should be returned when applying this query.
+     * <p>
+     * This functionality allows limiting the number of rows to be presented to
+     * the user or even adding a pagination mechanism.
+     * <p>
+     * This range will never be empty or null, and minimum will never be a negative value.
+     * The default value is the range from 0 to the maximum value of an integer.
+     *
+     * @return The range of rows that should be displayed.
+     */
+    public ImmutableIntRange range() {
+        return _range;
     }
 
     @Override
@@ -387,6 +406,7 @@ public final class DbQuery implements DbView {
         private int[] _groupBy;
         private Ordered[] _orderBy;
         private int _joinColumnCount;
+        private ImmutableIntRange _range = ALL_ROWS_RANGE;
 
         public Builder(DbView table) {
             _tables.add(table);
@@ -473,6 +493,19 @@ public final class DbQuery implements DbView {
             return this;
         }
 
+        public Builder range(ImmutableIntRange range) {
+            if (range == null || range.min() < 0) {
+                throw new IllegalArgumentException("amount in limit must be a positive value");
+            }
+
+            if (_range != ALL_ROWS_RANGE) {
+                throw new UnsupportedOperationException("range can only be called once per query");
+            }
+
+            _range = range;
+            return this;
+        }
+
         public DbQuery select(int... selection) {
             final DbView[] views = new DbView[_tables.size()];
             final int[] joinPairs = new int[_joinPairs.size()];
@@ -484,7 +517,7 @@ public final class DbQuery implements DbView {
             }
 
             return new DbQuery(views, joinPairs, _columnValueMatchPairs.toImmutable(),
-                    _restrictions.toImmutable(), _groupBy, _orderBy, selection);
+                    _restrictions.toImmutable(), _groupBy, _orderBy, _range, selection);
         }
     }
 }

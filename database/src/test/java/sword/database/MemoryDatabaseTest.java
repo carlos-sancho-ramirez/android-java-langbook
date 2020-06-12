@@ -5,6 +5,7 @@ import org.junit.Test;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
@@ -590,5 +591,65 @@ public final class MemoryDatabaseTest {
                 .build();
         assertTrue(state.db.update(query));
         state.assertWord(wordId, oldConcept, language, wrongValue);
+    }
+
+    @Test
+    public void testLimitQueryResultWithoutOffset() {
+        final State state = new State();
+        state.insertWord(1, 1, "abc");
+        state.insertWord(2, 1, "def");
+        state.insertWord(3, 1, "ghi");
+        state.insertWord(4, 1, "jkl");
+        state.insertWord(5, 1, "mno");
+
+        final DbQuery query = new DbQuery.Builder(wordTable)
+                .range(new ImmutableIntRange(0, 2))
+                .select(3);
+        assertEquals("abcdefghi", state.db.select(query).map(row -> row.get(0).toText()).reduce((a, b) -> a + b));
+    }
+
+    @Test
+    public void testLimitQueryResultWithOffset() {
+        final State state = new State();
+        state.insertWord(1, 1, "abc");
+        state.insertWord(2, 1, "def");
+        state.insertWord(3, 1, "ghi");
+        state.insertWord(4, 1, "jkl");
+        state.insertWord(5, 1, "mno");
+
+        final DbQuery query = new DbQuery.Builder(wordTable)
+                .range(new ImmutableIntRange(2, 3))
+                .select(3);
+        assertEquals("ghijkl", state.db.select(query).map(row -> row.get(0).toText()).reduce((a, b) -> a + b));
+    }
+
+    @Test
+    public void testExceedingLimitQueryResultWithoutOffset() {
+        final State state = new State();
+        state.insertWord(1, 1, "abc");
+        state.insertWord(2, 1, "def");
+        state.insertWord(3, 1, "ghi");
+        state.insertWord(4, 1, "jkl");
+        state.insertWord(5, 1, "mno");
+
+        final DbQuery query = new DbQuery.Builder(wordTable)
+                .range(new ImmutableIntRange(0, 9))
+                .select(3);
+        assertEquals("abcdefghijklmno", state.db.select(query).map(row -> row.get(0).toText()).reduce((a, b) -> a + b));
+    }
+
+    @Test
+    public void testExceedingLimitQueryResultWithOffset() {
+        final State state = new State();
+        state.insertWord(1, 1, "abc");
+        state.insertWord(2, 1, "def");
+        state.insertWord(3, 1, "ghi");
+        state.insertWord(4, 1, "jkl");
+        state.insertWord(5, 1, "mno");
+
+        final DbQuery query = new DbQuery.Builder(wordTable)
+                .range(new ImmutableIntRange(2, 9))
+                .select(3);
+        assertEquals("ghijklmno", state.db.select(query).map(row -> row.get(0).toText()).reduce((a, b) -> a + b));
     }
 }

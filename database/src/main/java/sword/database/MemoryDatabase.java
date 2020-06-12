@@ -5,6 +5,7 @@ import java.util.Iterator;
 import sword.collections.AbstractTransformer;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
@@ -270,6 +271,7 @@ public final class MemoryDatabase implements Database {
             }
         }
 
+        final MutableList<ImmutableList<Object>> unlimitedResult;
         if (groupedSelection) {
             final MutableHashMap<ImmutableList<Object>, Integer> groups = MutableHashMap.empty();
             for (int resultRow = 0; resultRow < unselectedResult.size(); resultRow++) {
@@ -309,7 +311,7 @@ public final class MemoryDatabase implements Database {
                     --resultRow;
                 }
             }
-            return unselectedResult;
+            unlimitedResult = unselectedResult;
         }
         else {
             final MutableList<ImmutableList<Object>> builder = MutableList.empty();
@@ -321,7 +323,23 @@ public final class MemoryDatabase implements Database {
                 }
                 builder.append(regBuilder.build());
             }
-            return builder;
+            unlimitedResult = builder;
+        }
+
+        final ImmutableIntRange range = query.range();
+        final int unlimitedSize = unlimitedResult.size();
+        final boolean shorterRange = range.max() < unlimitedSize - 1;
+        if (range.min() > 0 || shorterRange) {
+            final int newSize = shorterRange? range.size() : unlimitedSize - range.min();
+            final MutableList<ImmutableList<Object>> limitedResult = MutableList.empty((currentSize, desiredSize) -> newSize);
+            for (int index = range.min(); index <= range.max() && index < unlimitedSize; index++) {
+                limitedResult.append(unlimitedResult.valueAt(index));
+            }
+
+            return limitedResult;
+        }
+        else {
+            return unlimitedResult;
         }
     }
 
