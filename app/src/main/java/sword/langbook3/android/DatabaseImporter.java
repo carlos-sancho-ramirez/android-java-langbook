@@ -28,7 +28,10 @@ public final class DatabaseImporter implements DbImporter {
         try {
             final InputStream is = _context.getContentResolver().openInputStream(_uri);
             if (is != null) {
-                is.skip(20);
+                if (is.read() != 'S' || is.read() != 'D' || is.read() != 'B' || is.read() != 0) {
+                    throw new UnableToImportException();
+                }
+
                 final BufferedInputStream bis = new BufferedInputStream(is, 4096);
                 final DatabaseInflater reader = new DatabaseInflater(db, bis, _listener);
                 reader.read();

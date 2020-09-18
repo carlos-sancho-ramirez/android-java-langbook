@@ -50,6 +50,7 @@ public interface AcceptationsSerializerTest {
         final TestStream outStream = new TestStream();
         try {
             new StreamedDatabaseWriter(inDb, outStream, null).write();
+            outStream.close();
             final AssertStream inStream = outStream.toInputStream();
 
             final MemoryDatabase newDb = new MemoryDatabase();

@@ -27,12 +27,24 @@ public class OutputStreamWrapperWithHuffman implements OutputHuffmanStream {
      */
     @Override
     public void close() throws IOException {
-        if (_bitsOnBuffer > 0) {
-            _os.write(_buffer);
-        }
-
+        flush();
         _os.close();
         _closed = true;
+    }
+
+    /**
+     * Write the last byte in the wrapped stream if there is any pending bit to be written.
+     * <p>
+     * This will complete the last byte including bits to 0 until having 8 bits composing the last
+     * byte, and writes the composed byte into the wrapped stream.
+     * This method does nothing if there is no bits waiting to be written.
+     * @throws IOException in case of being unable to write the composed byte.
+     */
+    public void flush() throws IOException {
+        if (_bitsOnBuffer > 0) {
+            _os.write(_buffer);
+            _bitsOnBuffer = 0;
+        }
     }
 
     private void flushByte() throws IOException {

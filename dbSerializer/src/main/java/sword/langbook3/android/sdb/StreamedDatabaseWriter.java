@@ -1610,6 +1610,6 @@ public final class StreamedDatabaseWriter {
             writeSentenceMeanings(symbolArrayIdMap);
         }
 
-        _obs.close();
+        _obs.flush();
     }
 }
