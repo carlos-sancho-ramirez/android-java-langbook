@@ -474,7 +474,7 @@ class DbManager extends SQLiteOpenHelper {
             _lastProgress = lastProgress;
 
             if (!result) {
-                Toast.makeText(_context, "Error saving database", Toast.LENGTH_SHORT).show();
+                Toast.makeText(_context, R.string.saveDatabaseError, Toast.LENGTH_SHORT).show();
             }
         }
     }

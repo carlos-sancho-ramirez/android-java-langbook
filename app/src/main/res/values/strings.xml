@@ -105,6 +105,7 @@
     <string name="importSuccess">Database imported successfully</string>
     <string name="exportFailure">Unable to export database</string>
     <string name="exportSuccess">Database exported successfully</string>
+    <string name="saveDatabaseError">Error saving database</string>
 
     <string name="selectLocationDialogTitle">Introduce its file path</string>
     <string name="selectLocationDialogSave">Save</string>
