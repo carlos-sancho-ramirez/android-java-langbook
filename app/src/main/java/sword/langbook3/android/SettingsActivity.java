@@ -70,7 +70,8 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     }
 
     private void pickFile() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        final String action = ((_fileFlags & FileFlags.SAVE) != 0)? Intent.ACTION_CREATE_DOCUMENT : Intent.ACTION_GET_CONTENT;
+        final Intent intent = new Intent(action);
         intent.setType("*/*");
         if (!getPackageManager().queryIntentActivities(intent, 0).isEmpty()) {
             startActivityForResult(intent, REQUEST_CODE_PICK);
@@ -203,12 +204,12 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
             case R.id.exportStreamedDatabaseButton:
                 _fileFlags = FileFlags.SAVE;
-                selectLocation();
+                pickFile();
                 break;
 
             case R.id.exportSqliteDatabaseButton:
                 _fileFlags = FileFlags.SAVE | FileFlags.SQLITE;
-                selectLocation();
+                pickFile();
                 break;
 
             case R.id.progressPanel:
@@ -253,11 +254,11 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         Toast.makeText(this, stringId, Toast.LENGTH_SHORT).show();
     }
 
-    private void saveSqliteDatabase(String filePath) {
+    private void saveSqliteDatabase(Uri uri) {
         final String dbPath = DbManager.getInstance().getDatabasePath();
         int stringId = R.string.exportSuccess;
         try {
-            Utils.copyFile(dbPath, filePath);
+            Utils.copyFile(this, dbPath, uri);
         }
         catch (IOException e) {
             stringId = R.string.exportFailure;
@@ -286,8 +287,8 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     private void triggerFileProcessing(Uri uri) {
         if (expectsSaveFile()) {
             if (expectsSqliteFileFormat()) {
-                if (!"file".equals(uri.getScheme())) {
-                    throw new UnsupportedOperationException("Unable to save for no file uri");
+                if (!"file".equals(uri.getScheme()) && !"content".equals(uri.getScheme())) {
+                    throw new UnsupportedOperationException("Unable to save file");
                 }
 
                 if (StorageUtils.isExternalFileUri(uri) && !hasWritePermission()) {
@@ -295,7 +296,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
                     requestWritePermission();
                 }
                 else {
-                    saveSqliteDatabase(uri.getPath());
+                    saveSqliteDatabase(uri);
                 }
             }
             else {
@@ -336,7 +337,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
                     if (Manifest.permission.WRITE_EXTERNAL_STORAGE.equals(permissions[i])) {
                         if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                             if (expectsSqliteFileFormat()) {
-                                saveSqliteDatabase(_uri.getPath());
+                                saveSqliteDatabase(_uri);
                             }
                             else {
                                 final DbManager manager = DbManager.getInstance();
