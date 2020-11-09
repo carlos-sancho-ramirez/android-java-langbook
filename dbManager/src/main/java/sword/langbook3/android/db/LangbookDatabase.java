@@ -2161,6 +2161,16 @@ public final class LangbookDatabase {
             }
         }
 
+        final ImmutableIntPairMap oldRuledConceptsMap = findRuledConceptsByRuleInvertedMap(db, oldConcept);
+        final int oldRuledConceptsMapSize = oldRuledConceptsMap.size();
+        if (oldRuledConceptsMapSize > 0) {
+            final ImmutableIntPairMap newRuledConceptsMap = findRuledConceptsByRuleInvertedMap(db, linkedConcept);
+            for (int i = 0; i < oldRuledConceptsMapSize; i++) {
+                final int baseConcept = oldRuledConceptsMap.keyAt(i);
+                mergeConcepts(db, newRuledConceptsMap.get(baseConcept), oldRuledConceptsMap.valueAt(i));
+            }
+        }
+
         return true;
     }
 

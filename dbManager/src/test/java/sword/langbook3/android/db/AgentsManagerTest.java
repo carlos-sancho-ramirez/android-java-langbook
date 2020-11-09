@@ -1983,4 +1983,48 @@ interface AgentsManagerTest extends BunchesManagerTest {
         assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(badCausalRule));
         assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(causalRule));
     }
+
+    @Test
+    default void testLinkRuleConcepts() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int dieConcept = manager.getMaxConcept() + 1;
+        final int dieJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "死ぬ");
+
+        final int verbConcept = manager.getMaxConcept() + 1;
+        final int verbJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "動詞");
+        manager.addAcceptationInBunch(verbConcept, dieJaAcc);
+
+        final int accidentalRule = manager.getMaxConcept() + 1;
+        final int accidentalAcc = addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+
+        final int agent1 = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(verbConcept), intSetOf(), jaAlphabet, null, null, "ぬ", "んでしまう", accidentalRule);
+
+        final int accidentalRule2 = manager.getMaxConcept() + 1;
+        final int accidentalAcc2 = addSimpleAcceptation(manager, esAlphabet, accidentalRule2, "accidental informal");
+
+        final int agent2 = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(verbConcept), intSetOf(), jaAlphabet, null, null, "ぬ", "んじゃう", accidentalRule2);
+
+        assertTrue(manager.shareConcept(accidentalAcc, accidentalRule2));
+
+        final int accidentalDieAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, dieJaAcc);
+        assertNotEquals(dieJaAcc, accidentalDieAcc);
+        assertNotEquals(verbJaAcc, accidentalDieAcc);
+        assertNotEquals(accidentalAcc, accidentalDieAcc);
+        assertNotEquals(accidentalAcc2, accidentalDieAcc);
+
+        final int accidentalDieAcc2 = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, dieJaAcc);
+        assertNotEquals(dieJaAcc, accidentalDieAcc2);
+        assertNotEquals(verbJaAcc, accidentalDieAcc2);
+        assertNotEquals(accidentalAcc, accidentalDieAcc2);
+        assertNotEquals(accidentalAcc2, accidentalDieAcc2);
+        assertNotEquals(accidentalDieAcc, accidentalDieAcc2);
+
+        final int accidentalDieConcept = manager.conceptFromAcceptation(accidentalDieAcc);
+        assertEquals(accidentalDieConcept, manager.conceptFromAcceptation(accidentalDieAcc2));
+    }
 }
