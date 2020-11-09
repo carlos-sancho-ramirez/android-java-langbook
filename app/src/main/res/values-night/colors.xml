@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="agentStaticTextColor">#CCCCCC</color>
+    <color name="agentDynamicTextColor">#88BBFF</color>
+
+    <color name="searchEntryAuxiliarInfoText">#FF999999</color>
+</resources>
