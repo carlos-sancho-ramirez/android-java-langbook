@@ -2027,4 +2027,43 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int accidentalDieConcept = manager.conceptFromAcceptation(accidentalDieAcc);
         assertEquals(accidentalDieConcept, manager.conceptFromAcceptation(accidentalDieAcc2));
     }
+
+    @Test
+    default void testLinkRuleToNonRuleConcept() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int dieConcept = manager.getMaxConcept() + 1;
+        final int dieJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "死ぬ");
+
+        final int verbConcept = manager.getMaxConcept() + 1;
+        final int verbJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "動詞");
+        manager.addAcceptationInBunch(verbConcept, dieJaAcc);
+
+        final int accidentalRule = manager.getMaxConcept() + 1;
+        final int accidentalAcc = addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+
+        final int agent1 = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(verbConcept), intSetOf(), jaAlphabet, null, null, "ぬ", "んでしまう", accidentalRule);
+
+        final int accidentalRule2 = manager.getMaxConcept() + 1;
+        final int accidentalAcc2 = addSimpleAcceptation(manager, esAlphabet, accidentalRule2, "accidental informal");
+
+        assertTrue(manager.shareConcept(accidentalAcc2, accidentalRule));
+
+        final int accidentalDieAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, dieJaAcc);
+        assertNotEquals(dieJaAcc, accidentalDieAcc);
+        assertNotEquals(verbJaAcc, accidentalDieAcc);
+        assertNotEquals(accidentalAcc, accidentalDieAcc);
+        assertNotEquals(accidentalAcc2, accidentalDieAcc);
+
+        assertEmpty(manager.findRuledConceptsByRule(accidentalRule));
+        final ImmutableIntPairMap ruledConcepts = manager.findRuledConceptsByRule(accidentalRule2);
+        assertContainsOnly(dieConcept, ruledConcepts);
+
+        final int accidentalDieConcept = ruledConcepts.keyAt(0);
+        assertEquals(accidentalDieConcept, manager.conceptFromAcceptation(accidentalDieAcc));
+    }
 }

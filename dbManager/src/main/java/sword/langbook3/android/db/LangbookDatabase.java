@@ -2018,6 +2018,15 @@ public final class LangbookDatabase {
         db.update(query);
     }
 
+    private static void updateRuledConceptsRule(Database db, int ruledConcept, int newRule) {
+        final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
+        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+                .where(table.getIdColumnIndex(), ruledConcept)
+                .put(table.getRuleColumnIndex(), newRule)
+                .build();
+        db.update(query);
+    }
+
     private static IntPairMap getAcceptationsByConcept(Database db, int concept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery readQuery = new DbQuery.Builder(table)
@@ -2165,9 +2174,15 @@ public final class LangbookDatabase {
         final int oldRuledConceptsMapSize = oldRuledConceptsMap.size();
         if (oldRuledConceptsMapSize > 0) {
             final ImmutableIntPairMap newRuledConceptsMap = findRuledConceptsByRuleInvertedMap(db, linkedConcept);
+            final ImmutableIntSet newRuledConceptsMapKeys = newRuledConceptsMap.keySet();
             for (int i = 0; i < oldRuledConceptsMapSize; i++) {
                 final int baseConcept = oldRuledConceptsMap.keyAt(i);
-                mergeConcepts(db, newRuledConceptsMap.get(baseConcept), oldRuledConceptsMap.valueAt(i));
+                if (newRuledConceptsMapKeys.contains(baseConcept)) {
+                    mergeConcepts(db, newRuledConceptsMap.get(baseConcept), oldRuledConceptsMap.valueAt(i));
+                }
+                else {
+                    updateRuledConceptsRule(db, oldRuledConceptsMap.valueAt(i), linkedConcept);
+                }
             }
         }
 
