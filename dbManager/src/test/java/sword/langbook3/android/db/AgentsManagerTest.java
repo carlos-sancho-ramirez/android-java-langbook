@@ -1996,7 +1996,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int dieJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "死ぬ");
 
         final int verbConcept = manager.getMaxConcept() + 1;
-        final int verbJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "動詞");
+        final int verbJaAcc = addSimpleAcceptation(manager, jaAlphabet, verbConcept, "動詞");
         manager.addAcceptationInBunch(verbConcept, dieJaAcc);
 
         final int accidentalRule = manager.getMaxConcept() + 1;
@@ -2040,7 +2040,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int dieJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "死ぬ");
 
         final int verbConcept = manager.getMaxConcept() + 1;
-        final int verbJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "動詞");
+        final int verbJaAcc = addSimpleAcceptation(manager, jaAlphabet, verbConcept, "動詞");
         manager.addAcceptationInBunch(verbConcept, dieJaAcc);
 
         final int accidentalRule = manager.getMaxConcept() + 1;
