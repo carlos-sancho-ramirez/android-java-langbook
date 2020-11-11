@@ -2066,4 +2066,44 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int accidentalDieConcept = ruledConcepts.keyAt(0);
         assertEquals(accidentalDieConcept, manager.conceptFromAcceptation(accidentalDieAcc));
     }
+
+    @Test
+    default void testChangeAdderInFirstChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int callConcept = manager.getMaxConcept() + 1;
+        final int callJaAcc = addSimpleAcceptation(manager, jaAlphabet, callConcept, "呼ぶ");
+
+        final int verbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, jaAlphabet, verbConcept, "動詞");
+        manager.addAcceptationInBunch(verbConcept, callJaAcc);
+
+        final int accidentalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+
+        final int canBePastConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, canBePastConcept, "puede ser pasado");
+
+        final int agent1 = addSingleAlphabetAgent(manager, intSetOf(canBePastConcept), intSetOf(verbConcept), intSetOf(), jaAlphabet, null, null, "ぶ", "じまう", accidentalRule);
+
+        final int pastRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, pastRule, "pasado");
+
+        final int agent2 = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(canBePastConcept), intSetOf(), jaAlphabet, null, null, "う", "った", pastRule);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agent1, intSetOf(canBePastConcept), intSetOf(verbConcept), intSetOf(), jaAlphabet, null, null, "ぶ", "んじまう", accidentalRule));
+
+        final ImmutableIntPairMap ruledAccs1 = findRuledAcceptationsByAgent(db, agent1);
+        assertContainsOnly(callJaAcc, ruledAccs1);
+
+        final ImmutableIntPairMap ruledAccs2 = findRuledAcceptationsByAgent(db, agent2);
+        assertContainsOnly(ruledAccs1.keyAt(0), ruledAccs2);
+
+        final int callAccidentalPastAcc = ruledAccs2.keyAt(0);
+        assertSinglePair(jaAlphabet, "呼んじまった", manager.getAcceptationTexts(callAccidentalPastAcc));
+    }
 }

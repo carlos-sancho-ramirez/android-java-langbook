@@ -545,6 +545,7 @@ public final class LangbookDatabase {
                         if (!db.update(updateQuery)) {
                             throw new AssertionError();
                         }
+                        targetChanged = true;
 
                         for (IntKeyMap.Entry<String> entry : correlation.entries()) {
                             final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
