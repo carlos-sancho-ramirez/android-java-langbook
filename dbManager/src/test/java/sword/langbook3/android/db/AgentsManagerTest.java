@@ -2106,4 +2106,48 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int callAccidentalPastAcc = ruledAccs2.keyAt(0);
         assertSinglePair(jaAlphabet, "呼んじまった", manager.getAcceptationTexts(callAccidentalPastAcc));
     }
+
+    @Test
+    default void testChangeAdderInFirstChainedAgentWhenPickedSampleAcceptationForSecondIsOther() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager manager = createManager(db);
+
+        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+
+        final int singConcept = manager.getMaxConcept() + 1;
+        final int singJaAcc = addSimpleAcceptation(manager, jaAlphabet, singConcept, "歌う");
+
+        final int callConcept = manager.getMaxConcept() + 1;
+        final int callJaAcc = addSimpleAcceptation(manager, jaAlphabet, callConcept, "呼ぶ");
+
+        final int buVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, jaAlphabet, buVerbConcept, "verbo acabado en ぶ");
+        manager.addAcceptationInBunch(buVerbConcept, callJaAcc);
+
+        final int accidentalRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+
+        final int uVerbConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, uVerbConcept, "verbo acabado en う");
+        manager.addAcceptationInBunch(uVerbConcept, singJaAcc);
+
+        final int agent1 = addSingleAlphabetAgent(manager, intSetOf(uVerbConcept), intSetOf(buVerbConcept), intSetOf(), jaAlphabet, null, null, "ぶ", "じまう", accidentalRule);
+
+        final int pastRule = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, pastRule, "pasado");
+
+        final int agent2 = addSingleAlphabetAgent(manager, intSetOf(), intSetOf(uVerbConcept), intSetOf(), jaAlphabet, null, null, "う", "った", pastRule);
+
+        assertTrue(updateSingleAlphabetAgent(manager, agent1, intSetOf(uVerbConcept), intSetOf(buVerbConcept), intSetOf(), jaAlphabet, null, null, "ぶ", "んじまう", accidentalRule));
+
+        final ImmutableIntPairMap ruledAccs1 = findRuledAcceptationsByAgent(db, agent1);
+        assertContainsOnly(callJaAcc, ruledAccs1);
+
+        final ImmutableIntPairMap ruledAccs2 = findRuledAcceptationsByAgent(db, agent2);
+        assertContainsOnly(ruledAccs1.keyAt(0), singJaAcc, ruledAccs2);
+
+        final int callAccidentalPastAcc = ruledAccs2.keyAt((ruledAccs2.valueAt(0) == singJaAcc)? 1 : 0);
+        assertSinglePair(jaAlphabet, "呼んじまった", manager.getAcceptationTexts(callAccidentalPastAcc));
+    }
 }

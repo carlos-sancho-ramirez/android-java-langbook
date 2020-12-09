@@ -407,9 +407,12 @@ public final class LangbookDatabase {
 
     /**
      * Run again the specified agent.
+     * @param sourceAgentChangedText If a ruled is applied, forces the recheck of the resulting texts.
+     *                               This should be true at least if one source agent has changed its adders,
+     *                               resulting in a different source acceptation to be ruled here.
      * @return A bunch set containing all target bunches that changed, or empty if there is no change.
      */
-    private static ImmutableIntSet rerunAgent(Database db, int agentId, MutableIntSet deletedDynamicAcceptations) {
+    private static ImmutableIntSet rerunAgent(Database db, int agentId, MutableIntSet deletedDynamicAcceptations, boolean sourceAgentChangedText) {
         final AgentDetails agentDetails = LangbookReadableDatabase.getAgentDetails(db, agentId);
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptations(db,
                 agentDetails.sourceBunches, agentDetails.diffBunches,
@@ -467,7 +470,7 @@ public final class LangbookDatabase {
             final int sampleStaticAcc = matchingAcceptations.findFirst(alreadyProcessedAcceptations::contains, 0);
             final boolean hasSameRule;
             final boolean canReuseOldRuledConcept;
-            final boolean hasSameAdders;
+            final boolean mustChangeResultingText;
             if (sampleStaticAcc != 0) {
                 final int sampleDynAcc = oldProcessedMap.get(sampleStaticAcc);
                 final int sampleRuledConcept = LangbookReadableDatabase.conceptFromAcceptation(db, sampleDynAcc);
@@ -475,16 +478,20 @@ public final class LangbookDatabase {
                 hasSameRule = sampleRule == agentDetails.rule;
                 canReuseOldRuledConcept = hasSameRule || findAgentsByRule(db, sampleRule).isEmpty();
 
-                final MutableIntKeyMap<String> accText = getAcceptationTexts(db, sampleStaticAcc).mutate();
-                final ImmutableIntKeyMap<String> sampleDynAccText = getAcceptationTexts(db, sampleDynAcc);
-                final boolean validConversion = applyMatchersAddersAndConversions(accText, agentDetails,
-                        conversionMap, conversions);
-                hasSameAdders = validConversion && accText.equalMap(sampleDynAccText);
+                if (sourceAgentChangedText) {
+                    mustChangeResultingText = true;
+                }
+                else {
+                    final MutableIntKeyMap<String> accText = getAcceptationTexts(db, sampleStaticAcc).mutate();
+                    final ImmutableIntKeyMap<String> sampleDynAccText = getAcceptationTexts(db, sampleDynAcc);
+                    final boolean validConversion = applyMatchersAddersAndConversions(accText, agentDetails, conversionMap, conversions);
+                    mustChangeResultingText = !validConversion || !accText.equalMap(sampleDynAccText);
+                }
             }
             else {
                 hasSameRule = false;
                 canReuseOldRuledConcept = false;
-                hasSameAdders = false;
+                mustChangeResultingText = sourceAgentChangedText;
             }
 
             if (!hasSameRule) {
@@ -520,7 +527,7 @@ public final class LangbookDatabase {
                 }
             }
 
-            if (!hasSameAdders) {
+            if (mustChangeResultingText) {
                 for (int staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
                     final MutableIntKeyMap<String> correlation = getAcceptationTexts(db, staticAcc).mutate();
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
@@ -659,7 +666,7 @@ public final class LangbookDatabase {
 
         for (int agentId : sortedAgents.left) {
             if (!agentDependencies.get(agentId).filter(touchedBunches::contains).isEmpty()) {
-                touchedBunches.addAll(rerunAgent(db, agentId, null));
+                touchedBunches.addAll(rerunAgent(db, agentId, null, false));
             }
         }
 
@@ -715,7 +722,7 @@ public final class LangbookDatabase {
             for (int thisAgentId : agentExecutionOrder.left) {
                 final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
                 if (affectedAgents.contains(thisAgentId) || dependencies.anyMatch(touchedBunches::contains)) {
-                    touchedBunches.addAll(rerunAgent(db, thisAgentId, null));
+                    touchedBunches.addAll(rerunAgent(db, thisAgentId, null, false));
                 }
             }
 
@@ -1054,14 +1061,14 @@ public final class LangbookDatabase {
                 for (int b : updatedBunches) {
                     allUpdatedBunchesBuilder.add(b);
                     for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
-                        rerunAgent(db, entry.key(), removedDynamicAcceptations);
+                        rerunAgent(db, entry.key(), removedDynamicAcceptations, false);
                         for (int bb : entry.value()) {
                             builder.add(bb);
                         }
                     }
 
                     for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
-                        rerunAgent(db, entry.key(), removedDynamicAcceptations);
+                        rerunAgent(db, entry.key(), removedDynamicAcceptations, false);
                         for (int bb : entry.value()) {
                             builder.add(bb);
                         }
@@ -1127,7 +1134,7 @@ public final class LangbookDatabase {
             final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int bunch : updatedBunches) {
                 for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, entry.key(), null);
+                    rerunAgent(db, entry.key(), null, false);
                     for (int b : entry.value()) {
                         builder.add(b);
                     }
@@ -1164,6 +1171,7 @@ public final class LangbookDatabase {
         final DbUpdateQuery.Builder updateQueryBuilder = new DbUpdateQuery.Builder(table);
 
         boolean somethingChanged = false;
+        boolean correlationChanged = false;
         final int targetBunchSetId = obtainBunchSet(db, targetBunches);
         if (targetBunchSetId != register.targetBunchSetId) {
             // TODO: old bunch set should be removed if not used by any other agent, in order to keep clean the database
@@ -1189,6 +1197,7 @@ public final class LangbookDatabase {
         if (startMatcherId != register.startMatcherId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getStartMatcherColumnIndex(), startMatcherId);
+            correlationChanged = true;
             somethingChanged = true;
         }
 
@@ -1196,6 +1205,7 @@ public final class LangbookDatabase {
         if (startAdderId != register.startAdderId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getStartAdderColumnIndex(), startAdderId);
+            correlationChanged = true;
             somethingChanged = true;
         }
 
@@ -1203,6 +1213,7 @@ public final class LangbookDatabase {
         if (endMatcherId != register.endMatcherId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getEndMatcherColumnIndex(), endMatcherId);
+            correlationChanged = true;
             somethingChanged = true;
         }
 
@@ -1210,6 +1221,7 @@ public final class LangbookDatabase {
         if (endAdderId != register.endAdderId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getEndAdderColumnIndex(), endAdderId);
+            correlationChanged = true;
             somethingChanged = true;
         }
 
@@ -1237,7 +1249,8 @@ public final class LangbookDatabase {
         for (int thisAgentId : agentExecutionOrder.left) {
             final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
             if (thisAgentId == agentId || dependencies.anyMatch(touchedBunches::contains)) {
-                touchedBunches.addAll(rerunAgent(db, thisAgentId, null));
+                final boolean sourceAgentChangedText = thisAgentId != agentId && correlationChanged;
+                touchedBunches.addAll(rerunAgent(db, thisAgentId, null, sourceAgentChangedText));
             }
         }
 
@@ -1342,7 +1355,7 @@ public final class LangbookDatabase {
             ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int bunch : updatedBunches) {
                 for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, entry.key(), null);
+                    rerunAgent(db, entry.key(), null, false);
                     for (int b : entry.value()) {
                         builder.add(b);
                     }
