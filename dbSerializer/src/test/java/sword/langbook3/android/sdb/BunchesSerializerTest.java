@@ -3,12 +3,12 @@ package sword.langbook3.android.sdb;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableList;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchesManager;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -35,7 +35,7 @@ interface BunchesSerializerTest extends AcceptationsSerializerTest {
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .append(correlation)
                 .build();
 

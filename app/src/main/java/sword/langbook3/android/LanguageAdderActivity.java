@@ -7,12 +7,8 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import sword.collections.ImmutableList;
-import sword.collections.Map;
-import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
-import sword.langbook3.android.db.MutableCorrelation;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
 
@@ -48,18 +44,6 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         else {
             _state = new LanguageAdderActivityState();
         }
-    }
-
-    private ImmutableCorrelation correlationFromCorrelationArray(ImmutableList<ImmutableCorrelation> correlationArray) {
-        return correlationArray.reduce((corr1, corr2) -> {
-            final MutableCorrelation mixed = corr1.mutate();
-            for (Map.Entry<AlphabetId, String> entry : corr2.entries()) {
-                final AlphabetId key = entry.key();
-                mixed.put(key, mixed.get(key) + entry.value());
-            }
-
-            return mixed.toImmutable();
-        });
     }
 
     @Override
@@ -98,13 +82,13 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             }
             else {
                 if (_state.hasAtLeastOneAlphabetCorrelationArray()) {
-                    final ImmutableCorrelation correlation = correlationFromCorrelationArray(_state.popLastAlphabetCorrelationArray());
+                    final ImmutableCorrelation correlation = _state.popLastAlphabetCorrelationArray().concatenateTexts();
                     final int titleResId = _state.hasAtLeastOneAlphabetCorrelationArray()?
                             R.string.newMainAlphabetNameActivityTitle : R.string.newAuxAlphabetNameActivityTitle;
                     WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, getString(titleResId), correlation, _state.getCurrentConcept());
                 }
                 else {
-                    final ImmutableCorrelation correlation = correlationFromCorrelationArray(_state.popLanguageCorrelationArray());
+                    final ImmutableCorrelation correlation = _state.popLanguageCorrelationArray().concatenateTexts();
                     final String title = getString(R.string.newLanguageNameActivityTitle);
                     WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, correlation, _state.getCurrentConcept());
                 }

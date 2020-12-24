@@ -7,7 +7,6 @@ import java.io.IOException;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
@@ -19,6 +18,7 @@ import sword.langbook3.android.db.AcceptationsChecker;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
@@ -111,7 +111,7 @@ public interface AcceptationsSerializerTest {
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .append(correlation)
                 .build();
 
@@ -289,7 +289,7 @@ public interface AcceptationsSerializerTest {
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableCorrelation> correlationArrays = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
@@ -300,7 +300,7 @@ public interface AcceptationsSerializerTest {
                         .build())
                 .build();
 
-        manager.addAcceptation(concept, correlationArrays);
+        manager.addAcceptation(concept, correlationArray);
 
         final MemoryDatabase outDb = cloneBySerializing(db);
         final AcceptationsChecker checker = createManager(outDb);
@@ -356,7 +356,7 @@ public interface AcceptationsSerializerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")

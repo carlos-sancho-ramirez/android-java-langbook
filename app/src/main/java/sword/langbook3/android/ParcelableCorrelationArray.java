@@ -3,24 +3,22 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import sword.collections.ImmutableIntRange;
-import sword.collections.ImmutableList;
-import sword.collections.List;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 
 public final class ParcelableCorrelationArray implements Parcelable {
 
-    private final ImmutableList<ImmutableCorrelation> _array;
+    private final ImmutableCorrelationArray _array;
 
-    public ParcelableCorrelationArray(List<ImmutableCorrelation> array) {
+    public ParcelableCorrelationArray(ImmutableCorrelationArray array) {
         if (array == null) {
             throw new IllegalArgumentException();
         }
 
-        _array = array.toImmutable();
+        _array = array;
     }
 
-    public ImmutableList<ImmutableCorrelation> get() {
+    public ImmutableCorrelationArray get() {
         return _array;
     }
 
@@ -29,21 +27,24 @@ public final class ParcelableCorrelationArray implements Parcelable {
         return 0;
     }
 
-    static ImmutableList<ImmutableCorrelation> read(Parcel in) {
+    static ImmutableCorrelationArray read(Parcel in) {
         final int arraySize = in.readInt();
-        final ImmutableList<ImmutableCorrelation> array;
+        final ImmutableCorrelationArray array;
         if (arraySize == 0) {
-            array = ImmutableList.empty();
+            array = ImmutableCorrelationArray.empty();
         }
         else {
-            final ImmutableIntRange range = new ImmutableIntRange(0, arraySize - 1);
-            array = range.map(index -> ParcelableCorrelation.read(in));
+            final ImmutableCorrelationArray.Builder builder = new ImmutableCorrelationArray.Builder();
+            for (int i = 0; i < arraySize; i++) {
+                builder.append(ParcelableCorrelation.read(in));
+            }
+            array = builder.build();
         }
 
-        return array.toImmutable();
+        return array;
     }
 
-    static void write(Parcel dest, List<ImmutableCorrelation> array) {
+    static void write(Parcel dest, ImmutableCorrelationArray array) {
         final int arraySize = array.size();
         dest.writeInt(arraySize);
 

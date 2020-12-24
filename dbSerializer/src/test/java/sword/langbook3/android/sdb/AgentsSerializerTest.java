@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableIntArraySet;
@@ -16,6 +15,7 @@ import sword.langbook3.android.db.AgentsChecker;
 import sword.langbook3.android.db.AgentsManager;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.MorphologyResult;
@@ -73,7 +73,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .append(correlation)
                 .build();
 

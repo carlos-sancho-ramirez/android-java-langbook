@@ -45,7 +45,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
                 .put(kanaAlphabet, "う")
                 .build();
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .append(correlation1)
                 .append(correlation2)
                 .build();

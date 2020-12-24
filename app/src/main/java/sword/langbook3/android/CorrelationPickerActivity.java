@@ -11,15 +11,12 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
-import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntResultFunction;
-import sword.collections.Map;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookManager;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
@@ -47,7 +44,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private int _selection = ListView.INVALID_POSITION;
 
     private ListView _listView;
-    private ImmutableSet<ImmutableList<ImmutableCorrelation>> _options;
+    private ImmutableSet<ImmutableCorrelationArray> _options;
     private ImmutableIntValueMap<ImmutableCorrelation> _knownCorrelations;
 
     /**
@@ -129,7 +126,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     private ImmutableIntValueMap<ImmutableCorrelation> findExistingCorrelations() {
         final ImmutableSet.Builder<ImmutableCorrelation> correlationsBuilder = new ImmutableHashSet.Builder<>();
-        for (ImmutableList<ImmutableCorrelation> option : _options) {
+        for (ImmutableCorrelationArray option : _options) {
             for (ImmutableCorrelation correlation : option) {
                 correlationsBuilder.add(correlation);
             }
@@ -149,7 +146,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     private int findSuggestedPosition() {
         final ImmutableSet<ImmutableCorrelation> known = _knownCorrelations.keySet();
-        final IntResultFunction<ImmutableList<ImmutableCorrelation>> func = option -> option.filter(known::contains).size();
+        final IntResultFunction<ImmutableCorrelationArray> func = option -> option.filter(known::contains).size();
         final ImmutableIntList knownParity = _options.toList().mapToInt(func);
 
         final int length = knownParity.size();
@@ -228,7 +225,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                     finish();
                 }
                 else {
-                    final ImmutableList<ImmutableCorrelation> array = _options.valueAt(_selection);
+                    final ImmutableCorrelationArray array = _options.valueAt(_selection);
 
                     final Intent intent = new Intent();
                     intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));

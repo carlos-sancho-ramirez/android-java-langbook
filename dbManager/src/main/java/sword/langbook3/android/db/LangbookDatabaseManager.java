@@ -79,12 +79,12 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public Integer addAcceptation(int concept, ImmutableList<ImmutableCorrelation> correlationArray) {
+    public Integer addAcceptation(int concept, ImmutableCorrelationArray correlationArray) {
         return LangbookDatabase.addAcceptation(_db, concept, correlationArray);
     }
 
     @Override
-    public boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableCorrelation> newCorrelationArray) {
+    public boolean updateAcceptationCorrelationArray(int acceptation, ImmutableCorrelationArray newCorrelationArray) {
         return LangbookDatabase.updateAcceptationCorrelationArray(_db, acceptation, newCorrelationArray);
     }
 

@@ -6,6 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -15,8 +16,8 @@ public final class LanguageAdderActivityState implements Parcelable {
     private int _newLanguageId;
     private int _alphabetCount;
 
-    private ImmutableList<ImmutableCorrelation> _languageCorrelationArray;
-    private ImmutableList<ImmutableList<ImmutableCorrelation>> _alphabetCorrelationArrays;
+    private ImmutableCorrelationArray _languageCorrelationArray;
+    private ImmutableList<ImmutableCorrelationArray> _alphabetCorrelationArrays;
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
@@ -82,7 +83,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         _alphabetCount = alphabetCount;
     }
 
-    void setLanguageCorrelationArray(ImmutableList<ImmutableCorrelation> correlationArray) {
+    void setLanguageCorrelationArray(ImmutableCorrelationArray correlationArray) {
         if (correlationArray == null || correlationArray.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -95,7 +96,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         _alphabetCorrelationArrays = ImmutableList.empty();
     }
 
-    ImmutableList<ImmutableCorrelation> popLanguageCorrelationArray() {
+    ImmutableCorrelationArray popLanguageCorrelationArray() {
         if (_languageCorrelationArray == null || _alphabetCorrelationArrays == null) {
             throw new UnsupportedOperationException("Language correlation not set");
         }
@@ -104,13 +105,13 @@ public final class LanguageAdderActivityState implements Parcelable {
             throw new UnsupportedOperationException("Unable to remove language correlation without removing alphabet correlation first");
         }
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = _languageCorrelationArray;
+        final ImmutableCorrelationArray correlationArray = _languageCorrelationArray;
         _languageCorrelationArray = null;
         _alphabetCorrelationArrays = null;
         return correlationArray;
     }
 
-    void setNextAlphabetCorrelationArray(ImmutableList<ImmutableCorrelation> correlationArray) {
+    void setNextAlphabetCorrelationArray(ImmutableCorrelationArray correlationArray) {
         if (correlationArray == null || correlationArray.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -130,11 +131,11 @@ public final class LanguageAdderActivityState implements Parcelable {
         return _alphabetCorrelationArrays != null && !_alphabetCorrelationArrays.isEmpty();
     }
 
-    ImmutableList<ImmutableCorrelation> popLastAlphabetCorrelationArray() {
+    ImmutableCorrelationArray popLastAlphabetCorrelationArray() {
         final int index = _alphabetCorrelationArrays.size() - 1;
-        final ImmutableList<ImmutableCorrelation> correlation = _alphabetCorrelationArrays.valueAt(index);
+        final ImmutableCorrelationArray correlationArray = _alphabetCorrelationArrays.valueAt(index);
         _alphabetCorrelationArrays = _alphabetCorrelationArrays.removeAt(index);
-        return correlation;
+        return correlationArray;
     }
 
     public static final Creator<LanguageAdderActivityState> CREATOR = new Creator<LanguageAdderActivityState>() {

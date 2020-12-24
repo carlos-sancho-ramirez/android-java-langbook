@@ -141,7 +141,7 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
         return new ImmutableCorrelation(map.removeAt(index));
     }
 
-    private static boolean entryLessThan(ImmutableList<ImmutableCorrelation> a, ImmutableList<ImmutableCorrelation> b) {
+    private static boolean entryLessThan(ImmutableCorrelationArray a, ImmutableCorrelationArray b) {
         final Iterator<ImmutableCorrelation> itA = a.iterator();
         final Iterator<ImmutableCorrelation> itB = b.iterator();
 
@@ -179,12 +179,12 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
     }
 
     private void checkPossibleCorrelationArraysRecursive(
-            ImmutableSet.Builder<ImmutableList<ImmutableCorrelation>> builder,
+            ImmutableSet.Builder<ImmutableCorrelationArray> builder,
             ImmutableCorrelation left,
             ImmutableCorrelation right) {
         final int remainingSize = size();
         if (remainingSize == 0) {
-            for (ImmutableList<ImmutableCorrelation> array : right.checkPossibleCorrelationArrays()) {
+            for (ImmutableCorrelationArray array : right.checkPossibleCorrelationArrays()) {
                 builder.add(array.prepend(left));
             }
         }
@@ -208,7 +208,7 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
         }
     }
 
-    public ImmutableSet<ImmutableList<ImmutableCorrelation>> checkPossibleCorrelationArrays() {
+    public ImmutableSet<ImmutableCorrelationArray> checkPossibleCorrelationArrays() {
         final int globalSize = size();
         final IntResultFunction<String> lengthFunc = text -> (text == null)? 0 : text.length();
         final ImmutableIntValueMap<AlphabetId> lengths = mapToInt(lengthFunc);
@@ -216,8 +216,8 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
             return ImmutableHashSet.empty();
         }
 
-        final ImmutableSet.Builder<ImmutableList<ImmutableCorrelation>> builder = new ImmutableHashSet.Builder<>();
-        builder.add(new ImmutableList.Builder<ImmutableCorrelation>().add(this).build());
+        final ImmutableSet.Builder<ImmutableCorrelationArray> builder = new ImmutableHashSet.Builder<>();
+        builder.add(new ImmutableCorrelationArray.Builder().add(this).build());
 
         if (globalSize > 1) {
             checkPossibleCorrelationArraysRecursive(builder, ImmutableCorrelation.empty(), ImmutableCorrelation.empty());

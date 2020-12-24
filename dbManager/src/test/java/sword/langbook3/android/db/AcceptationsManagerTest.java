@@ -3,7 +3,6 @@ package sword.langbook3.android.db;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashMap;
-import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntTraversableTestUtils;
@@ -73,7 +72,7 @@ public interface AcceptationsManagerTest {
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .append(correlation)
                 .build();
 
@@ -85,7 +84,7 @@ public interface AcceptationsManagerTest {
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .append(correlation)
                 .build();
 
@@ -329,7 +328,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableCorrelation> correlationArrays = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
@@ -340,7 +339,7 @@ public interface AcceptationsManagerTest {
                         .build())
                 .build();
 
-        final int acceptation = manager.addAcceptation(concept, correlationArrays);
+        final int acceptation = manager.addAcceptation(concept, correlationArray);
         final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptation);
         assertSize(2, texts);
         assertEquals("注文", texts.get(kanji));
@@ -369,7 +368,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+        final ImmutableCorrelationArray correlationArray = new ImmutableCorrelationArray.Builder()
                 .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")

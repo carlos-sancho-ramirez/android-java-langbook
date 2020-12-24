@@ -673,7 +673,7 @@ public final class LangbookDatabase {
         return acceptation;
     }
 
-    static Integer addAcceptation(Database db, int concept, ImmutableList<ImmutableCorrelation> correlationArray) {
+    static Integer addAcceptation(Database db, int concept, ImmutableCorrelationArray correlationArray) {
         final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
         return addAcceptation(db, concept, correlationArrayId);
     }
@@ -748,7 +748,7 @@ public final class LangbookDatabase {
         return changed;
     }
 
-    static boolean updateAcceptationCorrelationArray(Database db, int acceptation, ImmutableList<ImmutableCorrelation> correlationArray) {
+    static boolean updateAcceptationCorrelationArray(Database db, int acceptation, ImmutableCorrelationArray correlationArray) {
         final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
         return updateAcceptationCorrelationArray(db, acceptation, correlationArrayId);
     }
