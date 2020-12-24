@@ -10,11 +10,10 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
-import sword.collections.IntKeyMap;
-import sword.collections.IntSet;
-import sword.collections.MutableIntKeyMap;
+import sword.collections.Map;
+import sword.collections.MutableMap;
+import sword.collections.Set;
 import sword.database.DbExporter;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
@@ -43,22 +42,22 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public Integer findMainAlphabetForLanguage(int language) {
-        return LangbookReadableDatabase.findMainAlphabetForLanguage(getDatabase(), language);
+    public AlphabetId findMainAlphabetForLanguage(int language) {
+        return new AlphabetId(LangbookReadableDatabase.findMainAlphabetForLanguage(getDatabase(), language));
     }
 
     @Override
-    public ImmutableIntSet findAlphabetsByLanguage(int language) {
+    public ImmutableSet<AlphabetId> findAlphabetsByLanguage(int language) {
         return LangbookReadableDatabase.findAlphabetsByLanguage(getDatabase(), language);
     }
 
     @Override
-    public ImmutableIntKeyMap<String> getAcceptationTexts(int acceptation) {
+    public ImmutableMap<AlphabetId, String> getAcceptationTexts(int acceptation) {
         return LangbookReadableDatabase.getAcceptationTexts(getDatabase(), acceptation);
     }
 
     @Override
-    public Conversion getConversion(ImmutableIntPair pair) {
+    public Conversion getConversion(ImmutablePair<AlphabetId, AlphabetId> pair) {
         return LangbookReadableDatabase.getConversion(getDatabase(), pair);
     }
 
@@ -68,7 +67,7 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableIntPairMap getConversionsMap() {
+    public ImmutableMap<AlphabetId, AlphabetId> getConversionsMap() {
         return LangbookReadableDatabase.getConversionsMap(getDatabase());
     }
 
@@ -93,12 +92,12 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableIntKeyMap<String> texts, int preferredAlphabet) {
+    public ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableMap<AlphabetId, String> texts, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readAllMatchingBunches(getDatabase(), texts, preferredAlphabet);
     }
 
     @Override
-    public MutableIntKeyMap<String> readCorrelationArrayTexts(int correlationArrayId) {
+    public MutableMap<AlphabetId, String> readCorrelationArrayTexts(int correlationArrayId) {
         return LangbookReadableDatabase.readCorrelationArrayTexts(getDatabase(), correlationArrayId);
     }
 
@@ -123,8 +122,8 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAllRules(int preferredAlphabet) {
-        return LangbookReadableDatabase.readAllRules(getDatabase(), preferredAlphabet);
+    public ImmutableIntKeyMap<String> readAllRules(AlphabetId preferredAlphabet) {
+        return LangbookReadableDatabase.readAllRules(getDatabase(), preferredAlphabet.key);
     }
 
     @Override
@@ -138,22 +137,22 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public boolean isAlphabetPresent(int alphabet) {
+    public boolean isAlphabetPresent(AlphabetId alphabet) {
         return LangbookReadableDatabase.isAlphabetPresent(getDatabase(), alphabet);
     }
 
     @Override
-    public Integer getLanguageFromAlphabet(int alphabet) {
+    public Integer getLanguageFromAlphabet(AlphabetId alphabet) {
         return LangbookReadableDatabase.getLanguageFromAlphabet(getDatabase(), alphabet);
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAllAlphabets(int preferredAlphabet) {
+    public ImmutableMap<AlphabetId, String> readAllAlphabets(AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readAllAlphabets(getDatabase(), preferredAlphabet);
     }
 
     @Override
-    public AcceptationDetailsModel getAcceptationsDetails(int staticAcceptation, int preferredAlphabet) {
+    public AcceptationDetailsModel getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.getAcceptationsDetails(getDatabase(), staticAcceptation, preferredAlphabet);
     }
 
@@ -198,8 +197,8 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(int bunchSet, int preferredAlphabet) {
-        return LangbookReadableDatabase.readBunchSetAcceptationsAndTexts(getDatabase(), bunchSet, preferredAlphabet);
+    public ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(int bunchSet, AlphabetId preferredAlphabet) {
+        return LangbookReadableDatabase.readBunchSetAcceptationsAndTexts(getDatabase(), bunchSet, preferredAlphabet.key);
     }
 
     @Override
@@ -208,8 +207,8 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableMap<TableCellReference, TableCellValue> readTableContent(int dynamicAcceptation, int preferredAlphabet) {
-        return LangbookReadableDatabase.readTableContent(getDatabase(), dynamicAcceptation, preferredAlphabet);
+    public ImmutableMap<TableCellReference, TableCellValue> readTableContent(int dynamicAcceptation, AlphabetId preferredAlphabet) {
+        return LangbookReadableDatabase.readTableContent(getDatabase(), dynamicAcceptation, preferredAlphabet.key);
     }
 
     @Override
@@ -248,7 +247,7 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public MorphologyReaderResult readMorphologiesFromAcceptation(int acceptation, int preferredAlphabet) {
+    public MorphologyReaderResult readMorphologiesFromAcceptation(int acceptation, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readMorphologiesFromAcceptation(getDatabase(), acceptation, preferredAlphabet);
     }
 
@@ -273,42 +272,42 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAllLanguages(int preferredAlphabet) {
+    public ImmutableIntKeyMap<String> readAllLanguages(AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readAllLanguages(getDatabase(), preferredAlphabet);
     }
 
     @Override
-    public ImmutableIntKeyMap<String> getCorrelationWithText(int correlationId) {
+    public ImmutableMap<AlphabetId, String> getCorrelationWithText(int correlationId) {
         return LangbookReadableDatabase.getCorrelationWithText(getDatabase(), correlationId);
     }
 
     @Override
-    public DisplayableItem readConceptAcceptationAndText(int concept, int preferredAlphabet) {
+    public DisplayableItem readConceptAcceptationAndText(int concept, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readConceptAcceptationAndText(getDatabase(), concept, preferredAlphabet);
     }
 
     @Override
-    public String readConceptText(int concept, int preferredAlphabet) {
+    public String readConceptText(int concept, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readConceptText(getDatabase(), concept, preferredAlphabet);
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAlphabetsForLanguage(int language, int preferredAlphabet) {
+    public ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(int language, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readAlphabetsForLanguage(getDatabase(), language, preferredAlphabet);
     }
 
     @Override
-    public boolean checkAlphabetCanBeRemoved(int alphabet) {
+    public boolean checkAlphabetCanBeRemoved(AlphabetId alphabet) {
         return LangbookReadableDatabase.checkAlphabetCanBeRemoved(getDatabase(), alphabet);
     }
 
     @Override
-    public CorrelationDetailsModel getCorrelationDetails(int correlationId, int preferredAlphabet) {
+    public CorrelationDetailsModel getCorrelationDetails(int correlationId, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.getCorrelationDetails(getDatabase(), correlationId, preferredAlphabet);
     }
 
     @Override
-    public Integer findCorrelation(IntKeyMap<String> correlation) {
+    public Integer findCorrelation(Map<AlphabetId, String> correlation) {
         return LangbookReadableDatabase.findCorrelation(getDatabase(), correlation);
     }
 
@@ -318,12 +317,12 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndLanguage(int acceptation) {
+    public ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> readAcceptationTextsAndLanguage(int acceptation) {
         return LangbookReadableDatabase.readAcceptationTextsAndLanguage(getDatabase(), acceptation);
     }
 
     @Override
-    public ImmutableIntPairMap findConversions(IntSet alphabets) {
+    public ImmutableMap<AlphabetId, AlphabetId> findConversions(Set<AlphabetId> alphabets) {
         return LangbookReadableDatabase.findConversions(getDatabase(), alphabets);
     }
 

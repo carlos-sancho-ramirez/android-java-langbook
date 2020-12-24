@@ -2,11 +2,13 @@ package sword.langbook3.android.sdb;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AcceptationsManager;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchesManager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,19 +31,19 @@ interface BunchesSerializerTest extends AcceptationsSerializerTest {
     @Override
     BunchesManager createManager(MemoryDatabase db);
 
-    static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
-        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+    static int addSimpleAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept, String text) {
+        final ImmutableMap<AlphabetId, String> correlation = new ImmutableHashMap.Builder<AlphabetId, String>()
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
                 .append(correlation)
                 .build();
 
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static int addSpanishSingAcceptation(AcceptationsManager manager, int alphabet, int concept) {
+    static int addSpanishSingAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept) {
         return addSimpleAcceptation(manager, alphabet, concept, "cantar");
     }
 
@@ -50,7 +52,7 @@ interface BunchesSerializerTest extends AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final BunchesManager inManager = createManager(inDb);
 
-        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
+        final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int inConcept = inManager.getMaxConcept() + 1;
         final int acceptation = addSpanishSingAcceptation(inManager, inAlphabet, inConcept);
@@ -76,7 +78,7 @@ interface BunchesSerializerTest extends AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final BunchesManager inManager = createManager(inDb);
 
-        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
+        final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int inSingConcept = inManager.getMaxConcept() + 1;
         final int inSingAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
@@ -115,7 +117,7 @@ interface BunchesSerializerTest extends AcceptationsSerializerTest {
         final MemoryDatabase inDb = new MemoryDatabase();
         final BunchesManager inManager = createManager(inDb);
 
-        final int inAlphabet = inManager.addLanguage("es").mainAlphabet;
+        final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int inConcept = inManager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(inManager, inAlphabet, inConcept, "cantar");

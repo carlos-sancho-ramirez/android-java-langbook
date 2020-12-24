@@ -1,8 +1,8 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.Set;
 import sword.database.Database;
 import sword.langbook3.android.models.Conversion;
@@ -26,16 +26,16 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     @Override
     public Integer addAgent(
             ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
-            ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
-            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule) {
+            ImmutableMap<AlphabetId, String> startMatcher, ImmutableMap<AlphabetId, String> startAdder,
+            ImmutableMap<AlphabetId, String> endMatcher, ImmutableMap<AlphabetId, String> endAdder, int rule) {
         return LangbookDatabase.addAgent(_db, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     @Override
     public boolean updateAgent(
             int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
-            ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
-            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule) {
+            ImmutableMap<AlphabetId, String> startMatcher, ImmutableMap<AlphabetId, String> startAdder,
+            ImmutableMap<AlphabetId, String> endMatcher, ImmutableMap<AlphabetId, String> endAdder, int rule) {
         return LangbookDatabase.updateAgent(_db, agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
@@ -65,7 +65,7 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public boolean addAlphabetCopyingFromOther(int alphabet, int sourceAlphabet) {
+    public boolean addAlphabetCopyingFromOther(AlphabetId alphabet, AlphabetId sourceAlphabet) {
         return LangbookDatabase.addAlphabetCopyingFromOther(_db, alphabet, sourceAlphabet);
     }
 
@@ -75,17 +75,17 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public boolean removeAlphabet(int alphabet) {
+    public boolean removeAlphabet(AlphabetId alphabet) {
         return LangbookDatabase.removeAlphabet(_db, alphabet);
     }
 
     @Override
-    public Integer addAcceptation(int concept, ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+    public Integer addAcceptation(int concept, ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray) {
         return LangbookDatabase.addAcceptation(_db, concept, correlationArray);
     }
 
     @Override
-    public boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableIntKeyMap<String>> newCorrelationArray) {
+    public boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableMap<AlphabetId, String>> newCorrelationArray) {
         return LangbookDatabase.updateAcceptationCorrelationArray(_db, acceptation, newCorrelationArray);
     }
 

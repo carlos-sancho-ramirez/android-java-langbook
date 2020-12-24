@@ -24,7 +24,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
     @Override
     BunchesManager createManager(MemoryDatabase db);
 
-    static int addSpanishSingAcceptation(AcceptationsManager manager, int alphabet, int concept) {
+    static int addSpanishSingAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept) {
         return addSimpleAcceptation(manager, alphabet, concept, "cantar");
     }
 
@@ -35,7 +35,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
 
         final LanguageCreationResult langPair = manager.addLanguage("es");
         final int language = langPair.language;
-        final int alphabet = langPair.mainAlphabet;
+        final AlphabetId alphabet = langPair.mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
         final int singConcept = verbConcept + 1;
 
@@ -54,7 +54,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int kanjiAlphabet = manager.getMaxConcept() + 1;
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
@@ -76,7 +76,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int animalConcept = manager.getMaxConcept() + 1;
         final int catConcept = animalConcept + 1;
 
@@ -93,7 +93,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
 
@@ -123,7 +123,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final BunchesManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
 

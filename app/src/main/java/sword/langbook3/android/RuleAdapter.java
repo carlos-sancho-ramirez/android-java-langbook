@@ -6,15 +6,14 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import sword.collections.ImmutableMap;
-import sword.collections.Map;
-import sword.langbook3.android.db.AlphabetId;
+import sword.collections.ImmutableIntKeyMap;
+import sword.collections.IntKeyMap;
 
-public final class AlphabetAdapter extends BaseAdapter {
-    private final ImmutableMap<AlphabetId, String> _entries;
+public final class RuleAdapter extends BaseAdapter {
+    private final ImmutableIntKeyMap<String> _entries;
     private LayoutInflater _inflater;
 
-    AlphabetAdapter(ImmutableMap<AlphabetId, String> entries) {
+    RuleAdapter(ImmutableIntKeyMap<String> entries) {
         _entries = entries;
     }
 
@@ -24,7 +23,7 @@ public final class AlphabetAdapter extends BaseAdapter {
     }
 
     @Override
-    public Map.Entry<AlphabetId, String> getItem(int position) {
+    public IntKeyMap.Entry<String> getItem(int position) {
         return _entries.entries().valueAt(position);
     }
 

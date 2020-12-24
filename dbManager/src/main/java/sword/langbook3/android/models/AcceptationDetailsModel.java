@@ -3,8 +3,10 @@ package sword.langbook3.android.models;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
+import sword.collections.ImmutableSet;
+import sword.langbook3.android.db.AlphabetId;
 
 public final class AcceptationDetailsModel {
 
@@ -24,9 +26,9 @@ public final class AcceptationDetailsModel {
     public final int appliedRuleId;
     public final int appliedRuleAcceptationId;
     public final ImmutableIntList correlationIds;
-    public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations;
-    public final ImmutableIntKeyMap<String> texts;
-    public final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts;
+    public final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations;
+    public final ImmutableMap<AlphabetId, String> texts;
+    public final ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts;
     public final ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts;
     public final int baseConceptAcceptationId;
     public final String baseConceptText;
@@ -55,9 +57,9 @@ public final class AcceptationDetailsModel {
             int appliedRuleId,
             int appliedRuleAcceptationId,
             ImmutableIntList correlationIds,
-            ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
-            ImmutableIntKeyMap<String> texts,
-            ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts,
+            ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations,
+            ImmutableMap<AlphabetId, String> texts,
+            ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts,
             ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts,
             int baseConceptAcceptationId,
             String baseConceptText,
@@ -124,10 +126,10 @@ public final class AcceptationDetailsModel {
         this.sampleSentences = sampleSentences;
     }
 
-    public String getTitle(int preferredAlphabet) {
+    public String getTitle(AlphabetId preferredAlphabet) {
         StringBuilder sb = new StringBuilder();
         for (int correlationId : correlationIds) {
-            final ImmutableIntKeyMap<String> correlation = correlations.get(correlationId);
+            final ImmutableMap<AlphabetId, String> correlation = correlations.get(correlationId);
             final String preferredText = correlation.get(preferredAlphabet, null);
             sb.append((preferredText != null)? preferredText : correlation.valueAt(0));
         }

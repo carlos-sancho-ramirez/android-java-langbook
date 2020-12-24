@@ -3,12 +3,13 @@ package sword.langbook3.android.db;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashMap;
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
+import sword.collections.ImmutablePair;
+import sword.collections.ImmutableSet;
+import sword.collections.IntTraversableTestUtils;
 import sword.collections.MutableHashMap;
 import sword.database.MemoryDatabase;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -17,11 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
-import static sword.collections.IntSetTestUtils.assertEqualSet;
-import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
+import static sword.collections.MapTestUtils.assertSinglePair;
+import static sword.collections.SetTestUtils.assertEqualSet;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
+import static sword.collections.TraversableTestUtils.assertContainsOnly;
 
 /**
  * Include all test related to all responsibilities of an AcceptationsManager.
@@ -68,24 +69,24 @@ public interface AcceptationsManagerTest {
             .put("z", "Z")
             .build();
 
-    static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
-        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+    static int addSimpleAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept, String text) {
+        final ImmutableMap<AlphabetId, String> correlation = new ImmutableHashMap.Builder<AlphabetId, String>()
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
                 .append(correlation)
                 .build();
 
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager manager, int alphabet, int acceptationId, String text) {
-        final ImmutableIntKeyMap<String> correlation = new ImmutableIntKeyMap.Builder<String>()
+    static boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager manager, AlphabetId alphabet, int acceptationId, String text) {
+        final ImmutableMap<AlphabetId, String> correlation = new ImmutableHashMap.Builder<AlphabetId, String>()
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
+        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
                 .append(correlation)
                 .build();
 
@@ -160,8 +161,8 @@ public interface AcceptationsManagerTest {
         final LanguageCreationResult langPair = manager.addLanguage("es");
 
         final int language = langPair.language;
-        final int mainAlphabet = langPair.mainAlphabet;
-        final int secondAlphabet = mainAlphabet + 1;
+        final AlphabetId mainAlphabet = langPair.mainAlphabet;
+        final AlphabetId secondAlphabet = new AlphabetId(mainAlphabet.key + 1);
         assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
         assertEquals(language, manager.findLanguageByCode("es").intValue());
@@ -175,18 +176,18 @@ public interface AcceptationsManagerTest {
         final LanguageCreationResult langPair = manager.addLanguage("ja");
 
         final int language = langPair.language;
-        final int mainAlphabet = langPair.mainAlphabet;
+        final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
         final int acceptation = addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
 
-        final int secondAlphabet = manager.getMaxConcept() + 1;
+        final AlphabetId secondAlphabet = new AlphabetId(manager.getMaxConcept() + 1);
         assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
         assertEquals(language, manager.findLanguageByCode("ja").intValue());
-        final ImmutableIntSet alphabetSet = manager.findAlphabetsByLanguage(language);
+        final ImmutableSet<AlphabetId> alphabetSet = manager.findAlphabetsByLanguage(language);
         assertContainsOnly(mainAlphabet, secondAlphabet, alphabetSet);
 
-        final ImmutableIntKeyMap<String> acceptationTexts = manager.getAcceptationTexts(acceptation);
+        final ImmutableMap<AlphabetId, String> acceptationTexts = manager.getAcceptationTexts(acceptation);
         assertSize(2, acceptationTexts);
         assertEquals(acceptationTexts.valueAt(0), acceptationTexts.valueAt(1));
         assertEqualSet(alphabetSet, acceptationTexts.keySet());
@@ -200,10 +201,10 @@ public interface AcceptationsManagerTest {
         final LanguageCreationResult langPair = manager.addLanguage("ja");
 
         final int language = langPair.language;
-        final int mainAlphabet = langPair.mainAlphabet;
+        final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
         addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
-        final int secondAlphabet = manager.getMaxConcept() + 1;
+        final AlphabetId secondAlphabet = new AlphabetId(manager.getMaxConcept() + 1);
         assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
         assertTrue(manager.removeLanguage(language));
@@ -218,19 +219,19 @@ public interface AcceptationsManagerTest {
         final LanguageCreationResult langPair = manager.addLanguage("es");
 
         final int language = langPair.language;
-        final int mainAlphabet = langPair.mainAlphabet;
-        final int secondAlphabet = mainAlphabet + 1;
+        final AlphabetId mainAlphabet = langPair.mainAlphabet;
+        final AlphabetId secondAlphabet = new AlphabetId(mainAlphabet.key + 1);
         final Conversion conversion = new Conversion(mainAlphabet, secondAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
         assertEquals(language, manager.findLanguageByCode("es").intValue());
         assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
 
-        final String convertedText = manager.getConversion(new ImmutableIntPair(mainAlphabet, secondAlphabet)).convert("casa");
+        final String convertedText = manager.getConversion(new ImmutablePair<>(mainAlphabet, secondAlphabet)).convert("casa");
 
         final int concept = manager.getMaxConcept() + 1;
         final int acceptationId = addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
-        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
         assertEquals("casa", texts.get(mainAlphabet));
         assertEquals(convertedText, texts.get(secondAlphabet));
@@ -244,10 +245,10 @@ public interface AcceptationsManagerTest {
         final LanguageCreationResult langPair = manager.addLanguage("es");
 
         final int language = langPair.language;
-        final int mainAlphabet = langPair.mainAlphabet;
+        final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
         final int concept = manager.getMaxConcept() + 1;
-        final int secondAlphabet = concept + 1;
+        final AlphabetId secondAlphabet = new AlphabetId(concept + 1);
         final int acceptationId = addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
 
         final Conversion conversion = new Conversion(mainAlphabet, secondAlphabet, upperCaseConversion);
@@ -256,9 +257,9 @@ public interface AcceptationsManagerTest {
         assertEquals(language, manager.findLanguageByCode("es").intValue());
         assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
 
-        final String convertedText = manager.getConversion(new ImmutableIntPair(mainAlphabet, secondAlphabet)).convert("casa");
+        final String convertedText = manager.getConversion(new ImmutablePair<>(mainAlphabet, secondAlphabet)).convert("casa");
 
-        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
         assertEquals("casa", texts.get(mainAlphabet));
         assertEquals(convertedText, texts.get(secondAlphabet));
@@ -272,10 +273,10 @@ public interface AcceptationsManagerTest {
         final LanguageCreationResult langPair = manager.addLanguage("es");
 
         final int language = langPair.language;
-        final int mainAlphabet = langPair.mainAlphabet;
+        final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
         final int concept = manager.getMaxConcept() + 1;
-        final int secondAlphabet = concept + 1;
+        final AlphabetId secondAlphabet = new AlphabetId(concept + 1);
         addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
         final Conversion conversion = new Conversion(mainAlphabet, secondAlphabet, upperCaseConversion);
         manager.addAlphabetAsConversionTarget(conversion);
@@ -292,9 +293,9 @@ public interface AcceptationsManagerTest {
 
         final LanguageCreationResult esLangPair = manager.addLanguage("es");
         final int esLanguage = esLangPair.language;
-        final int esMainAlphabet = esLangPair.mainAlphabet;
+        final AlphabetId esMainAlphabet = esLangPair.mainAlphabet;
 
-        final int enMainAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId enMainAlphabet = manager.addLanguage("en").mainAlphabet;
 
         final int concept = manager.getMaxConcept() + 1;
         final int esAcc = addSimpleAcceptation(manager, esMainAlphabet, concept, "casa");
@@ -304,7 +305,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.removeLanguage(esLanguage));
         assertNull(manager.findLanguageByCode("es"));
         assertNotNull(manager.findLanguageByCode("en"));
-        assertContainsOnly(enAcc, manager.findAcceptationsByConcept(concept));
+        IntTraversableTestUtils.assertContainsOnly(enAcc, manager.findAcceptationsByConcept(concept));
     }
 
     @Test
@@ -312,7 +313,7 @@ public interface AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
 
         final int acceptation = addSimpleAcceptation(manager, alphabet, concept, "cantar");
@@ -324,24 +325,24 @@ public interface AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = createManager(db);
 
-        final int kanji = manager.addLanguage("ja").mainAlphabet;
-        final int kana = manager.getMaxConcept() + 1;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = new AlphabetId(manager.getMaxConcept() + 1);
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableIntKeyMap<String>> correlationArrays = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
-                .add(new ImmutableIntKeyMap.Builder<String>()
+        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArrays = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
+                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
                         .build())
-                .add(new ImmutableIntKeyMap.Builder<String>()
+                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
                         .put(kanji, "文")
                         .put(kana, "もん")
                         .build())
                 .build();
 
         final int acceptation = manager.addAcceptation(concept, correlationArrays);
-        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptation);
+        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptation);
         assertSize(2, texts);
         assertEquals("注文", texts.get(kanji));
         assertEquals("ちゅうもん", texts.get(kana));
@@ -352,11 +353,11 @@ public interface AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = createManager(db);
 
-        final int kanji = manager.addLanguage("ja").mainAlphabet;
-        final int kana = manager.getMaxConcept() + 1;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = new AlphabetId(manager.getMaxConcept() + 1);
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
 
-        final int roumaji = manager.getMaxConcept() + 1;
+        final AlphabetId roumaji = new AlphabetId(manager.getMaxConcept() + 1);
         final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
                 .put("あ", "a")
                 .put("も", "mo")
@@ -369,12 +370,12 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = new ImmutableList.Builder<ImmutableIntKeyMap<String>>()
-                .add(new ImmutableIntKeyMap.Builder<String>()
+        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
+                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
                         .build())
-                .add(new ImmutableIntKeyMap.Builder<String>()
+                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
                         .put(kanji, "文")
                         .put(kana, "もん")
                         .build())
@@ -382,7 +383,7 @@ public interface AcceptationsManagerTest {
 
         final int acceptation = manager.addAcceptation(concept, correlationArray);
 
-        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptation);
+        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptation);
         assertSize(3, texts);
         assertEquals("注文", texts.get(kanji));
         assertEquals("ちゅうもん", texts.get(kana));
@@ -394,14 +395,14 @@ public interface AcceptationsManagerTest {
         final MemoryDatabase db1 = new MemoryDatabase();
         final AcceptationsManager manager1 = createManager(db1);
 
-        final int alphabet1 = manager1.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet1 = manager1.addLanguage("es").mainAlphabet;
         final int concept1 = manager1.getMaxConcept() + 1;
         final int acceptationId = addSimpleAcceptation(manager1, alphabet1, concept1, "cantar");
 
         final MemoryDatabase db2 = new MemoryDatabase();
         final AcceptationsManager manager2 = createManager(db2);
 
-        final int alphabet2 = manager2.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet2 = manager2.addLanguage("es").mainAlphabet;
         final int concept2 = manager2.getMaxConcept() + 1;
         assertEquals(acceptationId, addSimpleAcceptation(manager2, alphabet2, concept2, "cantar"));
         assertEquals(db1, db2);
@@ -415,9 +416,9 @@ public interface AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = createManager(db);
 
-        final int kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
-        final int roumajiAlphabet = manager.getMaxConcept() + 1;
-        final int concept = roumajiAlphabet + 1;
+        final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId roumajiAlphabet = new AlphabetId(manager.getMaxConcept() + 1);
+        final int concept = roumajiAlphabet.key + 1;
 
         final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
                 .put("か", "ka")
@@ -437,7 +438,7 @@ public interface AcceptationsManagerTest {
 
         final int acceptationId = addSimpleAcceptation(manager, kanaAlphabet, concept, "ねこ");
 
-        final ImmutableIntKeyMap<String> texts1 = manager.getAcceptationTexts(acceptationId);
+        final ImmutableMap<AlphabetId, String> texts1 = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts1);
         assertEquals("ねこ", texts1.get(kanaAlphabet));
         assertEquals("neo", texts1.get(roumajiAlphabet));
@@ -446,7 +447,7 @@ public interface AcceptationsManagerTest {
         final Conversion conversion2 = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
         assertTrue(manager.replaceConversion(conversion2));
 
-        final ImmutableIntKeyMap<String> texts2 = manager.getAcceptationTexts(acceptationId);
+        final ImmutableMap<AlphabetId, String> texts2 = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts2);
         assertEquals("ねこ", texts2.get(kanaAlphabet));
         assertEquals("neko", texts2.get(roumajiAlphabet));
@@ -457,9 +458,9 @@ public interface AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = createManager(db);
 
-        final int kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
-        final int roumajiAlphabet = manager.getMaxConcept() + 1;
-        final int concept = roumajiAlphabet + 1;
+        final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId roumajiAlphabet = new AlphabetId(manager.getMaxConcept() + 1);
+        final int concept = roumajiAlphabet.key + 1;
 
         final Conversion emptyConversion = new Conversion(kanaAlphabet, roumajiAlphabet, ImmutableHashMap.empty());
         assertTrue(manager.addAlphabetAsConversionTarget(emptyConversion));
@@ -480,7 +481,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.replaceConversion(conversion));
 
         final int acceptationId = addSimpleAcceptation(manager, kanaAlphabet, concept, "ねこ");
-        final ImmutableIntKeyMap<String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
         assertEquals("ねこ", texts.get(kanaAlphabet));
         assertEquals("neko", texts.get(roumajiAlphabet));
@@ -491,7 +492,7 @@ public interface AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
         final int guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "persona");
 

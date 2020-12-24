@@ -2,19 +2,22 @@ package sword.langbook3.android.models;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableMap;
+import sword.collections.ImmutableSet;
 import sword.collections.Predicate;
 import sword.langbook3.android.collections.EqualUtils;
+import sword.langbook3.android.db.AlphabetId;
 
 public final class CorrelationDetailsModel {
     /**
      * Map matching each alphabet with its alphabet name, according to the given preferred alphabet.
      */
-    public final ImmutableIntKeyMap<String> alphabets;
+    public final ImmutableMap<AlphabetId, String> alphabets;
 
     /**
      * Map matching each alphabet with its corresponding text representation for this correlation
      */
-    public final ImmutableIntKeyMap<String> correlation;
+    public final ImmutableMap<AlphabetId, String> correlation;
 
     /**
      * Contains all acceptations that contains this correlation.
@@ -32,20 +35,20 @@ public final class CorrelationDetailsModel {
      * This map must contain the same keys that the map at {@link #correlation} field.
      * In case, no related correlation is found for a concrete alphabet, an empty set will be found on its value.
      */
-    public final ImmutableIntKeyMap<ImmutableIntSet> relatedCorrelationsByAlphabet;
+    public final ImmutableMap<AlphabetId, ImmutableIntSet> relatedCorrelationsByAlphabet;
 
     /**
      * Contains all correlations that contains at least one text representation in common for the same alphabet.
      * The key of this map is its correlation identifier, while the value is the correlation itself (alphabet -&gt; text representation).
      */
-    public final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> relatedCorrelations;
+    public final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> relatedCorrelations;
 
     public CorrelationDetailsModel(
-            ImmutableIntKeyMap<String> alphabets,
-            ImmutableIntKeyMap<String> correlation,
+            ImmutableMap<AlphabetId, String> alphabets,
+            ImmutableMap<AlphabetId, String> correlation,
             ImmutableIntKeyMap<String> acceptations,
-            ImmutableIntKeyMap<ImmutableIntSet> relatedCorrelationsByAlphabet,
-            ImmutableIntKeyMap<ImmutableIntKeyMap<String>> relatedCorrelations) {
+            ImmutableMap<AlphabetId, ImmutableIntSet> relatedCorrelationsByAlphabet,
+            ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> relatedCorrelations) {
         if (alphabets == null || correlation == null || acceptations == null ||
                 relatedCorrelationsByAlphabet == null || relatedCorrelations == null) {
             throw new IllegalArgumentException();
@@ -56,8 +59,8 @@ public final class CorrelationDetailsModel {
             throw new IllegalArgumentException();
         }
 
-        final ImmutableIntSet alphabetsKeySet = alphabets.keySet();
-        final ImmutableIntSet correlationKeySet = correlation.keySet();
+        final ImmutableSet<AlphabetId> alphabetsKeySet = alphabets.keySet();
+        final ImmutableSet<AlphabetId> correlationKeySet = correlation.keySet();
         final ImmutableIntSet relatedCorrelationsKeySet = relatedCorrelations.keySet();
         if (correlationKeySet.anyMatch(alphabet -> !alphabetsKeySet.contains(alphabet)) ||
                 alphabets.anyMatch(isNull)) {

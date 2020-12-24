@@ -29,8 +29,8 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
@@ -99,8 +99,8 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
@@ -158,7 +158,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
@@ -193,7 +193,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
@@ -220,7 +220,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");

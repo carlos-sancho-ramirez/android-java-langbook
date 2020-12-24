@@ -15,6 +15,8 @@ import java.util.ArrayList;
 
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -90,16 +92,16 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
 
     private static final class FieldState {
         int type;
-        int alphabet;
+        AlphabetId alphabet;
         int rule;
     }
 
     private final ArrayList<FieldState> _questionFields = new ArrayList<>(1);
     private final ArrayList<FieldState> _answerFields = new ArrayList<>(1);
     private int _bunch;
-    private int _preferredAlphabet;
+    private AlphabetId _preferredAlphabet;
 
-    private ImmutableIntKeyMap<String> _alphabetItems;
+    private ImmutableMap<AlphabetId, String> _alphabetItems;
     private ImmutableIntKeyMap<String> _ruleItems;
 
     private final class FieldListener implements Spinner.OnItemSelectedListener, View.OnClickListener {
@@ -138,7 +140,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
                     break;
 
                 case R.id.fieldRule:
-                    fieldState.rule = ((AlphabetAdapter) adapterView.getAdapter()).getItem(position).key();
+                    fieldState.rule = ((RuleAdapter) adapterView.getAdapter()).getItem(position).key();
                     break;
             }
         }
@@ -173,7 +175,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         alphabetSpinner.setAdapter(new AlphabetAdapter(_alphabetItems));
         alphabetSpinner.setOnItemSelectedListener(listener);
 
-        ruleSpinner.setAdapter(new AlphabetAdapter(_ruleItems));
+        ruleSpinner.setAdapter(new RuleAdapter(_ruleItems));
         ruleSpinner.setOnItemSelectedListener(listener);
 
         fieldViewGroup.findViewById(R.id.removeFieldButton).setOnClickListener(listener);

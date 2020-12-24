@@ -1,11 +1,13 @@
 package sword.langbook3.android.models;
 
+import sword.langbook3.android.db.AlphabetId;
+
 public final class LanguageCreationResult {
     public final int language;
-    public final int mainAlphabet;
+    public final AlphabetId mainAlphabet;
 
-    public LanguageCreationResult(int language, int mainAlphabet) {
-        if (language == mainAlphabet) {
+    public LanguageCreationResult(int language, AlphabetId mainAlphabet) {
+        if (language == mainAlphabet.key) {
             throw new IllegalArgumentException();
         }
 

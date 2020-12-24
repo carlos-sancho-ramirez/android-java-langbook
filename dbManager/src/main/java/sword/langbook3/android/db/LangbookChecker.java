@@ -8,6 +8,6 @@ import sword.langbook3.android.models.SearchResult;
 
 public interface LangbookChecker extends QuizzesChecker, DefinitionsChecker, SentencesChecker {
     ImmutableSet<String> findConversionConflictWords(ConversionProposal newConversion);
-    AcceptationDetailsModel getAcceptationsDetails(int staticAcceptation, int preferredAlphabet);
+    AcceptationDetailsModel getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult> getSearchHistory();
 }

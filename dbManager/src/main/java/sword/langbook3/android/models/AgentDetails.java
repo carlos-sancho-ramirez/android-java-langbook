@@ -1,38 +1,40 @@
 package sword.langbook3.android.models;
 
-import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
+import sword.collections.ImmutableMap;
+import sword.langbook3.android.db.AlphabetId;
 
 public final class AgentDetails {
     public final ImmutableIntSet targetBunches;
     public final ImmutableIntSet sourceBunches;
     public final ImmutableIntSet diffBunches;
-    public final ImmutableIntKeyMap<String> startMatcher;
-    public final ImmutableIntKeyMap<String> startAdder;
-    public final ImmutableIntKeyMap<String> endMatcher;
-    public final ImmutableIntKeyMap<String> endAdder;
+    public final ImmutableMap<AlphabetId, String> startMatcher;
+    public final ImmutableMap<AlphabetId, String> startAdder;
+    public final ImmutableMap<AlphabetId, String> endMatcher;
+    public final ImmutableMap<AlphabetId, String> endAdder;
     public final int rule;
 
     public AgentDetails(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
-            ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
-            ImmutableIntKeyMap<String> endAdder, int rule) {
+            ImmutableIntSet diffBunches, ImmutableMap<AlphabetId, String> startMatcher,
+            ImmutableMap<AlphabetId, String> startAdder, ImmutableMap<AlphabetId, String> endMatcher,
+            ImmutableMap<AlphabetId, String> endAdder, int rule) {
 
         if (startMatcher == null) {
-            startMatcher = ImmutableIntKeyMap.empty();
+            startMatcher = ImmutableHashMap.empty();
         }
 
         if (startAdder == null) {
-            startAdder = ImmutableIntKeyMap.empty();
+            startAdder = ImmutableHashMap.empty();
         }
 
         if (endMatcher == null) {
-            endMatcher = ImmutableIntKeyMap.empty();
+            endMatcher = ImmutableHashMap.empty();
         }
 
         if (endAdder == null) {
-            endAdder = ImmutableIntKeyMap.empty();
+            endAdder = ImmutableHashMap.empty();
         }
 
         if (startMatcher.equals(startAdder) && endMatcher.equals(endAdder)) {

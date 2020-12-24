@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntSet;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 
 public final class DefinitionEditorActivity extends Activity implements View.OnClickListener {
@@ -56,7 +57,7 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
 
     private void updateUi() {
         final LangbookChecker checker = DbManager.getInstance().getManager();
-        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final TextView baseConceptTextView = findViewById(R.id.baseConceptText);
 
         final String text = (_state.baseConcept == 0)? null : checker.readConceptText(_state.baseConcept, preferredAlphabet);

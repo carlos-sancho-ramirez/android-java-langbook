@@ -7,13 +7,14 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 
 public final class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
@@ -36,7 +37,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
 
     private boolean _justLoaded;
 
-    private static String composeCorrelationString(ImmutableIntKeyMap<String> correlation) {
+    private static String composeCorrelationString(ImmutableMap<AlphabetId, String> correlation) {
         return correlation.reduce((a, b) -> a + '/' + b);
     }
 
@@ -57,13 +58,13 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         }
 
         for (int i = 0; i < entryCount; i++) {
-            final int matchingAlphabet = _model.correlation.keyAt(i);
+            final AlphabetId matchingAlphabet = _model.correlation.keyAt(i);
             final ImmutableIntSet matchingCorrelations = _model.relatedCorrelationsByAlphabet.get(matchingAlphabet);
             final int count = matchingCorrelations.size();
             if (count > 0) {
                 result.add(new HeaderItem("Other correlations sharing " + _model.alphabets.get(matchingAlphabet)));
                 for (int corrId : matchingCorrelations) {
-                    final ImmutableIntKeyMap<String> corr = _model.relatedCorrelations.get(corrId);
+                    final ImmutableMap<AlphabetId, String> corr = _model.relatedCorrelations.get(corrId);
                     result.add(new CorrelationNavigableItem(corrId, composeCorrelationString(corr)));
                 }
             }
@@ -73,7 +74,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     }
 
     private void updateModelAndUi() {
-        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _model = DbManager.getInstance().getManager().getCorrelationDetails(_correlationId, preferredAlphabet);
 
         if (_model != null) {

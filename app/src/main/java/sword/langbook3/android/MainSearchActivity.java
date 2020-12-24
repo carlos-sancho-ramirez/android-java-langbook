@@ -13,6 +13,7 @@ import android.widget.EditText;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.SearchResult;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
@@ -106,7 +107,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     SearchResultAdapter createAdapter(ImmutableList<SearchResult> results) {
         final int dbWriteVersion = DbManager.getInstance().getDatabase().getWriteVersion();
         if (_ruleTexts == null || dbWriteVersion != _dbWriteVersion) {
-            final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+            final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
             _ruleTexts = DbManager.getInstance().getManager().readAllRules(preferredAlphabet);
             _dbWriteVersion = dbWriteVersion;
         }

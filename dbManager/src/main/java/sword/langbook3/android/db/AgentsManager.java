@@ -1,7 +1,7 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableMap;
 
 public interface AgentsManager extends BunchesManager, AgentsChecker {
 
@@ -36,14 +36,14 @@ public interface AgentsManager extends BunchesManager, AgentsChecker {
      * @return An identifier for the new agent if all OK, or null if not possible to add the agent.
      */
     Integer addAgent(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
-            ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
-            ImmutableIntKeyMap<String> endAdder, int rule);
+            ImmutableIntSet diffBunches, ImmutableMap<AlphabetId, String> startMatcher,
+            ImmutableMap<AlphabetId, String> startAdder, ImmutableMap<AlphabetId, String> endMatcher,
+            ImmutableMap<AlphabetId, String> endAdder, int rule);
 
     boolean updateAgent(int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableIntKeyMap<String> startMatcher,
-            ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher,
-            ImmutableIntKeyMap<String> endAdder, int rule);
+            ImmutableIntSet diffBunches, ImmutableMap<AlphabetId, String> startMatcher,
+            ImmutableMap<AlphabetId, String> startAdder, ImmutableMap<AlphabetId, String> endMatcher,
+            ImmutableMap<AlphabetId, String> endAdder, int rule);
 
     void removeAgent(int agentId);
 }

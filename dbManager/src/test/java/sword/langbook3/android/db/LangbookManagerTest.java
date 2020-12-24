@@ -2,10 +2,11 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntArraySet;
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
@@ -32,7 +33,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
@@ -40,9 +41,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
+        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
 
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableMap<AlphabetId, String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -67,7 +68,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
@@ -78,8 +79,8 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableMap<AlphabetId, String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -107,7 +108,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
         final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
@@ -118,9 +119,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
+        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
 
-        final ImmutableIntKeyMap<String> adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableMap<AlphabetId, String> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         final int agentId = manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
@@ -148,7 +149,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int brushConcept = manager.getMaxConcept() + 1;
         final int brushAcc = addSimpleAcceptation(manager, esAlphabet, brushConcept, "cepillar");

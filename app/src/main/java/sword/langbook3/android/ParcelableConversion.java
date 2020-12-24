@@ -6,6 +6,7 @@ import android.os.Parcelable;
 import sword.collections.ImmutableMap;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.Conversion;
 
 public final class ParcelableConversion implements Parcelable {
@@ -30,8 +31,8 @@ public final class ParcelableConversion implements Parcelable {
     }
 
     private static Conversion read(Parcel in) {
-        final int sourceAlphabet = in.readInt();
-        final int targetAlphabet = in.readInt();
+        final AlphabetId sourceAlphabet = new AlphabetId(in.readInt());
+        final AlphabetId targetAlphabet = new AlphabetId(in.readInt());
 
         final int mapSize = in.readInt();
         final MutableMap<String, String> map = MutableHashMap.empty();
@@ -45,8 +46,8 @@ public final class ParcelableConversion implements Parcelable {
     }
 
     private static void write(Parcel dest, Conversion conversion) {
-        dest.writeInt(conversion.getSourceAlphabet());
-        dest.writeInt(conversion.getTargetAlphabet());
+        dest.writeInt(conversion.getSourceAlphabet().key);
+        dest.writeInt(conversion.getTargetAlphabet().key);
 
         final ImmutableMap<String, String> map = conversion.getMap();
         final int mapSize = map.size();

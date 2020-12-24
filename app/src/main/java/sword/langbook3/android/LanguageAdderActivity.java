@@ -7,10 +7,11 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
-import sword.collections.IntKeyMap;
-import sword.collections.MutableIntKeyMap;
+import sword.collections.ImmutableMap;
+import sword.collections.Map;
+import sword.collections.MutableMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
@@ -49,11 +50,11 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         }
     }
 
-    private ImmutableIntKeyMap<String> correlationFromCorrelationArray(ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+    private ImmutableMap<AlphabetId, String> correlationFromCorrelationArray(ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray) {
         return correlationArray.reduce((corr1, corr2) -> {
-            final MutableIntKeyMap<String> mixed = corr1.mutate();
-            for (IntKeyMap.Entry<String> entry : corr2.entries()) {
-                final int key = entry.key();
+            final MutableMap<AlphabetId, String> mixed = corr1.mutate();
+            for (Map.Entry<AlphabetId, String> entry : corr2.entries()) {
+                final AlphabetId key = entry.key();
                 mixed.put(key, mixed.get(key) + entry.value());
             }
 
@@ -97,13 +98,13 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             }
             else {
                 if (_state.hasAtLeastOneAlphabetCorrelationArray()) {
-                    final ImmutableIntKeyMap<String> correlation = correlationFromCorrelationArray(_state.popLastAlphabetCorrelationArray());
+                    final ImmutableMap<AlphabetId, String> correlation = correlationFromCorrelationArray(_state.popLastAlphabetCorrelationArray());
                     final int titleResId = _state.hasAtLeastOneAlphabetCorrelationArray()?
                             R.string.newMainAlphabetNameActivityTitle : R.string.newAuxAlphabetNameActivityTitle;
                     WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, getString(titleResId), correlation, _state.getCurrentConcept());
                 }
                 else {
-                    final ImmutableIntKeyMap<String> correlation = correlationFromCorrelationArray(_state.popLanguageCorrelationArray());
+                    final ImmutableMap<AlphabetId, String> correlation = correlationFromCorrelationArray(_state.popLanguageCorrelationArray());
                     final String title = getString(R.string.newLanguageNameActivityTitle);
                     WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, correlation, _state.getCurrentConcept());
                 }

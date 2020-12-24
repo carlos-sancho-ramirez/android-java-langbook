@@ -2,6 +2,7 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
@@ -9,6 +10,7 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.database.Database;
 import sword.database.DbQuery;
@@ -27,13 +29,13 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
 final class LangbookReadableDatabaseTest {
 
-    private void addAgent(Database db, int sourceBunch, int alphabet, String endMatcherText, String endAdderText, int rule) {
+    private void addAgent(Database db, int sourceBunch, AlphabetId alphabet, String endMatcherText, String endAdderText, int rule) {
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
         final ImmutableIntSet verbBunchSet = emptyBunchSet.add(sourceBunch);
 
-        final ImmutableIntKeyMap<String> emptyCorrelation = ImmutableIntKeyMap.empty();
-        final ImmutableIntKeyMap<String> endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
-        final ImmutableIntKeyMap<String> endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
+        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableMap<AlphabetId, String> endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
+        final ImmutableMap<AlphabetId, String> endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
 
         LangbookDatabase.addAgent(db, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
     }
@@ -42,7 +44,7 @@ final class LangbookReadableDatabaseTest {
     void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
-        final int alphabet = addLanguage(db, "es").mainAlphabet;
+        final AlphabetId alphabet = addLanguage(db, "es").mainAlphabet;
         final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
         final int verbBunchId = pluralRule + 1;
@@ -57,12 +59,12 @@ final class LangbookReadableDatabaseTest {
         addAgent(db, verbBunchId, alphabet, "ar", "ando", gerundRule);
         addAgent(db, femaleNounBunchId, alphabet, null, "s", pluralRule);
 
-        final ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "cantar").build();
+        final ImmutableMap<AlphabetId, String> texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "cantar").build();
         final ImmutableIntKeyMap<String> matchingBunches = LangbookReadableDatabase
                 .readAllMatchingBunches(db, texts, alphabet);
         assertEquals(ImmutableIntKeyMap.empty().put(verbBunchId, verbBunchTitle), matchingBunches);
 
-        final ImmutableIntKeyMap<String> texts2 = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();
+        final ImmutableMap<AlphabetId, String> texts2 = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "comer").build();
         assertTrue(LangbookReadableDatabase.readAllMatchingBunches(db, texts2, alphabet).isEmpty());
     }
 
@@ -97,8 +99,8 @@ final class LangbookReadableDatabaseTest {
 
                     final MemoryDatabase db = new MemoryDatabase();
                     final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
-                    final int alphabet1 = addLanguage(db, "xx").mainAlphabet;
-                    final int alphabet2 = manager.getMaxConcept() + 1;
+                    final AlphabetId alphabet1 = addLanguage(db, "xx").mainAlphabet;
+                    final AlphabetId alphabet2 = new AlphabetId(manager.getMaxConcept() + 1);
                     assertTrue(addAlphabetCopyingFromOther(db, alphabet2, alphabet1));
 
                     final int concept1 = getMaxConcept(db) + 1;

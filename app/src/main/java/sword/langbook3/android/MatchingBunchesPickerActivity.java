@@ -6,9 +6,12 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ListView;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.IntKeyMap;
+import sword.collections.ImmutableMap;
+import sword.collections.Map;
+import sword.langbook3.android.db.AlphabetId;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 
@@ -23,13 +26,13 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
 
     private MatchingBunchesPickerAdapter _adapter;
 
-    public static void open(Activity activity, int requestCode, IntKeyMap<String> texts) {
+    public static void open(Activity activity, int requestCode, Map<AlphabetId, String> texts) {
         final int mapSize = texts.size();
         final int[] alphabets = new int[mapSize];
         final String[] str = new String[mapSize];
 
         for (int i = 0; i < mapSize; i++) {
-            alphabets[i] = texts.keyAt(i);
+            alphabets[i] = texts.keyAt(i).key;
             str[i] = texts.valueAt(i);
         }
 
@@ -39,7 +42,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private ImmutableIntKeyMap<String> getTexts() {
+    private ImmutableMap<AlphabetId, String> getTexts() {
         final Bundle extras = getIntent().getExtras();
         final int[] alphabets = extras.getIntArray(ArgKeys.ALPHABETS);
         final String[] texts = extras.getStringArray(ArgKeys.TEXTS);
@@ -48,9 +51,9 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
             throw new AssertionError();
         }
 
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         for (int i = 0; i < alphabets.length; i++) {
-            builder.put(alphabets[i], texts[i]);
+            builder.put(new AlphabetId(alphabets[i]), texts[i]);
         }
 
         return builder.build();
@@ -62,7 +65,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         setContentView(R.layout.matching_bunches_picker_activity);
 
         final ListView listView = findViewById(R.id.listView);
-        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableIntKeyMap<String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(getTexts(), preferredAlphabet);
 
         if (bunches.isEmpty()) {

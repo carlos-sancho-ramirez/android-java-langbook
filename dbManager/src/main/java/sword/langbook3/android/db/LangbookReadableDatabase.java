@@ -1,10 +1,9 @@
 package sword.langbook3.android.db;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import sword.collections.Function;
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
@@ -23,7 +22,9 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
+import sword.collections.IntValueMap;
 import sword.collections.List;
+import sword.collections.Map;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
@@ -35,6 +36,7 @@ import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueMap;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
+import sword.collections.Set;
 import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
@@ -43,7 +45,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
@@ -70,6 +71,7 @@ import sword.langbook3.android.models.SynonymTranslationResult;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
+import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
@@ -178,10 +180,10 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static ImmutableIntPairMap findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, int sourceAlphabet) {
+    static ImmutableIntPairMap findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, AlphabetId sourceAlphabet) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQuery.Builder(correlations)
-                .where(correlations.getAlphabetColumnIndex(), sourceAlphabet)
+                .where(correlations.getAlphabetColumnIndex(), sourceAlphabet.key)
                 .select(correlations.getCorrelationIdColumnIndex(), correlations.getSymbolArrayColumnIndex());
 
         final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
@@ -338,11 +340,12 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    static Integer findCorrelation(DbExporter.Database db, IntKeyMap<String> correlation) {
+    static Integer findCorrelation(DbExporter.Database db, Map<AlphabetId, String> correlation) {
         if (correlation.size() == 0) {
             return NULL_CORRELATION_ID;
         }
-        final ImmutableIntKeyMap<String> corr = correlation.toImmutable();
+        final ImmutableMap<AlphabetId, String> immutableCorrelation = correlation.toImmutable();
+        final ImmutableIntKeyMap<String> corr = immutableCorrelation.keySet().mapToInt(id -> id.key).toSet().assign(key -> immutableCorrelation.get(new AlphabetId(key)));
 
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
@@ -393,17 +396,17 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
+    static Integer findCorrelation(DbExporter.Database db, IntValueMap<AlphabetId> correlation) {
         if (correlation.size() == 0) {
             return NULL_CORRELATION_ID;
         }
-        final ImmutableIntPairMap corr = correlation.toImmutable();
+        final ImmutableIntValueMap<AlphabetId> corr = correlation.toImmutable();
 
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getCorrelationIdColumnIndex(), table.getCorrelationIdColumnIndex())
-                .where(table.getAlphabetColumnIndex(), corr.keyAt(0))
+                .where(table.getAlphabetColumnIndex(), corr.keyAt(0).key)
                 .where(table.getSymbolArrayColumnIndex(), corr.valueAt(0))
                 .select(
                         table.getCorrelationIdColumnIndex(),
@@ -414,8 +417,8 @@ public final class LangbookReadableDatabase {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int correlationId = row.get(0).toInt();
-                ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-                builder.put(row.get(1).toInt(), row.get(2).toInt());
+                ImmutableIntValueMap.Builder<AlphabetId> builder = new ImmutableIntValueHashMap.Builder<>();
+                builder.put(new AlphabetId(row.get(1).toInt()), row.get(2).toInt());
 
                 while (result.hasNext()) {
                     row = result.next();
@@ -426,13 +429,13 @@ public final class LangbookReadableDatabase {
                         }
 
                         correlationId = newCorrelationId;
-                        builder = new ImmutableIntPairMap.Builder();
+                        builder = new ImmutableIntValueHashMap.Builder<>();
                     }
 
-                    builder.put(row.get(1).toInt(), row.get(2).toInt());
+                    builder.put(new AlphabetId(row.get(1).toInt()), row.get(2).toInt());
                 }
 
-                if (builder.build().equals(corr)) {
+                if (builder.build().equalMap(corr)) {
                     return correlationId;
                 }
             }
@@ -523,17 +526,17 @@ public final class LangbookReadableDatabase {
         return selectOptionalFirstIntColumn(db, query);
     }
 
-    static ImmutableIntSet findAlphabetsByLanguage(DbExporter.Database db, int language) {
+    static ImmutableSet<AlphabetId> findAlphabetsByLanguage(DbExporter.Database db, int language) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getLanguageColumnIndex(), language)
                 .select(table.getIdColumnIndex());
 
 
-        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return db.select(query).map(row -> new AlphabetId(row.get(0).toInt())).toSet().toImmutable();
     }
 
-    static ImmutableIntPairMap getConversionsMap(DbExporter.Database db) {
+    static ImmutableMap<AlphabetId, AlphabetId> getConversionsMap(DbExporter.Database db) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
 
         final DbQuery query = new DbQuery.Builder(conversions)
@@ -542,11 +545,11 @@ public final class LangbookReadableDatabase {
                         conversions.getSourceAlphabetColumnIndex(),
                         conversions.getTargetAlphabetColumnIndex());
 
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        final ImmutableMap.Builder<AlphabetId, AlphabetId> builder = new ImmutableHashMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                builder.put(row.get(1).toInt(), row.get(0).toInt());
+                builder.put(new AlphabetId(row.get(1).toInt()), new AlphabetId(row.get(0).toInt()));
             }
         }
 
@@ -712,7 +715,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    static Conversion getConversion(DbExporter.Database db, ImmutableIntPair pair) {
+    static Conversion getConversion(DbExporter.Database db, ImmutablePair<AlphabetId, AlphabetId> pair) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
         final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
 
@@ -722,8 +725,8 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(conversions)
                 .join(symbols, conversions.getSourceColumnIndex(), symbols.getIdColumnIndex())
                 .join(symbols, conversions.getTargetColumnIndex(), symbols.getIdColumnIndex())
-                .where(conversions.getSourceAlphabetColumnIndex(), pair.left)
-                .where(conversions.getTargetAlphabetColumnIndex(), pair.right)
+                .where(conversions.getSourceAlphabetColumnIndex(), pair.left.key)
+                .where(conversions.getTargetAlphabetColumnIndex(), pair.right.key)
                 .select(
                         off1Symbols + symbols.getStrColumnIndex(),
                         off2Symbols + symbols.getStrColumnIndex());
@@ -744,7 +747,7 @@ public final class LangbookReadableDatabase {
     static boolean checkConversionConflicts(DbExporter.Database db, ConversionProposal conversion) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet())
+                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet().key)
                 .select(table.getStringColumnIndex());
 
         return !db.select(query)
@@ -756,7 +759,7 @@ public final class LangbookReadableDatabase {
         // TODO: Logic in the word should be somehow centralised with #checkConversionConflicts method
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet())
+                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet().key)
                 .select(table.getStringColumnIndex());
 
         return db.select(query)
@@ -1009,7 +1012,7 @@ public final class LangbookReadableDatabase {
     }
 
     static Integer findQuestionFieldSet(DbExporter.Database db, Iterable<QuestionFieldDetails> collection) {
-        final Set<QuestionFieldDetails> set = new HashSet<>();
+        final MutableHashSet<QuestionFieldDetails> set = MutableHashSet.empty();
         if (collection == null) {
             return null;
         }
@@ -1018,7 +1021,7 @@ public final class LangbookReadableDatabase {
             set.add(field);
         }
 
-        if (set.size() == 0) {
+        if (set.isEmpty()) {
             return null;
         }
 
@@ -1027,7 +1030,7 @@ public final class LangbookReadableDatabase {
         final int columnCount = fieldSets.columns().size();
         final DbQuery query = new DbQuery.Builder(fieldSets)
                 .join(fieldSets, fieldSets.getSetIdColumnIndex(), fieldSets.getSetIdColumnIndex())
-                .where(fieldSets.getAlphabetColumnIndex(), firstField.alphabet)
+                .where(fieldSets.getAlphabetColumnIndex(), firstField.alphabet.key)
                 .where(fieldSets.getRuleColumnIndex(), firstField.rule)
                 .where(fieldSets.getFlagsColumnIndex(), firstField.flags)
                 .select(
@@ -1040,8 +1043,8 @@ public final class LangbookReadableDatabase {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int setId = row.get(0).toInt();
-                final Set<QuestionFieldDetails> foundSet = new HashSet<>();
-                foundSet.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+                final MutableSet<QuestionFieldDetails> foundSet = MutableHashSet.empty();
+                foundSet.add(new QuestionFieldDetails(new AlphabetId(row.get(1).toInt()), row.get(2).toInt(), row.get(3).toInt()));
 
                 while (result.hasNext()) {
                     row = result.next();
@@ -1055,7 +1058,7 @@ public final class LangbookReadableDatabase {
                         }
                     }
 
-                    foundSet.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+                    foundSet.add(new QuestionFieldDetails(new AlphabetId(row.get(1).toInt()), row.get(2).toInt(), row.get(3).toInt()));
                 }
 
                 if (foundSet.equals(set)) {
@@ -1067,8 +1070,9 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static ImmutableIntPairMap findConversions(DbExporter.Database db, IntSet alphabets) {
+    static ImmutableMap<AlphabetId, AlphabetId> findConversions(DbExporter.Database db, Set<AlphabetId> alphabets) {
         final LangbookDbSchema.ConversionsTable conversions = LangbookDbSchema.Tables.conversions;
+        final ImmutableIntSet rawAlphabets = alphabets.mapToInt(id -> id.key).toSet().toImmutable();
 
         final DbQuery query = new DbQuery.Builder(conversions)
                 .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
@@ -1077,24 +1081,24 @@ public final class LangbookReadableDatabase {
                         conversions.getTargetAlphabetColumnIndex());
 
         final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        final ImmutableMap.Builder<AlphabetId, AlphabetId> builder = new ImmutableHashMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int source = row.get(0).toInt();
-                final int target = row.get(1).toInt();
+                final int rawSource = row.get(0).toInt();
+                final int rawTarget = row.get(1).toInt();
 
-                if (foundAlphabets.contains(target)) {
+                if (foundAlphabets.contains(rawTarget)) {
                     throw new AssertionError();
                 }
-                foundAlphabets.add(target);
+                foundAlphabets.add(rawTarget);
 
-                if (alphabets.contains(target)) {
-                    if (!alphabets.contains(source)) {
+                if (rawAlphabets.contains(rawTarget)) {
+                    if (!rawAlphabets.contains(rawSource)) {
                         throw new AssertionError();
                     }
 
-                    builder.put(target, source);
+                    builder.put(new AlphabetId(rawTarget), new AlphabetId(rawSource));
                 }
             }
         }
@@ -1245,7 +1249,7 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
-    static ImmutableIntKeyMap<String> getCorrelationWithText(DbExporter.Database db, int correlationId) {
+    static ImmutableMap<AlphabetId, String> getCorrelationWithText(DbExporter.Database db, int correlationId) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
 
@@ -1253,11 +1257,11 @@ public final class LangbookReadableDatabase {
                 .join(symbolArrays, correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
                 .where(correlations.getCorrelationIdColumnIndex(), correlationId)
                 .select(correlations.getAlphabetColumnIndex(), correlations.columns().size() + symbolArrays.getStrColumnIndex());
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), row.get(1).toText());
+                builder.put(new AlphabetId(row.get(0).toInt()), row.get(1).toText());
             }
         }
         return builder.build();
@@ -1348,7 +1352,7 @@ public final class LangbookReadableDatabase {
         return map;
     }
 
-    static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {
+    static ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>>> getAcceptationCorrelations(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
@@ -1374,18 +1378,18 @@ public final class LangbookReadableDatabase {
                 );
 
         final MutableIntList correlationIds = MutableIntList.empty();
-        final MutableIntKeyMap<ImmutableIntKeyMap<String>> correlationMap = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlationMap = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
                 List<DbValue> row = dbResult.next();
-                ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+                ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
                 int pos = row.get(0).toInt();
                 int correlationId = row.get(1).toInt();
                 if (pos != correlationIds.size()) {
                     throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
                 }
 
-                builder.put(row.get(2).toInt(), row.get(3).toText());
+                builder.put(new AlphabetId(row.get(2).toInt()), row.get(3).toText());
 
                 while (dbResult.hasNext()) {
                     row = dbResult.next();
@@ -1394,14 +1398,14 @@ public final class LangbookReadableDatabase {
                         correlationMap.put(correlationId, builder.build());
                         correlationIds.append(correlationId);
                         correlationId = row.get(1).toInt();
-                        builder = new ImmutableIntKeyMap.Builder<>();
+                        builder = new ImmutableHashMap.Builder<>();
                         pos = newPos;
                     }
 
                     if (newPos != correlationIds.size()) {
                         throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
                     }
-                    builder.put(row.get(2).toInt(), row.get(3).toText());
+                    builder.put(new AlphabetId(row.get(2).toInt()), row.get(3).toText());
                 }
                 correlationMap.put(correlationId, builder.build());
                 correlationIds.append(correlationId);
@@ -1511,7 +1515,7 @@ public final class LangbookReadableDatabase {
         return isCorrelationUsedInAnyCorrelationArray(db, correlationId) || isCorrelationUsedInAnyAgent(db, correlationId);
     }
 
-    private static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, int preferredAlphabet) {
+    private static ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1531,7 +1535,7 @@ public final class LangbookReadableDatabase {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int accId = row.get(0).toInt();
-                if (row.get(1).toInt() == preferredAlphabet || result.get(accId, null) == null) {
+                if (row.get(1).toInt() == preferredAlphabet.key || result.get(accId, null) == null) {
                     result.put(accId, row.get(2).toText());
                 }
             }
@@ -1540,7 +1544,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    private static ImmutableIntKeyMap<ImmutableIntKeyMap<String>> readCorrelationsWithSameSymbolArray(DbExporter.Database db, int correlation, int alphabet) {
+    private static ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> readCorrelationsWithSameSymbolArray(DbExporter.Database db, int correlation, AlphabetId alphabet) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
 
@@ -1553,21 +1557,21 @@ public final class LangbookReadableDatabase {
                 .join(correlations, corrOffset2 + correlations.getCorrelationIdColumnIndex(), correlations.getCorrelationIdColumnIndex())
                 .join(symbolArrays, corrOffset3 + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
                 .where(correlations.getCorrelationIdColumnIndex(), correlation)
-                .where(correlations.getAlphabetColumnIndex(), alphabet)
+                .where(correlations.getAlphabetColumnIndex(), alphabet.key)
                 .whereColumnValueMatch(correlations.getAlphabetColumnIndex(), corrOffset2 + correlations.getAlphabetColumnIndex())
                 .whereColumnValueDiffer(correlations.getCorrelationIdColumnIndex(), corrOffset2 + correlations.getCorrelationIdColumnIndex())
                 .select(corrOffset2 + correlations.getCorrelationIdColumnIndex(),
                         corrOffset3 + correlations.getAlphabetColumnIndex(),
                         strOffset + symbolArrays.getStrColumnIndex());
 
-        final MutableIntKeyMap<ImmutableIntKeyMap<String>> result = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<ImmutableMap<AlphabetId, String>> result = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int corrId = row.get(0).toInt();
-                final int textAlphabet = row.get(1).toInt();
+                final AlphabetId textAlphabet = new AlphabetId(row.get(1).toInt());
                 final String text = row.get(2).toText();
-                final ImmutableIntKeyMap<String> currentCorr = result.get(corrId, ImmutableIntKeyMap.empty());
+                final ImmutableMap<AlphabetId, String> currentCorr = result.get(corrId, ImmutableHashMap.empty());
                 result.put(corrId, currentCorr.put(textAlphabet, text));
             }
         }
@@ -1624,10 +1628,10 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static MutableIntKeyMap<String> readCorrelationArrayTexts(DbExporter.Database db, int correlationArrayId) {
-        MutableIntKeyMap<String> texts = MutableIntKeyMap.empty();
+    static MutableMap<AlphabetId, String> readCorrelationArrayTexts(DbExporter.Database db, int correlationArrayId) {
+        MutableMap<AlphabetId, String> texts = MutableHashMap.empty();
         for (int correlationId : getCorrelationArray(db, correlationArrayId)) {
-            for (IntKeyMap.Entry<String> entry : getCorrelationWithText(db, correlationId).entries()) {
+            for (Map.Entry<AlphabetId, String> entry : getCorrelationWithText(db, correlationId).entries()) {
                 final String currentValue = texts.get(entry.key(), "");
                 texts.put(entry.key(), currentValue + entry.value());
             }
@@ -1636,18 +1640,18 @@ public final class LangbookReadableDatabase {
         return texts;
     }
 
-    static IntKeyMap<String> readCorrelationArrayTextAndItsAppliedConversions(DbExporter.Database db, int correlationArrayId) {
-        final MutableIntKeyMap<String> texts = readCorrelationArrayTexts(db, correlationArrayId);
+    static Map<AlphabetId, String> readCorrelationArrayTextAndItsAppliedConversions(DbExporter.Database db, int correlationArrayId) {
+        final MutableMap<AlphabetId, String> texts = readCorrelationArrayTexts(db, correlationArrayId);
         if (texts.isEmpty()) {
             return null;
         }
 
-        final ImmutableIntPairMap conversionMap = getConversionsMap(db);
+        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = getConversionsMap(db);
         final int conversionCount = conversionMap.size();
-        for (IntKeyMap.Entry<String> entry : texts.entries().toImmutable()) {
+        for (Map.Entry<AlphabetId, String> entry : texts.entries().toImmutable()) {
             for (int conversionIndex = 0; conversionIndex < conversionCount; conversionIndex++) {
-                if (conversionMap.valueAt(conversionIndex) == entry.key()) {
-                    final ImmutableIntPair pair = new ImmutableIntPair(conversionMap.valueAt(conversionIndex), conversionMap.keyAt(conversionIndex));
+                if (equal(conversionMap.valueAt(conversionIndex), entry.key())) {
+                    final ImmutablePair<AlphabetId, AlphabetId> pair = new ImmutablePair<>(conversionMap.valueAt(conversionIndex), conversionMap.keyAt(conversionIndex));
                     final String convertedText = getConversion(db, pair).convert(entry.value());
                     if (convertedText == null) {
                         return null;
@@ -1698,7 +1702,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static MutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static MutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1723,7 +1727,7 @@ public final class LangbookReadableDatabase {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int accId = row.get(1).toInt();
-                if (accId != acceptation && (builder.get(accId, null) == null || row.get(3).toInt() == preferredAlphabet)) {
+                if (accId != acceptation && (builder.get(accId, null) == null || row.get(3).toInt() == preferredAlphabet.key)) {
                     builder.put(accId, new SynonymTranslationResult(row.get(2).toInt(), row.get(4).toText(), row.get(0).toInt() != accId));
                 }
             }
@@ -1754,7 +1758,7 @@ public final class LangbookReadableDatabase {
                 row.get(1).toInt() == setId || row.get(2).toInt() == setId);
     }
 
-    private static ImmutableIntKeyMap<ImmutableIntSet> readAcceptationsSharingTexts(DbExporter.Database db, int acceptation) {
+    private static ImmutableIntKeyMap<ImmutableSet<AlphabetId>> readAcceptationsSharingTexts(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int offset = strings.columns().size();
@@ -1766,8 +1770,8 @@ public final class LangbookReadableDatabase {
 
         final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
         final MutableIntList sortedAlphabets = MutableIntList.empty();
-        final MutableIntKeyMap<ImmutableIntSet> alphabetSets = MutableIntKeyMap.empty();
-        alphabetSets.put(0, ImmutableIntArraySet.empty());
+        final MutableIntKeyMap<ImmutableSet<AlphabetId>> alphabetSets = MutableIntKeyMap.empty();
+        alphabetSets.put(0, ImmutableHashSet.empty());
         final MutableIntPairMap result = MutableIntPairMap.empty();
 
         try (DbResult dbResult = db.select(query)) {
@@ -1783,7 +1787,7 @@ public final class LangbookReadableDatabase {
                         sortedAlphabets.append(alphabet);
 
                         for (int key : alphabetSets.keySet().toImmutable()) {
-                            alphabetSets.put(bitMask | key, alphabetSets.get(key).add(alphabet));
+                            alphabetSets.put(bitMask | key, alphabetSets.get(key).add(new AlphabetId(alphabet)));
                         }
                     }
 
@@ -1797,7 +1801,7 @@ public final class LangbookReadableDatabase {
         return result.map(alphabetSets::get).toImmutable();
     }
 
-    private static ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> readDefinitionFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> readDefinitionFromAcceptation(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1824,9 +1828,9 @@ public final class LangbookReadableDatabase {
                 int firstAlphabet = row.get(1).toInt();
                 String text = row.get(2).toText();
                 compositionId = row.get(3).toInt();
-                while (firstAlphabet != preferredAlphabet && dbResult.hasNext()) {
+                while (firstAlphabet != preferredAlphabet.key && dbResult.hasNext()) {
                     row = dbResult.next();
-                    if (row.get(1).toInt() == preferredAlphabet) {
+                    if (row.get(1).toInt() == preferredAlphabet.key) {
                         acc = row.get(0).toInt();
                         text = row.get(2).toText();
                         break;
@@ -1852,7 +1856,7 @@ public final class LangbookReadableDatabase {
         return new ImmutablePair<>(result, componentTexts);
     }
 
-    private static ImmutableIntKeyMap<String> readDefinitionComponentsText(DbExporter.Database db, int compositionId, int preferredAlphabet) {
+    private static ImmutableIntKeyMap<String> readDefinitionComponentsText(DbExporter.Database db, int compositionId, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.ConceptCompositionsTable compositions = LangbookDbSchema.Tables.conceptCompositions;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1881,7 +1885,7 @@ public final class LangbookReadableDatabase {
                 final String text = row.get(3).toText();
 
                 final int currentAccId = conceptAccMap.get(concept, 0);
-                if (currentAccId == 0 || alphabet == preferredAlphabet) {
+                if (currentAccId == 0 || alphabet == preferredAlphabet.key) {
                     conceptAccMap.put(concept, accId);
                     conceptTextMap.put(concept, text);
                 }
@@ -1896,7 +1900,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static ImmutableIntKeyMap<String> readSubtypesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutableIntKeyMap<String> readSubtypesFromAcceptation(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1922,7 +1926,7 @@ public final class LangbookReadableDatabase {
                 final List<DbValue> row = dbResult.next();
                 final int concept = row.get(0).toInt();
                 final int alphabet = row.get(2).toInt();
-                if (alphabet == preferredAlphabet || !conceptAccs.keySet().contains(concept)) {
+                if (alphabet == preferredAlphabet.key || !conceptAccs.keySet().contains(concept)) {
                     conceptAccs.put(concept, row.get(1).toInt());
                     conceptText.put(concept, row.get(3).toText());
                 }
@@ -1950,7 +1954,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    private static AcceptationOrigin readOriginalAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static AcceptationOrigin readOriginalAcceptation(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final int offset = ruledAcceptations.columns().size();
@@ -1969,7 +1973,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                if (id == 0 || row.get(2).toInt() == preferredAlphabet) {
+                if (id == 0 || row.get(2).toInt() == preferredAlphabet.key) {
                     id = row.get(0).toInt();
                     agentId = row.get(1).toInt();
                     text = row.get(3).toText();
@@ -1992,7 +1996,7 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    private static AppliedRule readRulePreferredTextByAgent(DbExporter.Database db, int agentId, int preferredAlphabet) {
+    private static AppliedRule readRulePreferredTextByAgent(DbExporter.Database db, int agentId, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2014,7 +2018,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                if (ruleId == 0 || row.get(2).toInt() == preferredAlphabet) {
+                if (ruleId == 0 || row.get(2).toInt() == preferredAlphabet.key) {
                     ruleId = row.get(0).toInt();
                     acceptationId = row.get(1).toInt();
                     text = row.get(3).toText();
@@ -2025,7 +2029,7 @@ public final class LangbookReadableDatabase {
         return (ruleId == 0)? null : new AppliedRule(acceptationId, ruleId, text);
     }
 
-    static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    static MorphologyReaderResult readMorphologiesFromAcceptation(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -2058,7 +2062,7 @@ public final class LangbookReadableDatabase {
                 final int rule = row.get(5).toInt();
 
                 final boolean dynAccNotFound = texts.get(dynAcc, null) == null;
-                if (dynAccNotFound || alphabet == preferredAlphabet) {
+                if (dynAccNotFound || alphabet == preferredAlphabet.key) {
                     texts.put(dynAcc, row.get(2).toText());
                 }
 
@@ -2087,7 +2091,7 @@ public final class LangbookReadableDatabase {
         return new MorphologyReaderResult(morphologies, ruleTexts, agentRules.toImmutable());
     }
 
-    static DerivedAcceptationsReaderResult readDerivedAcceptations(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    static DerivedAcceptationsReaderResult readDerivedAcceptations(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -2115,7 +2119,7 @@ public final class LangbookReadableDatabase {
                 final int dynAcc = row.get(0).toInt();
 
                 final boolean dynAccNotFound = texts.get(dynAcc, null) == null;
-                if (dynAccNotFound || row.get(1).toInt() == preferredAlphabet) {
+                if (dynAccNotFound || row.get(1).toInt() == preferredAlphabet.key) {
                     texts.put(dynAcc, row.get(2).toText());
                 }
 
@@ -2373,16 +2377,16 @@ public final class LangbookReadableDatabase {
         return selectExistAtLeastOneRow(db, query);
     }
 
-    static boolean isAlphabetPresent(DbExporter.Database db, int alphabet) {
+    static boolean isAlphabetPresent(DbExporter.Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), alphabet)
+                .where(table.getIdColumnIndex(), alphabet.key)
                 .select(table.getIdColumnIndex());
 
         return selectExistingRow(db, query);
     }
 
-    static boolean areAllAlphabetsFromSameLanguage(DbExporter.Database db, IntSet alphabets) {
+    static boolean areAllAlphabetsFromSameLanguage(DbExporter.Database db, Set<AlphabetId> alphabets) {
         final Integer language = getLanguageFromAlphabet(db, alphabets.valueAt(0));
         if (language == null) {
             return false;
@@ -2399,34 +2403,34 @@ public final class LangbookReadableDatabase {
         return true;
     }
 
-    static ImmutableIntSet alphabetsWithinLanguage(DbExporter.Database db, int alphabet) {
+    static ImmutableSet<AlphabetId> alphabetsWithinLanguage(DbExporter.Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getLanguageColumnIndex(), table.getLanguageColumnIndex())
-                .where(table.getIdColumnIndex(), alphabet)
+                .where(table.getIdColumnIndex(), alphabet.key)
                 .select(offset + table.getIdColumnIndex());
 
-        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
+        final ImmutableSet.Builder<AlphabetId> builder = new ImmutableHashSet.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
-                builder.add(dbResult.next().get(0).toInt());
+                builder.add(new AlphabetId(dbResult.next().get(0).toInt()));
             }
         }
 
         return builder.build();
     }
 
-    static Integer getLanguageFromAlphabet(DbExporter.Database db, int alphabet) {
+    static Integer getLanguageFromAlphabet(DbExporter.Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), alphabet)
+                .where(table.getIdColumnIndex(), alphabet.key)
                 .select(table.getLanguageColumnIndex());
 
         return selectOptionalFirstIntColumn(db, query);
     }
 
-    private static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, int alphabet, int preferredAlphabet) {
+    private static IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, AlphabetId alphabet, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2436,7 +2440,7 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(alphabets)
                 .join(acceptations, alphabets.getLanguageColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .where(alphabets.getIdColumnIndex(), alphabet)
+                .where(alphabets.getIdColumnIndex(), alphabet.key)
                 .select(
                         accOffset + acceptations.getConceptColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
@@ -2449,11 +2453,11 @@ public final class LangbookReadableDatabase {
                 int lang = row.get(0).toInt();
                 int firstAlphabet = row.get(1).toInt();
                 String text = row.get(2).toText();
-                while (firstAlphabet != preferredAlphabet && dbResult.hasNext()) {
+                while (firstAlphabet != preferredAlphabet.key && dbResult.hasNext()) {
                     row = dbResult.next();
-                    if (row.get(1).toInt() == preferredAlphabet) {
+                    if (row.get(1).toInt() == preferredAlphabet.key) {
                         lang = row.get(0).toInt();
-                        firstAlphabet = preferredAlphabet;
+                        firstAlphabet = preferredAlphabet.key;
                         text = row.get(2).toText();
                     }
                 }
@@ -2465,7 +2469,7 @@ public final class LangbookReadableDatabase {
         throw new IllegalArgumentException("alphabet " + alphabet + " not found");
     }
 
-    static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndLanguage(DbExporter.Database db, int acceptation) {
+    static ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> readAcceptationTextsAndLanguage(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabetsTable = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
@@ -2475,7 +2479,7 @@ public final class LangbookReadableDatabase {
                         table.getStringAlphabetColumnIndex(),
                         table.getStringColumnIndex(),
                         table.columns().size() + alphabetsTable.getLanguageColumnIndex());
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         boolean languageSet = false;
         int language = 0;
         try (DbResult result = db.select(query)) {
@@ -2492,14 +2496,14 @@ public final class LangbookReadableDatabase {
                     throw new AssertionError();
                 }
 
-                builder.put(alphabet, text);
+                builder.put(new AlphabetId(alphabet), text);
             }
         }
 
         return new ImmutablePair<>(builder.build(), language);
     }
 
-    static ImmutablePair<ImmutableIntKeyMap<String>, Integer> readAcceptationTextsAndMain(DbExporter.Database db, int acceptation) {
+    static ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> readAcceptationTextsAndMain(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), acceptation)
@@ -2507,7 +2511,7 @@ public final class LangbookReadableDatabase {
                         table.getStringAlphabetColumnIndex(),
                         table.getStringColumnIndex(),
                         table.getMainAcceptationColumnIndex());
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         boolean mainAccSet = false;
         int mainAcc = 0;
         try (DbResult result = db.select(query)) {
@@ -2524,7 +2528,7 @@ public final class LangbookReadableDatabase {
                     throw new AssertionError();
                 }
 
-                builder.put(alphabet, text);
+                builder.put(new AlphabetId(alphabet), text);
             }
         }
 
@@ -2540,7 +2544,7 @@ public final class LangbookReadableDatabase {
         return selectFirstRow(db, query).get(0).toText();
     }
 
-    static String readConceptText(DbExporter.Database db, int concept, int preferredAlphabet) {
+    static String readConceptText(DbExporter.Database db, int concept, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
@@ -2555,10 +2559,10 @@ public final class LangbookReadableDatabase {
             List<DbValue> row = result.next();
             int firstAlphabet = row.get(0).toInt();
             text = row.get(1).toText();
-            while (firstAlphabet != preferredAlphabet && result.hasNext()) {
+            while (firstAlphabet != preferredAlphabet.key && result.hasNext()) {
                 row = result.next();
-                if (row.get(0).toInt() == preferredAlphabet) {
-                    firstAlphabet = preferredAlphabet;
+                if (row.get(0).toInt() == preferredAlphabet.key) {
+                    firstAlphabet = preferredAlphabet.key;
                     text = row.get(1).toText();
                 }
             }
@@ -2613,7 +2617,7 @@ public final class LangbookReadableDatabase {
         return resultMap.toImmutable();
     }
 
-    static DisplayableItem readConceptAcceptationAndText(DbExporter.Database db, int concept, int preferredAlphabet) {
+    static DisplayableItem readConceptAcceptationAndText(DbExporter.Database db, int concept, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
@@ -2632,10 +2636,10 @@ public final class LangbookReadableDatabase {
             int firstAlphabet = row.get(0).toInt();
             acceptation = row.get(1).toInt();
             text = row.get(2).toText();
-            while (firstAlphabet != preferredAlphabet && result.hasNext()) {
+            while (firstAlphabet != preferredAlphabet.key && result.hasNext()) {
                 row = result.next();
-                if (row.get(0).toInt() == preferredAlphabet) {
-                    firstAlphabet = preferredAlphabet;
+                if (row.get(0).toInt() == preferredAlphabet.key) {
+                    firstAlphabet = preferredAlphabet.key;
                     acceptation = row.get(1).toInt();
                     text = row.get(2).toText();
                 }
@@ -2707,7 +2711,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableList<DynamizableResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutableList<DynamizableResult> readBunchesWhereAcceptationIsIncluded(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2735,7 +2739,7 @@ public final class LangbookReadableDatabase {
                 final int bunch = row.get(0).toInt();
                 final int alphabet = row.get(2).toInt();
 
-                if (alphabet == preferredAlphabet || acceptationsMap.get(bunch, 0) == 0) {
+                if (alphabet == preferredAlphabet.key || acceptationsMap.get(bunch, 0) == 0) {
                     final int acc = row.get(1).toInt();
                     final String text = row.get(3).toText();
                     acceptationsMap.put(bunch, acc);
@@ -2752,7 +2756,7 @@ public final class LangbookReadableDatabase {
         return acceptationsMap.keySet().map(bunch -> new DynamizableResult(acceptationsMap.get(bunch), !bunchesWhereIncludedStatically.contains(bunch), textsMap.get(bunch))).toImmutable();
     }
 
-    private static ImmutableList<DynamizableResult> readAcceptationBunchChildren(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static ImmutableList<DynamizableResult> readAcceptationBunchChildren(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2777,7 +2781,7 @@ public final class LangbookReadableDatabase {
                 final int acc = row.get(0).toInt();
                 final int alphabet = row.get(1).toInt();
 
-                if (alphabet == preferredAlphabet || accTexts.get(acc, null) == null) {
+                if (alphabet == preferredAlphabet.key || accTexts.get(acc, null) == null) {
                     final String text = row.get(2).toText();
                     final int agent = row.get(3).toInt();
                     accTexts.put(acc, text);
@@ -2791,7 +2795,7 @@ public final class LangbookReadableDatabase {
         return accTexts.keySet().map(acc -> new DynamizableResult(acc, !includedStatically.contains(acc), accTexts.get(acc))).toImmutable();
     }
 
-    static ImmutableIntKeyMap<String> readAllAlphabets(DbExporter.Database db, int preferredAlphabet) {
+    static ImmutableMap<AlphabetId, String> readAllAlphabets(DbExporter.Database db, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2806,7 +2810,7 @@ public final class LangbookReadableDatabase {
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
@@ -2816,26 +2820,26 @@ public final class LangbookReadableDatabase {
                 while (result.hasNext()) {
                     row = result.next();
                     if (alphabet == row.get(0).toInt()) {
-                        if (row.get(1).toInt() == preferredAlphabet) {
+                        if (row.get(1).toInt() == preferredAlphabet.key) {
                             text = row.get(2).toText();
                         }
                     }
                     else {
-                        builder.put(alphabet, text);
+                        builder.put(new AlphabetId(alphabet), text);
 
                         alphabet = row.get(0).toInt();
                         text = row.get(2).toText();
                     }
                 }
 
-                builder.put(alphabet, text);
+                builder.put(new AlphabetId(alphabet), text);
             }
         }
 
         return builder.build();
     }
 
-    static ImmutableIntKeyMap<String> readAlphabetsForLanguage(DbExporter.Database db, int language, int preferredAlphabet) {
+    static ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(DbExporter.Database db, int language, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
@@ -2852,16 +2856,16 @@ public final class LangbookReadableDatabase {
                         strOffset + stringQueries.getStringAlphabetColumnIndex(),
                         strOffset + stringQueries.getStringColumnIndex());
         final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
-        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        final MutableMap<AlphabetId, String> result = MutableHashMap.empty();
         try (DbResult r = db.select(query)) {
             while (r.hasNext()) {
                 final List<DbValue> row = r.next();
                 final int id = row.get(0).toInt();
                 final int strAlphabet = row.get(1).toInt();
 
-                if (strAlphabet == preferredAlphabet || !foundAlphabets.contains(id)) {
+                if (strAlphabet == preferredAlphabet.key || !foundAlphabets.contains(id)) {
                     foundAlphabets.add(id);
-                    result.put(id, row.get(2).toText());
+                    result.put(new AlphabetId(id), row.get(2).toText());
                 }
             }
         }
@@ -2869,17 +2873,17 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    static int readMainAlphabetFromAlphabet(DbExporter.Database db, int alphabet) {
+    static AlphabetId readMainAlphabetFromAlphabet(DbExporter.Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable alpTable = alphabets;
         final LangbookDbSchema.LanguagesTable langTable = LangbookDbSchema.Tables.languages;
         final DbQuery mainAlphableQuery = new DbQuery.Builder(alpTable)
                 .join(langTable, alpTable.getLanguageColumnIndex(), langTable.getIdColumnIndex())
-                .where(alpTable.getIdColumnIndex(), alphabet)
+                .where(alpTable.getIdColumnIndex(), alphabet.key)
                 .select(alpTable.columns().size() + langTable.getMainAlphabetColumnIndex());
-        return selectSingleRow(db, mainAlphableQuery).get(0).toInt();
+        return new AlphabetId(selectSingleRow(db, mainAlphableQuery).get(0).toInt());
     }
 
-    static ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, int preferredAlphabet) {
+    static ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
@@ -2905,7 +2909,7 @@ public final class LangbookReadableDatabase {
                 final int lang = row.get(0).toInt();
                 final int alphabet = row.get(1).toInt();
 
-                if (alphabet == preferredAlphabet || !foundLanguages.contains(lang)) {
+                if (alphabet == preferredAlphabet.key || !foundLanguages.contains(lang)) {
                     foundLanguages.add(lang);
                     result.put(lang, row.get(2).toText());
                 }
@@ -2915,23 +2919,23 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    private static ImmutableIntSet readAllAcceptations(DbExporter.Database db, int alphabet) {
+    private static ImmutableIntSet readAllAcceptations(DbExporter.Database db, AlphabetId alphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(strings)
-                .where(strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .whereColumnValueMatch(strings.getMainAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .select(strings.getDynamicAcceptationColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableIntSet readAllAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
+    private static ImmutableIntSet readAllAcceptationsInBunch(DbExporter.Database db, AlphabetId alphabet, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(bunchAcceptations)
                 .join(strings, bunchAcceptations.getAcceptationColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(bunchAcceptations.getBunchColumnIndex(), bunch)
-                .where(bunchAcceptations.columns().size() + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(bunchAcceptations.columns().size() + strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
@@ -2966,7 +2970,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    private static String readSameConceptTexts(DbExporter.Database db, int acceptation, int alphabet) {
+    private static String readSameConceptTexts(DbExporter.Database db, int acceptation, AlphabetId alphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
@@ -2977,7 +2981,7 @@ public final class LangbookReadableDatabase {
                 .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(acceptations.getIdColumnIndex(), acceptation)
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .whereColumnValueDiffer(acceptations.getIdColumnIndex(), accOffset + acceptations.getIdColumnIndex())
                 .select(strOffset + strings.getStringColumnIndex());
 
@@ -2999,7 +3003,7 @@ public final class LangbookReadableDatabase {
                 .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
                 .where(ruledAcceptations.getAcceptationColumnIndex(), acceptation)
                 .where(agentsOffset + agents.getRuleColumnIndex(), field.rule)
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), field.alphabet)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), field.alphabet.key)
                 .select(strOffset + strings.getStringColumnIndex());
         return selectSingleRow(db, query).get(0).toText();
     }
@@ -3061,7 +3065,7 @@ public final class LangbookReadableDatabase {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int quizId = row.get(0).toInt();
-                final QuestionFieldDetails field = new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt());
+                final QuestionFieldDetails field = new QuestionFieldDetails(new AlphabetId(row.get(1).toInt()), row.get(2).toInt(), row.get(3).toInt());
                 final ImmutableSet<QuestionFieldDetails> set = resultMap.get(quizId, ImmutableHashSet.empty());
                 resultMap.put(quizId, set.add(field));
             }
@@ -3070,15 +3074,15 @@ public final class LangbookReadableDatabase {
         return resultMap.toImmutable();
     }
 
-    private static boolean checkMatching(ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> texts) {
-        for (IntKeyMap.Entry<String> entry : startMatcher.entries()) {
+    private static boolean checkMatching(ImmutableMap<AlphabetId, String> startMatcher, ImmutableMap<AlphabetId, String> endMatcher, ImmutableMap<AlphabetId, String> texts) {
+        for (Map.Entry<AlphabetId, String> entry : startMatcher.entries()) {
             final String text = texts.get(entry.key(), null);
             if (text == null || !text.startsWith(entry.value())) {
                 return false;
             }
         }
 
-        for (IntKeyMap.Entry<String> entry : endMatcher.entries()) {
+        for (Map.Entry<AlphabetId, String> entry : endMatcher.entries()) {
             final String text = texts.get(entry.key(), null);
             if (text == null || !text.endsWith(entry.value())) {
                 return false;
@@ -3115,7 +3119,7 @@ public final class LangbookReadableDatabase {
      * @param preferredAlphabet User's defined alphabet.
      * @return A map whose keys are bunches (concepts) and value are the suitable way to represent that bunch, according to the given preferred alphabet.
      */
-    static ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, ImmutableIntKeyMap<String> texts, int preferredAlphabet) {
+    static ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, ImmutableMap<AlphabetId, String> texts, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getDiffBunchSetColumnIndex(), 0)
@@ -3123,7 +3127,7 @@ public final class LangbookReadableDatabase {
                         agents.getStartMatcherColumnIndex(),
                         agents.getEndMatcherColumnIndex());
 
-        final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> cachedCorrelations =
+        final SyncCacheIntKeyNonNullValueMap<ImmutableMap<AlphabetId, String>> cachedCorrelations =
                 new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelationWithText(db, id));
         final ImmutableIntSet.Builder validBunchSetsBuilder = new ImmutableIntSetCreator();
 
@@ -3134,8 +3138,8 @@ public final class LangbookReadableDatabase {
                 int startMatcherId = row.get(1).toInt();
                 int endMatcherId = row.get(2).toInt();
 
-                final ImmutableIntKeyMap<String> startMatcher = cachedCorrelations.get(startMatcherId);
-                final ImmutableIntKeyMap<String> endMatcher = cachedCorrelations.get(endMatcherId);
+                final ImmutableMap<AlphabetId, String> startMatcher = cachedCorrelations.get(startMatcherId);
+                final ImmutableMap<AlphabetId, String> endMatcher = cachedCorrelations.get(endMatcherId);
                 if (checkMatching(startMatcher, endMatcher, texts)) {
                     validBunchSetsBuilder.add(bunchSet);
                 }
@@ -3151,7 +3155,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(DbExporter.Database db, int alphabet) {
+    private static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptations(DbExporter.Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
@@ -3159,14 +3163,14 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(acceptations)
                 .join(acceptations, acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, acceptations.columns().size() + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .whereColumnValueDiffer(acceptations.getIdColumnIndex(), acceptations.columns().size() + acceptations.getIdColumnIndex())
                 .select(acceptations.getIdColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(DbExporter.Database db, int alphabet, int bunch) {
+    private static ImmutableIntSet readAllPossibleSynonymOrTranslationAcceptationsInBunch(DbExporter.Database db, AlphabetId alphabet, int bunch) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -3180,14 +3184,14 @@ public final class LangbookReadableDatabase {
                 .join(acceptations, accOffset1 + acceptations.getConceptColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset2 + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(bunchAcceptations.getBunchColumnIndex(), bunch)
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .whereColumnValueDiffer(accOffset1 + acceptations.getIdColumnIndex(), accOffset2 + acceptations.getIdColumnIndex())
                 .select(accOffset1 + acceptations.getIdColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableIntSet readAllRulableAcceptations(DbExporter.Database db, int alphabet, int rule) {
+    private static ImmutableIntSet readAllRulableAcceptations(DbExporter.Database db, AlphabetId alphabet, int rule) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -3197,14 +3201,14 @@ public final class LangbookReadableDatabase {
         final DbQuery query = new DbQuery.Builder(ruledAcceptations)
                 .join(agents, ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
                 .join(strings, ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .where(agentOffset + agents.getRuleColumnIndex(), rule)
                 .select(ruledAcceptations.getAcceptationColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableIntSet readAllRulableAcceptationsInBunch(DbExporter.Database db, int alphabet, int rule, int bunch) {
+    private static ImmutableIntSet readAllRulableAcceptationsInBunch(DbExporter.Database db, AlphabetId alphabet, int rule, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
@@ -3218,7 +3222,7 @@ public final class LangbookReadableDatabase {
                 .join(agents, ruledAccOffset + ruledAcceptations.getAgentColumnIndex(), agents.getIdColumnIndex())
                 .join(strings, ruledAccOffset + ruledAcceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(bunchAcceptations.getBunchColumnIndex(), bunch)
-                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(strOffset + strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .where(agentOffset + agents.getRuleColumnIndex(), rule)
                 .select(bunchAcceptations.getAcceptationColumnIndex());
 
@@ -3330,12 +3334,12 @@ public final class LangbookReadableDatabase {
         final ImmutableIntSet diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
                 getBunchSet(db, register.diffBunchSetId) : sourceBunches;
 
-        final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> correlationCache =
+        final SyncCacheIntKeyNonNullValueMap<ImmutableMap<AlphabetId, String>> correlationCache =
                 new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelationWithText(db, id));
-        final ImmutableIntKeyMap<String> startMatcher = correlationCache.get(register.startMatcherId);
-        final ImmutableIntKeyMap<String> startAdder = correlationCache.get(register.startAdderId);
-        final ImmutableIntKeyMap<String> endMatcher = correlationCache.get(register.endMatcherId);
-        final ImmutableIntKeyMap<String> endAdder = correlationCache.get(register.endAdderId);
+        final ImmutableMap<AlphabetId, String> startMatcher = correlationCache.get(register.startMatcherId);
+        final ImmutableMap<AlphabetId, String> startAdder = correlationCache.get(register.startAdderId);
+        final ImmutableMap<AlphabetId, String> endMatcher = correlationCache.get(register.endMatcherId);
+        final ImmutableMap<AlphabetId, String> endAdder = correlationCache.get(register.endAdderId);
 
         return new AgentDetails(targetBunches, sourceBunches, diffBunches,
                 startMatcher, startAdder, endMatcher, endAdder, register.rule);
@@ -3360,7 +3364,7 @@ public final class LangbookReadableDatabase {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 bunch = row.get(0).toInt();
-                builder.add(new QuestionFieldDetails(row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt()));
+                builder.add(new QuestionFieldDetails(new AlphabetId(row.get(1).toInt()), row.get(2).toInt(), row.get(3).toInt()));
             }
         }
 
@@ -3409,7 +3413,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().assign(sentenceId -> getSentenceText(db, sentenceId));
     }
 
-    static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    static AcceptationDetailsModel getAcceptationsDetails(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final int concept = conceptFromAcceptation(db, acceptation);
         if (concept == 0) {
             return null;
@@ -3435,16 +3439,16 @@ public final class LangbookReadableDatabase {
             appliedRuleAcceptationText = null;
         }
 
-        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> correlationResultPair = getAcceptationCorrelations(db, acceptation);
-        final int givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
+        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>>> correlationResultPair = getAcceptationCorrelations(db, acceptation);
+        final AlphabetId givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
         final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, preferredAlphabet);
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
         languageStrs.put(languageResult.id, languageResult.text);
 
-        final ImmutableIntKeyMap<String> texts = getAcceptationTexts(db, acceptation);
-        final ImmutableIntKeyMap<ImmutableIntSet> acceptationsSharingTexts = readAcceptationsSharingTexts(db, acceptation);
+        final ImmutableMap<AlphabetId, String> texts = getAcceptationTexts(db, acceptation);
+        final ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts = readAcceptationsSharingTexts(db, acceptation);
 
-        final ImmutableIntSet allAphabets = texts.keySet();
+        final ImmutableSet<AlphabetId> allAphabets = texts.keySet();
         final ImmutableIntSet accsSharingSome = acceptationsSharingTexts.filterNot(allAphabets::equalSet).keySet();
         final int accSharingSomeSize = accsSharingSome.size();
         final MutableIntKeyMap<String> accSharingSomeText = MutableIntKeyMap.empty((currentSize, desiredSize) -> accSharingSomeSize);
@@ -3482,22 +3486,22 @@ public final class LangbookReadableDatabase {
                 ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
     }
 
-    static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, int preferredAlphabet) {
-        final ImmutableIntKeyMap<String> correlation = getCorrelationWithText(db, correlationId);
+    static CorrelationDetailsModel getCorrelationDetails(DbExporter.Database db, int correlationId, AlphabetId preferredAlphabet) {
+        final ImmutableMap<AlphabetId, String> correlation = getCorrelationWithText(db, correlationId);
         if (correlation.isEmpty()) {
             return null;
         }
 
-        final ImmutableIntKeyMap<String> alphabets = readAllAlphabets(db, preferredAlphabet);
+        final ImmutableMap<AlphabetId, String> alphabets = readAllAlphabets(db, preferredAlphabet);
         final ImmutableIntKeyMap<String> acceptations = readAcceptationsIncludingCorrelation(db, correlationId, preferredAlphabet);
 
         final int entryCount = correlation.size();
-        final MutableIntKeyMap<ImmutableIntSet> relatedCorrelationsByAlphabet = MutableIntKeyMap.empty();
-        final MutableIntKeyMap<ImmutableIntKeyMap<String>> relatedCorrelations = MutableIntKeyMap.empty();
+        final MutableMap<AlphabetId, ImmutableIntSet> relatedCorrelationsByAlphabet = MutableHashMap.empty();
+        final MutableIntKeyMap<ImmutableMap<AlphabetId, String>> relatedCorrelations = MutableIntKeyMap.empty();
 
         for (int i = 0; i < entryCount; i++) {
-            final int matchingAlphabet = correlation.keyAt(i);
-            final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations = readCorrelationsWithSameSymbolArray(db, correlationId, matchingAlphabet);
+            final AlphabetId matchingAlphabet = correlation.keyAt(i);
+            final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations = readCorrelationsWithSameSymbolArray(db, correlationId, matchingAlphabet);
 
             final int amount = correlations.size();
             final ImmutableIntSet.Builder setBuilder = new ImmutableIntSetCreator();
@@ -3581,33 +3585,33 @@ public final class LangbookReadableDatabase {
         return found? value : null;
     }
 
-    static ImmutableIntKeyMap<String> getAcceptationTexts(DbExporter.Database db, int acceptation) {
+    static ImmutableMap<AlphabetId, String> getAcceptationTexts(DbExporter.Database db, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), acceptation)
                 .select(table.getStringAlphabetColumnIndex(), table.getStringColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                builder.put(row.get(0).toInt(), row.get(1).toText());
+                builder.put(new AlphabetId(row.get(0).toInt()), row.get(1).toText());
             }
         }
 
         return builder.build();
     }
 
-    private static String getAcceptationText(DbExporter.Database db, int acceptation, int alphabet) {
+    private static String getAcceptationText(DbExporter.Database db, int acceptation, AlphabetId alphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(strings)
                 .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                .where(strings.getStringAlphabetColumnIndex(), alphabet)
+                .where(strings.getStringAlphabetColumnIndex(), alphabet.key)
                 .select(strings.getStringColumnIndex());
         return selectSingleRow(db, query).get(0).toText();
     }
 
-    private static String getAcceptationDisplayableText(DbExporter.Database db, int acceptation, int preferredAlphabet) {
+    private static String getAcceptationDisplayableText(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQuery.Builder(strings)
                 .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
@@ -3617,7 +3621,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                if (text == null || row.get(0).toInt() == preferredAlphabet) {
+                if (text == null || row.get(0).toInt() == preferredAlphabet.key) {
                     text = row.get(1).toText();
                 }
             }
@@ -3646,7 +3650,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static boolean checkAlphabetCanBeRemoved(DbExporter.Database db, int alphabet) {
+    static boolean checkAlphabetCanBeRemoved(DbExporter.Database db, AlphabetId alphabet) {
         // There must be at least another alphabet in the same language to avoid leaving the language without alphabets
         if (alphabetsWithinLanguage(db, alphabet).size() < 2) {
             return false;
@@ -3661,10 +3665,10 @@ public final class LangbookReadableDatabase {
         return !isAlphabetUsedInQuestions(db, alphabet);
     }
 
-    static boolean isAlphabetUsedInQuestions(DbExporter.Database db, int alphabet) {
+    static boolean isAlphabetUsedInQuestions(DbExporter.Database db, AlphabetId alphabet) {
         final LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
         final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getAlphabetColumnIndex(), alphabet)
+                .where(table.getAlphabetColumnIndex(), alphabet.key)
                 .select(table.getIdColumnIndex());
 
         try (DbResult dbResult = db.select(query)) {

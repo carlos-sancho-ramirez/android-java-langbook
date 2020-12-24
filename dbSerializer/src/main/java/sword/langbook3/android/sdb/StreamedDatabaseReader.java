@@ -52,7 +52,6 @@ import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.AgentRegister;
-import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ID;

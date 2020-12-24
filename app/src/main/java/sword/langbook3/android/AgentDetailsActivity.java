@@ -12,9 +12,10 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
-import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
+import sword.collections.ImmutableMap;
+import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.DisplayableItem;
@@ -39,7 +40,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         context.startActivity(intent);
     }
 
-    private int _preferredAlphabet;
+    private AlphabetId _preferredAlphabet;
     int _agentId;
 
     boolean _deleteDialogPresent;
@@ -71,16 +72,16 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         updateUi();
     }
 
-    private static void addCorrelationSection(LangbookChecker checker, String title, int correlationId, SyncCacheIntKeyNonNullValueMap<String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
+    private static void addCorrelationSection(LangbookChecker checker, String title, int correlationId, SyncCacheMap<AlphabetId, String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
         boolean headerAdded = false;
-        ImmutableIntKeyMap<String> matcher = checker.getCorrelationWithText(correlationId);
+        ImmutableMap<AlphabetId, String> matcher = checker.getCorrelationWithText(correlationId);
         for (int i = 0; i < matcher.size(); i++) {
             if (!headerAdded) {
                 headerAdded = true;
                 builder.add(new AcceptationDetailsAdapter.HeaderItem(title));
             }
 
-            final int alphabet = matcher.keyAt(i);
+            final AlphabetId alphabet = matcher.keyAt(i);
             final String alphabetText = alphabetTexts.get(alphabet);
             final String text = alphabetText + " -> " + matcher.valueAt(i);
             builder.add(new AcceptationDetailsAdapter.NonNavigableItem(text));
@@ -122,7 +123,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
         }
 
-        final SyncCacheIntKeyNonNullValueMap<String> alphabetTexts = new SyncCacheIntKeyNonNullValueMap<>(alphabet -> checker.readConceptText(alphabet, _preferredAlphabet));
+        final SyncCacheMap<AlphabetId, String> alphabetTexts = new SyncCacheMap<>(alphabet -> checker.readConceptText(alphabet.key, _preferredAlphabet));
 
         addCorrelationSection(checker, getString(R.string.agentStartMatcherHeader), _register.startMatcherId, alphabetTexts, builder);
         addCorrelationSection(checker, getString(R.string.agentStartAdderHeader), _register.startAdderId, alphabetTexts, builder);

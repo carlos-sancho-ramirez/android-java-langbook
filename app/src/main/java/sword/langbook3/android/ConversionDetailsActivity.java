@@ -8,7 +8,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
 
-import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.collections.ImmutablePair;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.Conversion;
 
@@ -21,41 +22,43 @@ public final class ConversionDetailsActivity extends Activity {
         String TARGET_ALPHABET = BundleKeys.TARGET_ALPHABET;
     }
 
-    public static void open(Context context, int sourceAlphabet, int targetAlphabet) {
+    public static void open(Context context, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final Intent intent = new Intent(context, ConversionDetailsActivity.class);
-        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
-        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet);
+        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet.key);
+        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet.key);
         context.startActivity(intent);
     }
 
-    public static void open(Activity activity, int requestCode, int sourceAlphabet, int targetAlphabet) {
+    public static void open(Activity activity, int requestCode, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final Intent intent = new Intent(activity, ConversionDetailsActivity.class);
-        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
-        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet);
+        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet.key);
+        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet.key);
         activity.startActivityForResult(intent, requestCode);
     }
 
     private boolean _dataJustLoaded;
 
-    private int getSourceAlphabet() {
-        return getIntent().getIntExtra(ArgKeys.SOURCE_ALPHABET, 0);
+    private AlphabetId getSourceAlphabet() {
+        final int rawAlphabet = getIntent().getIntExtra(ArgKeys.SOURCE_ALPHABET, 0);
+        return (rawAlphabet != 0)? new AlphabetId(rawAlphabet) : null;
     }
 
-    private int getTargetAlphabet() {
-        return getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
+    private AlphabetId getTargetAlphabet() {
+        final int rawAlphabet = getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
+        return (rawAlphabet != 0)? new AlphabetId(rawAlphabet) : null;
     }
 
     private void updateUi() {
-        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final LangbookChecker checker = DbManager.getInstance().getManager();
-        final int sourceAlphabet = getSourceAlphabet();
-        final int targetAlphabet = getTargetAlphabet();
+        final AlphabetId sourceAlphabet = getSourceAlphabet();
+        final AlphabetId targetAlphabet = getTargetAlphabet();
 
-        final String sourceText = checker.readConceptText(sourceAlphabet, preferredAlphabet);
-        final String targetText = checker.readConceptText(targetAlphabet, preferredAlphabet);
+        final String sourceText = checker.readConceptText(sourceAlphabet.key, preferredAlphabet);
+        final String targetText = checker.readConceptText(targetAlphabet.key, preferredAlphabet);
         setTitle(sourceText + " -> " + targetText);
 
-        final Conversion conversion = checker.getConversion(new ImmutableIntPair(sourceAlphabet, targetAlphabet));
+        final Conversion conversion = checker.getConversion(new ImmutablePair<>(sourceAlphabet, targetAlphabet));
 
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new ConversionDetailsAdapter(conversion));

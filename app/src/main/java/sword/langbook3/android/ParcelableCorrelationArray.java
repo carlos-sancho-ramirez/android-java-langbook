@@ -3,16 +3,17 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.List;
+import sword.langbook3.android.db.AlphabetId;
 
 public final class ParcelableCorrelationArray implements Parcelable {
 
-    private final ImmutableList<ImmutableIntKeyMap<String>> _array;
+    private final ImmutableList<ImmutableMap<AlphabetId, String>> _array;
 
-    public ParcelableCorrelationArray(List<ImmutableIntKeyMap<String>> array) {
+    public ParcelableCorrelationArray(List<ImmutableMap<AlphabetId, String>> array) {
         if (array == null) {
             throw new IllegalArgumentException();
         }
@@ -20,7 +21,7 @@ public final class ParcelableCorrelationArray implements Parcelable {
         _array = array.toImmutable();
     }
 
-    public ImmutableList<ImmutableIntKeyMap<String>> get() {
+    public ImmutableList<ImmutableMap<AlphabetId, String>> get() {
         return _array;
     }
 
@@ -29,9 +30,9 @@ public final class ParcelableCorrelationArray implements Parcelable {
         return 0;
     }
 
-    static ImmutableList<ImmutableIntKeyMap<String>> read(Parcel in) {
+    static ImmutableList<ImmutableMap<AlphabetId, String>> read(Parcel in) {
         final int arraySize = in.readInt();
-        final ImmutableList<ImmutableIntKeyMap<String>> array;
+        final ImmutableList<ImmutableMap<AlphabetId, String>> array;
         if (arraySize == 0) {
             array = ImmutableList.empty();
         }
@@ -43,12 +44,12 @@ public final class ParcelableCorrelationArray implements Parcelable {
         return array.toImmutable();
     }
 
-    static void write(Parcel dest, List<ImmutableIntKeyMap<String>> array) {
+    static void write(Parcel dest, List<ImmutableMap<AlphabetId, String>> array) {
         final int arraySize = array.size();
         dest.writeInt(arraySize);
 
         for (int i = 0; i < arraySize; i++) {
-            final ImmutableIntKeyMap<String> correlation = array.valueAt(i);
+            final ImmutableMap<AlphabetId, String> correlation = array.valueAt(i);
             ParcelableCorrelation.write(dest, correlation);
         }
     }

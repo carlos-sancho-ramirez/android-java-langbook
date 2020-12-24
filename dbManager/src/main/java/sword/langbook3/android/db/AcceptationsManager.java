@@ -1,7 +1,7 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -36,7 +36,7 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
      * @return true if the alphabet has been successfully added, and so, the database content has change.
      */
-    boolean addAlphabetCopyingFromOther(int alphabet, int sourceAlphabet);
+    boolean addAlphabetCopyingFromOther(AlphabetId alphabet, AlphabetId sourceAlphabet);
 
     /**
      * Add a new alphabet and a new conversion at once, being the resulting alphabet the target of the given conversion.
@@ -45,7 +45,7 @@ public interface AcceptationsManager extends AcceptationsChecker {
      */
     boolean addAlphabetAsConversionTarget(Conversion conversion);
 
-    boolean removeAlphabet(int alphabet);
+    boolean removeAlphabet(AlphabetId alphabet);
 
     /**
      * Include a new acceptation in the database, for the given concept and correlation array.
@@ -53,9 +53,9 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @param correlationArray Correlation array for this acceptation.
      * @return An identifier for the new acceptation just included, or null in case the acceptation cannot be added.
      */
-    Integer addAcceptation(int concept, ImmutableList<ImmutableIntKeyMap<String>> correlationArray);
+    Integer addAcceptation(int concept, ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray);
 
-    boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableIntKeyMap<String>> newCorrelationArray);
+    boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableMap<AlphabetId, String>> newCorrelationArray);
     boolean removeAcceptation(int acceptation);
 
     /**

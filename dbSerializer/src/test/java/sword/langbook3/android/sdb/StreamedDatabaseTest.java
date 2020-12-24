@@ -10,6 +10,7 @@ import sword.database.DbExporter;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AgentsManager;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.SentenceSpan;
@@ -28,13 +29,13 @@ final class StreamedDatabaseTest implements AgentsSerializerTest {
         return new LangbookDatabaseManager(db);
     }
 
-    static int addSimpleAcceptation(AcceptationsManager manager, int alphabet, int concept, String text) {
+    static int addSimpleAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept, String text) {
         return BunchesSerializerTest.addSimpleAcceptation(manager, alphabet, concept, text);
     }
 
     static int addSingleAlphabetAgent(
             AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
+            ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
         return AgentsSerializerTest.addSingleAlphabetAgent(manager, targetBunches, sourceBunches, diffBunches, alphabet, startMatcherText, startAdderText, endMatcherText, endAdderText, rule);
     }
@@ -51,7 +52,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest {
     void testSerializeSentenceWithDynamicAcceptationAsSpan() {
         final MemoryDatabase inDb = new MemoryDatabase();
         final LangbookManager inManager = createManager(inDb);
-        final int alphabet = inManager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int feminableWordsBunch = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, alphabet, feminableWordsBunch, "feminizable");

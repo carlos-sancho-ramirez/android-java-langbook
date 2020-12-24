@@ -8,6 +8,7 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.SearchResult;
 
 public final class FixedTextAcceptationPickerActivity extends SearchActivity {
@@ -55,7 +56,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     @Override
     SearchResultAdapter createAdapter(ImmutableList<SearchResult> results) {
         if (_ruleTexts == null) {
-            final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+            final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
             _ruleTexts = DbManager.getInstance().getManager().readAllRules(preferredAlphabet);
         }
 

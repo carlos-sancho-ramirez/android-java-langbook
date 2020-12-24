@@ -19,8 +19,10 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableList;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.db.LangbookManager;
@@ -47,7 +49,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private QuizSelectorActivityState _state;
 
-    private int _preferredAlphabet;
+    private AlphabetId _preferredAlphabet;
     private int _bunch;
     private ImmutableIntKeyMap<String> _ruleTexts;
 
@@ -81,7 +83,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookChecker checker, int bunch) {
         final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
-        final ImmutableIntKeyMap<String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
+        final ImmutableMap<AlphabetId, String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
         final int quizCount = resultMap.size();
         final QuizSelectorAdapter.Item[] items = new QuizSelectorAdapter.Item[quizCount];
 

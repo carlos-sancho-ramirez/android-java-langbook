@@ -3,15 +3,17 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.IntKeyMap;
-import sword.collections.MutableIntKeyMap;
+import sword.collections.ImmutableMap;
+import sword.collections.Map;
+import sword.collections.MutableHashMap;
+import sword.collections.MutableMap;
+import sword.langbook3.android.db.AlphabetId;
 
 public final class ParcelableCorrelation implements Parcelable {
 
-    private final ImmutableIntKeyMap<String> _correlation;
+    private final ImmutableMap<AlphabetId, String> _correlation;
 
-    public ParcelableCorrelation(IntKeyMap<String> correlation) {
+    public ParcelableCorrelation(Map<AlphabetId, String> correlation) {
         if (correlation == null) {
             throw new IllegalArgumentException();
         }
@@ -19,7 +21,7 @@ public final class ParcelableCorrelation implements Parcelable {
         _correlation = correlation.toImmutable();
     }
 
-    public ImmutableIntKeyMap<String> get() {
+    public ImmutableMap<AlphabetId, String> get() {
         return _correlation;
     }
 
@@ -28,24 +30,25 @@ public final class ParcelableCorrelation implements Parcelable {
         return 0;
     }
 
-    static ImmutableIntKeyMap<String> read(Parcel in) {
+    static ImmutableMap<AlphabetId, String> read(Parcel in) {
         final int correlationSize = in.readInt();
-        MutableIntKeyMap<String> correlation = MutableIntKeyMap.empty();
+        MutableMap<AlphabetId, String> correlation = MutableHashMap.empty();
         for (int j = 0; j < correlationSize; j++) {
             final int key = in.readInt();
+            final AlphabetId alphabet = new AlphabetId(key);
             final String value = in.readString();
-            correlation.put(key, value);
+            correlation.put(alphabet, value);
         }
 
         return correlation.toImmutable();
     }
 
-    static void write(Parcel dest, IntKeyMap<String> correlation) {
+    static void write(Parcel dest, Map<AlphabetId, String> correlation) {
         final int correlationSize = correlation.size();
         dest.writeInt(correlationSize);
 
         for (int j = 0; j < correlationSize; j++) {
-            dest.writeInt(correlation.keyAt(j));
+            dest.writeInt(correlation.keyAt(j).key);
             dest.writeString(correlation.valueAt(j));
         }
     }

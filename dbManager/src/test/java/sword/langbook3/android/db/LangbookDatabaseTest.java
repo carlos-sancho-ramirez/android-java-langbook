@@ -28,7 +28,7 @@ final class LangbookDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
         final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = getMaxConcept(db) + 1;
 
         final String text = "cantar";

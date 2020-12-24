@@ -9,16 +9,17 @@ import android.widget.Toast;
 
 import java.util.Iterator;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
-import sword.collections.IntKeyMap;
 import sword.collections.IntResultFunction;
+import sword.collections.Map;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
 
@@ -47,8 +48,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private int _selection = ListView.INVALID_POSITION;
 
     private ListView _listView;
-    private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> _options;
-    private ImmutableIntValueMap<ImmutableIntKeyMap<String>> _knownCorrelations;
+    private ImmutableSet<ImmutableList<ImmutableMap<AlphabetId, String>>> _options;
+    private ImmutableIntValueMap<ImmutableMap<AlphabetId, String>> _knownCorrelations;
 
     /**
      * Opens the correlation picker in order to build a new correlation array.
@@ -64,13 +65,13 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      * @param concept Optional concept where this correlation array will be attached to, or {@link #NO_CONCEPT} if none.
      * @param texts Texts entered by the user in the WordEditorActivity.
      */
-    public static void open(Activity activity, int requestCode, int concept, IntKeyMap<String> texts) {
+    public static void open(Activity activity, int requestCode, int concept, Map<AlphabetId, String> texts) {
         final int mapSize = texts.size();
         final int[] alphabets = new int[mapSize];
         final String[] str = new String[mapSize];
 
         for (int i = 0; i < mapSize; i++) {
-            alphabets[i] = texts.keyAt(i);
+            alphabets[i] = texts.keyAt(i).key;
             str[i] = texts.valueAt(i);
         }
 
@@ -93,13 +94,13 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      * @param texts Texts entered by the user in the WordEditorActivity.
      * @param acceptation Identifier for an existing acceptation that will be modified after selecting the correlation array.
      */
-    public static void open(Activity activity, int requestCode, IntKeyMap<String> texts, int acceptation) {
+    public static void open(Activity activity, int requestCode, Map<AlphabetId, String> texts, int acceptation) {
         final int mapSize = texts.size();
         final int[] alphabets = new int[mapSize];
         final String[] str = new String[mapSize];
 
         for (int i = 0; i < mapSize; i++) {
-            alphabets[i] = texts.keyAt(i);
+            alphabets[i] = texts.keyAt(i).key;
             str[i] = texts.valueAt(i);
         }
 
@@ -110,7 +111,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private ImmutableIntKeyMap<String> getTexts() {
+    private ImmutableMap<AlphabetId, String> getTexts() {
         final Bundle extras = getIntent().getExtras();
         final int[] alphabets = extras.getIntArray(ArgKeys.ALPHABETS);
         final String[] texts = extras.getStringArray(ArgKeys.TEXTS);
@@ -119,65 +120,65 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             throw new AssertionError();
         }
 
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         for (int i = 0; i < alphabets.length; i++) {
-            builder.put(alphabets[i], texts[i]);
+            builder.put(new AlphabetId(alphabets[i]), texts[i]);
         }
 
         return builder.build();
     }
 
     private void checkPossibleCorrelationArraysRecursive(
-            ImmutableSet.Builder<ImmutableList<ImmutableIntKeyMap<String>>> builder,
-            ImmutableIntKeyMap<String> remaining,
-            ImmutableIntKeyMap<String> left,
-            ImmutableIntKeyMap<String> right) {
+            ImmutableSet.Builder<ImmutableList<ImmutableMap<AlphabetId, String>>> builder,
+            ImmutableMap<AlphabetId, String> remaining,
+            ImmutableMap<AlphabetId, String> left,
+            ImmutableMap<AlphabetId, String> right) {
         final int remainingSize = remaining.size();
         if (remainingSize == 0) {
-            for (ImmutableList<ImmutableIntKeyMap<String>> array : checkPossibleCorrelationArrays(right)) {
+            for (ImmutableList<ImmutableMap<AlphabetId, String>> array : checkPossibleCorrelationArrays(right)) {
                 builder.add(array.prepend(left));
             }
         }
         else {
-            final int firstAlphabet = remaining.keyAt(0);
+            final AlphabetId firstAlphabet = remaining.keyAt(0);
             final String firstText = remaining.valueAt(0);
 
             // TODO: Change this to global.skip(1) when available
-            final ImmutableIntKeyMap.Builder<String> tailBuilder = new ImmutableIntKeyMap.Builder<>();
+            final ImmutableMap.Builder<AlphabetId, String> tailBuilder = new ImmutableHashMap.Builder<>();
             for (int i = 1; i < remainingSize; i++) {
                 tailBuilder.put(remaining.keyAt(i), remaining.valueAt(i));
             }
-            final ImmutableIntKeyMap<String> tail = tailBuilder.build();
+            final ImmutableMap<AlphabetId, String> tail = tailBuilder.build();
 
             final int firstTextSize = firstText.length();
             for (int i = 1; i < firstTextSize; i++) {
-                final ImmutableIntKeyMap<String> newLeft = left.put(firstAlphabet, firstText.substring(0, i));
-                final ImmutableIntKeyMap<String> newRight = right.put(firstAlphabet, firstText.substring(i));
+                final ImmutableMap<AlphabetId, String> newLeft = left.put(firstAlphabet, firstText.substring(0, i));
+                final ImmutableMap<AlphabetId, String> newRight = right.put(firstAlphabet, firstText.substring(i));
                 checkPossibleCorrelationArraysRecursive(builder, tail, newLeft, newRight);
             }
         }
     }
 
-    private static boolean entryLessThan(ImmutableList<ImmutableIntKeyMap<String>> a, ImmutableList<ImmutableIntKeyMap<String>> b) {
-        final Iterator<ImmutableIntKeyMap<String>> itA = a.iterator();
-        final Iterator<ImmutableIntKeyMap<String>> itB = b.iterator();
+    private static boolean entryLessThan(ImmutableList<ImmutableMap<AlphabetId, String>> a, ImmutableList<ImmutableMap<AlphabetId, String>> b) {
+        final Iterator<ImmutableMap<AlphabetId, String>> itA = a.iterator();
+        final Iterator<ImmutableMap<AlphabetId, String>> itB = b.iterator();
 
         while (itA.hasNext() && itB.hasNext()) {
-            ImmutableIntKeyMap<String> headA = itA.next();
-            ImmutableIntKeyMap<String> headB = itB.next();
+            ImmutableMap<AlphabetId, String> headA = itA.next();
+            ImmutableMap<AlphabetId, String> headB = itB.next();
 
             for (int i = 0; i < headA.size(); i++) {
-                final int alphabet = headA.keyAt(i);
+                final AlphabetId alphabet = headA.keyAt(i);
                 if (headB.size() == i) {
                     return false;
                 }
 
-                final int alphabetB = headB.keyAt(i);
+                final AlphabetId alphabetB = headB.keyAt(i);
 
-                if (alphabet < alphabetB) {
+                if (alphabet.key < alphabetB.key) {
                     return true;
                 }
-                else if (alphabet > alphabetB) {
+                else if (alphabet.key > alphabetB.key) {
                     return false;
                 }
 
@@ -195,34 +196,34 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return itB.hasNext();
     }
 
-    private ImmutableSet<ImmutableList<ImmutableIntKeyMap<String>>> checkPossibleCorrelationArrays(ImmutableIntKeyMap<String> global) {
+    private ImmutableSet<ImmutableList<ImmutableMap<AlphabetId, String>>> checkPossibleCorrelationArrays(ImmutableMap<AlphabetId, String> global) {
         final int globalSize = global.size();
         final IntResultFunction<String> lengthFunc = text -> (text == null)? 0 : text.length();
-        final ImmutableIntPairMap lengths = global.mapToInt(lengthFunc);
+        final ImmutableIntValueMap<AlphabetId> lengths = global.mapToInt(lengthFunc);
         if (globalSize == 0 || lengths.anyMatch(length -> length <= 0)) {
             return ImmutableHashSet.empty();
         }
 
-        final ImmutableSet.Builder<ImmutableList<ImmutableIntKeyMap<String>>> builder = new ImmutableHashSet.Builder<>();
-        builder.add(new ImmutableList.Builder<ImmutableIntKeyMap<String>>().add(global).build());
+        final ImmutableSet.Builder<ImmutableList<ImmutableMap<AlphabetId, String>>> builder = new ImmutableHashSet.Builder<>();
+        builder.add(new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>().add(global).build());
 
         if (globalSize > 1) {
-            checkPossibleCorrelationArraysRecursive(builder, global, ImmutableIntKeyMap.empty(), ImmutableIntKeyMap.empty());
+            checkPossibleCorrelationArraysRecursive(builder, global, ImmutableHashMap.empty(), ImmutableHashMap.empty());
         }
         return builder.build().sort(CorrelationPickerActivity::entryLessThan);
     }
 
-    private ImmutableIntValueMap<ImmutableIntKeyMap<String>> findExistingCorrelations() {
-        final ImmutableSet.Builder<ImmutableIntKeyMap<String>> correlationsBuilder = new ImmutableHashSet.Builder<>();
-        for (ImmutableList<ImmutableIntKeyMap<String>> option : _options) {
-            for (ImmutableIntKeyMap<String> correlation : option) {
+    private ImmutableIntValueMap<ImmutableMap<AlphabetId, String>> findExistingCorrelations() {
+        final ImmutableSet.Builder<ImmutableMap<AlphabetId, String>> correlationsBuilder = new ImmutableHashSet.Builder<>();
+        for (ImmutableList<ImmutableMap<AlphabetId, String>> option : _options) {
+            for (ImmutableMap<AlphabetId, String> correlation : option) {
                 correlationsBuilder.add(correlation);
             }
         }
-        final ImmutableSet<ImmutableIntKeyMap<String>> correlations = correlationsBuilder.build();
+        final ImmutableSet<ImmutableMap<AlphabetId, String>> correlations = correlationsBuilder.build();
 
-        final ImmutableIntValueHashMap.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableIntValueHashMap.Builder<>();
-        for (ImmutableIntKeyMap<String> correlation : correlations) {
+        final ImmutableIntValueHashMap.Builder<ImmutableMap<AlphabetId, String>> builder = new ImmutableIntValueHashMap.Builder<>();
+        for (ImmutableMap<AlphabetId, String> correlation : correlations) {
             final Integer id = DbManager.getInstance().getManager().findCorrelation(correlation);
             if (id != null) {
                 builder.put(correlation, id);
@@ -233,8 +234,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     private int findSuggestedPosition() {
-        final ImmutableSet<ImmutableIntKeyMap<String>> known = _knownCorrelations.keySet();
-        final IntResultFunction<ImmutableList<ImmutableIntKeyMap<String>>> func = option -> option.filter(known::contains).size();
+        final ImmutableSet<ImmutableMap<AlphabetId, String>> known = _knownCorrelations.keySet();
+        final IntResultFunction<ImmutableList<ImmutableMap<AlphabetId, String>>> func = option -> option.filter(known::contains).size();
         final ImmutableIntList knownParity = _options.toList().mapToInt(func);
 
         final int length = knownParity.size();
@@ -259,7 +260,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_picker_activity);
 
-        final ImmutableIntKeyMap<String> texts = getTexts();
+        final ImmutableMap<AlphabetId, String> texts = getTexts();
         _options = checkPossibleCorrelationArrays(texts);
         _knownCorrelations = findExistingCorrelations();
         final int suggestedPosition = findSuggestedPosition();
@@ -285,7 +286,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private boolean allValidAlphabets(LangbookChecker checker, IntKeyMap<String> texts) {
+    private boolean allValidAlphabets(LangbookChecker checker, Map<AlphabetId, String> texts) {
         final ImmutableSet<Integer> languages = texts.toImmutable().keySet().map(checker::getLanguageFromAlphabet).toSet();
         return !languages.anyMatch(lang -> lang == null) && languages.size() == 1;
     }
@@ -318,7 +319,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                     finish();
                 }
                 else {
-                    final ImmutableList<ImmutableIntKeyMap<String>> array = _options.valueAt(_selection);
+                    final ImmutableList<ImmutableMap<AlphabetId, String>> array = _options.valueAt(_selection);
 
                     final Intent intent = new Intent();
                     intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));

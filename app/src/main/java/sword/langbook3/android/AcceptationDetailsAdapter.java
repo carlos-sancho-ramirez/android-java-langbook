@@ -12,8 +12,11 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
+import sword.collections.ImmutableSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
+import sword.langbook3.android.db.AlphabetId;
 
 public final class AcceptationDetailsAdapter extends BaseAdapter {
 
@@ -208,20 +211,20 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
     static final class CorrelationArrayItem extends Item {
 
         private final ImmutableIntList _correlationIds;
-        private final ImmutableIntKeyMap<ImmutableIntKeyMap<String>> _correlations;
-        private final int _mainAlphabet;
-        private final int _pronunciationAlphabet;
+        private final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> _correlations;
+        private final AlphabetId _mainAlphabet;
+        private final AlphabetId _pronunciationAlphabet;
         private final boolean _isNavigable;
 
         CorrelationArrayItem(
                 ImmutableIntList correlationIds,
-                ImmutableIntKeyMap<ImmutableIntKeyMap<String>> correlations,
-                int mainAlphabet,
-                int pronunciationAlphabet,
+                ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations,
+                AlphabetId mainAlphabet,
+                AlphabetId pronunciationAlphabet,
                 boolean isNavigable) {
             super(ItemTypes.UNKNOWN, "");
 
-            if (mainAlphabet == pronunciationAlphabet) {
+            if (mainAlphabet == null || pronunciationAlphabet == null || mainAlphabet.equals(pronunciationAlphabet)) {
                 throw new IllegalArgumentException();
             }
 
@@ -229,8 +232,8 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
                 correlationIds = ImmutableIntList.empty();
             }
             else if (correlationIds.anyMatch(id -> {
-                final ImmutableIntKeyMap<String> corr = correlations.get(id, null);
-                final ImmutableIntSet keys = (corr != null)? corr.keySet() : null;
+                final ImmutableMap<AlphabetId, String> corr = correlations.get(id, null);
+                final ImmutableSet<AlphabetId> keys = (corr != null)? corr.keySet() : null;
                 return keys == null || !keys.contains(mainAlphabet) || !keys.contains(pronunciationAlphabet);
             })) {
                 throw new IllegalArgumentException();
@@ -260,7 +263,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
                 inflater.inflate(R.layout.correlation_container, view, true);
                 final LinearLayout corrLayout = (LinearLayout) view.getChildAt(view.getChildCount() - 1);
 
-                final ImmutableIntKeyMap<String> correlation = _correlations.get(correlationId);
+                final ImmutableMap<AlphabetId, String> correlation = _correlations.get(correlationId);
                 final String mainText = correlation.get(_mainAlphabet);
                 final String pronunciationText = correlation.get(_pronunciationAlphabet);
 

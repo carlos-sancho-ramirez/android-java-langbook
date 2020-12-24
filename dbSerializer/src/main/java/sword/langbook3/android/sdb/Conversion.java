@@ -1,26 +1,27 @@
-package sword.langbook3.android.models;
+package sword.langbook3.android.sdb;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
+import sword.collections.Map;
 import sword.collections.SortFunction;
 import sword.collections.SortUtils;
-import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.collections.ImmutableIntPair;
 
-public final class Conversion implements ConversionProposal {
+public final class Conversion {
 
     public static final SortFunction<String> keySortFunction = (a, b) -> SortUtils
             .compareCharSequenceByUnicode(b, a);
     public static final SortFunction<ImmutablePair<String, String>> pairSortFunction = (a, b) ->
             SortUtils.compareCharSequenceByUnicode(b.left, a.left);
 
-    private final AlphabetId _sourceAlphabet;
-    private final AlphabetId _targetAlphabet;
+    private final int _sourceAlphabet;
+    private final int _targetAlphabet;
     private final ImmutableMap<String, String> _map;
 
-    public Conversion(AlphabetId sourceAlphabet, AlphabetId targetAlphabet, sword.collections.Map<String, String> map) {
-        if (sourceAlphabet == null || sourceAlphabet.equals(targetAlphabet)) {
+    public Conversion(int sourceAlphabet, int targetAlphabet, Map<String, String> map) {
+        if (sourceAlphabet == targetAlphabet) {
             throw new IllegalArgumentException();
         }
 
@@ -29,24 +30,22 @@ public final class Conversion implements ConversionProposal {
         _map = map.toImmutable().sort(keySortFunction);
     }
 
-    @Override
-    public AlphabetId getSourceAlphabet() {
+    public int getSourceAlphabet() {
         return _sourceAlphabet;
     }
 
-    public AlphabetId getTargetAlphabet() {
+    public int getTargetAlphabet() {
         return _targetAlphabet;
     }
 
-    public ImmutablePair<AlphabetId, AlphabetId> getAlphabets() {
-        return new ImmutablePair<>(_sourceAlphabet, _targetAlphabet);
+    public ImmutableIntPair getAlphabets() {
+        return new ImmutableIntPair(_sourceAlphabet, _targetAlphabet);
     }
 
     public ImmutableMap<String, String> getMap() {
         return _map;
     }
 
-    @Override
     public String convert(String text) {
         final int mapSize = _map.size();
         String result = "";

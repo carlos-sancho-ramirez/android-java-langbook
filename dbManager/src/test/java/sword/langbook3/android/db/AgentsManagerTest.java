@@ -2,11 +2,13 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
+import sword.collections.ImmutableMap;
 import sword.collections.List;
 import sword.collections.MutableIntPairMap;
 import sword.database.DbExporter;
@@ -23,12 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
-import static sword.collections.IntPairMapTestUtils.assertSinglePair;
 import static sword.collections.IntSetTestUtils.assertEqualSet;
 import static sword.collections.IntSetTestUtils.intSetOf;
 import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
 import static sword.collections.IntTraversableTestUtils.getSingleValue;
+import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
+import static sword.collections.IntPairMapTestUtils.assertSinglePair;
+import static sword.collections.MapTestUtils.assertSinglePair;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
 import static sword.collections.TraversableTestUtils.getSingleValue;
@@ -69,42 +72,42 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     static Integer addSingleAlphabetAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
+            ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
-        final ImmutableIntKeyMap<String> startMatcher = (startMatcherText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startMatcherText).build();
+        final ImmutableMap<AlphabetId, String> startMatcher = (startMatcherText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startMatcherText).build();
 
-        final ImmutableIntKeyMap<String> startAdder = (startAdderText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startAdderText).build();
+        final ImmutableMap<AlphabetId, String> startAdder = (startAdderText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startAdderText).build();
 
-        final ImmutableIntKeyMap<String> endMatcher = (endMatcherText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endMatcherText).build();
+        final ImmutableMap<AlphabetId, String> endMatcher = (endMatcherText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endMatcherText).build();
 
-        final ImmutableIntKeyMap<String> endAdder = (endAdderText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
+        final ImmutableMap<AlphabetId, String> endAdder = (endAdderText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endAdderText).build();
 
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     static boolean updateSingleAlphabetAgent(AgentsManager manager, int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, int alphabet, String startMatcherText, String startAdderText, String endMatcherText,
+            ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
-        final ImmutableIntKeyMap<String> startMatcher = (startMatcherText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startMatcherText).build();
+        final ImmutableMap<AlphabetId, String> startMatcher = (startMatcherText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startMatcherText).build();
 
-        final ImmutableIntKeyMap<String> startAdder = (startAdderText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, startAdderText).build();
+        final ImmutableMap<AlphabetId, String> startAdder = (startAdderText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startAdderText).build();
 
-        final ImmutableIntKeyMap<String> endMatcher = (endMatcherText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endMatcherText).build();
+        final ImmutableMap<AlphabetId, String> endMatcher = (endMatcherText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endMatcherText).build();
 
-        final ImmutableIntKeyMap<String> endAdder = (endAdderText == null)? ImmutableIntKeyMap.empty() :
-                new ImmutableIntKeyMap.Builder<String>().put(alphabet, endAdderText).build();
+        final ImmutableMap<AlphabetId, String> endAdder = (endAdderText == null)? ImmutableHashMap.empty() :
+                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endAdderText).build();
 
         return manager.updateAgent(agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
-    static void assertOnlyOneMorphology(AgentsManager manager, int staticAcceptation, int preferredAlphabet, String expectedText, int expectedRule) {
+    static void assertOnlyOneMorphology(AgentsManager manager, int staticAcceptation, AlphabetId preferredAlphabet, String expectedText, int expectedRule) {
         final MorphologyResult morphology = getSingleValue(manager.readMorphologiesFromAcceptation(staticAcceptation, preferredAlphabet).morphologies);
         assertEquals(expectedText, morphology.text);
         assertContainsOnly(expectedRule, morphology.rules);
@@ -121,7 +124,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
@@ -144,7 +147,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testAddAgentComposingBunch() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int erVerbConcept = arVerbConcept + 1;
         final int verbConcept = erVerbConcept + 1;
@@ -167,7 +170,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testAddAgentCopyingToTwoBunches() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int erVerbConcept = arVerbConcept + 1;
         final int actionConcept = erVerbConcept + 1;
@@ -192,7 +195,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
         final int verbConcept = gerund + 1;
         final int arVerbConcept = verbConcept + 1;
@@ -202,11 +205,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int acceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
         assertTrue(manager.addAcceptationInBunch(verbConcept, acceptation));
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+        final ImmutableMap<AlphabetId, String> nullCorrelation = new ImmutableHashMap.Builder<AlphabetId, String>().build();
+        final ImmutableMap<AlphabetId, String> matcher = new ImmutableHashMap.Builder<AlphabetId, String>()
                 .put(alphabet, "ar")
                 .build();
-        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
+        final ImmutableMap<AlphabetId, String> adder = new ImmutableHashMap.Builder<AlphabetId, String>()
                 .put(alphabet, "ando")
                 .build();
 
@@ -265,7 +268,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testAddAcceptationInFirstAgentSourceBunchForChainedAgents() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int maleStudentConcept = manager.getMaxConcept() + 1;
         final int maleStudentAcc = addSimpleAcceptation(manager, alphabet, maleStudentConcept, "alumno");
@@ -302,7 +305,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void checkAdd2ChainedAgentsFirstWithoutSource(boolean reversedAdditionOrder, boolean acceptationBeforeAgents) {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int bunchConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, bunchConcept, "pluralizable sustituyendo ón por ones");
@@ -313,11 +316,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
             acceptation = addSimpleAcceptation(manager, alphabet, songConcept, "canción");
         }
 
-        final ImmutableIntKeyMap<String> nullCorrelation = new ImmutableIntKeyMap.Builder<String>().build();
-        final ImmutableIntKeyMap<String> matcher = new ImmutableIntKeyMap.Builder<String>()
+        final ImmutableMap<AlphabetId, String> nullCorrelation = new ImmutableHashMap.Builder<AlphabetId, String>().build();
+        final ImmutableMap<AlphabetId, String> matcher = new ImmutableHashMap.Builder<AlphabetId, String>()
                 .put(alphabet, "ón")
                 .build();
-        final ImmutableIntKeyMap<String> adder = new ImmutableIntKeyMap.Builder<String>()
+        final ImmutableMap<AlphabetId, String> adder = new ImmutableHashMap.Builder<AlphabetId, String>()
                 .put(alphabet, "ones")
                 .build();
 
@@ -368,7 +371,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int arEndingNounConcept = arVerbConcept + 1;
         final int singConcept = arEndingNounConcept + 1;
@@ -419,7 +422,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
     static Add3ChainedAgentsResult add3ChainedAgents(
             AgentsManager manager,
-            int alphabet, ImmutableIntSet sourceBunchSet, int arVerbConcept, int actionConcept,
+            AlphabetId alphabet, ImmutableIntSet sourceBunchSet, int arVerbConcept, int actionConcept,
             int nominalizationRule, int pluralRule) {
 
         final ImmutableIntSet noBunches = intSetOf();
@@ -431,7 +434,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     }
 
     static Add3ChainedAgentsResult add3ChainedAgents(AgentsManager manager,
-            int alphabet, int arVerbConcept, int actionConcept,
+            AlphabetId alphabet, int arVerbConcept, int actionConcept,
             int nominalizationRule, int pluralRule) {
 
         final ImmutableIntSet noBunches = new ImmutableIntSetCreator().build();
@@ -442,7 +445,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testAdd3ChainedAgents() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -487,7 +490,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testRemoveDynamicAcceptationsWhenRemovingAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int studentConcept = manager.getMaxConcept() + 1;
         final int studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
@@ -513,7 +516,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testRemoveDynamicAcceptationsWhenAcceptationFromSourceBunch() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int studentConcept = manager.getMaxConcept() + 1;
         final int studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
@@ -549,7 +552,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testRemoveUnusedBunchSetsWhenRemovingAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int studentConcept = manager.getMaxConcept() + 1;
         final int studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
@@ -590,7 +593,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testRemoveChainedAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -620,7 +623,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testRemoveAcceptationWithChainedAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -649,7 +652,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testRemoveAcceptationWithBunchChainedAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
         final int arVerbConcept = verbConcept + 1;
         final int actionConcept = arVerbConcept + 1;
@@ -683,7 +686,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testReadAllMatchingBunchesForSingleMatching() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
         final int verbArConcept = gerund + 1;
         final int verbErConcept = verbArConcept + 1;
@@ -696,13 +699,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         addSingleAlphabetAgent(manager, intSetOf(), intSetOf(verbErConcept), diffBunches, alphabet, null, null, "er", "iendo", gerund);
 
-        ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "provocar").build();
+        ImmutableMap<AlphabetId, String> texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "provocar").build();
         assertSinglePair(verbArConcept, "verbo ar", manager.readAllMatchingBunches(texts, alphabet));
 
-        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();
+        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "comer").build();
         assertSinglePair(verbErConcept, "verbo er", manager.readAllMatchingBunches(texts, alphabet));
 
-        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "dormir").build();
+        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "dormir").build();
         assertEmpty(manager.readAllMatchingBunches(texts, alphabet));
     }
 
@@ -710,7 +713,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testReadAllMatchingBunchesForMultipleMatching() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
         final int verbArConcept = gerund + 1;
         final int verbErConcept = verbArConcept + 1;
@@ -728,16 +731,16 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         addSingleAlphabetAgent(manager, intSetOf(noun), intSetOf(sustantivable), diffBunches, alphabet, null, null, "ar", "ación", gerund);
 
-        ImmutableIntKeyMap<String> texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "provocar").build();
+        ImmutableMap<AlphabetId, String> texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "provocar").build();
         final ImmutableIntKeyMap<String> bunches = manager.readAllMatchingBunches(texts, alphabet);
         assertContainsOnly(verbArConcept, sustantivable, bunches.keySet());
         assertEquals("verbo ar", bunches.get(verbArConcept));
         assertEquals("sustantivable", bunches.get(sustantivable));
 
-        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "comer").build();
+        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "comer").build();
         assertSinglePair(verbErConcept, "verbo er", manager.readAllMatchingBunches(texts, alphabet));
 
-        texts = new ImmutableIntKeyMap.Builder<String>().put(alphabet, "dormir").build();
+        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "dormir").build();
         assertEmpty(manager.readAllMatchingBunches(texts, alphabet));
     }
 
@@ -745,7 +748,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testUpdateCorrelationArrayForAcceptationWithRuleAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
         final int gerundRule = concept + 1;
         final int firstConjugationVerbBunch = gerundRule + 1;
@@ -770,7 +773,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     default void testUnableToRemoveAcceptationsWhenTheyAreUniqueAgentSourceOrTargetBunch() {
         final AgentsManager manager = createManager(new MemoryDatabase());
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
         final int firstConjugationVerbConcept = verbConcept + 1;
         final int singConcept = firstConjugationVerbConcept + 1;
@@ -793,7 +796,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testMultipleAgentsTargetingSameBunch() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int verbConcept = manager.getMaxConcept() + 1;
         final int verbAcc = addSimpleAcceptation(manager, alphabet, verbConcept, "desconfiar");
@@ -812,7 +815,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testAcceptationAddedInBunchBeforeAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int bedConcept = manager.getMaxConcept() + 1;
         final int bedAcc = addSimpleAcceptation(manager, alphabet, bedConcept, "cama");
@@ -842,7 +845,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testAcceptationAddedInBunchAfterAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int bedConcept = manager.getMaxConcept() + 1;
         final int bedAcc = addSimpleAcceptation(manager, alphabet, bedConcept, "cama");
@@ -872,7 +875,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testUpdateAgentTargetForNoChainedAgentWithoutRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -893,7 +896,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testIncludeExtraTargetForNoChainedAgentWithoutRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -914,7 +917,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveExtraTargetForNoChainedAgentWithoutRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -935,7 +938,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testIncludeExtraTargetForNoChainedAgentWithRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int gerundRule = manager.getMaxConcept() + 1;
         final int singConcept = gerundRule + 1;
@@ -962,7 +965,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveExtraTargetForNoChainedAgentWithRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int gerundRule = manager.getMaxConcept() + 1;
         final int singConcept = gerundRule + 1;
@@ -989,7 +992,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testUpdateAgentTargetForChainedAgentWithoutRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1016,7 +1019,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveAgentTargetFromSecondChainedAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1044,7 +1047,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testIncludeAgentTargetToSecondChainedAgent() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1072,7 +1075,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testIncludeAgentSourceBunches() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1097,7 +1100,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveAgentSourceBunches() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1123,7 +1126,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testChangeAgentSourceBunches() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1152,7 +1155,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testIncludeExtraSourceBunch() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1186,7 +1189,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveOneSourceBunch() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1219,7 +1222,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testIncludeAgentDiffBunchMatchingSource() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1250,7 +1253,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveAgentDiffBunchMatchingSource() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1283,7 +1286,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testIncludeAgentDiffBunchNoMatchingSource() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1313,7 +1316,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveAgentDiffBunchNoMatchingSource() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1344,7 +1347,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testChangeAgentEndMatcherAndAdder() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1365,7 +1368,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testChangeAgentStartMatcherAndAdder() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int trustConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, trustConcept, "confiar");
@@ -1386,7 +1389,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testChangeRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1407,7 +1410,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testChangeAdder() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1425,7 +1428,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testChangeAdderForMultipleAcceptations() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1448,7 +1451,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testChangeAdderAndRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1470,7 +1473,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testAddAdderAndRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1495,7 +1498,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testAddAdderAndRuleForMultipleTargetBunches() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1524,7 +1527,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveAdderAndRule() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1551,7 +1554,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testRemoveAdderAndRuleForMultipleTargetBunches() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1574,7 +1577,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testUpdateCorrelationArrayMatchingAgentBefore() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1592,7 +1595,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testUpdateCorrelationArrayMatchingAgentAfter() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar (sin instrumentos)");
@@ -1610,7 +1613,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testUpdateCorrelationArrayMatchingChainedAgentBefore() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -1633,7 +1636,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testUpdateCorrelationArrayMatchingChainedAgentAfter() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar (sin instrumentos)");
@@ -1656,8 +1659,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
     @Test
     default void testAgentWithJustEndAdderForAcceptationFromOtherLanguage() {
         final AgentsManager manager = createManager(new MemoryDatabase());
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singAcceptation = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
@@ -1683,7 +1686,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
         final int guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
 
@@ -1715,7 +1718,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
         final int guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
 
@@ -1747,7 +1750,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
         final int guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
 
@@ -1779,7 +1782,7 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int alphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int jumpConcept = manager.getMaxConcept() + 1;
         final int jumpAcc = addSimpleAcceptation(manager, alphabet, jumpConcept, "saltar");
 
@@ -1844,8 +1847,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int getWetConcept = manager.getMaxConcept() + 1;
         final int getWetEsAcc = addSimpleAcceptation(manager, esAlphabet, getWetConcept, "mojarse");
@@ -1886,8 +1889,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int getWetConcept = manager.getMaxConcept() + 1;
         final int getWetEsAcc = addSimpleAcceptation(manager, esAlphabet, getWetConcept, "mojarse");
@@ -1932,8 +1935,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int getWetConcept = manager.getMaxConcept() + 1;
         final int getWetEsAcc = addSimpleAcceptation(manager, esAlphabet, getWetConcept, "mojarse");
@@ -1989,8 +1992,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int dieConcept = manager.getMaxConcept() + 1;
         final int dieJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "死ぬ");
@@ -2033,8 +2036,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int dieConcept = manager.getMaxConcept() + 1;
         final int dieJaAcc = addSimpleAcceptation(manager, jaAlphabet, dieConcept, "死ぬ");
@@ -2072,8 +2075,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int callConcept = manager.getMaxConcept() + 1;
         final int callJaAcc = addSimpleAcceptation(manager, jaAlphabet, callConcept, "呼ぶ");
@@ -2112,8 +2115,8 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager manager = createManager(db);
 
-        final int esAlphabet = manager.addLanguage("es").mainAlphabet;
-        final int jaAlphabet = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
         final int singJaAcc = addSimpleAcceptation(manager, jaAlphabet, singConcept, "歌う");

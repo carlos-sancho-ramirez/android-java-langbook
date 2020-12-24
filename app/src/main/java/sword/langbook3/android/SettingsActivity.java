@@ -20,7 +20,8 @@ import android.widget.Toast;
 import java.io.File;
 import java.io.IOException;
 
-import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.sdb.ProgressListener;
 
 public final class SettingsActivity extends Activity implements View.OnClickListener, ProgressListener,
@@ -37,7 +38,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     private boolean _resumed;
     private EditText _dialogEditText;
     private Spinner _preferredAlphabetSpinner;
-    private ImmutableIntKeyMap<String> _alphabets;
+    private ImmutableMap<AlphabetId, String> _alphabets;
     private Uri _uri;
 
     private interface FileFlags {
@@ -107,7 +108,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     }
 
     private void updatePreferredAlphabetAdapter() {
-        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _alphabets = DbManager.getInstance().getManager().readAllAlphabets(preferredAlphabet);
         final AlphabetAdapter adapter = new AlphabetAdapter(_alphabets);
         _preferredAlphabetSpinner.setAdapter(adapter);

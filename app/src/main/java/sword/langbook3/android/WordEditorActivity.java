@@ -13,18 +13,22 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
-import sword.collections.IntPairMap;
+import sword.collections.Map;
+import sword.collections.MutableHashMap;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
-import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntSet;
-import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.collections.MutableMap;
+import sword.collections.MutableSet;
 import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.Conversion;
@@ -58,9 +62,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private LinearLayout _formPanel;
     private ImmutableIntKeyMap<FieldConversion> _fieldConversions;
     private String[] _texts;
-    private ImmutableIntPairMap _fieldIndexAlphabetRelationMap;
+    private ImmutableIntKeyMap<AlphabetId> _fieldIndexAlphabetRelationMap;
     private int _existingAcceptation = NO_ACCEPTATION;
-    private final SyncCacheMap<ImmutableIntPair, Conversion> _conversions =
+    private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion> _conversions =
             new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
     public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
@@ -78,7 +82,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, String title, IntKeyMap<String> correlation, int concept) {
+    public static void open(Activity activity, int requestCode, String title, Map<AlphabetId, String> correlation, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.TITLE, title);
@@ -102,9 +106,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private ImmutableIntKeyMap<String> getArgumentCorrelation() {
+    private ImmutableMap<AlphabetId, String> getArgumentCorrelation() {
         final ParcelableCorrelation parcelable = getIntent().getParcelableExtra(ArgKeys.CORRELATION_MAP);
-        return (parcelable != null)? parcelable.get() : ImmutableIntKeyMap.empty();
+        return (parcelable != null)? parcelable.get() : ImmutableHashMap.empty();
     }
 
     @Override
@@ -144,7 +148,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private int getLanguage(LangbookChecker checker) {
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
         }
         else {
@@ -155,15 +159,15 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private void updateConvertedTexts() {
         final LangbookManager manager = DbManager.getInstance().getManager();
         final int language = getLanguage(manager);
-        final ImmutableIntSet alphabets = manager.findAlphabetsByLanguage(language);
-        final ImmutableIntPairMap conversionMap = manager.findConversions(alphabets);
+        final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
+        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
 
         final int alphabetCount = alphabets.size();
         for (int targetFieldIndex = 0; targetFieldIndex < alphabetCount; targetFieldIndex++) {
-            final int targetAlphabet = alphabets.valueAt(targetFieldIndex);
-            final int sourceAlphabet = conversionMap.get(targetAlphabet, 0);
-            final ImmutableIntPair alphabetPair = new ImmutableIntPair(sourceAlphabet, targetAlphabet);
-            final int sourceFieldIndex = (sourceAlphabet != 0)? alphabets.indexOf(sourceAlphabet) : -1;
+            final AlphabetId targetAlphabet = alphabets.valueAt(targetFieldIndex);
+            final AlphabetId sourceAlphabet = conversionMap.get(targetAlphabet, null);
+            final ImmutablePair<AlphabetId, AlphabetId> alphabetPair = new ImmutablePair<>(sourceAlphabet, targetAlphabet);
+            final int sourceFieldIndex = (sourceAlphabet != null)? alphabets.indexOf(sourceAlphabet) : -1;
             if (sourceFieldIndex >= 0) {
                 final String sourceText = _texts[sourceFieldIndex];
                 _texts[targetFieldIndex] = (sourceText != null)? _conversions.get(alphabetPair).convert(sourceText) : null;
@@ -181,8 +185,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     private ImmutableIntSet findFieldsWhereStringQueryIsValid(String queryText,
-            ImmutableIntPairMap conversions, ImmutableIntPairMap fieldIndexAlphabetRelationMap,
-            MutableIntKeyMap<String> queryConvertedTexts) {
+            ImmutableMap<AlphabetId, AlphabetId> conversions, ImmutableIntKeyMap<AlphabetId> fieldIndexAlphabetRelationMap,
+            MutableMap<AlphabetId, String> queryConvertedTexts) {
         final MutableIntSet queryTextIsValid = MutableIntArraySet.empty();
 
         if (queryText != null) {
@@ -190,17 +194,17 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             final int fieldConversionCount = conversions.size();
 
             for (int editableFieldIndex = 0; editableFieldIndex < editableFieldCount; editableFieldIndex++) {
-                final int alphabet = fieldIndexAlphabetRelationMap.valueAt(editableFieldIndex);
+                final AlphabetId alphabet = fieldIndexAlphabetRelationMap.valueAt(editableFieldIndex);
 
                 boolean isValid = true;
-                final MutableIntKeyMap<String> localQueryConvertedTexts = MutableIntKeyMap.empty();
+                final MutableMap<AlphabetId, String> localQueryConvertedTexts = MutableHashMap.empty();
 
                 ImmutableSet<String> sourceTexts = null;
-                final MutableIntSet sourceTextAlphabets = MutableIntArraySet.empty();
+                final MutableSet<AlphabetId> sourceTextAlphabets = MutableHashSet.empty();
 
                 for (int conversionIndex = 0; conversionIndex < fieldConversionCount; conversionIndex++) {
-                    if (conversions.valueAt(conversionIndex) == alphabet) {
-                        final ImmutableIntPair pair = new ImmutableIntPair(alphabet, conversions.keyAt(conversionIndex));
+                    if (equal(conversions.valueAt(conversionIndex), alphabet)) {
+                        final ImmutablePair<AlphabetId, AlphabetId> pair = new ImmutablePair<>(alphabet, conversions.keyAt(conversionIndex));
                         final Conversion conversion = _conversions.get(pair);
 
                         final String convertedText = conversion.convert(queryText);
@@ -223,12 +227,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                     final int fieldIndex = fieldIndexAlphabetRelationMap.keyAt(editableFieldIndex);
                     queryTextIsValid.add(fieldIndex);
 
-                    for (IntKeyMap.Entry<String> entry : localQueryConvertedTexts.entries()) {
+                    for (Map.Entry<AlphabetId, String> entry : localQueryConvertedTexts.entries()) {
                         queryConvertedTexts.put(entry.key(), entry.value());
                     }
                 }
                 else if (sourceTexts != null && !sourceTexts.isEmpty()) {
-                    for (int targetAlphabet : sourceTextAlphabets) {
+                    for (AlphabetId targetAlphabet : sourceTextAlphabets) {
                         queryConvertedTexts.put(targetAlphabet, queryText);
                     }
                     queryConvertedTexts.put(alphabet, sourceTexts.valueAt(0));
@@ -242,10 +246,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private void updateFields() {
         _formPanel.removeAllViews();
         final LangbookChecker checker = DbManager.getInstance().getManager();
-        final ImmutableIntKeyMap<String> existingTexts;
+        final ImmutableMap<AlphabetId, String> existingTexts;
         final int language;
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableIntKeyMap<String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             existingTexts = result.left;
             language = result.right;
         }
@@ -254,12 +258,12 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
         }
 
-        final int preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableIntKeyMap<String> fieldNames;
-        final ImmutableIntPairMap fieldConversions;
+        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final ImmutableMap<AlphabetId, String> fieldNames;
+        final ImmutableMap<AlphabetId, AlphabetId> fieldConversions;
         if (language == 0) {
             fieldNames = getArgumentCorrelation().keySet().assign(alphabet -> "");
-            fieldConversions = ImmutableIntPairMap.empty();
+            fieldConversions = ImmutableHashMap.empty();
         }
         else {
             fieldNames = checker.readAlphabetsForLanguage(language, preferredAlphabet);
@@ -271,13 +275,13 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final String queryText = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
 
         final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
-        final ImmutableIntPairMap.Builder indexAlphabetBuilder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntKeyMap.Builder<AlphabetId> indexAlphabetBuilder = new ImmutableIntKeyMap.Builder<>();
 
         for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
-            final int alphabet = fieldNames.keyAt(fieldIndex);
+            final AlphabetId alphabet = fieldNames.keyAt(fieldIndex);
             final int conversionIndex = fieldConversions.keySet().indexOf(alphabet);
             if (conversionIndex >= 0) {
-                final ImmutableIntPair pair = new ImmutableIntPair(fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
+                final ImmutablePair<AlphabetId, AlphabetId> pair = new ImmutablePair<>(fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
                 final Conversion conversion = _conversions.get(pair);
                 final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
                 builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
@@ -287,8 +291,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             }
         }
 
-        final ImmutableIntPairMap fieldIndexAlphabetRelationMap = indexAlphabetBuilder.build();
-        final MutableIntKeyMap<String> queryConvertedTexts = MutableIntKeyMap.empty();
+        final ImmutableIntKeyMap<AlphabetId> fieldIndexAlphabetRelationMap = indexAlphabetBuilder.build();
+        final MutableMap<AlphabetId, String> queryConvertedTexts = MutableHashMap.empty();
 
         boolean autoSelectText = false;
         if (_texts == null) {
@@ -329,8 +333,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 editText.addTextChangedListener(new FieldTextWatcher(fieldIndex));
             }
             else {
-                final int target = fieldNames.keyAt(fieldIndex);
-                final int source = fieldConversions.get(target);
+                final AlphabetId target = fieldNames.keyAt(fieldIndex);
+                final AlphabetId source = fieldConversions.get(target);
                 fieldEntry.findViewById(R.id.checkConversionButton).setOnClickListener(view ->
                         ConversionDetailsActivity.open(this, REQUEST_CODE_CHECK_CONVERSION, source, target));
             }
@@ -356,8 +360,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
 
         if (allValid) {
-            final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-            for (IntPairMap.Entry entry : _fieldIndexAlphabetRelationMap.entries()) {
+            final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
+            for (IntKeyMap.Entry<AlphabetId> entry : _fieldIndexAlphabetRelationMap.entries()) {
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 

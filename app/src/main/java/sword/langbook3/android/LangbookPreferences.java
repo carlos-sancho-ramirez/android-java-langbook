@@ -3,6 +3,8 @@ package sword.langbook3.android;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import sword.langbook3.android.db.AlphabetId;
+
 import static android.content.Context.MODE_PRIVATE;
 
 class LangbookPreferences {
@@ -37,11 +39,11 @@ class LangbookPreferences {
         return _context.getSharedPreferences(LangbookPreferences.file, MODE_PRIVATE);
     }
 
-    public int getPreferredAlphabet() {
-        return getPreferences().getInt(preferredAlphabet, defaultPreferredAlphabet);
+    public AlphabetId getPreferredAlphabet() {
+        return new AlphabetId(getPreferences().getInt(preferredAlphabet, defaultPreferredAlphabet));
     }
 
-    public void setPreferredAlphabet(int alphabet) {
-        getPreferences().edit().putInt(preferredAlphabet, alphabet).apply();
+    public void setPreferredAlphabet(AlphabetId alphabet) {
+        getPreferences().edit().putInt(preferredAlphabet, alphabet.key).apply();
     }
 }

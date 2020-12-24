@@ -14,10 +14,11 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
@@ -27,6 +28,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationArrayItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
@@ -58,7 +60,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
-    private int _preferredAlphabet;
+    private AlphabetId _preferredAlphabet;
     private int _acceptation;
     private AcceptationDetailsModel _model;
     private int _dbWriteVersion;
@@ -92,12 +94,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
 
-        final ImmutableIntSet commonAlphabets = _model.correlationIds
+        final ImmutableSet<AlphabetId> commonAlphabets = _model.correlationIds
                 .map((int id) -> _model.correlations.get(id).keySet())
-                .reduce((set1, set2) -> set1.filter(set2::contains), new ImmutableIntSetCreator().build());
+                .reduce((set1, set2) -> set1.filter(set2::contains), ImmutableHashSet.empty());
         if (commonAlphabets.size() > 1) {
-            final int mainAlphabet = commonAlphabets.valueAt(0);
-            final int pronunciationAlphabet = commonAlphabets.valueAt(1);
+            final AlphabetId mainAlphabet = commonAlphabets.valueAt(0);
+            final AlphabetId pronunciationAlphabet = commonAlphabets.valueAt(1);
             result.add(new CorrelationArrayItem(_model.correlationIds, _model.correlations, mainAlphabet, pronunciationAlphabet, !_confirmOnly));
         }
 
@@ -161,7 +163,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
         }
 
-        final ImmutableIntSet alphabets = _model.texts.keySet();
+        final ImmutableSet<AlphabetId> alphabets = _model.texts.keySet();
         boolean acceptationSharingCorrelationArrayFound = false;
         final ImmutableIntSet accsSharingCorrelationArray = _model.acceptationsSharingTexts.filter(alphabets::equalSet).keySet();
         for (int acc : accsSharingCorrelationArray) {

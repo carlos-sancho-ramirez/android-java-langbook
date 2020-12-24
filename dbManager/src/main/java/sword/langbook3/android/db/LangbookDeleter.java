@@ -1,9 +1,9 @@
 package sword.langbook3.android.db;
 
+import sword.collections.ImmutablePair;
 import sword.database.Database;
 import sword.database.DbDeleteQuery;
 import sword.database.Deleter;
-import sword.langbook3.android.collections.ImmutableIntPair;
 
 final class LangbookDeleter {
 
@@ -251,22 +251,22 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteConversionRegister(Deleter db, ImmutableIntPair alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
+    static boolean deleteConversionRegister(Deleter db, ImmutablePair<AlphabetId, AlphabetId> alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getSourceAlphabetColumnIndex(), alphabets.left)
-                .where(table.getTargetAlphabetColumnIndex(), alphabets.right)
+                .where(table.getSourceAlphabetColumnIndex(), alphabets.left.key)
+                .where(table.getTargetAlphabetColumnIndex(), alphabets.right.key)
                 .where(table.getSourceColumnIndex(), sourceSymbolArrayId)
                 .where(table.getTargetColumnIndex(), targetSymbolArrayId)
                 .build();
         return db.delete(query);
     }
 
-    static boolean deleteConversion(Database db, int sourceAlphabet, int targetAlphabet) {
+    static boolean deleteConversion(Database db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
-                .where(table.getTargetAlphabetColumnIndex(), targetAlphabet)
+                .where(table.getSourceAlphabetColumnIndex(), sourceAlphabet.key)
+                .where(table.getTargetAlphabetColumnIndex(), targetAlphabet.key)
                 .build();
         return db.delete(query);
     }
@@ -287,26 +287,26 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteAlphabet(Database db, int alphabet) {
+    static boolean deleteAlphabet(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getIdColumnIndex(), alphabet)
+                .where(table.getIdColumnIndex(), alphabet.key)
                 .build();
         return db.delete(query);
     }
 
-    static boolean deleteAlphabetFromCorrelations(Database db, int alphabet) {
+    static boolean deleteAlphabetFromCorrelations(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getAlphabetColumnIndex(), alphabet)
+                .where(table.getAlphabetColumnIndex(), alphabet.key)
                 .build();
         return db.delete(query);
     }
 
-    static boolean deleteAlphabetFromStringQueries(Database db, int alphabet) {
+    static boolean deleteAlphabetFromStringQueries(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), alphabet)
+                .where(table.getStringAlphabetColumnIndex(), alphabet.key)
                 .build();
         return db.delete(query);
     }

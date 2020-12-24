@@ -1,13 +1,14 @@
 package sword.langbook3.android.models;
 
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookDbSchema;
 
 public final class QuestionFieldDetails {
-    public final int alphabet;
+    public final AlphabetId alphabet;
     public final int rule;
     public final int flags;
 
-    public QuestionFieldDetails(int alphabet, int rule, int flags) {
+    public QuestionFieldDetails(AlphabetId alphabet, int rule, int flags) {
         this.alphabet = alphabet;
         this.rule = rule;
         this.flags = flags;
@@ -23,7 +24,7 @@ public final class QuestionFieldDetails {
 
     @Override
     public int hashCode() {
-        return (flags * 37 + rule) * 37 + alphabet;
+        return (flags * 37 + rule) * 37 + alphabet.hashCode();
     }
 
     @Override

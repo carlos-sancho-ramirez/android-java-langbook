@@ -2,9 +2,9 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntRange;
 import sword.collections.IntList;
-import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.IntTraverser;
+import sword.collections.IntValueMap;
 import sword.database.DbInsertQuery;
 import sword.database.DbInserter;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
@@ -26,44 +26,44 @@ final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    static void insertAlphabet(DbInserter db, int id, int language) {
+    static void insertAlphabet(DbInserter db, AlphabetId id, int language) {
         final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), id)
+                .put(table.getIdColumnIndex(), id.key)
                 .put(table.getLanguageColumnIndex(), language)
                 .build();
 
-        if (db.insert(query) != id) {
+        if (db.insert(query) != id.key) {
             throw new AssertionError();
         }
     }
 
-    static void insertLanguage(DbInserter db, int id, String code, int mainAlphabet) {
+    static void insertLanguage(DbInserter db, int id, String code, AlphabetId mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = Tables.languages;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
                 .put(table.getCodeColumnIndex(), code)
-                .put(table.getMainAlphabetColumnIndex(), mainAlphabet)
+                .put(table.getMainAlphabetColumnIndex(), mainAlphabet.key)
                 .build();
         db.insert(query);
     }
 
-    static void insertConversion(DbInserter db, int sourceAlphabet, int targetAlphabet, int source, int target) {
+    static void insertConversion(DbInserter db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet, int source, int target) {
         final LangbookDbSchema.ConversionsTable table = Tables.conversions;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
-                .put(table.getTargetAlphabetColumnIndex(), targetAlphabet)
+                .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet.key)
+                .put(table.getTargetAlphabetColumnIndex(), targetAlphabet.key)
                 .put(table.getSourceColumnIndex(), source)
                 .put(table.getTargetColumnIndex(), target)
                 .build();
         db.insert(query);
     }
 
-    static void insertCorrelationEntry(DbInserter db, int correlationId, int alphabet, int symbolArray) {
+    static void insertCorrelationEntry(DbInserter db, int correlationId, AlphabetId alphabet, int symbolArray) {
         final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getCorrelationIdColumnIndex(), correlationId)
-                .put(table.getAlphabetColumnIndex(), alphabet)
+                .put(table.getAlphabetColumnIndex(), alphabet.key)
                 .put(table.getSymbolArrayColumnIndex(), symbolArray)
                 .build();
         if (db.insert(query) == null) {
@@ -71,7 +71,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertCorrelation(DbInserter db, int correlationId, IntPairMap correlation) {
+    static void insertCorrelation(DbInserter db, int correlationId, IntValueMap<AlphabetId> correlation) {
         final int mapLength = correlation.size();
         if (mapLength == 0) {
             throw new IllegalArgumentException();
@@ -204,14 +204,14 @@ final class LangbookDbInserter {
     }
 
     static void insertStringQuery(DbInserter db, String str,
-            String mainStr, int mainAcceptation, int dynAcceptation, int strAlphabet) {
+            String mainStr, int mainAcceptation, int dynAcceptation, AlphabetId strAlphabet) {
         final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getStringColumnIndex(), str)
                 .put(table.getMainStringColumnIndex(), mainStr)
                 .put(table.getMainAcceptationColumnIndex(), mainAcceptation)
                 .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
-                .put(table.getStringAlphabetColumnIndex(), strAlphabet)
+                .put(table.getStringAlphabetColumnIndex(), strAlphabet.key)
                 .build();
 
         if (db.insert(query) == null) {
@@ -224,7 +224,7 @@ final class LangbookDbInserter {
         for (QuestionFieldDetails field : fields) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
                     .put(table.getSetIdColumnIndex(), setId)
-                    .put(table.getAlphabetColumnIndex(), field.alphabet)
+                    .put(table.getAlphabetColumnIndex(), field.alphabet.key)
                     .put(table.getRuleColumnIndex(), field.rule)
                     .put(table.getFlagsColumnIndex(), field.flags)
                     .build();

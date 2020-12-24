@@ -10,10 +10,13 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
+import sword.collections.ImmutableMap;
+import sword.collections.ImmutableSet;
+import sword.langbook3.android.db.AlphabetId;
 
 final class AlphabetsAdapter extends BaseAdapter {
     private final ImmutableIntKeyMap<String> _languages;
-    private final ImmutableIntKeyMap<String> _alphabets;
+    private final ImmutableMap<AlphabetId, String> _alphabets;
 
     private final ImmutableIntSet _nextSectionHeader;
     private final ImmutableIntList _keyList;
@@ -21,9 +24,9 @@ final class AlphabetsAdapter extends BaseAdapter {
     private LayoutInflater _inflater;
 
     AlphabetsAdapter(
-            ImmutableIntKeyMap<ImmutableIntSet> map,
+            ImmutableIntKeyMap<ImmutableSet<AlphabetId>> map,
             ImmutableIntKeyMap<String> languages,
-            ImmutableIntKeyMap<String> alphabets) {
+            ImmutableMap<AlphabetId, String> alphabets) {
         _languages = languages;
         _alphabets = alphabets;
 
@@ -36,8 +39,8 @@ final class AlphabetsAdapter extends BaseAdapter {
             acc += map.valueAt(i).size() + 1;
 
             keyListBuilder.append(map.keyAt(i));
-            for (int alphabetId : map.valueAt(i)) {
-                keyListBuilder.append(alphabetId);
+            for (AlphabetId alphabetId : map.valueAt(i)) {
+                keyListBuilder.append(alphabetId.key);
             }
         }
 
@@ -89,7 +92,7 @@ final class AlphabetsAdapter extends BaseAdapter {
 
         final TextView tv = convertView.findViewById(R.id.text);
         final int id = _keyList.valueAt(position);
-        final String text = (viewType == ViewTypes.LANGUAGE)? _languages.get(id) : _alphabets.get(id);
+        final String text = (viewType == ViewTypes.LANGUAGE)? _languages.get(id) : _alphabets.get(new AlphabetId(id));
         tv.setText(text);
 
         return convertView;
