@@ -3,10 +3,9 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -16,8 +15,8 @@ public final class LanguageAdderActivityState implements Parcelable {
     private int _newLanguageId;
     private int _alphabetCount;
 
-    private ImmutableList<ImmutableMap<AlphabetId, String>> _languageCorrelationArray;
-    private ImmutableList<ImmutableList<ImmutableMap<AlphabetId, String>>> _alphabetCorrelationArrays;
+    private ImmutableList<ImmutableCorrelation> _languageCorrelationArray;
+    private ImmutableList<ImmutableList<ImmutableCorrelation>> _alphabetCorrelationArrays;
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
@@ -52,8 +51,12 @@ public final class LanguageAdderActivityState implements Parcelable {
         return (_alphabetCorrelationArrays != null)? _newLanguageId + _alphabetCorrelationArrays.size() + 1 : _newLanguageId;
     }
 
-    ImmutableMap<AlphabetId, String> getEmptyCorrelation() {
-        return new ImmutableIntRange(_newLanguageId + 1, _newLanguageId + _alphabetCount).map(AlphabetId::new).toSet().assign(key -> null);
+    ImmutableCorrelation getEmptyCorrelation() {
+        final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
+        for (int rawAlphabet = _newLanguageId + 1; rawAlphabet <= _newLanguageId + _alphabetCount; rawAlphabet++) {
+            builder.put(new AlphabetId(rawAlphabet), null);
+        }
+        return builder.build();
     }
 
     void reset() {
@@ -79,7 +82,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         _alphabetCount = alphabetCount;
     }
 
-    void setLanguageCorrelationArray(ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray) {
+    void setLanguageCorrelationArray(ImmutableList<ImmutableCorrelation> correlationArray) {
         if (correlationArray == null || correlationArray.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -92,7 +95,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         _alphabetCorrelationArrays = ImmutableList.empty();
     }
 
-    ImmutableList<ImmutableMap<AlphabetId, String>> popLanguageCorrelationArray() {
+    ImmutableList<ImmutableCorrelation> popLanguageCorrelationArray() {
         if (_languageCorrelationArray == null || _alphabetCorrelationArrays == null) {
             throw new UnsupportedOperationException("Language correlation not set");
         }
@@ -101,13 +104,13 @@ public final class LanguageAdderActivityState implements Parcelable {
             throw new UnsupportedOperationException("Unable to remove language correlation without removing alphabet correlation first");
         }
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = _languageCorrelationArray;
+        final ImmutableList<ImmutableCorrelation> correlationArray = _languageCorrelationArray;
         _languageCorrelationArray = null;
         _alphabetCorrelationArrays = null;
         return correlationArray;
     }
 
-    void setNextAlphabetCorrelationArray(ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray) {
+    void setNextAlphabetCorrelationArray(ImmutableList<ImmutableCorrelation> correlationArray) {
         if (correlationArray == null || correlationArray.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -127,9 +130,9 @@ public final class LanguageAdderActivityState implements Parcelable {
         return _alphabetCorrelationArrays != null && !_alphabetCorrelationArrays.isEmpty();
     }
 
-    ImmutableList<ImmutableMap<AlphabetId, String>> popLastAlphabetCorrelationArray() {
+    ImmutableList<ImmutableCorrelation> popLastAlphabetCorrelationArray() {
         final int index = _alphabetCorrelationArrays.size() - 1;
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlation = _alphabetCorrelationArrays.valueAt(index);
+        final ImmutableList<ImmutableCorrelation> correlation = _alphabetCorrelationArrays.valueAt(index);
         _alphabetCorrelationArrays = _alphabetCorrelationArrays.removeAt(index);
         return correlation;
     }

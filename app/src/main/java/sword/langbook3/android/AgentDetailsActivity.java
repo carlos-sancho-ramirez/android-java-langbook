@@ -13,9 +13,9 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.DisplayableItem;
@@ -74,7 +74,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
     private static void addCorrelationSection(LangbookChecker checker, String title, int correlationId, SyncCacheMap<AlphabetId, String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
         boolean headerAdded = false;
-        ImmutableMap<AlphabetId, String> matcher = checker.getCorrelationWithText(correlationId);
+        ImmutableCorrelation matcher = checker.getCorrelationWithText(correlationId);
         for (int i = 0; i < matcher.size(); i++) {
             if (!headerAdded) {
                 headerAdded = true;

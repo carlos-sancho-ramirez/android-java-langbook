@@ -7,6 +7,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.Predicate;
 import sword.langbook3.android.collections.EqualUtils;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class CorrelationDetailsModel {
     /**
@@ -17,7 +18,7 @@ public final class CorrelationDetailsModel {
     /**
      * Map matching each alphabet with its corresponding text representation for this correlation
      */
-    public final ImmutableMap<AlphabetId, String> correlation;
+    public final ImmutableCorrelation correlation;
 
     /**
      * Contains all acceptations that contains this correlation.
@@ -41,14 +42,14 @@ public final class CorrelationDetailsModel {
      * Contains all correlations that contains at least one text representation in common for the same alphabet.
      * The key of this map is its correlation identifier, while the value is the correlation itself (alphabet -&gt; text representation).
      */
-    public final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> relatedCorrelations;
+    public final ImmutableIntKeyMap<ImmutableCorrelation> relatedCorrelations;
 
     public CorrelationDetailsModel(
             ImmutableMap<AlphabetId, String> alphabets,
-            ImmutableMap<AlphabetId, String> correlation,
+            ImmutableCorrelation correlation,
             ImmutableIntKeyMap<String> acceptations,
             ImmutableMap<AlphabetId, ImmutableIntSet> relatedCorrelationsByAlphabet,
-            ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> relatedCorrelations) {
+            ImmutableIntKeyMap<ImmutableCorrelation> relatedCorrelations) {
         if (alphabets == null || correlation == null || acceptations == null ||
                 relatedCorrelationsByAlphabet == null || relatedCorrelations == null) {
             throw new IllegalArgumentException();

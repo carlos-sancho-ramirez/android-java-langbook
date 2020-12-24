@@ -18,6 +18,7 @@ import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AcceptationsChecker;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
@@ -106,11 +107,11 @@ public interface AcceptationsSerializerTest {
 
     static int addSimpleAcceptation(
             AcceptationsManager manager, AlphabetId alphabet, int concept, String text) {
-        final ImmutableMap<AlphabetId, String> correlation = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation correlation = new ImmutableCorrelation.Builder()
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
+        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
                 .append(correlation)
                 .build();
 
@@ -288,12 +289,12 @@ public interface AcceptationsSerializerTest {
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArrays = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableList<ImmutableCorrelation> correlationArrays = new ImmutableList.Builder<ImmutableCorrelation>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
                         .build())
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "文")
                         .put(kana, "もん")
                         .build())
@@ -355,12 +356,12 @@ public interface AcceptationsSerializerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
                         .build())
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "文")
                         .put(kana, "もん")
                         .build())

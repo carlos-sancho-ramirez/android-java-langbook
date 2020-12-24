@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntTraversableTestUtils;
@@ -70,11 +69,11 @@ public interface AcceptationsManagerTest {
             .build();
 
     static int addSimpleAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept, String text) {
-        final ImmutableMap<AlphabetId, String> correlation = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation correlation = new ImmutableCorrelation.Builder()
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
+        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
                 .append(correlation)
                 .build();
 
@@ -82,11 +81,11 @@ public interface AcceptationsManagerTest {
     }
 
     static boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager manager, AlphabetId alphabet, int acceptationId, String text) {
-        final ImmutableMap<AlphabetId, String> correlation = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation correlation = new ImmutableCorrelation.Builder()
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
+        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
                 .append(correlation)
                 .build();
 
@@ -187,7 +186,7 @@ public interface AcceptationsManagerTest {
         final ImmutableSet<AlphabetId> alphabetSet = manager.findAlphabetsByLanguage(language);
         assertContainsOnly(mainAlphabet, secondAlphabet, alphabetSet);
 
-        final ImmutableMap<AlphabetId, String> acceptationTexts = manager.getAcceptationTexts(acceptation);
+        final ImmutableCorrelation acceptationTexts = manager.getAcceptationTexts(acceptation);
         assertSize(2, acceptationTexts);
         assertEquals(acceptationTexts.valueAt(0), acceptationTexts.valueAt(1));
         assertEqualSet(alphabetSet, acceptationTexts.keySet());
@@ -231,7 +230,7 @@ public interface AcceptationsManagerTest {
 
         final int concept = manager.getMaxConcept() + 1;
         final int acceptationId = addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
-        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
         assertEquals("casa", texts.get(mainAlphabet));
         assertEquals(convertedText, texts.get(secondAlphabet));
@@ -259,7 +258,7 @@ public interface AcceptationsManagerTest {
 
         final String convertedText = manager.getConversion(new ImmutablePair<>(mainAlphabet, secondAlphabet)).convert("casa");
 
-        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
         assertEquals("casa", texts.get(mainAlphabet));
         assertEquals(convertedText, texts.get(secondAlphabet));
@@ -330,19 +329,19 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArrays = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableList<ImmutableCorrelation> correlationArrays = new ImmutableList.Builder<ImmutableCorrelation>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
                         .build())
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "文")
                         .put(kana, "もん")
                         .build())
                 .build();
 
         final int acceptation = manager.addAcceptation(concept, correlationArrays);
-        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptation);
+        final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptation);
         assertSize(2, texts);
         assertEquals("注文", texts.get(kanji));
         assertEquals("ちゅうもん", texts.get(kana));
@@ -370,12 +369,12 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
         final int concept = manager.getMaxConcept() + 1;
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "注")
                         .put(kana, "ちゅう")
                         .build())
-                .add(new ImmutableHashMap.Builder<AlphabetId, String>()
+                .add(new ImmutableCorrelation.Builder()
                         .put(kanji, "文")
                         .put(kana, "もん")
                         .build())
@@ -383,7 +382,7 @@ public interface AcceptationsManagerTest {
 
         final int acceptation = manager.addAcceptation(concept, correlationArray);
 
-        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptation);
+        final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptation);
         assertSize(3, texts);
         assertEquals("注文", texts.get(kanji));
         assertEquals("ちゅうもん", texts.get(kana));
@@ -438,7 +437,7 @@ public interface AcceptationsManagerTest {
 
         final int acceptationId = addSimpleAcceptation(manager, kanaAlphabet, concept, "ねこ");
 
-        final ImmutableMap<AlphabetId, String> texts1 = manager.getAcceptationTexts(acceptationId);
+        final ImmutableCorrelation texts1 = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts1);
         assertEquals("ねこ", texts1.get(kanaAlphabet));
         assertEquals("neo", texts1.get(roumajiAlphabet));
@@ -447,7 +446,7 @@ public interface AcceptationsManagerTest {
         final Conversion conversion2 = new Conversion(kanaAlphabet, roumajiAlphabet, convMap);
         assertTrue(manager.replaceConversion(conversion2));
 
-        final ImmutableMap<AlphabetId, String> texts2 = manager.getAcceptationTexts(acceptationId);
+        final ImmutableCorrelation texts2 = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts2);
         assertEquals("ねこ", texts2.get(kanaAlphabet));
         assertEquals("neko", texts2.get(roumajiAlphabet));
@@ -481,7 +480,7 @@ public interface AcceptationsManagerTest {
         assertTrue(manager.replaceConversion(conversion));
 
         final int acceptationId = addSimpleAcceptation(manager, kanaAlphabet, concept, "ねこ");
-        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
         assertEquals("ねこ", texts.get(kanaAlphabet));
         assertEquals("neko", texts.get(roumajiAlphabet));

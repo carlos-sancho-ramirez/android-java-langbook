@@ -1,43 +1,41 @@
 package sword.langbook3.android.models;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
-import sword.collections.ImmutableMap;
-import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class AgentDetails {
     public final ImmutableIntSet targetBunches;
     public final ImmutableIntSet sourceBunches;
     public final ImmutableIntSet diffBunches;
-    public final ImmutableMap<AlphabetId, String> startMatcher;
-    public final ImmutableMap<AlphabetId, String> startAdder;
-    public final ImmutableMap<AlphabetId, String> endMatcher;
-    public final ImmutableMap<AlphabetId, String> endAdder;
+    public final ImmutableCorrelation startMatcher;
+    public final ImmutableCorrelation startAdder;
+    public final ImmutableCorrelation endMatcher;
+    public final ImmutableCorrelation endAdder;
     public final int rule;
 
     public AgentDetails(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableMap<AlphabetId, String> startMatcher,
-            ImmutableMap<AlphabetId, String> startAdder, ImmutableMap<AlphabetId, String> endMatcher,
-            ImmutableMap<AlphabetId, String> endAdder, int rule) {
+            ImmutableIntSet diffBunches, ImmutableCorrelation startMatcher,
+            ImmutableCorrelation startAdder, ImmutableCorrelation endMatcher,
+            ImmutableCorrelation endAdder, int rule) {
 
         if (startMatcher == null) {
-            startMatcher = ImmutableHashMap.empty();
+            startMatcher = ImmutableCorrelation.empty();
         }
 
         if (startAdder == null) {
-            startAdder = ImmutableHashMap.empty();
+            startAdder = ImmutableCorrelation.empty();
         }
 
         if (endMatcher == null) {
-            endMatcher = ImmutableHashMap.empty();
+            endMatcher = ImmutableCorrelation.empty();
         }
 
         if (endAdder == null) {
-            endAdder = ImmutableHashMap.empty();
+            endAdder = ImmutableCorrelation.empty();
         }
 
-        if (startMatcher.equals(startAdder) && endMatcher.equals(endAdder)) {
+        if (startMatcher.equalCorrelation(startAdder) && endMatcher.equalCorrelation(endAdder)) {
             if (targetBunches.isEmpty()) {
                 throw new IllegalArgumentException();
             }

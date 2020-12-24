@@ -3,17 +3,16 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import sword.collections.ImmutableMap;
-import sword.collections.Map;
-import sword.collections.MutableHashMap;
-import sword.collections.MutableMap;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.MutableCorrelation;
 
 public final class ParcelableCorrelation implements Parcelable {
 
-    private final ImmutableMap<AlphabetId, String> _correlation;
+    private final ImmutableCorrelation _correlation;
 
-    public ParcelableCorrelation(Map<AlphabetId, String> correlation) {
+    public ParcelableCorrelation(Correlation correlation) {
         if (correlation == null) {
             throw new IllegalArgumentException();
         }
@@ -21,7 +20,7 @@ public final class ParcelableCorrelation implements Parcelable {
         _correlation = correlation.toImmutable();
     }
 
-    public ImmutableMap<AlphabetId, String> get() {
+    public ImmutableCorrelation get() {
         return _correlation;
     }
 
@@ -30,9 +29,9 @@ public final class ParcelableCorrelation implements Parcelable {
         return 0;
     }
 
-    static ImmutableMap<AlphabetId, String> read(Parcel in) {
+    static ImmutableCorrelation read(Parcel in) {
         final int correlationSize = in.readInt();
-        MutableMap<AlphabetId, String> correlation = MutableHashMap.empty();
+        MutableCorrelation correlation = MutableCorrelation.empty();
         for (int j = 0; j < correlationSize; j++) {
             final int key = in.readInt();
             final AlphabetId alphabet = new AlphabetId(key);
@@ -43,7 +42,7 @@ public final class ParcelableCorrelation implements Parcelable {
         return correlation.toImmutable();
     }
 
-    static void write(Parcel dest, Map<AlphabetId, String> correlation) {
+    static void write(Parcel dest, Correlation correlation) {
         final int correlationSize = correlation.size();
         dest.writeInt(correlationSize);
 

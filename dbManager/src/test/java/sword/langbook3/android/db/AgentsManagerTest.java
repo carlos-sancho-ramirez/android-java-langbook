@@ -2,13 +2,11 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
-import sword.collections.ImmutableMap;
 import sword.collections.List;
 import sword.collections.MutableIntPairMap;
 import sword.database.DbExporter;
@@ -25,12 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
+import static sword.collections.IntPairMapTestUtils.assertSinglePair;
 import static sword.collections.IntSetTestUtils.assertEqualSet;
 import static sword.collections.IntSetTestUtils.intSetOf;
 import static sword.collections.IntTraversableTestUtils.assertContainsOnly;
 import static sword.collections.IntTraversableTestUtils.getSingleValue;
-import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
-import static sword.collections.IntPairMapTestUtils.assertSinglePair;
 import static sword.collections.MapTestUtils.assertSinglePair;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
@@ -74,17 +72,17 @@ interface AgentsManagerTest extends BunchesManagerTest {
     static Integer addSingleAlphabetAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
-        final ImmutableMap<AlphabetId, String> startMatcher = (startMatcherText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startMatcherText).build();
+        final ImmutableCorrelation startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, startMatcherText).build();
 
-        final ImmutableMap<AlphabetId, String> startAdder = (startAdderText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startAdderText).build();
+        final ImmutableCorrelation startAdder = (startAdderText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, startAdderText).build();
 
-        final ImmutableMap<AlphabetId, String> endMatcher = (endMatcherText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endMatcherText).build();
+        final ImmutableCorrelation endMatcher = (endMatcherText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, endMatcherText).build();
 
-        final ImmutableMap<AlphabetId, String> endAdder = (endAdderText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endAdderText).build();
+        final ImmutableCorrelation endAdder = (endAdderText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, endAdderText).build();
 
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
@@ -92,17 +90,17 @@ interface AgentsManagerTest extends BunchesManagerTest {
     static boolean updateSingleAlphabetAgent(AgentsManager manager, int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
-        final ImmutableMap<AlphabetId, String> startMatcher = (startMatcherText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startMatcherText).build();
+        final ImmutableCorrelation startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, startMatcherText).build();
 
-        final ImmutableMap<AlphabetId, String> startAdder = (startAdderText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startAdderText).build();
+        final ImmutableCorrelation startAdder = (startAdderText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, startAdderText).build();
 
-        final ImmutableMap<AlphabetId, String> endMatcher = (endMatcherText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endMatcherText).build();
+        final ImmutableCorrelation endMatcher = (endMatcherText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, endMatcherText).build();
 
-        final ImmutableMap<AlphabetId, String> endAdder = (endAdderText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endAdderText).build();
+        final ImmutableCorrelation endAdder = (endAdderText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, endAdderText).build();
 
         return manager.updateAgent(agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
@@ -205,11 +203,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
         final int acceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
         assertTrue(manager.addAcceptationInBunch(verbConcept, acceptation));
 
-        final ImmutableMap<AlphabetId, String> nullCorrelation = new ImmutableHashMap.Builder<AlphabetId, String>().build();
-        final ImmutableMap<AlphabetId, String> matcher = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation nullCorrelation = new ImmutableCorrelation.Builder().build();
+        final ImmutableCorrelation matcher = new ImmutableCorrelation.Builder()
                 .put(alphabet, "ar")
                 .build();
-        final ImmutableMap<AlphabetId, String> adder = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation adder = new ImmutableCorrelation.Builder()
                 .put(alphabet, "ando")
                 .build();
 
@@ -316,11 +314,11 @@ interface AgentsManagerTest extends BunchesManagerTest {
             acceptation = addSimpleAcceptation(manager, alphabet, songConcept, "canción");
         }
 
-        final ImmutableMap<AlphabetId, String> nullCorrelation = new ImmutableHashMap.Builder<AlphabetId, String>().build();
-        final ImmutableMap<AlphabetId, String> matcher = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation nullCorrelation = new ImmutableCorrelation.Builder().build();
+        final ImmutableCorrelation matcher = new ImmutableCorrelation.Builder()
                 .put(alphabet, "ón")
                 .build();
-        final ImmutableMap<AlphabetId, String> adder = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation adder = new ImmutableCorrelation.Builder()
                 .put(alphabet, "ones")
                 .build();
 
@@ -699,13 +697,13 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         addSingleAlphabetAgent(manager, intSetOf(), intSetOf(verbErConcept), diffBunches, alphabet, null, null, "er", "iendo", gerund);
 
-        ImmutableMap<AlphabetId, String> texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "provocar").build();
+        ImmutableCorrelation texts = new ImmutableCorrelation.Builder().put(alphabet, "provocar").build();
         assertSinglePair(verbArConcept, "verbo ar", manager.readAllMatchingBunches(texts, alphabet));
 
-        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "comer").build();
+        texts = new ImmutableCorrelation.Builder().put(alphabet, "comer").build();
         assertSinglePair(verbErConcept, "verbo er", manager.readAllMatchingBunches(texts, alphabet));
 
-        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "dormir").build();
+        texts = new ImmutableCorrelation.Builder().put(alphabet, "dormir").build();
         assertEmpty(manager.readAllMatchingBunches(texts, alphabet));
     }
 
@@ -731,16 +729,16 @@ interface AgentsManagerTest extends BunchesManagerTest {
 
         addSingleAlphabetAgent(manager, intSetOf(noun), intSetOf(sustantivable), diffBunches, alphabet, null, null, "ar", "ación", gerund);
 
-        ImmutableMap<AlphabetId, String> texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "provocar").build();
+        ImmutableCorrelation texts = new ImmutableCorrelation.Builder().put(alphabet, "provocar").build();
         final ImmutableIntKeyMap<String> bunches = manager.readAllMatchingBunches(texts, alphabet);
         assertContainsOnly(verbArConcept, sustantivable, bunches.keySet());
         assertEquals("verbo ar", bunches.get(verbArConcept));
         assertEquals("sustantivable", bunches.get(sustantivable));
 
-        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "comer").build();
+        texts = new ImmutableCorrelation.Builder().put(alphabet, "comer").build();
         assertSinglePair(verbErConcept, "verbo er", manager.readAllMatchingBunches(texts, alphabet));
 
-        texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "dormir").build();
+        texts = new ImmutableCorrelation.Builder().put(alphabet, "dormir").build();
         assertEmpty(manager.readAllMatchingBunches(texts, alphabet));
     }
 

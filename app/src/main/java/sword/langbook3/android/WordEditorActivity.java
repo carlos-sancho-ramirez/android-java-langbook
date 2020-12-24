@@ -29,6 +29,8 @@ import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.Conversion;
@@ -82,7 +84,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, String title, Map<AlphabetId, String> correlation, int concept) {
+    public static void open(Activity activity, int requestCode, String title, Correlation correlation, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.TITLE, title);
@@ -106,9 +108,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private ImmutableMap<AlphabetId, String> getArgumentCorrelation() {
+    private ImmutableCorrelation getArgumentCorrelation() {
         final ParcelableCorrelation parcelable = getIntent().getParcelableExtra(ArgKeys.CORRELATION_MAP);
-        return (parcelable != null)? parcelable.get() : ImmutableHashMap.empty();
+        return (parcelable != null)? parcelable.get() : ImmutableCorrelation.empty();
     }
 
     @Override
@@ -148,7 +150,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private int getLanguage(LangbookChecker checker) {
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableCorrelation, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
         }
         else {
@@ -246,10 +248,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private void updateFields() {
         _formPanel.removeAllViews();
         final LangbookChecker checker = DbManager.getInstance().getManager();
-        final ImmutableMap<AlphabetId, String> existingTexts;
+        final ImmutableCorrelation existingTexts;
         final int language;
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableCorrelation, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             existingTexts = result.left;
             language = result.right;
         }
@@ -360,7 +362,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
 
         if (allValid) {
-            final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
+            final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
             for (IntKeyMap.Entry<AlphabetId> entry : _fieldIndexAlphabetRelationMap.entries()) {
                 builder.put(entry.value(), _texts[entry.key()]);
             }

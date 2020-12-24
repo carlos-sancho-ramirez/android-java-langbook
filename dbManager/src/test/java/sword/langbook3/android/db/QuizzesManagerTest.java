@@ -2,12 +2,10 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -37,17 +35,17 @@ interface QuizzesManagerTest extends AgentsManagerTest {
     QuizzesManager createManager(MemoryDatabase db);
 
     static void addJapaneseSingAcceptation(AcceptationsManager manager, AlphabetId kanjiAlphabet, AlphabetId kanaAlphabet, int concept) {
-        final ImmutableMap<AlphabetId, String> correlation1 = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation correlation1 = new ImmutableCorrelation.Builder()
                 .put(kanjiAlphabet, "歌")
                 .put(kanaAlphabet, "うた")
                 .build();
 
-        final ImmutableMap<AlphabetId, String> correlation2 = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation correlation2 = new ImmutableCorrelation.Builder()
                 .put(kanjiAlphabet, "う")
                 .put(kanaAlphabet, "う")
                 .build();
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
+        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
                 .append(correlation1)
                 .append(correlation2)
                 .build();
@@ -56,12 +54,12 @@ interface QuizzesManagerTest extends AgentsManagerTest {
     }
 
     static Integer addAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches) {
-        final ImmutableMap<AlphabetId, String> empty = ImmutableHashMap.empty();
+        final ImmutableCorrelation empty = ImmutableCorrelation.empty();
         return manager.addAgent(targetBunches, sourceBunches, ImmutableIntArraySet.empty(), empty, empty, empty, empty, 0);
     }
 
     static boolean updateAgent(AgentsManager manager, int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches) {
-        final ImmutableMap<AlphabetId, String> empty = ImmutableHashMap.empty();
+        final ImmutableCorrelation empty = ImmutableCorrelation.empty();
         return manager.updateAgent(agentId, targetBunches, sourceBunches, ImmutableIntArraySet.empty(), empty, empty, empty, empty, 0);
     }
 
@@ -147,8 +145,8 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final ImmutableIntSet noBunches = intSetOf();
-        final ImmutableMap<AlphabetId, String> nullCorrelation = new ImmutableHashMap.Builder<AlphabetId, String>().build();
-        final ImmutableMap<AlphabetId, String> matcher = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation nullCorrelation = new ImmutableCorrelation.Builder().build();
+        final ImmutableCorrelation matcher = new ImmutableCorrelation.Builder()
                 .put(alphabet, "er")
                 .build();
 
@@ -163,7 +161,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
 
         assertEquals(acceptationId, manager.getStaticAcceptationFromDynamic(acceptationId));
-        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptationId);
         assertEquals("beber", texts.get(alphabet));
         assertEquals("BEBER", texts.get(upperCaseAlphabet));
 
@@ -186,8 +184,8 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         final int acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final ImmutableIntSet noBunches = intSetOf();
-        final ImmutableMap<AlphabetId, String> nullCorrelation = new ImmutableHashMap.Builder<AlphabetId, String>().build();
-        final ImmutableMap<AlphabetId, String> matcher = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation nullCorrelation = new ImmutableCorrelation.Builder().build();
+        final ImmutableCorrelation matcher = new ImmutableCorrelation.Builder()
                 .put(alphabet, "ar")
                 .build();
 
@@ -202,7 +200,7 @@ interface QuizzesManagerTest extends AgentsManagerTest {
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "beber");
 
         assertEquals(acceptationId, manager.getStaticAcceptationFromDynamic(acceptationId));
-        final ImmutableMap<AlphabetId, String> texts = manager.getAcceptationTexts(acceptationId);
+        final ImmutableCorrelation texts = manager.getAcceptationTexts(acceptationId);
         assertEquals("beber", texts.get(alphabet));
         assertEquals("BEBER", texts.get(upperCaseAlphabet));
 

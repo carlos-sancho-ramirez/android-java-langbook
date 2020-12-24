@@ -2,7 +2,6 @@ package sword.langbook3.android.sdb;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
@@ -16,6 +15,7 @@ import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AgentsChecker;
 import sword.langbook3.android.db.AgentsManager;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.MorphologyResult;
@@ -69,11 +69,11 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
     }
 
     static int addSimpleAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept, String text) {
-        final ImmutableMap<AlphabetId, String> correlation = new ImmutableHashMap.Builder<AlphabetId, String>()
+        final ImmutableCorrelation correlation = new ImmutableCorrelation.Builder()
                 .put(alphabet, text)
                 .build();
 
-        final ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray = new ImmutableList.Builder<ImmutableMap<AlphabetId, String>>()
+        final ImmutableList<ImmutableCorrelation> correlationArray = new ImmutableList.Builder<ImmutableCorrelation>()
                 .append(correlation)
                 .build();
 
@@ -83,17 +83,17 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
     static int addSingleAlphabetAgent(AgentsManager manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
-        final ImmutableMap<AlphabetId, String> startMatcher = (startMatcherText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startMatcherText).build();
+        final ImmutableCorrelation startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, startMatcherText).build();
 
-        final ImmutableMap<AlphabetId, String> startAdder = (startAdderText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, startAdderText).build();
+        final ImmutableCorrelation startAdder = (startAdderText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, startAdderText).build();
 
-        final ImmutableMap<AlphabetId, String> endMatcher = (endMatcherText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endMatcherText).build();
+        final ImmutableCorrelation endMatcher = (endMatcherText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, endMatcherText).build();
 
-        final ImmutableMap<AlphabetId, String> endAdder = (endAdderText == null)? ImmutableHashMap.empty() :
-                new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, endAdderText).build();
+        final ImmutableCorrelation endAdder = (endAdderText == null)? ImmutableCorrelation.empty() :
+                new ImmutableCorrelation.Builder().put(alphabet, endAdderText).build();
 
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
@@ -777,7 +777,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int verbBunch = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, inAlphabet, verbBunch, "verbo");
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -817,7 +817,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int verbBunch = inManager.getMaxConcept() + 1;
         addSimpleAcceptation(inManager, inAlphabet, verbBunch, "verbo");
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch, transitiveVerbBunch), intSetOf(arVerbBunch), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -862,7 +862,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch), sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -909,7 +909,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
 
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch, secondBunch), sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -955,7 +955,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final ImmutableIntSet noBunches = ImmutableIntArraySet.empty();
         final ImmutableIntSet sourceBunches = noBunches.add(arVerbBunch);
         final ImmutableIntSet diffBunches = noBunches.add(arEndedNounsBunch);
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch), sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -1003,7 +1003,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final ImmutableIntSet targetBunches = intSetOf(verbBunch, actionBunch);
         final ImmutableIntSet sourceBunches = intSetOf(arVerbBunch);
         final ImmutableIntSet diffBunches = intSetOf(arEndedNounsBunch);
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(targetBunches, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
@@ -1051,7 +1051,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
         inManager.addAcceptationInBunch(arVerbBunch, inAcceptation);
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
@@ -1105,7 +1105,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
         inManager.addAcceptationInBunch(arVerbBunch, inAcceptation);
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch, actionBunch), intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
@@ -1159,7 +1159,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         inManager.addAcceptationInBunch(arVerbBunch, inAcceptation);
         inManager.addAcceptationInBunch(arEndedNounsBunch, inAcceptation);
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
@@ -1210,7 +1210,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         final int inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
         inManager.addAcceptationInBunch(arEndedNounsBunch, inAcceptation);
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
         inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(arEndedNounsBunch),
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
@@ -1294,7 +1294,7 @@ interface AgentsSerializerTest extends BunchesSerializerTest {
         assertContainsOnly(outSingAcceptation, processedMap.keySet());
         assertEquals(outSingRuledConcept, outManager.conceptFromAcceptation(processedMap.valueAt(0)));
 
-        final ImmutableMap<AlphabetId, String> texts = outManager.getAcceptationTexts(processedMap.valueAt(0));
+        final ImmutableCorrelation texts = outManager.getAcceptationTexts(processedMap.valueAt(0));
         assertSize(2, texts);
         assertEquals("cantando", texts.get(outAlphabet));
         assertEquals("CANTANDO", texts.get(outUpperCaseAlphabet));

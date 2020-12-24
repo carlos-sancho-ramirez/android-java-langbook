@@ -10,4 +10,9 @@ public interface LangbookChecker extends QuizzesChecker, DefinitionsChecker, Sen
     ImmutableSet<String> findConversionConflictWords(ConversionProposal newConversion);
     AcceptationDetailsModel getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult> getSearchHistory();
+
+    default boolean allValidAlphabets(Correlation texts) {
+        final ImmutableSet<Integer> languages = texts.toImmutable().keySet().map(this::getLanguageFromAlphabet).toSet();
+        return !languages.anyMatch(lang -> lang == null) && languages.size() == 1;
+    }
 }

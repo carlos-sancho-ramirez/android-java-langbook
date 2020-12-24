@@ -25,7 +25,6 @@ import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
-import sword.collections.MutableMap;
 import sword.collections.Set;
 import sword.database.Database;
 import sword.database.DbDeleteQuery;
@@ -216,7 +215,7 @@ public final class LangbookDatabase {
 
     private static ImmutableIntSet findMatchingAcceptations(DbExporter.Database db,
             ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
-            ImmutableMap<AlphabetId, String> startMatcher, ImmutableMap<AlphabetId, String> endMatcher) {
+            ImmutableCorrelation startMatcher, ImmutableCorrelation endMatcher) {
 
         final ImmutableIntSet.Builder diffAccBuilder = new ImmutableIntSetCreator();
         for (int bunch : diffBunches) {
@@ -293,7 +292,7 @@ public final class LangbookDatabase {
     }
 
     private static boolean applyMatchersAddersAndConversions(
-            MutableMap<AlphabetId, String> correlation,
+            MutableCorrelation correlation,
             AgentDetails details, ImmutableMap<AlphabetId, AlphabetId> conversionMap,
             SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion> conversions) {
         final ImmutableSet<AlphabetId> correlationAlphabets = correlation.keySet().toImmutable();
@@ -370,8 +369,8 @@ public final class LangbookDatabase {
             final ImmutableIntSet.Builder processedAccBuilder = new ImmutableIntSetCreator();
 
             for (int acc : matchingAcceptations) {
-                final ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
-                final MutableMap<AlphabetId, String> correlation = textsAndMain.left.mutate();
+                final ImmutablePair<ImmutableCorrelation, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
+                final MutableCorrelation correlation = textsAndMain.left.mutate();
 
                 final boolean validConversion = applyMatchersAddersAndConversions(correlation, details, conversionMap, conversions);
                 if (validConversion) {
@@ -485,10 +484,10 @@ public final class LangbookDatabase {
                     mustChangeResultingText = true;
                 }
                 else {
-                    final MutableMap<AlphabetId, String> accText = getAcceptationTexts(db, sampleStaticAcc).mutate();
-                    final ImmutableMap<AlphabetId, String> sampleDynAccText = getAcceptationTexts(db, sampleDynAcc);
+                    final MutableCorrelation accText = getAcceptationTexts(db, sampleStaticAcc).mutate();
+                    final ImmutableCorrelation sampleDynAccText = getAcceptationTexts(db, sampleDynAcc);
                     final boolean validConversion = applyMatchersAddersAndConversions(accText, agentDetails, conversionMap, conversions);
-                    mustChangeResultingText = !validConversion || !accText.equalMap(sampleDynAccText);
+                    mustChangeResultingText = !validConversion || !accText.equalCorrelation(sampleDynAccText);
                 }
             }
             else {
@@ -532,7 +531,7 @@ public final class LangbookDatabase {
 
             if (mustChangeResultingText) {
                 for (int staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
-                    final MutableMap<AlphabetId, String> correlation = getAcceptationTexts(db, staticAcc).mutate();
+                    final MutableCorrelation correlation = getAcceptationTexts(db, staticAcc).mutate();
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
                             conversionMap, conversions);
                     if (validConversion) {
@@ -602,12 +601,10 @@ public final class LangbookDatabase {
             final ImmutableIntPairMap.Builder processedAccMapBuilder = new ImmutableIntPairMap.Builder();
             for (int acc : matchingAcceptations) {
                 if (toBeProcessed.contains(acc)) {
-                    final ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> textsAndMain = readAcceptationTextsAndMain(
-                            db, acc);
-                    final MutableMap<AlphabetId, String> correlation = textsAndMain.left.mutate();
+                    final ImmutablePair<ImmutableCorrelation, Integer> textsAndMain = readAcceptationTextsAndMain(db, acc);
+                    final MutableCorrelation correlation = textsAndMain.left.mutate();
 
-                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
-                            conversionMap, conversions);
+                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, conversions);
                     if (validConversion) {
                         final ImmutableIntValueMap.Builder<AlphabetId> corrBuilder = new ImmutableIntValueHashMap.Builder<>();
                         for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
@@ -649,7 +646,7 @@ public final class LangbookDatabase {
     }
 
     private static Integer addAcceptation(Database db, int concept, int correlationArrayId) {
-        final Map<AlphabetId, String> texts = readCorrelationArrayTextAndItsAppliedConversions(db, correlationArrayId);
+        final Correlation texts = readCorrelationArrayTextAndItsAppliedConversions(db, correlationArrayId);
         if (texts == null) {
             return null;
         }
@@ -676,7 +673,7 @@ public final class LangbookDatabase {
         return acceptation;
     }
 
-    static Integer addAcceptation(Database db, int concept, ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray) {
+    static Integer addAcceptation(Database db, int concept, ImmutableList<ImmutableCorrelation> correlationArray) {
         final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
         return addAcceptation(db, concept, correlationArrayId);
     }
@@ -689,7 +686,7 @@ public final class LangbookDatabase {
                 .build();
         final boolean changed = db.update(query);
         if (changed) {
-            final Map<AlphabetId, String> texts = readCorrelationArrayTextAndItsAppliedConversions(db, newCorrelationArrayId);
+            final Correlation texts = readCorrelationArrayTextAndItsAppliedConversions(db, newCorrelationArrayId);
             if (texts == null) {
                 throw new AssertionError();
             }
@@ -751,7 +748,7 @@ public final class LangbookDatabase {
         return changed;
     }
 
-    static boolean updateAcceptationCorrelationArray(Database db, int acceptation, ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray) {
+    static boolean updateAcceptationCorrelationArray(Database db, int acceptation, ImmutableList<ImmutableCorrelation> correlationArray) {
         final int correlationArrayId = obtainCorrelationArray(db, correlationArray.mapToInt(correlation -> obtainCorrelation(db, correlation)));
         return updateAcceptationCorrelationArray(db, acceptation, correlationArrayId);
     }
@@ -875,7 +872,7 @@ public final class LangbookDatabase {
 
     private static ImmutableIntSet findMatchingAcceptationsAmongGiven(DbExporter.Database db,
             IntSet acceptations, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
-            ImmutableMap<AlphabetId, String> startMatcher, ImmutableMap<AlphabetId, String> endMatcher) {
+            ImmutableCorrelation startMatcher, ImmutableCorrelation endMatcher) {
 
         final MutableIntSet filteredAcceptations = acceptations.mutate();
         for (int bunch : diffBunches) {
@@ -920,11 +917,11 @@ public final class LangbookDatabase {
             }
         }
 
-        final ImmutableMap<AlphabetId, String> sMatcher = startMatcher;
-        final ImmutableMap<AlphabetId, String> eMatcher = endMatcher;
+        final ImmutableCorrelation sMatcher = startMatcher;
+        final ImmutableCorrelation eMatcher = endMatcher;
 
         return matchingAcceptations.filterNot(acc -> {
-            final ImmutableMap<AlphabetId, String> texts = getAcceptationTexts(db, acc);
+            final ImmutableCorrelation texts = getAcceptationTexts(db, acc);
             return matchingAlphabets.anyMatch(alphabet -> {
                 final String text = texts.get(alphabet, null);
                 return text == null || !text.startsWith(sMatcher.get(alphabet)) || !text.endsWith(eMatcher.get(alphabet));
@@ -979,9 +976,9 @@ public final class LangbookDatabase {
                     removeAcceptationInternal(db, dynAcc);
                 }
                 else if (isMatching && dynAcc == 0) {
-                    final ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> textsAndMain = readAcceptationTextsAndMain(
+                    final ImmutablePair<ImmutableCorrelation, Integer> textsAndMain = readAcceptationTextsAndMain(
                             db, acc);
-                    final MutableMap<AlphabetId, String> correlation = textsAndMain.left.mutate();
+                    final MutableCorrelation correlation = textsAndMain.left.mutate();
 
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
                             conversionMap, conversions);
@@ -1092,9 +1089,9 @@ public final class LangbookDatabase {
     }
 
     static Integer addAgent(Database db, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableMap<AlphabetId, String> startMatcher,
-            ImmutableMap<AlphabetId, String> startAdder, ImmutableMap<AlphabetId, String> endMatcher,
-            ImmutableMap<AlphabetId, String> endAdder, int rule) {
+            ImmutableIntSet diffBunches, ImmutableCorrelation startMatcher,
+            ImmutableCorrelation startAdder, ImmutableCorrelation endMatcher,
+            ImmutableCorrelation endAdder, int rule) {
         if (sourceBunches.anyMatch(diffBunches::contains)) {
             return null;
         }
@@ -1103,7 +1100,7 @@ public final class LangbookDatabase {
         final int sourceBunchSetId = obtainBunchSet(db, sourceBunches);
         final int diffBunchSetId = obtainBunchSet(db, diffBunches);
 
-        final SyncCacheIntValueMap<ImmutableMap<AlphabetId, String>> cachedCorrelationIds =
+        final SyncCacheIntValueMap<ImmutableCorrelation> cachedCorrelationIds =
                 new SyncCacheIntValueMap<>(corr -> obtainCorrelation(db, corr.mapToInt(str -> obtainSymbolArray(db, str))));
         final int startMatcherId = cachedCorrelationIds.get(startMatcher);
         final int startAdderId = cachedCorrelationIds.get(startAdder);
@@ -1150,9 +1147,9 @@ public final class LangbookDatabase {
     }
 
     static boolean updateAgent(Database db, int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableMap<AlphabetId, String> startMatcher,
-            ImmutableMap<AlphabetId, String> startAdder, ImmutableMap<AlphabetId, String> endMatcher,
-            ImmutableMap<AlphabetId, String> endAdder, int rule) {
+            ImmutableIntSet diffBunches, ImmutableCorrelation startMatcher,
+            ImmutableCorrelation startAdder, ImmutableCorrelation endMatcher,
+            ImmutableCorrelation endAdder, int rule) {
         if (sourceBunches.anyMatch(diffBunches::contains)) {
             return false;
         }
@@ -2336,7 +2333,7 @@ public final class LangbookDatabase {
      * @param correlation IntKeyMap whose keys are alphabets and values are symbol arrays to be included as well.
      * @return An identifier for the new correlation included, or null in case of error.
      */
-    private static Integer obtainCorrelation(DbImporter.Database db, Map<AlphabetId, String> correlation) {
+    private static Integer obtainCorrelation(DbImporter.Database db, Correlation correlation) {
         if (correlation.anyMatch(str -> findSymbolArray(db, str) == null)) {
             if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
                 return null;
@@ -2378,12 +2375,12 @@ public final class LangbookDatabase {
             return null;
         }
 
-        final List<ImmutableMap<AlphabetId, String>> array = correlations.map(id -> getCorrelationWithText(db, id));
-        if (array.anyMatch(ImmutableMap::isEmpty)) {
+        final List<ImmutableCorrelation> array = correlations.map(id -> getCorrelationWithText(db, id));
+        if (array.anyMatch(ImmutableCorrelation::isEmpty)) {
             return null;
         }
 
-        final ImmutableSet<AlphabetId> alphabets = array.map(ImmutableMap::keySet).reduce(ImmutableSet::addAll);
+        final ImmutableSet<AlphabetId> alphabets = array.map(ImmutableCorrelation::keySet).reduce(ImmutableSet::addAll);
         if (!areAllAlphabetsFromSameLanguage(db, alphabets)) {
             return null;
         }

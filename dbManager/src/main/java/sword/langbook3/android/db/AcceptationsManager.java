@@ -1,7 +1,6 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -53,9 +52,9 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @param correlationArray Correlation array for this acceptation.
      * @return An identifier for the new acceptation just included, or null in case the acceptation cannot be added.
      */
-    Integer addAcceptation(int concept, ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray);
+    Integer addAcceptation(int concept, ImmutableList<ImmutableCorrelation> correlationArray);
 
-    boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableMap<AlphabetId, String>> newCorrelationArray);
+    boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableCorrelation> newCorrelationArray);
     boolean removeAcceptation(int acceptation);
 
     /**

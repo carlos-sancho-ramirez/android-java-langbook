@@ -2,7 +2,6 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
@@ -10,7 +9,6 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.database.Database;
 import sword.database.DbQuery;
@@ -33,9 +31,9 @@ final class LangbookReadableDatabaseTest {
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
         final ImmutableIntSet verbBunchSet = emptyBunchSet.add(sourceBunch);
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
-        final ImmutableMap<AlphabetId, String> endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
-        final ImmutableMap<AlphabetId, String> endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelation endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
+        final ImmutableCorrelation endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
 
         LangbookDatabase.addAgent(db, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
     }
@@ -59,12 +57,12 @@ final class LangbookReadableDatabaseTest {
         addAgent(db, verbBunchId, alphabet, "ar", "ando", gerundRule);
         addAgent(db, femaleNounBunchId, alphabet, null, "s", pluralRule);
 
-        final ImmutableMap<AlphabetId, String> texts = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "cantar").build();
+        final ImmutableCorrelation texts = new ImmutableCorrelation.Builder().put(alphabet, "cantar").build();
         final ImmutableIntKeyMap<String> matchingBunches = LangbookReadableDatabase
                 .readAllMatchingBunches(db, texts, alphabet);
         assertEquals(ImmutableIntKeyMap.empty().put(verbBunchId, verbBunchTitle), matchingBunches);
 
-        final ImmutableMap<AlphabetId, String> texts2 = new ImmutableHashMap.Builder<AlphabetId, String>().put(alphabet, "comer").build();
+        final ImmutableCorrelation texts2 = new ImmutableCorrelation.Builder().put(alphabet, "comer").build();
         assertTrue(LangbookReadableDatabase.readAllMatchingBunches(db, texts2, alphabet).isEmpty());
     }
 

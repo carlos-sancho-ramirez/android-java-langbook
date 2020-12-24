@@ -41,9 +41,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
 
-        final ImmutableMap<AlphabetId, String> adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableCorrelation adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -79,8 +79,8 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
-        final ImmutableMap<AlphabetId, String> adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelation adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -119,9 +119,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableMap<AlphabetId, String> emptyCorrelation = ImmutableHashMap.empty();
+        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
 
-        final ImmutableMap<AlphabetId, String> adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableCorrelation adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         final int agentId = manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);

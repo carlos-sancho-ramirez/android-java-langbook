@@ -7,6 +7,7 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class AcceptationDetailsModel {
 
@@ -27,7 +28,7 @@ public final class AcceptationDetailsModel {
     public final int appliedRuleAcceptationId;
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations;
-    public final ImmutableMap<AlphabetId, String> texts;
+    public final ImmutableCorrelation texts;
     public final ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts;
     public final ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts;
     public final int baseConceptAcceptationId;
@@ -58,7 +59,7 @@ public final class AcceptationDetailsModel {
             int appliedRuleAcceptationId,
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations,
-            ImmutableMap<AlphabetId, String> texts,
+            ImmutableCorrelation texts,
             ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts,
             ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts,
             int baseConceptAcceptationId,

@@ -11,7 +11,6 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
-import sword.collections.MutableMap;
 import sword.collections.Set;
 import sword.database.DbExporter;
 import sword.langbook3.android.models.AcceptationDetailsModel;
@@ -52,7 +51,7 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableMap<AlphabetId, String> getAcceptationTexts(int acceptation) {
+    public ImmutableCorrelation getAcceptationTexts(int acceptation) {
         return LangbookReadableDatabase.getAcceptationTexts(getDatabase(), acceptation);
     }
 
@@ -92,12 +91,12 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableMap<AlphabetId, String> texts, AlphabetId preferredAlphabet) {
+    public ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableCorrelation texts, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readAllMatchingBunches(getDatabase(), texts, preferredAlphabet);
     }
 
     @Override
-    public MutableMap<AlphabetId, String> readCorrelationArrayTexts(int correlationArrayId) {
+    public MutableCorrelation readCorrelationArrayTexts(int correlationArrayId) {
         return LangbookReadableDatabase.readCorrelationArrayTexts(getDatabase(), correlationArrayId);
     }
 
@@ -277,7 +276,7 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutableMap<AlphabetId, String> getCorrelationWithText(int correlationId) {
+    public ImmutableCorrelation getCorrelationWithText(int correlationId) {
         return LangbookReadableDatabase.getCorrelationWithText(getDatabase(), correlationId);
     }
 
@@ -307,7 +306,7 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public Integer findCorrelation(Map<AlphabetId, String> correlation) {
+    public Integer findCorrelation(Correlation correlation) {
         return LangbookReadableDatabase.findCorrelation(getDatabase(), correlation);
     }
 
@@ -317,7 +316,7 @@ abstract class LangbookDatabaseChecker implements LangbookChecker {
     }
 
     @Override
-    public ImmutablePair<ImmutableMap<AlphabetId, String>, Integer> readAcceptationTextsAndLanguage(int acceptation) {
+    public ImmutablePair<ImmutableCorrelation, Integer> readAcceptationTextsAndLanguage(int acceptation) {
         return LangbookReadableDatabase.readAcceptationTextsAndLanguage(getDatabase(), acceptation);
     }
 

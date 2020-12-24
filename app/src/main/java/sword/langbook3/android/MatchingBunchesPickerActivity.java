@@ -6,12 +6,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ListView;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableMap;
-import sword.collections.Map;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 
@@ -26,7 +25,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
 
     private MatchingBunchesPickerAdapter _adapter;
 
-    public static void open(Activity activity, int requestCode, Map<AlphabetId, String> texts) {
+    public static void open(Activity activity, int requestCode, Correlation texts) {
         final int mapSize = texts.size();
         final int[] alphabets = new int[mapSize];
         final String[] str = new String[mapSize];
@@ -42,7 +41,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private ImmutableMap<AlphabetId, String> getTexts() {
+    private ImmutableCorrelation getTexts() {
         final Bundle extras = getIntent().getExtras();
         final int[] alphabets = extras.getIntArray(ArgKeys.ALPHABETS);
         final String[] texts = extras.getStringArray(ArgKeys.TEXTS);
@@ -51,7 +50,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
             throw new AssertionError();
         }
 
-        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
+        final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
         for (int i = 0; i < alphabets.length; i++) {
             builder.put(new AlphabetId(alphabets[i]), texts[i]);
         }

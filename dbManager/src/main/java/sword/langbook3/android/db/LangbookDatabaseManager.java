@@ -2,7 +2,6 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.collections.Set;
 import sword.database.Database;
 import sword.langbook3.android.models.Conversion;
@@ -26,16 +25,16 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     @Override
     public Integer addAgent(
             ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
-            ImmutableMap<AlphabetId, String> startMatcher, ImmutableMap<AlphabetId, String> startAdder,
-            ImmutableMap<AlphabetId, String> endMatcher, ImmutableMap<AlphabetId, String> endAdder, int rule) {
+            ImmutableCorrelation startMatcher, ImmutableCorrelation startAdder,
+            ImmutableCorrelation endMatcher, ImmutableCorrelation endAdder, int rule) {
         return LangbookDatabase.addAgent(_db, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     @Override
     public boolean updateAgent(
             int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
-            ImmutableMap<AlphabetId, String> startMatcher, ImmutableMap<AlphabetId, String> startAdder,
-            ImmutableMap<AlphabetId, String> endMatcher, ImmutableMap<AlphabetId, String> endAdder, int rule) {
+            ImmutableCorrelation startMatcher, ImmutableCorrelation startAdder,
+            ImmutableCorrelation endMatcher, ImmutableCorrelation endAdder, int rule) {
         return LangbookDatabase.updateAgent(_db, agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
@@ -80,12 +79,12 @@ public final class LangbookDatabaseManager extends LangbookDatabaseChecker imple
     }
 
     @Override
-    public Integer addAcceptation(int concept, ImmutableList<ImmutableMap<AlphabetId, String>> correlationArray) {
+    public Integer addAcceptation(int concept, ImmutableList<ImmutableCorrelation> correlationArray) {
         return LangbookDatabase.addAcceptation(_db, concept, correlationArray);
     }
 
     @Override
-    public boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableMap<AlphabetId, String>> newCorrelationArray) {
+    public boolean updateAcceptationCorrelationArray(int acceptation, ImmutableList<ImmutableCorrelation> newCorrelationArray) {
         return LangbookDatabase.updateAcceptationCorrelationArray(_db, acceptation, newCorrelationArray);
     }
 

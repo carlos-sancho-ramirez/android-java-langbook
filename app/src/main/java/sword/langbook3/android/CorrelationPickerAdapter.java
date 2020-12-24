@@ -8,18 +8,17 @@ import android.widget.TextView;
 
 import sword.collections.Function;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 
 final class CorrelationPickerAdapter extends BaseAdapter {
 
-    private final ImmutableSet<ImmutableList<ImmutableMap<AlphabetId, String>>> _entries;
-    private final ImmutableSet<ImmutableMap<AlphabetId, String>> _knownCorrelations;
+    private final ImmutableSet<ImmutableList<ImmutableCorrelation>> _entries;
+    private final ImmutableSet<ImmutableCorrelation> _knownCorrelations;
 
     private LayoutInflater _inflater;
 
-    CorrelationPickerAdapter(ImmutableSet<ImmutableList<ImmutableMap<AlphabetId, String>>> entries, ImmutableSet<ImmutableMap<AlphabetId, String>> knownCorrelations) {
+    CorrelationPickerAdapter(ImmutableSet<ImmutableList<ImmutableCorrelation>> entries, ImmutableSet<ImmutableCorrelation> knownCorrelations) {
         _entries = entries;
         _knownCorrelations = knownCorrelations;
     }
@@ -30,7 +29,7 @@ final class CorrelationPickerAdapter extends BaseAdapter {
     }
 
     @Override
-    public ImmutableList<ImmutableMap<AlphabetId, String>> getItem(int position) {
+    public ImmutableList<ImmutableCorrelation> getItem(int position) {
         return _entries.valueAt(position);
     }
 
@@ -53,8 +52,8 @@ final class CorrelationPickerAdapter extends BaseAdapter {
             view = convertView;
         }
 
-        ImmutableList<ImmutableMap<AlphabetId, String>> array = _entries.valueAt(position);
-        final Function<ImmutableMap<AlphabetId, String>, String> mapFunc = correlation -> {
+        ImmutableList<ImmutableCorrelation> array = _entries.valueAt(position);
+        final Function<ImmutableCorrelation, String> mapFunc = correlation -> {
             final String str = correlation.reduce((a,b) -> a + '/' + b);
             return _knownCorrelations.contains(correlation)? "<" + str + ">" : str;
         };

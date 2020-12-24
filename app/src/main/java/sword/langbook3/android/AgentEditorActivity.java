@@ -20,21 +20,20 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableMap;
 import sword.collections.List;
-import sword.collections.Map;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntList;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.AgentDetails;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener {
@@ -86,52 +85,14 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         context.startActivity(intent);
     }
 
-    static final class CorrelationEntry {
-        public AlphabetId alphabet;
-        public String text;
-
-        CorrelationEntry(AlphabetId alphabet, String text) {
-            if (alphabet == null) {
-                throw new IllegalArgumentException();
-            }
-
-            this.alphabet = alphabet;
-            this.text = text;
-        }
-
-        @Override
-        public String toString() {
-            return "CorrelationEntry("+ alphabet + ", " + text + ')';
-        }
-
-        @Override
-        public int hashCode() {
-            return alphabet.hashCode() * 37 + ((text == null)? 0 : text.hashCode());
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == this) {
-                return true;
-            }
-
-            if (!(other instanceof CorrelationEntry)) {
-                return false;
-            }
-
-            final CorrelationEntry that = (CorrelationEntry) other;
-            return alphabet == that.alphabet && equal(text, that.text);
-        }
-    }
-
     public static final class State implements Parcelable {
         MutableIntList targetBunches = MutableIntList.empty();
         MutableIntList sourceBunches = MutableIntList.empty();
         MutableIntList diffBunches = MutableIntList.empty();
-        MutableList<CorrelationEntry> startMatcher = MutableList.empty();
-        MutableList<CorrelationEntry> startAdder = MutableList.empty();
-        MutableList<CorrelationEntry> endMatcher = MutableList.empty();
-        MutableList<CorrelationEntry> endAdder = MutableList.empty();
+        MutableList<Correlation.Entry> startMatcher = MutableList.empty();
+        MutableList<Correlation.Entry> startAdder = MutableList.empty();
+        MutableList<Correlation.Entry> endMatcher = MutableList.empty();
+        MutableList<Correlation.Entry> endAdder = MutableList.empty();
         int rule;
 
         State() {
@@ -155,22 +116,22 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
             final int startMatcherLength = in.readInt();
             for (int i = 0; i < startMatcherLength; i++) {
-                startMatcher.append(new CorrelationEntry(new AlphabetId(in.readInt()), in.readString()));
+                startMatcher.append(new Correlation.Entry(new AlphabetId(in.readInt()), in.readString()));
             }
 
             final int startAdderLength = in.readInt();
             for (int i = 0; i < startAdderLength; i++) {
-                startAdder.append(new CorrelationEntry(new AlphabetId(in.readInt()), in.readString()));
+                startAdder.append(new Correlation.Entry(new AlphabetId(in.readInt()), in.readString()));
             }
 
             final int endMatcherLength = in.readInt();
             for (int i = 0; i < endMatcherLength; i++) {
-                endMatcher.append(new CorrelationEntry(new AlphabetId(in.readInt()), in.readString()));
+                endMatcher.append(new Correlation.Entry(new AlphabetId(in.readInt()), in.readString()));
             }
 
             final int endAdderLength = in.readInt();
             for (int i = 0; i < endAdderLength; i++) {
-                endAdder.append(new CorrelationEntry(new AlphabetId(in.readInt()), in.readString()));
+                endAdder.append(new Correlation.Entry(new AlphabetId(in.readInt()), in.readString()));
             }
 
             rule = in.readInt();
@@ -194,25 +155,25 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
 
             dest.writeInt(startMatcher.size());
-            for (CorrelationEntry entry : startMatcher) {
+            for (Correlation.Entry entry : startMatcher) {
                 dest.writeInt(entry.alphabet.key);
                 dest.writeString(entry.text);
             }
 
             dest.writeInt(startAdder.size());
-            for (CorrelationEntry entry : startAdder) {
+            for (Correlation.Entry entry : startAdder) {
                 dest.writeInt(entry.alphabet.key);
                 dest.writeString(entry.text);
             }
 
             dest.writeInt(endMatcher.size());
-            for (CorrelationEntry entry : endMatcher) {
+            for (Correlation.Entry entry : endMatcher) {
                 dest.writeInt(entry.alphabet.key);
                 dest.writeString(entry.text);
             }
 
             dest.writeInt(endAdder.size());
-            for (CorrelationEntry entry : endAdder) {
+            for (Correlation.Entry entry : endAdder) {
                 dest.writeInt(entry.alphabet.key);
                 dest.writeString(entry.text);
             }
@@ -287,7 +248,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
     }
 
-    private void updateCorrelation(ViewGroup container, MutableList<CorrelationEntry> correlation) {
+    private void updateCorrelation(ViewGroup container, MutableList<Correlation.Entry> correlation) {
         final int currentEntryViewCount = container.getChildCount();
         final int stateEntryCount = correlation.size();
 
@@ -296,7 +257,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         for (int i = 0; i < stateEntryCount; i++) {
-            final CorrelationEntry entry = correlation.get(i);
+            final Correlation.Entry entry = correlation.get(i);
             if (i < currentEntryViewCount) {
                 bindEntry(container.getChildAt(i), entry, container, correlation);
             }
@@ -330,15 +291,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         textView.setText((_state.rule != NO_RULE)? checker.readConceptText(_state.rule, _preferredAlphabet) : null);
     }
 
-    private MutableList<CorrelationEntry> toCorrelationEntryList(Map<AlphabetId, String> correlation) {
-        final MutableList<CorrelationEntry> result = MutableList.empty();
-        for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
-            result.append(new CorrelationEntry(entry.key(), entry.value()));
-        }
-
-        return result;
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -363,10 +315,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 _state.targetBunches = agentDetails.targetBunches.toList().mutate();
                 _state.sourceBunches = agentDetails.sourceBunches.toList().mutate();
                 _state.diffBunches = agentDetails.diffBunches.toList().mutate();
-                _state.startMatcher = toCorrelationEntryList(agentDetails.startMatcher);
-                _state.startAdder = toCorrelationEntryList(agentDetails.startAdder);
-                _state.endMatcher = toCorrelationEntryList(agentDetails.endMatcher);
-                _state.endAdder = toCorrelationEntryList(agentDetails.endAdder);
+                _state.startMatcher = agentDetails.startMatcher.toCorrelationEntryList();
+                _state.startAdder = agentDetails.startAdder.toCorrelationEntryList();
+                _state.endMatcher = agentDetails.endMatcher.toCorrelationEntryList();
+                _state.endAdder = agentDetails.endAdder.toCorrelationEntryList();
                 _state.rule = agentDetails.rule;
             }
             else if (targetBunch != 0) {
@@ -404,13 +356,13 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         setStateValues();
     }
 
-    private void addEntry(CorrelationEntry entry, ViewGroup container, MutableList<CorrelationEntry> entries) {
+    private void addEntry(Correlation.Entry entry, ViewGroup container, MutableList<Correlation.Entry> entries) {
         getLayoutInflater().inflate(R.layout.agent_editor_correlation_entry, container, true);
         final View view = container.getChildAt(container.getChildCount() - 1);
         bindEntry(view, entry, container, entries);
     }
 
-    private void bindEntry(View view, CorrelationEntry entry, ViewGroup container, MutableList<CorrelationEntry> entries) {
+    private void bindEntry(View view, Correlation.Entry entry, ViewGroup container, MutableList<Correlation.Entry> entries) {
         final Spinner alphabetSpinner = view.findViewById(R.id.alphabet);
         alphabetSpinner.setAdapter(new AlphabetAdapter());
         final int position = _alphabets.keySet().indexOf(entry.alphabet);
@@ -426,7 +378,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeEntry(entry, container, entries));
     }
 
-    private static void removeEntry(CorrelationEntry entry, ViewGroup container, MutableList<CorrelationEntry> entries) {
+    private static void removeEntry(Correlation.Entry entry, ViewGroup container, MutableList<Correlation.Entry> entries) {
         final int position = entries.indexOf(entry);
         if (position < 0) {
             throw new AssertionError();
@@ -438,9 +390,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private final class AlphabetSelectedListener implements AdapterView.OnItemSelectedListener {
 
-        private final CorrelationEntry _entry;
+        private final Correlation.Entry _entry;
 
-        AlphabetSelectedListener(CorrelationEntry entry) {
+        AlphabetSelectedListener(Correlation.Entry entry) {
             if (entry == null) {
                 throw new IllegalArgumentException();
             }
@@ -461,9 +413,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     private final class CorrelationTextWatcher implements TextWatcher {
 
-        private final CorrelationEntry _entry;
+        private final Correlation.Entry _entry;
 
-        CorrelationTextWatcher(CorrelationEntry entry) {
+        CorrelationTextWatcher(Correlation.Entry entry) {
             _entry = entry;
         }
 
@@ -553,9 +505,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         bunches.removeAt(index);
     }
 
-    private static ImmutableMap<AlphabetId, String> buildCorrelation(List<CorrelationEntry> entries) {
-        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
-        for (CorrelationEntry corrEntry : entries) {
+    private static ImmutableCorrelation buildCorrelation(List<Correlation.Entry> entries) {
+        final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
+        for (Correlation.Entry corrEntry : entries) {
             builder.put(corrEntry.alphabet, corrEntry.text);
         }
         return builder.build();
@@ -577,25 +529,25 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.addStartMatcherButton:
-                CorrelationEntry entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                Correlation.Entry entry = new Correlation.Entry(_alphabets.keyAt(0), null);
                 _state.startMatcher.append(entry);
                 addEntry(entry, _startMatchersContainer, _state.startMatcher);
                 break;
 
             case R.id.addStartAdderButton:
-                entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                entry = new Correlation.Entry(_alphabets.keyAt(0), null);
                 _state.startAdder.append(entry);
                 addEntry(entry, _startAddersContainer, _state.startAdder);
                 break;
 
             case R.id.addEndMatcherButton:
-                entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                entry = new Correlation.Entry(_alphabets.keyAt(0), null);
                 _state.endMatcher.append(entry);
                 addEntry(entry, _endMatchersContainer, _state.endMatcher);
                 break;
 
             case R.id.addEndAdderButton:
-                entry = new CorrelationEntry(_alphabets.keyAt(0), null);
+                entry = new Correlation.Entry(_alphabets.keyAt(0), null);
                 _state.endAdder.append(entry);
                 addEntry(entry, _endAddersContainer, _state.endAdder);
                 break;
@@ -610,10 +562,10 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
                 }
                 else {
-                    final ImmutableMap<AlphabetId, String> startMatcher = buildCorrelation(_state.startMatcher);
-                    final ImmutableMap<AlphabetId, String> startAdder = buildCorrelation(_state.startAdder);
-                    final ImmutableMap<AlphabetId, String> endMatcher = buildCorrelation(_state.endMatcher);
-                    final ImmutableMap<AlphabetId, String> endAdder = buildCorrelation(_state.endAdder);
+                    final ImmutableCorrelation startMatcher = buildCorrelation(_state.startMatcher);
+                    final ImmutableCorrelation startAdder = buildCorrelation(_state.startAdder);
+                    final ImmutableCorrelation endMatcher = buildCorrelation(_state.endMatcher);
+                    final ImmutableCorrelation endAdder = buildCorrelation(_state.endAdder);
 
                     final int rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? NO_RULE : _state.rule;
 
@@ -717,7 +669,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         final MutableSet<AlphabetId> alphabets = MutableHashSet.empty();
-        for (CorrelationEntry entry : _state.startMatcher) {
+        for (Correlation.Entry entry : _state.startMatcher) {
             if (alphabets.contains(entry.alphabet)) {
                 return "Unable to duplicate alphabet in start matcher";
             }
@@ -729,7 +681,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         alphabets.clear();
-        for (CorrelationEntry entry : _state.startAdder) {
+        for (Correlation.Entry entry : _state.startAdder) {
             if (alphabets.contains(entry.alphabet)) {
                 return "Unable to duplicate alphabet in start adder";
             }
@@ -737,7 +689,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         alphabets.clear();
-        for (CorrelationEntry entry : _state.endMatcher) {
+        for (Correlation.Entry entry : _state.endMatcher) {
             if (alphabets.contains(entry.alphabet)) {
                 return "Unable to duplicate alphabet in end matcher";
             }
@@ -749,7 +701,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         alphabets.clear();
-        for (CorrelationEntry entry : _state.endAdder) {
+        for (Correlation.Entry entry : _state.endAdder) {
             if (alphabets.contains(entry.alphabet)) {
                 return "Unable to duplicate alphabet in end adder";
             }

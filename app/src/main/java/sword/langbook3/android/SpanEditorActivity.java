@@ -15,11 +15,10 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntValueMap;
-import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
-import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
 import sword.langbook3.android.models.SentenceSpan;
@@ -115,7 +114,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(sentenceId);
         final MutableIntValueMap<SentenceSpan> builder = _state.getSpans();
         for (SentenceSpan span : spans) {
-            final ImmutableMap<AlphabetId, String> texts = checker.getAcceptationTexts(span.acceptation);
+            final ImmutableCorrelation texts = checker.getAcceptationTexts(span.acceptation);
             final int mapSize = texts.size();
             int index = 0;
             int mapIndex;
