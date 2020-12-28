@@ -10,13 +10,13 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 
     interface ArgKeys {
-        String ALPHABETS = BundleKeys.ALPHABETS;
-        String TEXTS = BundleKeys.TEXTS;
+        String CORRELATION_MAP = BundleKeys.CORRELATION_MAP;
     }
 
     interface ResultKeys {
@@ -25,37 +25,14 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
 
     private MatchingBunchesPickerAdapter _adapter;
 
-    public static void open(Activity activity, int requestCode, Correlation texts) {
-        final int mapSize = texts.size();
-        final int[] alphabets = new int[mapSize];
-        final String[] str = new String[mapSize];
-
-        for (int i = 0; i < mapSize; i++) {
-            alphabets[i] = texts.keyAt(i).key;
-            str[i] = texts.valueAt(i);
-        }
-
+    public static void open(Activity activity, int requestCode, Correlation<AlphabetId> texts) {
         final Intent intent = new Intent(activity, MatchingBunchesPickerActivity.class);
-        intent.putExtra(ArgKeys.ALPHABETS, alphabets);
-        intent.putExtra(ArgKeys.TEXTS, str);
+        CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private ImmutableCorrelation getTexts() {
-        final Bundle extras = getIntent().getExtras();
-        final int[] alphabets = extras.getIntArray(ArgKeys.ALPHABETS);
-        final String[] texts = extras.getStringArray(ArgKeys.TEXTS);
-
-        if (alphabets == null || texts == null || alphabets.length != texts.length) {
-            throw new AssertionError();
-        }
-
-        final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
-        for (int i = 0; i < alphabets.length; i++) {
-            builder.put(new AlphabetId(alphabets[i]), texts[i]);
-        }
-
-        return builder.build();
+    private ImmutableCorrelation<AlphabetId> getTexts() {
+        return CorrelationBundler.readAsIntentExtra(getIntent(), ArgKeys.CORRELATION_MAP).toImmutable();
     }
 
     @Override

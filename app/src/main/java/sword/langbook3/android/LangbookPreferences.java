@@ -4,13 +4,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdBundler;
+import sword.langbook3.android.db.AlphabetIdManager;
 
 import static android.content.Context.MODE_PRIVATE;
 
 class LangbookPreferences {
     private static final String file = "langbook";
     private static final String preferredAlphabet = "preferredAlphabet";
-    private static final int defaultPreferredAlphabet = 4; // Spanish
 
     private static LangbookPreferences instance;
     private final Context _context;
@@ -40,10 +41,10 @@ class LangbookPreferences {
     }
 
     public AlphabetId getPreferredAlphabet() {
-        return new AlphabetId(getPreferences().getInt(preferredAlphabet, defaultPreferredAlphabet));
+        return AlphabetIdBundler.readFromPreferences(getPreferences(), preferredAlphabet);
     }
 
     public void setPreferredAlphabet(AlphabetId alphabet) {
-        getPreferences().edit().putInt(preferredAlphabet, alphabet.key).apply();
+        AlphabetIdBundler.writeIntoPreferences(getPreferences(), preferredAlphabet, alphabet);
     }
 }

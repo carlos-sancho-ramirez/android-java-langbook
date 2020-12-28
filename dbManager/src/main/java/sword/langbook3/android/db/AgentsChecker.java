@@ -14,14 +14,14 @@ import sword.langbook3.android.models.SearchResult;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
-public interface AgentsChecker extends BunchesChecker {
-    ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableCorrelation texts, AlphabetId preferredAlphabet);
-    MutableCorrelation readCorrelationArrayTexts(int correlationArrayId);
+public interface AgentsChecker<AlphabetId> extends BunchesChecker<AlphabetId> {
+    ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet);
+    MutableCorrelation<AlphabetId> readCorrelationArrayTexts(int correlationArrayId);
     ImmutableIntKeyMap<String> readAllRules(AlphabetId preferredAlphabet);
     ImmutableIntSet getAgentIds();
     ImmutableList<SearchResult> findAcceptationFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
     AgentRegister getAgentRegister(int agentId);
-    AgentDetails getAgentDetails(int agentId);
+    AgentDetails<AlphabetId> getAgentDetails(int agentId);
     ImmutableList<DisplayableItem> readBunchSetAcceptationsAndTexts(int bunchSet, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult> findAcceptationAndRulesFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
     ImmutableMap<TableCellReference, TableCellValue> readTableContent(int dynamicAcceptation, AlphabetId preferredAlphabet);

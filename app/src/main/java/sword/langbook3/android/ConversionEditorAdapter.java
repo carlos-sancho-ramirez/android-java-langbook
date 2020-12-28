@@ -11,11 +11,12 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntSet;
 import sword.collections.Map;
 import sword.collections.Set;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.Conversion;
 
 final class ConversionEditorAdapter extends BaseAdapter {
 
-    private final Conversion _conversion;
+    private final Conversion<AlphabetId> _conversion;
     private final IntSet _removed;
     private final Map<String, String> _added;
     private final Set<String> _disabled;
@@ -23,7 +24,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
     private ImmutableList<Entry> _entries;
     private LayoutInflater _inflater;
 
-    ConversionEditorAdapter(Conversion conversion, IntSet removed, Map<String, String> added, Set<String> disabled) {
+    ConversionEditorAdapter(Conversion<AlphabetId> conversion, IntSet removed, Map<String, String> added, Set<String> disabled) {
         _conversion = conversion;
         _removed = removed;
         _added = added;
@@ -51,7 +52,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
                 target = _added.get(key);
             }
             else {
-                if (_conversion.getMap().keyAt(convIndex) != key) {
+                if (!_conversion.getMap().keyAt(convIndex).equals(key)) {
                     throw new AssertionError("conversion not properly sorted");
                 }
                 target = _conversion.getMap().valueAt(convIndex);

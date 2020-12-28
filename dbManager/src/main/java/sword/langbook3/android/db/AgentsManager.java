@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntSet;
 
-public interface AgentsManager extends BunchesManager, AgentsChecker {
+public interface AgentsManager<AlphabetId> extends BunchesManager<AlphabetId>, AgentsChecker<AlphabetId> {
 
     /**
      * Include a new agent into the database and returns its identifier if succeeded,
@@ -35,14 +35,14 @@ public interface AgentsManager extends BunchesManager, AgentsChecker {
      * @return An identifier for the new agent if all OK, or null if not possible to add the agent.
      */
     Integer addAgent(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableCorrelation startMatcher,
-            ImmutableCorrelation startAdder, ImmutableCorrelation endMatcher,
-            ImmutableCorrelation endAdder, int rule);
+            ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
+            ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
+            ImmutableCorrelation<AlphabetId> endAdder, int rule);
 
     boolean updateAgent(int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableCorrelation startMatcher,
-            ImmutableCorrelation startAdder, ImmutableCorrelation endMatcher,
-            ImmutableCorrelation endAdder, int rule);
+            ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
+            ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
+            ImmutableCorrelation<AlphabetId> endAdder, int rule);
 
     void removeAgent(int agentId);
 }

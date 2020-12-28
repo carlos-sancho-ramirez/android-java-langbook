@@ -10,6 +10,8 @@ import android.widget.ListView;
 
 import sword.collections.ImmutablePair;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdBundler;
+import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.Conversion;
 
@@ -24,41 +26,39 @@ public final class ConversionDetailsActivity extends Activity {
 
     public static void open(Context context, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final Intent intent = new Intent(context, ConversionDetailsActivity.class);
-        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet.key);
-        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet.key);
+        AlphabetIdBundler.writeAsIntentExtra(intent, ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
+        AlphabetIdBundler.writeAsIntentExtra(intent, ArgKeys.TARGET_ALPHABET, targetAlphabet);
         context.startActivity(intent);
     }
 
     public static void open(Activity activity, int requestCode, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final Intent intent = new Intent(activity, ConversionDetailsActivity.class);
-        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet.key);
-        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet.key);
+        AlphabetIdBundler.writeAsIntentExtra(intent, ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
+        AlphabetIdBundler.writeAsIntentExtra(intent, ArgKeys.TARGET_ALPHABET, targetAlphabet);
         activity.startActivityForResult(intent, requestCode);
     }
 
     private boolean _dataJustLoaded;
 
     private AlphabetId getSourceAlphabet() {
-        final int rawAlphabet = getIntent().getIntExtra(ArgKeys.SOURCE_ALPHABET, 0);
-        return (rawAlphabet != 0)? new AlphabetId(rawAlphabet) : null;
+        return AlphabetIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SOURCE_ALPHABET);
     }
 
     private AlphabetId getTargetAlphabet() {
-        final int rawAlphabet = getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
-        return (rawAlphabet != 0)? new AlphabetId(rawAlphabet) : null;
+        return AlphabetIdBundler.readAsIntentExtra(getIntent(), ArgKeys.TARGET_ALPHABET);
     }
 
     private void updateUi() {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
         final AlphabetId sourceAlphabet = getSourceAlphabet();
         final AlphabetId targetAlphabet = getTargetAlphabet();
 
-        final String sourceText = checker.readConceptText(sourceAlphabet.key, preferredAlphabet);
-        final String targetText = checker.readConceptText(targetAlphabet.key, preferredAlphabet);
+        final String sourceText = checker.readConceptText(AlphabetIdManager.getConceptId(sourceAlphabet), preferredAlphabet);
+        final String targetText = checker.readConceptText(AlphabetIdManager.getConceptId(targetAlphabet), preferredAlphabet);
         setTitle(sourceText + " -> " + targetText);
 
-        final Conversion conversion = checker.getConversion(new ImmutablePair<>(sourceAlphabet, targetAlphabet));
+        final Conversion<AlphabetId> conversion = checker.getConversion(new ImmutablePair<>(sourceAlphabet, targetAlphabet));
 
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new ConversionDetailsAdapter(conversion));
@@ -94,10 +94,9 @@ public final class ConversionDetailsActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemEdit:
-                ConversionEditorActivity.open(this, REQUEST_CODE_EDITION, getSourceAlphabet(), getTargetAlphabet());
-                return true;
+        if (item.getItemId() == R.id.menuItemEdit) {
+            ConversionEditorActivity.open(this, REQUEST_CODE_EDITION, getSourceAlphabet(), getTargetAlphabet());
+            return true;
         }
 
         return false;

@@ -26,44 +26,44 @@ final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    static void insertAlphabet(DbInserter db, AlphabetId id, int language) {
+    static <AlphabetId> void insertAlphabet(DbInserter db, IntExtractor<AlphabetId> alphabetIntExtractor, AlphabetId id, int language) {
         final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), id.key)
+                .put(table.getIdColumnIndex(), alphabetIntExtractor.getInt(id))
                 .put(table.getLanguageColumnIndex(), language)
                 .build();
 
-        if (db.insert(query) != id.key) {
+        if (db.insert(query) != alphabetIntExtractor.getInt(id)) {
             throw new AssertionError();
         }
     }
 
-    static void insertLanguage(DbInserter db, int id, String code, AlphabetId mainAlphabet) {
+    static <AlphabetId> void insertLanguage(DbInserter db, IntExtractor<AlphabetId> alphabetIntExtractor, int id, String code, AlphabetId mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = Tables.languages;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
                 .put(table.getCodeColumnIndex(), code)
-                .put(table.getMainAlphabetColumnIndex(), mainAlphabet.key)
+                .put(table.getMainAlphabetColumnIndex(), alphabetIntExtractor.getInt(mainAlphabet))
                 .build();
         db.insert(query);
     }
 
-    static void insertConversion(DbInserter db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet, int source, int target) {
+    static <AlphabetId> void insertConversion(DbInserter db, IntExtractor<AlphabetId> alphabetIntExtractor, AlphabetId sourceAlphabet, AlphabetId targetAlphabet, int source, int target) {
         final LangbookDbSchema.ConversionsTable table = Tables.conversions;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet.key)
-                .put(table.getTargetAlphabetColumnIndex(), targetAlphabet.key)
+                .put(table.getSourceAlphabetColumnIndex(), alphabetIntExtractor.getInt(sourceAlphabet))
+                .put(table.getTargetAlphabetColumnIndex(), alphabetIntExtractor.getInt(targetAlphabet))
                 .put(table.getSourceColumnIndex(), source)
                 .put(table.getTargetColumnIndex(), target)
                 .build();
         db.insert(query);
     }
 
-    static void insertCorrelationEntry(DbInserter db, int correlationId, AlphabetId alphabet, int symbolArray) {
+    static <AlphabetId> void insertCorrelationEntry(DbInserter db, IntExtractor<AlphabetId> alphabetIntExtractor, int correlationId, AlphabetId alphabet, int symbolArray) {
         final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getCorrelationIdColumnIndex(), correlationId)
-                .put(table.getAlphabetColumnIndex(), alphabet.key)
+                .put(table.getAlphabetColumnIndex(), alphabetIntExtractor.getInt(alphabet))
                 .put(table.getSymbolArrayColumnIndex(), symbolArray)
                 .build();
         if (db.insert(query) == null) {
@@ -71,14 +71,14 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertCorrelation(DbInserter db, int correlationId, IntValueMap<AlphabetId> correlation) {
+    static <AlphabetId> void insertCorrelation(DbInserter db, IntExtractor<AlphabetId> alphabetIntExtractor, int correlationId, IntValueMap<AlphabetId> correlation) {
         final int mapLength = correlation.size();
         if (mapLength == 0) {
             throw new IllegalArgumentException();
         }
 
         for (int i = 0; i < mapLength; i++) {
-            insertCorrelationEntry(db, correlationId, correlation.keyAt(i), correlation.valueAt(i));
+            insertCorrelationEntry(db, alphabetIntExtractor, correlationId, correlation.keyAt(i), correlation.valueAt(i));
         }
     }
 
@@ -203,7 +203,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertStringQuery(DbInserter db, String str,
+    static <AlphabetId> void insertStringQuery(DbInserter db, IntExtractor<AlphabetId> alphabetIntExtractor, String str,
             String mainStr, int mainAcceptation, int dynAcceptation, AlphabetId strAlphabet) {
         final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -211,7 +211,7 @@ final class LangbookDbInserter {
                 .put(table.getMainStringColumnIndex(), mainStr)
                 .put(table.getMainAcceptationColumnIndex(), mainAcceptation)
                 .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
-                .put(table.getStringAlphabetColumnIndex(), strAlphabet.key)
+                .put(table.getStringAlphabetColumnIndex(), alphabetIntExtractor.getInt(strAlphabet))
                 .build();
 
         if (db.insert(query) == null) {
@@ -219,12 +219,12 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails> fields) {
+    static <AlphabetId> void insertQuestionFieldSet(DbInserter db, IntExtractor<AlphabetId> alphabetIntExtractor, int setId, Iterable<QuestionFieldDetails<AlphabetId>> fields) {
         final LangbookDbSchema.QuestionFieldSets table = Tables.questionFieldSets;
-        for (QuestionFieldDetails field : fields) {
+        for (QuestionFieldDetails<AlphabetId> field : fields) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
                     .put(table.getSetIdColumnIndex(), setId)
-                    .put(table.getAlphabetColumnIndex(), field.alphabet.key)
+                    .put(table.getAlphabetColumnIndex(), alphabetIntExtractor.getInt(field.alphabet))
                     .put(table.getRuleColumnIndex(), field.rule)
                     .put(table.getFlagsColumnIndex(), field.flags)
                     .build();

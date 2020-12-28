@@ -16,6 +16,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.MutableIntPairMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
@@ -58,7 +59,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private MutableIntPairMap _knowledge = MutableIntPairMap.empty();
 
     private int _quizId;
-    private QuizDetails _quizDetails;
+    private QuizDetails<AlphabetId> _quizDetails;
     private TextView[] _fieldTextViews;
 
     private int _goodAnswerCount;
@@ -73,12 +74,12 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private ImmutableIntSet _possibleAcceptations;
     private int _dbWriteVersion;
 
-    private void readQuizDefinition(LangbookChecker checker) {
+    private void readQuizDefinition(LangbookChecker<AlphabetId> checker) {
         _quizDetails = checker.getQuizDetails(_quizId);
         _fieldTextViews = new TextView[_quizDetails.fields.size()];
     }
 
-    private String readFieldText(LangbookChecker checker, int index) {
+    private String readFieldText(LangbookChecker<AlphabetId> checker, int index) {
         return checker.readQuestionFieldText(_acceptation, _quizDetails.fields.get(index));
     }
 
@@ -115,7 +116,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     }
 
     private void updateTextFields() {
-        final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
+        final ImmutableList<QuestionFieldDetails<AlphabetId>> fields = _quizDetails.fields;
         final int fieldCount = fields.size();
         for (int i = 0; i < fieldCount; i++) {
             final boolean shouldDisplayText = _isAnswerVisible || !fields.get(i).isAnswer();
@@ -130,9 +131,9 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         final Button revealAnswerButton = findViewById(R.id.revealAnswerButton);
         final LinearLayout rateButtonBar = findViewById(R.id.rateButtonBar);
 
-        final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
+        final ImmutableList<QuestionFieldDetails<AlphabetId>> fields = _quizDetails.fields;
         if (!_isAnswerVisible) {
-            LangbookChecker checker = null;
+            LangbookChecker<AlphabetId> checker = null;
             for (int i = 0; i < fields.size(); i++) {
                 if (fields.get(i).isAnswer()) {
                     if (checker == null) {
@@ -202,7 +203,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         if (dbWriteVersion != _dbWriteVersion) {
             _dbWriteVersion = dbWriteVersion;
 
-            final LangbookChecker checker = DbManager.getInstance().getManager();
+            final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
             readQuizDefinition(checker);
             readCurrentKnowledge(checker);
 
@@ -221,7 +222,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
             fieldsPanel.removeAllViews();
 
             final LayoutInflater inflater = getLayoutInflater();
-            final ImmutableList<QuestionFieldDetails> fields = _quizDetails.fields;
+            final ImmutableList<QuestionFieldDetails<AlphabetId>> fields = _quizDetails.fields;
             for (int i = 0; i < fields.size(); i++) {
                 inflater.inflate(R.layout.question_field, fieldsPanel, true);
                 _fieldTextViews[i] = (TextView) fieldsPanel.getChildAt(fieldsPanel.getChildCount() - 1);
@@ -247,7 +248,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         }
     }
 
-    private void readCurrentKnowledge(LangbookChecker checker) {
+    private void readCurrentKnowledge(LangbookChecker<AlphabetId> checker) {
         final ImmutableIntPairMap knowledgeMap = checker.getCurrentKnowledge(_quizId);
         _possibleAcceptations = knowledgeMap.keySet();
         _knowledge = knowledgeMap.filter(score -> score != NO_SCORE).mutate();

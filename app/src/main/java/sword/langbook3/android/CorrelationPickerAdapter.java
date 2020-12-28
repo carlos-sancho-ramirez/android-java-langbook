@@ -8,17 +8,18 @@ import android.widget.TextView;
 
 import sword.collections.Function;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 
 final class CorrelationPickerAdapter extends BaseAdapter {
 
-    private final ImmutableSet<ImmutableCorrelationArray> _entries;
-    private final ImmutableSet<ImmutableCorrelation> _knownCorrelations;
+    private final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> _entries;
+    private final ImmutableSet<ImmutableCorrelation<AlphabetId>> _knownCorrelations;
 
     private LayoutInflater _inflater;
 
-    CorrelationPickerAdapter(ImmutableSet<ImmutableCorrelationArray> entries, ImmutableSet<ImmutableCorrelation> knownCorrelations) {
+    CorrelationPickerAdapter(ImmutableSet<ImmutableCorrelationArray<AlphabetId>> entries, ImmutableSet<ImmutableCorrelation<AlphabetId>> knownCorrelations) {
         _entries = entries;
         _knownCorrelations = knownCorrelations;
     }
@@ -29,7 +30,7 @@ final class CorrelationPickerAdapter extends BaseAdapter {
     }
 
     @Override
-    public ImmutableCorrelationArray getItem(int position) {
+    public ImmutableCorrelationArray<AlphabetId> getItem(int position) {
         return _entries.valueAt(position);
     }
 
@@ -52,8 +53,8 @@ final class CorrelationPickerAdapter extends BaseAdapter {
             view = convertView;
         }
 
-        ImmutableCorrelationArray array = _entries.valueAt(position);
-        final Function<ImmutableCorrelation, String> mapFunc = correlation -> {
+        final ImmutableCorrelationArray<AlphabetId> array = _entries.valueAt(position);
+        final Function<ImmutableCorrelation<AlphabetId>, String> mapFunc = correlation -> {
             final String str = correlation.reduce((a,b) -> a + '/' + b);
             return _knownCorrelations.contains(correlation)? "<" + str + ">" : str;
         };

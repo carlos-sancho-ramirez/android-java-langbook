@@ -6,10 +6,9 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel {
+public final class AcceptationDetailsModel<AlphabetId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -28,7 +27,7 @@ public final class AcceptationDetailsModel {
     public final int appliedRuleAcceptationId;
     public final ImmutableIntList correlationIds;
     public final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations;
-    public final ImmutableCorrelation texts;
+    public final ImmutableCorrelation<AlphabetId> texts;
     public final ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts;
     public final ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts;
     public final int baseConceptAcceptationId;
@@ -59,7 +58,7 @@ public final class AcceptationDetailsModel {
             int appliedRuleAcceptationId,
             ImmutableIntList correlationIds,
             ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations,
-            ImmutableCorrelation texts,
+            ImmutableCorrelation<AlphabetId> texts,
             ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts,
             ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts,
             int baseConceptAcceptationId,

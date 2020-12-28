@@ -6,9 +6,8 @@ import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.SortFunction;
 import sword.collections.SortUtils;
-import sword.langbook3.android.db.AlphabetId;
 
-public final class Conversion implements ConversionProposal {
+public final class Conversion<AlphabetId> implements ConversionProposal<AlphabetId> {
 
     public static final SortFunction<String> keySortFunction = (a, b) -> SortUtils
             .compareCharSequenceByUnicode(b, a);

@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-public interface AcceptationsManager extends AcceptationsChecker {
+public interface AcceptationsManager<AlphabetId> extends AcceptationsChecker<AlphabetId> {
 
     /**
      * Add a new language for the given code.
@@ -14,7 +14,7 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @param code 2-char lowercase language code. Such as "es" for Spanish, "en" for English of "ja" for Japanese.
      * @return A pair containing the language created concept and its main alphabet, or null if it cannot be added.
      */
-    LanguageCreationResult addLanguage(String code);
+    LanguageCreationResult<AlphabetId> addLanguage(String code);
     boolean removeLanguage(int language);
 
     /**
@@ -41,7 +41,7 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @param conversion Conversion to be evaluated and stored if no conflicts are found.
      * @return Whether the action was completed successfully, and so the database state content has changed.
      */
-    boolean addAlphabetAsConversionTarget(Conversion conversion);
+    boolean addAlphabetAsConversionTarget(Conversion<AlphabetId> conversion);
 
     boolean removeAlphabet(AlphabetId alphabet);
 
@@ -51,9 +51,9 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @param correlationArray Correlation array for this acceptation.
      * @return An identifier for the new acceptation just included, or null in case the acceptation cannot be added.
      */
-    Integer addAcceptation(int concept, ImmutableCorrelationArray correlationArray);
+    Integer addAcceptation(int concept, ImmutableCorrelationArray<AlphabetId> correlationArray);
 
-    boolean updateAcceptationCorrelationArray(int acceptation, ImmutableCorrelationArray newCorrelationArray);
+    boolean updateAcceptationCorrelationArray(int acceptation, ImmutableCorrelationArray<AlphabetId> newCorrelationArray);
     boolean removeAcceptation(int acceptation);
 
     /**
@@ -84,5 +84,5 @@ public interface AcceptationsManager extends AcceptationsChecker {
      * @param conversion New conversion to be included.
      * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
      */
-    boolean replaceConversion(Conversion conversion);
+    boolean replaceConversion(Conversion<AlphabetId> conversion);
 }

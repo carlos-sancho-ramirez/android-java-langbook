@@ -27,22 +27,27 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
 final class LangbookReadableDatabaseTest {
 
-    private void addAgent(Database db, int sourceBunch, AlphabetId alphabet, String endMatcherText, String endAdderText, int rule) {
+    private void addAgent(Database db, AlphabetIdManager alphabetIdManager, int sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, int rule) {
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
         final ImmutableIntSet verbBunchSet = emptyBunchSet.add(sourceBunch);
 
-        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
-        final ImmutableCorrelation endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
-        final ImmutableCorrelation endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
+        final ImmutableCorrelation<AlphabetIdHolder> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelation<AlphabetIdHolder> endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
+        final ImmutableCorrelation<AlphabetIdHolder> endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
 
-        LangbookDatabase.addAgent(db, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
+        LangbookDatabase.addAgent(db, alphabetIdManager, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
+    }
+
+    private AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
+        return new AlphabetIdHolder(manager.getMaxConcept() + 1);
     }
 
     @Test
     void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
-        final AlphabetId alphabet = addLanguage(db, "es").mainAlphabet;
+        final AlphabetIdManager alphabetIdManager = new AlphabetIdManager();
+        final LangbookDatabaseManager<AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, alphabetIdManager);
+        final AlphabetIdHolder alphabet = addLanguage(db, alphabetIdManager, "es").mainAlphabet;
         final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
         final int verbBunchId = pluralRule + 1;
@@ -54,23 +59,23 @@ final class LangbookReadableDatabaseTest {
         final String femaleNounBunchTitle = "substantivos femeninos";
         addSimpleAcceptation(manager, alphabet, femaleNounBunchId, femaleNounBunchTitle);
 
-        addAgent(db, verbBunchId, alphabet, "ar", "ando", gerundRule);
-        addAgent(db, femaleNounBunchId, alphabet, null, "s", pluralRule);
+        addAgent(db, alphabetIdManager, verbBunchId, alphabet, "ar", "ando", gerundRule);
+        addAgent(db, alphabetIdManager, femaleNounBunchId, alphabet, null, "s", pluralRule);
 
-        final ImmutableCorrelation texts = new ImmutableCorrelation.Builder().put(alphabet, "cantar").build();
+        final ImmutableCorrelation<AlphabetIdHolder> texts = new ImmutableCorrelation.Builder<AlphabetIdHolder>().put(alphabet, "cantar").build();
         final ImmutableIntKeyMap<String> matchingBunches = LangbookReadableDatabase
-                .readAllMatchingBunches(db, texts, alphabet);
+                .readAllMatchingBunches(db, alphabetIdManager, texts, alphabet);
         assertEquals(ImmutableIntKeyMap.empty().put(verbBunchId, verbBunchTitle), matchingBunches);
 
-        final ImmutableCorrelation texts2 = new ImmutableCorrelation.Builder().put(alphabet, "comer").build();
-        assertTrue(LangbookReadableDatabase.readAllMatchingBunches(db, texts2, alphabet).isEmpty());
+        final ImmutableCorrelation<AlphabetIdHolder> texts2 = new ImmutableCorrelation.Builder<AlphabetIdHolder>().put(alphabet, "comer").build();
+        assertTrue(LangbookReadableDatabase.readAllMatchingBunches(db, alphabetIdManager, texts2, alphabet).isEmpty());
     }
 
     private interface CorrelationObtainer {
         ImmutableIntKeyMap<String> obtain(int firstAlphabet, String text);
     }
 
-    void checkFindAcceptationFromText(CorrelationObtainer corrObtainer) {
+    void checkFindAcceptationFromText(AlphabetIdManager alphabetIdManager, CorrelationObtainer corrObtainer) {
         final ImmutableSet<String> texts = new ImmutableHashSet.Builder<String>()
                 .add("hello")
                 .add("Hi")
@@ -96,10 +101,10 @@ final class LangbookReadableDatabaseTest {
                     final ImmutableList<String> textList = textListBuilder.build();
 
                     final MemoryDatabase db = new MemoryDatabase();
-                    final LangbookDatabaseManager manager = new LangbookDatabaseManager(db);
-                    final AlphabetId alphabet1 = addLanguage(db, "xx").mainAlphabet;
-                    final AlphabetId alphabet2 = new AlphabetId(manager.getMaxConcept() + 1);
-                    assertTrue(addAlphabetCopyingFromOther(db, alphabet2, alphabet1));
+                    final LangbookDatabaseManager<AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, alphabetIdManager);
+                    final AlphabetIdHolder alphabet1 = addLanguage(db, alphabetIdManager, "xx").mainAlphabet;
+                    final AlphabetIdHolder alphabet2 = getNextAvailableId(manager);
+                    assertTrue(addAlphabetCopyingFromOther(db, alphabetIdManager, alphabet2, alphabet1));
 
                     final int concept1 = getMaxConcept(db) + 1;
                     final int concept2 = concept1 + 1;
@@ -137,14 +142,14 @@ final class LangbookReadableDatabaseTest {
 
     @Test
     void testFindAcceptationFromTextForOneAlphabetLanguageWord() {
-        checkFindAcceptationFromText((firstAlphabet, text) ->
+        checkFindAcceptationFromText(new AlphabetIdManager(), (firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>().put(firstAlphabet, text).build()
         );
     }
 
     @Test
     void testFindAcceptationFromTextForTwoAlphabetLanguageWord() {
-        checkFindAcceptationFromText((firstAlphabet, text) ->
+        checkFindAcceptationFromText(new AlphabetIdManager(), (firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>()
                         .put(firstAlphabet, text)
                         .put(firstAlphabet + 1, text)

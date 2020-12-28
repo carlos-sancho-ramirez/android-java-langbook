@@ -15,7 +15,7 @@ import sword.collections.SortFunction;
 import sword.collections.TransformerWithKey;
 import sword.collections.UnmappedKeyException;
 
-public final class MutableCorrelation implements Correlation, MutableMap<AlphabetId, String> {
+public final class MutableCorrelation<AlphabetId> implements Correlation<AlphabetId>, MutableMap<AlphabetId, String> {
 
     private final MutableMap<AlphabetId, String> map;
 
@@ -91,13 +91,13 @@ public final class MutableCorrelation implements Correlation, MutableMap<Alphabe
     }
 
     @Override
-    public Correlation filter(Predicate<? super String> predicate) {
-        return new ImmutableCorrelation(map.toImmutable().filter(predicate));
+    public Correlation<AlphabetId> filter(Predicate<? super String> predicate) {
+        return new ImmutableCorrelation<>(map.toImmutable().filter(predicate));
     }
 
     @Override
-    public Correlation filterNot(Predicate<? super String> predicate) {
-        return new ImmutableCorrelation(map.toImmutable().filterNot(predicate));
+    public Correlation<AlphabetId> filterNot(Predicate<? super String> predicate) {
+        return new ImmutableCorrelation<>(map.toImmutable().filterNot(predicate));
     }
 
     @Override
@@ -106,18 +106,18 @@ public final class MutableCorrelation implements Correlation, MutableMap<Alphabe
     }
 
     @Override
-    public ImmutableCorrelation toImmutable() {
-        return new ImmutableCorrelation(map.toImmutable());
+    public ImmutableCorrelation<AlphabetId> toImmutable() {
+        return new ImmutableCorrelation<>(map.toImmutable());
     }
 
     @Override
-    public MutableCorrelation mutate() {
-        return new MutableCorrelation(map.mutate());
+    public MutableCorrelation<AlphabetId> mutate() {
+        return new MutableCorrelation<>(map.mutate());
     }
 
     @Override
-    public MutableCorrelation mutate(ArrayLengthFunction arrayLengthFunction) {
-        return new MutableCorrelation(map.mutate(arrayLengthFunction));
+    public MutableCorrelation<AlphabetId> mutate(ArrayLengthFunction arrayLengthFunction) {
+        return new MutableCorrelation<>(map.mutate(arrayLengthFunction));
     }
 
     @Override
@@ -157,7 +157,7 @@ public final class MutableCorrelation implements Correlation, MutableMap<Alphabe
         return map.equals(that.map);
     }
 
-    public static MutableCorrelation empty() {
-        return new MutableCorrelation(MutableHashMap.empty());
+    public static <T> MutableCorrelation<T> empty() {
+        return new MutableCorrelation<>(MutableHashMap.empty());
     }
 }

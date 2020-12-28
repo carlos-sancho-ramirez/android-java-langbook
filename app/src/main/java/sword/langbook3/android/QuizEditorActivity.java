@@ -228,7 +228,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, NO_BUNCH);
         final DbManager manager = DbManager.getInstance();
-        final LangbookChecker checker = manager.getManager();
+        final LangbookChecker<AlphabetId> checker = manager.getManager();
 
         if (_bunch != NO_BUNCH) {
             final String bunchText = checker.readConceptText(_bunch, _preferredAlphabet);
@@ -253,16 +253,16 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
-    private static QuestionFieldDetails composeQuestionField(FieldState field) {
-        return new QuestionFieldDetails(field.alphabet, field.rule, field.type - 1);
+    private static QuestionFieldDetails<AlphabetId> composeQuestionField(FieldState field) {
+        return new QuestionFieldDetails<>(field.alphabet, field.rule, field.type - 1);
     }
 
-    private static QuestionFieldDetails composeAnswerField(FieldState field) {
-        return new QuestionFieldDetails(field.alphabet, field.rule, QuestionFieldFlags.IS_ANSWER | (field.type - 1));
+    private static QuestionFieldDetails<AlphabetId> composeAnswerField(FieldState field) {
+        return new QuestionFieldDetails<>(field.alphabet, field.rule, QuestionFieldFlags.IS_ANSWER | (field.type - 1));
     }
 
-    private ImmutableList<QuestionFieldDetails> composeFields() {
-        final ImmutableList.Builder<QuestionFieldDetails> builder = new ImmutableList.Builder<>();
+    private ImmutableList<QuestionFieldDetails<AlphabetId>> composeFields() {
+        final ImmutableList.Builder<QuestionFieldDetails<AlphabetId>> builder = new ImmutableList.Builder<>();
         for (FieldState state : _questionFields) {
             builder.add(composeQuestionField(state));
         }

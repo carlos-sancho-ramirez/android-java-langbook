@@ -1,9 +1,8 @@
 package sword.langbook3.android.models;
 
-import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookDbSchema;
 
-public final class QuestionFieldDetails {
+public final class QuestionFieldDetails<AlphabetId> {
     public final AlphabetId alphabet;
     public final int rule;
     public final int flags;

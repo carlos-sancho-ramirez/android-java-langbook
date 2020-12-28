@@ -2,11 +2,9 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
@@ -23,15 +21,15 @@ import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgen
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest, SentencesManagerTest {
+interface LangbookManagerTest<AlphabetId> extends QuizzesManagerTest<AlphabetId>, DefinitionsManagerTest, SentencesManagerTest<AlphabetId> {
 
     @Override
-    LangbookManager createManager(MemoryDatabase db);
+    LangbookManager<AlphabetId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager manager = createManager(db);
+        final LangbookManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -41,9 +39,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
 
-        final ImmutableCorrelation adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -66,7 +64,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
     @Test
     default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager manager = createManager(db);
+        final LangbookManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -79,8 +77,8 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
-        final ImmutableCorrelation adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -106,7 +104,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
     @Test
     default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager manager = createManager(db);
+        final LangbookManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -119,9 +117,9 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
-        final ImmutableCorrelation emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
 
-        final ImmutableCorrelation adder = emptyCorrelation.put(esAlphabet, "s");
+        final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
         final int pluralRule = manager.getMaxConcept() + 1;
         final int agentId = manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
@@ -147,7 +145,7 @@ interface LangbookManagerTest extends QuizzesManagerTest, DefinitionsManagerTest
     @Test
     default void testRemoveHeadChainedAgentWhereRuledAcceptationOfTheTailChainedAgentIsUsedAsSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager manager = createManager(db);
+        final LangbookManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 

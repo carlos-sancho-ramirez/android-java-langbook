@@ -8,23 +8,23 @@ import sword.collections.MutableList;
 import sword.collections.Predicate;
 import sword.collections.Set;
 
-public interface Correlation extends Map<AlphabetId, String> {
+public interface Correlation<AlphabetId> extends Map<AlphabetId, String> {
 
     @Override
-    Correlation filter(Predicate<? super String> predicate);
+    Correlation<AlphabetId> filter(Predicate<? super String> predicate);
 
     @Override
-    Correlation filterNot(Predicate<? super String> predicate);
+    Correlation<AlphabetId> filterNot(Predicate<? super String> predicate);
 
     IntValueMap<AlphabetId> mapToInt(IntResultFunction<? super String> func);
 
-    ImmutableCorrelation toImmutable();
+    ImmutableCorrelation<AlphabetId> toImmutable();
 
-    MutableCorrelation mutate();
+    MutableCorrelation<AlphabetId> mutate();
 
-    MutableCorrelation mutate(ArrayLengthFunction arrayLengthFunction);
+    MutableCorrelation<AlphabetId> mutate(ArrayLengthFunction arrayLengthFunction);
 
-    default boolean equalCorrelation(Correlation that) {
+    default boolean equalCorrelation(Correlation<AlphabetId> that) {
         if (that == null) {
             return false;
         }
@@ -45,16 +45,16 @@ public interface Correlation extends Map<AlphabetId, String> {
         return true;
     }
 
-    default MutableList<Entry> toCorrelationEntryList() {
-        final MutableList<Entry> result = MutableList.empty();
+    default MutableList<Entry<AlphabetId>> toCorrelationEntryList() {
+        final MutableList<Entry<AlphabetId>> result = MutableList.empty();
         for (Map.Entry<AlphabetId, String> entry : entries()) {
-            result.append(new Entry(entry.key(), entry.value()));
+            result.append(new Entry<>(entry.key(), entry.value()));
         }
 
         return result;
     }
 
-    final class Entry {
+    final class Entry<AlphabetId> {
         public AlphabetId alphabet;
         public String text;
 

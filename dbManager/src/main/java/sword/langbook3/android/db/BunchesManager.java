@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-public interface BunchesManager extends AcceptationsManager, BunchesChecker {
+public interface BunchesManager<AlphabetId> extends AcceptationsManager<AlphabetId>, BunchesChecker<AlphabetId> {
 
     /**
      * Include an acceptation within a bunch in a secure way.

@@ -18,6 +18,7 @@ import sword.collections.MutableSet;
 import sword.collections.MutableSortedMap;
 import sword.collections.Set;
 import sword.collections.SortUtils;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
@@ -133,7 +134,7 @@ public final class ConversionEditorActivityState implements Parcelable {
         _targetModificationText = null;
     }
 
-    boolean applyModification(Conversion conversion) {
+    boolean applyModification(Conversion<AlphabetId> conversion) {
         if (!_modifying) {
             throw new UnsupportedOperationException();
         }
@@ -238,7 +239,7 @@ public final class ConversionEditorActivityState implements Parcelable {
         }
     }
 
-    Conversion getResultingConversion(Conversion originalConversion) {
+    Conversion<AlphabetId> getResultingConversion(Conversion<AlphabetId> originalConversion) {
         Map<String, String> origMap = originalConversion.getMap();
         final int originalSize = origMap.size();
         final ImmutableMap.Builder<String, String> nonRemovedMapBuilder = new ImmutableHashMap.Builder<>();
@@ -258,7 +259,7 @@ public final class ConversionEditorActivityState implements Parcelable {
             result.put(key, map.get(key));
         }
 
-        return new Conversion(originalConversion.getSourceAlphabet(), originalConversion.getTargetAlphabet(), result);
+        return new Conversion<>(originalConversion.getSourceAlphabet(), originalConversion.getTargetAlphabet(), result);
     }
 
     public static final Creator<ConversionEditorActivityState> CREATOR = new Creator<ConversionEditorActivityState>() {

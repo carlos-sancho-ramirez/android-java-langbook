@@ -19,21 +19,21 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
  * BunchesManager responsibilities include all responsibilities from AcceptationsManager, and include the following ones:
  * <li>Bunches</li>
  */
-interface BunchesManagerTest extends AcceptationsManagerTest {
+interface BunchesManagerTest<AlphabetId> extends AcceptationsManagerTest<AlphabetId> {
 
     @Override
-    BunchesManager createManager(MemoryDatabase db);
+    BunchesManager<AlphabetId> createManager(MemoryDatabase db);
 
-    static int addSpanishSingAcceptation(AcceptationsManager manager, AlphabetId alphabet, int concept) {
+    static <AlphabetId> int addSpanishSingAcceptation(AcceptationsManager<AlphabetId> manager, AlphabetId alphabet, int concept) {
         return addSimpleAcceptation(manager, alphabet, concept, "cantar");
     }
 
     @Test
     default void testRemoveLanguageThatIncludeAcceptationsAsBunches() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager manager = createManager(db);
+        final BunchesManager<AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult langPair = manager.addLanguage("es");
+        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("es");
         final int language = langPair.language;
         final AlphabetId alphabet = langPair.mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
@@ -52,7 +52,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager manager = createManager(db);
+        final BunchesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int kanjiAlphabet = manager.getMaxConcept() + 1;
@@ -74,7 +74,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testRemoveAcceptationForBunchWithAcceptationsInside() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager manager = createManager(db);
+        final BunchesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int animalConcept = manager.getMaxConcept() + 1;
@@ -91,7 +91,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testShareConceptRemovesDuplicatedBunchAcceptations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager manager = createManager(db);
+        final BunchesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
@@ -121,7 +121,7 @@ interface BunchesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testShareConceptKeepAcceptationsInBunchWhenRemovingDuplicatedAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager manager = createManager(db);
+        final BunchesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;

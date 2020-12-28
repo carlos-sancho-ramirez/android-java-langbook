@@ -15,6 +15,7 @@ import android.widget.Toast;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.models.AgentRegister;
@@ -72,9 +73,9 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         updateUi();
     }
 
-    private static void addCorrelationSection(LangbookChecker checker, String title, int correlationId, SyncCacheMap<AlphabetId, String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
+    private static void addCorrelationSection(LangbookChecker<AlphabetId> checker, String title, int correlationId, SyncCacheMap<AlphabetId, String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
         boolean headerAdded = false;
-        ImmutableCorrelation matcher = checker.getCorrelationWithText(correlationId);
+        ImmutableCorrelation<AlphabetId> matcher = checker.getCorrelationWithText(correlationId);
         for (int i = 0; i < matcher.size(); i++) {
             if (!headerAdded) {
                 headerAdded = true;
@@ -89,7 +90,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
     }
 
     private void updateUi() {
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
         _register = checker.getAgentRegister(_agentId);
 
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder = new ImmutableList.Builder<>();
@@ -123,7 +124,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
         }
 
-        final SyncCacheMap<AlphabetId, String> alphabetTexts = new SyncCacheMap<>(alphabet -> checker.readConceptText(alphabet.key, _preferredAlphabet));
+        final SyncCacheMap<AlphabetId, String> alphabetTexts = new SyncCacheMap<>(alphabet -> checker.readConceptText(AlphabetIdManager.getConceptId(alphabet), _preferredAlphabet));
 
         addCorrelationSection(checker, getString(R.string.agentStartMatcherHeader), _register.startMatcherId, alphabetTexts, builder);
         addCorrelationSection(checker, getString(R.string.agentStartAdderHeader), _register.startAdderId, alphabetTexts, builder);

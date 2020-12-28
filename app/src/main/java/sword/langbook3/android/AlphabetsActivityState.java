@@ -4,10 +4,9 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdParceler;
 
 public final class AlphabetsActivityState implements Parcelable {
-
-    private static final int DEFINE_CONVERSION_FLAG = 0x80000000;
 
     public AlphabetId startDefiningConversion() {
         if (_intrinsicState != IntrinsicStates.PICKING_SOURCE_ALPHABET) {
@@ -15,7 +14,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.DEFINING_CONVERSION;
-        _sourceAlphabet &= ~DEFINE_CONVERSION_FLAG;
+        _willDefineConversionChecked = false;
 
         return _newAlphabetConcept;
     }
@@ -25,7 +24,7 @@ public final class AlphabetsActivityState implements Parcelable {
             throw new UnsupportedOperationException();
         }
 
-        _sourceAlphabet |= DEFINE_CONVERSION_FLAG;
+        _willDefineConversionChecked = true;
         _intrinsicState = IntrinsicStates.PICKING_SOURCE_ALPHABET;
     }
 
@@ -49,17 +48,23 @@ public final class AlphabetsActivityState implements Parcelable {
     }
 
     private int _intrinsicState;
-    private int _id;
+    private int _languageId;
+    private AlphabetId _alphabetId;
     private AlphabetId _newAlphabetConcept;
-    private int _sourceAlphabet;
+    private AlphabetId _sourceAlphabet;
+    private boolean _willDefineConversionChecked;
 
     private AlphabetsActivityState(Parcel in) {
         _intrinsicState = in.readInt();
-        if (_intrinsicState != IntrinsicStates.NORMAL) {
-            _id = in.readInt();
+        if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS) {
+            _languageId = in.readInt();
+        }
+        else if (_intrinsicState != IntrinsicStates.NORMAL) {
+            _alphabetId = AlphabetIdParceler.read(in);
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
-                _newAlphabetConcept = new AlphabetId(in.readInt());
-                _sourceAlphabet = in.readInt();
+                _newAlphabetConcept = AlphabetIdParceler.read(in);
+                _sourceAlphabet = AlphabetIdParceler.read(in);
+                _willDefineConversionChecked = in.readInt() != 0;
             }
         }
     }
@@ -98,7 +103,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.SHOWING_LANGUAGE_OPTIONS;
-        _id = language;
+        _languageId = language;
     }
 
     public void showAlphabetOptions(AlphabetId alphabet) {
@@ -107,7 +112,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.SHOWING_ALPHABET_OPTIONS;
-        _id = alphabet.key;
+        _alphabetId = alphabet;
     }
 
     public void showLanguageRemovalConfirmation() {
@@ -121,9 +126,9 @@ public final class AlphabetsActivityState implements Parcelable {
     public void showAlphabetRemovalConfirmation(AlphabetId alphabet) {
         if (_intrinsicState == IntrinsicStates.NORMAL) {
             _intrinsicState = IntrinsicStates.ALPHABET_DELETE_CONFIRMATION;
-            _id = alphabet.key;
+            _alphabetId = alphabet;
         }
-        else if (_intrinsicState == IntrinsicStates.SHOWING_ALPHABET_OPTIONS && _id == alphabet.key) {
+        else if (_intrinsicState == IntrinsicStates.SHOWING_ALPHABET_OPTIONS && _alphabetId.equals(alphabet)) {
             _intrinsicState = IntrinsicStates.ALPHABET_DELETE_CONFIRMATION;
         }
         else {
@@ -131,13 +136,12 @@ public final class AlphabetsActivityState implements Parcelable {
         }
     }
 
-    public int cancelLanguageOptions() {
+    public void cancelLanguageOptions() {
         if (_intrinsicState != IntrinsicStates.SHOWING_LANGUAGE_OPTIONS) {
             throw new UnsupportedOperationException();
         }
 
         _intrinsicState = IntrinsicStates.NORMAL;
-        return _id;
     }
 
     public void cancelDeleteConfirmation() {
@@ -154,7 +158,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.NORMAL;
-        return new AlphabetId(_id);
+        return _alphabetId;
     }
 
     public void showAlphabetRemovalConfirmation() {
@@ -171,7 +175,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.NORMAL;
-        return new AlphabetId(_id);
+        return _alphabetId;
     }
 
     public int cancelLanguageRemoval() {
@@ -180,7 +184,7 @@ public final class AlphabetsActivityState implements Parcelable {
         }
 
         _intrinsicState = IntrinsicStates.NORMAL;
-        return _id;
+        return _languageId;
     }
 
     public void pickAcceptationForAlphabet() {
@@ -196,7 +200,7 @@ public final class AlphabetsActivityState implements Parcelable {
             throw new UnsupportedOperationException();
         }
 
-        return _id;
+        return _languageId;
     }
 
     public AlphabetId getSelectedSourceAlphabet() {
@@ -204,7 +208,7 @@ public final class AlphabetsActivityState implements Parcelable {
             throw new UnsupportedOperationException();
         }
 
-        return new AlphabetId(_sourceAlphabet & ~DEFINE_CONVERSION_FLAG);
+        return _sourceAlphabet;
     }
 
     public void setSelectedSourceAlphabet(AlphabetId alphabet) {
@@ -212,7 +216,7 @@ public final class AlphabetsActivityState implements Parcelable {
             throw new UnsupportedOperationException();
         }
 
-        _sourceAlphabet = _sourceAlphabet & DEFINE_CONVERSION_FLAG | alphabet.key & ~DEFINE_CONVERSION_FLAG;
+        _sourceAlphabet = alphabet;
     }
 
     public boolean isDefineConversionChecked() {
@@ -220,7 +224,7 @@ public final class AlphabetsActivityState implements Parcelable {
             throw new UnsupportedOperationException();
         }
 
-        return (_sourceAlphabet & DEFINE_CONVERSION_FLAG) != 0;
+        return _willDefineConversionChecked;
     }
 
     public void setDefinedConversionChecked(boolean checked) {
@@ -228,12 +232,7 @@ public final class AlphabetsActivityState implements Parcelable {
             throw new UnsupportedOperationException();
         }
 
-        if (checked) {
-            _sourceAlphabet |= DEFINE_CONVERSION_FLAG;
-        }
-        else {
-            _sourceAlphabet &= ~DEFINE_CONVERSION_FLAG;
-        }
+        _willDefineConversionChecked = checked;
     }
 
     public void cancelAcceptationForAlphabetPicking() {
@@ -270,11 +269,15 @@ public final class AlphabetsActivityState implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(_intrinsicState);
-        if (_intrinsicState != IntrinsicStates.NORMAL) {
-            dest.writeInt(_id);
+        if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS) {
+            dest.writeInt(_languageId);
+        }
+        else if (_intrinsicState != IntrinsicStates.NORMAL) {
+            AlphabetIdParceler.write(dest, _alphabetId);
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
-                dest.writeInt(_newAlphabetConcept.key);
-                dest.writeInt(_sourceAlphabet);
+                AlphabetIdParceler.write(dest, _newAlphabetConcept);
+                AlphabetIdParceler.write(dest, _sourceAlphabet);
+                dest.writeInt(_willDefineConversionChecked ? 1 : 0);
             }
         }
     }

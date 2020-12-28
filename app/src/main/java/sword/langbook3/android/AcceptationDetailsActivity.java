@@ -62,7 +62,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private int _acceptation;
-    private AcceptationDetailsModel _model;
+    private AcceptationDetailsModel<AlphabetId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -507,7 +507,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
-        final LangbookManager manager = DbManager.getInstance().getManager();
+        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
         switch (_state.getIntrinsicState()) {
             case IntrinsicStates.DELETE_ACCEPTATION:
                 deleteAcceptation();
@@ -594,7 +594,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            final LangbookManager manager = DbManager.getInstance().getManager();
+            final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 final boolean usedConcept = data
                         .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);

@@ -1,8 +1,6 @@
 package sword.langbook3.android.models;
 
-import sword.langbook3.android.db.AlphabetId;
-
-public interface ConversionProposal {
+public interface ConversionProposal<AlphabetId> {
 
     /**
      * Alphabet from where the conversion will be applied.

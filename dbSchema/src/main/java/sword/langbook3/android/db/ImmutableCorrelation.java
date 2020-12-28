@@ -18,7 +18,7 @@ import sword.collections.SortFunction;
 import sword.collections.TransformerWithKey;
 import sword.collections.UnmappedKeyException;
 
-public final class ImmutableCorrelation implements Correlation, ImmutableMap<AlphabetId, String> {
+public final class ImmutableCorrelation<AlphabetId> implements Correlation<AlphabetId>, ImmutableMap<AlphabetId, String> {
 
     private static final ImmutableCorrelation EMPTY = new ImmutableCorrelation(ImmutableHashMap.empty());
     private final ImmutableMap<AlphabetId, String> map;
@@ -31,7 +31,7 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
         this.map = map;
     }
 
-    public static ImmutableCorrelation empty() {
+    public static <T> ImmutableCorrelation<T> empty() {
         return EMPTY;
     }
 
@@ -70,9 +70,9 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
         return map.entries();
     }
 
-    public ImmutableCorrelation put(AlphabetId key, String value) {
+    public ImmutableCorrelation<AlphabetId> put(AlphabetId key, String value) {
         final ImmutableMap<AlphabetId, String> newMap = map.put(key, value);
-        return (newMap == map)? this : new ImmutableCorrelation(newMap);
+        return (newMap == map)? this : new ImmutableCorrelation<>(newMap);
     }
 
     @Override
@@ -96,15 +96,15 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
     }
 
     @Override
-    public ImmutableCorrelation filter(Predicate<? super String> predicate) {
+    public ImmutableCorrelation<AlphabetId> filter(Predicate<? super String> predicate) {
         final ImmutableMap<AlphabetId, String> newMap = map.filter(predicate);
-        return (newMap == map)? this : new ImmutableCorrelation(newMap);
+        return (newMap == map)? this : new ImmutableCorrelation<>(newMap);
     }
 
     @Override
-    public ImmutableCorrelation filterNot(Predicate<? super String> predicate) {
+    public ImmutableCorrelation<AlphabetId> filterNot(Predicate<? super String> predicate) {
         final ImmutableMap<AlphabetId, String> newMap = map.filterNot(predicate);
-        return (newMap == map)? this : new ImmutableCorrelation(newMap);
+        return (newMap == map)? this : new ImmutableCorrelation<>(newMap);
     }
 
     @Override
@@ -113,18 +113,18 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
     }
 
     @Override
-    public ImmutableCorrelation toImmutable() {
+    public ImmutableCorrelation<AlphabetId> toImmutable() {
         return this;
     }
 
     @Override
-    public MutableCorrelation mutate() {
-        return new MutableCorrelation(map.mutate());
+    public MutableCorrelation<AlphabetId> mutate() {
+        return new MutableCorrelation<>(map.mutate());
     }
 
     @Override
-    public MutableCorrelation mutate(ArrayLengthFunction arrayLengthFunction) {
-        return new MutableCorrelation(map.mutate(arrayLengthFunction));
+    public MutableCorrelation<AlphabetId> mutate(ArrayLengthFunction arrayLengthFunction) {
+        return new MutableCorrelation<>(map.mutate(arrayLengthFunction));
     }
 
     @Override
@@ -137,17 +137,17 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
         return map.sort(function);
     }
 
-    public ImmutableCorrelation removeAt(int index) {
-        return new ImmutableCorrelation(map.removeAt(index));
+    public ImmutableCorrelation<AlphabetId> removeAt(int index) {
+        return new ImmutableCorrelation<>(map.removeAt(index));
     }
 
-    private static boolean entryLessThan(ImmutableCorrelationArray a, ImmutableCorrelationArray b) {
-        final Iterator<ImmutableCorrelation> itA = a.iterator();
-        final Iterator<ImmutableCorrelation> itB = b.iterator();
+    private static <AlphabetId> boolean entryLessThan(SortFunction<? super AlphabetId> alphabetIdComparator, ImmutableCorrelationArray<AlphabetId> a, ImmutableCorrelationArray<AlphabetId> b) {
+        final Iterator<ImmutableCorrelation<AlphabetId>> itA = a.iterator();
+        final Iterator<ImmutableCorrelation<AlphabetId>> itB = b.iterator();
 
         while (itA.hasNext() && itB.hasNext()) {
-            ImmutableCorrelation headA = itA.next();
-            ImmutableCorrelation headB = itB.next();
+            ImmutableCorrelation<AlphabetId> headA = itA.next();
+            ImmutableCorrelation<AlphabetId> headB = itB.next();
 
             for (int i = 0; i < headA.size(); i++) {
                 final AlphabetId alphabet = headA.keyAt(i);
@@ -157,10 +157,10 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
 
                 final AlphabetId alphabetB = headB.keyAt(i);
 
-                if (alphabet.key < alphabetB.key) {
+                if (alphabetIdComparator.lessThan(alphabet, alphabetB)) {
                     return true;
                 }
-                else if (alphabet.key > alphabetB.key) {
+                else if (alphabetIdComparator.lessThan(alphabetB, alphabet)) {
                     return false;
                 }
 
@@ -178,13 +178,18 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
         return itB.hasNext();
     }
 
+    private static <AlphabetId> SortFunction<ImmutableCorrelationArray<AlphabetId>> entryLessThanFunction(SortFunction<? super AlphabetId> alphabetIdComparator) {
+        return (a, b) -> entryLessThan(alphabetIdComparator, a, b);
+    }
+
     private void checkPossibleCorrelationArraysRecursive(
-            ImmutableSet.Builder<ImmutableCorrelationArray> builder,
-            ImmutableCorrelation left,
-            ImmutableCorrelation right) {
+            SortFunction<? super AlphabetId> alphabetIdComparator,
+            ImmutableSet.Builder<ImmutableCorrelationArray<AlphabetId>> builder,
+            ImmutableCorrelation<AlphabetId> left,
+            ImmutableCorrelation<AlphabetId> right) {
         final int remainingSize = size();
         if (remainingSize == 0) {
-            for (ImmutableCorrelationArray array : right.checkPossibleCorrelationArrays()) {
+            for (ImmutableCorrelationArray<AlphabetId> array : right.checkPossibleCorrelationArrays(alphabetIdComparator)) {
                 builder.add(array.prepend(left));
             }
         }
@@ -193,22 +198,22 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
             final String firstText = valueAt(0);
 
             // TODO: Change this to global.skip(1) when available
-            final ImmutableCorrelation.Builder tailBuilder = new ImmutableCorrelation.Builder();
+            final ImmutableCorrelation.Builder<AlphabetId> tailBuilder = new ImmutableCorrelation.Builder<>();
             for (int i = 1; i < remainingSize; i++) {
                 tailBuilder.put(keyAt(i), valueAt(i));
             }
-            final ImmutableCorrelation tail = tailBuilder.build();
+            final ImmutableCorrelation<AlphabetId> tail = tailBuilder.build();
 
             final int firstTextSize = firstText.length();
             for (int i = 1; i < firstTextSize; i++) {
-                final ImmutableCorrelation newLeft = left.put(firstAlphabet, firstText.substring(0, i));
-                final ImmutableCorrelation newRight = right.put(firstAlphabet, firstText.substring(i));
-                tail.checkPossibleCorrelationArraysRecursive(builder, newLeft, newRight);
+                final ImmutableCorrelation<AlphabetId> newLeft = left.put(firstAlphabet, firstText.substring(0, i));
+                final ImmutableCorrelation<AlphabetId> newRight = right.put(firstAlphabet, firstText.substring(i));
+                tail.checkPossibleCorrelationArraysRecursive(alphabetIdComparator, builder, newLeft, newRight);
             }
         }
     }
 
-    public ImmutableSet<ImmutableCorrelationArray> checkPossibleCorrelationArrays() {
+    public ImmutableSet<ImmutableCorrelationArray<AlphabetId>> checkPossibleCorrelationArrays(SortFunction<? super AlphabetId> alphabetIdComparator) {
         final int globalSize = size();
         final IntResultFunction<String> lengthFunc = text -> (text == null)? 0 : text.length();
         final ImmutableIntValueMap<AlphabetId> lengths = mapToInt(lengthFunc);
@@ -216,13 +221,13 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
             return ImmutableHashSet.empty();
         }
 
-        final ImmutableSet.Builder<ImmutableCorrelationArray> builder = new ImmutableHashSet.Builder<>();
-        builder.add(new ImmutableCorrelationArray.Builder().add(this).build());
+        final ImmutableSet.Builder<ImmutableCorrelationArray<AlphabetId>> builder = new ImmutableHashSet.Builder<>();
+        builder.add(new ImmutableCorrelationArray.Builder<AlphabetId>().add(this).build());
 
         if (globalSize > 1) {
-            checkPossibleCorrelationArraysRecursive(builder, ImmutableCorrelation.empty(), ImmutableCorrelation.empty());
+            checkPossibleCorrelationArraysRecursive(alphabetIdComparator, builder, ImmutableCorrelation.empty(), ImmutableCorrelation.empty());
         }
-        return builder.build().sort(ImmutableCorrelation::entryLessThan);
+        return builder.build().sort(entryLessThanFunction(alphabetIdComparator));
     }
 
     @Override
@@ -244,15 +249,15 @@ public final class ImmutableCorrelation implements Correlation, ImmutableMap<Alp
         return map.equals(that.map);
     }
 
-    public static final class Builder {
-        private final MutableCorrelation correlation = MutableCorrelation.empty();
+    public static final class Builder<AlphabetId> {
+        private final MutableCorrelation<AlphabetId> correlation = MutableCorrelation.empty();
 
-        public Builder put(AlphabetId alphabet, String text) {
+        public Builder<AlphabetId> put(AlphabetId alphabet, String text) {
             correlation.put(alphabet, text);
             return this;
         }
 
-        public ImmutableCorrelation build() {
+        public ImmutableCorrelation<AlphabetId> build() {
             return correlation.toImmutable();
         }
     }

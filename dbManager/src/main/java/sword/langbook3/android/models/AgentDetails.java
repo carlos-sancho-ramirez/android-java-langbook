@@ -4,20 +4,20 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AgentDetails {
+public final class AgentDetails<AlphabetId> {
     public final ImmutableIntSet targetBunches;
     public final ImmutableIntSet sourceBunches;
     public final ImmutableIntSet diffBunches;
-    public final ImmutableCorrelation startMatcher;
-    public final ImmutableCorrelation startAdder;
-    public final ImmutableCorrelation endMatcher;
-    public final ImmutableCorrelation endAdder;
+    public final ImmutableCorrelation<AlphabetId> startMatcher;
+    public final ImmutableCorrelation<AlphabetId> startAdder;
+    public final ImmutableCorrelation<AlphabetId> endMatcher;
+    public final ImmutableCorrelation<AlphabetId> endAdder;
     public final int rule;
 
     public AgentDetails(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableCorrelation startMatcher,
-            ImmutableCorrelation startAdder, ImmutableCorrelation endMatcher,
-            ImmutableCorrelation endAdder, int rule) {
+            ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
+            ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
+            ImmutableCorrelation<AlphabetId> endAdder, int rule) {
 
         if (startMatcher == null) {
             startMatcher = ImmutableCorrelation.empty();

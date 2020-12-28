@@ -9,6 +9,7 @@ import android.widget.Toast;
 
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.ParcelableCorrelationArray;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
 

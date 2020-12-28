@@ -10,15 +10,15 @@ import sword.collections.Predicate;
 import sword.collections.Traversable;
 import sword.collections.Traverser;
 
-public final class ImmutableCorrelationArray implements Traversable<ImmutableCorrelation> {
+public final class ImmutableCorrelationArray<AlphabetId> implements Traversable<ImmutableCorrelation<AlphabetId>> {
     private static final ImmutableCorrelationArray EMPTY = new ImmutableCorrelationArray(ImmutableList.empty());
-    private final ImmutableList<ImmutableCorrelation> array;
+    private final ImmutableList<ImmutableCorrelation<AlphabetId>> array;
 
-    public static ImmutableCorrelationArray empty() {
+    public static <T> ImmutableCorrelationArray<T> empty() {
         return EMPTY;
     }
 
-    ImmutableCorrelationArray(ImmutableList<ImmutableCorrelation> array) {
+    ImmutableCorrelationArray(ImmutableList<ImmutableCorrelation<AlphabetId>> array) {
         if (array == null) {
             throw new IllegalArgumentException();
         }
@@ -27,31 +27,31 @@ public final class ImmutableCorrelationArray implements Traversable<ImmutableCor
     }
 
     @Override
-    public Traverser<ImmutableCorrelation> iterator() {
+    public Traverser<ImmutableCorrelation<AlphabetId>> iterator() {
         return array.iterator();
     }
 
-    public ImmutableCorrelationArray filter(Predicate<? super ImmutableCorrelation> predicate) {
-        final ImmutableList<ImmutableCorrelation> newArray = array.filter(predicate);
-        return (newArray == array)? this : (newArray == EMPTY.array)? EMPTY : new ImmutableCorrelationArray(newArray);
+    public ImmutableCorrelationArray<AlphabetId> filter(Predicate<? super ImmutableCorrelation<AlphabetId>> predicate) {
+        final ImmutableList<ImmutableCorrelation<AlphabetId>> newArray = array.filter(predicate);
+        return (newArray == array)? this : (newArray == EMPTY.array)? empty() : new ImmutableCorrelationArray<>(newArray);
     }
 
-    public <U> ImmutableList<U> map(Function<? super ImmutableCorrelation, ? extends U> func) {
+    public <U> ImmutableList<U> map(Function<? super ImmutableCorrelation<AlphabetId>, ? extends U> func) {
         return array.map(func);
     }
 
-    public ImmutableIntList mapToInt(IntResultFunction<? super ImmutableCorrelation> func) {
+    public ImmutableIntList mapToInt(IntResultFunction<? super ImmutableCorrelation<AlphabetId>> func) {
         return array.mapToInt(func);
     }
 
-    public ImmutableCorrelationArray prepend(ImmutableCorrelation item) {
-        final ImmutableList<ImmutableCorrelation> newArray = array.prepend(item);
-        return (newArray == array)? this : (newArray == EMPTY.array)? EMPTY : new ImmutableCorrelationArray(newArray);
+    public ImmutableCorrelationArray<AlphabetId> prepend(ImmutableCorrelation<AlphabetId> item) {
+        final ImmutableList<ImmutableCorrelation<AlphabetId>> newArray = array.prepend(item);
+        return (newArray == array)? this : (newArray == EMPTY.array)? empty() : new ImmutableCorrelationArray<>(newArray);
     }
 
-    public ImmutableCorrelation concatenateTexts() {
+    public ImmutableCorrelation<AlphabetId> concatenateTexts() {
         return reduce((corr1, corr2) -> {
-            final MutableCorrelation mixed = corr1.mutate();
+            final MutableCorrelation<AlphabetId> mixed = corr1.mutate();
             for (Map.Entry<AlphabetId, String> entry : corr2.entries()) {
                 final AlphabetId key = entry.key();
                 mixed.put(key, mixed.get(key) + entry.value());
@@ -80,10 +80,10 @@ public final class ImmutableCorrelationArray implements Traversable<ImmutableCor
         return array.equals(that.array);
     }
 
-    public static final class Builder {
-        private final MutableList<ImmutableCorrelation> array = MutableList.empty();
+    public static final class Builder<AlphabetId> {
+        private final MutableList<ImmutableCorrelation<AlphabetId>> array = MutableList.empty();
 
-        public Builder append(ImmutableCorrelation correlation) {
+        public Builder<AlphabetId> append(ImmutableCorrelation<AlphabetId> correlation) {
             if (correlation == null) {
                 throw new IllegalArgumentException();
             }
@@ -92,12 +92,12 @@ public final class ImmutableCorrelationArray implements Traversable<ImmutableCor
             return this;
         }
 
-        public Builder add(ImmutableCorrelation correlation) {
+        public Builder<AlphabetId> add(ImmutableCorrelation<AlphabetId> correlation) {
             return append(correlation);
         }
 
-        public ImmutableCorrelationArray build() {
-            return new ImmutableCorrelationArray(array.toImmutable());
+        public ImmutableCorrelationArray<AlphabetId> build() {
+            return new ImmutableCorrelationArray<>(array.toImmutable());
         }
     }
 }

@@ -32,12 +32,12 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     }
 
     private int _correlationId;
-    private CorrelationDetailsModel _model;
+    private CorrelationDetailsModel<AlphabetId> _model;
     private AcceptationDetailsAdapter _listAdapter;
 
     private boolean _justLoaded;
 
-    private static String composeCorrelationString(ImmutableCorrelation correlation) {
+    private static String composeCorrelationString(ImmutableCorrelation<AlphabetId> correlation) {
         return correlation.reduce((a, b) -> a + '/' + b);
     }
 
@@ -64,7 +64,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             if (count > 0) {
                 result.add(new HeaderItem("Other correlations sharing " + _model.alphabets.get(matchingAlphabet)));
                 for (int corrId : matchingCorrelations) {
-                    final ImmutableCorrelation corr = _model.relatedCorrelations.get(corrId);
+                    final ImmutableCorrelation<AlphabetId> corr = _model.relatedCorrelations.get(corrId);
                     result.add(new CorrelationNavigableItem(corrId, composeCorrelationString(corr)));
                 }
             }

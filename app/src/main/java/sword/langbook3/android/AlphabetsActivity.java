@@ -22,8 +22,10 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.models.Conversion;
 
 public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener, AdapterView.OnItemSelectedListener, CompoundButton.OnCheckedChangeListener {
@@ -52,7 +54,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     private void updateUi() {
         final ListView listView = findViewById(R.id.listView);
 
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableIntKeyMap<String> languages = checker.readAllLanguages(preferredAlphabet);
         final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> alphabetsPerLanguage =
@@ -114,10 +116,9 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemAdd:
-                LanguageAdderActivity.open(this, REQUEST_CODE_NEW_LANGUAGE);
-                return true;
+        if (item.getItemId() == R.id.menuItemAdd) {
+            LanguageAdderActivity.open(this, REQUEST_CODE_NEW_LANGUAGE);
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -135,7 +136,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     @Override
     public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
         if (_adapter.getItemViewType(position) == AlphabetsAdapter.ViewTypes.ALPHABET) {
-            final AlphabetId alphabet = new AlphabetId(_adapter.getItem(position));
+            final AlphabetId alphabet = (AlphabetId) _adapter.getItem(position);
             final boolean canBeRemoved = DbManager.getInstance().getManager().checkAlphabetCanBeRemoved(alphabet);
             final boolean isTargetForConversion = _conversions.keySet().contains(alphabet);
 
@@ -154,7 +155,8 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             }
         }
         else {
-            _state.showLanguageOptions(_adapter.getItem(position));
+            final int languageId = (int) _adapter.getItem(position);
+            _state.showLanguageOptions(languageId);
             showLanguageOptionsDialog();
         }
 
@@ -197,7 +199,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     private void showSourceAlphabetPickerDialog() {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
 
         _sourceAlphabetTexts = checker.readAlphabetsForLanguage(_state.getNewAlphabetLanguage(), preferredAlphabet);
         final AlphabetAdapter adapter = new AlphabetAdapter(_sourceAlphabetTexts);
@@ -241,7 +243,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
-        final LangbookManager manager = DbManager.getInstance().getManager();
+        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
         if (_state.isRemovingAlphabetConfirmationPresent()) {
             final AlphabetId alphabet = _state.cancelAlphabetRemoval();
 
@@ -270,7 +272,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     private void addAlphabetCopyingFromSource(AlphabetId alphabet, AlphabetId sourceAlphabet) {
-        final LangbookManager manager = DbManager.getInstance().getManager();
+        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
         final boolean ok = manager.addAlphabetCopyingFromOther(alphabet, sourceAlphabet);
         final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
@@ -286,7 +288,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             final int acceptation = (data != null)? data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0) : 0;
             if (resultCode == RESULT_OK && acceptation != 0) {
                 final int alphabetConcept = DbManager.getInstance().getManager().conceptFromAcceptation(acceptation);
-                final AlphabetId alphabet = new AlphabetId(alphabetConcept);
+                final AlphabetId alphabet = AlphabetIdManager.conceptAsAlphabetId(alphabetConcept);
                 _state.showSourceAlphabetPickingState(alphabet);
                 showSourceAlphabetPickerDialog();
             }
@@ -299,7 +301,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         }
         else if (requestCode == REQUEST_CODE_NEW_CONVERSION) {
             final ParcelableConversion parcelable = (data != null)? data.getParcelableExtra(ConversionEditorActivity.ResultKeys.CONVERSION) : null;
-            final Conversion conversion = (parcelable != null)? parcelable.get() : null;
+            final Conversion<AlphabetId> conversion = (parcelable != null)? parcelable.get() : null;
             if (resultCode == RESULT_OK && conversion != null) {
                 final boolean ok = DbManager.getInstance().getManager().addAlphabetAsConversionTarget(conversion);
                 final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;

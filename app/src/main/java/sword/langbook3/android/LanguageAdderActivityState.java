@@ -5,6 +5,9 @@ import android.os.Parcelable;
 
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdManager;
+import sword.langbook3.android.db.CorrelationArrayParceler;
+import sword.langbook3.android.db.CorrelationComposer;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookManager;
@@ -16,8 +19,8 @@ public final class LanguageAdderActivityState implements Parcelable {
     private int _newLanguageId;
     private int _alphabetCount;
 
-    private ImmutableCorrelationArray _languageCorrelationArray;
-    private ImmutableList<ImmutableCorrelationArray> _alphabetCorrelationArrays;
+    private ImmutableCorrelationArray<AlphabetId> _languageCorrelationArray;
+    private ImmutableList<ImmutableCorrelationArray<AlphabetId>> _alphabetCorrelationArrays;
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
@@ -30,11 +33,11 @@ public final class LanguageAdderActivityState implements Parcelable {
             dest.writeInt(correlationArrayCount);
 
             if (correlationArrayCount > 0) {
-                ParcelableCorrelationArray.write(dest, _languageCorrelationArray);
+                CorrelationArrayParceler.write(dest, _languageCorrelationArray);
             }
 
             for (int i = 0; i < correlationArrayCount - 1; i++) {
-                ParcelableCorrelationArray.write(dest, _alphabetCorrelationArrays.valueAt(i));
+                CorrelationArrayParceler.write(dest, _alphabetCorrelationArrays.valueAt(i));
             }
         }
     }
@@ -52,12 +55,8 @@ public final class LanguageAdderActivityState implements Parcelable {
         return (_alphabetCorrelationArrays != null)? _newLanguageId + _alphabetCorrelationArrays.size() + 1 : _newLanguageId;
     }
 
-    ImmutableCorrelation getEmptyCorrelation() {
-        final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
-        for (int rawAlphabet = _newLanguageId + 1; rawAlphabet <= _newLanguageId + _alphabetCount; rawAlphabet++) {
-            builder.put(new AlphabetId(rawAlphabet), null);
-        }
-        return builder.build();
+    ImmutableCorrelation<AlphabetId> getEmptyCorrelation() {
+        return CorrelationComposer.getEmptyCorrelation(_newLanguageId, _alphabetCount);
     }
 
     void reset() {
@@ -83,7 +82,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         _alphabetCount = alphabetCount;
     }
 
-    void setLanguageCorrelationArray(ImmutableCorrelationArray correlationArray) {
+    void setLanguageCorrelationArray(ImmutableCorrelationArray<AlphabetId> correlationArray) {
         if (correlationArray == null || correlationArray.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -96,7 +95,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         _alphabetCorrelationArrays = ImmutableList.empty();
     }
 
-    ImmutableCorrelationArray popLanguageCorrelationArray() {
+    ImmutableCorrelationArray<AlphabetId> popLanguageCorrelationArray() {
         if (_languageCorrelationArray == null || _alphabetCorrelationArrays == null) {
             throw new UnsupportedOperationException("Language correlation not set");
         }
@@ -105,13 +104,13 @@ public final class LanguageAdderActivityState implements Parcelable {
             throw new UnsupportedOperationException("Unable to remove language correlation without removing alphabet correlation first");
         }
 
-        final ImmutableCorrelationArray correlationArray = _languageCorrelationArray;
+        final ImmutableCorrelationArray<AlphabetId> correlationArray = _languageCorrelationArray;
         _languageCorrelationArray = null;
         _alphabetCorrelationArrays = null;
         return correlationArray;
     }
 
-    void setNextAlphabetCorrelationArray(ImmutableCorrelationArray correlationArray) {
+    void setNextAlphabetCorrelationArray(ImmutableCorrelationArray<AlphabetId> correlationArray) {
         if (correlationArray == null || correlationArray.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -131,9 +130,9 @@ public final class LanguageAdderActivityState implements Parcelable {
         return _alphabetCorrelationArrays != null && !_alphabetCorrelationArrays.isEmpty();
     }
 
-    ImmutableCorrelationArray popLastAlphabetCorrelationArray() {
+    ImmutableCorrelationArray<AlphabetId> popLastAlphabetCorrelationArray() {
         final int index = _alphabetCorrelationArrays.size() - 1;
-        final ImmutableCorrelationArray correlationArray = _alphabetCorrelationArrays.valueAt(index);
+        final ImmutableCorrelationArray<AlphabetId> correlationArray = _alphabetCorrelationArrays.valueAt(index);
         _alphabetCorrelationArrays = _alphabetCorrelationArrays.removeAt(index);
         return correlationArray;
     }
@@ -150,10 +149,10 @@ public final class LanguageAdderActivityState implements Parcelable {
 
                 final int correlationArrayCount = in.readInt();
                 if (correlationArrayCount > 0) {
-                    state.setLanguageCorrelationArray(ParcelableCorrelationArray.read(in));
+                    state.setLanguageCorrelationArray(CorrelationArrayParceler.read(in));
 
                     for (int i = 1; i < correlationArrayCount; i++) {
-                        state.setNextAlphabetCorrelationArray(ParcelableCorrelationArray.read(in));
+                        state.setNextAlphabetCorrelationArray(CorrelationArrayParceler.read(in));
                     }
                 }
             }
@@ -167,19 +166,19 @@ public final class LanguageAdderActivityState implements Parcelable {
         }
     };
 
-    void storeIntoDatabase(LangbookManager manager) {
+    void storeIntoDatabase(LangbookManager<AlphabetId> manager) {
         if (missingAlphabetCorrelationArray()) {
             throw new UnsupportedOperationException();
         }
 
-        final LanguageCreationResult langPair = manager.addLanguage(_languageCode);
-        if (langPair.language != _newLanguageId || langPair.mainAlphabet.key != _newLanguageId + 1) {
+        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage(_languageCode);
+        if (langPair.language != _newLanguageId) {
             throw new AssertionError();
         }
 
+        final AlphabetId sourceAlphabet = langPair.mainAlphabet;
         for (int i = 1; i < _alphabetCount; i++) {
-            final AlphabetId alphabet = new AlphabetId(manager.getMaxConcept() + 1);
-            final AlphabetId sourceAlphabet = new AlphabetId(_newLanguageId + 1);
+            final AlphabetId alphabet = AlphabetIdManager.getNextAvailableId(manager);
             if (!manager.addAlphabetCopyingFromOther(alphabet, sourceAlphabet)) {
                 throw new AssertionError();
             }

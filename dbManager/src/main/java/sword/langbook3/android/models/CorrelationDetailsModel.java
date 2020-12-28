@@ -6,10 +6,9 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Predicate;
 import sword.langbook3.android.collections.EqualUtils;
-import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class CorrelationDetailsModel {
+public final class CorrelationDetailsModel<AlphabetId> {
     /**
      * Map matching each alphabet with its alphabet name, according to the given preferred alphabet.
      */
@@ -18,7 +17,7 @@ public final class CorrelationDetailsModel {
     /**
      * Map matching each alphabet with its corresponding text representation for this correlation
      */
-    public final ImmutableCorrelation correlation;
+    public final ImmutableCorrelation<AlphabetId> correlation;
 
     /**
      * Contains all acceptations that contains this correlation.
@@ -42,14 +41,14 @@ public final class CorrelationDetailsModel {
      * Contains all correlations that contains at least one text representation in common for the same alphabet.
      * The key of this map is its correlation identifier, while the value is the correlation itself (alphabet -&gt; text representation).
      */
-    public final ImmutableIntKeyMap<ImmutableCorrelation> relatedCorrelations;
+    public final ImmutableIntKeyMap<ImmutableCorrelation<AlphabetId>> relatedCorrelations;
 
     public CorrelationDetailsModel(
             ImmutableMap<AlphabetId, String> alphabets,
-            ImmutableCorrelation correlation,
+            ImmutableCorrelation<AlphabetId> correlation,
             ImmutableIntKeyMap<String> acceptations,
             ImmutableMap<AlphabetId, ImmutableIntSet> relatedCorrelationsByAlphabet,
-            ImmutableIntKeyMap<ImmutableCorrelation> relatedCorrelations) {
+            ImmutableIntKeyMap<ImmutableCorrelation<AlphabetId>> relatedCorrelations) {
         if (alphabets == null || correlation == null || acceptations == null ||
                 relatedCorrelationsByAlphabet == null || relatedCorrelations == null) {
             throw new IllegalArgumentException();

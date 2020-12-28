@@ -56,7 +56,7 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
     }
 
     private void updateUi() {
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final TextView baseConceptTextView = findViewById(R.id.baseConceptText);
 
@@ -108,13 +108,13 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_CODE_PICK_BASE && resultCode == RESULT_OK && data != null) {
-            final LangbookChecker checker = DbManager.getInstance().getManager();
+            final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
             final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             _state.baseConcept = (pickedAcceptation != 0)? checker.conceptFromAcceptation(pickedAcceptation) : 0;
             updateUi();
         }
         else if (requestCode == REQUEST_CODE_PICK_COMPLEMENT && resultCode == RESULT_OK && data != null) {
-            final LangbookChecker checker = DbManager.getInstance().getManager();
+            final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
             final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             _state.complements = _state.complements.add(checker.conceptFromAcceptation(pickedAcceptation));
             updateUi();

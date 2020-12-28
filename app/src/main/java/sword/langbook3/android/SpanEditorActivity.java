@@ -18,6 +18,7 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
@@ -109,12 +110,12 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void insertInitialSpans(int sentenceId) {
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
         final String sentence = getText();
         final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(sentenceId);
         final MutableIntValueMap<SentenceSpan> builder = _state.getSpans();
         for (SentenceSpan span : spans) {
-            final ImmutableCorrelation texts = checker.getAcceptationTexts(span.acceptation);
+            final ImmutableCorrelation<AlphabetId> texts = checker.getAcceptationTexts(span.acceptation);
             final int mapSize = texts.size();
             int index = 0;
             int mapIndex;
@@ -135,7 +136,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void insertSuggestedSpans(int acceptation) {
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
         final ImmutableIntValueMap<String> map = checker.readTextAndDynamicAcceptationsMapFromAcceptation(acceptation);
         final String text = getText();
         for (IntValueMap.Entry<String> entry : map.entries()) {
@@ -230,7 +231,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
         else {
             final String newText = getText();
-            final LangbookManager manager = DbManager.getInstance().getManager();
+            final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
             final int sentenceId = getSentenceId();
             if (sentenceId == NO_SENTENCE_ID) {
                 int concept = getConcept();

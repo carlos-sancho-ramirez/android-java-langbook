@@ -14,10 +14,13 @@ import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntResultFunction;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdComparator;
 import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.ParcelableCorrelationArray;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -27,9 +30,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     interface ArgKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
-        String ALPHABETS = BundleKeys.ALPHABETS;
         String CONCEPT = BundleKeys.CONCEPT;
-        String TEXTS = BundleKeys.TEXTS;
+        String CORRELATION_MAP = BundleKeys.CORRELATION_MAP;
     }
 
     private interface SavedKeys {
@@ -44,8 +46,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private int _selection = ListView.INVALID_POSITION;
 
     private ListView _listView;
-    private ImmutableSet<ImmutableCorrelationArray> _options;
-    private ImmutableIntValueMap<ImmutableCorrelation> _knownCorrelations;
+    private ImmutableSet<ImmutableCorrelationArray<AlphabetId>> _options;
+    private ImmutableIntValueMap<ImmutableCorrelation<AlphabetId>> _knownCorrelations;
 
     /**
      * Opens the correlation picker in order to build a new correlation array.
@@ -61,23 +63,13 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      * @param concept Optional concept where this correlation array will be attached to, or {@link #NO_CONCEPT} if none.
      * @param texts Texts entered by the user in the WordEditorActivity.
      */
-    public static void open(Activity activity, int requestCode, int concept, Correlation texts) {
-        final int mapSize = texts.size();
-        final int[] alphabets = new int[mapSize];
-        final String[] str = new String[mapSize];
-
-        for (int i = 0; i < mapSize; i++) {
-            alphabets[i] = texts.keyAt(i).key;
-            str[i] = texts.valueAt(i);
-        }
-
+    public static void open(Activity activity, int requestCode, int concept, Correlation<AlphabetId> texts) {
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
-        intent.putExtra(ArgKeys.ALPHABETS, alphabets);
+        CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
         if (concept != NO_CONCEPT) {
             intent.putExtra(ArgKeys.CONCEPT, concept);
         }
 
-        intent.putExtra(ArgKeys.TEXTS, str);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -90,51 +82,29 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      * @param texts Texts entered by the user in the WordEditorActivity.
      * @param acceptation Identifier for an existing acceptation that will be modified after selecting the correlation array.
      */
-    public static void open(Activity activity, int requestCode, Correlation texts, int acceptation) {
-        final int mapSize = texts.size();
-        final int[] alphabets = new int[mapSize];
-        final String[] str = new String[mapSize];
-
-        for (int i = 0; i < mapSize; i++) {
-            alphabets[i] = texts.keyAt(i).key;
-            str[i] = texts.valueAt(i);
-        }
-
+    public static void open(Activity activity, int requestCode, Correlation<AlphabetId> texts, int acceptation) {
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
         intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
-        intent.putExtra(ArgKeys.ALPHABETS, alphabets);
-        intent.putExtra(ArgKeys.TEXTS, str);
+        CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private ImmutableCorrelation getTexts() {
-        final Bundle extras = getIntent().getExtras();
-        final int[] alphabets = extras.getIntArray(ArgKeys.ALPHABETS);
-        final String[] texts = extras.getStringArray(ArgKeys.TEXTS);
-
-        if (alphabets == null || texts == null || alphabets.length != texts.length) {
-            throw new AssertionError();
-        }
-
-        final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
-        for (int i = 0; i < alphabets.length; i++) {
-            builder.put(new AlphabetId(alphabets[i]), texts[i]);
-        }
-
-        return builder.build();
+    private ImmutableCorrelation<AlphabetId> getTexts() {
+        final Correlation<AlphabetId> correlation = CorrelationBundler.readAsIntentExtra(getIntent(), ArgKeys.CORRELATION_MAP);
+        return (correlation != null)? correlation.toImmutable() : null;
     }
 
-    private ImmutableIntValueMap<ImmutableCorrelation> findExistingCorrelations() {
-        final ImmutableSet.Builder<ImmutableCorrelation> correlationsBuilder = new ImmutableHashSet.Builder<>();
-        for (ImmutableCorrelationArray option : _options) {
-            for (ImmutableCorrelation correlation : option) {
+    private ImmutableIntValueMap<ImmutableCorrelation<AlphabetId>> findExistingCorrelations() {
+        final ImmutableSet.Builder<ImmutableCorrelation<AlphabetId>> correlationsBuilder = new ImmutableHashSet.Builder<>();
+        for (ImmutableCorrelationArray<AlphabetId> option : _options) {
+            for (ImmutableCorrelation<AlphabetId> correlation : option) {
                 correlationsBuilder.add(correlation);
             }
         }
-        final ImmutableSet<ImmutableCorrelation> correlations = correlationsBuilder.build();
+        final ImmutableSet<ImmutableCorrelation<AlphabetId>> correlations = correlationsBuilder.build();
 
-        final ImmutableIntValueHashMap.Builder<ImmutableCorrelation> builder = new ImmutableIntValueHashMap.Builder<>();
-        for (ImmutableCorrelation correlation : correlations) {
+        final ImmutableIntValueHashMap.Builder<ImmutableCorrelation<AlphabetId>> builder = new ImmutableIntValueHashMap.Builder<>();
+        for (ImmutableCorrelation<AlphabetId> correlation : correlations) {
             final Integer id = DbManager.getInstance().getManager().findCorrelation(correlation);
             if (id != null) {
                 builder.put(correlation, id);
@@ -145,8 +115,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     private int findSuggestedPosition() {
-        final ImmutableSet<ImmutableCorrelation> known = _knownCorrelations.keySet();
-        final IntResultFunction<ImmutableCorrelationArray> func = option -> option.filter(known::contains).size();
+        final ImmutableSet<ImmutableCorrelation<AlphabetId>> known = _knownCorrelations.keySet();
+        final IntResultFunction<ImmutableCorrelationArray<AlphabetId>> func = option -> option.filter(known::contains).size();
         final ImmutableIntList knownParity = _options.toList().mapToInt(func);
 
         final int length = knownParity.size();
@@ -171,8 +141,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_picker_activity);
 
-        final ImmutableCorrelation texts = getTexts();
-        _options = texts.checkPossibleCorrelationArrays();
+        final ImmutableCorrelation<AlphabetId> texts = getTexts();
+        _options = texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
         _knownCorrelations = findExistingCorrelations();
         final int suggestedPosition = findSuggestedPosition();
 
@@ -197,7 +167,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private int addAcceptation(LangbookManager manager) {
+    private int addAcceptation(LangbookManager<AlphabetId> manager) {
         int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
         if (concept == NO_CONCEPT) {
             concept = manager.getMaxConcept() + 1;
@@ -211,7 +181,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         if (requestCode == REQUEST_CODE_PICK_BUNCHES) {
             if (resultCode == RESULT_OK && data != null) {
                 final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
-                final LangbookManager manager = DbManager.getInstance().getManager();
+                final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
                 if (manager.allValidAlphabets(getTexts())) {
                     final int accId = addAcceptation(manager);
                     for (int bunch : bunchSet) {
@@ -225,7 +195,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                     finish();
                 }
                 else {
-                    final ImmutableCorrelationArray array = _options.valueAt(_selection);
+                    final ImmutableCorrelationArray<AlphabetId> array = _options.valueAt(_selection);
 
                     final Intent intent = new Intent();
                     intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));

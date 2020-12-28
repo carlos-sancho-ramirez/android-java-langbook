@@ -58,7 +58,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     private ListView _listView;
     private ActionMode _listActionMode;
 
-    private String getRuleText(LangbookChecker checker, int rule) {
+    private String getRuleText(LangbookChecker<AlphabetId> checker, int rule) {
         if (_ruleTexts == null) {
             _ruleTexts = checker.readAllRules(_preferredAlphabet);
         }
@@ -66,7 +66,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return _ruleTexts.get(rule);
     }
 
-    private static int getTypeStringResId(QuestionFieldDetails field) {
+    private static int getTypeStringResId(QuestionFieldDetails<AlphabetId> field) {
         switch (field.getType()) {
             case QuestionFieldFlags.TYPE_SAME_ACC:
                 return R.string.questionTypeSameAcceptation;
@@ -81,15 +81,15 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return 0;
     }
 
-    private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookChecker checker, int bunch) {
-        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
+    private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookChecker<AlphabetId> checker, int bunch) {
+        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId>>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
         final ImmutableMap<AlphabetId, String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
         final int quizCount = resultMap.size();
         final QuizSelectorAdapter.Item[] items = new QuizSelectorAdapter.Item[quizCount];
 
         for (int i = 0; i < quizCount; i++) {
             final int quizId = resultMap.keyAt(i);
-            final ImmutableSet<QuestionFieldDetails> set = resultMap.valueAt(i);
+            final ImmutableSet<QuestionFieldDetails<AlphabetId>> set = resultMap.valueAt(i);
 
             final ImmutableList<String> fieldTexts = set.map(field -> {
                 final MutableList<String> texts = MutableList.empty();
@@ -182,10 +182,9 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemNewQuizDefinition:
-                QuizEditorActivity.open(this, REQUEST_CODE_EDITOR, _bunch);
-                return true;
+        if (item.getItemId() == R.id.menuItemNewQuizDefinition) {
+            QuizEditorActivity.open(this, REQUEST_CODE_EDITOR, _bunch);
+            return true;
         }
 
         return false;
@@ -274,7 +273,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         _listActionMode = null;
         listActionMode.finish();
 
-        final LangbookManager manager = DbManager.getInstance().getManager();
+        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
         for (int quizId : quizzes) {
             manager.removeQuiz(quizId);
         }

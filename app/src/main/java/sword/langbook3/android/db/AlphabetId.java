@@ -1,9 +1,9 @@
 package sword.langbook3.android.db;
 
 public final class AlphabetId {
-    public final int key;
+    final int key;
 
-    public AlphabetId(int key) {
+    AlphabetId(int key) {
         if (key == 0) {
             throw new IllegalArgumentException();
         }

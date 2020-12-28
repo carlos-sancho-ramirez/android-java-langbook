@@ -30,6 +30,7 @@ import sword.collections.MutableSet;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
@@ -66,7 +67,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private String[] _texts;
     private ImmutableIntKeyMap<AlphabetId> _fieldIndexAlphabetRelationMap;
     private int _existingAcceptation = NO_ACCEPTATION;
-    private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion> _conversions =
+    private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> _conversions =
             new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
     public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
@@ -84,11 +85,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, String title, Correlation correlation, int concept) {
+    public static void open(Activity activity, int requestCode, String title, Correlation<AlphabetId> correlation, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.TITLE, title);
-        intent.putExtra(ArgKeys.CORRELATION_MAP, new ParcelableCorrelation(correlation));
+        CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, correlation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -100,17 +101,17 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private static final class FieldConversion {
         final int sourceField;
-        final Conversion conversion;
+        final Conversion<AlphabetId> conversion;
 
-        FieldConversion(int sourceField, Conversion conversion) {
+        FieldConversion(int sourceField, Conversion<AlphabetId> conversion) {
             this.sourceField = sourceField;
             this.conversion = conversion;
         }
     }
 
-    private ImmutableCorrelation getArgumentCorrelation() {
-        final ParcelableCorrelation parcelable = getIntent().getParcelableExtra(ArgKeys.CORRELATION_MAP);
-        return (parcelable != null)? parcelable.get() : ImmutableCorrelation.empty();
+    private ImmutableCorrelation<AlphabetId> getArgumentCorrelation() {
+        final Correlation<AlphabetId> correlation = CorrelationBundler.readAsIntentExtra(getIntent(), ArgKeys.CORRELATION_MAP);
+        return (correlation != null)? correlation.toImmutable() : ImmutableCorrelation.empty();
     }
 
     @Override
@@ -148,9 +149,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private int getLanguage(LangbookChecker checker) {
+    private int getLanguage(LangbookChecker<AlphabetId> checker) {
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableCorrelation, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableCorrelation<AlphabetId>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
         }
         else {
@@ -159,7 +160,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     private void updateConvertedTexts() {
-        final LangbookManager manager = DbManager.getInstance().getManager();
+        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
         final int language = getLanguage(manager);
         final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
@@ -207,7 +208,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 for (int conversionIndex = 0; conversionIndex < fieldConversionCount; conversionIndex++) {
                     if (equal(conversions.valueAt(conversionIndex), alphabet)) {
                         final ImmutablePair<AlphabetId, AlphabetId> pair = new ImmutablePair<>(alphabet, conversions.keyAt(conversionIndex));
-                        final Conversion conversion = _conversions.get(pair);
+                        final Conversion<AlphabetId> conversion = _conversions.get(pair);
 
                         final String convertedText = conversion.convert(queryText);
                         if (convertedText == null) {
@@ -247,11 +248,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private void updateFields() {
         _formPanel.removeAllViews();
-        final LangbookChecker checker = DbManager.getInstance().getManager();
-        final ImmutableCorrelation existingTexts;
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
+        final ImmutableCorrelation<AlphabetId> existingTexts;
         final int language;
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableCorrelation, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableCorrelation<AlphabetId>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             existingTexts = result.left;
             language = result.right;
         }
@@ -284,7 +285,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             final int conversionIndex = fieldConversions.keySet().indexOf(alphabet);
             if (conversionIndex >= 0) {
                 final ImmutablePair<AlphabetId, AlphabetId> pair = new ImmutablePair<>(fieldConversions.valueAt(conversionIndex), fieldConversions.keyAt(conversionIndex));
-                final Conversion conversion = _conversions.get(pair);
+                final Conversion<AlphabetId> conversion = _conversions.get(pair);
                 final int sourceFieldIndex = fieldNames.keySet().indexOf(fieldConversions.valueAt(conversionIndex));
                 builder.put(fieldIndex, new FieldConversion(sourceFieldIndex, conversion));
             }
@@ -362,7 +363,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
 
         if (allValid) {
-            final ImmutableCorrelation.Builder builder = new ImmutableCorrelation.Builder();
+            final ImmutableCorrelation.Builder<AlphabetId> builder = new ImmutableCorrelation.Builder<>();
             for (IntKeyMap.Entry<AlphabetId> entry : _fieldIndexAlphabetRelationMap.entries()) {
                 builder.put(entry.value(), _texts[entry.key()]);
             }

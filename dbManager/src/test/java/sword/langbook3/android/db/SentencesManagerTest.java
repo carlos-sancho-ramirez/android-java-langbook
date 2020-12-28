@@ -19,15 +19,15 @@ import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface SentencesManagerTest extends AcceptationsManagerTest {
+interface SentencesManagerTest<AlphabetId> extends AcceptationsManagerTest<AlphabetId> {
 
     @Override
-    SentencesManager createManager(MemoryDatabase db);
+    SentencesManager<AlphabetId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddSentences() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager manager = createManager(db);
+        final SentencesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
@@ -97,7 +97,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testReplaceSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager manager = createManager(db);
+        final SentencesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
@@ -156,7 +156,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testReplaceSentenceWithSameText() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager manager = createManager(db);
+        final SentencesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -191,7 +191,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testRemoveSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager manager = createManager(db);
+        final SentencesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -218,7 +218,7 @@ interface SentencesManagerTest extends AcceptationsManagerTest {
     @Test
     default void testRemoveAcceptationIncludedInASpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager manager = createManager(db);
+        final SentencesManager<AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 

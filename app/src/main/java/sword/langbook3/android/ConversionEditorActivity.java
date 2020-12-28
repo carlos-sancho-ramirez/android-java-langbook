@@ -20,8 +20,11 @@ import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdBundler;
+import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 
@@ -40,7 +43,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         String CONVERSION = "c";
     }
 
-    private Conversion _conversion;
+    private Conversion<AlphabetId> _conversion;
     private ConversionEditorActivityState _state;
     private ConversionEditorAdapter _adapter;
 
@@ -63,19 +66,17 @@ public final class ConversionEditorActivity extends Activity implements ListView
      */
     public static void open(Activity activity, int requestCode, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final Intent intent = new Intent(activity, ConversionEditorActivity.class);
-        intent.putExtra(ArgKeys.SOURCE_ALPHABET, sourceAlphabet.key);
-        intent.putExtra(ArgKeys.TARGET_ALPHABET, targetAlphabet.key);
+        AlphabetIdBundler.writeAsIntentExtra(intent, ArgKeys.SOURCE_ALPHABET, sourceAlphabet);
+        AlphabetIdBundler.writeAsIntentExtra(intent, ArgKeys.TARGET_ALPHABET, targetAlphabet);
         activity.startActivityForResult(intent, requestCode);
     }
 
     private AlphabetId getSourceAlphabet() {
-        final int rawAlphabet = getIntent().getIntExtra(ArgKeys.SOURCE_ALPHABET, 0);
-        return (rawAlphabet != 0)? new AlphabetId(rawAlphabet) : null;
+        return AlphabetIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SOURCE_ALPHABET);
     }
 
     private AlphabetId getTargetAlphabet() {
-        final int rawAlphabet = getIntent().getIntExtra(ArgKeys.TARGET_ALPHABET, 0);
-        return (rawAlphabet != 0)? new AlphabetId(rawAlphabet) : null;
+        return AlphabetIdBundler.readAsIntentExtra(getIntent(), ArgKeys.TARGET_ALPHABET);
     }
 
     @Override
@@ -84,16 +85,16 @@ public final class ConversionEditorActivity extends Activity implements ListView
         setContentView(R.layout.conversion_details_activity);
 
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
         final AlphabetId sourceAlphabet = getSourceAlphabet();
         final AlphabetId targetAlphabet = getTargetAlphabet();
 
-        final String sourceText = checker.readConceptText(sourceAlphabet.key, preferredAlphabet);
-        final String targetText = (targetAlphabet != null)? checker.readConceptText(targetAlphabet.key, preferredAlphabet) : "?";
+        final String sourceText = checker.readConceptText(AlphabetIdManager.getConceptId(sourceAlphabet), preferredAlphabet);
+        final String targetText = (targetAlphabet != null)? checker.readConceptText(AlphabetIdManager.getConceptId(targetAlphabet), preferredAlphabet) : "?";
         setTitle(sourceText + " -> " + targetText);
 
         _conversion = (targetAlphabet != null)? checker.getConversion(new ImmutablePair<>(sourceAlphabet, targetAlphabet)) :
-                new Conversion(sourceAlphabet, null, ImmutableHashMap.empty());
+                new Conversion<>(sourceAlphabet, null, ImmutableHashMap.empty());
 
         if (savedInstanceState == null) {
             _state = new ConversionEditorActivityState();
@@ -128,8 +129,8 @@ public final class ConversionEditorActivity extends Activity implements ListView
                 return true;
 
             case R.id.menuItemSave:
-                final Conversion newConversion = _state.getResultingConversion(_conversion);
-                final LangbookManager manager = DbManager.getInstance().getManager();
+                final Conversion<AlphabetId> newConversion = _state.getResultingConversion(_conversion);
+                final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
                 if (checkConflicts(manager, newConversion)) {
                     if (manager.isAlphabetPresent(getTargetAlphabet())) {
                         if (!manager.replaceConversion(newConversion)) {
@@ -264,7 +265,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 
-    private boolean checkConflicts(LangbookChecker checker, ConversionProposal newConversion) {
+    private boolean checkConflicts(LangbookChecker<AlphabetId> checker, ConversionProposal<AlphabetId> newConversion) {
         final ImmutableSet<String> wordsInConflict = checker.findConversionConflictWords(newConversion);
 
         if (wordsInConflict.isEmpty()) {
