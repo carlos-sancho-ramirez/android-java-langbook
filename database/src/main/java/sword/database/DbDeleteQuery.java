@@ -21,7 +21,7 @@ public final class DbDeleteQuery {
         return _constraints;
     }
 
-    public static final class Builder {
+    public static final class Builder implements DbIdentifiableQueryBuilder {
         private final DbTable _table;
         private final MutableIntPairMap _constraints = MutableIntPairMap.empty();
 
@@ -40,6 +40,7 @@ public final class DbDeleteQuery {
             }
         }
 
+        @Override
         public Builder where(int columnIndex, int value) {
             assertValidIntColumn(columnIndex);
             if (_constraints.keySet().contains(columnIndex)) {

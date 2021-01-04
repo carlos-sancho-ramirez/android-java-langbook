@@ -1,14 +1,16 @@
 package sword.langbook3.android.db;
 
-final class AlphabetIdManager implements IntIdManager<AlphabetIdHolder> {
+import sword.database.DbValue;
 
-    @Override
-    public int getInt(AlphabetIdHolder id) {
-        return id.key;
-    }
+final class AlphabetIdManager implements IntSetter<AlphabetIdHolder> {
 
     @Override
     public AlphabetIdHolder getKeyFromInt(int key) {
         return new AlphabetIdHolder(key);
+    }
+
+    @Override
+    public AlphabetIdHolder getKeyFromDbValue(DbValue value) {
+        return getKeyFromInt(value.toInt());
     }
 }

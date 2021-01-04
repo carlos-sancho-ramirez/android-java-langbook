@@ -1,5 +1,7 @@
 package sword.database;
 
+import sword.collections.SortUtils;
+
 public final class DbStringValue implements DbValue {
     private final String _value;
 
@@ -24,5 +26,24 @@ public final class DbStringValue implements DbValue {
     @Override
     public String toText() {
         return _value;
+    }
+
+    @Override
+    public int hashCode() {
+        return (_value != null)? _value.hashCode() : 0;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof DbStringValue)) {
+            return false;
+        }
+
+        final String thatValue = ((DbStringValue) other)._value;
+        return _value == thatValue || _value != null && _value.equals(thatValue);
     }
 }

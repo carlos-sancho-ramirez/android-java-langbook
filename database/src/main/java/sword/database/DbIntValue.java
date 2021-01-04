@@ -25,4 +25,22 @@ public final class DbIntValue implements DbValue {
     public String toText() {
         return Integer.toString(_value);
     }
+
+    @Override
+    public int hashCode() {
+        return _value;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof DbIntValue)) {
+            return false;
+        }
+
+        return _value == ((DbIntValue) other)._value;
+    }
 }

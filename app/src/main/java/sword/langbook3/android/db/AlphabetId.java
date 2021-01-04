@@ -1,6 +1,10 @@
 package sword.langbook3.android.db;
 
-public final class AlphabetId {
+import sword.database.DbIdentifiableQueryBuilder;
+import sword.database.DbInsertQuery;
+import sword.database.DbValue;
+
+public final class AlphabetId implements AlphabetIdInterface {
     final int key;
 
     AlphabetId(int key) {
@@ -9,6 +13,21 @@ public final class AlphabetId {
         }
 
         this.key = key;
+    }
+
+    @Override
+    public boolean sameValue(DbValue value) {
+        return value.toInt() == key;
+    }
+
+    @Override
+    public void where(int columnIndex, DbIdentifiableQueryBuilder builder) {
+        builder.where(columnIndex, key);
+    }
+
+    @Override
+    public void put(int columnIndex, DbInsertQuery.Builder builder) {
+        builder.put(columnIndex, key);
     }
 
     @Override

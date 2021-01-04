@@ -398,7 +398,7 @@ public final class DbQuery implements DbView {
         return FLAG_COLUMN_FUNCTION_CONCAT | index;
     }
 
-    public static final class Builder {
+    public static final class Builder implements DbIdentifiableQueryBuilder {
         private final ArrayList<DbView> _tables = new ArrayList<>();
         private final ArrayList<Integer> _joinPairs = new ArrayList<>();
         private final MutableIntKeyMap<Restriction> _restrictions = MutableIntKeyMap.empty();
@@ -418,6 +418,7 @@ public final class DbQuery implements DbView {
             return this;
         }
 
+        @Override
         public Builder where(int columnIndex, int value) {
             _restrictions.put(columnIndex, new Restriction(new DbIntValue(value), RestrictionTypes.EXACT));
             return this;
