@@ -26,7 +26,7 @@ final class LangbookDatabaseTest {
     @Test
     void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookDatabaseManager<AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, new AlphabetIdManager());
+        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager());
 
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = getMaxConcept(db) + 1;

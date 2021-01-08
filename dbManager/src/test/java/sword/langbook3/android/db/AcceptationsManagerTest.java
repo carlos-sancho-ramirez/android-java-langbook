@@ -23,9 +23,9 @@ import static sword.collections.SizableTestUtils.assertSize;
 import static sword.collections.TraversableTestUtils.assertContainsOnly;
 
 /**
- * Include all test related to all responsibilities of an AcceptationsManager<AlphabetId>.
+ * Include all test related to all responsibilities of an AcceptationsManager<LanguageId, AlphabetId>.
  *
- * AcceptationsManager<AlphabetId> responsibilities are limited to the management of:
+ * AcceptationsManager<LanguageId, AlphabetId> responsibilities are limited to the management of:
  * <li>Languages</li>
  * <li>Alphabets</li>
  * <li>Symbol arrays</li>
@@ -34,10 +34,11 @@ import static sword.collections.TraversableTestUtils.assertContainsOnly;
  * <li>Conversions</li>
  * <li>Acceptations</li>
  */
-public interface AcceptationsManagerTest<AlphabetId> {
+public interface AcceptationsManagerTest<LanguageId, AlphabetId> {
 
-    AcceptationsManager<AlphabetId> createManager(MemoryDatabase db);
+    AcceptationsManager<LanguageId, AlphabetId> createManager(MemoryDatabase db);
     AlphabetId getNextAvailableId(ConceptsChecker manager);
+    int getLanguageConceptId(LanguageId language);
 
     ImmutableHashMap<String, String> upperCaseConversion = new ImmutableHashMap.Builder<String, String>()
             .put("a", "A")
@@ -68,7 +69,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
             .put("z", "Z")
             .build();
 
-    static <AlphabetId> int addSimpleAcceptation(AcceptationsManager<AlphabetId> manager, AlphabetId alphabet, int concept, String text) {
+    static <LanguageId, AlphabetId> int addSimpleAcceptation(AcceptationsManager<LanguageId, AlphabetId> manager, AlphabetId alphabet, int concept, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -80,7 +81,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static <AlphabetId> boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager<AlphabetId> manager, AlphabetId alphabet, int acceptationId, String text) {
+    static <LanguageId, AlphabetId> boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager<LanguageId, AlphabetId> manager, AlphabetId alphabet, int acceptationId, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -95,32 +96,32 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testAddFirstLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("es");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
-        assertEquals(langPair.language, manager.findLanguageByCode("es").intValue());
+        assertEquals(langPair.language, manager.findLanguageByCode("es"));
         assertContainsOnly(langPair.mainAlphabet, manager.findAlphabetsByLanguage(langPair.language));
     }
 
     @Test
     default void testAddSameLanguageTwice() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("es");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
         assertNull(manager.addLanguage("es"));
 
-        assertEquals(langPair.language, manager.findLanguageByCode("es").intValue());
+        assertEquals(langPair.language, manager.findLanguageByCode("es"));
         assertContainsOnly(langPair.mainAlphabet, manager.findAlphabetsByLanguage(langPair.language));
     }
 
     @Test
     default void testRemoveUniqueLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final int language = manager.addLanguage("es").language;
+        final LanguageId language = manager.addLanguage("es").language;
         assertTrue(manager.removeLanguage(language));
         assertNull(manager.findLanguageByCode("es"));
     }
@@ -128,61 +129,61 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testRemoveFirstAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair1 = manager.addLanguage("es");
-        final LanguageCreationResult<AlphabetId> langPair2 = manager.addLanguage("en");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair1 = manager.addLanguage("es");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair2 = manager.addLanguage("en");
 
         assertTrue(manager.removeLanguage(langPair1.language));
         assertNull(manager.findLanguageByCode("es"));
-        assertEquals(langPair2.language, manager.findLanguageByCode("en").intValue());
+        assertEquals(langPair2.language, manager.findLanguageByCode("en"));
         assertContainsOnly(langPair2.mainAlphabet, manager.findAlphabetsByLanguage(langPair2.language));
     }
 
     @Test
     default void testRemoveLastAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair1 = manager.addLanguage("es");
-        final LanguageCreationResult<AlphabetId> langPair2 = manager.addLanguage("en");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair1 = manager.addLanguage("es");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair2 = manager.addLanguage("en");
 
         assertTrue(manager.removeLanguage(langPair2.language));
         assertNull(manager.findLanguageByCode("en"));
-        assertEquals(langPair1.language, manager.findLanguageByCode("es").intValue());
+        assertEquals(langPair1.language, manager.findLanguageByCode("es"));
         assertContainsOnly(langPair1.mainAlphabet, manager.findAlphabetsByLanguage(langPair1.language));
     }
 
     @Test
     default void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("es");
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
-        final int language = langPair.language;
+        final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
         final AlphabetId secondAlphabet = getNextAvailableId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
-        assertEquals(language, manager.findLanguageByCode("es").intValue());
+        assertEquals(language, manager.findLanguageByCode("es"));
         assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
     }
 
     @Test
     default void testAddAlphabetCopyingFromOtherWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("ja");
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("ja");
 
-        final int language = langPair.language;
+        final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
-        final int acceptation = addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
+        final int acceptation = addSimpleAcceptation(manager, mainAlphabet, getLanguageConceptId(language), "日本語");
 
         final AlphabetId secondAlphabet = getNextAvailableId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
-        assertEquals(language, manager.findLanguageByCode("ja").intValue());
+        assertEquals(language, manager.findLanguageByCode("ja"));
         final ImmutableSet<AlphabetId> alphabetSet = manager.findAlphabetsByLanguage(language);
         assertContainsOnly(mainAlphabet, secondAlphabet, alphabetSet);
 
@@ -195,14 +196,14 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("ja");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("ja");
 
-        final int language = langPair.language;
+        final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
-        addSimpleAcceptation(manager, mainAlphabet, language, "日本語");
+        addSimpleAcceptation(manager, mainAlphabet, getLanguageConceptId(language), "日本語");
         final AlphabetId secondAlphabet = getNextAvailableId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet));
 
@@ -213,17 +214,17 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testAddAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("es");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
-        final int language = langPair.language;
+        final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
         final AlphabetId secondAlphabet = getNextAvailableId(manager);
         final Conversion<AlphabetId> conversion = new Conversion<>(mainAlphabet, secondAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        assertEquals(language, manager.findLanguageByCode("es").intValue());
+        assertEquals(language, manager.findLanguageByCode("es"));
         assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
 
         final String convertedText = manager.getConversion(new ImmutablePair<>(mainAlphabet, secondAlphabet)).convert("casa");
@@ -239,11 +240,11 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testAddAlphabetAsConversionTargetWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("es");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
-        final int language = langPair.language;
+        final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
         final int concept = manager.getMaxConcept() + 1;
@@ -253,7 +254,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
         final Conversion<AlphabetId> conversion = new Conversion<>(mainAlphabet, secondAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        assertEquals(language, manager.findLanguageByCode("es").intValue());
+        assertEquals(language, manager.findLanguageByCode("es"));
         assertContainsOnly(mainAlphabet, secondAlphabet, manager.findAlphabetsByLanguage(language));
 
         final String convertedText = manager.getConversion(new ImmutablePair<>(mainAlphabet, secondAlphabet)).convert("casa");
@@ -267,11 +268,11 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> langPair = manager.addLanguage("es");
+        final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
-        final int language = langPair.language;
+        final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
         final int concept = manager.getMaxConcept() + 1;
@@ -288,10 +289,10 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testRemoveLanguageButLeaveOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
-        final LanguageCreationResult<AlphabetId> esLangPair = manager.addLanguage("es");
-        final int esLanguage = esLangPair.language;
+        final LanguageCreationResult<LanguageId, AlphabetId> esLangPair = manager.addLanguage("es");
+        final LanguageId esLanguage = esLangPair.language;
         final AlphabetId esMainAlphabet = esLangPair.mainAlphabet;
 
         final AlphabetId enMainAlphabet = manager.addLanguage("en").mainAlphabet;
@@ -310,7 +311,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testAddSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
@@ -322,7 +323,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testAddJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableId(manager);
@@ -350,7 +351,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testAddJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableId(manager);
@@ -392,14 +393,14 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testUpdateAcceptationCorrelationArrayForSame() {
         final MemoryDatabase db1 = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager1 = createManager(db1);
+        final AcceptationsManager<LanguageId, AlphabetId> manager1 = createManager(db1);
 
         final AlphabetId alphabet1 = manager1.addLanguage("es").mainAlphabet;
         final int concept1 = manager1.getMaxConcept() + 1;
         final int acceptationId = addSimpleAcceptation(manager1, alphabet1, concept1, "cantar");
 
         final MemoryDatabase db2 = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager2 = createManager(db2);
+        final AcceptationsManager<LanguageId, AlphabetId> manager2 = createManager(db2);
 
         final AlphabetId alphabet2 = manager2.addLanguage("es").mainAlphabet;
         final int concept2 = manager2.getMaxConcept() + 1;
@@ -413,7 +414,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testReplaceConversionAfterAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId roumajiAlphabet = getNextAvailableId(manager);
@@ -455,7 +456,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testReplaceConversionBeforeAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId roumajiAlphabet = getNextAvailableId(manager);
@@ -489,7 +490,7 @@ public interface AcceptationsManagerTest<AlphabetId> {
     @Test
     default void testShareConceptRemovesDuplicatedAcceptations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<AlphabetId> manager = createManager(db);
+        final AcceptationsManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;

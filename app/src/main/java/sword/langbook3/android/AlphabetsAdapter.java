@@ -6,57 +6,50 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
-import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
+import sword.collections.Map;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.LanguageId;
 
 final class AlphabetsAdapter extends BaseAdapter {
-    private final ImmutableIntKeyMap<String> _languages;
-    private final ImmutableMap<AlphabetId, String> _alphabets;
-
-    private final ImmutableIntSet _nextSectionHeader;
-    private final ImmutableList<AlphabetId> _alphabetList;
-    private final ImmutableIntList _languageList;
+    private final ImmutableMap<ConceptId, String> _concepts;
+    private final ImmutableList<ConceptId> _conceptList;
 
     private LayoutInflater _inflater;
 
     AlphabetsAdapter(
-            ImmutableIntKeyMap<ImmutableSet<AlphabetId>> map,
-            ImmutableIntKeyMap<String> languages,
+            ImmutableMap<LanguageId, ImmutableSet<AlphabetId>> map,
+            ImmutableMap<LanguageId, String> languages,
             ImmutableMap<AlphabetId, String> alphabets) {
-        _languages = languages;
-        _alphabets = alphabets;
+        final ImmutableMap.Builder<ConceptId, String> conceptsBuilder = new ImmutableHashMap.Builder<>();
+        for (Map.Entry<LanguageId, String> entry : languages.entries()) {
+            conceptsBuilder.put(entry.key(), entry.value());
+        }
 
-        final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
-        final ImmutableList.Builder<AlphabetId> alphabetListBuilder = new ImmutableList.Builder<>();
-        final ImmutableIntList.Builder languageListBuilder = new ImmutableIntList.Builder();
+        for (Map.Entry<AlphabetId, String> entry : alphabets.entries()) {
+            conceptsBuilder.put(entry.key(), entry.value());
+        }
+        _concepts = conceptsBuilder.build();
+
+        final ImmutableList.Builder<ConceptId> conceptListBuilder = new ImmutableList.Builder<>();
         final int langCount = map.size();
-        int acc = 0;
         for (int i = 0; i < langCount; i++) {
-            builder.add(acc);
-            acc += map.valueAt(i).size() + 1;
-
-            alphabetListBuilder.append(null);
-            languageListBuilder.append(map.keyAt(i));
+            conceptListBuilder.append(map.keyAt(i));
             for (AlphabetId alphabetId : map.valueAt(i)) {
-                alphabetListBuilder.append(alphabetId);
-                languageListBuilder.append(0);
+                conceptListBuilder.append(alphabetId);
             }
         }
 
-        _nextSectionHeader = builder.build();
-        _alphabetList = alphabetListBuilder.build();
-        _languageList = languageListBuilder.build();
+        _conceptList = conceptListBuilder.build();
     }
 
     @Override
     public int getCount() {
-        return _alphabetList.size();
+        return _conceptList.size();
     }
 
     @Override
@@ -71,13 +64,12 @@ final class AlphabetsAdapter extends BaseAdapter {
 
     @Override
     public int getItemViewType(int position) {
-        return _nextSectionHeader.contains(position)? ViewTypes.LANGUAGE : ViewTypes.ALPHABET;
+        return (_conceptList.get(position) instanceof LanguageId)? ViewTypes.LANGUAGE : ViewTypes.ALPHABET;
     }
 
     @Override
-    public Object getItem(int position) {
-        final AlphabetId alphabetId = _alphabetList.valueAt(position);
-        return (alphabetId != null)? alphabetId : _languageList.valueAt(position);
+    public ConceptId getItem(int position) {
+        return _conceptList.valueAt(position);
     }
 
     @Override
@@ -98,15 +90,7 @@ final class AlphabetsAdapter extends BaseAdapter {
         }
 
         final TextView tv = convertView.findViewById(R.id.text);
-        final String text;
-        if (viewType == ViewTypes.LANGUAGE) {
-            final int languageId = _languageList.valueAt(position);
-            text = _languages.get(languageId);
-        }
-        else {
-            final AlphabetId alphabetId = _alphabetList.valueAt(position);
-            text = _alphabets.get(alphabetId);
-        }
+        final String text = _concepts.get(_conceptList.valueAt(position));
 
         tv.setText(text);
         return convertView;

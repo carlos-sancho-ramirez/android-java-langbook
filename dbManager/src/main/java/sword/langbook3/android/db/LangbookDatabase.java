@@ -95,7 +95,6 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
 import static sword.langbook3.android.db.LangbookReadableDatabase.alphabetsWithinLanguage;
-import static sword.langbook3.android.db.LangbookReadableDatabase.areAllAlphabetsFromSameLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.checkConversionConflicts;
 import static sword.langbook3.android.db.LangbookReadableDatabase.conceptFromAcceptation;
 import static sword.langbook3.android.db.LangbookReadableDatabase.correlationArrayFromAcceptation;
@@ -1566,28 +1565,29 @@ public final class LangbookDatabase {
      * @param code 2-char lowercase language code. Such as "es" for Spanish, "en" for English of "ja" for Japanese.
      * @return A pair containing the language created concept in the left and its main alphabet on its right, or null if it cannot be added.
      */
-    public static <AlphabetId extends AlphabetIdInterface> LanguageCreationResult<AlphabetId> addLanguage(Database db, IntSetter<AlphabetId> alphabetIntSetter, String code) {
-        if (LangbookReadableDatabase.findLanguageByCode(db, code) != null) {
+    public static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> LanguageCreationResult<LanguageId, AlphabetId> addLanguage(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIntSetter, String code) {
+        if (LangbookReadableDatabase.findLanguageByCode(db, languageIdSetter, code) != null) {
             return null;
         }
 
-        final int language = getMaxConcept(db) + 1;
-        final AlphabetId alphabet = alphabetIntSetter.getKeyFromInt(language + 1);
+        final int lastConcept = getMaxConcept(db) + 1;
+        final LanguageId language = languageIdSetter.getKeyFromInt(lastConcept + 1);
+        final AlphabetId alphabet = alphabetIntSetter.getKeyFromInt(lastConcept + 2);
         LangbookDbInserter.insertLanguage(db, language, code, alphabet);
         insertAlphabet(db, alphabet, language);
 
         return new LanguageCreationResult<>(language, alphabet);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean removeLanguage(Database db, IntSetter<AlphabetId> alphabetIntManager, int language) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> boolean removeLanguage(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIdSetter, LanguageId language) {
         // For now, if there is a bunch whose concept is only linked to acceptations of the language to be removed,
         // the removal is rejected, as there will not be any way to access that bunch any more in an AcceptationsDetailsActivity.
         // Only exception to the previous rule is the case where all acceptations within the bunch belongs to the language that is about to be removed.
-        final ImmutableIntSet linkedBunches = findBunchConceptsLinkedToJustThisLanguage(db, language);
+        final ImmutableIntSet linkedBunches = findBunchConceptsLinkedToJustThisLanguage(db, languageIdSetter, language);
         if (!linkedBunches.isEmpty()) {
             if (linkedBunches.anyMatch(bunch -> {
-                final ImmutableIntSet languages = findIncludedAcceptationLanguages(db, bunch);
-                return languages.size() > 1 || languages.size() == 1 && languages.valueAt(0) != language;
+                final ImmutableSet<LanguageId> languages = findIncludedAcceptationLanguages(db, languageIdSetter, bunch);
+                return languages.size() > 1 || languages.size() == 1 && !languages.valueAt(0).equals(language);
             })) {
                 return false;
             }
@@ -1595,7 +1595,7 @@ public final class LangbookDatabase {
 
         // For now, if there is a super type whose concept is only linked to acceptations of the language to be removed,
         // the removal is rejected, as there will not be any way to access that supertype any more in an AcceptationsDetailsActivity
-        if (!findSuperTypesLinkedToJustThisLanguage(db, language).isEmpty()) {
+        if (!findSuperTypesLinkedToJustThisLanguage(db, languageIdSetter, language).isEmpty()) {
             return false;
         }
 
@@ -1614,14 +1614,14 @@ public final class LangbookDatabase {
             }
         }
 
-        final ImmutableSet<AlphabetId> alphabets = findAlphabetsByLanguage(db, alphabetIntManager, language);
-        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = getConversionsMap(db, alphabetIntManager);
+        final ImmutableSet<AlphabetId> alphabets = findAlphabetsByLanguage(db, alphabetIdSetter, language);
+        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = getConversionsMap(db, alphabetIdSetter);
         final int size = conversionMap.size();
         for (int i = 0; i < size; i++) {
             final AlphabetId sourceAlphabet = conversionMap.valueAt(i);
             if (alphabets.contains(sourceAlphabet)) {
                 final AlphabetId targetAlphabet = conversionMap.keyAt(i);
-                if (!replaceConversion(db, new Conversion<>(sourceAlphabet, targetAlphabet, ImmutableHashMap.empty()))) {
+                if (!replaceConversion(db, languageIdSetter, new Conversion<>(sourceAlphabet, targetAlphabet, ImmutableHashMap.empty()))) {
                     throw new AssertionError();
                 }
             }
@@ -1642,8 +1642,6 @@ public final class LangbookDatabase {
      * pointing to the same symbol array.
      *
      * This method allows to link directly the concept of an already inserted acceptation with as a new alphabet.
-     * If there is no predefined alphabet reference to be used in this method, maybe the method
-     * {@link #addAlphabetCopyingFromOther(sword.database.Database, int)} should be called instead.
      *
      * If all is OK, the new alphabet will be linked to the same language that the sourceAlphabet is.
      *
@@ -1654,21 +1652,20 @@ public final class LangbookDatabase {
      * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
      * @return true if the alphabet has been successfully added, and so, the database content has change.
      */
-    static <AlphabetId extends AlphabetIdInterface> boolean addAlphabetCopyingFromOther(Database db, IntSetter<AlphabetId> alphabetIntSetter, AlphabetId alphabet, AlphabetId sourceAlphabet) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> boolean addAlphabetCopyingFromOther(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIdSetter, AlphabetId alphabet, AlphabetId sourceAlphabet) {
         if (LangbookReadableDatabase.isAlphabetPresent(db, alphabet)) {
             return false;
         }
 
-        final Integer languageOpt = getLanguageFromAlphabet(db, sourceAlphabet);
-        if (languageOpt == null) {
+        final LanguageId language = getLanguageFromAlphabet(db, languageIdSetter, sourceAlphabet);
+        if (language == null) {
             return false;
         }
 
-        if (LangbookReadableDatabase.getConversionsMap(db, alphabetIntSetter).keySet().contains(sourceAlphabet)) {
+        if (LangbookReadableDatabase.getConversionsMap(db, alphabetIdSetter).keySet().contains(sourceAlphabet)) {
             return false;
         }
 
-        final int language = languageOpt;
         insertAlphabet(db, alphabet, language);
 
         final ImmutableIntPairMap correlations = LangbookReadableDatabase.findCorrelationsAndSymbolArrayForAlphabet(db, sourceAlphabet);
@@ -2229,9 +2226,9 @@ public final class LangbookDatabase {
      * @param conversion Conversion to be evaluated and stored if no conflicts are found.
      * @return Whether the action was completed successfully, and so the database state content has changed.
      */
-    static <AlphabetId extends AlphabetIdInterface> boolean addAlphabetAsConversionTarget(Database db, Conversion<AlphabetId> conversion) {
-        final Integer languageOpt = getLanguageFromAlphabet(db, conversion.getSourceAlphabet());
-        if (languageOpt == null) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> boolean addAlphabetAsConversionTarget(Database db, IntSetter<LanguageId> languageIdSetter, Conversion<AlphabetId> conversion) {
+        final LanguageId language = getLanguageFromAlphabet(db, languageIdSetter, conversion.getSourceAlphabet());
+        if (language == null) {
             return false;
         }
 
@@ -2239,7 +2236,6 @@ public final class LangbookDatabase {
             return false;
         }
 
-        final int language = languageOpt;
         if (!checkConversionConflicts(db, conversion)) {
             return false;
         }
@@ -2263,16 +2259,16 @@ public final class LangbookDatabase {
      * @param conversion New conversion to be included.
      * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
      */
-    static <AlphabetId extends AlphabetIdInterface> boolean replaceConversion(Database db, Conversion<AlphabetId> conversion) {
+    static <LanguageId, AlphabetId extends AlphabetIdInterface> boolean replaceConversion(Database db, IntSetter<LanguageId> languageIdSetter, Conversion<AlphabetId> conversion) {
         final AlphabetId sourceAlphabet = conversion.getSourceAlphabet();
         final AlphabetId targetAlphabet = conversion.getTargetAlphabet();
-        final Integer languageObj = getLanguageFromAlphabet(db, sourceAlphabet);
+        final LanguageId languageObj = getLanguageFromAlphabet(db, languageIdSetter, sourceAlphabet);
         if (languageObj == null) {
             return false;
         }
 
-        final Integer languageObj2 = getLanguageFromAlphabet(db, targetAlphabet);
-        if (languageObj2 == null || languageObj2.intValue() != languageObj.intValue()) {
+        final LanguageId languageObj2 = getLanguageFromAlphabet(db, languageIdSetter, targetAlphabet);
+        if (languageObj2 == null || !languageObj2.equals(languageObj)) {
             return false;
         }
 
@@ -2318,10 +2314,6 @@ public final class LangbookDatabase {
             return foundId;
         }
 
-        if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
-            return null;
-        }
-
         if (correlation.anyMatch(strId -> !isSymbolArrayPresent(db, strId))) {
             return null;
         }
@@ -2343,10 +2335,6 @@ public final class LangbookDatabase {
      */
     private static <AlphabetId extends AlphabetIdInterface> Integer obtainCorrelation(DbImporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, Correlation<AlphabetId> correlation) {
         if (correlation.anyMatch(str -> findSymbolArray(db, str) == null)) {
-            if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
-                return null;
-            }
-
             final int newCorrelationId = getMaxCorrelationId(db) + 1;
             LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation.mapToInt(str -> obtainSymbolArray(db, str)));
             return newCorrelationId;
@@ -2389,9 +2377,6 @@ public final class LangbookDatabase {
         }
 
         final ImmutableSet<AlphabetId> alphabets = array.map(ImmutableCorrelation::keySet).reduce(ImmutableSet::addAll);
-        if (!areAllAlphabetsFromSameLanguage(db, alphabets)) {
-            return null;
-        }
 
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = getConversionsMap(db, alphabetIntSetter);
         if (alphabets.anyMatch(conversionMap.keySet()::contains)) {

@@ -5,7 +5,7 @@ import sword.collections.ImmutableSet;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
-public interface SentencesChecker<AlphabetId> extends AcceptationsChecker<AlphabetId> {
+public interface SentencesChecker<LanguageId, AlphabetId> extends AcceptationsChecker<LanguageId, AlphabetId> {
     boolean isSymbolArrayMerelyASentence(int symbolArrayId);
 
     /**

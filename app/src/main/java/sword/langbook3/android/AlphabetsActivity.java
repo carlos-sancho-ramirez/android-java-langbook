@@ -18,13 +18,13 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import sword.collections.ImmutableHashMap;
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.models.Conversion;
 
@@ -54,13 +54,13 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     private void updateUi() {
         final ListView listView = findViewById(R.id.listView);
 
-        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableIntKeyMap<String> languages = checker.readAllLanguages(preferredAlphabet);
-        final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> alphabetsPerLanguage =
+        final ImmutableMap<LanguageId, String> languages = checker.readAllLanguages(preferredAlphabet);
+        final ImmutableMap<LanguageId, ImmutableMap<AlphabetId, String>> alphabetsPerLanguage =
                 languages.keySet().assign(lang -> checker.readAlphabetsForLanguage(lang, preferredAlphabet));
 
-        final ImmutableIntKeyMap<ImmutableSet<AlphabetId>> langAlphabetMap = alphabetsPerLanguage.map(ImmutableMap::keySet);
+        final ImmutableMap<LanguageId, ImmutableSet<AlphabetId>> langAlphabetMap = alphabetsPerLanguage.map(ImmutableMap::keySet);
         final ImmutableMap.Builder<AlphabetId, String> alphabetsBuilder = new ImmutableHashMap.Builder<>();
         for (ImmutableMap<AlphabetId, String> alphabets : alphabetsPerLanguage) {
             final int size = alphabets.size();
@@ -155,7 +155,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             }
         }
         else {
-            final int languageId = (int) _adapter.getItem(position);
+            final LanguageId languageId = (LanguageId) _adapter.getItem(position);
             _state.showLanguageOptions(languageId);
             showLanguageOptionsDialog();
         }
@@ -199,7 +199,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     private void showSourceAlphabetPickerDialog() {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
 
         _sourceAlphabetTexts = checker.readAlphabetsForLanguage(_state.getNewAlphabetLanguage(), preferredAlphabet);
         final AlphabetAdapter adapter = new AlphabetAdapter(_sourceAlphabetTexts);
@@ -243,7 +243,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
-        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
+        final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
         if (_state.isRemovingAlphabetConfirmationPresent()) {
             final AlphabetId alphabet = _state.cancelAlphabetRemoval();
 
@@ -255,7 +255,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             updateUi();
         }
         else if (_state.isRemovingLanguageConfirmationPresent()) {
-            final int language = _state.cancelLanguageRemoval();
+            final LanguageId language = _state.cancelLanguageRemoval();
 
             if (manager.removeLanguage(language)) {
                 Toast.makeText(this, R.string.removeLanguageFeedback, Toast.LENGTH_SHORT).show();
@@ -272,7 +272,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     private void addAlphabetCopyingFromSource(AlphabetId alphabet, AlphabetId sourceAlphabet) {
-        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
+        final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
         final boolean ok = manager.addAlphabetCopyingFromOther(alphabet, sourceAlphabet);
         final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();

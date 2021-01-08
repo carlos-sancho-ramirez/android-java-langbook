@@ -7,8 +7,11 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LanguageIdManager;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
@@ -110,7 +113,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             // Nothing to be done
         }
 
-        final LangbookChecker checker = DbManager.getInstance().getManager();
+        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
         String errorMessage = null;
         if (!code.matches(LanguageCodeRules.REGEX)) {
             errorMessage = getString(R.string.languageAdderBadLanguageCode);
@@ -122,12 +125,12 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             errorMessage = getString(R.string.languageAdderLanguageCodeInUse);
         }
 
-        final int languageId = checker.getMaxConcept() + 1;
+        final LanguageId languageId = LanguageIdManager.getNextAvailableId(checker);
 
         if (errorMessage == null) {
             _state.setBasicDetails(code, languageId, alphabetCount);
             final String title = getString(R.string.newLanguageNameActivityTitle);
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getEmptyCorrelation(), languageId);
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getEmptyCorrelation(), LanguageIdManager.getConceptId(languageId));
         }
         else {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();

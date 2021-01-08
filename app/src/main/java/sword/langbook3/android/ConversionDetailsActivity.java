@@ -13,6 +13,7 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdBundler;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.models.Conversion;
 
 public final class ConversionDetailsActivity extends Activity {
@@ -50,7 +51,7 @@ public final class ConversionDetailsActivity extends Activity {
 
     private void updateUi() {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
         final AlphabetId sourceAlphabet = getSourceAlphabet();
         final AlphabetId targetAlphabet = getTargetAlphabet();
 

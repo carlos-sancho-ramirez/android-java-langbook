@@ -19,6 +19,7 @@ import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
@@ -228,7 +229,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, NO_BUNCH);
         final DbManager manager = DbManager.getInstance();
-        final LangbookChecker<AlphabetId> checker = manager.getManager();
+        final LangbookChecker<LanguageId, AlphabetId> checker = manager.getManager();
 
         if (_bunch != NO_BUNCH) {
             final String bunchText = checker.readConceptText(_bunch, _preferredAlphabet);

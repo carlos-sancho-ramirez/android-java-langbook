@@ -45,9 +45,10 @@ final class LangbookReadableDatabaseTest {
     @Test
     void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
+        final LanguageIdManager languageIdManager = new LanguageIdManager();
         final AlphabetIdManager alphabetIdManager = new AlphabetIdManager();
-        final LangbookDatabaseManager<AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, alphabetIdManager);
-        final AlphabetIdHolder alphabet = addLanguage(db, alphabetIdManager, "es").mainAlphabet;
+        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager);
+        final AlphabetIdHolder alphabet = addLanguage(db, languageIdManager, alphabetIdManager, "es").mainAlphabet;
         final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
         final int verbBunchId = pluralRule + 1;
@@ -75,7 +76,7 @@ final class LangbookReadableDatabaseTest {
         ImmutableIntKeyMap<String> obtain(int firstAlphabet, String text);
     }
 
-    void checkFindAcceptationFromText(AlphabetIdManager alphabetIdManager, CorrelationObtainer corrObtainer) {
+    void checkFindAcceptationFromText(LanguageIdManager languageIdManager, AlphabetIdManager alphabetIdManager, CorrelationObtainer corrObtainer) {
         final ImmutableSet<String> texts = new ImmutableHashSet.Builder<String>()
                 .add("hello")
                 .add("Hi")
@@ -101,10 +102,10 @@ final class LangbookReadableDatabaseTest {
                     final ImmutableList<String> textList = textListBuilder.build();
 
                     final MemoryDatabase db = new MemoryDatabase();
-                    final LangbookDatabaseManager<AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, alphabetIdManager);
-                    final AlphabetIdHolder alphabet1 = addLanguage(db, alphabetIdManager, "xx").mainAlphabet;
+                    final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager);
+                    final AlphabetIdHolder alphabet1 = addLanguage(db, languageIdManager, alphabetIdManager, "xx").mainAlphabet;
                     final AlphabetIdHolder alphabet2 = getNextAvailableId(manager);
-                    assertTrue(addAlphabetCopyingFromOther(db, alphabetIdManager, alphabet2, alphabet1));
+                    assertTrue(addAlphabetCopyingFromOther(db, languageIdManager, alphabetIdManager, alphabet2, alphabet1));
 
                     final int concept1 = getMaxConcept(db) + 1;
                     final int concept2 = concept1 + 1;
@@ -142,14 +143,14 @@ final class LangbookReadableDatabaseTest {
 
     @Test
     void testFindAcceptationFromTextForOneAlphabetLanguageWord() {
-        checkFindAcceptationFromText(new AlphabetIdManager(), (firstAlphabet, text) ->
+        checkFindAcceptationFromText(new LanguageIdManager(), new AlphabetIdManager(), (firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>().put(firstAlphabet, text).build()
         );
     }
 
     @Test
     void testFindAcceptationFromTextForTwoAlphabetLanguageWord() {
-        checkFindAcceptationFromText(new AlphabetIdManager(), (firstAlphabet, text) ->
+        checkFindAcceptationFromText(new LanguageIdManager(), new AlphabetIdManager(), (firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>()
                         .put(firstAlphabet, text)
                         .put(firstAlphabet + 1, text)

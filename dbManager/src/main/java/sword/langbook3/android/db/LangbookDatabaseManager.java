@@ -9,23 +9,30 @@ import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.SentenceSpan;
 
-public final class LangbookDatabaseManager<AlphabetId extends AlphabetIdInterface> extends LangbookDatabaseChecker<AlphabetId> implements LangbookManager<AlphabetId> {
+public final class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> extends LangbookDatabaseChecker<LanguageId, AlphabetId> implements LangbookManager<LanguageId, AlphabetId> {
 
     private final Database _db;
+    private final IntSetter<LanguageId> _languageIdSetter;
     private final IntSetter<AlphabetId> _alphabetIdSetter;
 
-    public LangbookDatabaseManager(Database db, IntSetter<AlphabetId> alphabetIdManager) {
-        if (db == null || alphabetIdManager == null) {
+    public LangbookDatabaseManager(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager) {
+        if (db == null || languageIdManager == null || alphabetIdManager == null) {
             throw new IllegalArgumentException();
         }
 
         _db = db;
+        _languageIdSetter = languageIdManager;
         _alphabetIdSetter = alphabetIdManager;
     }
 
     @Override
     Database getDatabase() {
         return _db;
+    }
+
+    @Override
+    IntSetter<LanguageId> getLanguageIdSetter() {
+        return _languageIdSetter;
     }
 
     @Override
@@ -65,23 +72,23 @@ public final class LangbookDatabaseManager<AlphabetId extends AlphabetIdInterfac
     }
 
     @Override
-    public LanguageCreationResult<AlphabetId> addLanguage(String code) {
-        return LangbookDatabase.addLanguage(_db, _alphabetIdSetter, code);
+    public LanguageCreationResult<LanguageId, AlphabetId> addLanguage(String code) {
+        return LangbookDatabase.addLanguage(_db, _languageIdSetter, _alphabetIdSetter, code);
     }
 
     @Override
-    public boolean removeLanguage(int language) {
-        return LangbookDatabase.removeLanguage(_db, _alphabetIdSetter, language);
+    public boolean removeLanguage(LanguageId language) {
+        return LangbookDatabase.removeLanguage(_db, _languageIdSetter, _alphabetIdSetter, language);
     }
 
     @Override
     public boolean addAlphabetCopyingFromOther(AlphabetId alphabet, AlphabetId sourceAlphabet) {
-        return LangbookDatabase.addAlphabetCopyingFromOther(_db, _alphabetIdSetter, alphabet, sourceAlphabet);
+        return LangbookDatabase.addAlphabetCopyingFromOther(_db, _languageIdSetter, _alphabetIdSetter, alphabet, sourceAlphabet);
     }
 
     @Override
     public boolean addAlphabetAsConversionTarget(Conversion<AlphabetId> conversion) {
-        return LangbookDatabase.addAlphabetAsConversionTarget(_db, conversion);
+        return LangbookDatabase.addAlphabetAsConversionTarget(_db, _languageIdSetter, conversion);
     }
 
     @Override
@@ -116,7 +123,7 @@ public final class LangbookDatabaseManager<AlphabetId extends AlphabetIdInterfac
 
     @Override
     public boolean replaceConversion(Conversion<AlphabetId> conversion) {
-        return LangbookDatabase.replaceConversion(_db, conversion);
+        return LangbookDatabase.replaceConversion(_db, _languageIdSetter, conversion);
     }
 
     @Override

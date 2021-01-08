@@ -6,14 +6,15 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableMap;
+import sword.langbook3.android.db.LanguageId;
 
 final class LanguagePickerAdapter extends BaseAdapter {
 
-    private final ImmutableIntKeyMap<String> _entries;
+    private final ImmutableMap<LanguageId, String> _entries;
     private LayoutInflater _inflater;
 
-    LanguagePickerAdapter(ImmutableIntKeyMap<String> entries) {
+    LanguagePickerAdapter(ImmutableMap<LanguageId, String> entries) {
         _entries = entries;
     }
 
@@ -23,13 +24,13 @@ final class LanguagePickerAdapter extends BaseAdapter {
     }
 
     @Override
-    public Integer getItem(int position) {
+    public LanguageId getItem(int position) {
         return _entries.keyAt(position);
     }
 
     @Override
     public long getItemId(int position) {
-        return _entries.keyAt(position);
+        return position;
     }
 
     @Override

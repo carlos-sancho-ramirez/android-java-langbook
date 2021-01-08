@@ -34,6 +34,8 @@ import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
@@ -70,18 +72,18 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> _conversions =
             new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
-    public static void open(Activity activity, int requestCode, int language, String searchQuery, int concept) {
+    public static void open(Activity activity, int requestCode, LanguageId language, String searchQuery, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
-        intent.putExtra(ArgKeys.LANGUAGE, language);
+        LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
         intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, int language, int concept) {
+    public static void open(Activity activity, int requestCode, LanguageId language, int concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         intent.putExtra(ArgKeys.CONCEPT, concept);
-        intent.putExtra(ArgKeys.LANGUAGE, language);
+        LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -149,19 +151,19 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private int getLanguage(LangbookChecker<AlphabetId> checker) {
+    private LanguageId getLanguage(LangbookChecker<LanguageId, AlphabetId> checker) {
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableCorrelation<AlphabetId>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
         }
         else {
-            return getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
+            return LanguageIdBundler.readAsIntentExtra(getIntent(), ArgKeys.LANGUAGE);
         }
     }
 
     private void updateConvertedTexts() {
-        final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
-        final int language = getLanguage(manager);
+        final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+        final LanguageId language = getLanguage(manager);
         final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
 
@@ -248,23 +250,23 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private void updateFields() {
         _formPanel.removeAllViews();
-        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
         final ImmutableCorrelation<AlphabetId> existingTexts;
-        final int language;
+        final LanguageId language;
         if (_existingAcceptation != 0) {
-            final ImmutablePair<ImmutableCorrelation<AlphabetId>, Integer> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
+            final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             existingTexts = result.left;
             language = result.right;
         }
         else {
             existingTexts = getArgumentCorrelation();
-            language = getIntent().getIntExtra(ArgKeys.LANGUAGE, 0);
+            language = LanguageIdBundler.readAsIntentExtra(getIntent(), ArgKeys.LANGUAGE);
         }
 
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableMap<AlphabetId, String> fieldNames;
         final ImmutableMap<AlphabetId, AlphabetId> fieldConversions;
-        if (language == 0) {
+        if (language == null) {
             fieldNames = getArgumentCorrelation().keySet().assign(alphabet -> "");
             fieldConversions = ImmutableHashMap.empty();
         }

@@ -21,15 +21,15 @@ import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgen
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface LangbookManagerTest<AlphabetId> extends QuizzesManagerTest<AlphabetId>, DefinitionsManagerTest, SentencesManagerTest<AlphabetId> {
+interface LangbookManagerTest<LanguageId, AlphabetId> extends QuizzesManagerTest<LanguageId, AlphabetId>, DefinitionsManagerTest, SentencesManagerTest<LanguageId, AlphabetId> {
 
     @Override
-    LangbookManager<AlphabetId> createManager(MemoryDatabase db);
+    LangbookManager<LanguageId, AlphabetId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<AlphabetId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -64,7 +64,7 @@ interface LangbookManagerTest<AlphabetId> extends QuizzesManagerTest<AlphabetId>
     @Test
     default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<AlphabetId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -104,7 +104,7 @@ interface LangbookManagerTest<AlphabetId> extends QuizzesManagerTest<AlphabetId>
     @Test
     default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<AlphabetId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -145,7 +145,7 @@ interface LangbookManagerTest<AlphabetId> extends QuizzesManagerTest<AlphabetId>
     @Test
     default void testRemoveHeadChainedAgentWhereRuledAcceptationOfTheTailChainedAgentIsUsedAsSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<AlphabetId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 

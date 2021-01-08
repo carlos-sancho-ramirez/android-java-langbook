@@ -26,23 +26,23 @@ final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> void insertAlphabet(DbInserter db, AlphabetId id, int language) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> void insertAlphabet(DbInserter db, AlphabetId id, LanguageId language) {
         final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
         final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table);
         id.put(table.getIdColumnIndex(), builder);
-        final DbInsertQuery query = builder
-                .put(table.getLanguageColumnIndex(), language)
-                .build();
+        language.put(table.getLanguageColumnIndex(), builder);
 
+        final DbInsertQuery query = builder.build();
         db.insert(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> void insertLanguage(DbInserter db, int id, String code, AlphabetId mainAlphabet) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> void insertLanguage(DbInserter db, LanguageId id, String code, AlphabetId mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = Tables.languages;
         final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), id)
                 .put(table.getCodeColumnIndex(), code);
+        id.put(table.getIdColumnIndex(), builder);
         mainAlphabet.put(table.getMainAlphabetColumnIndex(), builder);
+
         final DbInsertQuery query = builder.build();
         db.insert(query);
     }

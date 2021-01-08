@@ -14,7 +14,7 @@ import sword.langbook3.android.models.SearchResult;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
-public interface AgentsChecker<AlphabetId> extends BunchesChecker<AlphabetId> {
+public interface AgentsChecker<LanguageId, AlphabetId> extends BunchesChecker<LanguageId, AlphabetId> {
     ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet);
     MutableCorrelation<AlphabetId> readCorrelationArrayTexts(int correlationArrayId);
     ImmutableIntKeyMap<String> readAllRules(AlphabetId preferredAlphabet);

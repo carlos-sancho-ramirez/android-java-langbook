@@ -24,6 +24,7 @@ import sword.langbook3.android.db.AlphabetIdBundler;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookChecker;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
@@ -85,7 +86,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         setContentView(R.layout.conversion_details_activity);
 
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookChecker<AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
         final AlphabetId sourceAlphabet = getSourceAlphabet();
         final AlphabetId targetAlphabet = getTargetAlphabet();
 
@@ -130,7 +131,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
 
             case R.id.menuItemSave:
                 final Conversion<AlphabetId> newConversion = _state.getResultingConversion(_conversion);
-                final LangbookManager<AlphabetId> manager = DbManager.getInstance().getManager();
+                final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
                 if (checkConflicts(manager, newConversion)) {
                     if (manager.isAlphabetPresent(getTargetAlphabet())) {
                         if (!manager.replaceConversion(newConversion)) {
@@ -265,7 +266,7 @@ public final class ConversionEditorActivity extends Activity implements ListView
         outState.putParcelable(SavedKeys.STATE, _state);
     }
 
-    private boolean checkConflicts(LangbookChecker<AlphabetId> checker, ConversionProposal<AlphabetId> newConversion) {
+    private boolean checkConflicts(LangbookChecker<LanguageId, AlphabetId> checker, ConversionProposal<AlphabetId> newConversion) {
         final ImmutableSet<String> wordsInConflict = checker.findConversionConflictWords(newConversion);
 
         if (wordsInConflict.isEmpty()) {

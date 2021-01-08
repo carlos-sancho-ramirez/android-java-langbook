@@ -19,15 +19,15 @@ import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface SentencesManagerTest<AlphabetId> extends AcceptationsManagerTest<AlphabetId> {
+interface SentencesManagerTest<LanguageId, AlphabetId> extends AcceptationsManagerTest<LanguageId, AlphabetId> {
 
     @Override
-    SentencesManager<AlphabetId> createManager(MemoryDatabase db);
+    SentencesManager<LanguageId, AlphabetId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddSentences() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<AlphabetId> manager = createManager(db);
+        final SentencesManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
@@ -97,7 +97,7 @@ interface SentencesManagerTest<AlphabetId> extends AcceptationsManagerTest<Alpha
     @Test
     default void testReplaceSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<AlphabetId> manager = createManager(db);
+        final SentencesManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
@@ -156,7 +156,7 @@ interface SentencesManagerTest<AlphabetId> extends AcceptationsManagerTest<Alpha
     @Test
     default void testReplaceSentenceWithSameText() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<AlphabetId> manager = createManager(db);
+        final SentencesManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -191,7 +191,7 @@ interface SentencesManagerTest<AlphabetId> extends AcceptationsManagerTest<Alpha
     @Test
     default void testRemoveSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<AlphabetId> manager = createManager(db);
+        final SentencesManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -218,7 +218,7 @@ interface SentencesManagerTest<AlphabetId> extends AcceptationsManagerTest<Alpha
     @Test
     default void testRemoveAcceptationIncludedInASpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<AlphabetId> manager = createManager(db);
+        final SentencesManager<LanguageId, AlphabetId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 

@@ -4,9 +4,9 @@ import sword.database.DbIdentifiableQueryBuilder;
 import sword.database.DbInsertQuery;
 import sword.database.DbValue;
 
-public final class AlphabetId extends ConceptId implements AlphabetIdInterface {
+public final class LanguageId extends ConceptId implements LanguageIdInterface {
 
-    AlphabetId(int key) {
+    LanguageId(int key) {
         super(key);
     }
 
@@ -32,7 +32,7 @@ public final class AlphabetId extends ConceptId implements AlphabetIdInterface {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof AlphabetId && ((AlphabetId) other).key == key;
+        return other instanceof LanguageId && ((LanguageId) other).key == key;
     }
 
     @Override

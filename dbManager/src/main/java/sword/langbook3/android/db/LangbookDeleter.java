@@ -272,19 +272,21 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteLanguage(Database db, int language) {
+    static <LanguageId extends LanguageIdInterface> boolean deleteLanguage(Database db, LanguageId language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getIdColumnIndex(), language)
-                .build();
+        final DbDeleteQuery.Builder queryBuilder = new DbDeleteQuery.Builder(table);
+        language.where(table.getIdColumnIndex(), queryBuilder);
+
+        final DbDeleteQuery query = queryBuilder.build();
         return db.delete(query);
     }
 
-    static boolean deleteAlphabetsForLanguage(Database db, int language) {
+    static <LanguageId extends LanguageIdInterface> boolean deleteAlphabetsForLanguage(Database db, LanguageId language) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
-                .where(table.getLanguageColumnIndex(), language)
-                .build();
+        final DbDeleteQuery.Builder queryBuilder = new DbDeleteQuery.Builder(table);
+        language.where(table.getLanguageColumnIndex(), queryBuilder);
+
+        final DbDeleteQuery query = queryBuilder.build();
         return db.delete(query);
     }
 

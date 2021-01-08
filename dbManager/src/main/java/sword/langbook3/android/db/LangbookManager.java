@@ -1,5 +1,5 @@
 package sword.langbook3.android.db;
 
-public interface LangbookManager<AlphabetId> extends QuizzesManager<AlphabetId>, DefinitionsManager, SentencesManager<AlphabetId>, LangbookChecker<AlphabetId> {
+public interface LangbookManager<LanguageId, AlphabetId> extends QuizzesManager<LanguageId, AlphabetId>, DefinitionsManager, SentencesManager<LanguageId, AlphabetId>, LangbookChecker<LanguageId, AlphabetId> {
     void updateSearchHistory(int dynamicAcceptation);
 }

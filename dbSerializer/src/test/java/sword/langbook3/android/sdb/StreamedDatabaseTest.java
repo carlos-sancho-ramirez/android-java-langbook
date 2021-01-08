@@ -23,18 +23,14 @@ import static sword.collections.TraversableTestUtils.assertContainsOnly;
 import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 
-final class StreamedDatabaseTest implements AgentsSerializerTest<AlphabetIdHolder> {
-    @Override
-    public LangbookManager<AlphabetIdHolder> createManager(MemoryDatabase db) {
-        return new LangbookDatabaseManager<>(db, new AlphabetIdManager());
-    }
+final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolder, AlphabetIdHolder> {
 
-    static <AlphabetId> int addSimpleAcceptation(AcceptationsManager<AlphabetId> manager, AlphabetId alphabet, int concept, String text) {
+    static <LanguageId, AlphabetId> int addSimpleAcceptation(AcceptationsManager<LanguageId, AlphabetId> manager, AlphabetId alphabet, int concept, String text) {
         return BunchesSerializerTest.addSimpleAcceptation(manager, alphabet, concept, text);
     }
 
-    static <AlphabetId> int addSingleAlphabetAgent(
-            AgentsManager<AlphabetId> manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
+    static <LanguageId, AlphabetId> int addSingleAlphabetAgent(
+            AgentsManager<LanguageId, AlphabetId> manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
         return AgentsSerializerTest.addSingleAlphabetAgent(manager, targetBunches, sourceBunches, diffBunches, alphabet, startMatcherText, startAdderText, endMatcherText, endAdderText, rule);
@@ -45,8 +41,18 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<AlphabetIdHolde
     }
 
     @Override
+    public LangbookManager<LanguageIdHolder, AlphabetIdHolder> createManager(MemoryDatabase db) {
+        return new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager());
+    }
+
+    @Override
     public AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
         return new AlphabetIdHolder(manager.getMaxConcept() + 1);
+    }
+
+    @Override
+    public int getLanguageConceptId(LanguageIdHolder language) {
+        return language.key;
     }
 
     static ImmutableIntSet findAcceptationsMatchingText(DbExporter.Database db, String text) {
@@ -56,7 +62,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<AlphabetIdHolde
     @Test
     void testSerializeSentenceWithDynamicAcceptationAsSpan() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final LangbookManager<AlphabetIdHolder> inManager = createManager(inDb);
+        final LangbookManager<LanguageIdHolder, AlphabetIdHolder> inManager = createManager(inDb);
         final AlphabetIdHolder alphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int feminableWordsBunch = inManager.getMaxConcept() + 1;
@@ -91,7 +97,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<AlphabetIdHolde
         inManager.addSentence(sentenceConcept, sentenceText, spans);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final LangbookManager<AlphabetIdHolder> outManager = createManager(outDb);
+        final LangbookManager<LanguageIdHolder, AlphabetIdHolder> outManager = createManager(outDb);
 
         final int outBoyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "chico"));
         final ImmutableIntKeyMap<String> outSentences = outManager.getSampleSentences(outBoyAcceptation);

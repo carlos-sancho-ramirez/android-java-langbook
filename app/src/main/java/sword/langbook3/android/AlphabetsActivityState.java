@@ -5,6 +5,8 @@ import android.os.Parcelable;
 
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdParceler;
+import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LanguageIdParceler;
 
 public final class AlphabetsActivityState implements Parcelable {
 
@@ -48,7 +50,7 @@ public final class AlphabetsActivityState implements Parcelable {
     }
 
     private int _intrinsicState;
-    private int _languageId;
+    private LanguageId _languageId;
     private AlphabetId _alphabetId;
     private AlphabetId _newAlphabetConcept;
     private AlphabetId _sourceAlphabet;
@@ -57,7 +59,7 @@ public final class AlphabetsActivityState implements Parcelable {
     private AlphabetsActivityState(Parcel in) {
         _intrinsicState = in.readInt();
         if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS) {
-            _languageId = in.readInt();
+            _languageId = LanguageIdParceler.read(in);
         }
         else if (_intrinsicState != IntrinsicStates.NORMAL) {
             _alphabetId = AlphabetIdParceler.read(in);
@@ -97,7 +99,7 @@ public final class AlphabetsActivityState implements Parcelable {
         return _intrinsicState == IntrinsicStates.ALPHABET_DELETE_CONFIRMATION;
     }
 
-    public void showLanguageOptions(int language) {
+    public void showLanguageOptions(LanguageId language) {
         if (_intrinsicState != IntrinsicStates.NORMAL) {
             throw new UnsupportedOperationException();
         }
@@ -178,7 +180,7 @@ public final class AlphabetsActivityState implements Parcelable {
         return _alphabetId;
     }
 
-    public int cancelLanguageRemoval() {
+    public LanguageId cancelLanguageRemoval() {
         if (_intrinsicState != IntrinsicStates.LANGUAGE_DELETE_CONFIRMATION) {
             throw new UnsupportedOperationException();
         }
@@ -195,7 +197,7 @@ public final class AlphabetsActivityState implements Parcelable {
         _intrinsicState = IntrinsicStates.PICKING_NEW_ALPHABET_ACCEPTATION;
     }
 
-    public int getNewAlphabetLanguage() {
+    public LanguageId getNewAlphabetLanguage() {
         if (_intrinsicState != IntrinsicStates.PICKING_NEW_ALPHABET_ACCEPTATION && _intrinsicState != IntrinsicStates.PICKING_SOURCE_ALPHABET) {
             throw new UnsupportedOperationException();
         }
@@ -270,7 +272,7 @@ public final class AlphabetsActivityState implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(_intrinsicState);
         if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS) {
-            dest.writeInt(_languageId);
+            LanguageIdParceler.write(dest, _languageId);
         }
         else if (_intrinsicState != IntrinsicStates.NORMAL) {
             AlphabetIdParceler.write(dest, _alphabetId);

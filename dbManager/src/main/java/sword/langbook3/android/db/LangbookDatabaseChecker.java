@@ -30,23 +30,24 @@ import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
-abstract class LangbookDatabaseChecker<AlphabetId extends AlphabetIdInterface> implements LangbookChecker<AlphabetId> {
+abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> implements LangbookChecker<LanguageId, AlphabetId> {
 
+    abstract IntSetter<LanguageId> getLanguageIdSetter();
     abstract IntSetter<AlphabetId> getAlphabetIdSetter();
     abstract DbExporter.Database getDatabase();
 
     @Override
-    public Integer findLanguageByCode(String code) {
-        return LangbookReadableDatabase.findLanguageByCode(getDatabase(), code);
+    public LanguageId findLanguageByCode(String code) {
+        return LangbookReadableDatabase.findLanguageByCode(getDatabase(), getLanguageIdSetter(), code);
     }
 
     @Override
-    public AlphabetId findMainAlphabetForLanguage(int language) {
+    public AlphabetId findMainAlphabetForLanguage(LanguageId language) {
         return LangbookReadableDatabase.findMainAlphabetForLanguage(getDatabase(), getAlphabetIdSetter(), language);
     }
 
     @Override
-    public ImmutableSet<AlphabetId> findAlphabetsByLanguage(int language) {
+    public ImmutableSet<AlphabetId> findAlphabetsByLanguage(LanguageId language) {
         return LangbookReadableDatabase.findAlphabetsByLanguage(getDatabase(), getAlphabetIdSetter(), language);
     }
 
@@ -141,8 +142,8 @@ abstract class LangbookDatabaseChecker<AlphabetId extends AlphabetIdInterface> i
     }
 
     @Override
-    public Integer getLanguageFromAlphabet(AlphabetId alphabet) {
-        return LangbookReadableDatabase.getLanguageFromAlphabet(getDatabase(), alphabet);
+    public LanguageId getLanguageFromAlphabet(AlphabetId alphabet) {
+        return LangbookReadableDatabase.getLanguageFromAlphabet(getDatabase(), getLanguageIdSetter(), alphabet);
     }
 
     @Override
@@ -271,8 +272,8 @@ abstract class LangbookDatabaseChecker<AlphabetId extends AlphabetIdInterface> i
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAllLanguages(AlphabetId preferredAlphabet) {
-        return LangbookReadableDatabase.readAllLanguages(getDatabase(), preferredAlphabet);
+    public ImmutableMap<LanguageId, String> readAllLanguages(AlphabetId preferredAlphabet) {
+        return LangbookReadableDatabase.readAllLanguages(getDatabase(), getLanguageIdSetter(), preferredAlphabet);
     }
 
     @Override
@@ -291,7 +292,7 @@ abstract class LangbookDatabaseChecker<AlphabetId extends AlphabetIdInterface> i
     }
 
     @Override
-    public ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(int language, AlphabetId preferredAlphabet) {
+    public ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(LanguageId language, AlphabetId preferredAlphabet) {
         return LangbookReadableDatabase.readAlphabetsForLanguage(getDatabase(), getAlphabetIdSetter(), language, preferredAlphabet);
     }
 
@@ -316,8 +317,8 @@ abstract class LangbookDatabaseChecker<AlphabetId extends AlphabetIdInterface> i
     }
 
     @Override
-    public ImmutablePair<ImmutableCorrelation<AlphabetId>, Integer> readAcceptationTextsAndLanguage(int acceptation) {
-        return LangbookReadableDatabase.readAcceptationTextsAndLanguage(getDatabase(), getAlphabetIdSetter(), acceptation);
+    public ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(int acceptation) {
+        return LangbookReadableDatabase.readAcceptationTextsAndLanguage(getDatabase(), getLanguageIdSetter(), getAlphabetIdSetter(), acceptation);
     }
 
     @Override

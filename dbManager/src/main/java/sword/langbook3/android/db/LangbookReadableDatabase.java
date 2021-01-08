@@ -184,14 +184,14 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    static ImmutableIntSet findCorrelationsByLanguage(DbExporter.Database db, int language) {
+    static <LanguageId extends LanguageIdInterface> ImmutableIntSet findCorrelationsByLanguage(DbExporter.Database db, LanguageId language) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final int offset = correlations.columns().size();
-        final DbQuery query = new DbQuery.Builder(correlations)
-                .join(alphabets, correlations.getAlphabetColumnIndex(), alphabets.getIdColumnIndex())
-                .where(offset + alphabets.getLanguageColumnIndex(), language)
-                .select(correlations.getCorrelationIdColumnIndex());
+        final DbQuery.Builder queryBuilder = new DbQuery.Builder(correlations)
+                .join(alphabets, correlations.getAlphabetColumnIndex(), alphabets.getIdColumnIndex());
+        language.where(offset + alphabets.getLanguageColumnIndex(), queryBuilder);
+        final DbQuery query = queryBuilder.select(correlations.getCorrelationIdColumnIndex());
 
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
@@ -232,14 +232,14 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static ImmutableIntSet findAcceptationsByLanguage(DbExporter.Database db, int language) {
+    static <LanguageId extends LanguageIdInterface> ImmutableIntSet findAcceptationsByLanguage(DbExporter.Database db, LanguageId language) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final int offset = strings.columns().size();
-        final DbQuery query = new DbQuery.Builder(strings)
-                .join(alphabets, strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex())
-                .where(offset + alphabets.getLanguageColumnIndex(), language)
-                .select(strings.getDynamicAcceptationColumnIndex());
+        final DbQuery.Builder queryBuilder = new DbQuery.Builder(strings)
+                .join(alphabets, strings.getStringAlphabetColumnIndex(), alphabets.getIdColumnIndex());
+        language.where(offset + alphabets.getLanguageColumnIndex(), queryBuilder);
+        final DbQuery query = queryBuilder.select(strings.getDynamicAcceptationColumnIndex());
 
         final ImmutableIntSetCreator builder = new ImmutableIntSetCreator();
         try (DbResult dbResult = db.select(query)) {
@@ -260,7 +260,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static ImmutableIntSet findBunchConceptsLinkedToJustThisLanguage(DbExporter.Database db, int language) {
+    static <LanguageId> ImmutableIntSet findBunchConceptsLinkedToJustThisLanguage(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, LanguageId language) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -277,13 +277,13 @@ public final class LangbookReadableDatabase {
                 .groupBy(bunchAcceptations.getBunchColumnIndex())
                 .select(bunchAcceptations.getBunchColumnIndex(), alphabetsOffset + alphabets.getLanguageColumnIndex());
 
-        MutableIntKeyMap<ImmutableIntSet> map = MutableIntKeyMap.empty();
+        MutableIntKeyMap<ImmutableSet<LanguageId>> map = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int bunch = row.get(0).toInt();
-                final int lang = row.get(1).toInt();
-                final ImmutableIntSet set = map.get(bunch, ImmutableIntArraySet.empty()).add(lang);
+                final LanguageId lang = languageIdSetter.getKeyFromDbValue(row.get(1));
+                final ImmutableSet<LanguageId> set = map.get(bunch, ImmutableHashSet.empty()).add(lang);
                 map.put(bunch, set);
             }
         }
@@ -291,7 +291,7 @@ public final class LangbookReadableDatabase {
         return map.filter(set -> set.contains(language) && set.size() == 1).keySet().toImmutable();
     }
 
-    static ImmutableIntSet findIncludedAcceptationLanguages(DbExporter.Database db, int bunch) {
+    static <LanguageId> ImmutableSet<LanguageId> findIncludedAcceptationLanguages(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, int bunch) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
@@ -306,10 +306,10 @@ public final class LangbookReadableDatabase {
                 .where(bunchAcceptations.getBunchColumnIndex(), bunch)
                 .select(alpOffset + alphabets.getLanguageColumnIndex());
 
-        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return db.select(query).map(row -> languageIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    static ImmutableIntSet findSuperTypesLinkedToJustThisLanguage(DbExporter.Database db, int language) {
+    static <LanguageId> ImmutableIntSet findSuperTypesLinkedToJustThisLanguage(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, LanguageId language) {
         final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = LangbookDbSchema.Tables.complementedConcepts;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -326,13 +326,13 @@ public final class LangbookReadableDatabase {
                 .groupBy(complementedConcepts.getBaseColumnIndex())
                 .select(complementedConcepts.getBaseColumnIndex(), alphabetsOffset + alphabets.getLanguageColumnIndex());
 
-        MutableIntKeyMap<ImmutableIntSet> map = MutableIntKeyMap.empty();
+        MutableIntKeyMap<ImmutableSet<LanguageId>> map = MutableIntKeyMap.empty();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int bunch = row.get(0).toInt();
-                final int lang = row.get(1).toInt();
-                final ImmutableIntSet set = map.get(bunch, ImmutableIntArraySet.empty()).add(lang);
+                final LanguageId lang = languageIdSetter.getKeyFromDbValue(row.get(1));
+                final ImmutableSet<LanguageId> set = map.get(bunch, ImmutableHashSet.empty()).add(lang);
                 map.put(bunch, set);
             }
         }
@@ -525,31 +525,32 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static Integer findLanguageByCode(DbExporter.Database db, String code) {
+    static <LanguageId> LanguageId findLanguageByCode(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, String code) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getCodeColumnIndex(), code)
                 .select(table.getIdColumnIndex());
 
-        return selectOptionalFirstIntColumn(db, query);
+        final DbValue value = selectOptionalFirstDbValue(db, query);
+        return (value != null)? languageIdSetter.getKeyFromDbValue(value) : null;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> AlphabetId findMainAlphabetForLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int language) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> AlphabetId findMainAlphabetForLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, LanguageId language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), language)
-                .select(table.getMainAlphabetColumnIndex());
+        final DbQuery.Builder builder = new DbQuery.Builder(table);
+        language.where(table.getIdColumnIndex(), builder);
+        final DbQuery query = builder.select(table.getMainAlphabetColumnIndex());
 
         final DbValue value = selectOptionalFirstDbValue(db, query);
         return (value != null)? alphabetIdSetter.getKeyFromDbValue(value) : null;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> ImmutableSet<AlphabetId> findAlphabetsByLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, int language) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> ImmutableSet<AlphabetId> findAlphabetsByLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, LanguageId language) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getLanguageColumnIndex(), language)
-                .select(table.getIdColumnIndex());
+        final DbQuery.Builder builder = new DbQuery.Builder(table);
+        language.where(table.getLanguageColumnIndex(), builder);
 
+        final DbQuery query = builder.select(table.getIdColumnIndex());
         return db.select(query).map(row -> alphabetIntSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
@@ -2405,16 +2406,16 @@ public final class LangbookReadableDatabase {
         return selectExistingRow(db, query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean areAllAlphabetsFromSameLanguage(DbExporter.Database db, Set<AlphabetId> alphabets) {
-        final Integer language = getLanguageFromAlphabet(db, alphabets.valueAt(0));
+    static <LanguageId, AlphabetId extends AlphabetIdInterface> boolean areAllAlphabetsFromSameLanguage(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, Set<AlphabetId> alphabets) {
+        final LanguageId language = getLanguageFromAlphabet(db, languageIdSetter, alphabets.valueAt(0));
         if (language == null) {
             return false;
         }
 
         final int size = alphabets.size();
         for (int i = 1; i < size; i++) {
-            final Integer lang = getLanguageFromAlphabet(db, alphabets.valueAt(i));
-            if (lang == null || language.intValue() != lang.intValue()) {
+            final LanguageId lang = getLanguageFromAlphabet(db, languageIdSetter, alphabets.valueAt(i));
+            if (lang == null || !lang.equals(language)) {
                 return false;
             }
         }
@@ -2441,13 +2442,14 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static <AlphabetId extends AlphabetIdInterface> Integer getLanguageFromAlphabet(DbExporter.Database db, AlphabetId alphabet) {
+    static <LanguageId, AlphabetId extends AlphabetIdInterface> LanguageId getLanguageFromAlphabet(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable table = alphabets;
         final DbQuery.Builder builder = new DbQuery.Builder(table);
         alphabet.where(table.getIdColumnIndex(), builder);
         final DbQuery query = builder.select(table.getLanguageColumnIndex());
 
-        return selectOptionalFirstIntColumn(db, query);
+        final DbValue value = selectOptionalFirstDbValue(db, query);
+        return (value != null)? languageIdSetter.getKeyFromDbValue(value) : null;
     }
 
     private static <AlphabetId extends AlphabetIdInterface> IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, AlphabetId alphabet, AlphabetId preferredAlphabet) {
@@ -2488,7 +2490,7 @@ public final class LangbookReadableDatabase {
         throw new IllegalArgumentException("alphabet " + alphabet + " not found");
     }
 
-    static <AlphabetId extends AlphabetIdInterface> ImmutablePair<ImmutableCorrelation<AlphabetId>, Integer> readAcceptationTextsAndLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int acceptation) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIdSetter, int acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AlphabetsTable alphabetsTable = alphabets;
         final DbQuery query = new DbQuery.Builder(table)
@@ -2500,7 +2502,7 @@ public final class LangbookReadableDatabase {
                         table.columns().size() + alphabetsTable.getLanguageColumnIndex());
         final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
         boolean languageSet = false;
-        int language = 0;
+        LanguageId language = null;
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
@@ -2508,10 +2510,10 @@ public final class LangbookReadableDatabase {
                 final String text = row.get(1).toText();
 
                 if (!languageSet) {
-                    language = row.get(2).toInt();
+                    language = languageIdSetter.getKeyFromDbValue(row.get(2));
                     languageSet = true;
                 }
-                else if (row.get(2).toInt() != language) {
+                else if (!language.sameValue(row.get(2))) {
                     throw new AssertionError();
                 }
 
@@ -2858,7 +2860,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static <AlphabetId extends AlphabetIdInterface> ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int language, AlphabetId preferredAlphabet) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, LanguageId language, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
@@ -2866,14 +2868,16 @@ public final class LangbookReadableDatabase {
         final int accOffset = alphabets.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
 
-        final DbQuery query = new DbQuery.Builder(alphabets)
+        final DbQuery.Builder queryBuilder = new DbQuery.Builder(alphabets)
                 .join(acceptations, alphabets.getIdColumnIndex(), acceptations.getConceptColumnIndex())
-                .join(stringQueries, accOffset + acceptations.getIdColumnIndex(), stringQueries.getDynamicAcceptationColumnIndex())
-                .where(alphabets.getLanguageColumnIndex(), language)
-                .select(
-                   alphabets.getIdColumnIndex(),
-                        strOffset + stringQueries.getStringAlphabetColumnIndex(),
-                        strOffset + stringQueries.getStringColumnIndex());
+                .join(stringQueries, accOffset + acceptations.getIdColumnIndex(), stringQueries.getDynamicAcceptationColumnIndex());
+        language.where(alphabets.getLanguageColumnIndex(), queryBuilder);
+
+        final DbQuery query = queryBuilder.select(
+                alphabets.getIdColumnIndex(),
+                strOffset + stringQueries.getStringAlphabetColumnIndex(),
+                strOffset + stringQueries.getStringColumnIndex());
+
         final MutableSet<AlphabetId> foundAlphabets = MutableHashSet.empty();
         final MutableMap<AlphabetId, String> result = MutableHashMap.empty();
         try (DbResult r = db.select(query)) {
@@ -2904,7 +2908,7 @@ public final class LangbookReadableDatabase {
         return alphabetIntSetter.getKeyFromDbValue(selectSingleRow(db, mainAlphableQuery).get(0));
     }
 
-    static <AlphabetId extends AlphabetIdInterface> ImmutableIntKeyMap<String> readAllLanguages(DbExporter.Database db, AlphabetId preferredAlphabet) {
+    static <LanguageId, AlphabetId extends AlphabetIdInterface> ImmutableMap<LanguageId, String> readAllLanguages(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable stringQueries = LangbookDbSchema.Tables.stringQueries;
@@ -2921,13 +2925,13 @@ public final class LangbookReadableDatabase {
                         strOffset + stringQueries.getStringColumnIndex()
                 );
 
-        MutableIntSet foundLanguages = MutableIntArraySet.empty();
-        MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        MutableSet<LanguageId> foundLanguages = MutableHashSet.empty();
+        MutableMap<LanguageId, String> result = MutableHashMap.empty();
 
         try (DbResult r = db.select(query)) {
             while (r.hasNext()) {
                 List<DbValue> row = r.next();
-                final int lang = row.get(0).toInt();
+                final LanguageId lang = languageIdSetter.getKeyFromDbValue(row.get(0));
                 final boolean isPreferredAlphabet = preferredAlphabet.sameValue(row.get(1));
 
                 if (isPreferredAlphabet || !foundLanguages.contains(lang)) {

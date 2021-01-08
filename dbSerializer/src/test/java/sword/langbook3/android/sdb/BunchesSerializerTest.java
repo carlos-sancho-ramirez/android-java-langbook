@@ -24,12 +24,12 @@ import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAccepta
  * BunchesManager responsibilities include all responsibilities from AcceptationsManager, and include the following ones:
  * <li>Bunches</li>
  */
-interface BunchesSerializerTest<AlphabetId> extends AcceptationsSerializerTest<AlphabetId> {
+interface BunchesSerializerTest<LanguageId, AlphabetId> extends AcceptationsSerializerTest<LanguageId, AlphabetId> {
 
     @Override
-    BunchesManager<AlphabetId> createManager(MemoryDatabase db);
+    BunchesManager<LanguageId, AlphabetId> createManager(MemoryDatabase db);
 
-    static <AlphabetId> int addSimpleAcceptation(AcceptationsManager<AlphabetId> manager, AlphabetId alphabet, int concept, String text) {
+    static <LanguageId, AlphabetId> int addSimpleAcceptation(AcceptationsManager<LanguageId, AlphabetId> manager, AlphabetId alphabet, int concept, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -41,14 +41,14 @@ interface BunchesSerializerTest<AlphabetId> extends AcceptationsSerializerTest<A
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static <AlphabetId> int addSpanishSingAcceptation(AcceptationsManager<AlphabetId> manager, AlphabetId alphabet, int concept) {
+    static <LanguageId, AlphabetId> int addSpanishSingAcceptation(AcceptationsManager<LanguageId, AlphabetId> manager, AlphabetId alphabet, int concept) {
         return addSimpleAcceptation(manager, alphabet, concept, "cantar");
     }
 
     @Test
     default void testSerializeBunchWithASingleSpanishAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager<AlphabetId> inManager = createManager(inDb);
+        final BunchesManager<LanguageId, AlphabetId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -61,7 +61,7 @@ interface BunchesSerializerTest<AlphabetId> extends AcceptationsSerializerTest<A
         inManager.addAcceptationInBunch(bunch, acceptation);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager<AlphabetId> outManager = createManager(outDb);
+        final BunchesManager<LanguageId, AlphabetId> outManager = createManager(outDb);
 
         final int outAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
         final int outBunchAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, bunchText));
@@ -74,7 +74,7 @@ interface BunchesSerializerTest<AlphabetId> extends AcceptationsSerializerTest<A
     @Test
     default void testSerializeBunchWithMultipleSpanishAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager<AlphabetId> inManager = createManager(inDb);
+        final BunchesManager<LanguageId, AlphabetId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -91,7 +91,7 @@ interface BunchesSerializerTest<AlphabetId> extends AcceptationsSerializerTest<A
         inManager.addAcceptationInBunch(bunch, inDrinkAcceptation);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager<AlphabetId> outManager = createManager(outDb);
+        final BunchesManager<LanguageId, AlphabetId> outManager = createManager(outDb);
 
         final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
         final int outDrinkAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "saltar"));
@@ -113,7 +113,7 @@ interface BunchesSerializerTest<AlphabetId> extends AcceptationsSerializerTest<A
     @Test
     default void testSerializeChainedBunches() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager<AlphabetId> inManager = createManager(inDb);
+        final BunchesManager<LanguageId, AlphabetId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -129,7 +129,7 @@ interface BunchesSerializerTest<AlphabetId> extends AcceptationsSerializerTest<A
         inManager.addAcceptationInBunch(verbBunch, arVerbAcceptation);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager<AlphabetId> outManager = createManager(outDb);
+        final BunchesManager<LanguageId, AlphabetId> outManager = createManager(outDb);
 
         final int outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "cantar"));
         final int outArVerbAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "verbo ar"));

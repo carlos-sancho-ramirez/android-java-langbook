@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-public interface AcceptationsManager<AlphabetId> extends AcceptationsChecker<AlphabetId> {
+public interface AcceptationsManager<LanguageId, AlphabetId> extends AcceptationsChecker<LanguageId, AlphabetId> {
 
     /**
      * Add a new language for the given code.
@@ -14,8 +14,8 @@ public interface AcceptationsManager<AlphabetId> extends AcceptationsChecker<Alp
      * @param code 2-char lowercase language code. Such as "es" for Spanish, "en" for English of "ja" for Japanese.
      * @return A pair containing the language created concept and its main alphabet, or null if it cannot be added.
      */
-    LanguageCreationResult<AlphabetId> addLanguage(String code);
-    boolean removeLanguage(int language);
+    LanguageCreationResult<LanguageId, AlphabetId> addLanguage(String code);
+    boolean removeLanguage(LanguageId language);
 
     /**
      * Add a new alphabet to this database as a copy of the given sourceAlphabet.

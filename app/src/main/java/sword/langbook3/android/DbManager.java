@@ -35,6 +35,8 @@ import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookDatabaseManager;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LanguageIdManager;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sqlite.SQLiteDbQuery;
 
@@ -55,7 +57,7 @@ class DbManager extends SQLiteOpenHelper {
     private ProgressListener _externalProgressListener;
     private TaskProgress _lastProgress;
     private ManagerDatabase _managerDatabase;
-    private LangbookDatabaseManager<AlphabetId> _langbookManager;
+    private LangbookDatabaseManager<LanguageId, AlphabetId> _langbookManager;
 
     static DbManager getInstance() {
         return _instance;
@@ -543,9 +545,9 @@ class DbManager extends SQLiteOpenHelper {
         return _managerDatabase;
     }
 
-    public LangbookManager<AlphabetId> getManager() {
+    public LangbookManager<LanguageId, AlphabetId> getManager() {
         if (_langbookManager == null) {
-            _langbookManager = new LangbookDatabaseManager<>(getDatabase(), new AlphabetIdManager());
+            _langbookManager = new LangbookDatabaseManager<>(getDatabase(), new LanguageIdManager(), new AlphabetIdManager());
         }
 
         return _langbookManager;
