@@ -42,7 +42,7 @@ abstract class LangbookDatabaseChecker<AlphabetId extends AlphabetIdInterface> i
 
     @Override
     public AlphabetId findMainAlphabetForLanguage(int language) {
-        return getAlphabetIdSetter().getKeyFromInt(LangbookReadableDatabase.findMainAlphabetForLanguage(getDatabase(), language));
+        return LangbookReadableDatabase.findMainAlphabetForLanguage(getDatabase(), getAlphabetIdSetter(), language);
     }
 
     @Override

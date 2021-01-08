@@ -34,6 +34,7 @@ import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueMap;
+import sword.collections.MutableList;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.collections.Set;
@@ -136,6 +137,21 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
                 result = dbResult.next().get(0).toText();
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError("Only 0 or 1 row was expected");
+            }
+        }
+
+        return result;
+    }
+
+    private static DbValue selectOptionalFirstDbValue(DbExporter.Database db, DbQuery query) {
+        DbValue result = null;
+        try (DbResult dbResult = db.select(query)) {
+            if (dbResult.hasNext()) {
+                result = dbResult.next().get(0);
             }
 
             if (dbResult.hasNext()) {
@@ -518,13 +534,14 @@ public final class LangbookReadableDatabase {
         return selectOptionalFirstIntColumn(db, query);
     }
 
-    static Integer findMainAlphabetForLanguage(DbExporter.Database db, int language) {
+    static <AlphabetId extends AlphabetIdInterface> AlphabetId findMainAlphabetForLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), language)
                 .select(table.getMainAlphabetColumnIndex());
 
-        return selectOptionalFirstIntColumn(db, query);
+        final DbValue value = selectOptionalFirstDbValue(db, query);
+        return (value != null)? alphabetIdSetter.getKeyFromDbValue(value) : null;
     }
 
     static <AlphabetId extends AlphabetIdInterface> ImmutableSet<AlphabetId> findAlphabetsByLanguage(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, int language) {
@@ -533,8 +550,7 @@ public final class LangbookReadableDatabase {
                 .where(table.getLanguageColumnIndex(), language)
                 .select(table.getIdColumnIndex());
 
-
-        return db.select(query).map(row -> alphabetIntSetter.getKeyFromInt(row.get(0).toInt())).toSet().toImmutable();
+        return db.select(query).map(row -> alphabetIntSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     static <AlphabetId extends AlphabetIdInterface> ImmutableMap<AlphabetId, AlphabetId> getConversionsMap(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter) {
@@ -550,7 +566,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                builder.put(alphabetIdSetter.getKeyFromInt(row.get(1).toInt()), alphabetIdSetter.getKeyFromInt(row.get(0).toInt()));
+                builder.put(alphabetIdSetter.getKeyFromDbValue(row.get(1)), alphabetIdSetter.getKeyFromDbValue(row.get(0)));
             }
         }
 
@@ -1262,7 +1278,7 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                builder.put(alphabetIdSetter.getKeyFromInt(row.get(0).toInt()), row.get(1).toText());
+                builder.put(alphabetIdSetter.getKeyFromDbValue(row.get(0)), row.get(1).toText());
             }
         }
         return new ImmutableCorrelation<>(builder.build());
@@ -1390,7 +1406,7 @@ public final class LangbookReadableDatabase {
                     throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
                 }
 
-                builder.put(alphabetIdSetter.getKeyFromInt(row.get(2).toInt()), row.get(3).toText());
+                builder.put(alphabetIdSetter.getKeyFromDbValue(row.get(2)), row.get(3).toText());
 
                 while (dbResult.hasNext()) {
                     row = dbResult.next();
@@ -1406,7 +1422,7 @@ public final class LangbookReadableDatabase {
                     if (newPos != correlationIds.size()) {
                         throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
                     }
-                    builder.put(alphabetIdSetter.getKeyFromInt(row.get(2).toInt()), row.get(3).toText());
+                    builder.put(alphabetIdSetter.getKeyFromDbValue(row.get(2)), row.get(3).toText());
                 }
                 correlationMap.put(correlationId, builder.build());
                 correlationIds.append(correlationId);
@@ -1771,8 +1787,8 @@ public final class LangbookReadableDatabase {
                 .whereColumnValueMatch(strings.getStringAlphabetColumnIndex(), offset + strings.getStringAlphabetColumnIndex())
                 .select(strings.getStringAlphabetColumnIndex(), offset + strings.getDynamicAcceptationColumnIndex());
 
-        final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
-        final MutableIntList sortedAlphabets = MutableIntList.empty();
+        final MutableSet<AlphabetId> foundAlphabets = MutableHashSet.empty();
+        final MutableList<AlphabetId> sortedAlphabets = MutableList.empty();
         final MutableIntKeyMap<ImmutableSet<AlphabetId>> alphabetSets = MutableIntKeyMap.empty();
         alphabetSets.put(0, ImmutableHashSet.empty());
         final MutableIntPairMap result = MutableIntPairMap.empty();
@@ -1780,7 +1796,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int alphabet = row.get(0).toInt();
+                final AlphabetId alphabet = alphabetIdSetter.getKeyFromDbValue(row.get(0));
                 final int acc = row.get(1).toInt();
 
                 if (acc != acceptation) {
@@ -1790,7 +1806,7 @@ public final class LangbookReadableDatabase {
                         sortedAlphabets.append(alphabet);
 
                         for (int key : alphabetSets.keySet().toImmutable()) {
-                            alphabetSets.put(bitMask | key, alphabetSets.get(key).add(alphabetIdSetter.getKeyFromInt(alphabet)));
+                            alphabetSets.put(bitMask | key, alphabetSets.get(key).add(alphabet));
                         }
                     }
 
@@ -2488,7 +2504,7 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                final int alphabet = row.get(0).toInt();
+                final AlphabetId alphabet = alphabetIdSetter.getKeyFromDbValue(row.get(0));
                 final String text = row.get(1).toText();
 
                 if (!languageSet) {
@@ -2499,7 +2515,7 @@ public final class LangbookReadableDatabase {
                     throw new AssertionError();
                 }
 
-                builder.put(alphabetIdSetter.getKeyFromInt(alphabet), text);
+                builder.put(alphabet, text);
             }
         }
 
@@ -2520,7 +2536,7 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                final int alphabet = row.get(0).toInt();
+                final AlphabetId alphabet = alphabetIdSetter.getKeyFromDbValue(row.get(0));
                 final String text = row.get(1).toText();
 
                 if (!mainAccSet) {
@@ -2531,7 +2547,7 @@ public final class LangbookReadableDatabase {
                     throw new AssertionError();
                 }
 
-                builder.put(alphabetIdSetter.getKeyFromInt(alphabet), text);
+                builder.put(alphabet, text);
             }
         }
 
@@ -2817,25 +2833,25 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
-                int alphabet = row.get(0).toInt();
+                AlphabetId alphabet = alphabetIdSetter.getKeyFromDbValue(row.get(0));
                 String text = row.get(2).toText();
 
                 while (result.hasNext()) {
                     row = result.next();
-                    if (alphabet == row.get(0).toInt()) {
+                    if (alphabet.sameValue(row.get(0))) {
                         if (preferredAlphabet.sameValue(row.get(1))) {
                             text = row.get(2).toText();
                         }
                     }
                     else {
-                        builder.put(alphabetIdSetter.getKeyFromInt(alphabet), text);
+                        builder.put(alphabet, text);
 
-                        alphabet = row.get(0).toInt();
+                        alphabet = alphabetIdSetter.getKeyFromDbValue(row.get(0));
                         text = row.get(2).toText();
                     }
                 }
 
-                builder.put(alphabetIdSetter.getKeyFromInt(alphabet), text);
+                builder.put(alphabet, text);
             }
         }
 
@@ -2858,17 +2874,17 @@ public final class LangbookReadableDatabase {
                    alphabets.getIdColumnIndex(),
                         strOffset + stringQueries.getStringAlphabetColumnIndex(),
                         strOffset + stringQueries.getStringColumnIndex());
-        final MutableIntSet foundAlphabets = MutableIntArraySet.empty();
+        final MutableSet<AlphabetId> foundAlphabets = MutableHashSet.empty();
         final MutableMap<AlphabetId, String> result = MutableHashMap.empty();
         try (DbResult r = db.select(query)) {
             while (r.hasNext()) {
                 final List<DbValue> row = r.next();
-                final int id = row.get(0).toInt();
+                final AlphabetId id = alphabetIdSetter.getKeyFromDbValue(row.get(0));
                 final boolean isPreferredAlphabet = preferredAlphabet.sameValue(row.get(1));
 
                 if (isPreferredAlphabet || !foundAlphabets.contains(id)) {
                     foundAlphabets.add(id);
-                    result.put(alphabetIdSetter.getKeyFromInt(id), row.get(2).toText());
+                    result.put(id, row.get(2).toText());
                 }
             }
         }
@@ -3073,7 +3089,7 @@ public final class LangbookReadableDatabase {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int quizId = row.get(0).toInt();
-                final QuestionFieldDetails<AlphabetId> field = new QuestionFieldDetails<>(alphabetIdSetter.getKeyFromInt(row.get(1).toInt()), row.get(2).toInt(), row.get(3).toInt());
+                final QuestionFieldDetails<AlphabetId> field = new QuestionFieldDetails<>(alphabetIdSetter.getKeyFromDbValue(row.get(1)), row.get(2).toInt(), row.get(3).toInt());
                 final ImmutableSet<QuestionFieldDetails<AlphabetId>> set = resultMap.get(quizId, ImmutableHashSet.empty());
                 resultMap.put(quizId, set.add(field));
             }
@@ -3372,7 +3388,7 @@ public final class LangbookReadableDatabase {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 bunch = row.get(0).toInt();
-                builder.add(new QuestionFieldDetails<>(alphabetIdSetter.getKeyFromInt(row.get(1).toInt()), row.get(2).toInt(), row.get(3).toInt()));
+                builder.add(new QuestionFieldDetails<>(alphabetIdSetter.getKeyFromDbValue(row.get(1)), row.get(2).toInt(), row.get(3).toInt()));
             }
         }
 
@@ -3603,7 +3619,7 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                builder.put(alphabetIdSetter.getKeyFromInt(row.get(0).toInt()), row.get(1).toText());
+                builder.put(alphabetIdSetter.getKeyFromDbValue(row.get(0)), row.get(1).toText());
             }
         }
 
