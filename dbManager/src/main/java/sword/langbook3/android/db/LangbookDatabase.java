@@ -260,9 +260,8 @@ public final class LangbookDatabase {
             final boolean matchWordStarting = startMatch.length() > endMatch.length();
             final String queryValue = matchWordStarting? startMatch : endMatch;
             final int restrictionType = matchWordStarting? DbQuery.RestrictionStringTypes.STARTS_WITH : DbQuery.RestrictionStringTypes.ENDS_WITH;
-            final DbQuery.Builder queryBuilder = new DbQuery.Builder(strTable);
-            alphabet.where(strTable.getStringAlphabetColumnIndex(), queryBuilder);
-            final DbQuery matchQuery = queryBuilder
+            final DbQuery matchQuery = new DbQueryBuilder(strTable)
+                    .where(strTable.getStringAlphabetColumnIndex(), alphabet)
                     .where(strTable.getStringColumnIndex(), new DbQuery.Restriction(
                             new DbStringValue(queryValue), restrictionType))
                     .select(strTable.getDynamicAcceptationColumnIndex());
@@ -559,12 +558,12 @@ public final class LangbookDatabase {
                         for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
                             final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
                             final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
-                            final DbUpdateQuery.Builder builder = new DbUpdateQuery.Builder(strings)
+                            updateQuery = new DbUpdateQueryBuilder(strings)
                                     .put(strings.getStringColumnIndex(), entry.value())
                                     .put(strings.getMainStringColumnIndex(), mainText)
-                                    .where(strings.getDynamicAcceptationColumnIndex(), dynAcc);
-                            entry.key().where(strings.getStringAlphabetColumnIndex(), builder);
-                            updateQuery = builder.build();
+                                    .where(strings.getDynamicAcceptationColumnIndex(), dynAcc)
+                                    .where(strings.getStringAlphabetColumnIndex(), entry.key())
+                                    .build();
                             if (!db.update(updateQuery)) {
                                 throw new AssertionError();
                             }
@@ -694,10 +693,9 @@ public final class LangbookDatabase {
             final String mainStr = texts.valueAt(0);
             for (Map.Entry<AlphabetId, String> entry : texts.entries()) {
                 final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-                final DbUpdateQuery.Builder builder = new DbUpdateQuery.Builder(strings)
-                        .where(strings.getDynamicAcceptationColumnIndex(), acceptation);
-                entry.key().where(strings.getStringAlphabetColumnIndex(), builder);
-                final DbUpdateQuery updateQuery = builder
+                final DbUpdateQuery updateQuery = new DbUpdateQueryBuilder(strings)
+                        .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
+                        .where(strings.getStringAlphabetColumnIndex(), entry.key())
                         .put(strings.getMainStringColumnIndex(), mainStr)
                         .put(strings.getStringColumnIndex(), entry.value())
                         .build();
@@ -1488,14 +1486,14 @@ public final class LangbookDatabase {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
 
         final int offset = table.columns().size();
-        final DbQuery.Builder queryBuilder = new DbQuery.Builder(table)
-                .join(table, table.getDynamicAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex());
-        newConversion.getTargetAlphabet().where(table.getStringAlphabetColumnIndex(), queryBuilder);
-        newConversion.getSourceAlphabet().where(offset + table.getStringAlphabetColumnIndex(), queryBuilder);
-        final DbQuery query = queryBuilder.select(
-                table.getDynamicAcceptationColumnIndex(),
-                table.getStringColumnIndex(),
-                offset + table.getStringColumnIndex());
+        final DbQuery query = new DbQueryBuilder(table)
+                .join(table, table.getDynamicAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex())
+                .where(table.getStringAlphabetColumnIndex(), newConversion.getTargetAlphabet())
+                .where(offset + table.getStringAlphabetColumnIndex(), newConversion.getSourceAlphabet())
+                .select(
+                        table.getDynamicAcceptationColumnIndex(),
+                        table.getStringColumnIndex(),
+                        offset + table.getStringColumnIndex());
 
         final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
         final DbResult dbResult = db.select(query);
@@ -1513,9 +1511,8 @@ public final class LangbookDatabase {
         final ImmutableIntKeyMap<String> updateMap = builder.build();
         final int updateCount = updateMap.size();
         for (int i = 0; i < updateCount; i++) {
-            final DbUpdateQuery.Builder updateQueryBuilder = new DbUpdateQuery.Builder(table);
-            newConversion.getTargetAlphabet().where(table.getStringAlphabetColumnIndex(), updateQueryBuilder);
-            final DbUpdateQuery upQuery = updateQueryBuilder
+            final DbUpdateQuery upQuery = new DbUpdateQueryBuilder(table)
+                    .where(table.getStringAlphabetColumnIndex(), newConversion.getTargetAlphabet())
                     .where(table.getDynamicAcceptationColumnIndex(), updateMap.keyAt(i))
                     .put(table.getStringColumnIndex(), updateMap.valueAt(i))
                     .build();
@@ -1677,12 +1674,12 @@ public final class LangbookDatabase {
         // Some kind of query for duplicating rows should be valuable. The following logic will be broken if a new column is added or removed for the table.
         //TODO: Change this logic
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery.Builder queryBuilder = new DbQuery.Builder(table);
-        sourceAlphabet.where(table.getStringAlphabetColumnIndex(), queryBuilder);
-        final DbQuery query = queryBuilder.select(
-                table.getMainAcceptationColumnIndex(),
-                table.getDynamicAcceptationColumnIndex(),
-                table.getStringColumnIndex(), table.getMainStringColumnIndex());
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex(),
+                        table.getStringColumnIndex(), table.getMainStringColumnIndex());
 
         final List<StringQueryTableRow> rows = db.select(query).map(row -> new StringQueryTableRow(row.get(0).toInt(), row.get(1).toInt(), row.get(2).toText(), row.get(3).toText())).toList();
         for (StringQueryTableRow row : rows) {
@@ -1821,13 +1818,13 @@ public final class LangbookDatabase {
         final AlphabetId sourceAlphabet = conversion.getSourceAlphabet();
 
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery.Builder queryBuilder = new DbQuery.Builder(table);
-        sourceAlphabet.where(table.getStringAlphabetColumnIndex(), queryBuilder);
-        final DbQuery query = queryBuilder.select(
-                table.getStringColumnIndex(),
-                table.getMainStringColumnIndex(),
-                table.getMainAcceptationColumnIndex(),
-                table.getDynamicAcceptationColumnIndex());
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getMainAcceptationColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
 
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
@@ -1850,9 +1847,9 @@ public final class LangbookDatabase {
         final AlphabetId targetAlphabet = conversion.getTargetAlphabet();
 
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbDeleteQuery.Builder queryBuilder = new DbDeleteQuery.Builder(table);
-        targetAlphabet.where(table.getStringAlphabetColumnIndex(), queryBuilder);
-        final DbDeleteQuery query = queryBuilder.build();
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getStringAlphabetColumnIndex(), targetAlphabet)
+                .build();
         db.delete(query);
     }
 

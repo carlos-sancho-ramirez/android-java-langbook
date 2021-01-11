@@ -28,31 +28,28 @@ final class LangbookDbInserter {
 
     static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> void insertAlphabet(DbInserter db, AlphabetId id, LanguageId language) {
         final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
-        final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table);
-        id.put(table.getIdColumnIndex(), builder);
-        language.put(table.getLanguageColumnIndex(), builder);
-
-        final DbInsertQuery query = builder.build();
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getLanguageColumnIndex(), language)
+                .build();
         db.insert(query);
     }
 
     static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> void insertLanguage(DbInserter db, LanguageId id, String code, AlphabetId mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = Tables.languages;
-        final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table)
-                .put(table.getCodeColumnIndex(), code);
-        id.put(table.getIdColumnIndex(), builder);
-        mainAlphabet.put(table.getMainAlphabetColumnIndex(), builder);
-
-        final DbInsertQuery query = builder.build();
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getCodeColumnIndex(), code)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getMainAlphabetColumnIndex(), mainAlphabet)
+                .build();
         db.insert(query);
     }
 
     static <AlphabetId extends AlphabetIdInterface> void insertConversion(DbInserter db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet, int source, int target) {
         final LangbookDbSchema.ConversionsTable table = Tables.conversions;
-        final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table);
-        sourceAlphabet.put(table.getSourceAlphabetColumnIndex(), builder);
-        targetAlphabet.put(table.getTargetAlphabetColumnIndex(), builder);
-        final DbInsertQuery query = builder
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
+                .put(table.getTargetAlphabetColumnIndex(), targetAlphabet)
                 .put(table.getSourceColumnIndex(), source)
                 .put(table.getTargetColumnIndex(), target)
                 .build();
@@ -61,11 +58,11 @@ final class LangbookDbInserter {
 
     static <AlphabetId extends AlphabetIdInterface> void insertCorrelationEntry(DbInserter db, int correlationId, AlphabetId alphabet, int symbolArray) {
         final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
-        final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getCorrelationIdColumnIndex(), correlationId)
-                .put(table.getSymbolArrayColumnIndex(), symbolArray);
-        alphabet.put(table.getAlphabetColumnIndex(), builder);
-        final DbInsertQuery query = builder.build();
+                .put(table.getSymbolArrayColumnIndex(), symbolArray)
+                .put(table.getAlphabetColumnIndex(), alphabet)
+                .build();
         if (db.insert(query) == null) {
             throw new AssertionError();
         }
@@ -206,13 +203,13 @@ final class LangbookDbInserter {
     static <AlphabetId extends AlphabetIdInterface> void insertStringQuery(DbInserter db, String str,
             String mainStr, int mainAcceptation, int dynAcceptation, AlphabetId strAlphabet) {
         final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
-        final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getStringColumnIndex(), str)
                 .put(table.getMainStringColumnIndex(), mainStr)
                 .put(table.getMainAcceptationColumnIndex(), mainAcceptation)
-                .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation);
-        strAlphabet.put(table.getStringAlphabetColumnIndex(), builder);
-        final DbInsertQuery query = builder.build();
+                .put(table.getDynamicAcceptationColumnIndex(), dynAcceptation)
+                .put(table.getStringAlphabetColumnIndex(), strAlphabet)
+                .build();
 
         if (db.insert(query) == null) {
             throw new AssertionError();
@@ -222,13 +219,13 @@ final class LangbookDbInserter {
     static <AlphabetId extends AlphabetIdInterface> void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails<AlphabetId>> fields) {
         final LangbookDbSchema.QuestionFieldSets table = Tables.questionFieldSets;
         for (QuestionFieldDetails<AlphabetId> field : fields) {
-            final DbInsertQuery.Builder builder = new DbInsertQuery.Builder(table)
+            final DbInsertQuery query = new DbInsertQueryBuilder(table)
                     .put(table.getSetIdColumnIndex(), setId)
                     .put(table.getRuleColumnIndex(), field.rule)
-                    .put(table.getFlagsColumnIndex(), field.flags);
-            field.alphabet.put(table.getAlphabetColumnIndex(), builder);
+                    .put(table.getFlagsColumnIndex(), field.flags)
+                    .put(table.getAlphabetColumnIndex(), field.alphabet)
+                    .build();
 
-            final DbInsertQuery query = builder.build();
             if (db.insert(query) == null) {
                 throw new AssertionError();
             }

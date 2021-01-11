@@ -253,10 +253,9 @@ final class LangbookDeleter {
 
     static <AlphabetId extends AlphabetIdInterface> boolean deleteConversionRegister(Deleter db, ImmutablePair<AlphabetId, AlphabetId> alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
-        final DbDeleteQuery.Builder builder = new DbDeleteQuery.Builder(table);
-        alphabets.left.where(table.getSourceAlphabetColumnIndex(), builder);
-        alphabets.right.where(table.getTargetAlphabetColumnIndex(), builder);
-        DbDeleteQuery query = builder
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getSourceAlphabetColumnIndex(), alphabets.left)
+                .where(table.getTargetAlphabetColumnIndex(), alphabets.right)
                 .where(table.getSourceColumnIndex(), sourceSymbolArrayId)
                 .where(table.getTargetColumnIndex(), targetSymbolArrayId)
                 .build();
@@ -265,52 +264,51 @@ final class LangbookDeleter {
 
     static <AlphabetId extends AlphabetIdInterface> boolean deleteConversion(Database db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
-        final DbDeleteQuery.Builder builder = new DbDeleteQuery.Builder(table);
-        sourceAlphabet.where(table.getSourceAlphabetColumnIndex(), builder);
-        targetAlphabet.where(table.getTargetAlphabetColumnIndex(), builder);
-        final DbDeleteQuery query = builder.build();
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
+                .where(table.getTargetAlphabetColumnIndex(), targetAlphabet)
+                .build();
         return db.delete(query);
     }
 
     static <LanguageId extends LanguageIdInterface> boolean deleteLanguage(Database db, LanguageId language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
-        final DbDeleteQuery.Builder queryBuilder = new DbDeleteQuery.Builder(table);
-        language.where(table.getIdColumnIndex(), queryBuilder);
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getIdColumnIndex(), language)
+                .build();
 
-        final DbDeleteQuery query = queryBuilder.build();
         return db.delete(query);
     }
 
     static <LanguageId extends LanguageIdInterface> boolean deleteAlphabetsForLanguage(Database db, LanguageId language) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
-        final DbDeleteQuery.Builder queryBuilder = new DbDeleteQuery.Builder(table);
-        language.where(table.getLanguageColumnIndex(), queryBuilder);
-
-        final DbDeleteQuery query = queryBuilder.build();
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getLanguageColumnIndex(), language)
+                .build();
         return db.delete(query);
     }
 
     static <AlphabetId extends AlphabetIdInterface> boolean deleteAlphabet(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
-        final DbDeleteQuery.Builder builder = new DbDeleteQuery.Builder(table);
-        alphabet.where(table.getIdColumnIndex(), builder);
-        final DbDeleteQuery query = builder.build();
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getIdColumnIndex(), alphabet)
+                .build();
         return db.delete(query);
     }
 
     static <AlphabetId extends AlphabetIdInterface> boolean deleteAlphabetFromCorrelations(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final DbDeleteQuery.Builder builder = new DbDeleteQuery.Builder(table);
-        alphabet.where(table.getAlphabetColumnIndex(), builder);
-        final DbDeleteQuery query = builder.build();
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getAlphabetColumnIndex(), alphabet)
+                .build();
         return db.delete(query);
     }
 
     static <AlphabetId extends AlphabetIdInterface> boolean deleteAlphabetFromStringQueries(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbDeleteQuery.Builder builder = new DbDeleteQuery.Builder(table);
-        alphabet.where(table.getStringAlphabetColumnIndex(), builder);
-        final DbDeleteQuery query = builder.build();
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getStringAlphabetColumnIndex(), alphabet)
+                .build();
         return db.delete(query);
     }
 }
