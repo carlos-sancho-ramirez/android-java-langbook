@@ -26,6 +26,11 @@ final class DbDeleteQueryBuilder {
         return this;
     }
 
+    public DbDeleteQueryBuilder where(int columnIndex, SymbolArrayIdInterface id) {
+        id.where(columnIndex, _builder);
+        return this;
+    }
+
     public DbDeleteQuery build() {
         return _builder.build();
     }

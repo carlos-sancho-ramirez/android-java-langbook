@@ -41,8 +41,8 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
     }
 
     @Override
-    public LangbookManager<LanguageIdHolder, AlphabetIdHolder> createManager(MemoryDatabase db) {
-        return new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager());
+    public LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder> createManager(MemoryDatabase db) {
+        return new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager());
     }
 
     @Override
@@ -62,7 +62,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
     @Test
     void testSerializeSentenceWithDynamicAcceptationAsSpan() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final LangbookManager<LanguageIdHolder, AlphabetIdHolder> inManager = createManager(inDb);
+        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder> inManager = createManager(inDb);
         final AlphabetIdHolder alphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int feminableWordsBunch = inManager.getMaxConcept() + 1;
@@ -97,7 +97,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
         inManager.addSentence(sentenceConcept, sentenceText, spans);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final LangbookManager<LanguageIdHolder, AlphabetIdHolder> outManager = createManager(outDb);
+        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder> outManager = createManager(outDb);
 
         final int outBoyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, "chico"));
         final ImmutableIntKeyMap<String> outSentences = outManager.getSampleSentences(outBoyAcceptation);

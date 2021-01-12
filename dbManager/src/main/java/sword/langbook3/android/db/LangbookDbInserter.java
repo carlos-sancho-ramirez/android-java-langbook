@@ -4,7 +4,7 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.IntList;
 import sword.collections.IntSet;
 import sword.collections.IntTraverser;
-import sword.collections.IntValueMap;
+import sword.collections.Map;
 import sword.database.DbInsertQuery;
 import sword.database.DbInserter;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
@@ -18,12 +18,13 @@ final class LangbookDbInserter {
     private LangbookDbInserter() {
     }
 
-    static Integer insertSymbolArray(DbInserter db, String str) {
+    static <SymbolArrayId> SymbolArrayId insertSymbolArray(DbInserter db, IntSetter<SymbolArrayId> symbolArrayIdSetter, String str) {
         final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getStrColumnIndex(), str)
                 .build();
-        return db.insert(query);
+        final Integer intResult = db.insert(query);
+        return (intResult != null)? symbolArrayIdSetter.getKeyFromInt(intResult) : null;
     }
 
     static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> void insertAlphabet(DbInserter db, AlphabetId id, LanguageId language) {
@@ -45,7 +46,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> void insertConversion(DbInserter db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet, int source, int target) {
+    static <AlphabetId extends AlphabetIdInterface> void insertConversion(DbInserter db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet, SymbolArrayIdInterface source, SymbolArrayIdInterface target) {
         final LangbookDbSchema.ConversionsTable table = Tables.conversions;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
@@ -56,7 +57,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> void insertCorrelationEntry(DbInserter db, int correlationId, AlphabetId alphabet, int symbolArray) {
+    static <AlphabetId extends AlphabetIdInterface> void insertCorrelationEntry(DbInserter db, int correlationId, AlphabetId alphabet, SymbolArrayIdInterface symbolArray) {
         final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getCorrelationIdColumnIndex(), correlationId)
@@ -68,7 +69,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static <AlphabetId extends AlphabetIdInterface> void insertCorrelation(DbInserter db, int correlationId, IntValueMap<AlphabetId> correlation) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> void insertCorrelation(DbInserter db, int correlationId, Map<AlphabetId, SymbolArrayId> correlation) {
         final int mapLength = correlation.size();
         if (mapLength == 0) {
             throw new IllegalArgumentException();
@@ -286,9 +287,9 @@ final class LangbookDbInserter {
         }
     }
 
-    static int insertSentence(DbInserter db, int concept, int symbolArray) {
+    static int insertSentence(DbInserter db, int concept, SymbolArrayIdInterface symbolArray) {
         final LangbookDbSchema.SentencesTable table = Tables.sentences;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getConceptColumnIndex(), concept)
                 .put(table.getSymbolArrayColumnIndex(), symbolArray)
                 .build();

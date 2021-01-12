@@ -10,9 +10,9 @@ final class LangbookDeleter {
     private LangbookDeleter() {
     }
 
-    static boolean deleteSymbolArray(Deleter db, int id) {
+    static boolean deleteSymbolArray(Deleter db, SymbolArrayIdInterface id) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), id)
                 .build();
         return db.delete(query);
@@ -251,7 +251,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean deleteConversionRegister(Deleter db, ImmutablePair<AlphabetId, AlphabetId> alphabets, int sourceSymbolArrayId, int targetSymbolArrayId) {
+    static <AlphabetId extends AlphabetIdInterface> boolean deleteConversionRegister(Deleter db, ImmutablePair<AlphabetId, AlphabetId> alphabets, SymbolArrayIdInterface sourceSymbolArrayId, SymbolArrayIdInterface targetSymbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getSourceAlphabetColumnIndex(), alphabets.left)

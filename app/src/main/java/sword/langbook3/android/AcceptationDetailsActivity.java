@@ -29,8 +29,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.LangbookManager;
-import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.DerivedAcceptationResult;
@@ -508,7 +507,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
-        final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+        final LangbookDbManager manager = DbManager.getInstance().getManager();
         switch (_state.getIntrinsicState()) {
             case IntrinsicStates.DELETE_ACCEPTATION:
                 deleteAcceptation();
@@ -595,7 +594,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+            final LangbookDbManager manager = DbManager.getInstance().getManager();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 final boolean usedConcept = data
                         .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);

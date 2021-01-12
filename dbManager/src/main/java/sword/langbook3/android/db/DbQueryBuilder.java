@@ -42,6 +42,11 @@ final class DbQueryBuilder {
         return this;
     }
 
+    public DbQueryBuilder where(int columnIndex, SymbolArrayIdInterface symbolArray) {
+        symbolArray.where(columnIndex, _builder);
+        return this;
+    }
+
     public DbQueryBuilder whereColumnValueMatch(int columnIndexA, int columnIndexB) {
         _builder.whereColumnValueMatch(columnIndexA, columnIndexB);
         return this;

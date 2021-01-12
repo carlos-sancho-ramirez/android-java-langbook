@@ -31,9 +31,8 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationEntryListParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookChecker;
-import sword.langbook3.android.db.LangbookManager;
-import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.models.AgentDetails;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
@@ -197,7 +196,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         return getIntent().getIntExtra(ArgKeys.TARGET_BUNCH, 0);
     }
 
-    private void updateBunchSet(LangbookChecker<LanguageId, AlphabetId> checker, ViewGroup container, MutableIntList bunches) {
+    private void updateBunchSet(LangbookDbChecker checker, ViewGroup container, MutableIntList bunches) {
         final int currentBunchViewCount = container.getChildCount();
         final int stateBunchCount = bunches.size();
 
@@ -236,7 +235,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     private void setStateValues() {
-        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookDbChecker checker = DbManager.getInstance().getManager();
 
         updateBunchSet(checker, _targetBunchesContainer, _state.targetBunches);
         updateBunchSet(checker, _sourceBunchesContainer, _state.sourceBunches);
@@ -265,7 +264,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         setContentView(R.layout.agent_editor_activity);
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookDbChecker checker = DbManager.getInstance().getManager();
         _alphabets = checker.readAllAlphabets(_preferredAlphabet);
 
         if (savedInstanceState != null) {
@@ -451,13 +450,13 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
     }
 
-    private void addBunch(LangbookChecker<LanguageId, AlphabetId> checker, int concept, ViewGroup container, MutableIntList bunches) {
+    private void addBunch(LangbookDbChecker checker, int concept, ViewGroup container, MutableIntList bunches) {
         getLayoutInflater().inflate(R.layout.agent_editor_bunch_entry, container, true);
         final View view = container.getChildAt(container.getChildCount() - 1);
         bindBunch(view, checker, concept, container, bunches);
     }
 
-    private void bindBunch(View view, LangbookChecker<LanguageId, AlphabetId> checker, int concept, ViewGroup container, MutableIntList bunches) {
+    private void bindBunch(View view, LangbookDbChecker checker, int concept, ViewGroup container, MutableIntList bunches) {
         final TextView textView = view.findViewById(R.id.textView);
         textView.setText(checker.readConceptText(concept, _preferredAlphabet));
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeBunch(container, bunches, concept));
@@ -538,7 +537,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     final int rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? NO_RULE : _state.rule;
 
                     final int givenAgentId = getAgentId();
-                    final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+                    final LangbookDbManager manager = DbManager.getInstance().getManager();
                     final ImmutableIntSet targetBunches = _state.targetBunches.toImmutable().toSet();
                     final ImmutableIntSet sourceBunches = _state.sourceBunches.toImmutable().toSet();
                     final ImmutableIntSet diffBunches = _state.diffBunches.toImmutable().toSet();
@@ -567,7 +566,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+        final LangbookDbManager manager = DbManager.getInstance().getManager();
         if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH && resultCode == RESULT_OK) {
             final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
             if (acceptation == 0) {

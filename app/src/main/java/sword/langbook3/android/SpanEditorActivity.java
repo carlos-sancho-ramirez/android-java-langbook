@@ -20,9 +20,8 @@ import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookChecker;
-import sword.langbook3.android.db.LangbookManager;
-import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.models.SentenceSpan;
 
 import static sword.langbook3.android.SentenceEditorActivity.NO_SENTENCE_ID;
@@ -111,7 +110,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void insertInitialSpans(int sentenceId) {
-        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final String sentence = getText();
         final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(sentenceId);
         final MutableIntValueMap<SentenceSpan> builder = _state.getSpans();
@@ -137,7 +136,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void insertSuggestedSpans(int acceptation) {
-        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ImmutableIntValueMap<String> map = checker.readTextAndDynamicAcceptationsMapFromAcceptation(acceptation);
         final String text = getText();
         for (IntValueMap.Entry<String> entry : map.entries()) {
@@ -232,7 +231,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
         else {
             final String newText = getText();
-            final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+            final LangbookDbManager manager = DbManager.getInstance().getManager();
             final int sentenceId = getSentenceId();
             if (sentenceId == NO_SENTENCE_ID) {
                 int concept = getConcept();

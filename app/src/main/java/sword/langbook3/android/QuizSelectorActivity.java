@@ -23,10 +23,9 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableList;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
-import sword.langbook3.android.db.LangbookManager;
-import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
@@ -59,7 +58,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     private ListView _listView;
     private ActionMode _listActionMode;
 
-    private String getRuleText(LangbookChecker<LanguageId, AlphabetId> checker, int rule) {
+    private String getRuleText(LangbookDbChecker checker, int rule) {
         if (_ruleTexts == null) {
             _ruleTexts = checker.readAllRules(_preferredAlphabet);
         }
@@ -82,7 +81,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return 0;
     }
 
-    private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookChecker<LanguageId, AlphabetId> checker, int bunch) {
+    private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookDbChecker checker, int bunch) {
         final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId>>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
         final ImmutableMap<AlphabetId, String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
         final int quizCount = resultMap.size();
@@ -274,7 +273,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         _listActionMode = null;
         listActionMode.finish();
 
-        final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+        final LangbookDbManager manager = DbManager.getInstance().getManager();
         for (int quizId : quizzes) {
             manager.removeQuiz(quizId);
         }

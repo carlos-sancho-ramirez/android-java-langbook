@@ -8,7 +8,6 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
-import sword.collections.ImmutableIntValueHashMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
@@ -18,7 +17,6 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.collections.IntValueMap;
 import sword.collections.List;
 import sword.collections.Map;
 import sword.collections.MutableIntArraySet;
@@ -162,13 +160,13 @@ public final class LangbookDatabase {
     private LangbookDatabase() {
     }
 
-    private static int obtainSymbolArray(DbImporter.Database db, String str) {
-        Integer id = insertSymbolArray(db, str);
+    private static <SymbolArrayId> SymbolArrayId obtainSymbolArray(DbImporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, String str) {
+        SymbolArrayId id = insertSymbolArray(db, symbolArrayIdSetter, str);
         if (id != null) {
             return id;
         }
 
-        id = findSymbolArray(db, str);
+        id = findSymbolArray(db, symbolArrayIdSetter, str);
         if (id == null) {
             throw new AssertionError("Unable to insert, and not present");
         }
@@ -354,7 +352,7 @@ public final class LangbookDatabase {
         return validConversion;
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> void runAgent(Database db, IntSetter<AlphabetId> alphabetIntSetter, int agentId, AgentDetails<AlphabetId> details) {
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> void runAgent(Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, int agentId, AgentDetails<AlphabetId> details) {
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptations(db, details.sourceBunches, details.diffBunches, details.startMatcher, details.endMatcher);
         final ImmutableIntSet processedAcceptations;
         if (!details.modifyCorrelations()) {
@@ -374,14 +372,14 @@ public final class LangbookDatabase {
                 final boolean validConversion = applyMatchersAddersAndConversions(correlation, details, conversionMap, conversions);
                 if (validConversion) {
                     final ImmutableSet<AlphabetId> conversionTargets = conversionMap.keySet();
-                    final ImmutableIntValueMap.Builder<AlphabetId> corrBuilder = new ImmutableIntValueHashMap.Builder<>();
+                    final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
                     for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
                         if (!conversionTargets.contains(entry.key())) {
-                            corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                            corrBuilder.put(entry.key(), obtainSymbolArray(db, symbolArrayIdSetter, entry.value()));
                         }
                     }
 
-                    final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIntSetter, corrBuilder.build());
+                    final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIntSetter, symbolArrayIdSetter, corrBuilder.build());
                     final int correlationArrayId = obtainSimpleCorrelationArray(db, alphabetIntSetter, correlationId);
 
                     final int baseConcept = conceptFromAcceptation(db, acc);
@@ -413,7 +411,7 @@ public final class LangbookDatabase {
      *                               resulting in a different source acceptation to be ruled here.
      * @return A bunch set containing all target bunches that changed, or empty if there is no change.
      */
-    private static <AlphabetId extends AlphabetIdInterface> ImmutableIntSet rerunAgent(Database db, IntSetter<AlphabetId> alphabetIdSetter, int agentId, MutableIntSet deletedDynamicAcceptations, boolean sourceAgentChangedText) {
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> ImmutableIntSet rerunAgent(Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, int agentId, MutableIntSet deletedDynamicAcceptations, boolean sourceAgentChangedText) {
         final AgentDetails<AlphabetId> agentDetails = LangbookReadableDatabase.getAgentDetails(db, alphabetIdSetter, agentId);
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptations(db,
                 agentDetails.sourceBunches, agentDetails.diffBunches,
@@ -534,14 +532,14 @@ public final class LangbookDatabase {
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
                             conversionMap, conversions);
                     if (validConversion) {
-                        final ImmutableIntValueMap.Builder<AlphabetId> corrBuilder = new ImmutableIntValueHashMap.Builder<>();
+                        final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
                         for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
                             if (!conversionTargets.contains(entry.key())) {
-                                corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                                corrBuilder.put(entry.key(), obtainSymbolArray(db, symbolArrayIdSetter, entry.value()));
                             }
                         }
 
-                        final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIdSetter, corrBuilder.build());
+                        final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIdSetter, symbolArrayIdSetter, corrBuilder.build());
                         final int correlationArrayId = obtainSimpleCorrelationArray(db, alphabetIdSetter, correlationId);
                         final int dynAcc = oldProcessedMap.get(staticAcc);
 
@@ -605,14 +603,14 @@ public final class LangbookDatabase {
 
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, conversions);
                     if (validConversion) {
-                        final ImmutableIntValueMap.Builder<AlphabetId> corrBuilder = new ImmutableIntValueHashMap.Builder<>();
+                        final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
                         for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
                             if (!conversionTargets.contains(entry.key())) {
-                                corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                                corrBuilder.put(entry.key(), obtainSymbolArray(db, symbolArrayIdSetter, entry.value()));
                             }
                         }
 
-                        final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIdSetter, corrBuilder.build());
+                        final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIdSetter, symbolArrayIdSetter, corrBuilder.build());
                         final int correlationArrayId = obtainSimpleCorrelationArray(db, alphabetIdSetter, correlationId);
                         final int baseConcept = conceptFromAcceptation(db, acc);
                         final int ruledConcept = obtainRuledConcept(db, agentDetails.rule, baseConcept);
@@ -644,7 +642,7 @@ public final class LangbookDatabase {
         return targetChanged? agentDetails.targetBunches : ImmutableIntArraySet.empty();
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> Integer addAcceptation(Database db, IntSetter<AlphabetId> alphabetIdManager, int concept, int correlationArrayId) {
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Integer addAcceptation(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int concept, int correlationArrayId) {
         final Correlation<AlphabetId> texts = readCorrelationArrayTextAndItsAppliedConversions(db, alphabetIdManager, correlationArrayId);
         if (texts == null) {
             return null;
@@ -665,19 +663,19 @@ public final class LangbookDatabase {
 
         for (int agentId : sortedAgents.left) {
             if (!agentDependencies.get(agentId).filter(touchedBunches::contains).isEmpty()) {
-                touchedBunches.addAll(rerunAgent(db, alphabetIdManager, agentId, null, false));
+                touchedBunches.addAll(rerunAgent(db, alphabetIdManager, symbolArrayIdSetter, agentId, null, false));
             }
         }
 
         return acceptation;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> Integer addAcceptation(Database db, IntSetter<AlphabetId> alphabetIdManager, int concept, ImmutableCorrelationArray<AlphabetId> correlationArray) {
-        final int correlationArrayId = obtainCorrelationArray(db, alphabetIdManager, correlationArray.mapToInt(correlation -> obtainCorrelation(db, alphabetIdManager, correlation)));
-        return addAcceptation(db, alphabetIdManager, concept, correlationArrayId);
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Integer addAcceptation(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int concept, ImmutableCorrelationArray<AlphabetId> correlationArray) {
+        final int correlationArrayId = obtainCorrelationArray(db, alphabetIdManager, correlationArray.mapToInt(correlation -> obtainCorrelation(db, alphabetIdManager, symbolArrayIdSetter, correlation)));
+        return addAcceptation(db, alphabetIdManager, symbolArrayIdSetter, concept, correlationArrayId);
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> boolean updateAcceptationCorrelationArray(Database db, IntSetter<AlphabetId> alphabetIdManager, int acceptation, int newCorrelationArrayId) {
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean updateAcceptationCorrelationArray(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int acceptation, int newCorrelationArrayId) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
                 .where(table.getIdColumnIndex(), acceptation)
@@ -721,7 +719,7 @@ public final class LangbookDatabase {
             for (int thisAgentId : agentExecutionOrder.left) {
                 final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
                 if (affectedAgents.contains(thisAgentId) || dependencies.anyMatch(touchedBunches::contains)) {
-                    touchedBunches.addAll(rerunAgent(db, alphabetIdManager, thisAgentId, null, false));
+                    touchedBunches.addAll(rerunAgent(db, alphabetIdManager, symbolArrayIdSetter, thisAgentId, null, false));
                 }
             }
 
@@ -747,9 +745,9 @@ public final class LangbookDatabase {
         return changed;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean updateAcceptationCorrelationArray(Database db, IntSetter<AlphabetId> alphabetIdManager, int acceptation, ImmutableCorrelationArray<AlphabetId> correlationArray) {
-        final int correlationArrayId = obtainCorrelationArray(db, alphabetIdManager, correlationArray.mapToInt(correlation -> obtainCorrelation(db, alphabetIdManager, correlation)));
-        return updateAcceptationCorrelationArray(db, alphabetIdManager, acceptation, correlationArrayId);
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean updateAcceptationCorrelationArray(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int acceptation, ImmutableCorrelationArray<AlphabetId> correlationArray) {
+        final int correlationArrayId = obtainCorrelationArray(db, alphabetIdManager, correlationArray.mapToInt(correlation -> obtainCorrelation(db, alphabetIdManager, symbolArrayIdSetter, correlation)));
+        return updateAcceptationCorrelationArray(db, alphabetIdManager, symbolArrayIdSetter, acceptation, correlationArrayId);
     }
 
     private static void removeFromStringQueryTable(Database db, int acceptation) {
@@ -786,7 +784,7 @@ public final class LangbookDatabase {
                 !findRuledAcceptationByBaseAcceptation(db, acceptation).anyMatch(acc -> !canAcceptationBeRemoved(db, acc));
     }
 
-    private static void removeCorrelationArrayIfUnused(Database db, int correlationArray) {
+    private static <SymbolArrayId extends SymbolArrayIdInterface> void removeCorrelationArrayIfUnused(Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int correlationArray) {
         if (!LangbookReadableDatabase.isCorrelationArrayInUse(db, correlationArray)) {
             final int[] correlationIds = LangbookReadableDatabase.getCorrelationArray(db, correlationArray);
             if (!deleteCorrelationArray(db, correlationArray)) {
@@ -795,13 +793,13 @@ public final class LangbookDatabase {
 
             for (int correlationId : correlationIds) {
                 if (!isCorrelationInUse(db, correlationId)) {
-                    final ImmutableIntSet symbolArrayIds = LangbookReadableDatabase.getCorrelationSymbolArrayIds(db, correlationId);
+                    final ImmutableSet<SymbolArrayId> symbolArrayIds = LangbookReadableDatabase.getCorrelationSymbolArrayIds(db, symbolArrayIdSetter, correlationId);
 
                     if (!deleteCorrelation(db, correlationId)) {
                         throw new AssertionError();
                     }
 
-                    for (int symbolArrayId : symbolArrayIds) {
+                    for (SymbolArrayId symbolArrayId : symbolArrayIds) {
                         if (!isSymbolArrayInUse(db, symbolArrayId) && !deleteSymbolArray(db, symbolArrayId)) {
                             throw new AssertionError();
                         }
@@ -811,8 +809,8 @@ public final class LangbookDatabase {
         }
     }
 
-    private static boolean removeAcceptationInternal(Database db, int acceptation) {
-        if (findRuledAcceptationByBaseAcceptation(db, acceptation).anyMatch(acc -> !removeAcceptationInternal(db, acc))) {
+    private static <SymbolArrayId extends SymbolArrayIdInterface> boolean removeAcceptationInternal(Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int acceptation) {
+        if (findRuledAcceptationByBaseAcceptation(db, acceptation).anyMatch(acc -> !removeAcceptationInternal(db, symbolArrayIdSetter, acc))) {
             throw new AssertionError();
         }
 
@@ -833,18 +831,18 @@ public final class LangbookDatabase {
             }
 
             deleteRuledAcceptation(db, acceptation);
-            removeCorrelationArrayIfUnused(db, correlationArray);
+            removeCorrelationArrayIfUnused(db, symbolArrayIdSetter, correlationArray);
         }
 
         return removed;
     }
 
-    static boolean removeAcceptation(Database db, int acceptation) {
+    static <SymbolArrayId extends SymbolArrayIdInterface> boolean removeAcceptation(Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int acceptation) {
         if (!canAcceptationBeRemoved(db, acceptation)) {
             return false;
         }
 
-        if (!removeAcceptationInternal(db, acceptation)) {
+        if (!removeAcceptationInternal(db, symbolArrayIdSetter, acceptation)) {
             throw new AssertionError();
         }
 
@@ -929,7 +927,7 @@ public final class LangbookDatabase {
         });
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> ImmutableIntSet rerunAgentWhenAcceptationIncludedInBunch(Database db, IntSetter<AlphabetId> alphabetIdManager, int agentId, MutableIntSet addedAcceptations) {
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> ImmutableIntSet rerunAgentWhenAcceptationIncludedInBunch(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int agentId, MutableIntSet addedAcceptations) {
         final AgentDetails<AlphabetId> agentDetails = LangbookReadableDatabase.getAgentDetails(db, alphabetIdManager, agentId);
         final ImmutableIntSet matchingAcceptations = findMatchingAcceptationsAmongGiven(db,
                 alphabetIdManager, addedAcceptations, agentDetails.sourceBunches, agentDetails.diffBunches,
@@ -973,7 +971,7 @@ public final class LangbookDatabase {
                 final int dynAcc = oldProcessedMap.get(acc, 0);
                 if (!isMatching && dynAcc != 0) {
                     targetChanged |= !agentDetails.targetBunches.isEmpty();
-                    removeAcceptationInternal(db, dynAcc);
+                    removeAcceptationInternal(db, symbolArrayIdSetter, dynAcc);
                 }
                 else if (isMatching && dynAcc == 0) {
                     final ImmutablePair<ImmutableCorrelation<AlphabetId>, Integer> textsAndMain = readAcceptationTextsAndMain(
@@ -983,14 +981,14 @@ public final class LangbookDatabase {
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
                             conversionMap, conversions);
                     if (validConversion) {
-                        final ImmutableIntValueMap.Builder<AlphabetId> corrBuilder = new ImmutableIntValueHashMap.Builder<>();
+                        final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
                         for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
                             if (!conversionTargets.contains(entry.key())) {
-                                corrBuilder.put(entry.key(), obtainSymbolArray(db, entry.value()));
+                                corrBuilder.put(entry.key(), obtainSymbolArray(db, symbolArrayIdSetter, entry.value()));
                             }
                         }
 
-                        final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIdManager, corrBuilder.build());
+                        final int correlationId = LangbookDatabase.obtainCorrelation(db, alphabetIdManager, symbolArrayIdSetter, corrBuilder.build());
                         final int correlationArrayId = obtainSimpleCorrelationArray(db, alphabetIdManager, correlationId);
                         final int baseConcept = conceptFromAcceptation(db, acc);
                         final int ruledConcept = obtainRuledConcept(db, agentDetails.rule, baseConcept);
@@ -1027,7 +1025,7 @@ public final class LangbookDatabase {
      * @return Whether the acceptation has been properly included.
      *         False if the acceptation is already included in the bunch.
      */
-    static <AlphabetId extends AlphabetIdInterface> boolean addAcceptationInBunch(Database db, IntSetter<AlphabetId> alphabetIdManager, int bunch, int acceptation) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean addAcceptationInBunch(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int bunch, int acceptation) {
         if (isAcceptationStaticallyInBunch(db, bunch, acceptation)) {
             return false;
         }
@@ -1043,7 +1041,7 @@ public final class LangbookDatabase {
 
         for (int agentId : agentSortingResult.left) {
             if (agentSortingResult.right.get(agentId).anyMatch(updatedBunches::contains)) {
-                updatedBunches.addAll(rerunAgentWhenAcceptationIncludedInBunch(db, alphabetIdManager, agentId, addedAcceptations));
+                updatedBunches.addAll(rerunAgentWhenAcceptationIncludedInBunch(db, alphabetIdManager, symbolArrayIdSetter, agentId, addedAcceptations));
             }
         }
 
@@ -1051,7 +1049,7 @@ public final class LangbookDatabase {
         return true;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean removeAcceptationFromBunch(Database db, IntSetter<AlphabetId> alphabetIdManager, int bunch, int acceptation) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean removeAcceptationFromBunch(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int bunch, int acceptation) {
         if (LangbookDeleter.deleteBunchAcceptation(db, bunch, acceptation, 0)) {
             final ImmutableIntSet.Builder allUpdatedBunchesBuilder = new ImmutableIntSetCreator();
             ImmutableIntSet updatedBunches = new ImmutableIntSetCreator().add(bunch).build();
@@ -1061,14 +1059,14 @@ public final class LangbookDatabase {
                 for (int b : updatedBunches) {
                     allUpdatedBunchesBuilder.add(b);
                     for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, b).entries()) {
-                        rerunAgent(db, alphabetIdManager, entry.key(), removedDynamicAcceptations, false);
+                        rerunAgent(db, alphabetIdManager, symbolArrayIdSetter, entry.key(), removedDynamicAcceptations, false);
                         for (int bb : entry.value()) {
                             builder.add(bb);
                         }
                     }
 
                     for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsDiffWithTarget(db, b).entries()) {
-                        rerunAgent(db, alphabetIdManager, entry.key(), removedDynamicAcceptations, false);
+                        rerunAgent(db, alphabetIdManager, symbolArrayIdSetter, entry.key(), removedDynamicAcceptations, false);
                         for (int bb : entry.value()) {
                             builder.add(bb);
                         }
@@ -1088,7 +1086,7 @@ public final class LangbookDatabase {
         return false;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> Integer addAgent(Database db, IntSetter<AlphabetId> alphabetIdSetter, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Integer addAgent(Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
             ImmutableCorrelation<AlphabetId> endAdder, int rule) {
@@ -1101,7 +1099,7 @@ public final class LangbookDatabase {
         final int diffBunchSetId = obtainBunchSet(db, diffBunches);
 
         final SyncCacheIntValueMap<ImmutableCorrelation<AlphabetId>> cachedCorrelationIds =
-                new SyncCacheIntValueMap<>(corr -> obtainCorrelation(db, alphabetIdSetter, corr.mapToInt(str -> obtainSymbolArray(db, str))));
+                new SyncCacheIntValueMap<>(corr -> obtainCorrelation(db, alphabetIdSetter, symbolArrayIdSetter, corr.map(str -> obtainSymbolArray(db, symbolArrayIdSetter, str))));
         final int startMatcherId = cachedCorrelationIds.get(startMatcher);
         final int startAdderId = cachedCorrelationIds.get(startAdder);
         final int endMatcherId = cachedCorrelationIds.get(endMatcher);
@@ -1126,7 +1124,7 @@ public final class LangbookDatabase {
         if (agentId != null) {
             final AgentDetails<AlphabetId> details = new AgentDetails<>(targetBunches, sourceBunches, diffBunches,
                         startMatcher, startAdder, endMatcher, endAdder, rule);
-            runAgent(db, alphabetIdSetter, agentId, details);
+            runAgent(db, alphabetIdSetter, symbolArrayIdSetter, agentId, details);
         }
 
         ImmutableIntSet updatedBunches = targetBunches.isEmpty()? new ImmutableIntSetCreator().add(0).build() : targetBunches;
@@ -1134,7 +1132,7 @@ public final class LangbookDatabase {
             final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int bunch : updatedBunches) {
                 for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, alphabetIdSetter, entry.key(), null, false);
+                    rerunAgent(db, alphabetIdSetter, symbolArrayIdSetter, entry.key(), null, false);
                     for (int b : entry.value()) {
                         builder.add(b);
                     }
@@ -1146,7 +1144,7 @@ public final class LangbookDatabase {
         return agentId;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean updateAgent(Database db, IntSetter<AlphabetId> alphabetIdSetter, int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean updateAgent(Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
             ImmutableCorrelation<AlphabetId> endAdder, int rule) {
@@ -1193,7 +1191,7 @@ public final class LangbookDatabase {
             somethingChanged = true;
         }
 
-        final int startMatcherId = obtainCorrelation(db, alphabetIdSetter, startMatcher);
+        final int startMatcherId = obtainCorrelation(db, alphabetIdSetter, symbolArrayIdSetter, startMatcher);
         if (startMatcherId != register.startMatcherId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getStartMatcherColumnIndex(), startMatcherId);
@@ -1201,7 +1199,7 @@ public final class LangbookDatabase {
             somethingChanged = true;
         }
 
-        final int startAdderId = obtainCorrelation(db, alphabetIdSetter, startAdder);
+        final int startAdderId = obtainCorrelation(db, alphabetIdSetter, symbolArrayIdSetter, startAdder);
         if (startAdderId != register.startAdderId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getStartAdderColumnIndex(), startAdderId);
@@ -1209,7 +1207,7 @@ public final class LangbookDatabase {
             somethingChanged = true;
         }
 
-        final int endMatcherId = obtainCorrelation(db, alphabetIdSetter, endMatcher);
+        final int endMatcherId = obtainCorrelation(db, alphabetIdSetter, symbolArrayIdSetter, endMatcher);
         if (endMatcherId != register.endMatcherId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getEndMatcherColumnIndex(), endMatcherId);
@@ -1217,7 +1215,7 @@ public final class LangbookDatabase {
             somethingChanged = true;
         }
 
-        final int endAdderId = obtainCorrelation(db, alphabetIdSetter, endAdder);
+        final int endAdderId = obtainCorrelation(db, alphabetIdSetter, symbolArrayIdSetter, endAdder);
         if (endAdderId != register.endAdderId) {
             // TODO: old correlation should be removed if not used by any other acceptation or agent, in order to keep clean the database
             updateQueryBuilder.put(table.getEndAdderColumnIndex(), endAdderId);
@@ -1250,7 +1248,7 @@ public final class LangbookDatabase {
             final ImmutableIntSet dependencies = agentExecutionOrder.right.get(thisAgentId);
             if (thisAgentId == agentId || dependencies.anyMatch(touchedBunches::contains)) {
                 final boolean sourceAgentChangedText = thisAgentId != agentId && correlationChanged;
-                touchedBunches.addAll(rerunAgent(db, alphabetIdSetter, thisAgentId, null, sourceAgentChangedText));
+                touchedBunches.addAll(rerunAgent(db, alphabetIdSetter, symbolArrayIdSetter, thisAgentId, null, sourceAgentChangedText));
             }
         }
 
@@ -1299,7 +1297,7 @@ public final class LangbookDatabase {
         return true;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> void removeAgent(Database db, IntSetter<AlphabetId> alphabetIdManager, int agentId) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> void removeAgent(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdSetter, int agentId) {
         // This implementation has lot of holes.
         // 1. It is assuming that there is no chained agents
         // 2. It is assuming that agents sets only contains a single agent.
@@ -1325,7 +1323,7 @@ public final class LangbookDatabase {
             }
 
             deleteSpansByDynamicAcceptation(db, ruleAcceptation);
-            removeCorrelationArrayIfUnused(db, correlationArray);
+            removeCorrelationArrayIfUnused(db, symbolArrayIdSetter, correlationArray);
         }
 
         if (!LangbookDeleter.deleteAgent(db, agentId)) {
@@ -1355,7 +1353,7 @@ public final class LangbookDatabase {
             ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
             for (int bunch : updatedBunches) {
                 for (IntKeyMap.Entry<ImmutableIntSet> entry : findAffectedAgentsByItsSourceWithTarget(db, bunch).entries()) {
-                    rerunAgent(db, alphabetIdManager, entry.key(), null, false);
+                    rerunAgent(db, alphabetIdManager, symbolArrayIdSetter, entry.key(), null, false);
                     for (int b : entry.value()) {
                         builder.add(b);
                     }
@@ -1407,9 +1405,9 @@ public final class LangbookDatabase {
         deleteQuiz(db, quizId);
     }
 
-    private static boolean updateSymbolArray(Database db, int symbolArrayId, String text) {
+    private static boolean updateSymbolArray(Database db, SymbolArrayIdInterface symbolArrayId, String text) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
-        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getIdColumnIndex(), symbolArrayId)
                 .put(table.getStrColumnIndex(), text)
                 .build();
@@ -1425,25 +1423,25 @@ public final class LangbookDatabase {
         return db.update(query);
     }
 
-    private static boolean updateSentenceSymbolArrayId(Database db, int sentenceId, int newSymbolArrayId) {
+    private static boolean updateSentenceSymbolArrayId(Database db, int sentenceId, SymbolArrayIdInterface newSymbolArrayId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
-        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getIdColumnIndex(), sentenceId)
                 .put(table.getSymbolArrayColumnIndex(), newSymbolArrayId)
                 .build();
         return db.update(query);
     }
 
-    static boolean removeSentence(Database db, int sentenceId) {
-        final Integer symbolArrayIdOpt = getSentenceSymbolArray(db, sentenceId);
-        if (symbolArrayIdOpt == null || !deleteSentence(db, sentenceId)) {
+    static <SymbolArrayId extends SymbolArrayIdInterface> boolean removeSentence(Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int sentenceId) {
+        final SymbolArrayId symbolArrayId = getSentenceSymbolArray(db, symbolArrayIdSetter, sentenceId);
+        if (symbolArrayId == null || !deleteSentence(db, sentenceId)) {
             return false;
         }
 
         deleteSpansBySentenceId(db, sentenceId);
-        if (isSymbolArrayMerelyASentence(db, symbolArrayIdOpt) &&
-                findSentencesBySymbolArrayId(db, symbolArrayIdOpt).isEmpty() &&
-                !deleteSymbolArray(db, symbolArrayIdOpt)) {
+        if (isSymbolArrayMerelyASentence(db, symbolArrayId) &&
+                findSentencesBySymbolArrayId(db, symbolArrayId).isEmpty() &&
+                !deleteSymbolArray(db, symbolArrayId)) {
             throw new AssertionError();
         }
 
@@ -1455,7 +1453,7 @@ public final class LangbookDatabase {
         return concept != null && updateSentenceConcept(db, targetSentenceId, concept);
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> Conversion<AlphabetId> updateJustConversion(Database db, Conversion<AlphabetId> newConversion) {
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Conversion<AlphabetId> updateJustConversion(Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, Conversion<AlphabetId> newConversion) {
         final Conversion<AlphabetId> oldConversion = getConversion(db, newConversion.getAlphabets());
 
         final ImmutableSet<Map.Entry<String, String>> oldPairs = oldConversion.getMap().entries();
@@ -1466,16 +1464,16 @@ public final class LangbookDatabase {
 
         for (Map.Entry<String, String> pair : pairsToRemove) {
             // TODO: SymbolArrays should also be removed if not used by any other, just to avoid dirty databases
-            final int sourceId = findSymbolArray(db, pair.key());
-            final int targetId = findSymbolArray(db, pair.value());
+            final SymbolArrayId sourceId = findSymbolArray(db, symbolArrayIdSetter, pair.key());
+            final SymbolArrayId targetId = findSymbolArray(db, symbolArrayIdSetter, pair.value());
             if (!LangbookDeleter.deleteConversionRegister(db, newConversion.getAlphabets(), sourceId, targetId)) {
                 throw new AssertionError();
             }
         }
 
         for (Map.Entry<String, String> pair : pairsToInclude) {
-            final int sourceId = obtainSymbolArray(db, pair.key());
-            final int targetId = obtainSymbolArray(db, pair.value());
+            final SymbolArrayId sourceId = obtainSymbolArray(db, symbolArrayIdSetter, pair.key());
+            final SymbolArrayId targetId = obtainSymbolArray(db, symbolArrayIdSetter, pair.value());
             LangbookDbInserter.insertConversion(db, newConversion.getSourceAlphabet(), newConversion.getTargetAlphabet(), sourceId, targetId);
         }
 
@@ -1576,7 +1574,7 @@ public final class LangbookDatabase {
         return new LanguageCreationResult<>(language, alphabet);
     }
 
-    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> boolean removeLanguage(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIdSetter, LanguageId language) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean removeLanguage(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, LanguageId language) {
         // For now, if there is a bunch whose concept is only linked to acceptations of the language to be removed,
         // the removal is rejected, as there will not be any way to access that bunch any more in an AcceptationsDetailsActivity.
         // Only exception to the previous rule is the case where all acceptations within the bunch belongs to the language that is about to be removed.
@@ -1606,7 +1604,7 @@ public final class LangbookDatabase {
 
         final ImmutableIntSet acceptationIds = LangbookReadableDatabase.findAcceptationsByLanguage(db, language);
         for (int acceptation : acceptationIds) {
-            if (!removeAcceptation(db, acceptation)) {
+            if (!removeAcceptation(db, symbolArrayIdSetter, acceptation)) {
                 throw new AssertionError();
             }
         }
@@ -1618,7 +1616,7 @@ public final class LangbookDatabase {
             final AlphabetId sourceAlphabet = conversionMap.valueAt(i);
             if (alphabets.contains(sourceAlphabet)) {
                 final AlphabetId targetAlphabet = conversionMap.keyAt(i);
-                if (!replaceConversion(db, languageIdSetter, new Conversion<>(sourceAlphabet, targetAlphabet, ImmutableHashMap.empty()))) {
+                if (!replaceConversion(db, languageIdSetter, symbolArrayIdSetter, new Conversion<>(sourceAlphabet, targetAlphabet, ImmutableHashMap.empty()))) {
                     throw new AssertionError();
                 }
             }
@@ -1649,7 +1647,7 @@ public final class LangbookDatabase {
      * @param sourceAlphabet Existing alphabet that will be cloned. This cannot be the target of a conversion.
      * @return true if the alphabet has been successfully added, and so, the database content has change.
      */
-    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> boolean addAlphabetCopyingFromOther(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIdSetter, AlphabetId alphabet, AlphabetId sourceAlphabet) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean addAlphabetCopyingFromOther(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, AlphabetId alphabet, AlphabetId sourceAlphabet) {
         if (LangbookReadableDatabase.isAlphabetPresent(db, alphabet)) {
             return false;
         }
@@ -1665,7 +1663,7 @@ public final class LangbookDatabase {
 
         insertAlphabet(db, alphabet, language);
 
-        final ImmutableIntPairMap correlations = LangbookReadableDatabase.findCorrelationsAndSymbolArrayForAlphabet(db, sourceAlphabet);
+        final ImmutableIntKeyMap<SymbolArrayId> correlations = LangbookReadableDatabase.findCorrelationsAndSymbolArrayForAlphabet(db, symbolArrayIdSetter, sourceAlphabet);
         final int correlationCount = correlations.size();
         for (int i = 0; i < correlationCount; i++) {
             LangbookDbInserter.insertCorrelationEntry(db, correlations.keyAt(i), alphabet, correlations.valueAt(i));
@@ -1739,12 +1737,12 @@ public final class LangbookDatabase {
         return true;
     }
 
-    static Integer addSentence(Database db, int concept, String text, Set<SentenceSpan> spans) {
+    static <SymbolArrayId extends SymbolArrayIdInterface> Integer addSentence(Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int concept, String text, Set<SentenceSpan> spans) {
         if (!checkValidTextAndSpans(text, spans)) {
             return null;
         }
 
-        final int symbolArray = obtainSymbolArray(db, text);
+        final SymbolArrayId symbolArray = obtainSymbolArray(db, symbolArrayIdSetter, text);
         final int sentenceId = insertSentence(db, concept, symbolArray);
         for (SentenceSpan span : spans) {
             insertSpan(db, sentenceId, span.range, span.acceptation);
@@ -1752,18 +1750,17 @@ public final class LangbookDatabase {
         return sentenceId;
     }
 
-    static boolean updateSentenceTextAndSpans(Database db, int sentenceId, String newText, Set<SentenceSpan> newSpans) {
-        final Integer oldSymbolArrayIdOpt = getSentenceSymbolArray(db, sentenceId);
-        if (oldSymbolArrayIdOpt == null || !checkValidTextAndSpans(newText, newSpans)) {
+    static <SymbolArrayId extends SymbolArrayIdInterface> boolean updateSentenceTextAndSpans(Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int sentenceId, String newText, Set<SentenceSpan> newSpans) {
+        final SymbolArrayId oldSymbolArrayId = getSentenceSymbolArray(db, symbolArrayIdSetter, sentenceId);
+        if (oldSymbolArrayId == null || !checkValidTextAndSpans(newText, newSpans)) {
             return false;
         }
 
-        final int oldSymbolArrayId = oldSymbolArrayIdOpt;
         final ImmutableIntValueMap<SentenceSpan> oldSpanMap = getSentenceSpansWithIds(db, sentenceId);
 
-        final Integer foundSymbolArrayId = findSymbolArray(db, newText);
+        final SymbolArrayId foundSymbolArrayId = findSymbolArray(db, symbolArrayIdSetter, newText);
         final boolean oldSymbolArrayOnlyUsedHere = isSymbolArrayMerelyASentence(db, oldSymbolArrayId) && findSentencesBySymbolArrayId(db, oldSymbolArrayId).size() == 1;
-        final int newSymbolArrayId;
+        final SymbolArrayId newSymbolArrayId;
         if (foundSymbolArrayId == null) {
             if (oldSymbolArrayOnlyUsedHere) {
                 if (!updateSymbolArray(db, oldSymbolArrayId, newText)) {
@@ -1772,11 +1769,11 @@ public final class LangbookDatabase {
                 newSymbolArrayId = oldSymbolArrayId;
             }
             else {
-                newSymbolArrayId = insertSymbolArray(db, newText);
+                newSymbolArrayId = insertSymbolArray(db, symbolArrayIdSetter, newText);
             }
         }
         else {
-            if (foundSymbolArrayId != oldSymbolArrayId && oldSymbolArrayOnlyUsedHere && !deleteSymbolArray(db, oldSymbolArrayId)) {
+            if (!equal(foundSymbolArrayId, oldSymbolArrayId) && oldSymbolArrayOnlyUsedHere && !deleteSymbolArray(db, oldSymbolArrayId)) {
                 throw new AssertionError();
             }
             newSymbolArrayId = foundSymbolArrayId;
@@ -2208,13 +2205,13 @@ public final class LangbookDatabase {
      * @param linkedAcceptation Acceptation from where the correlation array reference has to be copied.
      * @param concept Concept to be applied to the new acceptation created.
      */
-    static <AlphabetId extends AlphabetIdInterface> void duplicateAcceptationWithThisConcept(Database db, IntSetter<AlphabetId> alphabetIdManager, int linkedAcceptation, int concept) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> void duplicateAcceptationWithThisConcept(Database db, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, int linkedAcceptation, int concept) {
         if (concept == 0) {
             throw new AssertionError();
         }
 
         final int correlationArray = correlationArrayFromAcceptation(db, linkedAcceptation);
-        addAcceptation(db, alphabetIdManager, concept, correlationArray);
+        addAcceptation(db, alphabetIdManager, symbolArrayIdManager, concept, correlationArray);
     }
 
     /**
@@ -2223,7 +2220,7 @@ public final class LangbookDatabase {
      * @param conversion Conversion to be evaluated and stored if no conflicts are found.
      * @return Whether the action was completed successfully, and so the database state content has changed.
      */
-    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> boolean addAlphabetAsConversionTarget(Database db, IntSetter<LanguageId> languageIdSetter, Conversion<AlphabetId> conversion) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean addAlphabetAsConversionTarget(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, Conversion<AlphabetId> conversion) {
         final LanguageId language = getLanguageFromAlphabet(db, languageIdSetter, conversion.getSourceAlphabet());
         if (language == null) {
             return false;
@@ -2239,7 +2236,7 @@ public final class LangbookDatabase {
 
         insertAlphabet(db, conversion.getTargetAlphabet(), language);
 
-        if (!updateJustConversion(db, conversion).getMap().isEmpty()) {
+        if (!updateJustConversion(db, symbolArrayIdSetter, conversion).getMap().isEmpty()) {
             throw new AssertionError();
         }
 
@@ -2256,7 +2253,7 @@ public final class LangbookDatabase {
      * @param conversion New conversion to be included.
      * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
      */
-    static <LanguageId, AlphabetId extends AlphabetIdInterface> boolean replaceConversion(Database db, IntSetter<LanguageId> languageIdSetter, Conversion<AlphabetId> conversion) {
+    static <LanguageId, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> boolean replaceConversion(Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, Conversion<AlphabetId> conversion) {
         final AlphabetId sourceAlphabet = conversion.getSourceAlphabet();
         final AlphabetId targetAlphabet = conversion.getTargetAlphabet();
         final LanguageId languageObj = getLanguageFromAlphabet(db, languageIdSetter, sourceAlphabet);
@@ -2276,13 +2273,13 @@ public final class LangbookDatabase {
             }
             else {
                 unapplyConversion(db, oldConversion);
-                updateJustConversion(db, conversion);
+                updateJustConversion(db, symbolArrayIdSetter, conversion);
                 return true;
             }
         }
 
         if (checkConversionConflicts(db, conversion)) {
-            final Conversion<AlphabetId> oldConversion = updateJustConversion(db, conversion);
+            final Conversion<AlphabetId> oldConversion = updateJustConversion(db, symbolArrayIdSetter, conversion);
             if (oldConversion.getMap().isEmpty()) {
                 applyConversion(db, conversion);
             }
@@ -2305,8 +2302,8 @@ public final class LangbookDatabase {
      * @param correlation IntPairMap whose keys are alphabets and values are symbol arrays identifiers.
      * @return An identifier for the new correlation included, or null in case of error.
      */
-    private static <AlphabetId extends AlphabetIdInterface> Integer obtainCorrelation(DbImporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntValueMap<AlphabetId> correlation) {
-        final Integer foundId = findCorrelation(db, alphabetIntSetter, correlation);
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Integer obtainCorrelation(DbImporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, Map<AlphabetId, SymbolArrayId> correlation) {
+        final Integer foundId = findCorrelation(db, alphabetIntSetter, symbolArrayIdSetter, correlation);
         if (foundId != null) {
             return foundId;
         }
@@ -2330,14 +2327,14 @@ public final class LangbookDatabase {
      * @param correlation IntKeyMap whose keys are alphabets and values are symbol arrays to be included as well.
      * @return An identifier for the new correlation included, or null in case of error.
      */
-    private static <AlphabetId extends AlphabetIdInterface> Integer obtainCorrelation(DbImporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, Correlation<AlphabetId> correlation) {
-        if (correlation.anyMatch(str -> findSymbolArray(db, str) == null)) {
+    private static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Integer obtainCorrelation(DbImporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, Correlation<AlphabetId> correlation) {
+        if (correlation.anyMatch(str -> findSymbolArray(db, symbolArrayIdSetter, str) == null)) {
             final int newCorrelationId = getMaxCorrelationId(db) + 1;
-            LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation.mapToInt(str -> obtainSymbolArray(db, str)));
+            LangbookDbInserter.insertCorrelation(db, newCorrelationId, correlation.map(str -> obtainSymbolArray(db, symbolArrayIdSetter, str)));
             return newCorrelationId;
         }
 
-        return obtainCorrelation(db, alphabetIntSetter, correlation.mapToInt(str -> obtainSymbolArray(db, str)));
+        return obtainCorrelation(db, alphabetIntSetter, symbolArrayIdSetter, correlation.map(str -> obtainSymbolArray(db, symbolArrayIdSetter, str)));
     }
 
     /**

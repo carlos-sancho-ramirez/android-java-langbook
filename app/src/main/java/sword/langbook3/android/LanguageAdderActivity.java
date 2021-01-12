@@ -7,9 +7,8 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookChecker;
+import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdManager;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
@@ -113,7 +112,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             // Nothing to be done
         }
 
-        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookDbChecker checker = DbManager.getInstance().getManager();
         String errorMessage = null;
         if (!code.matches(LanguageCodeRules.REGEX)) {
             errorMessage = getString(R.string.languageAdderBadLanguageCode);

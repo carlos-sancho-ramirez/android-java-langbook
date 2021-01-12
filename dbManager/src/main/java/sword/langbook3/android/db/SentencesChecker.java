@@ -5,8 +5,8 @@ import sword.collections.ImmutableSet;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
-public interface SentencesChecker<LanguageId, AlphabetId> extends AcceptationsChecker<LanguageId, AlphabetId> {
-    boolean isSymbolArrayMerelyASentence(int symbolArrayId);
+public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId> extends AcceptationsChecker<LanguageId, AlphabetId> {
+    boolean isSymbolArrayMerelyASentence(SymbolArrayId symbolArrayId);
 
     /**
      * Returns the string representation for the given sentence.

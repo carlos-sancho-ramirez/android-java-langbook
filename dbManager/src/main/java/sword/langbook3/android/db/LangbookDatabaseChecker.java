@@ -30,7 +30,7 @@ import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
-abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface> implements LangbookChecker<LanguageId, AlphabetId> {
+abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> implements LangbookChecker<LanguageId, AlphabetId, SymbolArrayId> {
 
     abstract IntSetter<LanguageId> getLanguageIdSetter();
     abstract IntSetter<AlphabetId> getAlphabetIdSetter();
@@ -127,7 +127,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public boolean isSymbolArrayMerelyASentence(int symbolArrayId) {
+    public boolean isSymbolArrayMerelyASentence(SymbolArrayId symbolArrayId) {
         return LangbookReadableDatabase.isSymbolArrayMerelyASentence(getDatabase(), symbolArrayId);
     }
 

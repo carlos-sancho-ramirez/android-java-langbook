@@ -17,8 +17,7 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.MutableIntPairMap;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.LangbookChecker;
-import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 
@@ -75,12 +74,12 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private ImmutableIntSet _possibleAcceptations;
     private int _dbWriteVersion;
 
-    private void readQuizDefinition(LangbookChecker<LanguageId, AlphabetId> checker) {
+    private void readQuizDefinition(LangbookDbChecker checker) {
         _quizDetails = checker.getQuizDetails(_quizId);
         _fieldTextViews = new TextView[_quizDetails.fields.size()];
     }
 
-    private String readFieldText(LangbookChecker<LanguageId, AlphabetId> checker, int index) {
+    private String readFieldText(LangbookDbChecker checker, int index) {
         return checker.readQuestionFieldText(_acceptation, _quizDetails.fields.get(index));
     }
 
@@ -134,7 +133,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
 
         final ImmutableList<QuestionFieldDetails<AlphabetId>> fields = _quizDetails.fields;
         if (!_isAnswerVisible) {
-            LangbookChecker<LanguageId, AlphabetId> checker = null;
+            LangbookDbChecker checker = null;
             for (int i = 0; i < fields.size(); i++) {
                 if (fields.get(i).isAnswer()) {
                     if (checker == null) {
@@ -204,7 +203,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         if (dbWriteVersion != _dbWriteVersion) {
             _dbWriteVersion = dbWriteVersion;
 
-            final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
+            final LangbookDbChecker checker = DbManager.getInstance().getManager();
             readQuizDefinition(checker);
             readCurrentKnowledge(checker);
 
@@ -249,7 +248,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         }
     }
 
-    private void readCurrentKnowledge(LangbookChecker<LanguageId, AlphabetId> checker) {
+    private void readCurrentKnowledge(LangbookDbChecker checker) {
         final ImmutableIntPairMap knowledgeMap = checker.getCurrentKnowledge(_quizId);
         _possibleAcceptations = knowledgeMap.keySet();
         _knowledge = knowledgeMap.filter(score -> score != NO_SCORE).mutate();

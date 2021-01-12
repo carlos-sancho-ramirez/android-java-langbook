@@ -19,8 +19,7 @@ import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
-import sword.langbook3.android.db.LangbookManager;
-import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
@@ -168,7 +167,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private int addAcceptation(LangbookManager<LanguageId, AlphabetId> manager) {
+    private int addAcceptation(LangbookDbManager manager) {
         int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
         if (concept == NO_CONCEPT) {
             concept = manager.getMaxConcept() + 1;
@@ -182,7 +181,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         if (requestCode == REQUEST_CODE_PICK_BUNCHES) {
             if (resultCode == RESULT_OK && data != null) {
                 final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
-                final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+                final LangbookDbManager manager = DbManager.getInstance().getManager();
                 if (manager.allValidAlphabets(getTexts())) {
                     final int accId = addAcceptation(manager);
                     for (int bunch : bunchSet) {

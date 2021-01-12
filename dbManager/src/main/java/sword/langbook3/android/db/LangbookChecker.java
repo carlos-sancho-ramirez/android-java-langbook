@@ -6,7 +6,7 @@ import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.SearchResult;
 
-public interface LangbookChecker<LanguageId, AlphabetId> extends QuizzesChecker<LanguageId, AlphabetId>, DefinitionsChecker, SentencesChecker<LanguageId, AlphabetId> {
+public interface LangbookChecker<LanguageId, AlphabetId, SymbolArrayId> extends QuizzesChecker<LanguageId, AlphabetId>, DefinitionsChecker, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId> {
     ImmutableSet<String> findConversionConflictWords(ConversionProposal<AlphabetId> newConversion);
     AcceptationDetailsModel<AlphabetId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult> getSearchHistory();

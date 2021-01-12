@@ -26,8 +26,18 @@ final class DbUpdateQueryBuilder {
         return this;
     }
 
+    public DbUpdateQueryBuilder where(int columnIndex, SymbolArrayIdInterface id) {
+        id.where(columnIndex, _builder);
+        return this;
+    }
+
     public DbUpdateQueryBuilder put(int columnIndex, String value) {
         _builder.put(columnIndex, value);
+        return this;
+    }
+
+    public DbUpdateQueryBuilder put(int columnIndex, SymbolArrayIdInterface id) {
+        id.put(columnIndex, _builder);
         return this;
     }
 

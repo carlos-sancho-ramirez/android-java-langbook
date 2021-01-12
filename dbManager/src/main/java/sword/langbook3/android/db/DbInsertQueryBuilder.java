@@ -31,6 +31,11 @@ final class DbInsertQueryBuilder {
         return this;
     }
 
+    public DbInsertQueryBuilder put(int columnIndex, SymbolArrayIdInterface alphabet) {
+        alphabet.put(columnIndex, _builder);
+        return this;
+    }
+
     public DbInsertQuery build() {
         return _builder.build();
     }

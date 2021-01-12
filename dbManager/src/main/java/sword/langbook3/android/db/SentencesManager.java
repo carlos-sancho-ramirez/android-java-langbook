@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.collections.Set;
 import sword.langbook3.android.models.SentenceSpan;
 
-public interface SentencesManager<LanguageId, AlphabetId> extends AcceptationsManager<LanguageId, AlphabetId>, SentencesChecker<LanguageId, AlphabetId> {
+public interface SentencesManager<LanguageId, AlphabetId, SymbolArrayId> extends AcceptationsManager<LanguageId, AlphabetId>, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId> {
 
     /**
      * Add a new sentence into the database attached to the given concept, text and set of spans.

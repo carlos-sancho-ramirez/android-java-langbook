@@ -10,7 +10,7 @@ import sword.langbook3.android.db.CorrelationArrayParceler;
 import sword.langbook3.android.db.CorrelationComposer;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
-import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdManager;
 import sword.langbook3.android.db.LanguageIdParceler;
@@ -172,7 +172,7 @@ public final class LanguageAdderActivityState implements Parcelable {
         }
     };
 
-    void storeIntoDatabase(LangbookManager<LanguageId, AlphabetId> manager) {
+    void storeIntoDatabase(LangbookDbManager manager) {
         if (missingAlphabetCorrelationArray()) {
             throw new UnsupportedOperationException();
         }

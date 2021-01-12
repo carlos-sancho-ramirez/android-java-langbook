@@ -32,8 +32,8 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookChecker;
-import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
@@ -151,7 +151,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private LanguageId getLanguage(LangbookChecker<LanguageId, AlphabetId> checker) {
+    private LanguageId getLanguage(LangbookDbChecker checker) {
         if (_existingAcceptation != 0) {
             final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
@@ -162,7 +162,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     private void updateConvertedTexts() {
-        final LangbookManager<LanguageId, AlphabetId> manager = DbManager.getInstance().getManager();
+        final LangbookDbManager manager = DbManager.getInstance().getManager();
         final LanguageId language = getLanguage(manager);
         final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
@@ -250,7 +250,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     private void updateFields() {
         _formPanel.removeAllViews();
-        final LangbookChecker<LanguageId, AlphabetId> checker = DbManager.getInstance().getManager();
+        final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ImmutableCorrelation<AlphabetId> existingTexts;
         final LanguageId language;
         if (_existingAcceptation != 0) {

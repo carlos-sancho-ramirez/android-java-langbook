@@ -22,7 +22,6 @@ import sword.collections.IntKeyMap;
 import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
-import sword.collections.IntValueMap;
 import sword.collections.List;
 import sword.collections.Map;
 import sword.collections.MutableHashMap;
@@ -196,17 +195,17 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static <AlphabetId extends AlphabetIdInterface> ImmutableIntPairMap findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, AlphabetId sourceAlphabet) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId> ImmutableIntKeyMap<SymbolArrayId> findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, AlphabetId sourceAlphabet) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQueryBuilder(correlations)
                 .where(correlations.getAlphabetColumnIndex(), sourceAlphabet)
                 .select(correlations.getCorrelationIdColumnIndex(), correlations.getSymbolArrayColumnIndex());
 
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
+        final ImmutableIntKeyMap.Builder<SymbolArrayId> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                builder.put(row.get(0).toInt(), row.get(1).toInt());
+                builder.put(row.get(0).toInt(), symbolArrayIdSetter.getKeyFromDbValue(row.get(1)));
             }
         }
 
@@ -340,14 +339,14 @@ public final class LangbookReadableDatabase {
         return map.filter(set -> set.contains(language) && set.size() == 1).keySet().toImmutable();
     }
 
-    static Integer findSymbolArray(DbExporter.Database db, String str) {
+    static <SymbolArrayId> SymbolArrayId findSymbolArray(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, String str) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getStrColumnIndex(), str)
                 .select(table.getIdColumnIndex());
 
         try (DbResult result = db.select(query)) {
-            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
+            final SymbolArrayId value = result.hasNext()? symbolArrayIdSetter.getKeyFromDbValue(result.next().get(0)) : null;
             if (result.hasNext()) {
                 throw new AssertionError();
             }
@@ -411,11 +410,11 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> Integer findCorrelation(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntValueMap<AlphabetId> correlation) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Integer findCorrelation(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, Map<AlphabetId, SymbolArrayId> correlation) {
         if (correlation.size() == 0) {
             return NULL_CORRELATION_ID;
         }
-        final ImmutableIntValueMap<AlphabetId> corr = correlation.toImmutable();
+        final ImmutableMap<AlphabetId, SymbolArrayId> corr = correlation.toImmutable();
 
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final int offset = table.columns().size();
@@ -432,8 +431,9 @@ public final class LangbookReadableDatabase {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int correlationId = row.get(0).toInt();
-                ImmutableIntValueMap.Builder<AlphabetId> builder = new ImmutableIntValueHashMap.Builder<>();
-                builder.put(alphabetIntSetter.getKeyFromDbValue(row.get(1)), row.get(2).toInt());
+                final SymbolArrayId symbolArrayId = symbolArrayIdSetter.getKeyFromDbValue(row.get(2));
+                ImmutableMap.Builder<AlphabetId, SymbolArrayId> builder = new ImmutableHashMap.Builder<>();
+                builder.put(alphabetIntSetter.getKeyFromDbValue(row.get(1)), symbolArrayId);
 
                 while (result.hasNext()) {
                     row = result.next();
@@ -444,10 +444,12 @@ public final class LangbookReadableDatabase {
                         }
 
                         correlationId = newCorrelationId;
-                        builder = new ImmutableIntValueHashMap.Builder<>();
+                        builder = new ImmutableHashMap.Builder<>();
                     }
 
-                    builder.put(alphabetIntSetter.getKeyFromDbValue(row.get(1)), row.get(2).toInt());
+                    final AlphabetId alphabet = alphabetIntSetter.getKeyFromDbValue(row.get(1));
+                    final SymbolArrayId symbolArray = symbolArrayIdSetter.getKeyFromDbValue(row.get(2));
+                    builder.put(alphabet, symbolArray);
                 }
 
                 if (builder.build().equalMap(corr)) {
@@ -1281,13 +1283,13 @@ public final class LangbookReadableDatabase {
         return new ImmutableCorrelation<>(builder.build());
     }
 
-    static ImmutableIntSet getCorrelationSymbolArrayIds(DbExporter.Database db, int correlationId) {
+    static <SymbolArrayId> ImmutableSet<SymbolArrayId> getCorrelationSymbolArrayIds(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int correlationId) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
 
         final DbQuery query = new DbQuery.Builder(correlations)
                 .where(correlations.getCorrelationIdColumnIndex(), correlationId)
                 .select(correlations.getSymbolArrayColumnIndex());
-        return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return db.select(query).map(row -> symbolArrayIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     static int[] getCorrelationArray(DbExporter.Database db, int id) {
@@ -1471,30 +1473,30 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static boolean isSymbolArrayUsedInAnyCorrelation(DbExporter.Database db, int symbolArrayId) {
+    private static boolean isSymbolArrayUsedInAnyCorrelation(DbExporter.Database db, SymbolArrayIdInterface symbolArrayId) {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getSymbolArrayColumnIndex(), symbolArrayId)
                 .select(table.getIdColumnIndex());
         return selectExistAtLeastOneRow(db, query);
     }
 
-    private static boolean isSymbolArrayUsedInAnyConversion(DbExporter.Database db, int symbolArrayId) {
+    private static boolean isSymbolArrayUsedInAnyConversion(DbExporter.Database db, SymbolArrayIdInterface symbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getSourceColumnIndex(), table.getTargetColumnIndex());
-        return db.select(query).anyMatch(row -> row.get(0).toInt() == symbolArrayId || row.get(1).toInt() == symbolArrayId);
+        return db.select(query).anyMatch(row -> symbolArrayId.sameValue(row.get(0)) || symbolArrayId.sameValue(row.get(1)));
     }
 
-    private static boolean isSymbolArrayUsedInAnySentence(DbExporter.Database db, int symbolArrayId) {
+    private static boolean isSymbolArrayUsedInAnySentence(DbExporter.Database db, SymbolArrayIdInterface symbolArrayId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getSymbolArrayColumnIndex(), symbolArrayId)
                 .select(table.getIdColumnIndex());
         return selectExistAtLeastOneRow(db, query);
     }
 
-    static boolean isSymbolArrayInUse(DbExporter.Database db, int symbolArrayId) {
+    static boolean isSymbolArrayInUse(DbExporter.Database db, SymbolArrayIdInterface symbolArrayId) {
         return isSymbolArrayUsedInAnyCorrelation(db, symbolArrayId) ||
                 isSymbolArrayUsedInAnyConversion(db, symbolArrayId) ||
                 isSymbolArrayUsedInAnySentence(db, symbolArrayId);
@@ -2366,18 +2368,18 @@ public final class LangbookReadableDatabase {
         return flags.toImmutable();
     }
 
-    static boolean isSymbolArrayPresent(DbExporter.Database db, int symbolArray) {
+    static boolean isSymbolArrayPresent(DbExporter.Database db, SymbolArrayIdInterface symbolArray) {
         final LangbookDbSchema.SymbolArraysTable table = LangbookDbSchema.Tables.symbolArrays;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), symbolArray)
                 .select(table.getIdColumnIndex());
 
         return selectExistingRow(db, query);
     }
 
-    static boolean isLanguagePresent(DbExporter.Database db, int language) {
+    static boolean isLanguagePresent(DbExporter.Database db, LanguageIdInterface language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), language)
                 .select(table.getIdColumnIndex());
 
@@ -3647,17 +3649,17 @@ public final class LangbookReadableDatabase {
      * Checks if the given symbolArray is not used neither as a correlation nor as a conversion,
      * and then it is merely a sentence.
      */
-    static boolean isSymbolArrayMerelyASentence(DbExporter.Database db, int symbolArrayId) {
+    static boolean isSymbolArrayMerelyASentence(DbExporter.Database db, SymbolArrayIdInterface symbolArrayId) {
         return !isSymbolArrayUsedInAnyCorrelation(db, symbolArrayId) && !isSymbolArrayUsedInAnyConversion(db, symbolArrayId);
     }
 
     /**
      * Returns a set for all sentences linked to the given symbolArray.
      */
-    static ImmutableIntSet findSentencesBySymbolArrayId(DbExporter.Database db, int symbolArrayId) {
+    static ImmutableIntSet findSentencesBySymbolArrayId(DbExporter.Database db, SymbolArrayIdInterface symbolArrayId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
 
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getSymbolArrayColumnIndex(), symbolArrayId)
                 .select(table.getIdColumnIndex());
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
@@ -3728,12 +3730,12 @@ public final class LangbookReadableDatabase {
         return selectOptionalFirstIntColumn(db, query);
     }
 
-    static Integer getSentenceSymbolArray(DbExporter.Database db, int sentenceId) {
+    static <SymbolArrayId> SymbolArrayId getSentenceSymbolArray(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int sentenceId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), sentenceId)
                 .select(table.getSymbolArrayColumnIndex());
-        return selectOptionalFirstIntColumn(db, query);
+        return symbolArrayIdSetter.getKeyFromDbValue(selectOptionalFirstDbValue(db, query));
     }
 
     static String getSentenceText(DbExporter.Database db, int sentenceId) {
