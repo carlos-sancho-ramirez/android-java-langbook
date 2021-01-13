@@ -32,18 +32,8 @@ final class DbQueryBuilder {
         return this;
     }
 
-    public DbQueryBuilder where(int columnIndex, LanguageIdInterface language) {
-        language.where(columnIndex, _builder);
-        return this;
-    }
-
-    public DbQueryBuilder where(int columnIndex, AlphabetIdInterface alphabet) {
-        alphabet.where(columnIndex, _builder);
-        return this;
-    }
-
-    public DbQueryBuilder where(int columnIndex, SymbolArrayIdInterface symbolArray) {
-        symbolArray.where(columnIndex, _builder);
+    public DbQueryBuilder where(int columnIndex, IdWhereInterface id) {
+        id.where(columnIndex, _builder);
         return this;
     }
 

@@ -16,17 +16,7 @@ final class DbDeleteQueryBuilder {
         return this;
     }
 
-    public DbDeleteQueryBuilder where(int columnIndex, LanguageIdInterface language) {
-        language.where(columnIndex, _builder);
-        return this;
-    }
-
-    public DbDeleteQueryBuilder where(int columnIndex, AlphabetIdInterface alphabet) {
-        alphabet.where(columnIndex, _builder);
-        return this;
-    }
-
-    public DbDeleteQueryBuilder where(int columnIndex, SymbolArrayIdInterface id) {
+    public DbDeleteQueryBuilder where(int columnIndex, IdWhereInterface id) {
         id.where(columnIndex, _builder);
         return this;
     }

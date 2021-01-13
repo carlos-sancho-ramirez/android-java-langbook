@@ -16,17 +16,7 @@ final class DbUpdateQueryBuilder {
         return this;
     }
 
-    public DbUpdateQueryBuilder where(int columnIndex, LanguageIdInterface language) {
-        language.where(columnIndex, _builder);
-        return this;
-    }
-
-    public DbUpdateQueryBuilder where(int columnIndex, AlphabetIdInterface alphabet) {
-        alphabet.where(columnIndex, _builder);
-        return this;
-    }
-
-    public DbUpdateQueryBuilder where(int columnIndex, SymbolArrayIdInterface id) {
+    public DbUpdateQueryBuilder where(int columnIndex, IdWhereInterface id) {
         id.where(columnIndex, _builder);
         return this;
     }
