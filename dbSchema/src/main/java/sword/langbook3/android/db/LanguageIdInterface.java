@@ -1,9 +1,7 @@
 package sword.langbook3.android.db;
 
-import sword.database.DbInsertQuery;
 import sword.database.DbValue;
 
-public interface LanguageIdInterface extends IdWhereInterface {
+public interface LanguageIdInterface extends IdWhereInterface, IdPutInterface {
     boolean sameValue(DbValue value);
-    void put(int columnIndex, DbInsertQuery.Builder builder);
 }

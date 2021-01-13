@@ -28,7 +28,7 @@ public final class DbUpdateQuery {
         return _values;
     }
 
-    public static final class Builder implements DbIdentifiableQueryBuilder {
+    public static final class Builder implements DbIdentifiableQueryBuilder, DbSettableQueryBuilder {
         private final DbTable _table;
         private final MutableIntPairMap _constraints = MutableIntPairMap.empty();
         private final MutableIntKeyMap<DbValue> _values = MutableIntKeyMap.empty();
@@ -70,6 +70,7 @@ public final class DbUpdateQuery {
             return this;
         }
 
+        @Override
         public Builder put(int columnIndex, int value) {
             assertValidIntColumn(columnIndex);
             if (_values.keySet().contains(columnIndex)) {

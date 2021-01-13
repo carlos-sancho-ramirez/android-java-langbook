@@ -1,8 +1,7 @@
 package sword.langbook3.android.sdb;
 
 import sword.database.DbIdentifiableQueryBuilder;
-import sword.database.DbInsertQuery;
-import sword.database.DbUpdateQuery;
+import sword.database.DbSettableQueryBuilder;
 import sword.database.DbValue;
 import sword.langbook3.android.db.SymbolArrayIdInterface;
 
@@ -48,12 +47,7 @@ final class SymbolArrayIdHolder implements SymbolArrayIdInterface {
     }
 
     @Override
-    public void put(int columnIndex, DbInsertQuery.Builder builder) {
-        builder.put(columnIndex, key);
-    }
-
-    @Override
-    public void put(int columnIndex, DbUpdateQuery.Builder builder) {
+    public void put(int columnIndex, DbSettableQueryBuilder builder) {
         builder.put(columnIndex, key);
     }
 }

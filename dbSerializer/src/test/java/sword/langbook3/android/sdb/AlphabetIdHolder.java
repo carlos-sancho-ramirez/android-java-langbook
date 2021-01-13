@@ -1,7 +1,7 @@
 package sword.langbook3.android.sdb;
 
 import sword.database.DbIdentifiableQueryBuilder;
-import sword.database.DbInsertQuery;
+import sword.database.DbSettableQueryBuilder;
 import sword.database.DbValue;
 import sword.langbook3.android.db.AlphabetIdInterface;
 
@@ -47,7 +47,7 @@ final class AlphabetIdHolder implements AlphabetIdInterface {
     }
 
     @Override
-    public void put(int columnIndex, DbInsertQuery.Builder builder) {
+    public void put(int columnIndex, DbSettableQueryBuilder builder) {
         builder.put(columnIndex, key);
     }
 }

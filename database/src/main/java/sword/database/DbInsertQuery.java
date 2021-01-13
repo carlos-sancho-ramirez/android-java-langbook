@@ -29,7 +29,7 @@ public final class DbInsertQuery {
         return _values.valueAt(index);
     }
 
-    public static final class Builder {
+    public static final class Builder implements DbSettableQueryBuilder {
         private final DbTable _table;
         private final MutableIntKeyMap<DbValue> _values = MutableIntKeyMap.empty();
 
@@ -50,6 +50,7 @@ public final class DbInsertQuery {
             return this;
         }
 
+        @Override
         public Builder put(int column, int value) {
             return put(column, new DbIntValue(value));
         }

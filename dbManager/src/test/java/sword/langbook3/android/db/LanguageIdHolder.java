@@ -1,7 +1,7 @@
 package sword.langbook3.android.db;
 
 import sword.database.DbIdentifiableQueryBuilder;
-import sword.database.DbInsertQuery;
+import sword.database.DbSettableQueryBuilder;
 import sword.database.DbValue;
 
 final class LanguageIdHolder implements LanguageIdInterface {
@@ -46,7 +46,7 @@ final class LanguageIdHolder implements LanguageIdInterface {
     }
 
     @Override
-    public void put(int columnIndex, DbInsertQuery.Builder builder) {
+    public void put(int columnIndex, DbSettableQueryBuilder builder) {
         builder.put(columnIndex, key);
     }
 }
