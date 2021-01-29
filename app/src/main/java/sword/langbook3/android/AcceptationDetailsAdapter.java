@@ -8,8 +8,6 @@ import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
@@ -17,6 +15,8 @@ import sword.collections.ImmutableSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CorrelationId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class AcceptationDetailsAdapter extends BaseAdapter {
 
@@ -134,9 +134,9 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      */
     static final class CorrelationNavigableItem extends Item {
 
-        private final int _id;
+        private final CorrelationId _id;
 
-        CorrelationNavigableItem(int id, String text) {
+        CorrelationNavigableItem(CorrelationId id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
@@ -210,15 +210,15 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
     static final class CorrelationArrayItem extends Item {
 
-        private final ImmutableIntList _correlationIds;
-        private final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> _correlations;
+        private final ImmutableList<CorrelationId> _correlationIds;
+        private final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> _correlations;
         private final AlphabetId _mainAlphabet;
         private final AlphabetId _pronunciationAlphabet;
         private final boolean _isNavigable;
 
         CorrelationArrayItem(
-                ImmutableIntList correlationIds,
-                ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations,
+                ImmutableList<CorrelationId> correlationIds,
+                ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations,
                 AlphabetId mainAlphabet,
                 AlphabetId pronunciationAlphabet,
                 boolean isNavigable) {
@@ -229,7 +229,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             }
 
             if (correlationIds == null) {
-                correlationIds = ImmutableIntList.empty();
+                correlationIds = ImmutableList.empty();
             }
             else if (correlationIds.anyMatch(id -> {
                 final ImmutableMap<AlphabetId, String> corr = correlations.get(id, null);
@@ -259,7 +259,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         void updateView(Activity activity, int requestCode, LinearLayout view) {
             view.removeAllViews();
             final LayoutInflater inflater = LayoutInflater.from(view.getContext());
-            for (int correlationId : _correlationIds) {
+            for (CorrelationId correlationId : _correlationIds) {
                 inflater.inflate(R.layout.correlation_container, view, true);
                 final LinearLayout corrLayout = (LinearLayout) view.getChildAt(view.getChildCount() - 1);
 

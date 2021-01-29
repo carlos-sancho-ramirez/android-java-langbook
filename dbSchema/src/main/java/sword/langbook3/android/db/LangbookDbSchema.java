@@ -40,7 +40,7 @@ public final class LangbookDbSchema implements DbSchema {
     /**
      * Reserved for empty correlations
      */
-    public static final int NULL_CORRELATION_ID = 0;
+    public static final int EMPTY_CORRELATION_ID = 0;
 
     /**
      * Reserved for empty correlation arrays

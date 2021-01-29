@@ -55,7 +55,7 @@ import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.db.LangbookDbSchema;
-import sword.langbook3.android.models.AgentRegister;
+import sword.langbook3.android.sdb.models.AgentRegister;
 
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 

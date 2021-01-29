@@ -7,13 +7,15 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableSet;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CorrelationId;
+import sword.langbook3.android.db.CorrelationIdBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 
@@ -25,14 +27,14 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         String CORRELATION = BundleKeys.CORRELATION;
     }
 
-    public static void open(Activity activity, int requestCode, int correlationId) {
+    public static void open(Activity activity, int requestCode, CorrelationId correlationId) {
         Intent intent = new Intent(activity, CorrelationDetailsActivity.class);
-        intent.putExtra(ArgKeys.CORRELATION, correlationId);
+        CorrelationIdBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION, correlationId);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private int _correlationId;
-    private CorrelationDetailsModel<AlphabetId> _model;
+    private CorrelationId _correlationId;
+    private CorrelationDetailsModel<AlphabetId, CorrelationId> _model;
     private AcceptationDetailsAdapter _listAdapter;
 
     private boolean _justLoaded;
@@ -59,11 +61,11 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
 
         for (int i = 0; i < entryCount; i++) {
             final AlphabetId matchingAlphabet = _model.correlation.keyAt(i);
-            final ImmutableIntSet matchingCorrelations = _model.relatedCorrelationsByAlphabet.get(matchingAlphabet);
+            final ImmutableSet<CorrelationId> matchingCorrelations = _model.relatedCorrelationsByAlphabet.get(matchingAlphabet);
             final int count = matchingCorrelations.size();
             if (count > 0) {
                 result.add(new HeaderItem("Other correlations sharing " + _model.alphabets.get(matchingAlphabet)));
-                for (int corrId : matchingCorrelations) {
+                for (CorrelationId corrId : matchingCorrelations) {
                     final ImmutableCorrelation<AlphabetId> corr = _model.relatedCorrelations.get(corrId);
                     result.add(new CorrelationNavigableItem(corrId, composeCorrelationString(corr)));
                 }
@@ -95,7 +97,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_details_activity);
 
-        _correlationId = getIntent().getIntExtra(ArgKeys.CORRELATION, 0);
+        _correlationId = CorrelationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CORRELATION);
         updateModelAndUi();
     }
 

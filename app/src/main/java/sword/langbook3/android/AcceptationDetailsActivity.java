@@ -29,6 +29,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
@@ -62,7 +63,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private int _acceptation;
-    private AcceptationDetailsModel<AlphabetId> _model;
+    private AcceptationDetailsModel<AlphabetId, CorrelationId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -95,7 +96,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
 
         final ImmutableSet<AlphabetId> commonAlphabets = _model.correlationIds
-                .map((int id) -> _model.correlations.get(id).keySet())
+                .map(id -> _model.correlations.get(id).keySet())
                 .reduce((set1, set2) -> set1.filter(set2::contains), ImmutableHashSet.empty());
         if (commonAlphabets.size() > 1) {
             final AlphabetId mainAlphabet = commonAlphabets.valueAt(0);

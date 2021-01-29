@@ -7,16 +7,17 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntList;
-import sword.collections.ImmutableIntValueHashMap;
-import sword.collections.ImmutableIntValueMap;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntResultFunction;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdComparator;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
+import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbManager;
@@ -47,7 +48,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     private ListView _listView;
     private ImmutableSet<ImmutableCorrelationArray<AlphabetId>> _options;
-    private ImmutableIntValueMap<ImmutableCorrelation<AlphabetId>> _knownCorrelations;
+    private ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> _knownCorrelations;
 
     /**
      * Opens the correlation picker in order to build a new correlation array.
@@ -94,7 +95,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         return (correlation != null)? correlation.toImmutable() : null;
     }
 
-    private ImmutableIntValueMap<ImmutableCorrelation<AlphabetId>> findExistingCorrelations() {
+    private ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> findExistingCorrelations() {
         final ImmutableSet.Builder<ImmutableCorrelation<AlphabetId>> correlationsBuilder = new ImmutableHashSet.Builder<>();
         for (ImmutableCorrelationArray<AlphabetId> option : _options) {
             for (ImmutableCorrelation<AlphabetId> correlation : option) {
@@ -103,9 +104,9 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
         final ImmutableSet<ImmutableCorrelation<AlphabetId>> correlations = correlationsBuilder.build();
 
-        final ImmutableIntValueHashMap.Builder<ImmutableCorrelation<AlphabetId>> builder = new ImmutableIntValueHashMap.Builder<>();
+        final ImmutableMap.Builder<ImmutableCorrelation<AlphabetId>, CorrelationId> builder = new ImmutableHashMap.Builder<>();
         for (ImmutableCorrelation<AlphabetId> correlation : correlations) {
-            final Integer id = DbManager.getInstance().getManager().findCorrelation(correlation);
+            final CorrelationId id = DbManager.getInstance().getManager().findCorrelation(correlation);
             if (id != null) {
                 builder.put(correlation, id);
             }

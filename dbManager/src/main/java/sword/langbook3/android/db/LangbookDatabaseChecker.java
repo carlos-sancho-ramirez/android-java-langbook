@@ -1,7 +1,6 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
@@ -30,10 +29,11 @@ import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
-abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> implements LangbookChecker<LanguageId, AlphabetId, SymbolArrayId> {
+abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface> implements LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
 
     abstract IntSetter<LanguageId> getLanguageIdSetter();
     abstract IntSetter<AlphabetId> getAlphabetIdSetter();
+    abstract IntSetter<CorrelationId> getCorrelationIdSetter();
     abstract DbExporter.Database getDatabase();
 
     @Override
@@ -72,8 +72,8 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableIntList getAcceptationCorrelationArray(int acceptation) {
-        return LangbookReadableDatabase.getAcceptationCorrelations(getDatabase(), getAlphabetIdSetter(), acceptation).left;
+    public ImmutableList<CorrelationId> getAcceptationCorrelationArray(int acceptation) {
+        return LangbookReadableDatabase.getAcceptationCorrelations(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), acceptation).left;
     }
 
     @Override
@@ -93,12 +93,12 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
 
     @Override
     public ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet) {
-        return LangbookReadableDatabase.readAllMatchingBunches(getDatabase(), getAlphabetIdSetter(), texts, preferredAlphabet);
+        return LangbookReadableDatabase.readAllMatchingBunches(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), texts, preferredAlphabet);
     }
 
     @Override
     public MutableCorrelation<AlphabetId> readCorrelationArrayTexts(int correlationArrayId) {
-        return LangbookReadableDatabase.readCorrelationArrayTexts(getDatabase(), getAlphabetIdSetter(), correlationArrayId);
+        return LangbookReadableDatabase.readCorrelationArrayTexts(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), correlationArrayId);
     }
 
     @Override
@@ -152,8 +152,8 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public AcceptationDetailsModel<AlphabetId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet) {
-        return LangbookReadableDatabase.getAcceptationsDetails(getDatabase(), getAlphabetIdSetter(), staticAcceptation, preferredAlphabet);
+    public AcceptationDetailsModel<AlphabetId, CorrelationId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet) {
+        return LangbookReadableDatabase.getAcceptationsDetails(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), staticAcceptation, preferredAlphabet);
     }
 
     @Override
@@ -187,13 +187,13 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public AgentRegister getAgentRegister(int agentId) {
-        return LangbookReadableDatabase.getAgentRegister(getDatabase(), agentId);
+    public AgentRegister<CorrelationId> getAgentRegister(int agentId) {
+        return LangbookReadableDatabase.getAgentRegister(getDatabase(), getCorrelationIdSetter(), agentId);
     }
 
     @Override
     public AgentDetails<AlphabetId> getAgentDetails(int agentId) {
-        return LangbookReadableDatabase.getAgentDetails(getDatabase(), getAlphabetIdSetter(), agentId);
+        return LangbookReadableDatabase.getAgentDetails(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), agentId);
     }
 
     @Override
@@ -277,7 +277,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableCorrelation<AlphabetId> getCorrelationWithText(int correlationId) {
+    public ImmutableCorrelation<AlphabetId> getCorrelationWithText(CorrelationId correlationId) {
         return LangbookReadableDatabase.getCorrelationWithText(getDatabase(), getAlphabetIdSetter(), correlationId);
     }
 
@@ -302,13 +302,13 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public CorrelationDetailsModel<AlphabetId> getCorrelationDetails(int correlationId, AlphabetId preferredAlphabet) {
-        return LangbookReadableDatabase.getCorrelationDetails(getDatabase(), getAlphabetIdSetter(), correlationId, preferredAlphabet);
+    public CorrelationDetailsModel<AlphabetId, CorrelationId> getCorrelationDetails(CorrelationId correlationId, AlphabetId preferredAlphabet) {
+        return LangbookReadableDatabase.getCorrelationDetails(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), correlationId, preferredAlphabet);
     }
 
     @Override
-    public Integer findCorrelation(Correlation<AlphabetId> correlation) {
-        return LangbookReadableDatabase.findCorrelation(getDatabase(), getAlphabetIdSetter(), correlation);
+    public CorrelationId findCorrelation(Correlation<AlphabetId> correlation) {
+        return LangbookReadableDatabase.findCorrelation(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), correlation);
     }
 
     @Override

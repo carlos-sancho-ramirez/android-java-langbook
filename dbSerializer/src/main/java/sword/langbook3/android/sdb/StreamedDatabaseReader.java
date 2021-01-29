@@ -51,10 +51,10 @@ import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
-import sword.langbook3.android.models.AgentRegister;
+import sword.langbook3.android.sdb.models.AgentRegister;
 
+import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
-import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ID;
 
 public final class StreamedDatabaseReader {
 
@@ -368,7 +368,7 @@ public final class StreamedDatabaseReader {
 
     private static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
-            return NULL_CORRELATION_ID;
+            return EMPTY_CORRELATION_ID;
         }
         final ImmutableIntPairMap corr = correlation.toImmutable();
 

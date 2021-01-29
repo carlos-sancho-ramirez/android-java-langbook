@@ -9,15 +9,16 @@ import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.SentenceSpan;
 
-public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> extends LangbookDatabaseChecker<LanguageId, AlphabetId, SymbolArrayId> implements LangbookManager<LanguageId, AlphabetId, SymbolArrayId> {
+public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface> extends LangbookDatabaseChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> implements LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
 
     private final Database _db;
     private final IntSetter<LanguageId> _languageIdSetter;
     private final IntSetter<AlphabetId> _alphabetIdSetter;
     private final IntSetter<SymbolArrayId> _symbolArrayIdSetter;
+    private final IntSetter<CorrelationId> _correlationIdSetter;
 
-    public LangbookDatabaseManager(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager) {
-        if (db == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null) {
+    public LangbookDatabaseManager(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter) {
+        if (db == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null) {
             throw new IllegalArgumentException();
         }
 
@@ -25,6 +26,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         _languageIdSetter = languageIdManager;
         _alphabetIdSetter = alphabetIdManager;
         _symbolArrayIdSetter = symbolArrayIdManager;
+        _correlationIdSetter = correlationIdSetter;
     }
 
     @Override
@@ -43,11 +45,16 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     @Override
+    IntSetter<CorrelationId> getCorrelationIdSetter() {
+        return _correlationIdSetter;
+    }
+
+    @Override
     public Integer addAgent(
             ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, int rule) {
-        return LangbookDatabase.addAgent(_db, _alphabetIdSetter, _symbolArrayIdSetter, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+        return LangbookDatabase.addAgent(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     @Override
@@ -55,22 +62,22 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches, ImmutableIntSet diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, int rule) {
-        return LangbookDatabase.updateAgent(_db, _alphabetIdSetter, _symbolArrayIdSetter, agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
+        return LangbookDatabase.updateAgent(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
     @Override
     public void removeAgent(int agentId) {
-        LangbookDatabase.removeAgent(_db, _alphabetIdSetter, _symbolArrayIdSetter, agentId);
+        LangbookDatabase.removeAgent(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, agentId);
     }
 
     @Override
     public boolean addAcceptationInBunch(int bunch, int acceptation) {
-        return LangbookDatabase.addAcceptationInBunch(_db, _alphabetIdSetter, _symbolArrayIdSetter, bunch, acceptation);
+        return LangbookDatabase.addAcceptationInBunch(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, bunch, acceptation);
     }
 
     @Override
     public boolean removeAcceptationFromBunch(int bunch, int acceptation) {
-        return LangbookDatabase.removeAcceptationFromBunch(_db, _alphabetIdSetter, _symbolArrayIdSetter, bunch, acceptation);
+        return LangbookDatabase.removeAcceptationFromBunch(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, bunch, acceptation);
     }
 
     @Override
@@ -80,12 +87,12 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
     @Override
     public boolean removeLanguage(LanguageId language) {
-        return LangbookDatabase.removeLanguage(_db, _languageIdSetter, _alphabetIdSetter, _symbolArrayIdSetter, language);
+        return LangbookDatabase.removeLanguage(_db, _languageIdSetter, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, language);
     }
 
     @Override
     public boolean addAlphabetCopyingFromOther(AlphabetId alphabet, AlphabetId sourceAlphabet) {
-        return LangbookDatabase.addAlphabetCopyingFromOther(_db, _languageIdSetter, _alphabetIdSetter, _symbolArrayIdSetter, alphabet, sourceAlphabet);
+        return LangbookDatabase.addAlphabetCopyingFromOther(_db, _languageIdSetter, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, alphabet, sourceAlphabet);
     }
 
     @Override
@@ -100,17 +107,17 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
     @Override
     public Integer addAcceptation(int concept, ImmutableCorrelationArray<AlphabetId> correlationArray) {
-        return LangbookDatabase.addAcceptation(_db, _alphabetIdSetter, _symbolArrayIdSetter, concept, correlationArray);
+        return LangbookDatabase.addAcceptation(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, concept, correlationArray);
     }
 
     @Override
     public boolean updateAcceptationCorrelationArray(int acceptation, ImmutableCorrelationArray<AlphabetId> newCorrelationArray) {
-        return LangbookDatabase.updateAcceptationCorrelationArray(_db, _alphabetIdSetter, _symbolArrayIdSetter, acceptation, newCorrelationArray);
+        return LangbookDatabase.updateAcceptationCorrelationArray(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, acceptation, newCorrelationArray);
     }
 
     @Override
     public boolean removeAcceptation(int acceptation) {
-        return LangbookDatabase.removeAcceptation(_db, _symbolArrayIdSetter, acceptation);
+        return LangbookDatabase.removeAcceptation(_db, _symbolArrayIdSetter, _correlationIdSetter, acceptation);
     }
 
     @Override
@@ -120,7 +127,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
     @Override
     public void duplicateAcceptationWithThisConcept(int linkedAcceptation, int concept) {
-        LangbookDatabase.duplicateAcceptationWithThisConcept(_db, _alphabetIdSetter, _symbolArrayIdSetter, linkedAcceptation, concept);
+        LangbookDatabase.duplicateAcceptationWithThisConcept(_db, _alphabetIdSetter, _symbolArrayIdSetter, _correlationIdSetter, linkedAcceptation, concept);
     }
 
     @Override

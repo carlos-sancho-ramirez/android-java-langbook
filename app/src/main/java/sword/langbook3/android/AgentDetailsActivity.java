@@ -16,6 +16,7 @@ import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
+import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.models.AgentRegister;
@@ -46,7 +47,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
     boolean _deleteDialogPresent;
 
-    AgentRegister _register;
+    AgentRegister<CorrelationId> _register;
     private int _dbWriteVersion;
 
     private ListView _listView;
@@ -73,9 +74,9 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         updateUi();
     }
 
-    private static void addCorrelationSection(LangbookDbChecker checker, String title, int correlationId, SyncCacheMap<AlphabetId, String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
+    private static void addCorrelationSection(LangbookDbChecker checker, String title, CorrelationId correlationId, SyncCacheMap<AlphabetId, String> alphabetTexts, ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder) {
         boolean headerAdded = false;
-        ImmutableCorrelation<AlphabetId> matcher = checker.getCorrelationWithText(correlationId);
+        final ImmutableCorrelation<AlphabetId> matcher = checker.getCorrelationWithText(correlationId);
         for (int i = 0; i < matcher.size(); i++) {
             if (!headerAdded) {
                 headerAdded = true;

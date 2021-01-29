@@ -21,18 +21,8 @@ final class DbInsertQueryBuilder {
         return this;
     }
 
-    public DbInsertQueryBuilder put(int columnIndex, LanguageIdInterface language) {
+    public DbInsertQueryBuilder put(int columnIndex, IdPutInterface language) {
         language.put(columnIndex, _builder);
-        return this;
-    }
-
-    public DbInsertQueryBuilder put(int columnIndex, AlphabetIdInterface alphabet) {
-        alphabet.put(columnIndex, _builder);
-        return this;
-    }
-
-    public DbInsertQueryBuilder put(int columnIndex, SymbolArrayIdInterface alphabet) {
-        alphabet.put(columnIndex, _builder);
         return this;
     }
 

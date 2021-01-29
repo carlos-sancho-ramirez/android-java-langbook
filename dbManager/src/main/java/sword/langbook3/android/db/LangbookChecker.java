@@ -6,9 +6,9 @@ import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.SearchResult;
 
-public interface LangbookChecker<LanguageId, AlphabetId, SymbolArrayId> extends QuizzesChecker<LanguageId, AlphabetId>, DefinitionsChecker, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId> {
+public interface LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> extends QuizzesChecker<LanguageId, AlphabetId, CorrelationId>, DefinitionsChecker, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
     ImmutableSet<String> findConversionConflictWords(ConversionProposal<AlphabetId> newConversion);
-    AcceptationDetailsModel<AlphabetId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet);
+    AcceptationDetailsModel<AlphabetId, CorrelationId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult> getSearchHistory();
 
     default boolean allValidAlphabets(Correlation<AlphabetId> texts) {

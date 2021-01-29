@@ -7,7 +7,7 @@ import sword.langbook3.android.models.Progress;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 
-public interface QuizzesChecker<LanguageId, AlphabetId> extends AgentsChecker<LanguageId, AlphabetId> {
+public interface QuizzesChecker<LanguageId, AlphabetId, CorrelationId> extends AgentsChecker<LanguageId, AlphabetId, CorrelationId> {
     ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId>>> readQuizSelectorEntriesForBunch(int bunch);
     Progress readQuizProgress(int quizId);
     QuizDetails<AlphabetId> getQuizDetails(int quizId);

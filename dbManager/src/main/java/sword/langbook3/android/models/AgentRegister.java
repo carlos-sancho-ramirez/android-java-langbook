@@ -1,19 +1,21 @@
 package sword.langbook3.android.models;
 
-public final class AgentRegister {
+import static sword.database.CommonUtils.equal;
+
+public final class AgentRegister<CorrelationId> {
     public final int targetBunchSetId;
     public final int sourceBunchSetId;
     public final int diffBunchSetId;
-    public final int startMatcherId;
-    public final int startAdderId;
-    public final int endMatcherId;
-    public final int endAdderId;
+    public final CorrelationId startMatcherId;
+    public final CorrelationId startAdderId;
+    public final CorrelationId endMatcherId;
+    public final CorrelationId endAdderId;
     public final int rule;
 
     public AgentRegister(int targetBunchSetId, int sourceBunchSetId, int diffBunchSetId,
-            int startMatcherId, int startAdderId, int endMatcherId, int endAdderId, int rule) {
+            CorrelationId startMatcherId, CorrelationId startAdderId, CorrelationId endMatcherId, CorrelationId endAdderId, int rule) {
 
-        if (startMatcherId == startAdderId && endMatcherId == endAdderId) {
+        if (equal(startMatcherId, startAdderId) && equal(endMatcherId, endAdderId)) {
             if (targetBunchSetId == 0 || rule != 0) {
                 throw new IllegalArgumentException();
             }

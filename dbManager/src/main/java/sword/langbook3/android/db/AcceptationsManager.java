@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-public interface AcceptationsManager<LanguageId, AlphabetId> extends AcceptationsChecker<LanguageId, AlphabetId> {
+public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId> {
 
     /**
      * Add a new language for the given code.

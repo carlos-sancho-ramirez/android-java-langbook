@@ -47,6 +47,11 @@ final class DbQueryBuilder {
         return this;
     }
 
+    public DbQueryBuilder orderBy(int... columnIndexes) {
+        _builder.orderBy(columnIndexes);
+        return this;
+    }
+
     public DbQuery select(int... selection) {
         return _builder.select(selection);
     }

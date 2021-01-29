@@ -1,14 +1,13 @@
 package sword.langbook3.android.models;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel<AlphabetId> {
+public final class AcceptationDetailsModel<AlphabetId, CorrelationId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -25,8 +24,8 @@ public final class AcceptationDetailsModel<AlphabetId> {
     public final int appliedAgentId;
     public final int appliedRuleId;
     public final int appliedRuleAcceptationId;
-    public final ImmutableIntList correlationIds;
-    public final ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations;
+    public final ImmutableList<CorrelationId> correlationIds;
+    public final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations;
     public final ImmutableCorrelation<AlphabetId> texts;
     public final ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts;
     public final ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts;
@@ -56,8 +55,8 @@ public final class AcceptationDetailsModel<AlphabetId> {
             int appliedAgentId,
             int appliedRuleId,
             int appliedRuleAcceptationId,
-            ImmutableIntList correlationIds,
-            ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlations,
+            ImmutableList<CorrelationId> correlationIds,
+            ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations,
             ImmutableCorrelation<AlphabetId> texts,
             ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts,
             ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts,
@@ -128,7 +127,7 @@ public final class AcceptationDetailsModel<AlphabetId> {
 
     public String getTitle(AlphabetId preferredAlphabet) {
         StringBuilder sb = new StringBuilder();
-        for (int correlationId : correlationIds) {
+        for (CorrelationId correlationId : correlationIds) {
             final ImmutableMap<AlphabetId, String> correlation = correlations.get(correlationId);
             final String preferredText = correlation.get(preferredAlphabet, null);
             sb.append((preferredText != null)? preferredText : correlation.valueAt(0));

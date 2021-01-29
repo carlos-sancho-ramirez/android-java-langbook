@@ -1,8 +1,8 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntValueMap;
+import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
@@ -11,7 +11,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DisplayableItem;
 
-public interface AcceptationsChecker<LanguageId, AlphabetId> extends ConceptsChecker {
+public interface AcceptationsChecker<LanguageId, AlphabetId, CorrelationId> extends ConceptsChecker {
     LanguageId findLanguageByCode(String code);
 
     /**
@@ -25,20 +25,20 @@ public interface AcceptationsChecker<LanguageId, AlphabetId> extends ConceptsChe
     ImmutableCorrelation<AlphabetId> getAcceptationTexts(int acceptation);
     Conversion<AlphabetId> getConversion(ImmutablePair<AlphabetId, AlphabetId> pair);
     ImmutableMap<AlphabetId, AlphabetId> getConversionsMap();
-    ImmutableIntList getAcceptationCorrelationArray(int acceptation);
+    ImmutableList<CorrelationId> getAcceptationCorrelationArray(int acceptation);
     ImmutableIntSet findAcceptationsByConcept(int concept);
     int conceptFromAcceptation(int acceptationId);
     boolean isAlphabetPresent(AlphabetId targetAlphabet);
     LanguageId getLanguageFromAlphabet(AlphabetId alphabet);
     ImmutableMap<LanguageId, String> readAllLanguages(AlphabetId preferredAlphabet);
     ImmutableMap<AlphabetId, String> readAllAlphabets(AlphabetId preferredAlphabet);
-    ImmutableCorrelation<AlphabetId> getCorrelationWithText(int correlationId);
+    ImmutableCorrelation<AlphabetId> getCorrelationWithText(CorrelationId id);
     DisplayableItem readConceptAcceptationAndText(int concept, AlphabetId preferredAlphabet);
     String readConceptText(int concept, AlphabetId preferredAlphabet);
     ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(LanguageId language, AlphabetId preferredAlphabet);
     boolean checkAlphabetCanBeRemoved(AlphabetId alphabet);
-    CorrelationDetailsModel<AlphabetId> getCorrelationDetails(int correlationId, AlphabetId preferredAlphabet);
-    Integer findCorrelation(Correlation<AlphabetId> correlation);
+    CorrelationDetailsModel<AlphabetId, CorrelationId> getCorrelationDetails(CorrelationId id, AlphabetId preferredAlphabet);
+    CorrelationId findCorrelation(Correlation<AlphabetId> correlation);
     boolean isAnyLanguagePresent();
     ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(int acceptation);
     ImmutableMap<AlphabetId, AlphabetId> findConversions(Set<AlphabetId> alphabets);

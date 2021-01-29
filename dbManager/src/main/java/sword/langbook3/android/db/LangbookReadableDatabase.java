@@ -1,7 +1,5 @@
 package sword.langbook3.android.db;
 
-import java.util.Arrays;
-
 import sword.collections.Function;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
@@ -19,7 +17,6 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
-import sword.collections.IntList;
 import sword.collections.IntPairMap;
 import sword.collections.IntSet;
 import sword.collections.List;
@@ -28,7 +25,6 @@ import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
@@ -46,6 +42,7 @@ import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
+import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.AgentDetails;
@@ -72,12 +69,12 @@ import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
-import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
 public final class LangbookReadableDatabase {
@@ -195,17 +192,19 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId> ImmutableIntKeyMap<SymbolArrayId> findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, AlphabetId sourceAlphabet) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId, CorrelationId> ImmutableMap<CorrelationId, SymbolArrayId> findCorrelationsAndSymbolArrayForAlphabet(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, IntSetter<CorrelationId> correlationIdSetter, AlphabetId sourceAlphabet) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final DbQuery query = new DbQueryBuilder(correlations)
                 .where(correlations.getAlphabetColumnIndex(), sourceAlphabet)
                 .select(correlations.getCorrelationIdColumnIndex(), correlations.getSymbolArrayColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<SymbolArrayId> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<CorrelationId, SymbolArrayId> builder = new ImmutableHashMap.Builder<>();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                builder.put(row.get(0).toInt(), symbolArrayIdSetter.getKeyFromDbValue(row.get(1)));
+                final CorrelationId correlationId = correlationIdSetter.getKeyFromDbValue(row.get(0));
+                final SymbolArrayId symbolArrayId = symbolArrayIdSetter.getKeyFromDbValue(row.get(1));
+                builder.put(correlationId, symbolArrayId);
             }
         }
 
@@ -355,9 +354,9 @@ public final class LangbookReadableDatabase {
         }
     }
 
-    static <AlphabetId extends AlphabetIdInterface> Integer findCorrelation(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, Correlation<AlphabetId> correlation) {
-        if (correlation.size() == 0) {
-            return NULL_CORRELATION_ID;
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId> CorrelationId findCorrelation(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<CorrelationId> correlationIdSetter, Correlation<AlphabetId> correlation) {
+        if (correlation.isEmpty()) {
+            return null;
         }
         final ImmutableCorrelation<AlphabetId> immutableCorrelation = correlation.toImmutable();
 
@@ -382,13 +381,13 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
-                int correlationId = row.get(0).toInt();
+                CorrelationId correlationId = correlationIdSetter.getKeyFromDbValue(row.get(0));
                 ImmutableCorrelation.Builder<AlphabetId> builder = new ImmutableCorrelation.Builder<>();
                 builder.put(alphabetIntSetter.getKeyFromDbValue(row.get(1)), row.get(2).toText());
 
                 while (result.hasNext()) {
                     row = result.next();
-                    int newCorrelationId = row.get(0).toInt();
+                    CorrelationId newCorrelationId = correlationIdSetter.getKeyFromDbValue(row.get(0));
                     if (newCorrelationId != correlationId) {
                         if (builder.build().equals(immutableCorrelation)) {
                             return correlationId;
@@ -410,9 +409,9 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface> Integer findCorrelation(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, Map<AlphabetId, SymbolArrayId> correlation) {
+    static <AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId> CorrelationId findCorrelation(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<SymbolArrayId> symbolArrayIdSetter, IntSetter<CorrelationId> correlationIdSetter, Map<AlphabetId, SymbolArrayId> correlation) {
         if (correlation.size() == 0) {
-            return NULL_CORRELATION_ID;
+            return correlationIdSetter.getKeyFromInt(EMPTY_CORRELATION_ID);
         }
         final ImmutableMap<AlphabetId, SymbolArrayId> corr = correlation.toImmutable();
 
@@ -430,15 +429,15 @@ public final class LangbookReadableDatabase {
         try (DbResult result = db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
-                int correlationId = row.get(0).toInt();
+                CorrelationId correlationId = correlationIdSetter.getKeyFromDbValue(row.get(0));
                 final SymbolArrayId symbolArrayId = symbolArrayIdSetter.getKeyFromDbValue(row.get(2));
                 ImmutableMap.Builder<AlphabetId, SymbolArrayId> builder = new ImmutableHashMap.Builder<>();
                 builder.put(alphabetIntSetter.getKeyFromDbValue(row.get(1)), symbolArrayId);
 
                 while (result.hasNext()) {
                     row = result.next();
-                    int newCorrelationId = row.get(0).toInt();
-                    if (newCorrelationId != correlationId) {
+                    final CorrelationId newCorrelationId = correlationIdSetter.getKeyFromDbValue(row.get(0));
+                    if (!equal(newCorrelationId, correlationId)) {
                         if (builder.build().equals(corr)) {
                             return correlationId;
                         }
@@ -461,10 +460,10 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
+    static <CorrelationId extends CorrelationIdInterface> Integer findCorrelationArray(DbImporter.Database db, IntSetter<CorrelationId> correlationIdSetter, List<CorrelationId> array) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final int offset = table.columns().size();
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .join(table, table.getArrayIdColumnIndex(), table.getArrayIdColumnIndex())
                 .where(table.getArrayPositionColumnIndex(), 0)
                 .where(table.getCorrelationColumnIndex(), array.get(0))
@@ -475,24 +474,24 @@ public final class LangbookReadableDatabase {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int arrayId = row.get(0).toInt();
-                ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
-                builder.add(row.get(1).toInt());
+                ImmutableList.Builder<CorrelationId> builder = new ImmutableList.Builder<>();
+                builder.add(correlationIdSetter.getKeyFromDbValue(row.get(1)));
 
                 while (result.hasNext()) {
                     row = result.next();
                     int newArrayId = row.get(0).toInt();
                     if (arrayId != newArrayId) {
-                        if (builder.build().equals(array)) {
+                        if (builder.build().equalTraversable(array)) {
                             return arrayId;
                         }
 
                         arrayId = newArrayId;
-                        builder = new ImmutableIntList.Builder();
+                        builder = new ImmutableList.Builder<>();
                     }
-                    builder.add(row.get(1).toInt());
+                    builder.add(correlationIdSetter.getKeyFromDbValue(row.get(1)));
                 }
 
-                if (builder.build().equals(array)) {
+                if (builder.build().equalTraversable(array)) {
                     return arrayId;
                 }
             }
@@ -501,22 +500,22 @@ public final class LangbookReadableDatabase {
         return null;
     }
 
-    static Integer findCorrelationArray(DbExporter.Database db, int... correlations) {
-        if (correlations.length == 0) {
+    static <CorrelationId extends CorrelationIdInterface> Integer findCorrelationArray(DbExporter.Database db, IntSetter<CorrelationId> correlationIdSetter, List<CorrelationId> correlations) {
+        if (correlations.isEmpty()) {
             return NULL_CORRELATION_ARRAY_ID;
         }
 
         LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getArrayPositionColumnIndex(), 0)
-                .where(table.getCorrelationColumnIndex(), correlations[0])
+                .where(table.getCorrelationColumnIndex(), correlations.valueAt(0))
                 .select(table.getArrayIdColumnIndex());
 
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final int arrayId = result.next().get(0).toInt();
-                final int[] array = getCorrelationArray(db, arrayId);
-                if (Arrays.equals(correlations, array)) {
+                final MutableList<CorrelationId> array = getCorrelationArray(db, correlationIdSetter, arrayId);
+                if (array.equalTraversable(correlations)) {
                     return arrayId;
                 }
             }
@@ -1265,11 +1264,11 @@ public final class LangbookReadableDatabase {
         return getColumnMax(db, table, table.getSetIdColumnIndex());
     }
 
-    static <AlphabetId extends AlphabetIdInterface> ImmutableCorrelation<AlphabetId> getCorrelationWithText(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int correlationId) {
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> ImmutableCorrelation<AlphabetId> getCorrelationWithText(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, CorrelationId correlationId) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
 
-        final DbQuery query = new DbQuery.Builder(correlations)
+        final DbQuery query = new DbQueryBuilder(correlations)
                 .join(symbolArrays, correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
                 .where(correlations.getCorrelationIdColumnIndex(), correlationId)
                 .select(correlations.getAlphabetColumnIndex(), correlations.columns().size() + symbolArrays.getStrColumnIndex());
@@ -1283,18 +1282,18 @@ public final class LangbookReadableDatabase {
         return new ImmutableCorrelation<>(builder.build());
     }
 
-    static <SymbolArrayId> ImmutableSet<SymbolArrayId> getCorrelationSymbolArrayIds(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int correlationId) {
+    static <SymbolArrayId> ImmutableSet<SymbolArrayId> getCorrelationSymbolArrayIds(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, CorrelationIdInterface correlationId) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
 
-        final DbQuery query = new DbQuery.Builder(correlations)
+        final DbQuery query = new DbQueryBuilder(correlations)
                 .where(correlations.getCorrelationIdColumnIndex(), correlationId)
                 .select(correlations.getSymbolArrayColumnIndex());
         return db.select(query).map(row -> symbolArrayIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    static int[] getCorrelationArray(DbExporter.Database db, int id) {
+    static <CorrelationId> MutableList<CorrelationId> getCorrelationArray(DbExporter.Database db, IntSetter<CorrelationId> correlationIdSetter, int id) {
         if (id == NULL_CORRELATION_ARRAY_ID) {
-            return new int[0];
+            return MutableList.empty();
         }
 
         LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
@@ -1302,17 +1301,22 @@ public final class LangbookReadableDatabase {
                 .where(table.getArrayIdColumnIndex(), id)
                 .select(table.getArrayPositionColumnIndex(), table.getCorrelationColumnIndex());
         final DbResult dbResult = db.select(query);
-        final int[] result = new int[dbResult.getRemainingRows()];
+        final int arrayLength = dbResult.getRemainingRows();
+        final MutableList<CorrelationId> result = MutableList.empty((currentSize, newSize) -> arrayLength);
+        for (int i = 0; i < arrayLength; i++) {
+            result.append(null);
+        }
+
         try {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final int pos = row.get(0).toInt();
-                final int corr = row.get(1).toInt();
-                if (result[pos] != 0) {
+                final CorrelationId corr = correlationIdSetter.getKeyFromDbValue(row.get(1));
+                if (result.get(pos) != null) {
                     throw new AssertionError("Malformed correlation array with id " + id);
                 }
 
-                result[pos] = corr;
+                result.put(pos, corr);
             }
         }
         finally {
@@ -1368,7 +1372,7 @@ public final class LangbookReadableDatabase {
         return map;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>>> getAcceptationCorrelations(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int acceptation) {
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId> ImmutablePair<ImmutableList<CorrelationId>, ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>>> getAcceptationCorrelations(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<CorrelationId> correlationIdSetter, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
@@ -1393,14 +1397,14 @@ public final class LangbookReadableDatabase {
                         symbolsOffset + symbols.getStrColumnIndex()
                 );
 
-        final MutableIntList correlationIds = MutableIntList.empty();
-        final MutableIntKeyMap<ImmutableMap<AlphabetId, String>> correlationMap = MutableIntKeyMap.empty();
+        final MutableList<CorrelationId> correlationIds = MutableList.empty();
+        final MutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlationMap = MutableHashMap.empty();
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
                 List<DbValue> row = dbResult.next();
-                ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
+                ImmutableCorrelation.Builder<AlphabetId> builder = new ImmutableCorrelation.Builder<>();
                 int pos = row.get(0).toInt();
-                int correlationId = row.get(1).toInt();
+                CorrelationId correlationId = correlationIdSetter.getKeyFromDbValue(row.get(1));
                 if (pos != correlationIds.size()) {
                     throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
                 }
@@ -1413,8 +1417,8 @@ public final class LangbookReadableDatabase {
                     if (newPos != pos) {
                         correlationMap.put(correlationId, builder.build());
                         correlationIds.append(correlationId);
-                        correlationId = row.get(1).toInt();
-                        builder = new ImmutableHashMap.Builder<>();
+                        correlationId = correlationIdSetter.getKeyFromDbValue(row.get(1));
+                        builder = new ImmutableCorrelation.Builder<>();
                         pos = newPos;
                     }
 
@@ -1502,23 +1506,23 @@ public final class LangbookReadableDatabase {
                 isSymbolArrayUsedInAnySentence(db, symbolArrayId);
     }
 
-    private static boolean isCorrelationUsedInAnyCorrelationArray(DbExporter.Database db, int correlationId) {
+    private static boolean isCorrelationUsedInAnyCorrelationArray(DbExporter.Database db, CorrelationIdInterface correlationId) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getCorrelationColumnIndex(), correlationId)
                 .select(table.getIdColumnIndex());
 
         return selectExistAtLeastOneRow(db, query);
     }
 
-    private static boolean isCorrelationUsedInAnyAgent(DbExporter.Database db, int correlationId) {
+    private static boolean isCorrelationUsedInAnyAgent(DbExporter.Database db, CorrelationIdInterface correlationId) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getStartMatcherColumnIndex(), table.getEndMatcherColumnIndex(), table.getStartAdderColumnIndex(), table.getEndAdderColumnIndex());
 
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
-                if (dbResult.next().anyMatch(v -> v.toInt() == correlationId)) {
+                if (dbResult.next().anyMatch(correlationId::sameValue)) {
                     return true;
                 }
             }
@@ -1527,18 +1531,18 @@ public final class LangbookReadableDatabase {
         return false;
     }
 
-    static boolean isCorrelationInUse(DbExporter.Database db, int correlationId) {
+    static boolean isCorrelationInUse(DbExporter.Database db, CorrelationIdInterface correlationId) {
         return isCorrelationUsedInAnyCorrelationArray(db, correlationId) || isCorrelationUsedInAnyAgent(db, correlationId);
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, int correlation, AlphabetId preferredAlphabet) {
+    private static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> ImmutableIntKeyMap<String> readAcceptationsIncludingCorrelation(DbExporter.Database db, CorrelationId correlation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
 
         final int accOffset = correlationArrays.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
-        final DbQuery query = new DbQuery.Builder(correlationArrays)
+        final DbQuery query = new DbQueryBuilder(correlationArrays)
                 .join(acceptations, correlationArrays.getArrayIdColumnIndex(), acceptations.getCorrelationArrayColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(correlationArrays.getCorrelationColumnIndex(), correlation)
@@ -1560,7 +1564,7 @@ public final class LangbookReadableDatabase {
         return result.toImmutable();
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> ImmutableIntKeyMap<ImmutableCorrelation<AlphabetId>> readCorrelationsWithSameSymbolArray(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, int correlation, AlphabetId alphabet) {
+    private static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> readCorrelationsWithSameSymbolArray(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<CorrelationId> correlationIdSetter, CorrelationId correlation, AlphabetId alphabet) {
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
 
@@ -1581,11 +1585,11 @@ public final class LangbookReadableDatabase {
                         corrOffset3 + correlations.getAlphabetColumnIndex(),
                         strOffset + symbolArrays.getStrColumnIndex());
 
-        final MutableIntKeyMap<ImmutableCorrelation<AlphabetId>> result = MutableIntKeyMap.empty();
+        final MutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> result = MutableHashMap.empty();
         try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int corrId = row.get(0).toInt();
+                final CorrelationId corrId = correlationIdSetter.getKeyFromDbValue(row.get(0));
                 final AlphabetId textAlphabet = alphabetIntSetter.getKeyFromDbValue(row.get(1));
                 final String text = row.get(2).toText();
                 final ImmutableCorrelation<AlphabetId> currentCorr = result.get(corrId, ImmutableCorrelation.empty());
@@ -1645,9 +1649,9 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    static <AlphabetId extends AlphabetIdInterface> MutableCorrelation<AlphabetId> readCorrelationArrayTexts(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int correlationArrayId) {
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> MutableCorrelation<AlphabetId> readCorrelationArrayTexts(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<CorrelationId> correlationIdSetter, int correlationArrayId) {
         MutableMap<AlphabetId, String> texts = MutableHashMap.empty();
-        for (int correlationId : getCorrelationArray(db, correlationArrayId)) {
+        for (CorrelationId correlationId : getCorrelationArray(db, correlationIdSetter, correlationArrayId)) {
             for (Map.Entry<AlphabetId, String> entry : getCorrelationWithText(db, alphabetIdSetter, correlationId).entries()) {
                 final String currentValue = texts.get(entry.key(), "");
                 texts.put(entry.key(), currentValue + entry.value());
@@ -1657,8 +1661,8 @@ public final class LangbookReadableDatabase {
         return new MutableCorrelation<>(texts);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> Correlation<AlphabetId> readCorrelationArrayTextAndItsAppliedConversions(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int correlationArrayId) {
-        final MutableCorrelation<AlphabetId> texts = readCorrelationArrayTexts(db, alphabetIdSetter, correlationArrayId);
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> Correlation<AlphabetId> readCorrelationArrayTextAndItsAppliedConversions(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<CorrelationId> correlationIdSetter, int correlationArrayId) {
+        final MutableCorrelation<AlphabetId> texts = readCorrelationArrayTexts(db, alphabetIdSetter, correlationIdSetter, correlationArrayId);
         if (texts.isEmpty()) {
             return null;
         }
@@ -3138,7 +3142,7 @@ public final class LangbookReadableDatabase {
      * @param preferredAlphabet User's defined alphabet.
      * @return A map whose keys are bunches (concepts) and value are the suitable way to represent that bunch, according to the given preferred alphabet.
      */
-    static <AlphabetId extends AlphabetIdInterface> ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet) {
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> ImmutableIntKeyMap<String> readAllMatchingBunches(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<CorrelationId> correlationIdSetter, ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getDiffBunchSetColumnIndex(), 0)
@@ -3146,16 +3150,16 @@ public final class LangbookReadableDatabase {
                         agents.getStartMatcherColumnIndex(),
                         agents.getEndMatcherColumnIndex());
 
-        final SyncCacheIntKeyNonNullValueMap<ImmutableCorrelation<AlphabetId>> cachedCorrelations =
-                new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelationWithText(db, alphabetIntSetter, id));
+        final SyncCacheMap<CorrelationId, ImmutableCorrelation<AlphabetId>> cachedCorrelations =
+                new SyncCacheMap<>(id -> getCorrelationWithText(db, alphabetIdSetter, id));
         final ImmutableIntSet.Builder validBunchSetsBuilder = new ImmutableIntSetCreator();
 
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 int bunchSet = row.get(0).toInt();
-                int startMatcherId = row.get(1).toInt();
-                int endMatcherId = row.get(2).toInt();
+                CorrelationId startMatcherId = correlationIdSetter.getKeyFromDbValue(row.get(1));
+                CorrelationId endMatcherId = correlationIdSetter.getKeyFromDbValue(row.get(2));
 
                 final ImmutableCorrelation<AlphabetId> startMatcher = cachedCorrelations.get(startMatcherId);
                 final ImmutableCorrelation<AlphabetId> endMatcher = cachedCorrelations.get(endMatcherId);
@@ -3313,7 +3317,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    static AgentRegister getAgentRegister(DbExporter.Database db, int agentId) {
+    static <CorrelationId> AgentRegister<CorrelationId> getAgentRegister(DbExporter.Database db, IntSetter<CorrelationId> correlationIdSetter, int agentId) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), agentId)
@@ -3331,26 +3335,26 @@ public final class LangbookReadableDatabase {
             final int targetBunchSetId = agentRow.get(0).toInt();
             final int sourceBunchSetId = agentRow.get(1).toInt();
             final int diffBunchSetId = agentRow.get(2).toInt();
-            final int startMatcherId = agentRow.get(3).toInt();
-            final int startAdderId = agentRow.get(4).toInt();
-            final int endMatcherId = agentRow.get(5).toInt();
-            final int endAdderId = agentRow.get(6).toInt();
-            return new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId,
+            final CorrelationId startMatcherId = correlationIdSetter.getKeyFromDbValue(agentRow.get(3));
+            final CorrelationId startAdderId = correlationIdSetter.getKeyFromDbValue(agentRow.get(4));
+            final CorrelationId endMatcherId = correlationIdSetter.getKeyFromDbValue(agentRow.get(5));
+            final CorrelationId endAdderId = correlationIdSetter.getKeyFromDbValue(agentRow.get(6));
+            return new AgentRegister<>(targetBunchSetId, sourceBunchSetId, diffBunchSetId,
                     startMatcherId, startAdderId, endMatcherId, endAdderId, agentRow.get(7).toInt());
         }
 
         return null;
     }
 
-    static <AlphabetId extends AlphabetIdInterface> AgentDetails<AlphabetId> getAgentDetails(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, int agentId) {
-        final AgentRegister register = getAgentRegister(db, agentId);
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> AgentDetails<AlphabetId> getAgentDetails(DbExporter.Database db, IntSetter<AlphabetId> alphabetIdSetter, IntSetter<CorrelationId> correlationIdSetter, int agentId) {
+        final AgentRegister<CorrelationId> register = getAgentRegister(db, correlationIdSetter, agentId);
         final ImmutableIntSet targetBunches = getBunchSet(db, register.targetBunchSetId);
         final ImmutableIntSet sourceBunches = getBunchSet(db, register.sourceBunchSetId);
         final ImmutableIntSet diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
                 getBunchSet(db, register.diffBunchSetId) : sourceBunches;
 
-        final SyncCacheIntKeyNonNullValueMap<ImmutableCorrelation<AlphabetId>> correlationCache =
-                new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelationWithText(db, alphabetIdSetter, id));
+        final SyncCacheMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlationCache =
+                new SyncCacheMap<>(id -> getCorrelationWithText(db, alphabetIdSetter, id));
         final ImmutableCorrelation<AlphabetId> startMatcher = correlationCache.get(register.startMatcherId);
         final ImmutableCorrelation<AlphabetId> startAdder = correlationCache.get(register.startAdderId);
         final ImmutableCorrelation<AlphabetId> endMatcher = correlationCache.get(register.endMatcherId);
@@ -3428,7 +3432,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().assign(sentenceId -> getSentenceText(db, sentenceId));
     }
 
-    static <AlphabetId extends AlphabetIdInterface> AcceptationDetailsModel<AlphabetId> getAcceptationsDetails(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, int acceptation, AlphabetId preferredAlphabet) {
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> AcceptationDetailsModel<AlphabetId, CorrelationId> getAcceptationsDetails(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<CorrelationId> correlationIdSetter, int acceptation, AlphabetId preferredAlphabet) {
         final int concept = conceptFromAcceptation(db, acceptation);
         if (concept == 0) {
             return null;
@@ -3454,7 +3458,7 @@ public final class LangbookReadableDatabase {
             appliedRuleAcceptationText = null;
         }
 
-        ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableMap<AlphabetId, String>>> correlationResultPair = getAcceptationCorrelations(db, alphabetIntSetter, acceptation);
+        ImmutablePair<ImmutableList<CorrelationId>, ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>>> correlationResultPair = getAcceptationCorrelations(db, alphabetIntSetter, correlationIdSetter, acceptation);
         final AlphabetId givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
         final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, preferredAlphabet);
         final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
@@ -3501,7 +3505,7 @@ public final class LangbookReadableDatabase {
                 ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> CorrelationDetailsModel<AlphabetId> getCorrelationDetails(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, int correlationId, AlphabetId preferredAlphabet) {
+    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> CorrelationDetailsModel<AlphabetId, CorrelationId> getCorrelationDetails(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<CorrelationId> correlationIdSetter, CorrelationId correlationId, AlphabetId preferredAlphabet) {
         final ImmutableCorrelation<AlphabetId> correlation = getCorrelationWithText(db, alphabetIntSetter, correlationId);
         if (correlation.isEmpty()) {
             return null;
@@ -3511,17 +3515,17 @@ public final class LangbookReadableDatabase {
         final ImmutableIntKeyMap<String> acceptations = readAcceptationsIncludingCorrelation(db, correlationId, preferredAlphabet);
 
         final int entryCount = correlation.size();
-        final MutableMap<AlphabetId, ImmutableIntSet> relatedCorrelationsByAlphabet = MutableHashMap.empty();
-        final MutableIntKeyMap<ImmutableCorrelation<AlphabetId>> relatedCorrelations = MutableIntKeyMap.empty();
+        final MutableMap<AlphabetId, ImmutableSet<CorrelationId>> relatedCorrelationsByAlphabet = MutableHashMap.empty();
+        final MutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations = MutableHashMap.empty();
 
         for (int i = 0; i < entryCount; i++) {
             final AlphabetId matchingAlphabet = correlation.keyAt(i);
-            final ImmutableIntKeyMap<ImmutableCorrelation<AlphabetId>> correlations = readCorrelationsWithSameSymbolArray(db, alphabetIntSetter, correlationId, matchingAlphabet);
+            final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations = readCorrelationsWithSameSymbolArray(db, alphabetIntSetter, correlationIdSetter, correlationId, matchingAlphabet);
 
             final int amount = correlations.size();
-            final ImmutableIntSet.Builder setBuilder = new ImmutableIntSetCreator();
+            final ImmutableSet.Builder<CorrelationId> setBuilder = new ImmutableHashSet.Builder<>();
             for (int j = 0; j < amount; j++) {
-                final int corrId = correlations.keyAt(j);
+                final CorrelationId corrId = correlations.keyAt(j);
                 if (relatedCorrelations.get(corrId, null) == null) {
                     relatedCorrelations.put(corrId, correlations.valueAt(j));
                 }
