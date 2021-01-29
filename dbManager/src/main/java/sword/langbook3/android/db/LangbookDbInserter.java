@@ -80,7 +80,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static <CorrelationId extends CorrelationIdInterface> void insertCorrelationArray(DbInserter db, int arrayId, List<CorrelationId> array) {
+    static <CorrelationId extends CorrelationIdInterface> void insertCorrelationArray(DbInserter db, CorrelationArrayIdInterface arrayId, List<CorrelationId> array) {
         final Traverser<CorrelationId> iterator = array.iterator();
         if (!array.iterator().hasNext()) {
             throw new IllegalArgumentException();
@@ -101,9 +101,9 @@ final class LangbookDbInserter {
         }
     }
 
-    static int insertAcceptation(DbInserter db, int concept, int correlationArray) {
+    static int insertAcceptation(DbInserter db, int concept, CorrelationArrayIdInterface correlationArray) {
         final LangbookDbSchema.AcceptationsTable table = Tables.acceptations;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getConceptColumnIndex(), concept)
                 .put(table.getCorrelationArrayColumnIndex(), correlationArray)
                 .build();

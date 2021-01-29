@@ -27,9 +27,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteCorrelationArray(Deleter db, int correlationArrayId) {
+    static boolean deleteCorrelationArray(Deleter db, CorrelationArrayIdInterface correlationArrayId) {
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getArrayIdColumnIndex(), correlationArrayId)
                 .build();
 

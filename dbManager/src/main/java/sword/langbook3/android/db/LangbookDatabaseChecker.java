@@ -29,11 +29,12 @@ import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
-abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface> implements LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
+abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface> implements LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> {
 
     abstract IntSetter<LanguageId> getLanguageIdSetter();
     abstract IntSetter<AlphabetId> getAlphabetIdSetter();
     abstract IntSetter<CorrelationId> getCorrelationIdSetter();
+    abstract IntSetter<CorrelationArrayId> getCorrelationArrayIdSetter();
     abstract DbExporter.Database getDatabase();
 
     @Override
@@ -97,7 +98,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public MutableCorrelation<AlphabetId> readCorrelationArrayTexts(int correlationArrayId) {
+    public MutableCorrelation<AlphabetId> readCorrelationArrayTexts(CorrelationArrayId correlationArrayId) {
         return LangbookReadableDatabase.readCorrelationArrayTexts(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), correlationArrayId);
     }
 

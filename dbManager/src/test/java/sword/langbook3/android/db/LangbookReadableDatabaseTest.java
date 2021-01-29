@@ -27,7 +27,7 @@ import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
 final class LangbookReadableDatabaseTest {
 
-    private void addAgent(Database db, AlphabetIdManager alphabetIdManager, SymbolArrayIdManager symbolArrayIdManager, CorrelationIdManager correlationIdManager, int sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, int rule) {
+    private void addAgent(Database db, AlphabetIdManager alphabetIdManager, SymbolArrayIdManager symbolArrayIdManager, CorrelationIdManager correlationIdManager, CorrelationArrayIdManager correlationArrayIdManager, int sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, int rule) {
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
         final ImmutableIntSet verbBunchSet = emptyBunchSet.add(sourceBunch);
 
@@ -35,7 +35,7 @@ final class LangbookReadableDatabaseTest {
         final ImmutableCorrelation<AlphabetIdHolder> endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
         final ImmutableCorrelation<AlphabetIdHolder> endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
 
-        LangbookDatabase.addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
+        LangbookDatabase.addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
     }
 
     private AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
@@ -47,9 +47,10 @@ final class LangbookReadableDatabaseTest {
         final MemoryDatabase db = new MemoryDatabase();
         final LanguageIdManager languageIdManager = new LanguageIdManager();
         final AlphabetIdManager alphabetIdManager = new AlphabetIdManager();
-        final CorrelationIdManager correlationIdManager = new CorrelationIdManager();
         final SymbolArrayIdManager symbolArrayIdManager = new SymbolArrayIdManager();
-        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager);
+        final CorrelationIdManager correlationIdManager = new CorrelationIdManager();
+        final CorrelationArrayIdManager correlationArrayIdManager = new CorrelationArrayIdManager();
+        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager);
         final AlphabetIdHolder alphabet = addLanguage(db, languageIdManager, alphabetIdManager, "es").mainAlphabet;
         final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
@@ -62,8 +63,8 @@ final class LangbookReadableDatabaseTest {
         final String femaleNounBunchTitle = "substantivos femeninos";
         addSimpleAcceptation(manager, alphabet, femaleNounBunchId, femaleNounBunchTitle);
 
-        addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, verbBunchId, alphabet, "ar", "ando", gerundRule);
-        addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, femaleNounBunchId, alphabet, null, "s", pluralRule);
+        addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, verbBunchId, alphabet, "ar", "ando", gerundRule);
+        addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, femaleNounBunchId, alphabet, null, "s", pluralRule);
 
         final ImmutableCorrelation<AlphabetIdHolder> texts = new ImmutableCorrelation.Builder<AlphabetIdHolder>().put(alphabet, "cantar").build();
         final ImmutableIntKeyMap<String> matchingBunches = LangbookReadableDatabase
@@ -78,7 +79,7 @@ final class LangbookReadableDatabaseTest {
         ImmutableIntKeyMap<String> obtain(int firstAlphabet, String text);
     }
 
-    void checkFindAcceptationFromText(LanguageIdManager languageIdManager, AlphabetIdManager alphabetIdManager, SymbolArrayIdManager symbolArrayIdManager, CorrelationIdManager correlationIdManager, CorrelationObtainer corrObtainer) {
+    void checkFindAcceptationFromText(LanguageIdManager languageIdManager, AlphabetIdManager alphabetIdManager, SymbolArrayIdManager symbolArrayIdManager, CorrelationIdManager correlationIdManager, CorrelationArrayIdManager correlationArrayIdManager, CorrelationObtainer corrObtainer) {
         final ImmutableSet<String> texts = new ImmutableHashSet.Builder<String>()
                 .add("hello")
                 .add("Hi")
@@ -104,7 +105,7 @@ final class LangbookReadableDatabaseTest {
                     final ImmutableList<String> textList = textListBuilder.build();
 
                     final MemoryDatabase db = new MemoryDatabase();
-                    final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager);
+                    final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager);
                     final AlphabetIdHolder alphabet1 = addLanguage(db, languageIdManager, alphabetIdManager, "xx").mainAlphabet;
                     final AlphabetIdHolder alphabet2 = getNextAvailableId(manager);
                     assertTrue(addAlphabetCopyingFromOther(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, alphabet2, alphabet1));
@@ -145,14 +146,14 @@ final class LangbookReadableDatabaseTest {
 
     @Test
     void testFindAcceptationFromTextForOneAlphabetLanguageWord() {
-        checkFindAcceptationFromText(new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), (firstAlphabet, text) ->
+        checkFindAcceptationFromText(new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), (firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>().put(firstAlphabet, text).build()
         );
     }
 
     @Test
     void testFindAcceptationFromTextForTwoAlphabetLanguageWord() {
-        checkFindAcceptationFromText(new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), (firstAlphabet, text) ->
+        checkFindAcceptationFromText(new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), (firstAlphabet, text) ->
                 new ImmutableIntKeyMap.Builder<String>()
                         .put(firstAlphabet, text)
                         .put(firstAlphabet + 1, text)

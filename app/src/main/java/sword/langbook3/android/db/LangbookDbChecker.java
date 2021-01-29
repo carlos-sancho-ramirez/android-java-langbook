@@ -1,4 +1,4 @@
 package sword.langbook3.android.db;
 
-public interface LangbookDbChecker extends LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
+public interface LangbookDbChecker extends LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> {
 }

@@ -45,7 +45,7 @@ public final class LangbookDbSchema implements DbSchema {
     /**
      * Reserved for empty correlation arrays
      */
-    public static final int NULL_CORRELATION_ARRAY_ID = 0;
+    public static final int EMPTY_CORRELATION_ARRAY_ID = 0;
 
     public static final class AcceptationsTable extends DbTable {
 

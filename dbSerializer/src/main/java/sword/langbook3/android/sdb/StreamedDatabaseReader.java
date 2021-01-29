@@ -54,7 +54,7 @@ import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
-import static sword.langbook3.android.db.LangbookDbSchema.NULL_CORRELATION_ARRAY_ID;
+import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 
 public final class StreamedDatabaseReader {
 
@@ -735,7 +735,7 @@ public final class StreamedDatabaseReader {
         }
 
         final int maxArrayId = getMaxCorrelationArrayId(db);
-        final int newArrayId = maxArrayId + ((maxArrayId + 1 != NULL_CORRELATION_ARRAY_ID)? 1 : 2);
+        final int newArrayId = maxArrayId + ((maxArrayId + 1 != EMPTY_CORRELATION_ARRAY_ID)? 1 : 2);
         insertCorrelationArray(db, newArrayId, correlations);
         return newArrayId;
     }
