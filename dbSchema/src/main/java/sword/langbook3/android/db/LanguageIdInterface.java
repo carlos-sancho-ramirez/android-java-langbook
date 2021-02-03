@@ -4,4 +4,5 @@ import sword.database.DbValue;
 
 public interface LanguageIdInterface extends IdWhereInterface, IdPutInterface {
     boolean sameValue(DbValue value);
+    int getConceptId();
 }

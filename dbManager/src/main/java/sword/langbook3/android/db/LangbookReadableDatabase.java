@@ -55,6 +55,7 @@ import sword.langbook3.android.models.DerivedAcceptationResult;
 import sword.langbook3.android.models.DerivedAcceptationsReaderResult;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
+import sword.langbook3.android.models.IdTextPairResult;
 import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.MorphologyResult;
@@ -69,12 +70,12 @@ import sword.langbook3.android.models.TableCellReference;
 import sword.langbook3.android.models.TableCellValue;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
-import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
 public final class LangbookReadableDatabase {
@@ -1686,7 +1687,7 @@ public final class LangbookReadableDatabase {
         return texts;
     }
 
-    private static ImmutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation) {
+    private static <LanguageId> ImmutableIntKeyMap<SynonymTranslationResult<LanguageId>> readAcceptationSynonymsAndTranslations(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, int acceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1709,13 +1710,14 @@ public final class LangbookReadableDatabase {
                         languagesOffset + languages.getIdColumnIndex(),
                         stringsOffset + strings.getStringColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<SynonymTranslationResult> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableIntKeyMap.Builder<SynonymTranslationResult<LanguageId>> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int accId = row.get(0).toInt();
                 if (accId != acceptation) {
-                    builder.put(accId, new SynonymTranslationResult(row.get(2).toInt(), row.get(3).toText(), row.get(1).toInt() != accId));
+                    final LanguageId language = languageIdSetter.getKeyFromDbValue(row.get(2));
+                    builder.put(accId, new SynonymTranslationResult<>(language, row.get(3).toText(), row.get(1).toInt() != accId));
                 }
             }
         }
@@ -1723,7 +1725,7 @@ public final class LangbookReadableDatabase {
         return builder.build();
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> MutableIntKeyMap<SynonymTranslationResult> readAcceptationSynonymsAndTranslations(DbExporter.Database db, int acceptation, AlphabetId preferredAlphabet) {
+    private static <LanguageId, AlphabetId extends AlphabetIdInterface> MutableIntKeyMap<SynonymTranslationResult<LanguageId>> readAcceptationSynonymsAndTranslations(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, int acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1743,13 +1745,14 @@ public final class LangbookReadableDatabase {
                         stringsOffset + strings.getStringAlphabetColumnIndex(),
                         stringsOffset + strings.getStringColumnIndex());
 
-        final MutableIntKeyMap<SynonymTranslationResult> builder = MutableIntKeyMap.empty();
+        final MutableIntKeyMap<SynonymTranslationResult<LanguageId>> builder = MutableIntKeyMap.empty();
         try (DbResult result = db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int accId = row.get(1).toInt();
                 if (accId != acceptation && (builder.get(accId, null) == null || preferredAlphabet.sameValue(row.get(3)))) {
-                    builder.put(accId, new SynonymTranslationResult(row.get(2).toInt(), row.get(4).toText(), row.get(0).toInt() != accId));
+                    final LanguageId language = languageIdSetter.getKeyFromDbValue(row.get(2));
+                    builder.put(accId, new SynonymTranslationResult<>(language, row.get(4).toText(), row.get(0).toInt() != accId));
                 }
             }
         }
@@ -2452,7 +2455,7 @@ public final class LangbookReadableDatabase {
         return (value != null)? languageIdSetter.getKeyFromDbValue(value) : null;
     }
 
-    private static <AlphabetId extends AlphabetIdInterface> IdentifiableResult readLanguageFromAlphabet(DbExporter.Database db, AlphabetId alphabet, AlphabetId preferredAlphabet) {
+    private static <LanguageId, AlphabetId extends AlphabetIdInterface> IdTextPairResult<LanguageId> readLanguageFromAlphabet(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, AlphabetId alphabet, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2471,19 +2474,19 @@ public final class LangbookReadableDatabase {
         try (DbResult dbResult = db.select(query)) {
             if (dbResult.hasNext()) {
                 List<DbValue> row = dbResult.next();
-                int lang = row.get(0).toInt();
+                LanguageId lang = languageIdSetter.getKeyFromDbValue(row.get(0));
                 String text = row.get(2).toText();
                 boolean preferredAlphabetFound = preferredAlphabet.sameValue(row.get(1));
                 while (!preferredAlphabetFound && dbResult.hasNext()) {
                     row = dbResult.next();
                     if (preferredAlphabet.sameValue(row.get(1))) {
-                        lang = row.get(0).toInt();
+                        lang = languageIdSetter.getKeyFromDbValue(row.get(0));
                         text = row.get(2).toText();
                         preferredAlphabetFound = true;
                     }
                 }
 
-                return new IdentifiableResult(lang, text);
+                return new IdTextPairResult<>(lang, text);
             }
         }
 
@@ -3432,7 +3435,7 @@ public final class LangbookReadableDatabase {
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable().assign(sentenceId -> getSentenceText(db, sentenceId));
     }
 
-    static <AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> AcceptationDetailsModel<AlphabetId, CorrelationId> getAcceptationsDetails(DbExporter.Database db, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<CorrelationId> correlationIdSetter, int acceptation, AlphabetId preferredAlphabet) {
+    static <LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, CorrelationId extends CorrelationIdInterface> AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId> getAcceptationsDetails(DbExporter.Database db, IntSetter<LanguageId> languageIdSetter, IntSetter<AlphabetId> alphabetIntSetter, IntSetter<CorrelationId> correlationIdSetter, int acceptation, AlphabetId preferredAlphabet) {
         final int concept = conceptFromAcceptation(db, acceptation);
         if (concept == 0) {
             return null;
@@ -3460,8 +3463,8 @@ public final class LangbookReadableDatabase {
 
         ImmutablePair<ImmutableList<CorrelationId>, ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>>> correlationResultPair = getAcceptationCorrelations(db, alphabetIntSetter, correlationIdSetter, acceptation);
         final AlphabetId givenAlphabet = correlationResultPair.right.get(correlationResultPair.left.get(0)).keyAt(0);
-        final IdentifiableResult languageResult = readLanguageFromAlphabet(db, givenAlphabet, preferredAlphabet);
-        final MutableIntKeyMap<String> languageStrs = MutableIntKeyMap.empty();
+        final IdTextPairResult<LanguageId> languageResult = readLanguageFromAlphabet(db, languageIdSetter, givenAlphabet, preferredAlphabet);
+        final MutableMap<LanguageId, String> languageStrs = MutableHashMap.empty();
         languageStrs.put(languageResult.id, languageResult.text);
 
         final ImmutableCorrelation<AlphabetId> texts = getAcceptationTexts(db, alphabetIntSetter, acceptation);
@@ -3477,12 +3480,12 @@ public final class LangbookReadableDatabase {
 
         final ImmutablePair<IdentifiableResult, ImmutableIntKeyMap<String>> definition = readDefinitionFromAcceptation(db, acceptation, preferredAlphabet);
         final ImmutableIntKeyMap<String> subtypes = readSubtypesFromAcceptation(db, acceptation, preferredAlphabet);
-        final ImmutableIntKeyMap<SynonymTranslationResult> synonymTranslationResults =
-                readAcceptationSynonymsAndTranslations(db, acceptation, preferredAlphabet).toImmutable();
-        for (IntKeyMap.Entry<SynonymTranslationResult> entry : synonymTranslationResults.entries()) {
-            final int language = entry.value().language;
+        final ImmutableIntKeyMap<SynonymTranslationResult<LanguageId>> synonymTranslationResults =
+                readAcceptationSynonymsAndTranslations(db, languageIdSetter, acceptation, preferredAlphabet).toImmutable();
+        for (IntKeyMap.Entry<SynonymTranslationResult<LanguageId>> entry : synonymTranslationResults.entries()) {
+            final LanguageId language = entry.value().language;
             if (languageStrs.get(language, null) == null) {
-                languageStrs.put(language, readConceptText(db, language, preferredAlphabet));
+                languageStrs.put(language, readConceptText(db, language.getConceptId(), preferredAlphabet));
             }
         }
 

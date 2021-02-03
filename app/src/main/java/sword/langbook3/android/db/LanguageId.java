@@ -16,6 +16,11 @@ public final class LanguageId extends ConceptId implements LanguageIdInterface {
     }
 
     @Override
+    public int getConceptId() {
+        return key;
+    }
+
+    @Override
     public void where(int columnIndex, DbIdentifiableQueryBuilder builder) {
         builder.where(columnIndex, key);
     }

@@ -153,8 +153,8 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public AcceptationDetailsModel<AlphabetId, CorrelationId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet) {
-        return LangbookReadableDatabase.getAcceptationsDetails(getDatabase(), getAlphabetIdSetter(), getCorrelationIdSetter(), staticAcceptation, preferredAlphabet);
+    public AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet) {
+        return LangbookReadableDatabase.getAcceptationsDetails(getDatabase(), getLanguageIdSetter(), getAlphabetIdSetter(), getCorrelationIdSetter(), staticAcceptation, preferredAlphabet);
     }
 
     @Override

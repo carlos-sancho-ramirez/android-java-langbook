@@ -7,7 +7,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel<AlphabetId, CorrelationId> {
+public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -18,7 +18,7 @@ public final class AcceptationDetailsModel<AlphabetId, CorrelationId> {
     }
 
     public final int concept;
-    public final IdentifiableResult language;
+    public final IdTextPairResult<LanguageId> language;
     public final int originalAcceptationId;
     public final String originalAcceptationText;
     public final int appliedAgentId;
@@ -33,7 +33,7 @@ public final class AcceptationDetailsModel<AlphabetId, CorrelationId> {
     public final String baseConceptText;
     public final ImmutableIntKeyMap<String> definitionComplementTexts;
     public final ImmutableIntKeyMap<String> subtypes;
-    public final ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations;
+    public final ImmutableIntKeyMap<SynonymTranslationResult<LanguageId>> synonymsAndTranslations;
     public final ImmutableList<DynamizableResult> bunchChildren;
     public final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded;
     public final ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations;
@@ -43,13 +43,13 @@ public final class AcceptationDetailsModel<AlphabetId, CorrelationId> {
     public final ImmutableIntKeyMap<String> sampleSentences;
 
     /**
-     * Maps languages (concepts) with the suitable representation text.
+     * Maps languages with the suitable representation text.
      */
-    public final ImmutableIntKeyMap<String> languageTexts;
+    public final ImmutableMap<LanguageId, String> languageTexts;
 
     public AcceptationDetailsModel(
             int concept,
-            IdentifiableResult language,
+            IdTextPairResult<LanguageId> language,
             int originalAcceptationId,
             String originalAcceptationText,
             int appliedAgentId,
@@ -64,14 +64,14 @@ public final class AcceptationDetailsModel<AlphabetId, CorrelationId> {
             String baseConceptText,
             ImmutableIntKeyMap<String> definitionComplementTexts,
             ImmutableIntKeyMap<String> subtypes,
-            ImmutableIntKeyMap<SynonymTranslationResult> synonymsAndTranslations,
+            ImmutableIntKeyMap<SynonymTranslationResult<LanguageId>> synonymsAndTranslations,
             ImmutableList<DynamizableResult> bunchChildren,
             ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded,
             ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations,
             ImmutableIntKeyMap<String> ruleTexts,
             ImmutableIntPairMap involvedAgents,
             ImmutableIntPairMap agentRules,
-            ImmutableIntKeyMap<String> languageTexts,
+            ImmutableMap<LanguageId, String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
         if (language == null || originalAcceptationId != 0 && (originalAcceptationText == null ||

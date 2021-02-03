@@ -31,6 +31,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.DerivedAcceptationResult;
@@ -63,7 +64,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private int _acceptation;
-    private AcceptationDetailsModel<AlphabetId, CorrelationId> _model;
+    private AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -139,8 +140,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean synonymFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult> entry : _model.synonymsAndTranslations.entries()) {
-            if (entry.value().language == _model.language.id) {
+        for (IntKeyMap.Entry<SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
+            if (_model.language.id.equals(entry.value().language)) {
                 if (!synonymFound) {
                     result.add(new HeaderItem(getString(R.string.accDetailsSectionSynonyms)));
                     synonymFound = true;
@@ -151,9 +152,9 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean translationFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult> entry : _model.synonymsAndTranslations.entries()) {
-            final int language = entry.value().language;
-            if (language != _model.language.id) {
+        for (IntKeyMap.Entry<SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
+            final LanguageId language = entry.value().language;
+            if (!_model.language.id.equals(language)) {
                 if (!translationFound) {
                     result.add(new HeaderItem(getString(R.string.accDetailsSectionTranslations)));
                     translationFound = true;

@@ -8,7 +8,7 @@ import sword.langbook3.android.models.SearchResult;
 
 public interface LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> extends QuizzesChecker<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId>, DefinitionsChecker, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
     ImmutableSet<String> findConversionConflictWords(ConversionProposal<AlphabetId> newConversion);
-    AcceptationDetailsModel<AlphabetId, CorrelationId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet);
+    AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId> getAcceptationsDetails(int staticAcceptation, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult> getSearchHistory();
 
     default boolean allValidAlphabets(Correlation<AlphabetId> texts) {
