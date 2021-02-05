@@ -13,6 +13,8 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntResultFunction;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdComparator;
 import sword.langbook3.android.db.Correlation;
@@ -27,7 +29,6 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     private static final int REQUEST_CODE_PICK_BUNCHES = 1;
     static final int NO_CONCEPT = 0;
-    static final int NO_ACCEPTATION = 0;
 
     interface ArgKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
@@ -40,7 +41,6 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     interface ResultKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CORRELATION_ARRAY = BundleKeys.CORRELATION_ARRAY;
     }
 
@@ -83,9 +83,9 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      * @param texts Texts entered by the user in the WordEditorActivity.
      * @param acceptation Identifier for an existing acceptation that will be modified after selecting the correlation array.
      */
-    public static void open(Activity activity, int requestCode, Correlation<AlphabetId> texts, int acceptation) {
+    public static void open(Activity activity, int requestCode, Correlation<AlphabetId> texts, AcceptationId acceptation) {
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
-        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
+        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -168,7 +168,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private int addAcceptation(LangbookDbManager manager) {
+    private AcceptationId addAcceptation(LangbookDbManager manager) {
         int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
         if (concept == NO_CONCEPT) {
             concept = manager.getMaxConcept() + 1;
@@ -184,15 +184,13 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                 final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
                 if (manager.allValidAlphabets(getTexts())) {
-                    final int accId = addAcceptation(manager);
+                    final AcceptationId accId = addAcceptation(manager);
                     for (int bunch : bunchSet) {
                         manager.addAcceptationInBunch(bunch, accId);
                     }
                     Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
 
-                    final Intent intent = new Intent();
-                    intent.putExtra(ResultKeys.ACCEPTATION, accId);
-                    setResult(RESULT_OK, intent);
+                    setResult(RESULT_OK);
                     finish();
                 }
                 else {
@@ -211,8 +209,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     private void completeCorrelationPickingTask() {
-        final int existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
-        if (existingAcceptation == NO_ACCEPTATION) {
+        final AcceptationId existingAcceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
+        if (existingAcceptation == null) {
             MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
         }
         else {

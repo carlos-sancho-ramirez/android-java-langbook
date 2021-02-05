@@ -25,7 +25,7 @@
     <string name="addWordButton">Add</string>
 
     <!-- Acceptation details activity sections -->
-    <string name="accDetailsSectionSummary">Displaying details for acceptation %d</string>
+    <string name="accDetailsSectionSummary">Displaying details for acceptation %s</string>
     <string name="accDetailsSectionLanguage">Language</string>
     <string name="accDetailsSectionDefinition">Definition</string>
     <string name="accDetailsSectionOrigin">Coming from</string>

@@ -2,12 +2,12 @@ package sword.langbook3.android.models;
 
 import sword.collections.ImmutableIntRange;
 
-public final class SentenceSpan {
+public final class SentenceSpan<AcceptationId> {
     public final ImmutableIntRange range;
-    public final int acceptation;
+    public final AcceptationId acceptation;
 
-    public SentenceSpan(ImmutableIntRange range, int acceptation) {
-        if (range == null || range.min() < 0 || acceptation == 0) {
+    public SentenceSpan(ImmutableIntRange range, AcceptationId acceptation) {
+        if (range == null || range.min() < 0 || acceptation == null) {
             throw new IllegalArgumentException();
         }
 
@@ -17,7 +17,7 @@ public final class SentenceSpan {
 
     @Override
     public int hashCode() {
-        return ((range.min() * 37) + range.size() * 37) + acceptation;
+        return ((range.min() * 37) + range.size() * 37) + acceptation.hashCode();
     }
 
     @Override
@@ -30,7 +30,7 @@ public final class SentenceSpan {
         }
 
         final SentenceSpan that = (SentenceSpan) other;
-        return acceptation == that.acceptation && range.equals(that.range);
+        return acceptation.equals(that.acceptation) && range.equals(that.range);
     }
 
     @Override

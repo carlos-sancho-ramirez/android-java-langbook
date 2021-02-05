@@ -21,20 +21,20 @@ import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgen
 import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> extends QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId>, DefinitionsManagerTest, SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
+interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface> extends QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId>, DefinitionsManagerTest, SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
 
     @Override
-    LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> createManager(MemoryDatabase db);
+    LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
@@ -47,10 +47,10 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
+        final AcceptationId carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, getAcceptationIdManager(), pluralRule, carAcc);
 
         final String text = "Los coches son muy rápidos";
-        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
                 .add(newSpan(text, "coches", carPluralAcc))
                 .build();
 
@@ -64,15 +64,15 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
         final int mineConcept = manager.getMaxConcept() + 1;
-        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
+        final AcceptationId mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
 
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
@@ -84,10 +84,10 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
+        final AcceptationId carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, getAcceptationIdManager(), pluralRule, carAcc);
 
         final String text = "El mejor de los coches es el mío";
-        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
                 .add(newSpan(text, "coches", carPluralAcc))
                 .add(newSpan(text, "mío", mineAcc))
                 .build();
@@ -104,15 +104,15 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int carConcept = manager.getMaxConcept() + 1;
-        final int carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
         final int mineConcept = manager.getMaxConcept() + 1;
-        final int mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
+        final AcceptationId mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
 
         final int substantiveConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
@@ -125,10 +125,10 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         final int agentId = manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final int carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, pluralRule, carAcc);
+        final AcceptationId carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, getAcceptationIdManager(), pluralRule, carAcc);
 
         final String text = "El mejor de los coches es el mío";
-        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
                 .add(newSpan(text, "coches", carPluralAcc))
                 .add(newSpan(text, "mío", mineAcc))
                 .build();
@@ -145,15 +145,15 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveHeadChainedAgentWhereRuledAcceptationOfTheTailChainedAgentIsUsedAsSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int brushConcept = manager.getMaxConcept() + 1;
-        final int brushAcc = addSimpleAcceptation(manager, esAlphabet, brushConcept, "cepillar");
+        final AcceptationId brushAcc = addSimpleAcceptation(manager, esAlphabet, brushConcept, "cepillar");
 
         final int toothConcept = manager.getMaxConcept() + 1;
-        final int toothAcc = addSimpleAcceptation(manager, esAlphabet, toothConcept, "diente");
+        final AcceptationId toothAcc = addSimpleAcceptation(manager, esAlphabet, toothConcept, "diente");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, arVerbConcept, "verbo de primera conjugación");
@@ -176,12 +176,12 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
 
         assertTrue(manager.addAcceptationInBunch(pluralableConcept, toothAcc));
 
-        final int iBrushAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(tailAgent, brushAcc);
-        final int teethAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(pluralAgent, toothAcc);
+        final AcceptationId iBrushAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(tailAgent, brushAcc);
+        final AcceptationId teethAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(pluralAgent, toothAcc);
 
         final String text = "Me cepillo los dientes cada día";
 
-        final ImmutableSet<SentenceSpan> spans = new ImmutableHashSet.Builder<SentenceSpan>()
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
                 .add(newSpan(text, "cepillo", iBrushAcc))
                 .add(newSpan(text, "dientes", teethAcc))
                 .build();

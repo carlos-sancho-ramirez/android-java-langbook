@@ -5,7 +5,7 @@ import sword.collections.ImmutableSet;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
-public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId> {
+public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
     boolean isSymbolArrayMerelyASentence(SymbolArrayId symbolArrayId);
 
     /**
@@ -15,7 +15,7 @@ public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, Correla
      */
     String getSentenceText(int sentenceId);
 
-    ImmutableSet<SentenceSpan> getSentenceSpans(int sentenceId);
+    ImmutableSet<SentenceSpan<AcceptationId>> getSentenceSpans(int sentenceId);
 
     /**
      * Return a map for all sentences that has at least one span with the static acceptation provided,
@@ -24,6 +24,6 @@ public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, Correla
      * @param staticAcceptation Static acceptation to by found.
      * @return Keys for the returned map are the sentence identifiers, values are the text representation of that sentence.
      */
-    ImmutableIntKeyMap<String> getSampleSentences(int staticAcceptation);
-    SentenceDetailsModel getSentenceDetails(int sentenceId);
+    ImmutableIntKeyMap<String> getSampleSentences(AcceptationId staticAcceptation);
+    SentenceDetailsModel<AcceptationId> getSentenceDetails(int sentenceId);
 }

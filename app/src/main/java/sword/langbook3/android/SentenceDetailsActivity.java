@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
@@ -50,15 +51,15 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     private TextView _sentenceTextView;
     private ListView _listView;
-    private SentenceDetailsModel _model;
+    private SentenceDetailsModel<AcceptationId> _model;
     private boolean _justCreated;
 
     private boolean _displayingDeleteDialog;
 
     private final class ClickableSentenceSpan extends ClickableSpan {
-        private final int acceptation;
+        private final AcceptationId acceptation;
 
-        ClickableSentenceSpan(int acceptation) {
+        ClickableSentenceSpan(AcceptationId acceptation) {
             this.acceptation = acceptation;
         }
 
@@ -79,10 +80,10 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
             finish();
         }
         else {
-            final ImmutableSet<SentenceSpan> spans = _model.spans;
+            final ImmutableSet<SentenceSpan<AcceptationId>> spans = _model.spans;
 
             final SpannableString string = new SpannableString(text);
-            for (SentenceSpan span : spans) {
+            for (SentenceSpan<AcceptationId> span : spans) {
                 string.setSpan(new ClickableSentenceSpan(span.acceptation),
                         span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             }

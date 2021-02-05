@@ -1,8 +1,9 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableSet;
 
-public interface BunchesChecker<LanguageId, AlphabetId, CorrelationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId> {
-    ImmutableIntSet getAcceptationsInBunch(int bunch);
-    ImmutableIntSet findBunchesWhereAcceptationIsIncluded(int acceptation);
+public interface BunchesChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+    ImmutableSet<AcceptationId> getAcceptationsInBunch(int bunch);
+    ImmutableIntSet findBunchesWhereAcceptationIsIncluded(AcceptationId acceptation);
 }

@@ -13,6 +13,8 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntSet;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookDbChecker;
 
@@ -109,13 +111,13 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
 
         if (requestCode == REQUEST_CODE_PICK_BASE && resultCode == RESULT_OK && data != null) {
             final LangbookDbChecker checker = DbManager.getInstance().getManager();
-            final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-            _state.baseConcept = (pickedAcceptation != 0)? checker.conceptFromAcceptation(pickedAcceptation) : 0;
+            final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
+            _state.baseConcept = (pickedAcceptation != null)? checker.conceptFromAcceptation(pickedAcceptation) : 0;
             updateUi();
         }
         else if (requestCode == REQUEST_CODE_PICK_COMPLEMENT && resultCode == RESULT_OK && data != null) {
             final LangbookDbChecker checker = DbManager.getInstance().getManager();
-            final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
+            final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
             _state.complements = _state.complements.add(checker.conceptFromAcceptation(pickedAcceptation));
             updateUi();
         }

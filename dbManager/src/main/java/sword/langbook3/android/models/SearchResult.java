@@ -1,44 +1,38 @@
 package sword.langbook3.android.models;
 
 import sword.collections.ImmutableIntList;
+import sword.langbook3.android.db.AcceptationIdInterface;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
 
-public final class SearchResult {
-
-    public interface Types {
-        int ACCEPTATION = 0;
-        int AGENT = 1;
-    }
+public final class SearchResult<ID> {
 
     private final String _str;
     private final String _mainStr;
-    private final int _type;
-    private final int _id;
+    private final ID _id;
     private final boolean _isDynamic;
     private final String _mainAccMainStr;
     private final ImmutableIntList _appliedRules;
 
-    public SearchResult(String str, String mainStr, int type, int id, boolean isDynamic, String mainAccMainStr, ImmutableIntList appliedRules) {
-        if (type != Types.ACCEPTATION && type != Types.AGENT || str == null || mainStr == null) {
+    public SearchResult(String str, String mainStr, ID id, boolean isDynamic, String mainAccMainStr, ImmutableIntList appliedRules) {
+        if (!(id instanceof AcceptationIdInterface) && !(id instanceof Integer) || str == null || mainStr == null) {
             throw new IllegalArgumentException();
         }
 
-        if (type != Types.ACCEPTATION && isDynamic) {
+        if (!(id instanceof AcceptationIdInterface) && isDynamic) {
             throw new IllegalArgumentException();
         }
 
         _str = str;
         _mainStr = mainStr;
-        _type = type;
         _id = id;
         _isDynamic = isDynamic;
         _mainAccMainStr = mainAccMainStr;
         _appliedRules = appliedRules;
     }
 
-    public SearchResult(String str, String mainStr, int type, int id, boolean isDynamic) {
-        this(str, mainStr, type, id, isDynamic, null, ImmutableIntList.empty());
+    public SearchResult(String str, String mainStr, ID id, boolean isDynamic) {
+        this(str, mainStr, id, isDynamic, null, ImmutableIntList.empty());
     }
 
     public String getStr() {
@@ -49,11 +43,7 @@ public final class SearchResult {
         return _mainStr;
     }
 
-    public int getType() {
-        return _type;
-    }
-
-    public int getId() {
+    public ID getId() {
         return _id;
     }
 
@@ -71,7 +61,7 @@ public final class SearchResult {
 
     @Override
     public int hashCode() {
-        return ((_type * 31 + _id) * 31 + _str.hashCode()) * 31 + _mainStr.hashCode();
+        return (_id.hashCode() * 31 + _str.hashCode()) * 31 + _mainStr.hashCode();
     }
 
     @Override
@@ -81,8 +71,7 @@ public final class SearchResult {
         }
 
         final SearchResult that = (SearchResult) other;
-        return _type == that._type &&
-                _id == that._id &&
+        return _id.equals(that._id) &&
                 _isDynamic == that._isDynamic &&
                 _str.equals(that._str) &&
                 _mainStr.equals(that._mainStr) &&
@@ -92,6 +81,6 @@ public final class SearchResult {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '(' + _str + ',' + _mainStr + ',' + _type + ',' + _id + ',' + _isDynamic + ',' + _mainAccMainStr + ',' + _appliedRules + ')';
+        return getClass().getSimpleName() + '(' + _str + ',' + _mainStr + ',' + _id + ',' + _isDynamic + ',' + _mainAccMainStr + ',' + _appliedRules + ')';
     }
 }

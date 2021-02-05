@@ -14,10 +14,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntRange;
-import sword.collections.ImmutableIntValueMap;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
-import sword.collections.IntValueMap;
+import sword.collections.Map;
 import sword.collections.MutableIntValueMap;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
@@ -57,10 +59,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void openWithAcceptation(Activity activity, int requestCode, String text, int acceptation) {
+    static void openWithAcceptation(Activity activity, int requestCode, String text, AcceptationId acceptation) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
-        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
+        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -79,11 +81,11 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final SpannableString string = new SpannableString(getText());
         final int highlightColor = getResources().getColor(R.color.agentDynamicTextColor);
 
-        final MutableIntValueMap<SentenceSpan> spans = _state.getSpans();
+        final MutableIntValueMap<SentenceSpan<AcceptationId>> spans = _state.getSpans();
         final int spanCount = _state.getSpans().size();
         for (int spanIndex = 0; spanIndex < spanCount; spanIndex++) {
             if (spans.valueAt(spanIndex) != 0) {
-                final SentenceSpan span = spans.keyAt(spanIndex);
+                final SentenceSpan<AcceptationId> span = spans.keyAt(spanIndex);
                 string.setSpan(new ForegroundColorSpan(highlightColor), span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             }
         }
@@ -95,8 +97,8 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, NO_SENTENCE_ID);
     }
 
-    private int getAcceptationId() {
-        return getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
+    private AcceptationId getAcceptationId() {
+        return AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
     }
 
     private int getConcept() {
@@ -112,9 +114,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private void insertInitialSpans(int sentenceId) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final String sentence = getText();
-        final ImmutableSet<SentenceSpan> spans = checker.getSentenceSpans(sentenceId);
-        final MutableIntValueMap<SentenceSpan> builder = _state.getSpans();
-        for (SentenceSpan span : spans) {
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = checker.getSentenceSpans(sentenceId);
+        final MutableIntValueMap<SentenceSpan<AcceptationId>> builder = _state.getSpans();
+        for (SentenceSpan<AcceptationId> span : spans) {
             final ImmutableCorrelation<AlphabetId> texts = checker.getAcceptationTexts(span.acceptation);
             final int mapSize = texts.size();
             int index = 0;
@@ -129,21 +131,21 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
             if (mapIndex < mapSize) {
                 final ImmutableIntRange range = new ImmutableIntRange(index, index + texts.valueAt(mapIndex).length() - 1);
-                final SentenceSpan newSpan = range.equals(span.range)? span : new SentenceSpan(range, span.acceptation);
+                final SentenceSpan<AcceptationId> newSpan = range.equals(span.range)? span : new SentenceSpan<>(range, span.acceptation);
                 builder.put(newSpan, 1);
             }
         }
     }
 
-    private void insertSuggestedSpans(int acceptation) {
+    private void insertSuggestedSpans(AcceptationId acceptation) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
-        final ImmutableIntValueMap<String> map = checker.readTextAndDynamicAcceptationsMapFromAcceptation(acceptation);
+        final ImmutableMap<String, AcceptationId> map = checker.readTextAndDynamicAcceptationsMapFromAcceptation(acceptation);
         final String text = getText();
-        for (IntValueMap.Entry<String> entry : map.entries()) {
+        for (Map.Entry<String, AcceptationId> entry : map.entries()) {
             final int index = text.indexOf(entry.key());
             if (index >= 0) {
                 final ImmutableIntRange range = new ImmutableIntRange(index, index + entry.key().length() - 1);
-                _state.getSpans().put(new SentenceSpan(range, entry.value()), 1);
+                _state.getSpans().put(new SentenceSpan<>(range, entry.value()), 1);
                 return;
             }
         }
@@ -158,11 +160,11 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             _state = new SpanEditorActivityState();
 
             final int sentenceId = getSentenceId();
-            final int acceptation = getAcceptationId();
+            final AcceptationId acceptation = getAcceptationId();
             if (sentenceId != NO_SENTENCE_ID) {
                 insertInitialSpans(sentenceId);
             }
-            else if (acceptation != 0) {
+            else if (acceptation != null) {
                 insertSuggestedSpans(acceptation);
             }
         }
@@ -224,7 +226,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     private void evaluateSpans() {
-        final ImmutableSet<SentenceSpan> spans = _state.getSpans().filter(v -> v != 0).keySet().toImmutable();
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = _state.getSpans().filter(v -> v != 0).keySet().toImmutable();
 
         if (spans.isEmpty() && !shouldAllowNoSpans()) {
             Toast.makeText(this, R.string.spanEditorNoSpanPresentError, Toast.LENGTH_SHORT).show();
@@ -272,9 +274,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_PICK_ACCEPTATION && resultCode == RESULT_OK && data != null) {
-            final int dynamicAcc = data.getIntExtra(FixedTextAcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0);
-            if (dynamicAcc != 0) {
-                _state.getSpans().put(new SentenceSpan(_state.getSelection(), dynamicAcc), 1);
+            final AcceptationId dynamicAcc = AcceptationIdBundler.readAsIntentExtra(data, FixedTextAcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION);
+            if (dynamicAcc != null) {
+                _state.getSpans().put(new SentenceSpan<>(_state.getSelection(), dynamicAcc), 1);
                 _sentenceText.setText(getRichText());
             }
         }

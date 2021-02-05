@@ -14,6 +14,7 @@ import android.widget.TextView;
 
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
+import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.models.SearchResult;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
@@ -79,7 +80,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
 
     private void updateSearchResults() {
         if (TextUtils.isEmpty(_query)) {
-            updateSearchResults(noQueryResults());
+            updateSearchResults(noQueryResults().map(result -> result));
         }
         else {
             queryAllResults();
@@ -102,7 +103,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         updateSearchResults();
     }
 
-    ImmutableList<SearchResult> noQueryResults() {
+    ImmutableList<SearchResult<AcceptationId>> noQueryResults() {
         return ImmutableList.empty();
     }
 
@@ -118,10 +119,10 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return false;
     }
 
-    private ImmutableList<SearchResult> agentSearchResults() {
+    private ImmutableList<SearchResult<Integer>> agentSearchResults() {
         return DbManager.getInstance().getManager().getAgentIds().map(agentId -> {
             final String str = AGENT_QUERY_PREFIX + agentId;
-            return new SearchResult(str, str, SearchResult.Types.AGENT, agentId, false);
+            return new SearchResult<>(str, str, agentId, false);
         });
     }
 
@@ -131,12 +132,12 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
                 _query.toLowerCase().startsWith(str.toLowerCase()));
     }
 
-    abstract ImmutableList<SearchResult> queryAcceptationResults(String query);
+    abstract ImmutableList<SearchResult<AcceptationId>> queryAcceptationResults(String query);
 
     final void queryAllResults() {
-        ImmutableList<SearchResult> results = queryAcceptationResults(_query);
+        ImmutableList<SearchResult> results = queryAcceptationResults(_query).map(result -> result);
         if (includeAgentsAsResult() && _query != null && possibleString(AGENT_QUERY_PREFIX)) {
-            results = results.appendAll(agentSearchResults().filter(entry -> possibleString(entry.getStr())));
+            results = results.appendAll(agentSearchResults().filter(entry -> possibleString(entry.getStr())).map(result -> result));
         }
 
         updateSearchResults(results);
@@ -153,22 +154,16 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-        SearchResult item = _listAdapter.getItem(position);
-        switch (item.getType()) {
-            case SearchResult.Types.ACCEPTATION:
-                onAcceptationSelected(item.getId());
-                break;
-
-            case SearchResult.Types.AGENT:
-                AgentDetailsActivity.open(this, item.getId());
-                break;
-
-            default:
-                throw new AssertionError();
+        final Object itemId = _listAdapter.getItem(position).getId();
+        if (itemId instanceof AcceptationId) {
+            onAcceptationSelected((AcceptationId) itemId);
+        }
+        else {
+            AgentDetailsActivity.open(this, (Integer) itemId);
         }
     }
 
-    abstract void onAcceptationSelected(int acceptation);
+    abstract void onAcceptationSelected(AcceptationId acceptation);
     abstract void openLanguagePicker(String query);
 
     @Override

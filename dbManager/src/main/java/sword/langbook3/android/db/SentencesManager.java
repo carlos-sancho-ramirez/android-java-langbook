@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.collections.Set;
 import sword.langbook3.android.models.SentenceSpan;
 
-public interface SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> extends AcceptationsManager<LanguageId, AlphabetId, CorrelationId>, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId> {
+public interface SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId>, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
 
     /**
      * Add a new sentence into the database attached to the given concept, text and set of spans.
@@ -12,7 +12,7 @@ public interface SentencesManager<LanguageId, AlphabetId, SymbolArrayId, Correla
      * @param spans Set of spans for the plain text provided in order to include semantics.
      * @return The identifier for the new sentence, or null if it is not possible to be included.
      */
-    Integer addSentence(int concept, String text, Set<SentenceSpan> spans);
+    Integer addSentence(int concept, String text, Set<SentenceSpan<AcceptationId>> spans);
 
     /**
      * Replaces the text and spans for an existing sentence, leaving the concept untouched.
@@ -22,7 +22,7 @@ public interface SentencesManager<LanguageId, AlphabetId, SymbolArrayId, Correla
      *                 In case this set is empty, all current spans for the sentence will be removed.
      * @return Whether the operation succeeded or not. This will return true even if no change is performed within the database.
      */
-    boolean updateSentenceTextAndSpans(int sentenceId, String newText, Set<SentenceSpan> newSpans);
+    boolean updateSentenceTextAndSpans(int sentenceId, String newText, Set<SentenceSpan<AcceptationId>> newSpans);
 
     /**
      * Remove completely the sentence linked to the given identifier and its spans.

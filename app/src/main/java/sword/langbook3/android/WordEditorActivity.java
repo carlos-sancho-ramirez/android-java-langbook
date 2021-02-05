@@ -28,6 +28,8 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
@@ -38,7 +40,6 @@ import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.CorrelationPickerActivity.NO_ACCEPTATION;
 import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.collections.EqualUtils.equal;
 
@@ -60,15 +61,11 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         String TEXTS = "texts";
     }
 
-    interface ResultKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
-    }
-
     private LinearLayout _formPanel;
     private ImmutableIntKeyMap<FieldConversion> _fieldConversions;
     private String[] _texts;
     private ImmutableIntKeyMap<AlphabetId> _fieldIndexAlphabetRelationMap;
-    private int _existingAcceptation = NO_ACCEPTATION;
+    private AcceptationId _existingAcceptation;
     private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> _conversions =
             new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
@@ -95,9 +92,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Context context, int acceptation) {
+    public static void open(Context context, AcceptationId acceptation) {
         final Intent intent = new Intent(context, WordEditorActivity.class);
-        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
+        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         context.startActivity(intent);
     }
 
@@ -129,7 +126,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         _formPanel = findViewById(R.id.formPanel);
         findViewById(R.id.nextButton).setOnClickListener(this);
 
-        _existingAcceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, NO_ACCEPTATION);
+        _existingAcceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
 
         if (savedInstanceState != null) {
             _texts = savedInstanceState.getStringArray(SavedKeys.TEXTS);
@@ -152,7 +149,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     private LanguageId getLanguage(LangbookDbChecker checker) {
-        if (_existingAcceptation != 0) {
+        if (_existingAcceptation != null) {
             final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
         }
@@ -253,7 +250,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ImmutableCorrelation<AlphabetId> existingTexts;
         final LanguageId language;
-        if (_existingAcceptation != 0) {
+        if (_existingAcceptation != null) {
             final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
             existingTexts = result.left;
             language = result.right;
@@ -370,7 +367,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 
-            if (_existingAcceptation == NO_ACCEPTATION) {
+            if (_existingAcceptation == null) {
                 CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
                         getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT), builder.build());
             }

@@ -8,6 +8,8 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.SearchResult;
 
@@ -27,14 +29,14 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     }
 
     private ImmutableIntKeyMap<String> _ruleTexts;
-    private int _confirmDynamicAcceptation;
+    private AcceptationId _confirmDynamicAcceptation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         if (savedInstanceState != null) {
-            _confirmDynamicAcceptation = savedInstanceState.getInt(AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION);
+            _confirmDynamicAcceptation = AcceptationIdBundler.read(savedInstanceState, AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION);
         }
     }
 
@@ -49,7 +51,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     }
 
     @Override
-    ImmutableList<SearchResult> queryAcceptationResults(String query) {
+    ImmutableList<SearchResult<AcceptationId>> queryAcceptationResults(String query) {
         return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 
@@ -69,7 +71,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     }
 
     @Override
-    void onAcceptationSelected(int acceptation) {
+    void onAcceptationSelected(AcceptationId acceptation) {
         _confirmDynamicAcceptation = acceptation;
         AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, acceptation, true);
     }
@@ -78,19 +80,19 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             final Intent intent = new Intent();
-            final int staticAcc;
-            final int dynamicAcc;
+            final AcceptationId staticAcc;
+            final AcceptationId dynamicAcc;
             if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                staticAcc = data.getIntExtra(AcceptationDetailsActivity.ResultKeys.ACCEPTATION, 0);
+                staticAcc = AcceptationIdBundler.readAsIntentExtra(data, AcceptationDetailsActivity.ResultKeys.ACCEPTATION);
                 dynamicAcc = _confirmDynamicAcceptation;
             }
             else {
-                staticAcc = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
+                staticAcc = AcceptationIdBundler.readAsIntentExtra(data, LanguagePickerActivity.ResultKeys.ACCEPTATION);
                 dynamicAcc = staticAcc;
             }
 
-            intent.putExtra(ResultKeys.STATIC_ACCEPTATION, staticAcc);
-            intent.putExtra(ResultKeys.DYNAMIC_ACCEPTATION, dynamicAcc);
+            AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.STATIC_ACCEPTATION, staticAcc);
+            AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.DYNAMIC_ACCEPTATION, dynamicAcc);
             setResult(RESULT_OK, intent);
             finish();
         }
@@ -99,6 +101,6 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putInt(AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION, _confirmDynamicAcceptation);
+        AcceptationIdBundler.write(outState, AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION, _confirmDynamicAcceptation);
     }
 }

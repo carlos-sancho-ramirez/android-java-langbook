@@ -12,10 +12,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntPairMap;
-import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
-import sword.collections.MutableIntPairMap;
+import sword.collections.ImmutableSet;
+import sword.collections.MutableIntValueHashMap;
+import sword.collections.MutableIntValueMap;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -56,7 +59,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private MutableIntPairMap _knowledge = MutableIntPairMap.empty();
+    private MutableIntValueMap<AcceptationId> _knowledge = MutableIntValueHashMap.empty();
 
     private int _quizId;
     private QuizDetails<AlphabetId> _quizDetails;
@@ -64,14 +67,14 @@ public final class QuestionActivity extends Activity implements View.OnClickList
 
     private int _goodAnswerCount;
     private int _badAnswerCount;
-    private int _acceptation;
+    private AcceptationId _acceptation;
 
     private boolean _isAnswerVisible;
 
     private AlertDialog _dialog;
     private TextView _scoreTextView;
     private long _lastClickTime;
-    private ImmutableIntSet _possibleAcceptations;
+    private ImmutableSet<AcceptationId> _possibleAcceptations;
     private int _dbWriteVersion;
 
     private void readQuizDefinition(LangbookDbChecker checker) {
@@ -87,10 +90,10 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         final int size = _possibleAcceptations.size();
         final int ponderationThreshold = MIN_ALLOWED_SCORE + (MAX_ALLOWED_SCORE - MIN_ALLOWED_SCORE) * 3 / 4;
 
-        final MutableIntPairMap ponders = MutableIntPairMap.empty();
+        final MutableIntValueMap<AcceptationId> ponders = MutableIntValueHashMap.empty();
         int ponderationCount = 0;
         for (int i = 0; i < size; i++) {
-            final int acceptation = _possibleAcceptations.valueAt(i);
+            final AcceptationId acceptation = _possibleAcceptations.valueAt(i);
             ponders.put(acceptation, ponderationCount);
             final int score = _knowledge.get(acceptation, INITIAL_SCORE);
             final int diff = ponderationThreshold - score;
@@ -183,7 +186,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
 
         boolean leaveDialogPresent = false;
         if (savedInstanceState != null) {
-            _acceptation = savedInstanceState.getInt(SavedKeys.ACCEPTATION, 0);
+            _acceptation = AcceptationIdBundler.read(savedInstanceState, SavedKeys.ACCEPTATION);
             _goodAnswerCount = savedInstanceState.getInt(SavedKeys.GOOD_ANSWER_COUNT);
             _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_COUNT);
             _isAnswerVisible = savedInstanceState.getBoolean(SavedKeys.IS_ANSWER_VISIBLE);
@@ -213,7 +216,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
                 return;
             }
 
-            if (_acceptation == 0 || !_possibleAcceptations.contains(_acceptation)) {
+            if (_acceptation == null || !_possibleAcceptations.contains(_acceptation)) {
                 selectAcceptation();
                 _isAnswerVisible = false;
             }
@@ -249,7 +252,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     }
 
     private void readCurrentKnowledge(LangbookDbChecker checker) {
-        final ImmutableIntPairMap knowledgeMap = checker.getCurrentKnowledge(_quizId);
+        final ImmutableIntValueMap<AcceptationId> knowledgeMap = checker.getCurrentKnowledge(_quizId);
         _possibleAcceptations = knowledgeMap.keySet();
         _knowledge = knowledgeMap.filter(score -> score != NO_SCORE).mutate();
     }
@@ -320,7 +323,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        out.putInt(SavedKeys.ACCEPTATION, _acceptation);
+        AcceptationIdBundler.write(out, SavedKeys.ACCEPTATION, _acceptation);
         out.putBoolean(SavedKeys.IS_ANSWER_VISIBLE, _isAnswerVisible);
         out.putInt(SavedKeys.GOOD_ANSWER_COUNT, _goodAnswerCount);
         out.putInt(SavedKeys.BAD_ANSWER_COUNT, _badAnswerCount);

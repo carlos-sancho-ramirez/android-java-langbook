@@ -27,6 +27,8 @@ import sword.collections.MutableHashSet;
 import sword.collections.MutableIntList;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationEntryListParceler;
@@ -568,8 +570,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH && resultCode == RESULT_OK) {
-            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-            if (acceptation == 0) {
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
+            if (acceptation == null) {
                 throw new AssertionError();
             }
 
@@ -578,8 +580,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addBunch(DbManager.getInstance().getManager(), concept, _targetBunchesContainer, _state.targetBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_SOURCE_BUNCH && resultCode == RESULT_OK) {
-            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-            if (acceptation == 0) {
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
+            if (acceptation == null) {
                 throw new AssertionError();
             }
 
@@ -588,8 +590,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addBunch(DbManager.getInstance().getManager(), concept, _sourceBunchesContainer, _state.sourceBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_DIFF_BUNCH && resultCode == RESULT_OK) {
-            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-            if (acceptation == 0) {
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
+            if (acceptation == null) {
                 throw new AssertionError();
             }
 
@@ -598,8 +600,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addBunch(DbManager.getInstance().getManager(), concept, _diffBunchesContainer, _state.diffBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_RULE && resultCode == RESULT_OK) {
-            final int acceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-            if (acceptation == 0) {
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
+            if (acceptation == null) {
                 throw new AssertionError();
             }
 

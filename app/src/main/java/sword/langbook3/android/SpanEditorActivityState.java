@@ -6,11 +6,14 @@ import android.os.Parcelable;
 import sword.collections.ImmutableIntRange;
 import sword.collections.MutableIntValueMap;
 import sword.collections.MutableIntValueSortedMap;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdComparator;
+import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.models.SentenceSpan;
 
 public final class SpanEditorActivityState implements Parcelable {
 
-    private final MutableIntValueMap<SentenceSpan> spans = MutableIntValueSortedMap.empty((a, b) -> a.range.min() < b.range.min());
+    private final MutableIntValueMap<SentenceSpan<AcceptationId>> spans = MutableIntValueSortedMap.empty((a, b) -> a.range.min() < b.range.min());
     private ImmutableIntRange selection;
 
     ImmutableIntRange getSelection() {
@@ -25,7 +28,7 @@ public final class SpanEditorActivityState implements Parcelable {
         selection = range;
     }
 
-    MutableIntValueMap<SentenceSpan> getSpans() {
+    MutableIntValueMap<SentenceSpan<AcceptationId>> getSpans() {
         return spans;
     }
 
@@ -67,20 +70,20 @@ public final class SpanEditorActivityState implements Parcelable {
         writeSentenceSpanSetToParcel(dest);
     }
 
-    public static void writeSpanToParcel(SentenceSpan span, Parcel dest) {
+    public static void writeSpanToParcel(SentenceSpan<AcceptationId> span, Parcel dest) {
         dest.writeInt(span.range.min());
         dest.writeInt(span.range.max());
-        dest.writeInt(span.acceptation);
+        AcceptationIdParceler.write(dest, span.acceptation);
     }
 
-    public static SentenceSpan spanFromParcel(Parcel in) {
+    public static SentenceSpan<AcceptationId> spanFromParcel(Parcel in) {
         final int start = in.readInt();
         final int end = in.readInt();
-        final int acc = in.readInt();
-        return new SentenceSpan(new ImmutableIntRange(start, end), acc);
+        final AcceptationId acc = AcceptationIdParceler.read(in);
+        return new SentenceSpan<>(new ImmutableIntRange(start, end), acc);
     }
 
-    private static void sentenceSpanSetFromParcel(MutableIntValueMap<SentenceSpan> builder, Parcel in) {
+    private static void sentenceSpanSetFromParcel(MutableIntValueMap<SentenceSpan<AcceptationId>> builder, Parcel in) {
         final int size = in.readInt();
         for (int i = 0; i < size; i++) {
             builder.put(spanFromParcel(in), in.readInt());
@@ -96,9 +99,9 @@ public final class SpanEditorActivityState implements Parcelable {
         }
     }
 
-    private static boolean sentenceSpanSortFunction(SentenceSpan a, SentenceSpan b) {
+    private static boolean sentenceSpanSortFunction(SentenceSpan<AcceptationId> a, SentenceSpan<AcceptationId> b) {
         return b != null && (a == null || a.range.min() < b.range.min() ||
                 a.range.min() == b.range.min() && (a.range.max() < b.range.max() ||
-                        a.range.max() == b.range.max() && a.acceptation < b.acceptation));
+                        a.range.max() == b.range.max() && AcceptationIdComparator.compare(a.acceptation, b.acceptation)));
     }
 }

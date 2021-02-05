@@ -36,9 +36,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteAcceptation(Deleter db, int acceptation) {
+    static boolean deleteAcceptation(Deleter db, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), acceptation)
                 .build();
 
@@ -72,9 +72,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptation(Deleter db, int bunch, int acceptation, int agent) {
+    static boolean deleteBunchAcceptation(Deleter db, int bunch, AcceptationIdInterface acceptation, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .where(table.getAcceptationColumnIndex(), acceptation)
                 .where(table.getAgentColumnIndex(), agent)
@@ -92,9 +92,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptationsByAcceptation(Deleter db, int acceptation) {
+    static boolean deleteBunchAcceptationsByAcceptation(Deleter db, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAcceptationColumnIndex(), acceptation)
                 .build();
 
@@ -111,9 +111,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptationsByAgentAndAcceptation(Deleter db, int agentId, int acceptation) {
+    static boolean deleteBunchAcceptationsByAgentAndAcceptation(Deleter db, int agentId, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
                 .where(table.getAcceptationColumnIndex(), acceptation)
                 .build();
@@ -148,9 +148,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteRuledAcceptation(Deleter db, int id) {
+    static boolean deleteRuledAcceptation(Deleter db, AcceptationIdInterface id) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), id)
                 .build();
         return db.delete(query);
@@ -164,26 +164,26 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteStringQueriesForDynamicAcceptation(Deleter db, int dynamicAcceptation) {
+    static boolean deleteStringQueriesForDynamicAcceptation(Deleter db, AcceptationIdInterface dynamicAcceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
                 .build();
         return db.delete(query);
     }
 
-    static boolean deleteKnowledge(Deleter db, int acceptation) {
+    static boolean deleteKnowledge(Deleter db, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAcceptationColumnIndex(), acceptation)
                 .build();
 
         return db.delete(query);
     }
 
-    static boolean deleteKnowledge(Deleter db, int quizId, int acceptation) {
+    static boolean deleteKnowledge(Deleter db, int quizId, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getQuizDefinitionColumnIndex(), quizId)
                 .where(table.getAcceptationColumnIndex(), acceptation)
                 .build();
@@ -209,9 +209,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteSearchHistoryForAcceptation(Deleter db, int acceptationId) {
+    static boolean deleteSearchHistoryForAcceptation(Deleter db, AcceptationIdInterface acceptationId) {
         final LangbookDbSchema.SearchHistoryTable table = LangbookDbSchema.Tables.searchHistory;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAcceptation(), acceptationId)
                 .build();
 
@@ -243,9 +243,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteSpansByDynamicAcceptation(Deleter db, int dynamicAcceptation) {
+    static boolean deleteSpansByDynamicAcceptation(Deleter db, AcceptationIdInterface dynamicAcceptation) {
         final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(spans)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(spans)
                 .where(spans.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
                 .build();
         return db.delete(query);

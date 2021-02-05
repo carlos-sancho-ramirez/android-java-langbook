@@ -1,6 +1,6 @@
 package sword.langbook3.android.db;
 
-public interface BunchesManager<LanguageId, AlphabetId, CorrelationId> extends AcceptationsManager<LanguageId, AlphabetId, CorrelationId>, BunchesChecker<LanguageId, AlphabetId, CorrelationId> {
+public interface BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId>, BunchesChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
 
     /**
      * Include an acceptation within a bunch in a secure way.
@@ -13,7 +13,7 @@ public interface BunchesManager<LanguageId, AlphabetId, CorrelationId> extends A
      * @return Whether the acceptation has been properly included.
      *         False if the acceptation is already included in the bunch.
      */
-    boolean addAcceptationInBunch(int bunch, int acceptation);
+    boolean addAcceptationInBunch(int bunch, AcceptationId acceptation);
 
-    boolean removeAcceptationFromBunch(int bunch, int acceptation);
+    boolean removeAcceptationFromBunch(int bunch, AcceptationId acceptation);
 }

@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId> {
+public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
 
     /**
      * Add a new language for the given code.
@@ -51,10 +51,10 @@ public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId> exte
      * @param correlationArray Correlation array for this acceptation.
      * @return An identifier for the new acceptation just included, or null in case the acceptation cannot be added.
      */
-    Integer addAcceptation(int concept, ImmutableCorrelationArray<AlphabetId> correlationArray);
+    AcceptationId addAcceptation(int concept, ImmutableCorrelationArray<AlphabetId> correlationArray);
 
-    boolean updateAcceptationCorrelationArray(int acceptation, ImmutableCorrelationArray<AlphabetId> newCorrelationArray);
-    boolean removeAcceptation(int acceptation);
+    boolean updateAcceptationCorrelationArray(AcceptationId acceptation, ImmutableCorrelationArray<AlphabetId> newCorrelationArray);
+    boolean removeAcceptation(AcceptationId acceptation);
 
     /**
      * Join 2 concepts in a single one, removing any reference to the given old concept.
@@ -66,7 +66,7 @@ public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId> exte
      * @param oldConcept Concept to be replaced by the linked one.
      * @return Whether the database has changed.
      */
-    boolean shareConcept(int linkedAcceptation, int oldConcept);
+    boolean shareConcept(AcceptationId linkedAcceptation, int oldConcept);
 
     /**
      * Extract the correlation array assigned to the given linkedAcceptation and
@@ -74,7 +74,7 @@ public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId> exte
      * @param linkedAcceptation Acceptation from where the correlation array reference has to be copied.
      * @param concept Concept to be applied to the new acceptation created.
      */
-    void duplicateAcceptationWithThisConcept(int linkedAcceptation, int concept);
+    void duplicateAcceptationWithThisConcept(AcceptationId linkedAcceptation, int concept);
 
     /**
      * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.

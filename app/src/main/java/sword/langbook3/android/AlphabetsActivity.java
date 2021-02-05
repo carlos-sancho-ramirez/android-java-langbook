@@ -20,6 +20,8 @@ import android.widget.Toast;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookDbChecker;
@@ -285,8 +287,8 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_NEW_ALPHABET) {
-            final int acceptation = (data != null)? data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0) : 0;
-            if (resultCode == RESULT_OK && acceptation != 0) {
+            final AcceptationId acceptation = (data != null)? AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION) : null;
+            if (resultCode == RESULT_OK && acceptation != null) {
                 final int alphabetConcept = DbManager.getInstance().getManager().conceptFromAcceptation(acceptation);
                 final AlphabetId alphabet = AlphabetIdManager.conceptAsAlphabetId(alphabetConcept);
                 _state.showSourceAlphabetPickingState(alphabet);

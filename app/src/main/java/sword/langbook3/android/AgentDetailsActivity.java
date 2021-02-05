@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.CorrelationId;
@@ -96,7 +97,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> builder = new ImmutableList.Builder<>();
         boolean headerAdded = false;
-        for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.targetBunchSetId, _preferredAlphabet)) {
+        for (DisplayableItem<AcceptationId> r : checker.readBunchSetAcceptationsAndTexts(_register.targetBunchSetId, _preferredAlphabet)) {
             if (!headerAdded) {
                 headerAdded = true;
                 builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentTargetBunchesHeader)));
@@ -106,7 +107,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         }
 
         headerAdded = false;
-        for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.sourceBunchSetId, _preferredAlphabet)) {
+        for (DisplayableItem<AcceptationId> r : checker.readBunchSetAcceptationsAndTexts(_register.sourceBunchSetId, _preferredAlphabet)) {
             if (!headerAdded) {
                 headerAdded = true;
                 builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentSourceBunchesHeader)));
@@ -116,7 +117,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         }
 
         headerAdded = false;
-        for (DisplayableItem r : checker.readBunchSetAcceptationsAndTexts(_register.diffBunchSetId, _preferredAlphabet)) {
+        for (DisplayableItem<AcceptationId> r : checker.readBunchSetAcceptationsAndTexts(_register.diffBunchSetId, _preferredAlphabet)) {
             if (!headerAdded) {
                 headerAdded = true;
                 builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentDiffBunchesHeader)));
@@ -135,7 +136,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         if (_register.rule != 0) {
             builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentRuleHeader)));
 
-            final DisplayableItem ruleResult = checker.readConceptAcceptationAndText(_register.rule, _preferredAlphabet);
+            final DisplayableItem<AcceptationId> ruleResult = checker.readConceptAcceptationAndText(_register.rule, _preferredAlphabet);
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(ruleResult.id, ruleResult.text, false));
         }
 

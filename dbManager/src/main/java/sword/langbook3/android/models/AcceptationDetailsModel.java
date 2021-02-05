@@ -7,7 +7,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId> {
+public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -19,24 +19,24 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
 
     public final int concept;
     public final IdTextPairResult<LanguageId> language;
-    public final int originalAcceptationId;
+    public final AcceptationId originalAcceptationId;
     public final String originalAcceptationText;
     public final int appliedAgentId;
     public final int appliedRuleId;
-    public final int appliedRuleAcceptationId;
+    public final AcceptationId appliedRuleAcceptationId;
     public final ImmutableList<CorrelationId> correlationIds;
     public final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations;
     public final ImmutableCorrelation<AlphabetId> texts;
-    public final ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts;
-    public final ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts;
-    public final int baseConceptAcceptationId;
+    public final ImmutableMap<AcceptationId, ImmutableSet<AlphabetId>> acceptationsSharingTexts;
+    public final ImmutableMap<AcceptationId, String> acceptationsSharingTextsDisplayableTexts;
+    public final AcceptationId baseConceptAcceptationId;
     public final String baseConceptText;
-    public final ImmutableIntKeyMap<String> definitionComplementTexts;
-    public final ImmutableIntKeyMap<String> subtypes;
-    public final ImmutableIntKeyMap<SynonymTranslationResult<LanguageId>> synonymsAndTranslations;
-    public final ImmutableList<DynamizableResult> bunchChildren;
-    public final ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded;
-    public final ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations;
+    public final ImmutableMap<AcceptationId, String> definitionComplementTexts;
+    public final ImmutableMap<AcceptationId, String> subtypes;
+    public final ImmutableMap<AcceptationId, SynonymTranslationResult<LanguageId>> synonymsAndTranslations;
+    public final ImmutableList<DynamizableResult<AcceptationId>> bunchChildren;
+    public final ImmutableList<DynamizableResult<AcceptationId>> bunchesWhereAcceptationIsIncluded;
+    public final ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations;
     public final ImmutableIntKeyMap<String> ruleTexts;
     public final ImmutableIntPairMap involvedAgents;
     public final ImmutableIntPairMap agentRules;
@@ -50,32 +50,32 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
     public AcceptationDetailsModel(
             int concept,
             IdTextPairResult<LanguageId> language,
-            int originalAcceptationId,
+            AcceptationId originalAcceptationId,
             String originalAcceptationText,
             int appliedAgentId,
             int appliedRuleId,
-            int appliedRuleAcceptationId,
+            AcceptationId appliedRuleAcceptationId,
             ImmutableList<CorrelationId> correlationIds,
             ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations,
             ImmutableCorrelation<AlphabetId> texts,
-            ImmutableIntKeyMap<ImmutableSet<AlphabetId>> acceptationsSharingTexts,
-            ImmutableIntKeyMap<String> acceptationsSharingTextsDisplayableTexts,
-            int baseConceptAcceptationId,
+            ImmutableMap<AcceptationId, ImmutableSet<AlphabetId>> acceptationsSharingTexts,
+            ImmutableMap<AcceptationId, String> acceptationsSharingTextsDisplayableTexts,
+            AcceptationId baseConceptAcceptationId,
             String baseConceptText,
-            ImmutableIntKeyMap<String> definitionComplementTexts,
-            ImmutableIntKeyMap<String> subtypes,
-            ImmutableIntKeyMap<SynonymTranslationResult<LanguageId>> synonymsAndTranslations,
-            ImmutableList<DynamizableResult> bunchChildren,
-            ImmutableList<DynamizableResult> bunchesWhereAcceptationIsIncluded,
-            ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations,
+            ImmutableMap<AcceptationId, String> definitionComplementTexts,
+            ImmutableMap<AcceptationId, String> subtypes,
+            ImmutableMap<AcceptationId, SynonymTranslationResult<LanguageId>> synonymsAndTranslations,
+            ImmutableList<DynamizableResult<AcceptationId>> bunchChildren,
+            ImmutableList<DynamizableResult<AcceptationId>> bunchesWhereAcceptationIsIncluded,
+            ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations,
             ImmutableIntKeyMap<String> ruleTexts,
             ImmutableIntPairMap involvedAgents,
             ImmutableIntPairMap agentRules,
             ImmutableMap<LanguageId, String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
-        if (language == null || originalAcceptationId != 0 && (originalAcceptationText == null ||
-                appliedAgentId == 0 || appliedRuleId == 0 || appliedRuleAcceptationId == 0) ||
+        if (language == null || originalAcceptationId != null && (originalAcceptationText == null ||
+                appliedAgentId == 0 || appliedRuleId == 0 || appliedRuleAcceptationId == null) ||
                 correlationIds == null || correlations == null ||
                 texts == null || acceptationsSharingTexts == null ||
                 acceptationsSharingTextsDisplayableTexts == null || definitionComplementTexts == null ||

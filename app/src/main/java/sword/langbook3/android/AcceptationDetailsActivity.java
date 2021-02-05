@@ -18,9 +18,11 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
+import sword.collections.Map;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.AgentNavigableItem;
@@ -28,6 +30,8 @@ import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationArrayItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
@@ -63,8 +67,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private AlphabetId _preferredAlphabet;
-    private int _acceptation;
-    private AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId> _model;
+    private AcceptationId _acceptation;
+    private AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -76,15 +80,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private ListView _listView;
     private AcceptationDetailsAdapter _listAdapter;
 
-    public static void open(Context context, int acceptation) {
+    public static void open(Context context, AcceptationId acceptation) {
         Intent intent = new Intent(context, AcceptationDetailsActivity.class);
-        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
+        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         context.startActivity(intent);
     }
 
-    public static void open(Activity activity, int requestCode, int acceptation, boolean confirmOnly) {
+    public static void open(Activity activity, int requestCode, AcceptationId acceptation, boolean confirmOnly) {
         Intent intent = new Intent(activity, AcceptationDetailsActivity.class);
-        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
+        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
 
         if (confirmOnly) {
             intent.putExtra(ArgKeys.CONFIRM_ONLY, true);
@@ -108,7 +112,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _acceptation)));
         result.add(new NonNavigableItem(getString(R.string.accDetailsSectionLanguage) + ": " + _model.language.text));
 
-        _hasDefinition = _model.baseConceptAcceptationId != 0;
+        _hasDefinition = _model.baseConceptAcceptationId != null;
         if (_hasDefinition) {
             String baseText = getString(R.string.accDetailsSectionDefinition) + ": " + _model.baseConceptText;
             String complementsText = _model.definitionComplementTexts.reduce((a, b) -> a + ", " + b, null);
@@ -118,7 +122,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         final String agentTextPrefix = "Agent #";
-        if (_model.originalAcceptationId != 0) {
+        if (_model.originalAcceptationId != null) {
             final String text = getString(R.string.accDetailsSectionOrigin) + ": " + _model.originalAcceptationText;
             result.add(new AcceptationNavigableItem(_model.originalAcceptationId, text, false));
 
@@ -130,7 +134,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean subTypeFound = false;
-        for (ImmutableIntKeyMap.Entry<String> subtype : _model.subtypes.entries()) {
+        for (ImmutableMap.Entry<AcceptationId, String> subtype : _model.subtypes.entries()) {
             if (!subTypeFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionSubtypes)));
                 subTypeFound = true;
@@ -140,7 +144,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean synonymFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
+        for (Map.Entry<AcceptationId, SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
             if (_model.language.id.equals(entry.value().language)) {
                 if (!synonymFound) {
                     result.add(new HeaderItem(getString(R.string.accDetailsSectionSynonyms)));
@@ -152,7 +156,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean translationFound = false;
-        for (IntKeyMap.Entry<SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
+        for (Map.Entry<AcceptationId, SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
             final LanguageId language = entry.value().language;
             if (!_model.language.id.equals(language)) {
                 if (!translationFound) {
@@ -167,8 +171,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         final ImmutableSet<AlphabetId> alphabets = _model.texts.keySet();
         boolean acceptationSharingCorrelationArrayFound = false;
-        final ImmutableIntSet accsSharingCorrelationArray = _model.acceptationsSharingTexts.filter(alphabets::equalSet).keySet();
-        for (int acc : accsSharingCorrelationArray) {
+        final ImmutableSet<AcceptationId> accsSharingCorrelationArray = _model.acceptationsSharingTexts.filter(alphabets::equalSet).keySet();
+        for (AcceptationId acc : accsSharingCorrelationArray) {
             if (!acceptationSharingCorrelationArrayFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsSharingCorrelationArray)));
                 acceptationSharingCorrelationArrayFound = true;
@@ -178,7 +182,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean acceptationSharingTextsFound = false;
-        for (int acc : _model.acceptationsSharingTexts.keySet().filterNot(accsSharingCorrelationArray::contains)) {
+        for (AcceptationId acc : _model.acceptationsSharingTexts.keySet().filterNot(accsSharingCorrelationArray::contains)) {
             if (!acceptationSharingTextsFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsSharingTexts)));
                 acceptationSharingTextsFound = true;
@@ -189,7 +193,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean parentBunchFound = false;
-        for (DynamizableResult r : _model.bunchesWhereAcceptationIsIncluded) {
+        for (DynamizableResult<AcceptationId> r : _model.bunchesWhereAcceptationIsIncluded) {
             if (!parentBunchFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionBunchesWhereIncluded)));
                 parentBunchFound = true;
@@ -200,10 +204,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        final ImmutableIntKeyMap<DerivedAcceptationResult> derivedAcceptations = _model.derivedAcceptations;
+        final ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations = _model.derivedAcceptations;
         final int derivedAcceptationsCount = derivedAcceptations.size();
         for (int i = 0; i < derivedAcceptationsCount; i++) {
-            final int accId = derivedAcceptations.keyAt(i);
+            final AcceptationId accId = derivedAcceptations.keyAt(i);
             final DerivedAcceptationResult r = derivedAcceptations.valueAt(i);
             if (!morphologyFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionDerivedAcceptations)));
@@ -216,7 +220,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
         _shouldShowBunchChildrenQuizMenuOption = false;
         boolean bunchChildFound = false;
-        for (DynamizableResult r : _model.bunchChildren) {
+        for (DynamizableResult<AcceptationId> r : _model.bunchChildren) {
             if (!bunchChildFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsInThisBunch)));
                 bunchChildFound = true;
@@ -306,7 +310,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _acceptation = getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
+        _acceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
         _confirmOnly = getIntent().getBooleanExtra(ArgKeys.CONFIRM_ONLY, false);
 
         _listView = findViewById(R.id.listView);
@@ -361,7 +365,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
             if (!it.isDynamic()) {
                 final int bunch = DbManager.getInstance().getManager().conceptFromAcceptation(it.getId());
-                _state.setDeleteBunchTarget(new DisplayableItem(bunch, it.getText()));
+                _state.setDeleteBunchTarget(new DisplayableItem<>(bunch, it.getText()));
                 showDeleteFromBunchConfirmationDialog();
             }
             return true;
@@ -369,7 +373,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED) {
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
             if (!it.isDynamic()) {
-                _state.setDeleteAcceptationFromBunch(new DisplayableItem(it.getId(), it.getText().toString()));
+                _state.setDeleteAcceptationFromBunch(new DisplayableItem<>(it.getId(), it.getText().toString()));
                 showDeleteAcceptationFromBunchConfirmationDialog();
             }
             return true;
@@ -448,7 +452,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case R.id.menuItemConfirm:
                 final Intent intent = new Intent();
-                intent.putExtra(ResultKeys.ACCEPTATION, _acceptation);
+                AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.ACCEPTATION, _acceptation);
                 setResult(Activity.RESULT_OK, intent);
                 finish();
                 return true;
@@ -474,7 +478,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void showDeleteFromBunchConfirmationDialog() {
-        final String message = getString(R.string.deleteFromBunchConfirmationText, _state.getDeleteTarget().text);
+        final String message = getString(R.string.deleteFromBunchConfirmationText, _state.getDeleteTargetBunch().text);
         new AlertDialog.Builder(this)
                 .setMessage(message)
                 .setPositiveButton(R.string.menuItemDelete, this)
@@ -483,7 +487,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     }
 
     private void showDeleteAcceptationFromBunchConfirmationDialog() {
-        final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _state.getDeleteTarget().text);
+        final String message = getString(R.string.deleteAcceptationFromBunchConfirmationText, _state.getDeleteTargetAcceptation().text);
         new AlertDialog.Builder(this)
                 .setMessage(message)
                 .setPositiveButton(R.string.menuItemDelete, this)
@@ -541,7 +545,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                final DisplayableItem item = _state.getDeleteTarget();
+                final DisplayableItem<Integer> item = _state.getDeleteTargetBunch();
                 final int bunch = item.id;
                 final String bunchText = item.text;
                 _state.clearDeleteTarget();
@@ -555,8 +559,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 break;
 
             case IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH:
-                final DisplayableItem itemToDelete = _state.getDeleteTarget();
-                final int accIdToDelete = itemToDelete.id;
+                final DisplayableItem<AcceptationId> itemToDelete = _state.getDeleteTargetAcceptation();
+                final AcceptationId accIdToDelete = itemToDelete.id;
                 final String accToDeleteText = itemToDelete.text;
                 _state.clearDeleteTarget();
 
@@ -601,18 +605,18 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final boolean usedConcept = data
                         .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
                 if (!usedConcept) {
-                    _state.setLinkedAcceptation(data.getIntExtra(AcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION, 0));
+                    _state.setLinkedAcceptation(AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION));
                     showLinkModeSelectorDialog();
                 }
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
-                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
+                final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
                 final int message = manager.addAcceptationInBunch(_model.concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
-                final int pickedAcceptation = data.getIntExtra(AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, 0);
-                final int pickedBunch = (pickedAcceptation != 0)? manager.conceptFromAcceptation(pickedAcceptation) : 0;
+                final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
+                final int pickedBunch = (pickedAcceptation != null)? manager.conceptFromAcceptation(pickedAcceptation) : 0;
                 final int message = manager.addAcceptationInBunch(pickedBunch, _acceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }

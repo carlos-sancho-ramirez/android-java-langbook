@@ -1,13 +1,12 @@
 package sword.langbook3.android.models;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Predicate;
 import sword.langbook3.android.collections.EqualUtils;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class CorrelationDetailsModel<AlphabetId, CorrelationId> {
+public final class CorrelationDetailsModel<AlphabetId, CorrelationId, AcceptationId> {
     /**
      * Map matching each alphabet with its alphabet name, according to the given preferred alphabet.
      */
@@ -23,7 +22,7 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId> {
      * This map matches the acceptation identifier with its text representation
      * according to the given preferred alphabet.
      */
-    public final ImmutableIntKeyMap<String> acceptations;
+    public final ImmutableMap<AcceptationId, String> acceptations;
 
     /**
      * Contains the relationship for the all correlations that contains at least one of the text representation for an alphabet, according to its alphabet.
@@ -45,7 +44,7 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId> {
     public CorrelationDetailsModel(
             ImmutableMap<AlphabetId, String> alphabets,
             ImmutableCorrelation<AlphabetId> correlation,
-            ImmutableIntKeyMap<String> acceptations,
+            ImmutableMap<AcceptationId, String> acceptations,
             ImmutableMap<AlphabetId, ImmutableSet<CorrelationId>> relatedCorrelationsByAlphabet,
             ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations) {
         if (alphabets == null || correlation == null || acceptations == null ||

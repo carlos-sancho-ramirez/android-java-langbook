@@ -13,6 +13,8 @@ import android.widget.EditText;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.SearchResult;
 
@@ -32,7 +34,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         }
     }
 
-    void onAcceptationSelected(int acceptation) {
+    void onAcceptationSelected(AcceptationId acceptation) {
         DbManager.getInstance().getManager().updateSearchHistory(acceptation);
         AcceptationDetailsActivity.open(this, acceptation);
     }
@@ -87,8 +89,8 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         }
 
         if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_NEW_ACCEPTATION) {
-            final int acceptationId = data.getIntExtra(LanguagePickerActivity.ResultKeys.ACCEPTATION, 0);
-            if (acceptationId != 0) {
+            final AcceptationId acceptationId = AcceptationIdBundler.readAsIntentExtra(data, LanguagePickerActivity.ResultKeys.ACCEPTATION);
+            if (acceptationId != null) {
                 final EditText searchField = findViewById(R.id.searchField);
                 if (searchField.getText().length() > 0) {
                     DbManager.getInstance().getManager().updateSearchHistory(acceptationId);
@@ -99,7 +101,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     }
 
     @Override
-    ImmutableList<SearchResult> noQueryResults() {
+    ImmutableList<SearchResult<AcceptationId>> noQueryResults() {
         return DbManager.getInstance().getManager().getSearchHistory();
     }
 
@@ -116,7 +118,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     }
 
     @Override
-    ImmutableList<SearchResult> queryAcceptationResults(String query) {
+    ImmutableList<SearchResult<AcceptationId>> queryAcceptationResults(String query) {
         return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 }

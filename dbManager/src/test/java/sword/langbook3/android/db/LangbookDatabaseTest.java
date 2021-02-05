@@ -26,20 +26,21 @@ final class LangbookDatabaseTest {
     @Test
     void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder> manager = new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager());
+        final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
+        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> manager = new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager);
 
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = getMaxConcept(db) + 1;
 
         final String text = "cantar";
-        final int acceptation = addSimpleAcceptation(manager, alphabet, concept, text);
-        assertTrue(getSearchHistory(db).isEmpty());
+        final AcceptationIdHolder acceptation = addSimpleAcceptation(manager, alphabet, concept, text);
+        assertTrue(getSearchHistory(db, acceptationIdManager).isEmpty());
 
         insertSearchHistoryEntry(db, acceptation);
-        final ImmutableList<SearchResult> history = getSearchHistory(db);
+        final ImmutableList<SearchResult<AcceptationIdHolder>> history = getSearchHistory(db, acceptationIdManager);
         assertEquals(1, history.size());
 
-        final SearchResult expectedEntry = new SearchResult(text, text, SearchResult.Types.ACCEPTATION, acceptation, false);
+        final SearchResult<AcceptationIdHolder> expectedEntry = new SearchResult<>(text, text, acceptation, false);
         assertEquals(expectedEntry, history.get(0));
 
         manager.removeAcceptation(acceptation);

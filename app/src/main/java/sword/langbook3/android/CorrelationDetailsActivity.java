@@ -13,6 +13,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableIte
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
+import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.CorrelationIdBundler;
@@ -34,7 +35,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     }
 
     private CorrelationId _correlationId;
-    private CorrelationDetailsModel<AlphabetId, CorrelationId> _model;
+    private CorrelationDetailsModel<AlphabetId, CorrelationId, AcceptationId> _model;
     private AcceptationDetailsAdapter _listAdapter;
 
     private boolean _justLoaded;

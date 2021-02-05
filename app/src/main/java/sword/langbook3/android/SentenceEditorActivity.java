@@ -7,6 +7,9 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
+
 public final class SentenceEditorActivity extends Activity implements View.OnClickListener {
 
     static final int NO_SENTENCE_ID = 0;
@@ -29,9 +32,9 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void openWithAcceptation(Activity activity, int requestCode, int acceptation) {
+    static void openWithAcceptation(Activity activity, int requestCode, AcceptationId acceptation) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
-        intent.putExtra(ArgKeys.ACCEPTATION, acceptation);
+        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -47,8 +50,8 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, NO_SENTENCE_ID);
     }
 
-    private int getAcceptationId() {
-        return getIntent().getIntExtra(ArgKeys.ACCEPTATION, 0);
+    private AcceptationId getAcceptationId() {
+        return AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
     }
 
     private int getConcept() {
@@ -84,10 +87,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
 
     private void openSpanEditor() {
         final int sentenceId = getSentenceId();
-        final int acceptation = getAcceptationId();
+        final AcceptationId acceptation = getAcceptationId();
         final String text = _textField.getText().toString();
 
-        if (acceptation != 0) {
+        if (acceptation != null) {
             SpanEditorActivity.openWithAcceptation(this, REQUEST_CODE_ADD_SPAN, text, acceptation);
         }
         else if (sentenceId == NO_SENTENCE_ID) {

@@ -14,6 +14,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
+import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
@@ -89,16 +90,16 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      */
     static final class AcceptationNavigableItem extends Item {
 
-        private final int _id;
+        private final AcceptationId _id;
         private final boolean _dynamic;
 
-        AcceptationNavigableItem(int id, String text, boolean dynamic) {
+        AcceptationNavigableItem(AcceptationId id, String text, boolean dynamic) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
             _dynamic = dynamic;
         }
 
-        AcceptationNavigableItem(int itemType, int id, String text, boolean dynamic) {
+        AcceptationNavigableItem(int itemType, AcceptationId id, String text, boolean dynamic) {
             super(itemType, text);
             _id = id;
             _dynamic = dynamic;
@@ -118,7 +119,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             return _dynamic;
         }
 
-        int getId() {
+        AcceptationId getId() {
             return _id;
         }
 

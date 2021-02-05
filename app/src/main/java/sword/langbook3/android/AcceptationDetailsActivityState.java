@@ -3,6 +3,8 @@ package sword.langbook3.android;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.models.DisplayableItem;
 
 public final class AcceptationDetailsActivityState implements Parcelable {
@@ -19,11 +21,14 @@ public final class AcceptationDetailsActivityState implements Parcelable {
     private int _intrinsicState = IntrinsicStates.NORMAL;
 
     // Only relevant for IntrinsicState LINKING_CONCEPT
-    private int _linkedAcceptation;
+    private AcceptationId _linkedAcceptation;
     private int _linkDialogCheckedOption;
 
-    // Relevant for IntrinsicStates DELETING_FROM_BUNCH (id is bunch) and DELETING_ACCEPTATION_FROM_BUNCH (id is acceptation)
-    private DisplayableItem _deleteTarget;
+    // Relevant for IntrinsicStates DELETING_ACCEPTATION_FROM_BUNCH
+    private DisplayableItem<AcceptationId> _deleteTargetAcceptation;
+
+    // Relevant for IntrinsicStates DELETING_FROM_BUNCH (id is bunch)
+    private DisplayableItem<Integer> _deleteTargetBunch;
 
     public AcceptationDetailsActivityState() {
     }
@@ -32,13 +37,20 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         _intrinsicState = in.readInt();
         switch (_intrinsicState) {
             case IntrinsicStates.LINKING_CONCEPT:
-                _linkedAcceptation = in.readInt();
+                _linkedAcceptation = AcceptationIdParceler.read(in);
                 _linkDialogCheckedOption = in.readInt();
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                final ParcelableDisplayableItem parcelable = ParcelableDisplayableItem.CREATOR.createFromParcel(in);
-                _deleteTarget = (parcelable != null)? parcelable.item : null;
+                final int bunchId = in.readInt();
+                final String bunchText = in.readString();
+                _deleteTargetBunch = new DisplayableItem<>(bunchId, bunchText);
+                break;
+
+            case IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH:
+                final AcceptationId acceptationId = AcceptationIdParceler.read(in);
+                final String text = in.readString();
+                _deleteTargetAcceptation = new DisplayableItem<>(acceptationId, text);
                 break;
         }
     }
@@ -48,12 +60,18 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         dest.writeInt(_intrinsicState);
         switch (_intrinsicState) {
             case IntrinsicStates.LINKING_CONCEPT:
-                dest.writeInt(_linkedAcceptation);
+                AcceptationIdParceler.write(dest, _linkedAcceptation);
                 dest.writeInt(_linkDialogCheckedOption);
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                new ParcelableDisplayableItem(_deleteTarget).writeToParcel(dest, flags);
+                dest.writeInt(_deleteTargetBunch.id);
+                dest.writeString(_deleteTargetBunch.text);
+                break;
+
+            case IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH:
+                AcceptationIdParceler.write(dest, _deleteTargetAcceptation.id);
+                dest.writeString(_deleteTargetAcceptation.text);
                 break;
         }
     }
@@ -65,13 +83,6 @@ public final class AcceptationDetailsActivityState implements Parcelable {
 
     private void assertState(int intrinsicState) {
         if (_intrinsicState != intrinsicState) {
-            throw new IllegalStateException();
-        }
-    }
-
-    private void assertDeletingStateWithTarget() {
-        if (_intrinsicState != IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH &&
-                _intrinsicState != IntrinsicStates.DELETING_FROM_BUNCH) {
             throw new IllegalStateException();
         }
     }
@@ -100,8 +111,8 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         _intrinsicState = IntrinsicStates.NORMAL;
     }
 
-    void setLinkedAcceptation(int acceptation) {
-        if (acceptation == 0) {
+    void setLinkedAcceptation(AcceptationId acceptation) {
+        if (acceptation == null) {
             throw new IllegalArgumentException();
         }
 
@@ -116,7 +127,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         _linkDialogCheckedOption = option;
     }
 
-    int getLinkedAcceptation() {
+    AcceptationId getLinkedAcceptation() {
         assertState(IntrinsicStates.LINKING_CONCEPT);
         return _linkedAcceptation;
     }
@@ -131,33 +142,53 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         _intrinsicState = IntrinsicStates.NORMAL;
     }
 
-    void setDeleteBunchTarget(DisplayableItem item) {
+    void setDeleteBunchTarget(DisplayableItem<Integer> item) {
         if (item == null) {
             throw new IllegalArgumentException();
         }
 
         assertState(IntrinsicStates.NORMAL);
-        _deleteTarget = item;
+        _deleteTargetBunch = item;
         _intrinsicState = IntrinsicStates.DELETING_FROM_BUNCH;
     }
 
-    void setDeleteAcceptationFromBunch(DisplayableItem item) {
+    void setDeleteAcceptationFromBunch(DisplayableItem<AcceptationId> item) {
         if (item == null) {
             throw new IllegalArgumentException();
         }
 
         assertState(IntrinsicStates.NORMAL);
-        _deleteTarget = item;
+        _deleteTargetAcceptation = item;
         _intrinsicState = IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH;
     }
 
-    DisplayableItem getDeleteTarget() {
-        assertDeletingStateWithTarget();
-        return _deleteTarget;
+    DisplayableItem<AcceptationId> getDeleteTargetAcceptation() {
+        if (_intrinsicState != IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH) {
+            throw new IllegalStateException();
+        }
+
+        return _deleteTargetAcceptation;
+    }
+
+    DisplayableItem<Integer> getDeleteTargetBunch() {
+        if (_intrinsicState != IntrinsicStates.DELETING_FROM_BUNCH) {
+            throw new IllegalStateException();
+        }
+
+        return _deleteTargetBunch;
     }
 
     void clearDeleteTarget() {
-        assertDeletingStateWithTarget();
+        if (_intrinsicState == IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH) {
+            _deleteTargetAcceptation = null;
+        }
+        else if (_intrinsicState == IntrinsicStates.DELETING_FROM_BUNCH) {
+            _deleteTargetBunch = null;
+        }
+        else {
+            throw new IllegalStateException();
+        }
+
         _intrinsicState = IntrinsicStates.NORMAL;
     }
 
