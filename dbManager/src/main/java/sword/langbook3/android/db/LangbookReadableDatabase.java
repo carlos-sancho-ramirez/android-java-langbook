@@ -3727,14 +3727,6 @@ public final class LangbookReadableDatabase {
         return new DefinitionDetails(baseConcept, complements);
     }
 
-    static Integer getSentenceConcept(DbExporter.Database db, int sentenceId) {
-        final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), sentenceId)
-                .select(table.getConceptColumnIndex());
-        return selectOptionalFirstIntColumn(db, query);
-    }
-
     static <SymbolArrayId> SymbolArrayId getSentenceSymbolArray(DbExporter.Database db, IntSetter<SymbolArrayId> symbolArrayIdSetter, int sentenceId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         final DbQuery query = new DbQuery.Builder(table)

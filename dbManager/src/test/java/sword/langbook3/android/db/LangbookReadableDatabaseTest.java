@@ -9,7 +9,6 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
-import sword.database.Database;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SearchResult;
@@ -19,14 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.collections.IntSetTestUtils.intSetOf;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
-import static sword.langbook3.android.db.LangbookDatabase.addAlphabetCopyingFromOther;
-import static sword.langbook3.android.db.LangbookDatabase.addLanguage;
 import static sword.langbook3.android.db.LangbookReadableDatabase.findAcceptationFromText;
 import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
 
 final class LangbookReadableDatabaseTest {
 
-    private void addAgent(Database db, AlphabetIdManager alphabetIdManager, SymbolArrayIdManager symbolArrayIdManager, CorrelationIdManager correlationIdManager, CorrelationArrayIdManager correlationArrayIdManager, AcceptationIdManager acceptationIdManager, int sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, int rule) {
+    private void addAgent(LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> manager, int sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, int rule) {
         final ImmutableIntSet emptyBunchSet = new ImmutableIntSetCreator().build();
         final ImmutableIntSet verbBunchSet = emptyBunchSet.add(sourceBunch);
 
@@ -34,7 +31,7 @@ final class LangbookReadableDatabaseTest {
         final ImmutableCorrelation<AlphabetIdHolder> endMatcher = (endMatcherText != null)? emptyCorrelation.put(alphabet, endMatcherText) : emptyCorrelation;
         final ImmutableCorrelation<AlphabetIdHolder> endAdder = (endAdderText != null)? emptyCorrelation.put(alphabet, endAdderText) : emptyCorrelation;
 
-        LangbookDatabase.addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
+        manager.addAgent(intSetOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
     }
 
     private AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
@@ -51,7 +48,7 @@ final class LangbookReadableDatabaseTest {
         final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
         final CorrelationArrayIdManager correlationArrayIdManager = new CorrelationArrayIdManager();
         final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager);
-        final AlphabetIdHolder alphabet = addLanguage(db, languageIdManager, alphabetIdManager, "es").mainAlphabet;
+        final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerundRule = getMaxConcept(db) + 1;
         final int pluralRule = gerundRule + 1;
         final int verbBunchId = pluralRule + 1;
@@ -63,8 +60,8 @@ final class LangbookReadableDatabaseTest {
         final String femaleNounBunchTitle = "substantivos femeninos";
         addSimpleAcceptation(manager, alphabet, femaleNounBunchId, femaleNounBunchTitle);
 
-        addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, verbBunchId, alphabet, "ar", "ando", gerundRule);
-        addAgent(db, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, femaleNounBunchId, alphabet, null, "s", pluralRule);
+        addAgent(manager, verbBunchId, alphabet, "ar", "ando", gerundRule);
+        addAgent(manager, femaleNounBunchId, alphabet, null, "s", pluralRule);
 
         final ImmutableCorrelation<AlphabetIdHolder> texts = new ImmutableCorrelation.Builder<AlphabetIdHolder>().put(alphabet, "cantar").build();
         final ImmutableIntKeyMap<String> matchingBunches = LangbookReadableDatabase
@@ -110,9 +107,9 @@ final class LangbookReadableDatabaseTest {
 
                     final MemoryDatabase db = new MemoryDatabase();
                     final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager);
-                    final AlphabetIdHolder alphabet1 = addLanguage(db, languageIdManager, alphabetIdManager, "xx").mainAlphabet;
+                    final AlphabetIdHolder alphabet1 = manager.addLanguage("xx").mainAlphabet;
                     final AlphabetIdHolder alphabet2 = getNextAvailableId(manager);
-                    assertTrue(addAlphabetCopyingFromOther(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, acceptationIdManager, alphabet2, alphabet1));
+                    assertTrue(manager.addAlphabetCopyingFromOther(alphabet2, alphabet1));
 
                     final int concept1 = getMaxConcept(db) + 1;
                     final int concept2 = concept1 + 1;

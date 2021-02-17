@@ -30,14 +30,4 @@ public interface SentencesManager<LanguageId, AlphabetId, SymbolArrayId, Correla
      * @return Whether the sentence has been removed or not. This may be false if there was no sentence for the given identifier.
      */
     boolean removeSentence(int sentenceId);
-
-    /**
-     * Replaces the concept of the targetSentence with the concept of the sourceSentence.
-     * This will make them synonym or translation of each other.
-     *
-     * @param sourceSentenceId Sentence from where the concept will be copied.
-     * @param targetSentenceId Sentence where the concept will be replaced.
-     * @return Whether the operation succeeded. This can be false if either the source or the target sentence identifier is invalid.
-     */
-    boolean copySentenceConcept(int sourceSentenceId, int targetSentenceId);
 }
