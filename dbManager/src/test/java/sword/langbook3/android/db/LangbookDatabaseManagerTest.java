@@ -7,7 +7,7 @@ final class LangbookDatabaseManagerTest implements LangbookManagerTest<LanguageI
     private final AcceptationIdManager _acceptationIdManager = new AcceptationIdManager();
 
     @Override
-    public LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> createManager(MemoryDatabase db) {
+    public LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder> createManager(MemoryDatabase db) {
         return new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), _acceptationIdManager);
     }
 

@@ -12,12 +12,25 @@ import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.SearchResult;
-import sword.langbook3.android.models.TableCellReference;
-import sword.langbook3.android.models.TableCellValue;
 
-public interface AgentsChecker<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> extends BunchesChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public interface AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends BunchesChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+
+    /**
+     * Check all bunches including agents that may match the given texts.
+     *
+     * For simplicity, this will only pick bunches declared as source bunches
+     * in agents that are applying a rule and has no diff bunches.
+     *
+     * Required conditions are:
+     * <li>The agent's matchers must match the given string</li>
+     * <li>Start or end matcher must not be empty</li>
+     * <li>There must be an adder different from the matcher</li>
+     *
+     * @param texts Map containing the word to be matched. Keys in the map are alphabets and values are the text on those alphabets.
+     * @param preferredAlphabet User's defined alphabet.
+     * @return A map whose keys are bunches (concepts) and value are the suitable way to represent that bunch, according to the given preferred alphabet.
+     */
     ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet);
-    MutableCorrelation<AlphabetId> readCorrelationArrayTexts(CorrelationArrayId correlationArrayId);
     ImmutableIntKeyMap<String> readAllRules(AlphabetId preferredAlphabet);
     ImmutableIntSet getAgentIds();
     ImmutableList<SearchResult<AcceptationId>> findAcceptationFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
@@ -25,7 +38,6 @@ public interface AgentsChecker<LanguageId, AlphabetId, CorrelationId, Correlatio
     AgentDetails<AlphabetId> getAgentDetails(int agentId);
     ImmutableList<DisplayableItem<AcceptationId>> readBunchSetAcceptationsAndTexts(int bunchSet, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult<AcceptationId>> findAcceptationAndRulesFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
-    ImmutableMap<TableCellReference, TableCellValue> readTableContent(int dynamicAcceptation, AlphabetId preferredAlphabet);
     AcceptationId getStaticAcceptationFromDynamic(AcceptationId dynamicAcceptation);
     Integer findRuledConcept(int rule, int concept);
     ImmutableIntPairMap findRuledConceptsByRule(int rule);
@@ -36,4 +48,5 @@ public interface AgentsChecker<LanguageId, AlphabetId, CorrelationId, Correlatio
     MorphologyReaderResult<AcceptationId> readMorphologiesFromAcceptation(AcceptationId acceptation, AlphabetId preferredAlphabet);
     ImmutableSet<AcceptationId> getAcceptationsInBunchByBunchAndAgent(int bunch, int agent);
     ImmutableIntSet getBunchSet(int setId);
+    AcceptationId findRuledAcceptationByRuleAndBaseAcceptation(int rule, AcceptationId baseAcceptation);
 }

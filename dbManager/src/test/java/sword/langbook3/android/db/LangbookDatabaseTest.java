@@ -12,8 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSearchHistoryEntry;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getMaxConcept;
-import static sword.langbook3.android.db.LangbookReadableDatabase.getSearchHistory;
 
 /**
  * Include all test related to all responsibilities of the LangbookDatabase.
@@ -26,18 +24,17 @@ final class LangbookDatabaseTest {
     @Test
     void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
-        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> manager = new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager);
+        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> manager = new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), new AcceptationIdManager());
 
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
-        final int concept = getMaxConcept(db) + 1;
+        final int concept = manager.getMaxConcept() + 1;
 
         final String text = "cantar";
         final AcceptationIdHolder acceptation = addSimpleAcceptation(manager, alphabet, concept, text);
-        assertTrue(getSearchHistory(db, acceptationIdManager).isEmpty());
+        assertTrue(manager.getSearchHistory().isEmpty());
 
         insertSearchHistoryEntry(db, acceptation);
-        final ImmutableList<SearchResult<AcceptationIdHolder>> history = getSearchHistory(db, acceptationIdManager);
+        final ImmutableList<SearchResult<AcceptationIdHolder>> history = manager.getSearchHistory();
         assertEquals(1, history.size());
 
         final SearchResult<AcceptationIdHolder> expectedEntry = new SearchResult<>(text, text, acceptation, false);

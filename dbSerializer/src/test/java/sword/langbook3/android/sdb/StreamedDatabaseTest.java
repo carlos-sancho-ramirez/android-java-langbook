@@ -23,14 +23,14 @@ import static sword.collections.TraversableTestUtils.assertContainsOnly;
 import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 
-final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolder, AlphabetIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> {
+final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolder, AlphabetIdHolder, CorrelationIdHolder, AcceptationIdHolder> {
 
     static <LanguageId, AlphabetId, CorrelationId, AcceptationId> AcceptationId addSimpleAcceptation(AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId alphabet, int concept, String text) {
         return BunchesSerializerTest.addSimpleAcceptation(manager, alphabet, concept, text);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> int addSingleAlphabetAgent(
-            AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId> int addSingleAlphabetAgent(
+            AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
         return AgentsSerializerTest.addSingleAlphabetAgent(manager, targetBunches, sourceBunches, diffBunches, alphabet, startMatcherText, startAdderText, endMatcherText, endAdderText, rule);
@@ -43,7 +43,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
     private final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
 
     @Override
-    public LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> createManager(MemoryDatabase db) {
+    public LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder> createManager(MemoryDatabase db) {
         return new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager);
     }
 
@@ -69,7 +69,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
     @Test
     void testSerializeSentenceWithDynamicAcceptationAsSpan() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> inManager = createManager(inDb);
+        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder> inManager = createManager(inDb);
         final AlphabetIdHolder alphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int feminableWordsBunch = inManager.getMaxConcept() + 1;
@@ -104,7 +104,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
         inManager.addSentence(sentenceConcept, sentenceText, spans);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder> outManager = createManager(outDb);
+        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder> outManager = createManager(outDb);
 
         final AcceptationIdHolder outBoyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "chico"));
         final ImmutableIntKeyMap<String> outSentences = outManager.getSampleSentences(outBoyAcceptation);

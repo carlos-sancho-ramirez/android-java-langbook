@@ -18,18 +18,17 @@ import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgent;
-import static sword.langbook3.android.db.LangbookReadableDatabase.findRuledAcceptationByRuleAndBaseAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface> extends QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId>, DefinitionsManagerTest, SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
+interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface> extends QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId>, DefinitionsManagerTest, SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
 
     @Override
-    LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> createManager(MemoryDatabase db);
+    LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -47,7 +46,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final AcceptationId carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, getAcceptationIdManager(), pluralRule, carAcc);
+        final AcceptationId carPluralAcc = manager.findRuledAcceptationByRuleAndBaseAcceptation(pluralRule, carAcc);
 
         final String text = "Los coches son muy rápidos";
         final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
@@ -64,7 +63,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -84,7 +83,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         assertNotNull(manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final AcceptationId carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, getAcceptationIdManager(), pluralRule, carAcc);
+        final AcceptationId carPluralAcc = manager.findRuledAcceptationByRuleAndBaseAcceptation(pluralRule, carAcc);
 
         final String text = "El mejor de los coches es el mío";
         final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
@@ -104,7 +103,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -125,7 +124,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         final int agentId = manager.addAgent(intSetOf(), intSetOf(substantiveConcept), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
 
         assertTrue(manager.addAcceptationInBunch(substantiveConcept, carAcc));
-        final AcceptationId carPluralAcc = findRuledAcceptationByRuleAndBaseAcceptation(db, getAcceptationIdManager(), pluralRule, carAcc);
+        final AcceptationId carPluralAcc = manager.findRuledAcceptationByRuleAndBaseAcceptation(pluralRule, carAcc);
 
         final String text = "El mejor de los coches es el mío";
         final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
@@ -145,7 +144,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveHeadChainedAgentWhereRuledAcceptationOfTheTailChainedAgentIsUsedAsSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 

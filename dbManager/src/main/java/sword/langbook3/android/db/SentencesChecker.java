@@ -6,6 +6,10 @@ import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
 public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+    /**
+     * Checks if the given symbolArray is not used neither as a correlation nor as a conversion,
+     * and then it is merely a sentence.
+     */
     boolean isSymbolArrayMerelyASentence(SymbolArrayId symbolArrayId);
 
     /**

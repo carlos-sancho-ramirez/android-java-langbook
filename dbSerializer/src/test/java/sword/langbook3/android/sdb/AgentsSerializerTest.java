@@ -43,15 +43,15 @@ import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAccepta
  * Values the the AcceptationsSerializer should serialize are limited to:
  * <li>Bunches</li>
  */
-interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> extends BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
 
-    final class BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> {
+    final class BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
         private final MemoryDatabase db;
         private final IntSetter<AcceptationId> acceptationIdSetter;
-        private final AgentsChecker<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> checker;
+        private final AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> checker;
         private final MutableIntSet found = MutableIntArraySet.empty();
 
-        BunchFinder(MemoryDatabase db, IntSetter<AcceptationId> acceptationIdSetter, AgentsChecker<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> checker) {
+        BunchFinder(MemoryDatabase db, IntSetter<AcceptationId> acceptationIdSetter, AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> checker) {
             this.db = db;
             this.acceptationIdSetter = acceptationIdSetter;
             this.checker = checker;
@@ -83,7 +83,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> int addSingleAlphabetAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId> int addSingleAlphabetAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
             ImmutableIntSet diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, int rule) {
         final ImmutableCorrelation<AlphabetId> startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
@@ -101,12 +101,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
-    AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> createManager(MemoryDatabase db);
+    AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> createManager(MemoryDatabase db);
 
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -116,7 +116,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
@@ -139,7 +139,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -152,12 +152,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
@@ -187,7 +187,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchNoMatchingAcceptationWithEmptyDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -200,12 +200,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outExceptionsConcept = bunchFinder.find("excepciones");
 
@@ -226,7 +226,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptationWithEmptyDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -242,12 +242,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outExceptionsConcept = bunchFinder.find("excepciones");
 
@@ -278,7 +278,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchNoMatchingAcceptationWithMatchingAcceptationInDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -295,12 +295,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outExceptionsConcept = bunchFinder.find("excepciones");
 
@@ -321,7 +321,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptationWithMatchingAcceptationInDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -341,12 +341,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(exceptions), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outExceptionsConcept = bunchFinder.find("excepciones");
 
@@ -377,7 +377,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithTargetWithoutSourceBunchNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -390,12 +390,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(gerundBunch), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outGerundBunchConcept = bunchFinder.find("gerundios");
 
@@ -417,7 +417,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithMultipleTargetsWithoutSourceBunchNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -433,12 +433,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(gerundBunch, secondBunch), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outGerundBunchConcept = bunchFinder.find("gerundios");
         final int outSecondBunchConcept = bunchFinder.find("mis palabras");
@@ -462,7 +462,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithTargetWithoutSourceBunchMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -478,12 +478,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(gerundBunch), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outGerundBunchConcept = bunchFinder.find("gerundios");
 
@@ -515,7 +515,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithMultipleTargetsWithoutSourceBunchMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -534,12 +534,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(gerundBunch, secondBunch), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outGerundBunchConcept = bunchFinder.find("gerundios");
         final int outSecondBunch = bunchFinder.find("mis palabras");
@@ -573,7 +573,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingBothStaticAndDynamicAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -586,12 +586,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "arar", repeat);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outRepeatConcept = bunchFinder.find("repetición");
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
@@ -621,7 +621,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithEmptySourceBunch() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final int gerund = inManager.getMaxConcept() + 1;
@@ -635,12 +635,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outVerbConcept = bunchFinder.find("verbo");
 
@@ -669,7 +669,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final int gerund = inManager.getMaxConcept() + 1;
@@ -684,12 +684,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(verbConcept), intSetOf(), alphabet, null, null, "er", "iendo", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outVerbConcept = bunchFinder.find("verbo");
 
@@ -718,7 +718,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final int gerund = inManager.getMaxConcept() + 1;
@@ -733,12 +733,12 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(verbConcept), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
         final int outVerbConcept = bunchFinder.find("verbo");
 
@@ -771,7 +771,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToTargetAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -784,11 +784,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         inManager.addAgent(intSetOf(verbBunch), intSetOf(arVerbBunch), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outVerbConcept = bunchFinder.find("verbo");
 
@@ -808,7 +808,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -824,11 +824,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         inManager.addAgent(intSetOf(verbBunch, transitiveVerbBunch), intSetOf(arVerbBunch), intSetOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outTransitiveVerbConcept = bunchFinder.find("verbo transitivo");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -850,7 +850,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToTargetAgentWithAMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -869,11 +869,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         inManager.addAgent(intSetOf(verbBunch), sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outVerbConcept = bunchFinder.find("verbo");
 
@@ -894,7 +894,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsAgentWithAMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -916,11 +916,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         inManager.addAgent(intSetOf(verbBunch, secondBunch), sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outSecondConcept = bunchFinder.find("mis palabras");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -943,7 +943,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -962,11 +962,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         inManager.addAgent(intSetOf(verbBunch), sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outArEndedNoundConcept = bunchFinder.find("sustantivos acabados en ar");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -988,7 +988,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsWithDiffBunchAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -1010,11 +1010,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         inManager.addAgent(targetBunches, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outArEndedNoundConcept = bunchFinder.find("sustantivos acabados en ar");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -1038,7 +1038,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -1059,11 +1059,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outArEndedNoundConcept = bunchFinder.find("sustantivos acabados en ar");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -1089,7 +1089,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsWithDiffBunchAgentWithMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -1113,11 +1113,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outArEndedNoundConcept = bunchFinder.find("sustantivos acabados en ar");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -1145,7 +1145,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithMatchingAcceptationsInBothSourceAndDiffBunches() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -1167,11 +1167,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outArEndedNoundConcept = bunchFinder.find("sustantivos acabados en ar");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -1197,7 +1197,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithMatchingAcceptationsOnlyInDiffBunch() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final int arVerbBunch = inManager.getMaxConcept() + 1;
@@ -1218,11 +1218,11 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, 0);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final int outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final int outArEndedNoundConcept = bunchFinder.find("sustantivos acabados en ar");
         final int outVerbConcept = bunchFinder.find("verbo");
@@ -1248,7 +1248,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentApplyingRuleWithConversionPresent() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final AlphabetId upperCaseAlphabet = getNextAvailableId(inManager);
@@ -1264,14 +1264,14 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(inManager, intSetOf(), intSetOf(), intSetOf(), alphabet, null, null, "ar", "ando", gerund);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = outManager.getConversionsMap();
         assertSize(1, conversionMap);
         final AlphabetId outAlphabet = conversionMap.valueAt(0);
         final AlphabetId outUpperCaseAlphabet = conversionMap.keyAt(0);
 
-        final BunchFinder<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
+        final BunchFinder<LanguageId, AlphabetId, CorrelationId, AcceptationId> bunchFinder = new BunchFinder<>(outDb, getAcceptationIdManager(), outManager);
         final int outGerundConcept = bunchFinder.find("gerundio");
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
@@ -1306,7 +1306,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeAgentWithJustEndAdderForAcceptationFromOtherLanguage() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(inDb);
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
@@ -1327,7 +1327,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(manager, intSetOf(), intSetOf(myBunch), intSetOf(), jaAlphabet, null, null, null, "する", verbalitationConcept);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final AcceptationId outStudyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "べんきょう"));
         final int outAgentId = getSingleValue(outManager.getAgentIds());
@@ -1337,7 +1337,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
     @Test
     default void testSerializeChainedAgentsApplyingRules() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(inDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(inDb);
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final int studentConcept = manager.getMaxConcept() + 1;
@@ -1361,7 +1361,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Correlatio
         addSingleAlphabetAgent(manager, intSetOf(), intSetOf(bunch1, bunch2), intSetOf(), esAlphabet, null, null, null, "s", pluralRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final AcceptationId outStudentAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "alumno"));
         final int outStudentConcept = outManager.conceptFromAcceptation(outStudentAcceptation);
