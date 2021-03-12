@@ -6,9 +6,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ListView;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
@@ -42,11 +44,11 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
 
         final ListView listView = findViewById(R.id.listView);
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableIntKeyMap<String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(getTexts(), preferredAlphabet);
+        final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(getTexts(), preferredAlphabet);
 
         if (bunches.isEmpty()) {
             final Intent intent = new Intent();
-            intent.putExtra(ResultKeys.BUNCH_SET, new int[0]);
+            BunchIdBundler.writeListAsIntentExtra(intent, ResultKeys.BUNCH_SET, ImmutableList.empty());
             setResult(RESULT_OK, intent);
             finish();
         }
@@ -60,15 +62,8 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
 
     @Override
     public void onClick(View v) {
-        final ImmutableIntSet bunchSet = _adapter.getCheckedBunches();
-        final int[] bunchArray = new int[bunchSet.size()];
-        int index = 0;
-        for (int bunch : bunchSet) {
-            bunchArray[index++] = bunch;
-        }
-
         final Intent intent = new Intent();
-        intent.putExtra(ResultKeys.BUNCH_SET, bunchArray);
+        BunchIdBundler.writeListAsIntentExtra(intent, ResultKeys.BUNCH_SET, _adapter.getCheckedBunches().toList());
         setResult(RESULT_OK, intent);
         finish();
     }

@@ -1,8 +1,8 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableSet;
 
-public interface AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId>, AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public interface AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> extends BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
 
     /**
      * Include a new agent into the database and returns its identifier if succeeded,
@@ -34,13 +34,13 @@ public interface AgentsManager<LanguageId, AlphabetId, CorrelationId, Acceptatio
      *             If the resulting text matches the source text, then 0 is expected here.
      * @return An identifier for the new agent if all OK, or null if not possible to add the agent.
      */
-    Integer addAgent(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
+    Integer addAgent(ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+            ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
             ImmutableCorrelation<AlphabetId> endAdder, int rule);
 
-    boolean updateAgent(int agentId, ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
+    boolean updateAgent(int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+            ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
             ImmutableCorrelation<AlphabetId> endAdder, int rule);
 

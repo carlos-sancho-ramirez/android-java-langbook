@@ -15,12 +15,9 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableHashSet;
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
-import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.Map;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
@@ -33,6 +30,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
@@ -42,6 +40,8 @@ import sword.langbook3.android.models.DerivedAcceptationResult;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.SynonymTranslationResult;
+
+import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
 
 public final class AcceptationDetailsActivity extends Activity implements AdapterView.OnItemClickListener,
         AdapterView.OnItemLongClickListener, DialogInterface.OnClickListener {
@@ -364,7 +364,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.BUNCH_WHERE_INCLUDED) {
             AcceptationNavigableItem it = (AcceptationNavigableItem) item;
             if (!it.isDynamic()) {
-                final int bunch = DbManager.getInstance().getManager().conceptFromAcceptation(it.getId());
+                final BunchId bunch = conceptAsBunchId(DbManager.getInstance().getManager().conceptFromAcceptation(it.getId()));
                 _state.setDeleteBunchTarget(new DisplayableItem<>(bunch, it.getText()));
                 showDeleteFromBunchConfirmationDialog();
             }
@@ -417,7 +417,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemBunchChildrenQuiz:
-                QuizSelectorActivity.open(this, _model.concept);
+                QuizSelectorActivity.open(this, conceptAsBunchId(_model.concept));
                 return true;
 
             case R.id.menuItemEdit:
@@ -462,15 +462,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemNewAgentAsSource:
-                AgentEditorActivity.openWithSource(this, _model.concept);
+                AgentEditorActivity.openWithSource(this, conceptAsBunchId(_model.concept));
                 return true;
 
             case R.id.menuItemNewAgentAsDiff:
-                AgentEditorActivity.openWithDiff(this, _model.concept);
+                AgentEditorActivity.openWithDiff(this, conceptAsBunchId(_model.concept));
                 return true;
 
             case R.id.menuItemNewAgentAsTarget:
-                AgentEditorActivity.openWithTarget(this, _model.concept);
+                AgentEditorActivity.openWithTarget(this, conceptAsBunchId(_model.concept));
                 return true;
         }
 
@@ -545,8 +545,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                final DisplayableItem<Integer> item = _state.getDeleteTargetBunch();
-                final int bunch = item.id;
+                final DisplayableItem<BunchId> item = _state.getDeleteTargetBunch();
+                final BunchId bunch = item.id;
                 final String bunchText = item.text;
                 _state.clearDeleteTarget();
 
@@ -564,7 +564,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String accToDeleteText = itemToDelete.text;
                 _state.clearDeleteTarget();
 
-                if (!manager.removeAcceptationFromBunch(_model.concept, accIdToDelete)) {
+                if (!manager.removeAcceptationFromBunch(conceptAsBunchId(_model.concept), accIdToDelete)) {
                     throw new AssertionError();
                 }
 
@@ -611,12 +611,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
                 final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-                final int message = manager.addAcceptationInBunch(_model.concept, pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                final int message = manager.addAcceptationInBunch(conceptAsBunchId(_model.concept), pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-                final int pickedBunch = (pickedAcceptation != null)? manager.conceptFromAcceptation(pickedAcceptation) : 0;
+                final BunchId pickedBunch = (pickedAcceptation != null)? conceptAsBunchId(manager.conceptFromAcceptation(pickedAcceptation)) : null;
                 final int message = manager.addAcceptationInBunch(pickedBunch, _acceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }

@@ -17,7 +17,6 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
-import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.Map;
 import sword.collections.MutableHashMap;
@@ -68,11 +67,10 @@ import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
-abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface> implements LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
+abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface> implements LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> {
 
     final Database _db;
     final IntSetter<LanguageId> _languageIdSetter;
@@ -81,9 +79,10 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     final IntSetter<CorrelationId> _correlationIdSetter;
     final IntSetter<CorrelationArrayId> _correlationArrayIdSetter;
     final IntSetter<AcceptationId> _acceptationIdSetter;
+    final IntSetter<BunchId> _bunchIdSetter;
 
-    LangbookDatabaseChecker(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter) {
-        if (db == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null) {
+    LangbookDatabaseChecker(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, IntSetter<BunchId> bunchIdSetter) {
+        if (db == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null) {
             throw new IllegalArgumentException();
         }
 
@@ -94,6 +93,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         _correlationIdSetter = correlationIdSetter;
         _correlationArrayIdSetter = correlationArrayIdSetter;
         _acceptationIdSetter = acceptationIdSetter;
+        _bunchIdSetter = bunchIdSetter;
     }
 
     private List<DbValue> selectSingleRow(DbQuery query) {
@@ -496,9 +496,9 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableSet<AcceptationId> getAcceptationsInBunch(int bunch) {
+    public ImmutableSet<AcceptationId> getAcceptationsInBunch(BunchId bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .select(table.getAcceptationColumnIndex());
 
@@ -506,12 +506,12 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableIntSet findBunchesWhereAcceptationIsIncluded(AcceptationId acceptation) {
+    public ImmutableSet<BunchId> findBunchesWhereAcceptationIsIncluded(AcceptationId acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getAcceptationColumnIndex(), acceptation)
                 .select(table.getBunchColumnIndex());
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _bunchIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     private boolean checkMatching(ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> texts) {
@@ -532,10 +532,10 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return !startMatcher.isEmpty() || !endMatcher.isEmpty();
     }
 
-    private ImmutableIntSet readBunchesFromSetOfBunchSets(ImmutableIntSet bunchSets) {
-        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
+    private ImmutableSet<BunchId> readBunchesFromSetOfBunchSets(ImmutableIntSet bunchSets) {
+        final ImmutableSet.Builder<BunchId> builder = new ImmutableHashSet.Builder<>();
         for (int bunchSet : bunchSets) {
-            for (int bunch : getBunchSet(bunchSet)) {
+            for (BunchId bunch : getBunchSet(bunchSet)) {
                 builder.add(bunch);
             }
         }
@@ -544,7 +544,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableIntKeyMap<String> readAllMatchingBunches(ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet) {
+    public ImmutableMap<BunchId, String> readAllMatchingBunches(ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getDiffBunchSetColumnIndex(), 0)
@@ -571,10 +571,10 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
             }
         }
 
-        final ImmutableIntSet bunches = readBunchesFromSetOfBunchSets(validBunchSetsBuilder.build());
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-        for (int bunch : bunches) {
-            builder.put(bunch, readConceptText(bunch, preferredAlphabet));
+        final ImmutableSet<BunchId> bunches = readBunchesFromSetOfBunchSets(validBunchSetsBuilder.build());
+        final ImmutableMap.Builder<BunchId, String> builder = new ImmutableHashMap.Builder<>();
+        for (BunchId bunch : bunches) {
+            builder.put(bunch, readConceptText(bunch.getConceptId(), preferredAlphabet));
         }
 
         return builder.build();
@@ -628,12 +628,12 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId>>> readQuizSelectorEntriesForBunch(int bunch) {
+    public ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId>>> readQuizSelectorEntriesForBunch(BunchId bunch) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final LangbookDbSchema.QuestionFieldSets fieldSets = LangbookDbSchema.Tables.questionFieldSets;
 
         final int offset = quizzes.columns().size();
-        final DbQuery query = new DbQuery.Builder(quizzes)
+        final DbQuery query = new DbQueryBuilder(quizzes)
                 .join(fieldSets, quizzes.getQuestionFieldsColumnIndex(), fieldSets.getSetIdColumnIndex())
                 .where(quizzes.getBunchColumnIndex(), bunch)
                 .select(
@@ -1494,7 +1494,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public QuizDetails<AlphabetId> getQuizDetails(int quizId) {
+    public QuizDetails<AlphabetId, BunchId> getQuizDetails(int quizId) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final LangbookDbSchema.QuestionFieldSets questions = LangbookDbSchema.Tables.questionFieldSets;
         final int offset = quizzes.columns().size();
@@ -1507,12 +1507,12 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
                         offset + questions.getFlagsColumnIndex());
 
         final ImmutableList.Builder<QuestionFieldDetails<AlphabetId>> builder = new ImmutableList.Builder<>();
-        int bunch = 0;
+        BunchId bunch = null;
 
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                bunch = row.get(0).toInt();
+                bunch = _bunchIdSetter.getKeyFromDbValue(row.get(0));
                 builder.add(new QuestionFieldDetails<>(_alphabetIdSetter.getKeyFromDbValue(row.get(1)), row.get(2).toInt(), row.get(3).toInt()));
             }
         }
@@ -1672,11 +1672,11 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public AgentDetails<AlphabetId> getAgentDetails(int agentId) {
+    public AgentDetails<AlphabetId, BunchId> getAgentDetails(int agentId) {
         final AgentRegister<CorrelationId> register = getAgentRegister(agentId);
-        final ImmutableIntSet targetBunches = getBunchSet(register.targetBunchSetId);
-        final ImmutableIntSet sourceBunches = getBunchSet(register.sourceBunchSetId);
-        final ImmutableIntSet diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
+        final ImmutableSet<BunchId> targetBunches = getBunchSet(register.targetBunchSetId);
+        final ImmutableSet<BunchId> sourceBunches = getBunchSet(register.sourceBunchSetId);
+        final ImmutableSet<BunchId> diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
                 getBunchSet(register.diffBunchSetId) : sourceBunches;
 
         final SyncCacheMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlationCache =
@@ -1908,7 +1908,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(int bunch, AcceptationId acceptation) {
+    public ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(BunchId bunch, AcceptationId acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
 
         final DbQuery query = new DbQueryBuilder(bunchAcceptations)
@@ -2003,9 +2003,9 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableSet<AcceptationId> getAcceptationsInBunchByBunchAndAgent(int bunch, int agent) {
+    public ImmutableSet<AcceptationId> getAcceptationsInBunchByBunchAndAgent(BunchId bunch, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .where(table.getAgentColumnIndex(), agent)
                 .select(table.getAcceptationColumnIndex());
@@ -2014,9 +2014,9 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
     }
 
     @Override
-    public ImmutableIntSet getBunchSet(int setId) {
+    public ImmutableSet<BunchId> getBunchSet(int setId) {
         if (setId == 0) {
-            return ImmutableIntArraySet.empty();
+            return ImmutableHashSet.empty();
         }
 
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
@@ -2024,7 +2024,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
                 .where(table.getSetIdColumnIndex(), setId)
                 .select(table.getBunchColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _bunchIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     @Override
@@ -2886,7 +2886,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return result;
     }
 
-    boolean isAcceptationStaticallyInBunch(int bunch, AcceptationIdInterface acceptation) {
+    boolean isAcceptationStaticallyInBunch(BunchId bunch, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -2909,13 +2909,13 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
                 .anyMatch(str -> conversion.convert(str) == null);
     }
 
-    Integer findBunchSet(IntSet bunches) {
+    Integer findBunchSet(Set<BunchId> bunches) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         if (bunches.isEmpty()) {
             return table.nullReference();
         }
 
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
                 .where(table.getBunchColumnIndex(), bunches.valueAt(0))
                 .orderBy(table.getSetIdColumnIndex())
@@ -2924,9 +2924,9 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
-                final MutableIntSet set = MutableIntArraySet.empty();
+                final MutableSet<BunchId> set = MutableHashSet.empty();
                 int setId = row.get(0).toInt();
-                set.add(row.get(1).toInt());
+                set.add(_bunchIdSetter.getKeyFromDbValue(row.get(1)));
 
                 while (result.hasNext()) {
                     row = result.next();
@@ -2939,7 +2939,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
                         set.clear();
                     }
 
-                    set.add(row.get(1).toInt());
+                    set.add(_bunchIdSetter.getKeyFromDbValue(row.get(1)));
                 }
 
                 if (set.equals(bunches)) {
@@ -3002,9 +3002,9 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    Integer findQuizDefinition(int bunch, int setId) {
+    Integer findQuizDefinition(BunchId bunch, int setId) {
         final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .where(table.getQuestionFieldsColumnIndex(), setId)
                 .select(table.getIdColumnIndex());
@@ -3044,9 +3044,9 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    ImmutableIntSet findQuizzesByBunch(int bunch) {
+    ImmutableIntSet findQuizzesByBunch(BunchId bunch) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
-        final DbQuery query = new DbQuery.Builder(quizzes)
+        final DbQuery query = new DbQueryBuilder(quizzes)
                 .where(quizzes.getBunchColumnIndex(), bunch)
                 .select(quizzes.getIdColumnIndex());
 
@@ -3158,44 +3158,37 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return map;
     }
 
-    ImmutableIntKeyMap<ImmutableIntSet> findAffectedAgentsByItsSourceWithTarget(int bunch) {
-        if (bunch == 0) {
-            return ImmutableIntKeyMap.empty();
-        }
-
+    ImmutableIntKeyMap<ImmutableSet<BunchId>> findAffectedAgentsByItsSourceWithTarget(BunchId bunch) {
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final int offset = bunchSets.columns().size();
-        final DbQuery query = new DbQuery.Builder(bunchSets)
+        final DbQuery query = new DbQueryBuilder(bunchSets)
                 .join(agents, bunchSets.getSetIdColumnIndex(), agents.getSourceBunchSetColumnIndex())
                 .where(bunchSets.getBunchColumnIndex(), bunch)
                 .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchSetColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<ImmutableIntSet> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableIntKeyMap.Builder<ImmutableSet<BunchId>> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), getBunchSet(row.get(1).toInt()));
+                final int bunchSetId = row.get(1).toInt();
+                builder.put(row.get(0).toInt(), getBunchSet(bunchSetId));
             }
         }
 
         return builder.build();
     }
 
-    ImmutableIntKeyMap<ImmutableIntSet> findAffectedAgentsByItsDiffWithTarget(int bunch) {
-        if (bunch == 0) {
-            return ImmutableIntKeyMap.empty();
-        }
-
+    ImmutableIntKeyMap<ImmutableSet<BunchId>> findAffectedAgentsByItsDiffWithTarget(BunchId bunch) {
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final int offset = bunchSets.columns().size();
-        final DbQuery query = new DbQuery.Builder(bunchSets)
+        final DbQuery query = new DbQueryBuilder(bunchSets)
                 .join(agents, bunchSets.getSetIdColumnIndex(), agents.getDiffBunchSetColumnIndex())
                 .where(bunchSets.getBunchColumnIndex(), bunch)
                 .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchSetColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<ImmutableIntSet> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableIntKeyMap.Builder<ImmutableSet<BunchId>> builder = new ImmutableIntKeyMap.Builder<>();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
@@ -3511,7 +3504,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return _db.select(query).map(row -> _acceptationIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private ImmutableSet<AcceptationId> readAllAcceptationsInBunch(AlphabetId alphabet, int bunch) {
+    private ImmutableSet<AcceptationId> readAllAcceptationsInBunch(AlphabetId alphabet, BunchId bunch) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQueryBuilder(bunchAcceptations)
@@ -3537,7 +3530,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return _db.select(query).map(row -> _acceptationIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private ImmutableSet<AcceptationId> readAllPossibleSynonymOrTranslationAcceptationsInBunch(AlphabetId alphabet, int bunch) {
+    private ImmutableSet<AcceptationId> readAllPossibleSynonymOrTranslationAcceptationsInBunch(AlphabetId alphabet, BunchId bunch) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -3573,7 +3566,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return _db.select(query).map(row -> _acceptationIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private ImmutableSet<AcceptationId> readAllRulableAcceptationsInBunch(AlphabetId alphabet, int rule, int bunch) {
+    private ImmutableSet<AcceptationId> readAllRulableAcceptationsInBunch(AlphabetId alphabet, int rule, BunchId bunch) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
@@ -3593,17 +3586,17 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return _db.select(query).map(row -> _acceptationIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private ImmutableSet<AcceptationId> readAllPossibleAcceptationForField(int bunch, QuestionFieldDetails<AlphabetId> field) {
+    private ImmutableSet<AcceptationId> readAllPossibleAcceptationForField(BunchId bunch, QuestionFieldDetails<AlphabetId> field) {
         switch (field.getType()) {
             case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC:
-                return (bunch == NO_BUNCH)? readAllAcceptations(field.alphabet) : readAllAcceptationsInBunch(field.alphabet, bunch);
+                return bunch.isNoBunchForQuiz()? readAllAcceptations(field.alphabet) : readAllAcceptationsInBunch(field.alphabet, bunch);
 
             case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT:
-                return (bunch == NO_BUNCH)? readAllPossibleSynonymOrTranslationAcceptations(field.alphabet) :
+                return bunch.isNoBunchForQuiz()? readAllPossibleSynonymOrTranslationAcceptations(field.alphabet) :
                         readAllPossibleSynonymOrTranslationAcceptationsInBunch(field.alphabet, bunch);
 
             case LangbookDbSchema.QuestionFieldFlags.TYPE_APPLY_RULE:
-                return (bunch == NO_BUNCH)? readAllRulableAcceptations(field.alphabet, field.rule) :
+                return bunch.isNoBunchForQuiz()? readAllRulableAcceptations(field.alphabet, field.rule) :
                         readAllRulableAcceptationsInBunch(field.alphabet, field.rule, bunch);
 
             default:
@@ -3611,7 +3604,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         }
     }
 
-    ImmutableSet<AcceptationId> readAllPossibleAcceptations(int bunch, ImmutableSet<QuestionFieldDetails<AlphabetId>> fields) {
+    ImmutableSet<AcceptationId> readAllPossibleAcceptations(BunchId bunch, ImmutableSet<QuestionFieldDetails<AlphabetId>> fields) {
         final Function<QuestionFieldDetails<AlphabetId>, ImmutableSet<AcceptationId>> mapFunc = field -> readAllPossibleAcceptationForField(bunch, field);
         return fields.map(mapFunc).reduce((a, b) -> a.filter(b::contains));
     }

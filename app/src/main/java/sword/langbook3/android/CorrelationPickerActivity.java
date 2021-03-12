@@ -13,10 +13,13 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntResultFunction;
+import sword.collections.MutableList;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdComparator;
+import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.CorrelationId;
@@ -181,11 +184,11 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_PICK_BUNCHES) {
             if (resultCode == RESULT_OK && data != null) {
-                final int[] bunchSet = data.getIntArrayExtra(MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
+                final MutableList<BunchId> bunchList = BunchIdBundler.readListAsIntentExtra(data, MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
                 if (manager.allValidAlphabets(getTexts())) {
                     final AcceptationId accId = addAcceptation(manager);
-                    for (int bunch : bunchSet) {
+                    for (BunchId bunch : bunchList) {
                         manager.addAcceptationInBunch(bunch, accId);
                     }
                     Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();

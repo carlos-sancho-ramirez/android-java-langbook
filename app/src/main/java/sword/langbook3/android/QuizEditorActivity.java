@@ -17,11 +17,11 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
 import sword.langbook3.android.models.QuestionFieldDetails;
-
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
 public final class QuizEditorActivity extends Activity implements View.OnClickListener {
 
@@ -33,9 +33,9 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         String QUIZ = BundleKeys.QUIZ;
     }
 
-    public static void open(Activity activity, int requestCode, int bunch) {
+    public static void open(Activity activity, int requestCode, BunchId bunch) {
         Intent intent = new Intent(activity, QuizEditorActivity.class);
-        intent.putExtra(ArgKeys.BUNCH, bunch);
+        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.BUNCH, bunch);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -98,7 +98,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
 
     private final ArrayList<FieldState> _questionFields = new ArrayList<>(1);
     private final ArrayList<FieldState> _answerFields = new ArrayList<>(1);
-    private int _bunch;
+    private BunchId _bunch;
     private AlphabetId _preferredAlphabet;
 
     private ImmutableMap<AlphabetId, String> _alphabetItems;
@@ -226,12 +226,12 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         setContentView(R.layout.quiz_editor_activity);
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, NO_BUNCH);
+        _bunch = BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.BUNCH);
         final DbManager manager = DbManager.getInstance();
         final LangbookDbChecker checker = manager.getManager();
 
-        if (_bunch != NO_BUNCH) {
-            final String bunchText = checker.readConceptText(_bunch, _preferredAlphabet);
+        if (!_bunch.isNoBunchForQuiz()) {
+            final String bunchText = checker.readConceptText(_bunch.getConceptId(), _preferredAlphabet);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
         }

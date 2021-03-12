@@ -23,6 +23,8 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableList;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
@@ -41,16 +43,16 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         String STATE = "cSt";
     }
 
-    public static void open(Context context, int bunch) {
+    public static void open(Context context, BunchId bunch) {
         Intent intent = new Intent(context, QuizSelectorActivity.class);
-        intent.putExtra(ArgKeys.BUNCH, bunch);
+        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.BUNCH, bunch);
         context.startActivity(intent);
     }
 
     private QuizSelectorActivityState _state;
 
     private AlphabetId _preferredAlphabet;
-    private int _bunch;
+    private BunchId _bunch;
     private ImmutableIntKeyMap<String> _ruleTexts;
 
     private boolean _finishIfEmptyWhenStarting;
@@ -81,7 +83,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return 0;
     }
 
-    private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookDbChecker checker, int bunch) {
+    private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookDbChecker checker, BunchId bunch) {
         final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId>>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
         final ImmutableMap<AlphabetId, String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
         final int quizCount = resultMap.size();
@@ -116,7 +118,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         setContentView(R.layout.quiz_selector_activity);
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _bunch = getIntent().getIntExtra(ArgKeys.BUNCH, 0);
+        _bunch = BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.BUNCH);
 
         if (savedInstanceState != null) {
             _state = savedInstanceState.getParcelable(SavedKeys.STATE);

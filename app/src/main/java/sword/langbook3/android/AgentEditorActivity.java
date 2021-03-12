@@ -20,16 +20,18 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableMap;
+import sword.collections.ImmutableSet;
 import sword.collections.List;
 import sword.collections.MutableHashSet;
-import sword.collections.MutableIntList;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.BunchIdBundler;
+import sword.langbook3.android.db.BunchIdParceler;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationEntryListParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
@@ -37,7 +39,7 @@ import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.models.AgentDetails;
 
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
+import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener {
 
@@ -64,21 +66,21 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         context.startActivity(intent);
     }
 
-    public static void openWithTarget(Context context, int targetBunch) {
+    public static void openWithTarget(Context context, BunchId targetBunch) {
         final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.TARGET_BUNCH, targetBunch);
+        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.TARGET_BUNCH, targetBunch);
         context.startActivity(intent);
     }
 
-    public static void openWithSource(Context context, int sourceBunch) {
+    public static void openWithSource(Context context, BunchId sourceBunch) {
         final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.SOURCE_BUNCH, sourceBunch);
+        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.SOURCE_BUNCH, sourceBunch);
         context.startActivity(intent);
     }
 
-    public static void openWithDiff(Context context, int diffBunch) {
+    public static void openWithDiff(Context context, BunchId diffBunch) {
         final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.DIFF_BUNCH, diffBunch);
+        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.DIFF_BUNCH, diffBunch);
         context.startActivity(intent);
     }
 
@@ -89,9 +91,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     public static final class State implements Parcelable {
-        MutableIntList targetBunches = MutableIntList.empty();
-        MutableIntList sourceBunches = MutableIntList.empty();
-        MutableIntList diffBunches = MutableIntList.empty();
+        MutableList<BunchId> targetBunches = MutableList.empty();
+        MutableList<BunchId> sourceBunches = MutableList.empty();
+        MutableList<BunchId> diffBunches = MutableList.empty();
         MutableList<Correlation.Entry<AlphabetId>> startMatcher = MutableList.empty();
         MutableList<Correlation.Entry<AlphabetId>> startAdder = MutableList.empty();
         MutableList<Correlation.Entry<AlphabetId>> endMatcher = MutableList.empty();
@@ -104,17 +106,17 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         private State(Parcel in) {
             final int targetBunchesCount = in.readInt();
             for (int i = 0; i < targetBunchesCount; i++) {
-                targetBunches.append(in.readInt());
+                targetBunches.append(BunchIdParceler.read(in));
             }
 
             final int sourceBunchesCount = in.readInt();
             for (int i = 0; i < sourceBunchesCount; i++) {
-                sourceBunches.append(in.readInt());
+                sourceBunches.append(BunchIdParceler.read(in));
             }
 
             final int diffBunchesCount = in.readInt();
             for (int i = 0; i < diffBunchesCount; i++) {
-                diffBunches.append(in.readInt());
+                diffBunches.append(BunchIdParceler.read(in));
             }
 
             CorrelationEntryListParceler.readInto(in, startMatcher);
@@ -128,18 +130,18 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         @Override
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(targetBunches.size());
-            for (int value : targetBunches) {
-                dest.writeInt(value);
+            for (BunchId value : targetBunches) {
+                BunchIdParceler.write(dest, value);
             }
 
             dest.writeInt(sourceBunches.size());
-            for (int value : sourceBunches) {
-                dest.writeInt(value);
+            for (BunchId value : sourceBunches) {
+                BunchIdParceler.write(dest, value);
             }
 
             dest.writeInt(diffBunches.size());
-            for (int value : diffBunches) {
-                dest.writeInt(value);
+            for (BunchId value : diffBunches) {
+                BunchIdParceler.write(dest, value);
             }
 
             CorrelationEntryListParceler.write(dest, startMatcher);
@@ -186,19 +188,19 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         return getIntent().getIntExtra(ArgKeys.AGENT, 0);
     }
 
-    private int getSourceBunch() {
-        return getIntent().getIntExtra(ArgKeys.SOURCE_BUNCH, 0);
+    private BunchId getSourceBunch() {
+        return BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SOURCE_BUNCH);
     }
 
-    private int getDiffBunch() {
-        return getIntent().getIntExtra(ArgKeys.DIFF_BUNCH, 0);
+    private BunchId getDiffBunch() {
+        return BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.DIFF_BUNCH);
     }
 
-    private int getTargetBunch() {
-        return getIntent().getIntExtra(ArgKeys.TARGET_BUNCH, 0);
+    private BunchId getTargetBunch() {
+        return BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.TARGET_BUNCH);
     }
 
-    private void updateBunchSet(LangbookDbChecker checker, ViewGroup container, MutableIntList bunches) {
+    private void updateBunchSet(LangbookDbChecker checker, ViewGroup container, MutableList<BunchId> bunches) {
         final int currentBunchViewCount = container.getChildCount();
         final int stateBunchCount = bunches.size();
 
@@ -207,12 +209,12 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         for (int i = 0; i < stateBunchCount; i++) {
-            final int concept = bunches.valueAt(i);
+            final BunchId bunch = bunches.valueAt(i);
             if (i < currentBunchViewCount) {
-                bindBunch(container.getChildAt(i), checker, concept, container, bunches);
+                bindBunch(container.getChildAt(i), checker, bunch, container, bunches);
             }
             else {
-                addBunch(checker, concept, container, bunches);
+                addBunch(checker, bunch, container, bunches);
             }
         }
     }
@@ -276,11 +278,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             _state = new State();
 
             final int agentId = getAgentId();
-            final int sourceBunch = getSourceBunch();
-            final int diffBunch = getDiffBunch();
-            final int targetBunch = getTargetBunch();
+            final BunchId sourceBunch = getSourceBunch();
+            final BunchId diffBunch = getDiffBunch();
+            final BunchId targetBunch = getTargetBunch();
             if (agentId != 0) {
-                final AgentDetails<AlphabetId> agentDetails = checker.getAgentDetails(agentId);
+                final AgentDetails<AlphabetId, BunchId> agentDetails = checker.getAgentDetails(agentId);
                 _state.targetBunches = agentDetails.targetBunches.toList().mutate();
                 _state.sourceBunches = agentDetails.sourceBunches.toList().mutate();
                 _state.diffBunches = agentDetails.diffBunches.toList().mutate();
@@ -290,13 +292,13 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 _state.endAdder = agentDetails.endAdder.toCorrelationEntryList();
                 _state.rule = agentDetails.rule;
             }
-            else if (targetBunch != 0) {
+            else if (targetBunch != null) {
                 _state.targetBunches.append(targetBunch);
             }
-            else if (sourceBunch != 0) {
+            else if (sourceBunch != null) {
                 _state.sourceBunches.append(sourceBunch);
             }
-            else if (diffBunch != 0) {
+            else if (diffBunch != null) {
                 _state.diffBunches.append(diffBunch);
             }
         }
@@ -452,20 +454,20 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
     }
 
-    private void addBunch(LangbookDbChecker checker, int concept, ViewGroup container, MutableIntList bunches) {
+    private void addBunch(LangbookDbChecker checker, BunchId bunch, ViewGroup container, MutableList<BunchId> bunches) {
         getLayoutInflater().inflate(R.layout.agent_editor_bunch_entry, container, true);
         final View view = container.getChildAt(container.getChildCount() - 1);
-        bindBunch(view, checker, concept, container, bunches);
+        bindBunch(view, checker, bunch, container, bunches);
     }
 
-    private void bindBunch(View view, LangbookDbChecker checker, int concept, ViewGroup container, MutableIntList bunches) {
+    private void bindBunch(View view, LangbookDbChecker checker, BunchId bunch, ViewGroup container, MutableList<BunchId> bunches) {
         final TextView textView = view.findViewById(R.id.textView);
-        textView.setText(checker.readConceptText(concept, _preferredAlphabet));
-        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeBunch(container, bunches, concept));
+        textView.setText(checker.readConceptText(bunch.getConceptId(), _preferredAlphabet));
+        view.findViewById(R.id.removeButton).setOnClickListener(v -> removeBunch(container, bunches, bunch));
     }
 
-    private static void removeBunch(ViewGroup container, MutableIntList bunches, int concept) {
-        final int index = bunches.indexOf(concept);
+    private static void removeBunch(ViewGroup container, MutableList<BunchId> bunches, BunchId bunch) {
+        final int index = bunches.indexOf(bunch);
         if (index < 0) {
             throw new AssertionError();
         }
@@ -540,9 +542,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
                     final int givenAgentId = getAgentId();
                     final LangbookDbManager manager = DbManager.getInstance().getManager();
-                    final ImmutableIntSet targetBunches = _state.targetBunches.toImmutable().toSet();
-                    final ImmutableIntSet sourceBunches = _state.sourceBunches.toImmutable().toSet();
-                    final ImmutableIntSet diffBunches = _state.diffBunches.toImmutable().toSet();
+                    final ImmutableSet<BunchId> targetBunches = _state.targetBunches.toImmutable().toSet();
+                    final ImmutableSet<BunchId> sourceBunches = _state.sourceBunches.toImmutable().toSet();
+                    final ImmutableSet<BunchId> diffBunches = _state.diffBunches.toImmutable().toSet();
                     if (givenAgentId == 0) {
                         final Integer agentId = manager.addAgent(targetBunches, sourceBunches, diffBunches,
                                 startMatcher, startAdder, endMatcher, endAdder, rule);
@@ -575,9 +577,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = manager.conceptFromAcceptation(acceptation);
-            _state.targetBunches.append(concept);
-            addBunch(DbManager.getInstance().getManager(), concept, _targetBunchesContainer, _state.targetBunches);
+            final BunchId bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
+            _state.targetBunches.append(bunch);
+            addBunch(DbManager.getInstance().getManager(), bunch, _targetBunchesContainer, _state.targetBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_SOURCE_BUNCH && resultCode == RESULT_OK) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
@@ -585,7 +587,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = manager.conceptFromAcceptation(acceptation);
+            final BunchId concept = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
             _state.sourceBunches.append(concept);
             addBunch(DbManager.getInstance().getManager(), concept, _sourceBunchesContainer, _state.sourceBunches);
         }
@@ -595,9 +597,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = manager.conceptFromAcceptation(acceptation);
-            _state.diffBunches.append(concept);
-            addBunch(DbManager.getInstance().getManager(), concept, _diffBunchesContainer, _state.diffBunches);
+            final BunchId bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
+            _state.diffBunches.append(bunch);
+            addBunch(DbManager.getInstance().getManager(), bunch, _diffBunchesContainer, _state.diffBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_RULE && resultCode == RESULT_OK) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
@@ -621,19 +623,19 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     private String getErrorMessage() {
-        final ImmutableIntSet targets = _state.targetBunches.toSet().toImmutable();
-        final ImmutableIntSet sources = _state.sourceBunches.toSet().toImmutable();
-        final ImmutableIntSet diffs = _state.diffBunches.toSet().toImmutable();
+        final ImmutableSet<BunchId> targets = _state.targetBunches.toSet().toImmutable();
+        final ImmutableSet<BunchId> sources = _state.sourceBunches.toSet().toImmutable();
+        final ImmutableSet<BunchId> diffs = _state.diffBunches.toSet().toImmutable();
 
-        if (targets.anyMatch(bunch -> bunch == NO_BUNCH || sources.contains(bunch) || diffs.contains(bunch))) {
+        if (targets.anyMatch(bunch -> bunch.isNoBunchForQuiz() || sources.contains(bunch) || diffs.contains(bunch))) {
             return "Invalid target bunch selection";
         }
 
-        if (sources.anyMatch(bunch -> bunch == NO_BUNCH || targets.contains(bunch) || diffs.contains(bunch))) {
+        if (sources.anyMatch(bunch -> bunch.isNoBunchForQuiz() || targets.contains(bunch) || diffs.contains(bunch))) {
             return "Invalid target bunch selection";
         }
 
-        if (diffs.anyMatch(bunch -> bunch == NO_BUNCH || targets.contains(bunch) || sources.contains(bunch))) {
+        if (diffs.anyMatch(bunch -> bunch.isNoBunchForQuiz() || targets.contains(bunch) || sources.contains(bunch))) {
             return "Invalid bunch selection";
         }
 

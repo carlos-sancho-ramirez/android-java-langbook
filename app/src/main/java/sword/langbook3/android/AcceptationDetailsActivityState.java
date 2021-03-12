@@ -5,6 +5,8 @@ import android.os.Parcelable;
 
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
+import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.BunchIdParceler;
 import sword.langbook3.android.models.DisplayableItem;
 
 public final class AcceptationDetailsActivityState implements Parcelable {
@@ -27,8 +29,8 @@ public final class AcceptationDetailsActivityState implements Parcelable {
     // Relevant for IntrinsicStates DELETING_ACCEPTATION_FROM_BUNCH
     private DisplayableItem<AcceptationId> _deleteTargetAcceptation;
 
-    // Relevant for IntrinsicStates DELETING_FROM_BUNCH (id is bunch)
-    private DisplayableItem<Integer> _deleteTargetBunch;
+    // Relevant for IntrinsicStates DELETING_FROM_BUNCH
+    private DisplayableItem<BunchId> _deleteTargetBunch;
 
     public AcceptationDetailsActivityState() {
     }
@@ -42,7 +44,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                final int bunchId = in.readInt();
+                final BunchId bunchId = BunchIdParceler.read(in);
                 final String bunchText = in.readString();
                 _deleteTargetBunch = new DisplayableItem<>(bunchId, bunchText);
                 break;
@@ -65,7 +67,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
                 break;
 
             case IntrinsicStates.DELETING_FROM_BUNCH:
-                dest.writeInt(_deleteTargetBunch.id);
+                BunchIdParceler.write(dest, _deleteTargetBunch.id);
                 dest.writeString(_deleteTargetBunch.text);
                 break;
 
@@ -142,7 +144,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         _intrinsicState = IntrinsicStates.NORMAL;
     }
 
-    void setDeleteBunchTarget(DisplayableItem<Integer> item) {
+    void setDeleteBunchTarget(DisplayableItem<BunchId> item) {
         if (item == null) {
             throw new IllegalArgumentException();
         }
@@ -170,7 +172,7 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         return _deleteTargetAcceptation;
     }
 
-    DisplayableItem<Integer> getDeleteTargetBunch() {
+    DisplayableItem<BunchId> getDeleteTargetBunch() {
         if (_intrinsicState != IntrinsicStates.DELETING_FROM_BUNCH) {
             throw new IllegalStateException();
         }

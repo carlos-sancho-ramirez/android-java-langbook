@@ -24,10 +24,11 @@ import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAccepta
  * BunchesManager responsibilities include all responsibilities from AcceptationsManager, and include the following ones:
  * <li>Bunches</li>
  */
-interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> extends AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
 
     @Override
-    BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> createManager(MemoryDatabase db);
+    BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> createManager(MemoryDatabase db);
+    BunchId conceptAsBunchId(int conceptId);
 
     static <LanguageId, AlphabetId, CorrelationId, AcceptationId> AcceptationId addSimpleAcceptation(AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId alphabet, int concept, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
@@ -48,33 +49,35 @@ interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptati
     @Test
     default void testSerializeBunchWithASingleSpanishAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
+        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int inConcept = inManager.getMaxConcept() + 1;
         final AcceptationId acceptation = addSpanishSingAcceptation(inManager, inAlphabet, inConcept);
 
-        final int bunch = inManager.getMaxConcept() + 1;
+        final int bunchConcept = inManager.getMaxConcept() + 1;
         final String bunchText = "verbo de primera conjugación";
-        addSimpleAcceptation(inManager, inAlphabet, bunch, bunchText);
-        inManager.addAcceptationInBunch(bunch, acceptation);
+        addSimpleAcceptation(inManager, inAlphabet, bunchConcept, bunchText);
+
+        final BunchId bunchBunch = conceptAsBunchId(bunchConcept);
+        inManager.addAcceptationInBunch(bunchBunch, acceptation);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
+        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> outManager = createManager(outDb);
 
         final AcceptationId outAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
         final AcceptationId outBunchAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), bunchText));
         assertNotEquals(outBunchAcceptation, outAcceptation);
 
-        assertContainsOnly(outAcceptation, outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outBunchAcceptation)));
-        assertEmpty(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outAcceptation)));
+        assertContainsOnly(outAcceptation, outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outBunchAcceptation))));
+        assertEmpty(outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outAcceptation))));
     }
 
     @Test
     default void testSerializeBunchWithMultipleSpanishAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
+        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -84,14 +87,16 @@ interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptati
         final int inDrinkConcept = inManager.getMaxConcept() + 1;
         final AcceptationId inDrinkAcceptation = addSimpleAcceptation(inManager, inAlphabet, inDrinkConcept, "saltar");
 
-        final int bunch = inManager.getMaxConcept() + 1;
+        final int bunchConcept = inManager.getMaxConcept() + 1;
         final String bunchText = "verbo de primera conjugación";
-        addSimpleAcceptation(inManager, inAlphabet, bunch, bunchText);
+        addSimpleAcceptation(inManager, inAlphabet, bunchConcept, bunchText);
+
+        final BunchId bunch = conceptAsBunchId(bunchConcept);
         inManager.addAcceptationInBunch(bunch, inSingAcceptation);
         inManager.addAcceptationInBunch(bunch, inDrinkAcceptation);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
+        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> outManager = createManager(outDb);
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
         final AcceptationId outDrinkAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "saltar"));
@@ -101,35 +106,39 @@ interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptati
         assertNotEquals(outBunchAcceptation, outSingAcceptation);
         assertNotEquals(outBunchAcceptation, outDrinkAcceptation);
 
-        final ImmutableSet<AcceptationId> acceptationsInBunch = outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outBunchAcceptation));
+        final ImmutableSet<AcceptationId> acceptationsInBunch = outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outBunchAcceptation)));
         assertEquals(2, acceptationsInBunch.size());
         assertContains(outSingAcceptation, acceptationsInBunch);
         assertContains(outDrinkAcceptation, acceptationsInBunch);
 
-        assertEmpty(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outSingAcceptation)));
-        assertEmpty(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outDrinkAcceptation)));
+        assertEmpty(outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outSingAcceptation))));
+        assertEmpty(outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outDrinkAcceptation))));
     }
 
     @Test
     default void testSerializeChainedBunches() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> inManager = createManager(inDb);
+        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
         final int inConcept = inManager.getMaxConcept() + 1;
         final AcceptationId singAcceptation = addSimpleAcceptation(inManager, inAlphabet, inConcept, "cantar");
 
-        final int arVerbBunch = inManager.getMaxConcept() + 1;
-        final AcceptationId arVerbAcceptation = addSimpleAcceptation(inManager, inAlphabet, arVerbBunch, "verbo ar");
+        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final AcceptationId arVerbAcceptation = addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo ar");
+
+        final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         inManager.addAcceptationInBunch(arVerbBunch, singAcceptation);
 
-        final int verbBunch = inManager.getMaxConcept() + 1;
-        addSimpleAcceptation(inManager, inAlphabet, verbBunch, "verbo");
+        final int verbConcept = inManager.getMaxConcept() + 1;
+        addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
+
+        final BunchId verbBunch = conceptAsBunchId(verbConcept);
         inManager.addAcceptationInBunch(verbBunch, arVerbAcceptation);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
+        final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> outManager = createManager(outDb);
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
         final AcceptationId outArVerbAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "verbo ar"));
@@ -139,8 +148,8 @@ interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptati
         assertNotEquals(outVerbAcceptation, outSingAcceptation);
         assertNotEquals(outVerbAcceptation, outArVerbAcceptation);
 
-        assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outArVerbAcceptation)));
-        assertContainsOnly(outArVerbAcceptation, outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outVerbAcceptation)));
-        assertEmpty(outManager.getAcceptationsInBunch(outManager.conceptFromAcceptation(outSingAcceptation)));
+        assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outArVerbAcceptation))));
+        assertContainsOnly(outArVerbAcceptation, outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outVerbAcceptation))));
+        assertEmpty(outManager.getAcceptationsInBunch(conceptAsBunchId(outManager.conceptFromAcceptation(outSingAcceptation))));
     }
 }

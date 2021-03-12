@@ -20,6 +20,7 @@ import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
@@ -62,7 +63,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private MutableIntValueMap<AcceptationId> _knowledge = MutableIntValueHashMap.empty();
 
     private int _quizId;
-    private QuizDetails<AlphabetId> _quizDetails;
+    private QuizDetails<AlphabetId, BunchId> _quizDetails;
     private TextView[] _fieldTextViews;
 
     private int _goodAnswerCount;

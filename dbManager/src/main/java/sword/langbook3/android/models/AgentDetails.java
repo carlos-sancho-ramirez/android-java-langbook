@@ -1,21 +1,21 @@
 package sword.langbook3.android.models;
 
-import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
+import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AgentDetails<AlphabetId> {
-    public final ImmutableIntSet targetBunches;
-    public final ImmutableIntSet sourceBunches;
-    public final ImmutableIntSet diffBunches;
+public final class AgentDetails<AlphabetId, BunchId> {
+    public final ImmutableSet<BunchId> targetBunches;
+    public final ImmutableSet<BunchId> sourceBunches;
+    public final ImmutableSet<BunchId> diffBunches;
     public final ImmutableCorrelation<AlphabetId> startMatcher;
     public final ImmutableCorrelation<AlphabetId> startAdder;
     public final ImmutableCorrelation<AlphabetId> endMatcher;
     public final ImmutableCorrelation<AlphabetId> endAdder;
     public final int rule;
 
-    public AgentDetails(ImmutableIntSet targetBunches, ImmutableIntSet sourceBunches,
-            ImmutableIntSet diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
+    public AgentDetails(ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+            ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
             ImmutableCorrelation<AlphabetId> endAdder, int rule) {
 
@@ -46,22 +46,22 @@ public final class AgentDetails<AlphabetId> {
         }
 
         if (sourceBunches == null) {
-            sourceBunches = new ImmutableIntSetCreator().build();
+            sourceBunches = ImmutableHashSet.empty();
         }
 
         if (diffBunches == null) {
-            diffBunches = new ImmutableIntSetCreator().build();
+            diffBunches = ImmutableHashSet.empty();
         }
 
         if (!sourceBunches.filter(diffBunches::contains).isEmpty()) {
             throw new IllegalArgumentException();
         }
 
-        if (sourceBunches.contains(0)) {
+        if (sourceBunches.contains(null)) {
             throw new IllegalArgumentException();
         }
 
-        if (diffBunches.contains(0)) {
+        if (diffBunches.contains(null)) {
             throw new IllegalArgumentException();
         }
 

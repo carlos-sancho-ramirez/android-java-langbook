@@ -6,18 +6,19 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntSet;
-import sword.collections.ImmutableIntSetCreator;
+import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableMap;
+import sword.collections.ImmutableSet;
 import sword.collections.MutableIntArraySet;
+import sword.langbook3.android.db.BunchId;
 
 final class MatchingBunchesPickerAdapter extends BaseAdapter {
 
-    private final ImmutableIntKeyMap<String> _entries;
+    private final ImmutableMap<BunchId, String> _entries;
     private final MutableIntArraySet _checked = MutableIntArraySet.empty();
     private LayoutInflater _inflater;
 
-    MatchingBunchesPickerAdapter(ImmutableIntKeyMap<String> entries) {
+    MatchingBunchesPickerAdapter(ImmutableMap<BunchId, String> entries) {
         _entries = entries;
     }
 
@@ -27,13 +28,13 @@ final class MatchingBunchesPickerAdapter extends BaseAdapter {
     }
 
     @Override
-    public Integer getItem(int position) {
+    public BunchId getItem(int position) {
         return _entries.keyAt(position);
     }
 
     @Override
     public long getItemId(int position) {
-        return _entries.keyAt(position);
+        return position;
     }
 
     @Override
@@ -63,8 +64,8 @@ final class MatchingBunchesPickerAdapter extends BaseAdapter {
         return view;
     }
 
-    public ImmutableIntSet getCheckedBunches() {
-        final ImmutableIntSet.Builder builder = new ImmutableIntSetCreator();
+    public ImmutableSet<BunchId> getCheckedBunches() {
+        final ImmutableSet.Builder<BunchId> builder = new ImmutableHashSet.Builder<>();
         for (int position : _checked) {
             builder.add(_entries.keyAt(position));
         }

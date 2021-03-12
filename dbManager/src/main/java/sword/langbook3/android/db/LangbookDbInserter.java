@@ -1,7 +1,6 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntRange;
-import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.Map;
 import sword.collections.Set;
@@ -130,7 +129,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static void insertBunchAcceptation(DbInserter db, int bunch, AcceptationIdInterface acceptation, int agent) {
+    static void insertBunchAcceptation(DbInserter db, BunchIdInterface bunch, AcceptationIdInterface acceptation, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = Tables.bunchAcceptations;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getBunchColumnIndex(), bunch)
@@ -143,14 +142,14 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertBunchSet(DbInserter db, int setId, IntSet bunches) {
+    static <BunchId extends BunchIdInterface> void insertBunchSet(DbInserter db, int setId, Set<BunchId> bunches) {
         if (bunches.isEmpty()) {
             throw new IllegalArgumentException();
         }
 
         final LangbookDbSchema.BunchSetsTable table = Tables.bunchSets;
-        for (int bunch : bunches) {
-            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        for (BunchId bunch : bunches) {
+            final DbInsertQuery query = new DbInsertQueryBuilder(table)
                     .put(table.getSetIdColumnIndex(), setId)
                     .put(table.getBunchColumnIndex(), bunch)
                     .build();
@@ -234,9 +233,9 @@ final class LangbookDbInserter {
         }
     }
 
-    static int insertQuizDefinition(DbInserter db, int bunch, int setId) {
+    static int insertQuizDefinition(DbInserter db, BunchIdInterface bunch, int setId) {
         final LangbookDbSchema.QuizDefinitionsTable table = Tables.quizDefinitions;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getBunchColumnIndex(), bunch)
                 .put(table.getQuestionFieldsColumnIndex(), setId)
                 .build();

@@ -2,12 +2,12 @@ package sword.langbook3.android.models;
 
 import sword.collections.ImmutableList;
 
-public final class QuizDetails<AlphabetId> {
-    public final int bunch;
+public final class QuizDetails<AlphabetId, BunchId> {
+    public final BunchId bunch;
     public final ImmutableList<QuestionFieldDetails<AlphabetId>> fields;
 
-    public QuizDetails(int bunch, ImmutableList<QuestionFieldDetails<AlphabetId>> fields) {
-        if (fields == null || fields.size() < 2 || !fields.anyMatch(field -> !field.isAnswer()) || !fields.anyMatch(QuestionFieldDetails::isAnswer)) {
+    public QuizDetails(BunchId bunch, ImmutableList<QuestionFieldDetails<AlphabetId>> fields) {
+        if (bunch == null || fields == null || fields.size() < 2 || !fields.anyMatch(field -> !field.isAnswer()) || !fields.anyMatch(QuestionFieldDetails::isAnswer)) {
             throw new IllegalArgumentException();
         }
 
@@ -17,7 +17,7 @@ public final class QuizDetails<AlphabetId> {
 
     @Override
     public int hashCode() {
-        return fields.hashCode() * 41 + bunch;
+        return fields.hashCode() * 41 + bunch.hashCode();
     }
 
     @Override
@@ -27,7 +27,7 @@ public final class QuizDetails<AlphabetId> {
         }
 
         final QuizDetails that = (QuizDetails) other;
-        return bunch == that.bunch && fields.equals(that.fields);
+        return bunch.equals(that.bunch) && fields.equals(that.fields);
     }
 
     @Override
