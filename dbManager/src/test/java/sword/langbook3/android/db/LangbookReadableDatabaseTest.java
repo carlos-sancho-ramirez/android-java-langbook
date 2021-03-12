@@ -22,7 +22,7 @@ import static sword.langbook3.android.db.AgentsManagerTest.setOf;
 
 final class LangbookReadableDatabaseTest {
 
-    private void addAgent(LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder> manager, BunchIdHolder sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, int rule) {
+    private void addAgent(LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager, BunchIdHolder sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, RuleIdHolder rule) {
         final ImmutableSet<BunchIdHolder> emptyBunchSet = ImmutableHashSet.empty();
         final ImmutableSet<BunchIdHolder> verbBunchSet = emptyBunchSet.add(sourceBunch);
 
@@ -41,6 +41,10 @@ final class LangbookReadableDatabaseTest {
         return new BunchIdHolder(conceptId);
     }
 
+    private RuleIdHolder conceptAsRuleId(int conceptId) {
+        return (conceptId == 0)? null : new RuleIdHolder(conceptId);
+    }
+
     @Test
     void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
@@ -51,11 +55,12 @@ final class LangbookReadableDatabaseTest {
         final CorrelationArrayIdManager correlationArrayIdManager = new CorrelationArrayIdManager();
         final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
         final BunchIdManager bunchIdManager = new BunchIdManager();
-        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager);
+        final RuleIdManager ruleIdManager = new RuleIdManager();
+        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
-        final int gerundRule = manager.getMaxConcept() + 1;
-        final int pluralRule = gerundRule + 1;
-        final int verbConceptId = pluralRule + 1;
+        final int gerundConcept = manager.getMaxConcept() + 1;
+        final int pluralConcept = gerundConcept + 1;
+        final int verbConceptId = pluralConcept + 1;
         final int femaleNounConceptId = verbConceptId + 1;
 
         final String verbBunchTitle = "verbos (1a conjugación)";
@@ -65,9 +70,11 @@ final class LangbookReadableDatabaseTest {
         addSimpleAcceptation(manager, alphabet, femaleNounConceptId, femaleNounBunchTitle);
 
         final BunchIdHolder verbBunchId = conceptAsBunchId(verbConceptId);
+        final RuleIdHolder gerundRule = conceptAsRuleId(gerundConcept);
         addAgent(manager, verbBunchId, alphabet, "ar", "ando", gerundRule);
 
         final BunchIdHolder femaleNounBunchId = conceptAsBunchId(femaleNounConceptId);
+        final RuleIdHolder pluralRule = conceptAsRuleId(pluralConcept);
         addAgent(manager, femaleNounBunchId, alphabet, null, "s", pluralRule);
 
         final ImmutableCorrelation<AlphabetIdHolder> texts = new ImmutableCorrelation.Builder<AlphabetIdHolder>().put(alphabet, "cantar").build();
@@ -87,6 +94,7 @@ final class LangbookReadableDatabaseTest {
         final CorrelationArrayIdManager correlationArrayIdManager = new CorrelationArrayIdManager();
         final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
         final BunchIdManager bunchIdManager = new BunchIdManager();
+        final RuleIdManager ruleIdManager = new RuleIdManager();
 
         final ImmutableSet<String> texts = new ImmutableHashSet.Builder<String>()
                 .add("hello")
@@ -113,7 +121,7 @@ final class LangbookReadableDatabaseTest {
                     final ImmutableList<String> textList = textListBuilder.build();
 
                     final MemoryDatabase db = new MemoryDatabase();
-                    final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager);
+                    final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
                     final AlphabetIdHolder alphabet1 = manager.addLanguage("xx").mainAlphabet;
                     final AlphabetIdHolder alphabet2 = getNextAvailableId(manager);
                     assertTrue(manager.addAlphabetCopyingFromOther(alphabet2, alphabet1));
@@ -131,7 +139,7 @@ final class LangbookReadableDatabaseTest {
                     final int restrictionStringType = DbQuery.RestrictionStringTypes.STARTS_WITH;
                     for (int length = 1; length <= text1.length(); length++) {
                         final String queryText = text1.substring(0, length);
-                        final ImmutableList<SearchResult<AcceptationIdHolder>> results = manager.findAcceptationFromText(queryText, restrictionStringType, new ImmutableIntRange(0, Integer.MAX_VALUE));
+                        final ImmutableList<SearchResult<AcceptationIdHolder, RuleIdHolder>> results = manager.findAcceptationFromText(queryText, restrictionStringType, new ImmutableIntRange(0, Integer.MAX_VALUE));
                         final ImmutableIntSet.Builder matchingIndexesBuilder = new ImmutableIntSetCreator();
                         for (int i = 0; i < textList.size(); i++) {
                             if (textList.valueAt(i).startsWith(queryText)) {
@@ -141,7 +149,7 @@ final class LangbookReadableDatabaseTest {
                         final ImmutableIntSet matchingIndexes = matchingIndexesBuilder.build();
                         assertEquals(matchingIndexes.size(), results.size());
                         for (int textIndex : matchingIndexes) {
-                            final SearchResult<AcceptationIdHolder> result = results.findFirst(r -> r.getId().equals(accList.valueAt(textIndex)), null);
+                            final SearchResult<AcceptationIdHolder, RuleIdHolder> result = results.findFirst(r -> r.getId().equals(accList.valueAt(textIndex)), null);
                             assertNotNull(result);
                             assertEquals(textList.valueAt(textIndex), result.getStr());
                         }

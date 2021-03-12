@@ -6,18 +6,18 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
 class SearchResultAdapter extends BaseAdapter {
 
     private final ImmutableList<SearchResult> _items;
-    private final ImmutableIntKeyMap<String> _ruleTexts;
+    private final ImmutableMap<RuleId, String> _ruleTexts;
     private LayoutInflater _inflater;
 
-    SearchResultAdapter(ImmutableList<SearchResult> items, ImmutableIntKeyMap<String> ruleTexts) {
+    SearchResultAdapter(ImmutableList<SearchResult> items, ImmutableMap<RuleId, String> ruleTexts) {
         if (items == null) {
             throw new IllegalArgumentException();
         }
@@ -55,7 +55,7 @@ class SearchResultAdapter extends BaseAdapter {
             view = convertView;
         }
 
-        final SearchResult item = _items.get(i);
+        final SearchResult<?, RuleId> item = _items.get(i);
         final TextView tv = view.findViewById(R.id.searchResultTextView);
         final int textColor = item.isDynamic()? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
         tv.setTextColor(tv.getContext().getResources().getColor(textColor));
@@ -67,7 +67,7 @@ class SearchResultAdapter extends BaseAdapter {
         tv.setText(text);
 
         final TextView auxTv = view.findViewById(R.id.searchResultAdditionalInfo);
-        final ImmutableIntList rules = item.getAppliedRules();
+        final ImmutableList<RuleId> rules = item.getAppliedRules();
         if (rules.isEmpty()) {
             auxTv.setVisibility(View.GONE);
         }

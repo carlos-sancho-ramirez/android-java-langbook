@@ -6,14 +6,15 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.IntKeyMap;
+import sword.collections.ImmutableMap;
+import sword.collections.Map;
+import sword.langbook3.android.db.RuleId;
 
 public final class RuleAdapter extends BaseAdapter {
-    private final ImmutableIntKeyMap<String> _entries;
+    private final ImmutableMap<RuleId, String> _entries;
     private LayoutInflater _inflater;
 
-    RuleAdapter(ImmutableIntKeyMap<String> entries) {
+    RuleAdapter(ImmutableMap<RuleId, String> entries) {
         _entries = entries;
     }
 
@@ -23,7 +24,7 @@ public final class RuleAdapter extends BaseAdapter {
     }
 
     @Override
-    public IntKeyMap.Entry<String> getItem(int position) {
+    public Map.Entry<RuleId, String> getItem(int position) {
         return _entries.entries().valueAt(position);
     }
 

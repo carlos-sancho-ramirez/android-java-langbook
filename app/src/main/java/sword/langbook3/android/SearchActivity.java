@@ -15,6 +15,7 @@ import android.widget.TextView;
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
 abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
@@ -103,7 +104,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         updateSearchResults();
     }
 
-    ImmutableList<SearchResult<AcceptationId>> noQueryResults() {
+    ImmutableList<SearchResult<AcceptationId, RuleId>> noQueryResults() {
         return ImmutableList.empty();
     }
 
@@ -119,7 +120,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return false;
     }
 
-    private ImmutableList<SearchResult<Integer>> agentSearchResults() {
+    private ImmutableList<SearchResult<Integer, RuleId>> agentSearchResults() {
         return DbManager.getInstance().getManager().getAgentIds().map(agentId -> {
             final String str = AGENT_QUERY_PREFIX + agentId;
             return new SearchResult<>(str, str, agentId, false);
@@ -132,7 +133,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
                 _query.toLowerCase().startsWith(str.toLowerCase()));
     }
 
-    abstract ImmutableList<SearchResult<AcceptationId>> queryAcceptationResults(String query);
+    abstract ImmutableList<SearchResult<AcceptationId, RuleId>> queryAcceptationResults(String query);
 
     final void queryAllResults() {
         ImmutableList<SearchResult> results = queryAcceptationResults(_query).map(result -> result);

@@ -18,6 +18,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
+import sword.collections.IntKeyMap;
 import sword.collections.IntPairMap;
 import sword.collections.Map;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
@@ -34,6 +35,7 @@ import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.DerivedAcceptationResult;
@@ -68,7 +70,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private AcceptationId _acceptation;
-    private AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId> _model;
+    private AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -264,7 +266,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AgentNavigableItem(entry.key(), s.toString()));
         }
 
-        for (IntPairMap.Entry entry : _model.agentRules.entries()) {
+        for (IntKeyMap.Entry<RuleId> entry : _model.agentRules.entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;

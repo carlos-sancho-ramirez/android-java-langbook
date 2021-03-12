@@ -4,7 +4,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AgentDetails<AlphabetId, BunchId> {
+public final class AgentDetails<AlphabetId, BunchId, RuleId> {
     public final ImmutableSet<BunchId> targetBunches;
     public final ImmutableSet<BunchId> sourceBunches;
     public final ImmutableSet<BunchId> diffBunches;
@@ -12,12 +12,12 @@ public final class AgentDetails<AlphabetId, BunchId> {
     public final ImmutableCorrelation<AlphabetId> startAdder;
     public final ImmutableCorrelation<AlphabetId> endMatcher;
     public final ImmutableCorrelation<AlphabetId> endAdder;
-    public final int rule;
+    public final RuleId rule;
 
     public AgentDetails(ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
-            ImmutableCorrelation<AlphabetId> endAdder, int rule) {
+            ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
 
         if (startMatcher == null) {
             startMatcher = ImmutableCorrelation.empty();
@@ -39,9 +39,9 @@ public final class AgentDetails<AlphabetId, BunchId> {
             if (targetBunches.isEmpty()) {
                 throw new IllegalArgumentException();
             }
-            rule = 0;
+            rule = null;
         }
-        else if (rule == 0) {
+        else if (rule == null) {
             throw new IllegalArgumentException();
         }
 

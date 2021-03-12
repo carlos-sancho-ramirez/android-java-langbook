@@ -40,18 +40,19 @@ import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAccept
 /**
  * Include all test related to all responsibilities of a AgentsManager.
  *
- * AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> responsibilities include all responsibilities from BunchesManager, and include the following ones:
+ * AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> responsibilities include all responsibilities from BunchesManager, and include the following ones:
  * <li>Bunch sets</li>
  * <li>Rules</li>
  * <li>Ruled concepts</li>
  * <li>Ruled acceptations</li>
  * <li>Agents</li>
  */
-interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> extends BunchesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
+interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends BunchesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
 
     @Override
-    AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> createManager(MemoryDatabase db);
+    AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> createManager(MemoryDatabase db);
     IntSetter<AcceptationId> getAcceptationIdManager();
+    RuleId conceptAsRuleId(int conceptId);
 
     static <T> ImmutableSet<T> setOf() {
         return ImmutableHashSet.empty();
@@ -90,9 +91,9 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         return map.toImmutable();
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> Integer addSingleAlphabetAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> Integer addSingleAlphabetAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
-            String endAdderText, int rule) {
+            String endAdderText, RuleId rule) {
         final ImmutableCorrelation<AlphabetId> startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
                 new ImmutableCorrelation.Builder<AlphabetId>().put(alphabet, startMatcherText).build();
 
@@ -108,9 +109,9 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> boolean updateSingleAlphabetAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager, int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> boolean updateSingleAlphabetAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
-            String endAdderText, int rule) {
+            String endAdderText, RuleId rule) {
         final ImmutableCorrelation<AlphabetId> startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
                 new ImmutableCorrelation.Builder<AlphabetId>().put(alphabet, startMatcherText).build();
 
@@ -126,13 +127,13 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         return manager.updateAgent(agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> void assertOnlyOneMorphology(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager, AcceptationId staticAcceptation, AlphabetId preferredAlphabet, String expectedText, int expectedRule) {
-        final MorphologyResult<AcceptationId> morphology = getSingleValue(manager.readMorphologiesFromAcceptation(staticAcceptation, preferredAlphabet).morphologies);
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> void assertOnlyOneMorphology(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, AcceptationId staticAcceptation, AlphabetId preferredAlphabet, String expectedText, RuleId expectedRule) {
+        final MorphologyResult<AcceptationId, RuleId> morphology = getSingleValue(manager.readMorphologiesFromAcceptation(staticAcceptation, preferredAlphabet).morphologies);
         assertEquals(expectedText, morphology.text);
         assertContainsOnly(expectedRule, morphology.rules);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> void assertNoRuledAcceptationsPresentForChainedAgents(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager, Add3ChainedAgentsResult result) {
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> void assertNoRuledAcceptationsPresentForChainedAgents(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, Add3ChainedAgentsResult result) {
         assertEmpty(manager.getAgentProcessedMap(result.agent1Id));
         assertEmpty(manager.getAgentProcessedMap(result.agent2Id));
         assertEmpty(manager.getAgentProcessedMap(result.agent3Id));
@@ -141,7 +142,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testAddAgentApplyingRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
@@ -152,9 +153,10 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
         assertTrue(manager.addAcceptationInBunch(verbBunch, acceptation));
 
-        final int agentId = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ando", gerund);
+        final RuleId gerundRule = conceptAsRuleId(gerund);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
-        final int ruledConcept = manager.findRuledConcept(gerund, concept);
+        final int ruledConcept = manager.findRuledConcept(gerundRule, concept);
         final AcceptationId ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, acceptation);
         assertEquals(ruledConcept, manager.conceptFromAcceptation(ruledAcceptation));
 
@@ -165,7 +167,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testAddAgentComposingBunch() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
@@ -182,7 +184,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         assertTrue(manager.addAcceptationInBunch(verbBunch, coughtAcceptation));
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ar", null);
 
         assertContainsOnly(singAcceptation, coughtAcceptation, manager.getAcceptationsInBunch(verbBunch));
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(arVerbBunch, agentId));
@@ -190,7 +192,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testAddAgentCopyingToTwoBunches() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
@@ -209,7 +211,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId actionBunch = conceptAsBunchId(actionConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch, actionBunch), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch, actionBunch), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ar", null);
 
         assertContainsOnly(singAcceptation, coughtAcceptation, manager.getAcceptationsInBunch(verbBunch));
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(arVerbBunch, agentId));
@@ -218,7 +220,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     default void checkAdd2ChainedAgents(boolean reversedAdditionOrder, boolean addExtraMiddleTargetBunch) {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
@@ -247,17 +249,18 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> firstTargetBunches = addExtraMiddleTargetBunch? arVerbBunchSet.add(extraBunch) :
                 arVerbBunchSet;
 
+        final RuleId gerundRule = conceptAsRuleId(gerund);
         final int agent2Id;
         if (reversedAdditionOrder) {
-            agent2Id = manager.addAgent(setOf(), arVerbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerund);
-            manager.addAgent(firstTargetBunches, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
+            agent2Id = manager.addAgent(setOf(), arVerbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerundRule);
+            manager.addAgent(firstTargetBunches, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, null);
         }
         else {
-            manager.addAgent(firstTargetBunches, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, 0);
-            agent2Id = manager.addAgent(setOf(), arVerbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerund);
+            manager.addAgent(firstTargetBunches, verbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, matcher, null);
+            agent2Id = manager.addAgent(setOf(), arVerbBunchSet, diffBunches, nullCorrelation, nullCorrelation, matcher, adder, gerundRule);
         }
 
-        final int ruledConcept = manager.findRuledConcept(gerund, singConcept);
+        final int ruledConcept = manager.findRuledConcept(gerundRule, singConcept);
         final AcceptationId ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2Id, acceptation);
         assertEquals(ruledConcept, manager.conceptFromAcceptation(ruledAcceptation));
 
@@ -295,17 +298,17 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testAddAcceptationInFirstAgentSourceBunchForChainedAgents() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int maleStudentConcept = manager.getMaxConcept() + 1;
         final AcceptationId maleStudentAcc = addSimpleAcceptation(manager, alphabet, maleStudentConcept, "alumno");
 
-        final int femenineRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+        final int femenineConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineConcept, "femenino");
 
-        final int pluralRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, alphabet, femenineRule, "plural");
+        final int pluralConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, pluralConcept, "plural");
 
         final int feminableWordsConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, feminableWordsConcept, "feminizable");
@@ -315,8 +318,10 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId pluralableWordsBunch = conceptAsBunchId(pluralableWordsConcept);
         final BunchId feminableWordsBunch = conceptAsBunchId(feminableWordsConcept);
+        final RuleId femenineRule = conceptAsRuleId(femenineConcept);
         final int agent1 = addSingleAlphabetAgent(manager, setOf(pluralableWordsBunch), setOf(feminableWordsBunch), setOf(), alphabet, null, null, "o", "a", femenineRule);
 
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         final int agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(pluralableWordsBunch), setOf(), alphabet, null, null, null, "s", pluralRule);
 
         manager.addAcceptationInBunch(feminableWordsBunch, maleStudentAcc);
@@ -333,7 +338,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     }
 
     default void checkAdd2ChainedAgentsFirstWithoutSource(boolean reversedAdditionOrder, boolean acceptationBeforeAgents) {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -358,16 +363,18 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> middleBunchSet = setOf(bunchBunch);
         final ImmutableSet<BunchId> noBunchSet = setOf();
 
-        final int pluralConcept;
+        final RuleId pluralRule;
         if (reversedAdditionOrder) {
-            pluralConcept = manager.getMaxConcept() + 1;
-            assertNotNull(manager.addAgent(setOf(), middleBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, adder, pluralConcept));
-            assertNotNull(manager.addAgent(middleBunchSet, noBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, matcher, 0));
+            final int pluralConcept = manager.getMaxConcept() + 1;
+            pluralRule = conceptAsRuleId(pluralConcept);
+            assertNotNull(manager.addAgent(setOf(), middleBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, adder, pluralRule));
+            assertNotNull(manager.addAgent(middleBunchSet, noBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, matcher, null));
         }
         else {
-            assertNotNull(manager.addAgent(middleBunchSet, noBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, matcher, 0));
-            pluralConcept = manager.getMaxConcept() + 1;
-            assertNotNull(manager.addAgent(setOf(), middleBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, adder, pluralConcept));
+            assertNotNull(manager.addAgent(middleBunchSet, noBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, matcher, null));
+            final int pluralConcept = manager.getMaxConcept() + 1;
+            pluralRule = conceptAsRuleId(pluralConcept);
+            assertNotNull(manager.addAgent(setOf(), middleBunchSet, noBunchSet, nullCorrelation, nullCorrelation, matcher, adder, pluralRule));
         }
 
         if (!acceptationBeforeAgents) {
@@ -375,7 +382,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
             acceptation = addSimpleAcceptation(manager, alphabet, songConcept, "canción");
         }
 
-        assertOnlyOneMorphology(manager, acceptation, alphabet, "canciones", pluralConcept);
+        assertOnlyOneMorphology(manager, acceptation, alphabet, "canciones", pluralRule);
     }
 
     @Test
@@ -400,7 +407,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     default void checkAddAgentWithDiffBunch(boolean addAgentBeforeAcceptations) {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
@@ -417,14 +424,14 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final int agentId;
         if (addAgentBeforeAcceptations) {
-            agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
+            agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", null);
             palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, "paladar");
             manager.addAcceptationInBunch(arEndingNounBunch, palateAcceptation);
         }
         else {
             palateAcceptation = addSimpleAcceptation(manager, alphabet, palateConcept, "paladar");
             manager.addAcceptationInBunch(arEndingNounBunch, palateAcceptation);
-            agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", 0);
+            agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), sourceBunches, diffBunches, alphabet, null, null, "ar", "ar", null);
         }
 
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunch(arVerbBunch));
@@ -453,22 +460,22 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         }
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> Add3ChainedAgentsResult add3ChainedAgents(
-            AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager,
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> Add3ChainedAgentsResult add3ChainedAgents(
+            AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager,
             AlphabetId alphabet, ImmutableSet<BunchId> sourceBunchSet, BunchId arVerbBunch, BunchId actionBunch,
-            int nominalizationRule, int pluralRule) {
+            RuleId nominalizationRule, RuleId pluralRule) {
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final int agent3Id = addSingleAlphabetAgent(manager, setOf(), setOf(actionBunch), noBunches, alphabet, null, null, null, "s", pluralRule);
         final int agent2Id = addSingleAlphabetAgent(manager, setOf(actionBunch), setOf(arVerbBunch), noBunches, alphabet, null, null, "ar", "o", nominalizationRule);
-        final int agent1Id = addSingleAlphabetAgent(manager, setOf(arVerbBunch), sourceBunchSet, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agent1Id = addSingleAlphabetAgent(manager, setOf(arVerbBunch), sourceBunchSet, noBunches, alphabet, null, null, "ar", "ar", null);
 
         return new Add3ChainedAgentsResult(agent1Id, agent2Id, agent3Id);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> Add3ChainedAgentsResult add3ChainedAgents(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager,
+    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> Add3ChainedAgentsResult add3ChainedAgents(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager,
             AlphabetId alphabet, BunchId arVerbBunch, BunchId actionBunch,
-            int nominalizationRule, int pluralRule) {
+            RuleId nominalizationRule, RuleId pluralRule) {
 
         final ImmutableSet<BunchId> noBunches = ImmutableHashSet.empty();
         return add3ChainedAgents(manager, alphabet, noBunches, arVerbBunch, actionBunch, nominalizationRule, pluralRule);
@@ -476,18 +483,20 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testAdd3ChainedAgents() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
+        final int nominalizationConcept = actionConcept + 1;
+        final int pluralConcept = nominalizationConcept + 1;
+        final int singConcept = pluralConcept + 1;
 
         final AcceptationId acceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId actionBunch = conceptAsBunchId(actionConcept);
+        final RuleId nominalizationRule = conceptAsRuleId(nominalizationConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(manager, alphabet,
                 arVerbBunch, actionBunch, nominalizationRule, pluralRule);
 
@@ -523,16 +532,17 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveDynamicAcceptationsWhenRemovingAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int studentConcept = manager.getMaxConcept() + 1;
         final AcceptationId studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
 
-        final int femenineRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+        final int femenineConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineConcept, "femenino");
 
+        final RuleId femenineRule = conceptAsRuleId(femenineConcept);
         final int agentId = addSingleAlphabetAgent(manager, setOf(), setOf(), setOf(), alphabet, null, null, "o", "a", femenineRule);
 
         final AcceptationId femaleStudentAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation);
@@ -549,7 +559,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveDynamicAcceptationsWhenAcceptationFromSourceBunch() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -562,9 +572,10 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId sourceBunch = conceptAsBunchId(sourceConcept);
         manager.addAcceptationInBunch(sourceBunch, studentAcceptation);
 
-        final int femenineRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+        final int femenineConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineConcept, "femenino");
 
+        final RuleId femenineRule = conceptAsRuleId(femenineConcept);
         final int agentId = addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch), setOf(), alphabet, null, null, "o", "a", femenineRule);
 
         final AcceptationId femaleStudentAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation);
@@ -587,15 +598,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveUnusedBunchSetsWhenRemovingAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int studentConcept = manager.getMaxConcept() + 1;
         final AcceptationId studentAcceptation = addSimpleAcceptation(manager, alphabet, studentConcept, "alumno");
 
-        final int femenineRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, alphabet, femenineRule, "femenino");
+        final int femenineConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, alphabet, femenineConcept, "femenino");
 
         final int targetConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, alphabet, targetConcept, "destino");
@@ -611,11 +622,12 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId targetBunch = conceptAsBunchId(targetConcept);
         final BunchId diffBunch = conceptAsBunchId(diffConcept);
+        final RuleId femenineRule = conceptAsRuleId(femenineConcept);
         final int agentId = addSingleAlphabetAgent(manager, setOf(targetBunch), setOf(sourceBunch), setOf(diffBunch), alphabet, null, null, "o", "a", femenineRule);
 
         final AcceptationId femaleStudentAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation);
         final ImmutableList<CorrelationId> correlationArray = manager.getAcceptationCorrelationArray(femaleStudentAcceptation);
-        final AgentRegister<CorrelationId> agentRegister = manager.getAgentRegister(agentId);
+        final AgentRegister<CorrelationId, RuleId> agentRegister = manager.getAgentRegister(agentId);
         manager.removeAgent(agentId);
 
         assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, studentAcceptation));
@@ -632,19 +644,21 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveChainedAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
+        final int nominalizationConcept = actionConcept + 1;
+        final int pluralConcept = nominalizationConcept + 1;
+        final int singConcept = pluralConcept + 1;
 
         final AcceptationId acceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId actionBunch = conceptAsBunchId(actionConcept);
+        final RuleId nominalizationRule = conceptAsRuleId(nominalizationConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(manager, alphabet,
                 arVerbBunch, actionBunch, nominalizationRule, pluralRule);
 
@@ -665,18 +679,20 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveAcceptationWithChainedAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int arVerbConcept = manager.getMaxConcept() + 1;
         final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
+        final int nominalizationConcept = actionConcept + 1;
+        final int pluralConcept = nominalizationConcept + 1;
+        final int singConcept = pluralConcept + 1;
 
         final AcceptationId acceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId actionBunch = conceptAsBunchId(actionConcept);
+        final RuleId nominalizationRule = conceptAsRuleId(nominalizationConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(manager, alphabet, arVerbBunch, actionBunch, nominalizationRule, pluralRule);
 
         final AcceptationId nounAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(addAgentsResult.agent2Id, acceptation);
@@ -696,15 +712,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveAcceptationWithBunchChainedAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
         final int arVerbConcept = verbConcept + 1;
         final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
+        final int nominalizationConcept = actionConcept + 1;
+        final int pluralConcept = nominalizationConcept + 1;
+        final int singConcept = pluralConcept + 1;
 
         final AcceptationId acceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
@@ -713,6 +729,8 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> sourceBunches = new ImmutableHashSet.Builder<BunchId>().add(verbBunch).build();
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId actionBunch = conceptAsBunchId(actionConcept);
+        final RuleId nominalizationRule = conceptAsRuleId(nominalizationConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         final Add3ChainedAgentsResult addAgentsResult = add3ChainedAgents(manager, alphabet, sourceBunches, arVerbBunch, actionBunch, nominalizationRule, pluralRule);
 
         final AcceptationId nounAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(addAgentsResult.agent2Id, acceptation);
@@ -733,7 +751,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testReadAllMatchingBunchesForSingleMatching() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
@@ -746,9 +764,10 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> diffBunches = setOf();
         final BunchId verbArBunch = conceptAsBunchId(verbArConcept);
         final BunchId verbErBunch = conceptAsBunchId(verbErConcept);
-        addSingleAlphabetAgent(manager, setOf(), setOf(verbArBunch), diffBunches, alphabet, null, null, "ar", "ando", gerund);
+        final RuleId gerundRule = conceptAsRuleId(gerund);
+        addSingleAlphabetAgent(manager, setOf(), setOf(verbArBunch), diffBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
-        addSingleAlphabetAgent(manager, setOf(), setOf(verbErBunch), diffBunches, alphabet, null, null, "er", "iendo", gerund);
+        addSingleAlphabetAgent(manager, setOf(), setOf(verbErBunch), diffBunches, alphabet, null, null, "er", "iendo", gerundRule);
 
         ImmutableCorrelation<AlphabetId> texts = new ImmutableCorrelation.Builder<AlphabetId>().put(alphabet, "provocar").build();
         assertSinglePair(verbArBunch, "verbo ar", manager.readAllMatchingBunches(texts, alphabet));
@@ -762,7 +781,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testReadAllMatchingBunchesForMultipleMatching() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int gerund = manager.getMaxConcept() + 1;
@@ -777,14 +796,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> diffBunches = setOf();
         final BunchId verbArBunch = conceptAsBunchId(verbArConcept);
-        addSingleAlphabetAgent(manager, setOf(), setOf(verbArBunch), diffBunches, alphabet, null, null, "ar", "ando", gerund);
+        final RuleId gerundRule = conceptAsRuleId(gerund);
+        addSingleAlphabetAgent(manager, setOf(), setOf(verbArBunch), diffBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
         final BunchId verbErBunch = conceptAsBunchId(verbErConcept);
-        addSingleAlphabetAgent(manager, setOf(), setOf(verbErBunch), diffBunches, alphabet, null, null, "er", "iendo", gerund);
+        addSingleAlphabetAgent(manager, setOf(), setOf(verbErBunch), diffBunches, alphabet, null, null, "er", "iendo", gerundRule);
 
         final BunchId nounBunch = conceptAsBunchId(noun);
         final BunchId sustantivableBunch = conceptAsBunchId(sustantivable);
-        addSingleAlphabetAgent(manager, setOf(nounBunch), setOf(sustantivableBunch), diffBunches, alphabet, null, null, "ar", "ación", gerund);
+        addSingleAlphabetAgent(manager, setOf(nounBunch), setOf(sustantivableBunch), diffBunches, alphabet, null, null, "ar", "ación", gerundRule);
 
         ImmutableCorrelation<AlphabetId> texts = new ImmutableCorrelation.Builder<AlphabetId>().put(alphabet, "provocar").build();
         final ImmutableMap<BunchId, String> bunches = manager.readAllMatchingBunches(texts, alphabet);
@@ -801,17 +821,18 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testUpdateCorrelationArrayForAcceptationWithRuleAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
-        final int gerundRule = concept + 1;
-        final int firstConjugationVerbConcept = gerundRule + 1;
+        final int gerund = concept + 1;
+        final int firstConjugationVerbConcept = gerund + 1;
 
         final AcceptationId acceptationId = addSimpleAcceptation(manager, alphabet, concept, "contar");
         final BunchId firstConjugationVerbBunch = conceptAsBunchId(firstConjugationVerbConcept);
         manager.addAcceptationInBunch(firstConjugationVerbBunch, acceptationId);
 
+        final RuleId gerundRule = conceptAsRuleId(gerund);
         addSingleAlphabetAgent(manager, setOf(), setOf(firstConjugationVerbBunch), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         updateAcceptationSimpleCorrelationArray(manager, alphabet, acceptationId, "cantar");
@@ -827,7 +848,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testUnableToRemoveAcceptationsWhenTheyAreUniqueAgentSourceOrTargetBunch() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int verbConcept = manager.getMaxConcept() + 1;
@@ -842,7 +863,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         assertTrue(manager.addAcceptationInBunch(verbBunch, singAcc));
 
         final BunchId firstConjugationVerbBunch = conceptAsBunchId(firstConjugationVerbConcept);
-        assertNotEquals(null, addSingleAlphabetAgent(manager, setOf(firstConjugationVerbBunch), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ar", 0));
+        assertNotEquals(null, addSingleAlphabetAgent(manager, setOf(firstConjugationVerbBunch), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ar", null));
 
         assertFalse(manager.removeAcceptation(verbAcc));
         assertFalse(manager.removeAcceptation(firstConjugationVerbAcc));
@@ -853,7 +874,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testMultipleAgentsTargetingSameBunch() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int verbConcept = manager.getMaxConcept() + 1;
@@ -865,15 +886,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> emptyBunchSet = setOf();
         final BunchId myBunch = conceptAsBunchId(myConcept);
-        final int desAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
-        final int arAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
+        final int desAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, null);
+        final int arAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", null);
 
         assertContainsOnly(desAgent, arAgent, manager.findAllAgentsThatIncludedAcceptationInBunch(myBunch, verbAcc));
     }
 
     @Test
     default void testAcceptationAddedInBunchBeforeAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int bedConcept = manager.getMaxConcept() + 1;
@@ -894,8 +915,8 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc2));
 
         final ImmutableSet<BunchId> emptyBunchSet = setOf();
-        final int desAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
-        final int arAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
+        final int desAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, null);
+        final int arAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", null);
 
         assertContainsOnly(0, manager.findAllAgentsThatIncludedAcceptationInBunch(myBunch, bedAcc));
         assertContainsOnly(0, arAgent, manager.findAllAgentsThatIncludedAcceptationInBunch(myBunch, verbAcc1));
@@ -904,7 +925,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testAcceptationAddedInBunchAfterAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int bedConcept = manager.getMaxConcept() + 1;
@@ -921,8 +942,8 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> emptyBunchSet = setOf();
         final BunchId myBunch = conceptAsBunchId(myConcept);
-        final int desAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, 0);
-        final int arAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", 0);
+        final int desAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, "des", "des", null, null, null);
+        final int arAgent = addSingleAlphabetAgent(manager, setOf(myBunch), emptyBunchSet, emptyBunchSet, alphabet, null, null, "ar", "ar", null);
 
         assertTrue(manager.addAcceptationInBunch(myBunch, bedAcc));
         assertTrue(manager.addAcceptationInBunch(myBunch, verbAcc1));
@@ -935,7 +956,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testUpdateAgentTargetForNoChainedAgentWithoutRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -949,16 +970,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId erVerbBunch = conceptAsBunchId(erVerbConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(arVerbBunch, manager.findBunchesWhereAcceptationIsIncluded(singAcceptation));
     }
 
     @Test
     default void testIncludeExtraTargetForNoChainedAgentWithoutRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -972,16 +993,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId erVerbBunch = conceptAsBunchId(erVerbConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch, erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch, erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(arVerbBunch, erVerbBunch, manager.findBunchesWhereAcceptationIsIncluded(singAcceptation));
     }
 
     @Test
     default void testRemoveExtraTargetForNoChainedAgentWithoutRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -996,19 +1017,19 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId erVerbBunch = conceptAsBunchId(erVerbConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch, erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch, erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(arVerbBunch, manager.findBunchesWhereAcceptationIsIncluded(singAcceptation));
     }
 
     @Test
     default void testIncludeExtraTargetForNoChainedAgentWithRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int gerundRule = manager.getMaxConcept() + 1;
-        final int singConcept = gerundRule + 1;
+        final int gerund = manager.getMaxConcept() + 1;
+        final int singConcept = gerund + 1;
         final AcceptationId singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
@@ -1019,6 +1040,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId erVerbBunch = conceptAsBunchId(erVerbConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerund);
         final int agentId = addSingleAlphabetAgent(manager, setOf(erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
@@ -1033,11 +1055,11 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveExtraTargetForNoChainedAgentWithRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int gerundRule = manager.getMaxConcept() + 1;
-        final int singConcept = gerundRule + 1;
+        final int gerund = manager.getMaxConcept() + 1;
+        final int singConcept = gerund + 1;
         final AcceptationId singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
 
         final int arVerbConcept = manager.getMaxConcept() + 1;
@@ -1049,6 +1071,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId erVerbBunch = conceptAsBunchId(erVerbConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerund);
         final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch, erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
         assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
@@ -1062,7 +1085,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testUpdateAgentTargetForChainedAgentWithoutRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1079,11 +1102,12 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId erVerbBunch = conceptAsBunchId(erVerbConcept);
-        final int agent1Id = addSingleAlphabetAgent(manager, setOf(erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agent1Id = addSingleAlphabetAgent(manager, setOf(erVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        final int agent2Id = addSingleAlphabetAgent(manager, setOf(), setOf(arVerbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
-        assertTrue(updateSingleAlphabetAgent(manager, agent1Id, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agent2Id = addSingleAlphabetAgent(manager, setOf(), setOf(arVerbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundRule);
+        assertTrue(updateSingleAlphabetAgent(manager, agent1Id, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
 
         final AcceptationId dynamicAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2Id, singAcceptation);
         assertSinglePair(alphabet, "cantando", manager.getAcceptationTexts(dynamicAcceptation));
@@ -1091,7 +1115,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveAgentTargetFromSecondChainedAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1108,11 +1132,12 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        addSingleAlphabetAgent(manager, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        addSingleAlphabetAgent(manager, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
         final BunchId recentWordsBunch = conceptAsBunchId(recentWordsConcept);
-        final int agent2Id = addSingleAlphabetAgent(manager, setOf(recentWordsBunch), setOf(arVerbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
-        assertTrue(updateSingleAlphabetAgent(manager, agent2Id, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agent2Id = addSingleAlphabetAgent(manager, setOf(recentWordsBunch), setOf(arVerbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundRule);
+        assertTrue(updateSingleAlphabetAgent(manager, agent2Id, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
         final AcceptationId dynamicAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2Id, singAcceptation);
         assertSinglePair(alphabet, "cantando", manager.getAcceptationTexts(dynamicAcceptation));
@@ -1121,7 +1146,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testIncludeAgentTargetToSecondChainedAgent() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1138,11 +1163,12 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        addSingleAlphabetAgent(manager, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        addSingleAlphabetAgent(manager, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
-        final int agent2Id = addSingleAlphabetAgent(manager, setOf(), setOf(arVerbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agent2Id = addSingleAlphabetAgent(manager, setOf(), setOf(arVerbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundRule);
         final BunchId recentWordsBunch = conceptAsBunchId(recentWordsConcept);
-        assertTrue(updateSingleAlphabetAgent(manager, agent2Id, setOf(recentWordsBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        assertTrue(updateSingleAlphabetAgent(manager, agent2Id, setOf(recentWordsBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
         final AcceptationId dynamicAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2Id, singAcceptation);
         assertSinglePair(alphabet, "cantando", manager.getAcceptationTexts(dynamicAcceptation));
@@ -1151,7 +1177,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testIncludeAgentSourceBunches() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1171,15 +1197,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
     }
 
     @Test
     default void testRemoveAgentSourceBunches() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1199,16 +1225,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
         final ImmutableSet<BunchId> noBunches = setOf();
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
 
         assertContainsOnly(singAcceptation, touchAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
     }
 
     @Test
     default void testChangeAgentSourceBunches() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1232,15 +1258,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), setOf(chapter2Bunch), noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), setOf(chapter2Bunch), noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(touchAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
     }
 
     @Test
     default void testIncludeExtraSourceBunch() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1269,9 +1295,9 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch), noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), setOf(chapter1Bunch, chapter2Bunch), noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), setOf(chapter1Bunch, chapter2Bunch), noBunches, alphabet, null, null, "ar", "ar", null));
 
         final ImmutableSet<AcceptationId> expectedAcceptations = setOf(singAcceptation, touchAcceptation);
         assertEqualSet(expectedAcceptations, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
@@ -1279,7 +1305,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveOneSourceBunch() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1308,16 +1334,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch, chapter2Bunch), noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), setOf(chapter1Bunch, chapter2Bunch), noBunches, alphabet, null, null, "ar", "ar", null);
 
         final ImmutableSet<BunchId> chapter1Only = new ImmutableHashSet.Builder<BunchId>().add(chapter1Bunch).build();
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter1Only, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter1Only, noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
     }
 
     @Test
     default void testIncludeAgentDiffBunchMatchingSource() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1346,15 +1372,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> chapter2Only = setOf(chapter2Bunch);
 
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, setOf(chapter1Bunch), alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, setOf(chapter1Bunch), alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(touchAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
     }
 
     @Test
     default void testRemoveAgentDiffBunchMatchingSource() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1381,9 +1407,9 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> noBunches = setOf();
         final ImmutableSet<BunchId> chapter2Only = setOf(chapter2Bunch);
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, setOf(chapter1Bunch), alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, setOf(chapter1Bunch), alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", null));
 
         final ImmutableSet<AcceptationId> expectedAcceptations = setOf(singAcceptation, touchAcceptation);
         assertEqualSet(expectedAcceptations, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
@@ -1391,7 +1417,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testIncludeAgentDiffBunchNoMatchingSource() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1419,15 +1445,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> chapter2Only = setOf(chapter2Bunch);
 
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, setOf(chapter1Bunch), alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, setOf(chapter1Bunch), alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(touchAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
     }
 
     @Test
     default void testRemoveAgentDiffBunchNoMatchingSource() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1456,15 +1482,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> chapter2Only = setOf(chapter2Bunch);
 
         final BunchId allVocabularyBunch = conceptAsBunchId(allVocabularyConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(allVocabularyBunch), chapter2Only, chapter1Only, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(allVocabularyBunch), chapter2Only, noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(touchAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(allVocabularyBunch, agentId));
     }
 
     @Test
     default void testChangeAgentEndMatcherAndAdder() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1478,15 +1504,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "er", "er", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "er", "er", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(arVerbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(arVerbBunch, agentId));
     }
 
     @Test
     default void testChangeAgentStartMatcherAndAdder() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int trustConcept = manager.getMaxConcept() + 1;
@@ -1500,15 +1526,15 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId unVerbBunch = conceptAsBunchId(unVerbConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(unVerbBunch), noBunches, noBunches, alphabet, "con", "con", null, null, 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(unVerbBunch), noBunches, noBunches, alphabet, "con", "con", null, null, null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(unVerbBunch), noBunches, noBunches, alphabet, "des", "des", null, null, 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(unVerbBunch), noBunches, noBunches, alphabet, "des", "des", null, null, null));
         assertContainsOnly(untrustAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(unVerbBunch, agentId));
     }
 
     @Test
     default void testChangeRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1521,15 +1547,17 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
         final ImmutableSet<BunchId> noBunches = setOf();
-        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", pastConcept);
+        final RuleId pastRule = conceptAsRuleId(pastConcept);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", pastRule);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
-        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
+        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundRule);
     }
 
     @Test
     default void testChangeAdder() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1539,15 +1567,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
         final ImmutableSet<BunchId> noBunches = setOf();
-        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "aba", gerundConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "aba", gerundRule);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
-        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
+        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundRule);
     }
 
     @Test
     default void testChangeAdderForMultipleAcceptations() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1560,17 +1589,18 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
         final ImmutableSet<BunchId> noBunches = setOf();
-        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "aba", gerundConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "aba", gerundRule);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
-        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundConcept);
-        assertOnlyOneMorphology(manager, cryAcceptation, alphabet, "llorando", gerundConcept);
+        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundRule);
+        assertOnlyOneMorphology(manager, cryAcceptation, alphabet, "llorando", gerundRule);
     }
 
     @Test
     default void testChangeAdderAndRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1583,16 +1613,18 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
         final ImmutableSet<BunchId> noBunches = setOf();
-        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "aba", pastConcept);
+        final RuleId pastRule = conceptAsRuleId(pastConcept);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "aba", pastRule);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
-        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundConcept);
+        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundRule);
     }
 
     @Test
     default void testAddAdderAndRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1606,19 +1638,20 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId myTargetBunch = conceptAsBunchId(myTargetConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
-        final MorphologyResult<AcceptationId> morphology = getSingleValue(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
+        final MorphologyResult<AcceptationId, RuleId> morphology = getSingleValue(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
         assertEquals("cantando", morphology.text);
-        assertContainsOnly(gerundConcept, morphology.rules);
+        assertContainsOnly(gerundRule, morphology.rules);
         assertContainsOnly(morphology.dynamicAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch, agentId));
     }
 
     @Test
     default void testAddAdderAndRuleForMultipleTargetBunches() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1636,20 +1669,21 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId myTargetBunch = conceptAsBunchId(myTargetConcept);
         final BunchId myTargetBunch2 = conceptAsBunchId(myTargetConcept2);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ar", null);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
-        final MorphologyResult<AcceptationId> morphology = getSingleValue(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
+        final MorphologyResult<AcceptationId, RuleId> morphology = getSingleValue(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
         assertEquals("cantando", morphology.text);
-        assertContainsOnly(gerundConcept, morphology.rules);
+        assertContainsOnly(gerundRule, morphology.rules);
         assertContainsOnly(morphology.dynamicAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch, agentId));
         assertContainsOnly(morphology.dynamicAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch2, agentId));
     }
 
     @Test
     default void testRemoveAdderAndRule() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1667,9 +1701,10 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId myTargetBunch = conceptAsBunchId(myTargetConcept);
         final BunchId myTargetBunch2 = conceptAsBunchId(myTargetConcept2);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch, myTargetBunch2), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
 
         assertEmpty(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch, agentId));
@@ -1678,7 +1713,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testRemoveAdderAndRuleForMultipleTargetBunches() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1692,9 +1727,10 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final BunchId myTargetBunch = conceptAsBunchId(myTargetConcept);
-        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule);
 
-        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertTrue(updateSingleAlphabetAgent(manager, agentId, setOf(myTargetBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
 
         assertEmpty(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
         assertContainsOnly(singAcceptation, manager.getAcceptationsInBunchByBunchAndAgent(myTargetBunch, agentId));
@@ -1702,7 +1738,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testUpdateCorrelationArrayMatchingAgentBefore() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1712,7 +1748,8 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
         final ImmutableSet<BunchId> noBunches = setOf();
-        assertNotNull(addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertNotNull(addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
         assertEmpty(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
@@ -1720,7 +1757,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testUpdateCorrelationArrayMatchingAgentAfter() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1730,15 +1767,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         addSimpleAcceptation(manager, alphabet, gerundConcept, "gerund");
 
         final ImmutableSet<BunchId> noBunches = setOf();
-        assertNotNull(addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertNotNull(addSingleAlphabetAgent(manager, setOf(), noBunches, noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar"));
-        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundConcept);
+        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundRule);
     }
 
     @Test
     default void testUpdateCorrelationArrayMatchingChainedAgentBefore() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1752,9 +1790,10 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
         final ImmutableSet<BunchId> noBunches = ImmutableHashSet.empty();
-        assertNotNull(addSingleAlphabetAgent(manager, setOf(verbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertNotNull(addSingleAlphabetAgent(manager, setOf(verbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
 
-        assertNotNull(addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertNotNull(addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar (sin instrumentos)"));
         assertEmpty(manager.readMorphologiesFromAcceptation(singAcceptation, alphabet).morphologies);
@@ -1762,7 +1801,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
     @Test
     default void testUpdateCorrelationArrayMatchingChainedAgentAfter() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final int singConcept = manager.getMaxConcept() + 1;
@@ -1776,17 +1815,18 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
         final ImmutableSet<BunchId> noBunches = setOf();
-        assertNotNull(addSingleAlphabetAgent(manager, setOf(verbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", 0));
+        assertNotNull(addSingleAlphabetAgent(manager, setOf(verbBunch), noBunches, noBunches, alphabet, null, null, "ar", "ar", null));
 
-        assertNotNull(addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundConcept));
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        assertNotNull(addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), noBunches, alphabet, null, null, "ar", "ando", gerundRule));
 
         assertTrue(updateAcceptationSimpleCorrelationArray(manager, alphabet, singAcceptation, "cantar"));
-        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundConcept);
+        assertOnlyOneMorphology(manager, singAcceptation, alphabet, "cantando", gerundRule);
     }
 
     @Test
     default void testAgentWithJustEndAdderForAcceptationFromOtherLanguage() {
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(new MemoryDatabase());
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
@@ -1802,7 +1842,8 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final int verbalitationConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, verbalitationConcept, "verbalización");
 
-        final int agentId = addSingleAlphabetAgent(manager, setOf(), setOf(myBunch), setOf(), jaAlphabet, null, null, null, "する", verbalitationConcept);
+        final RuleId verbalitationRule = conceptAsRuleId(verbalitationConcept);
+        final int agentId = addSingleAlphabetAgent(manager, setOf(), setOf(myBunch), setOf(), jaAlphabet, null, null, null, "する", verbalitationRule);
         assertEmpty(manager.getAgentProcessedMap(agentId));
 
         final int studyConcept = manager.getMaxConcept() + 1;
@@ -1814,7 +1855,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testAvoidDuplicatedBunchSetsWhenSharingConcept() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
@@ -1831,11 +1872,11 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId targetBunch1 = conceptAsBunchId(targetConcept1);
         final BunchId guyBunch = conceptAsBunchId(guyConcept);
-        final int agent1 = addSingleAlphabetAgent(manager, setOf(targetBunch1), setOf(guyBunch), setOf(), alphabet, null, null, null, null, 0);
+        final int agent1 = addSingleAlphabetAgent(manager, setOf(targetBunch1), setOf(guyBunch), setOf(), alphabet, null, null, null, null, null);
 
         final BunchId targetBunch2 = conceptAsBunchId(targetConcept2);
         final BunchId personBunch = conceptAsBunchId(personConcept);
-        final int agent2 = addSingleAlphabetAgent(manager, setOf(targetBunch2), setOf(personBunch), setOf(), alphabet, null, null, null, null, 0);
+        final int agent2 = addSingleAlphabetAgent(manager, setOf(targetBunch2), setOf(personBunch), setOf(), alphabet, null, null, null, null, null);
 
         final int oldSetId = manager.getAgentRegister(agent2).sourceBunchSetId;
         assertTrue(manager.shareConcept(guyAcc, personConcept));
@@ -1850,7 +1891,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testReuseBunchSetWhenSharingConcept() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
@@ -1867,11 +1908,11 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
 
         final BunchId targetBunch1 = conceptAsBunchId(targetConcept1);
         final BunchId guyBunch = conceptAsBunchId(guyConcept);
-        final int agent1 = addSingleAlphabetAgent(manager, setOf(targetBunch1), setOf(guyBunch), setOf(), alphabet, null, null, null, null, 0);
+        final int agent1 = addSingleAlphabetAgent(manager, setOf(targetBunch1), setOf(guyBunch), setOf(), alphabet, null, null, null, null, null);
 
         final BunchId targetBunch2 = conceptAsBunchId(targetConcept2);
         final BunchId personBunch = conceptAsBunchId(personConcept);
-        final int agent2 = addSingleAlphabetAgent(manager, setOf(targetBunch2), setOf(guyBunch, personBunch), setOf(), alphabet, null, null, null, null, 0);
+        final int agent2 = addSingleAlphabetAgent(manager, setOf(targetBunch2), setOf(guyBunch, personBunch), setOf(), alphabet, null, null, null, null, null);
 
         final int setId = manager.getAgentRegister(agent1).sourceBunchSetId;
         final int oldAgent2SetId = manager.getAgentRegister(agent2).sourceBunchSetId;
@@ -1886,7 +1927,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testAvoidDuplicatedBunchInBunchSetWhenSharingConcept() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int guyConcept = manager.getMaxConcept() + 1;
@@ -1904,7 +1945,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId targetBunch2 = conceptAsBunchId(targetConcept2);
         final BunchId guyBunch = conceptAsBunchId(guyConcept);
         final BunchId personBunch = conceptAsBunchId(personConcept);
-        final int agent = addSingleAlphabetAgent(manager, setOf(targetBunch2), setOf(guyBunch, personBunch), setOf(), alphabet, null, null, null, null, 0);
+        final int agent = addSingleAlphabetAgent(manager, setOf(targetBunch2), setOf(guyBunch, personBunch), setOf(), alphabet, null, null, null, null, null);
 
         final int setId = manager.getAgentRegister(agent).sourceBunchSetId;
         assertTrue(manager.shareConcept(guyAcc, personConcept));
@@ -1921,7 +1962,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testAvoidDuplicatedRuledConceptsAndAcceptationsWhenSharingConcept() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final int jumpConcept = manager.getMaxConcept() + 1;
@@ -1940,9 +1981,11 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         addSimpleAcceptation(manager, alphabet, continuousConcept, "continuo");
 
         final BunchId bunchBunch = conceptAsBunchId(bunchConcept);
-        final int agent1 = addSingleAlphabetAgent(manager, setOf(bunchBunch), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundConcept);
+        final RuleId gerundRule = conceptAsRuleId(gerundConcept);
+        final int agent1 = addSingleAlphabetAgent(manager, setOf(bunchBunch), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
-        final int agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(bunchBunch), setOf(), alphabet, null, "estoy ", null, null, continuousConcept);
+        final RuleId continuousRule = conceptAsRuleId(continuousConcept);
+        final int agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(bunchBunch), setOf(), alphabet, null, "estoy ", null, null, continuousRule);
 
         final AcceptationId ruledJumpAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, jumpAcc);
         final AcceptationId ruledJumpAcc2 = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, jumpAcc2);
@@ -1961,7 +2004,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         assertNotEquals(ruled2JumpConcept, ruled2JumpConcept2);
 
         assertTrue(manager.shareConcept(jumpAcc, jumpConcept2));
-        assertSinglePair(ruledJumpConcept, jumpConcept, manager.findRuledConceptsByRule(gerundConcept));
+        assertSinglePair(ruledJumpConcept, jumpConcept, manager.findRuledConceptsByRule(gerundRule));
         final ImmutableMap<AcceptationId, AcceptationId> ruledAcceptations = findRuledAcceptationsByAgent(db, getAcceptationIdManager(), agent1);
         assertSize(2, ruledAcceptations);
         assertEquals(jumpAcc, ruledAcceptations.get(ruledJumpAcc));
@@ -1972,7 +2015,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         assertSinglePair(alphabet, "saltando", manager.getAcceptationTexts(ruledJumpAcc));
         assertSinglePair(alphabet, "brincando", manager.getAcceptationTexts(ruledJumpAcc2));
 
-        assertSinglePair(ruled2JumpConcept, ruledJumpConcept, manager.findRuledConceptsByRule(continuousConcept));
+        assertSinglePair(ruled2JumpConcept, ruledJumpConcept, manager.findRuledConceptsByRule(continuousRule));
         final ImmutableMap<AcceptationId, AcceptationId> ruled2Acceptations = findRuledAcceptationsByAgent(db, getAcceptationIdManager(), agent2);
         assertSize(2, ruled2Acceptations);
         assertEquals(ruledJumpAcc, ruled2Acceptations.get(ruled2JumpAcc));
@@ -1987,7 +2030,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testUpdateAgentRuleFromAlreadyUsedRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2008,16 +2051,18 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId jaVerbBunch = conceptAsBunchId(jaVerbConcept);
         manager.addAcceptationInBunch(jaVerbBunch, getWetJaAcc);
 
-        final int badCausalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, badCausalRule, "causalización");
+        final int badCausalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, badCausalConcept, "causalización");
 
-        final int causalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, causalRule, "causal");
+        final int causalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, causalConcept, "causal");
 
+        final RuleId causalRule = conceptAsRuleId(causalConcept);
         final int esAgent = addSingleAlphabetAgent(manager, setOf(), setOf(esVerbBunch), setOf(), esAlphabet, null, "hacer que se ", "arse", "e", causalRule);
 
         final int jaAgent = addSingleAlphabetAgent(manager, setOf(), setOf(jaVerbBunch), setOf(), jaAlphabet, null, null, "る", "させる", causalRule);
 
+        final RuleId badCausalRule = conceptAsRuleId(badCausalConcept);
         updateSingleAlphabetAgent(manager, esAgent, setOf(), setOf(esVerbBunch), setOf(), esAlphabet, null, "hacer que se ", "arse", "e", badCausalRule);
 
         final AcceptationId makeWetEsAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(esAgent, getWetEsAcc);
@@ -2033,7 +2078,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testUpdateAgentRuleToAlreadyUsedRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2054,14 +2099,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId jaVerbBunch = conceptAsBunchId(jaVerbConcept);
         manager.addAcceptationInBunch(jaVerbBunch, getWetJaAcc);
 
-        final int badCausalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, badCausalRule, "causalización");
+        final int badCausalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, badCausalConcept, "causalización");
 
+        final RuleId badCausalRule = conceptAsRuleId(badCausalConcept);
         final int esAgent = addSingleAlphabetAgent(manager, setOf(), setOf(esVerbBunch), setOf(), esAlphabet, null, "hacer que se ", "arse", "e", badCausalRule);
 
-        final int causalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, causalRule, "causal");
+        final int causalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, causalConcept, "causal");
 
+        final RuleId causalRule = conceptAsRuleId(causalConcept);
         final int jaAgent = addSingleAlphabetAgent(manager, setOf(), setOf(jaVerbBunch), setOf(), jaAlphabet, null, null, "る", "させる", causalRule);
 
         assertContainsOnly(getWetConcept, manager.findRuledConceptsByRule(badCausalRule));
@@ -2083,7 +2130,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testUpdateAgentRuleBetweenUsedRules() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2111,14 +2158,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId naruVerbBunch = conceptAsBunchId(naruVerbConcept);
         manager.addAcceptationInBunch(naruVerbBunch, getWetNaruAcc);
 
-        final int badCausalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, badCausalRule, "causalización");
+        final int badCausalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, badCausalConcept, "causalización");
 
+        final RuleId badCausalRule = conceptAsRuleId(badCausalConcept);
         final int esAgent = addSingleAlphabetAgent(manager, setOf(), setOf(esVerbBunch), setOf(), esAlphabet, null, "hacer que se ", "arse", "e", badCausalRule);
 
-        final int causalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, causalRule, "causal");
+        final int causalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, causalConcept, "causal");
 
+        final RuleId causalRule = conceptAsRuleId(causalConcept);
         final int jaAgent = addSingleAlphabetAgent(manager, setOf(), setOf(jaVerbBunch), setOf(), jaAlphabet, null, null, "る", "させる", causalRule);
 
         final int naruAgent = addSingleAlphabetAgent(manager, setOf(), setOf(naruVerbBunch), setOf(), jaAlphabet, null, null, "になる", "にする", badCausalRule);
@@ -2146,7 +2195,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testLinkRuleConcepts() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2160,17 +2209,19 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
         manager.addAcceptationInBunch(verbBunch, dieJaAcc);
 
-        final int accidentalRule = manager.getMaxConcept() + 1;
-        final AcceptationId accidentalAcc = addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+        final int accidentalConcept = manager.getMaxConcept() + 1;
+        final AcceptationId accidentalAcc = addSimpleAcceptation(manager, esAlphabet, accidentalConcept, "accidental");
 
+        final RuleId accidentalRule = conceptAsRuleId(accidentalConcept);
         final int agent1 = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), jaAlphabet, null, null, "ぬ", "んでしまう", accidentalRule);
 
-        final int accidentalRule2 = manager.getMaxConcept() + 1;
-        final AcceptationId accidentalAcc2 = addSimpleAcceptation(manager, esAlphabet, accidentalRule2, "accidental informal");
+        final int accidentalConcept2 = manager.getMaxConcept() + 1;
+        final AcceptationId accidentalAcc2 = addSimpleAcceptation(manager, esAlphabet, accidentalConcept2, "accidental informal");
 
+        final RuleId accidentalRule2 = conceptAsRuleId(accidentalConcept2);
         final int agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), jaAlphabet, null, null, "ぬ", "んじゃう", accidentalRule2);
 
-        assertTrue(manager.shareConcept(accidentalAcc, accidentalRule2));
+        assertTrue(manager.shareConcept(accidentalAcc, accidentalConcept2));
 
         final AcceptationId accidentalDieAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, dieJaAcc);
         assertNotEquals(dieJaAcc, accidentalDieAcc);
@@ -2192,7 +2243,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testLinkRuleToNonRuleConcept() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2206,15 +2257,16 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
         manager.addAcceptationInBunch(verbBunch, dieJaAcc);
 
-        final int accidentalRule = manager.getMaxConcept() + 1;
-        final AcceptationId accidentalAcc = addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+        final int accidentalConcept = manager.getMaxConcept() + 1;
+        final AcceptationId accidentalAcc = addSimpleAcceptation(manager, esAlphabet, accidentalConcept, "accidental");
 
+        final RuleId accidentalRule = conceptAsRuleId(accidentalConcept);
         final int agent1 = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), jaAlphabet, null, null, "ぬ", "んでしまう", accidentalRule);
 
-        final int accidentalRule2 = manager.getMaxConcept() + 1;
-        final AcceptationId accidentalAcc2 = addSimpleAcceptation(manager, esAlphabet, accidentalRule2, "accidental informal");
+        final int accidentalConcept2 = manager.getMaxConcept() + 1;
+        final AcceptationId accidentalAcc2 = addSimpleAcceptation(manager, esAlphabet, accidentalConcept2, "accidental informal");
 
-        assertTrue(manager.shareConcept(accidentalAcc2, accidentalRule));
+        assertTrue(manager.shareConcept(accidentalAcc2, accidentalConcept));
 
         final AcceptationId accidentalDieAcc = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, dieJaAcc);
         assertNotEquals(dieJaAcc, accidentalDieAcc);
@@ -2223,6 +2275,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         assertNotEquals(accidentalAcc2, accidentalDieAcc);
 
         assertEmpty(manager.findRuledConceptsByRule(accidentalRule));
+        final RuleId accidentalRule2 = conceptAsRuleId(accidentalConcept2);
         final ImmutableIntPairMap ruledConcepts = manager.findRuledConceptsByRule(accidentalRule2);
         assertContainsOnly(dieConcept, ruledConcepts);
 
@@ -2233,7 +2286,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testChangeAdderInFirstChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2247,18 +2300,20 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
         manager.addAcceptationInBunch(verbBunch, callJaAcc);
 
-        final int accidentalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+        final int accidentalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, accidentalConcept, "accidental");
 
         final int canBePastConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, canBePastConcept, "puede ser pasado");
 
         final BunchId canBePastBunch = conceptAsBunchId(canBePastConcept);
+        final RuleId accidentalRule = conceptAsRuleId(accidentalConcept);
         final int agent1 = addSingleAlphabetAgent(manager, setOf(canBePastBunch), setOf(verbBunch), setOf(), jaAlphabet, null, null, "ぶ", "じまう", accidentalRule);
 
-        final int pastRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, pastRule, "pasado");
+        final int pastConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, pastConcept, "pasado");
 
+        final RuleId pastRule = conceptAsRuleId(pastConcept);
         final int agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(canBePastBunch), setOf(), jaAlphabet, null, null, "う", "った", pastRule);
 
         assertTrue(updateSingleAlphabetAgent(manager, agent1, setOf(canBePastBunch), setOf(verbBunch), setOf(), jaAlphabet, null, null, "ぶ", "んじまう", accidentalRule));
@@ -2276,7 +2331,7 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
     @Test
     default void testChangeAdderInFirstChainedAgentWhenPickedSampleAcceptationForSecondIsOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2293,8 +2348,8 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId buVerbBunch = conceptAsBunchId(buVerbConcept);
         manager.addAcceptationInBunch(buVerbBunch, callJaAcc);
 
-        final int accidentalRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, accidentalRule, "accidental");
+        final int accidentalConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, accidentalConcept, "accidental");
 
         final int uVerbConcept = manager.getMaxConcept() + 1;
         addSimpleAcceptation(manager, esAlphabet, uVerbConcept, "verbo acabado en う");
@@ -2302,11 +2357,13 @@ interface AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId
         final BunchId uVerbBunch = conceptAsBunchId(uVerbConcept);
         manager.addAcceptationInBunch(uVerbBunch, singJaAcc);
 
+        final RuleId accidentalRule = conceptAsRuleId(accidentalConcept);
         final int agent1 = addSingleAlphabetAgent(manager, setOf(uVerbBunch), setOf(buVerbBunch), setOf(), jaAlphabet, null, null, "ぶ", "じまう", accidentalRule);
 
-        final int pastRule = manager.getMaxConcept() + 1;
-        addSimpleAcceptation(manager, esAlphabet, pastRule, "pasado");
+        final int pastConcept = manager.getMaxConcept() + 1;
+        addSimpleAcceptation(manager, esAlphabet, pastConcept, "pasado");
 
+        final RuleId pastRule = conceptAsRuleId(pastConcept);
         final int agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(uVerbBunch), setOf(), jaAlphabet, null, null, "う", "った", pastRule);
 
         assertTrue(updateSingleAlphabetAgent(manager, agent1, setOf(uVerbBunch), setOf(buVerbBunch), setOf(), jaAlphabet, null, null, "ぶ", "んじまう", accidentalRule));

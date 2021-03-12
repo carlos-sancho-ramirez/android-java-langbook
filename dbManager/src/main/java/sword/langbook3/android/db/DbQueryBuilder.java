@@ -6,9 +6,11 @@ import sword.database.DbView;
 
 final class DbQueryBuilder {
 
+    private final DbView _table;
     private final DbQuery.Builder _builder;
 
     DbQueryBuilder(DbView table) {
+        _table = table;
         _builder = new DbQuery.Builder(table);
     }
 
@@ -33,7 +35,16 @@ final class DbQueryBuilder {
     }
 
     public DbQueryBuilder where(int columnIndex, IdWhereInterface id) {
-        id.where(columnIndex, _builder);
+        if (id != null) {
+            id.where(columnIndex, _builder);
+        }
+        else if (_table.columns().get(columnIndex).isText()) {
+            _builder.where(columnIndex, (String) null);
+        }
+        else {
+            _builder.where(columnIndex, 0);
+        }
+
         return this;
     }
 

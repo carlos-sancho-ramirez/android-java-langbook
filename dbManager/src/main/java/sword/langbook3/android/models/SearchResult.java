@@ -1,20 +1,20 @@
 package sword.langbook3.android.models;
 
-import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AcceptationIdInterface;
 
 import static sword.langbook3.android.collections.EqualUtils.equal;
 
-public final class SearchResult<ID> {
+public final class SearchResult<ID, RuleId> {
 
     private final String _str;
     private final String _mainStr;
     private final ID _id;
     private final boolean _isDynamic;
     private final String _mainAccMainStr;
-    private final ImmutableIntList _appliedRules;
+    private final ImmutableList<RuleId> _appliedRules;
 
-    public SearchResult(String str, String mainStr, ID id, boolean isDynamic, String mainAccMainStr, ImmutableIntList appliedRules) {
+    public SearchResult(String str, String mainStr, ID id, boolean isDynamic, String mainAccMainStr, ImmutableList<RuleId> appliedRules) {
         if (!(id instanceof AcceptationIdInterface) && !(id instanceof Integer) || str == null || mainStr == null) {
             throw new IllegalArgumentException();
         }
@@ -32,7 +32,7 @@ public final class SearchResult<ID> {
     }
 
     public SearchResult(String str, String mainStr, ID id, boolean isDynamic) {
-        this(str, mainStr, id, isDynamic, null, ImmutableIntList.empty());
+        this(str, mainStr, id, isDynamic, null, ImmutableList.empty());
     }
 
     public String getStr() {
@@ -55,7 +55,7 @@ public final class SearchResult<ID> {
         return _mainAccMainStr;
     }
 
-    public ImmutableIntList getAppliedRules() {
+    public ImmutableList<RuleId> getAppliedRules() {
         return _appliedRules;
     }
 

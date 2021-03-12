@@ -89,15 +89,15 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
 
-public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface> extends LangbookDatabaseChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> implements LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> {
+public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface, RuleId extends RuleIdInterface> extends LangbookDatabaseChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, RuleId> implements LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> {
 
-    public LangbookDatabaseManager(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, IntSetter<BunchId> bunchIdSetter) {
-        super(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter);
+    public LangbookDatabaseManager(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, IntSetter<BunchId> bunchIdSetter, IntSetter<RuleId> ruleIdSetter) {
+        super(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, ruleIdSetter);
     }
 
     private boolean applyMatchersAddersAndConversions(
             MutableCorrelation<AlphabetId> correlation,
-            AgentDetails<AlphabetId, BunchId> details, ImmutableMap<AlphabetId, AlphabetId> conversionMap,
+            AgentDetails<AlphabetId, BunchId, RuleId> details, ImmutableMap<AlphabetId, AlphabetId> conversionMap,
             SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions) {
         final ImmutableSet<AlphabetId> correlationAlphabets = correlation.keySet().toImmutable();
         for (Map.Entry<AlphabetId, String> entry : details.startMatcher.entries()) {
@@ -173,13 +173,13 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return id;
     }
 
-    private int insertRuledConcept(int rule, int concept) {
+    private int insertRuledConcept(RuleId rule, int concept) {
         final int ruledConcept = getMaxConcept() + 1;
-        LangbookDbInserter.insertRuledConcept(_db, ruledConcept, rule, concept);
+        LangbookDbInserter.insertRuledConcept(_db, ruledConcept, rule.getConceptId(), concept);
         return ruledConcept;
     }
 
-    private int obtainRuledConcept(int rule, int concept) {
+    private int obtainRuledConcept(RuleId rule, int concept) {
         final Integer id = findRuledConcept(rule, concept);
         return (id != null)? id : insertRuledConcept(rule, concept);
     }
@@ -353,7 +353,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return obtainCorrelationArray(new ImmutableList.Builder<CorrelationId>().append(correlationId).build());
     }
 
-    private void runAgent(int agentId, AgentDetails<AlphabetId, BunchId> details) {
+    private void runAgent(int agentId, AgentDetails<AlphabetId, BunchId, RuleId> details) {
         final ImmutableSet<AcceptationId> matchingAcceptations = findMatchingAcceptations(details.sourceBunches, details.diffBunches, details.startMatcher, details.endMatcher);
         final ImmutableSet<AcceptationId> processedAcceptations;
         if (!details.modifyCorrelations()) {
@@ -437,7 +437,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
      * @return A bunch set containing all target bunches that changed, or empty if there is no change.
      */
     private ImmutableSet<BunchId> rerunAgent(int agentId, MutableSet<AcceptationId> deletedDynamicAcceptations, boolean sourceAgentChangedText) {
-        final AgentDetails<AlphabetId, BunchId> agentDetails = getAgentDetails(agentId);
+        final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = getAgentDetails(agentId);
         final ImmutableSet<AcceptationId> matchingAcceptations = findMatchingAcceptations(
                 agentDetails.sourceBunches, agentDetails.diffBunches,
                 agentDetails.startMatcher, agentDetails.endMatcher);
@@ -496,8 +496,8 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             if (sampleStaticAcc != null) {
                 final AcceptationId sampleDynAcc = oldProcessedMap.get(sampleStaticAcc);
                 final int sampleRuledConcept = conceptFromAcceptation(sampleDynAcc);
-                final int sampleRule = getRuleByRuledConcept(sampleRuledConcept);
-                hasSameRule = sampleRule == agentDetails.rule;
+                final RuleId sampleRule = getRuleByRuledConcept(sampleRuledConcept);
+                hasSameRule = equal(sampleRule, agentDetails.rule);
                 canReuseOldRuledConcept = hasSameRule || findAgentsByRule(sampleRule).isEmpty();
 
                 if (sourceAgentChangedText) {
@@ -533,7 +533,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
                         }
                         else {
                             final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
-                            final DbUpdateQuery updateQuery = new DbUpdateQuery.Builder(table)
+                            final DbUpdateQuery updateQuery = new DbUpdateQueryBuilder(table)
                                     .put(table.getRuleColumnIndex(), agentDetails.rule)
                                     .where(table.getIdColumnIndex(), ruledConcept)
                                     .build();
@@ -669,7 +669,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     public Integer addAgent(
             ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
-            ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, int rule) {
+            ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
         if (sourceBunches.anyMatch(diffBunches::contains)) {
             return null;
         }
@@ -686,12 +686,12 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         final CorrelationId endAdderId = cachedCorrelationIds.get(endAdder);
 
         final boolean ruleExpected = startMatcherId != startAdderId || endMatcherId != endAdderId;
-        final boolean rulePresent = rule != 0;
+        final boolean rulePresent = rule != null;
         if (ruleExpected != rulePresent) {
             return null;
         }
 
-        final AgentRegister<CorrelationId> register;
+        final AgentRegister<CorrelationId, RuleId> register;
         try {
             register = new AgentRegister<>(targetBunchSetId, sourceBunchSetId,
                     diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
@@ -702,7 +702,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
         final Integer agentId = LangbookDbInserter.insertAgent(_db, register);
         if (agentId != null) {
-            final AgentDetails<AlphabetId, BunchId> details = new AgentDetails<>(targetBunches, sourceBunches, diffBunches,
+            final AgentDetails<AlphabetId, BunchId, RuleId> details = new AgentDetails<>(targetBunches, sourceBunches, diffBunches,
                     startMatcher, startAdder, endMatcher, endAdder, rule);
             runAgent(agentId, details);
         }
@@ -806,12 +806,12 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     public boolean updateAgent(
             int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
-            ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, int rule) {
+            ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
         if (sourceBunches.anyMatch(diffBunches::contains)) {
             return false;
         }
 
-        final AgentRegister<CorrelationId> register = getAgentRegister(agentId);
+        final AgentRegister<CorrelationId, RuleId> register = getAgentRegister(agentId);
         if (register == null) {
             return false;
         }
@@ -883,7 +883,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         }
 
         final boolean ruleExpected = !equal(startMatcherId, startAdderId) || !equal(endMatcherId, endAdderId);
-        final boolean rulePresent = rule != 0;
+        final boolean rulePresent = rule != null;
         if (ruleExpected != rulePresent) {
             return false;
         }
@@ -928,7 +928,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
         final LangbookDbSchema.KnowledgeTable knowledgeTable = LangbookDbSchema.Tables.knowledge;
         for (int quizId : quizzesToUpdate) {
-            final QuizDetails<AlphabetId, BunchId> details = getQuizDetails(quizId);
+            final QuizDetails<AlphabetId, BunchId, RuleId> details = getQuizDetails(quizId);
             final ImmutableSet<AcceptationId> accs = readAllPossibleAcceptations(details.bunch, details.fields.toSet());
             final ImmutableSet<AcceptationId> accsInKnowledge = getCurrentKnowledge(quizId).keySet();
             for (AcceptationId acc : accsInKnowledge.filterNot(accs::contains)) {
@@ -989,7 +989,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         // TODO: Improve this logic once it is centralised and better defined
 
         deleteBunchAcceptationsByAgent(_db, agentId);
-        final AgentRegister<CorrelationId> agentRegister = getAgentRegister(agentId);
+        final AgentRegister<CorrelationId, RuleId> agentRegister = getAgentRegister(agentId);
         final ImmutableSet<BunchId> targetBunches = getBunchSet(agentRegister.targetBunchSetId);
 
         final ImmutableSet<AcceptationId> ruledAcceptations = getAllRuledAcceptationsForAgent(agentId);
@@ -1164,7 +1164,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     private ImmutableSet<BunchId> rerunAgentWhenAcceptationIncludedInBunch(int agentId, MutableSet<AcceptationId> addedAcceptations) {
-        final AgentDetails<AlphabetId, BunchId> agentDetails = getAgentDetails(agentId);
+        final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = getAgentDetails(agentId);
         final ImmutableSet<AcceptationId> matchingAcceptations = findMatchingAcceptationsAmongGiven(addedAcceptations, agentDetails.sourceBunches,
                 agentDetails.diffBunches, agentDetails.startMatcher, agentDetails.endMatcher);
 
@@ -1249,7 +1249,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     private void recheckPossibleQuestions(int quizId) {
-        final QuizDetails<AlphabetId, BunchId> quiz = getQuizDetails(quizId);
+        final QuizDetails<AlphabetId, BunchId, RuleId> quiz = getQuizDetails(quizId);
         final ImmutableSet<AcceptationId> possibleAcceptations = readAllPossibleAcceptations(quiz.bunch, quiz.fields.toSet());
         final ImmutableSet<AcceptationId> registeredAcceptations = getCurrentKnowledge(quizId).keySet();
 
@@ -1997,10 +1997,12 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             }
         }
 
-        final ImmutableIntPairMap oldRuledConceptsMap = findRuledConceptsByRuleInvertedMap(oldConcept);
+        final RuleId oldConceptAsRule = _ruleIdSetter.getKeyFromInt(oldConcept);
+        final ImmutableIntPairMap oldRuledConceptsMap = findRuledConceptsByRuleInvertedMap(oldConceptAsRule);
         final int oldRuledConceptsMapSize = oldRuledConceptsMap.size();
         if (oldRuledConceptsMapSize > 0) {
-            final ImmutableIntPairMap newRuledConceptsMap = findRuledConceptsByRuleInvertedMap(linkedConcept);
+            final RuleId linkedConceptAsRule = _ruleIdSetter.getKeyFromInt(linkedConcept);
+            final ImmutableIntPairMap newRuledConceptsMap = findRuledConceptsByRuleInvertedMap(linkedConceptAsRule);
             final ImmutableIntSet newRuledConceptsMapKeys = newRuledConceptsMap.keySet();
             for (int i = 0; i < oldRuledConceptsMapSize; i++) {
                 final int baseConcept = oldRuledConceptsMap.keyAt(i);
@@ -2122,7 +2124,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return false;
     }
 
-    private int insertQuestionFieldSet(Iterable<QuestionFieldDetails<AlphabetId>> fields) {
+    private int insertQuestionFieldSet(Iterable<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
         if (!fields.iterator().hasNext()) {
             return 0;
         }
@@ -2133,7 +2135,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     @Override
-    public Integer obtainQuiz(BunchId bunch, ImmutableList<QuestionFieldDetails<AlphabetId>> fields) {
+    public Integer obtainQuiz(BunchId bunch, ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
         final Integer existingSetId = findQuestionFieldSet(fields);
         final Integer existingQuizId = (existingSetId != null)? findQuizDefinition(bunch, existingSetId) : null;
 

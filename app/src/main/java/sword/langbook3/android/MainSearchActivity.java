@@ -10,12 +10,13 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
 import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
@@ -23,7 +24,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
-    private ImmutableIntKeyMap<String> _ruleTexts;
+    private ImmutableMap<RuleId, String> _ruleTexts;
     private int _dbWriteVersion;
 
     @Override
@@ -102,7 +103,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     }
 
     @Override
-    ImmutableList<SearchResult<AcceptationId>> noQueryResults() {
+    ImmutableList<SearchResult<AcceptationId, RuleId>> noQueryResults() {
         return DbManager.getInstance().getManager().getSearchHistory();
     }
 
@@ -119,7 +120,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     }
 
     @Override
-    ImmutableList<SearchResult<AcceptationId>> queryAcceptationResults(String query) {
+    ImmutableList<SearchResult<AcceptationId, RuleId>> queryAcceptationResults(String query) {
         return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 }

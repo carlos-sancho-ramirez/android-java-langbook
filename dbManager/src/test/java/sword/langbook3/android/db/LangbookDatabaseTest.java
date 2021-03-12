@@ -24,7 +24,7 @@ final class LangbookDatabaseTest {
     @Test
     void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder> manager = new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), new AcceptationIdManager(), new BunchIdManager());
+        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), new AcceptationIdManager(), new BunchIdManager(), new RuleIdManager());
 
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
         final int concept = manager.getMaxConcept() + 1;
@@ -34,10 +34,10 @@ final class LangbookDatabaseTest {
         assertTrue(manager.getSearchHistory().isEmpty());
 
         insertSearchHistoryEntry(db, acceptation);
-        final ImmutableList<SearchResult<AcceptationIdHolder>> history = manager.getSearchHistory();
+        final ImmutableList<SearchResult<AcceptationIdHolder, RuleIdHolder>> history = manager.getSearchHistory();
         assertEquals(1, history.size());
 
-        final SearchResult<AcceptationIdHolder> expectedEntry = new SearchResult<>(text, text, acceptation, false);
+        final SearchResult<AcceptationIdHolder, RuleIdHolder> expectedEntry = new SearchResult<>(text, text, acceptation, false);
         assertEquals(expectedEntry, history.get(0));
 
         manager.removeAcceptation(acceptation);

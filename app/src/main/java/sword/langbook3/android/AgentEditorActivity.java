@@ -37,6 +37,9 @@ import sword.langbook3.android.db.CorrelationEntryListParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.db.RuleId;
+import sword.langbook3.android.db.RuleIdManager;
+import sword.langbook3.android.db.RuleIdParceler;
 import sword.langbook3.android.models.AgentDetails;
 
 import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
@@ -98,7 +101,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         MutableList<Correlation.Entry<AlphabetId>> startAdder = MutableList.empty();
         MutableList<Correlation.Entry<AlphabetId>> endMatcher = MutableList.empty();
         MutableList<Correlation.Entry<AlphabetId>> endAdder = MutableList.empty();
-        int rule;
+        RuleId rule;
 
         State() {
         }
@@ -124,7 +127,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             CorrelationEntryListParceler.readInto(in, endMatcher);
             CorrelationEntryListParceler.readInto(in, endAdder);
 
-            rule = in.readInt();
+            rule = RuleIdParceler.read(in);
         }
 
         @Override
@@ -149,7 +152,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             CorrelationEntryListParceler.write(dest, endMatcher);
             CorrelationEntryListParceler.write(dest, endAdder);
 
-            dest.writeInt(rule);
+            RuleIdParceler.write(dest, rule);
         }
 
         @Override
@@ -259,7 +262,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         final TextView textView = findViewById(R.id.ruleText);
-        textView.setText((_state.rule != NO_RULE)? checker.readConceptText(_state.rule, _preferredAlphabet) : null);
+        textView.setText((_state.rule != null)? checker.readConceptText(_state.rule.getConceptId(), _preferredAlphabet) : null);
     }
 
     @Override
@@ -282,7 +285,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             final BunchId diffBunch = getDiffBunch();
             final BunchId targetBunch = getTargetBunch();
             if (agentId != 0) {
-                final AgentDetails<AlphabetId, BunchId> agentDetails = checker.getAgentDetails(agentId);
+                final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = checker.getAgentDetails(agentId);
                 _state.targetBunches = agentDetails.targetBunches.toList().mutate();
                 _state.sourceBunches = agentDetails.sourceBunches.toList().mutate();
                 _state.diffBunches = agentDetails.diffBunches.toList().mutate();
@@ -538,7 +541,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                     final ImmutableCorrelation<AlphabetId> endMatcher = buildCorrelation(_state.endMatcher);
                     final ImmutableCorrelation<AlphabetId> endAdder = buildCorrelation(_state.endAdder);
 
-                    final int rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? NO_RULE : _state.rule;
+                    final RuleId rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? null : _state.rule;
 
                     final int givenAgentId = getAgentId();
                     final LangbookDbManager manager = DbManager.getInstance().getManager();
@@ -608,7 +611,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
 
             final int concept = manager.conceptFromAcceptation(acceptation);
-            _state.rule = concept;
+            _state.rule = RuleIdManager.conceptAsRuleId(concept);
 
             final String text = manager.readConceptText(concept, _preferredAlphabet);
             final TextView textView = findViewById(R.id.ruleText);
@@ -685,7 +688,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         final boolean ruleRequired = !_state.startMatcher.equals(_state.startAdder) || !_state.endMatcher.equals(_state.endAdder);
-        if (ruleRequired && _state.rule == NO_RULE) {
+        if (ruleRequired && _state.rule == null) {
             return "Rule is required when matcher and adder do not match";
         }
 

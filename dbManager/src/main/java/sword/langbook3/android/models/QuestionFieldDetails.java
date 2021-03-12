@@ -2,12 +2,14 @@ package sword.langbook3.android.models;
 
 import sword.langbook3.android.db.LangbookDbSchema;
 
-public final class QuestionFieldDetails<AlphabetId> {
+import static sword.langbook3.android.collections.EqualUtils.equal;
+
+public final class QuestionFieldDetails<AlphabetId, RuleId> {
     public final AlphabetId alphabet;
-    public final int rule;
+    public final RuleId rule;
     public final int flags;
 
-    public QuestionFieldDetails(AlphabetId alphabet, int rule, int flags) {
+    public QuestionFieldDetails(AlphabetId alphabet, RuleId rule, int flags) {
         this.alphabet = alphabet;
         this.rule = rule;
         this.flags = flags;
@@ -23,7 +25,7 @@ public final class QuestionFieldDetails<AlphabetId> {
 
     @Override
     public int hashCode() {
-        return (flags * 37 + rule) * 37 + alphabet.hashCode();
+        return (flags * 37 + ((rule != null)? rule.hashCode() : 0)) * 37 + alphabet.hashCode();
     }
 
     @Override
@@ -33,7 +35,7 @@ public final class QuestionFieldDetails<AlphabetId> {
         }
 
         final QuestionFieldDetails that = (QuestionFieldDetails) other;
-        return alphabet == that.alphabet && rule == that.rule && flags == that.flags;
+        return equal(alphabet, that.alphabet) && equal(rule, that.rule) && flags == that.flags;
     }
 
     @Override

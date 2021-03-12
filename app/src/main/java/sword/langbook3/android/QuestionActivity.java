@@ -22,6 +22,7 @@ import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 
@@ -63,7 +64,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     private MutableIntValueMap<AcceptationId> _knowledge = MutableIntValueHashMap.empty();
 
     private int _quizId;
-    private QuizDetails<AlphabetId, BunchId> _quizDetails;
+    private QuizDetails<AlphabetId, BunchId, RuleId> _quizDetails;
     private TextView[] _fieldTextViews;
 
     private int _goodAnswerCount;
@@ -120,7 +121,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
     }
 
     private void updateTextFields() {
-        final ImmutableList<QuestionFieldDetails<AlphabetId>> fields = _quizDetails.fields;
+        final ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields = _quizDetails.fields;
         final int fieldCount = fields.size();
         for (int i = 0; i < fieldCount; i++) {
             final boolean shouldDisplayText = _isAnswerVisible || !fields.get(i).isAnswer();
@@ -135,7 +136,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         final Button revealAnswerButton = findViewById(R.id.revealAnswerButton);
         final LinearLayout rateButtonBar = findViewById(R.id.rateButtonBar);
 
-        final ImmutableList<QuestionFieldDetails<AlphabetId>> fields = _quizDetails.fields;
+        final ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields = _quizDetails.fields;
         if (!_isAnswerVisible) {
             LangbookDbChecker checker = null;
             for (int i = 0; i < fields.size(); i++) {
@@ -226,7 +227,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
             fieldsPanel.removeAllViews();
 
             final LayoutInflater inflater = getLayoutInflater();
-            final ImmutableList<QuestionFieldDetails<AlphabetId>> fields = _quizDetails.fields;
+            final ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields = _quizDetails.fields;
             for (int i = 0; i < fields.size(); i++) {
                 inflater.inflate(R.layout.question_field, fieldsPanel, true);
                 _fieldTextViews[i] = (TextView) fieldsPanel.getChildAt(fieldsPanel.getChildCount() - 1);

@@ -5,9 +5,11 @@ import sword.database.DbUpdateQuery;
 
 final class DbUpdateQueryBuilder {
 
+    private final DbTable _table;
     private final DbUpdateQuery.Builder _builder;
 
     DbUpdateQueryBuilder(DbTable table) {
+        _table = table;
         _builder = new DbUpdateQuery.Builder(table);
     }
 
@@ -32,7 +34,16 @@ final class DbUpdateQueryBuilder {
     }
 
     public DbUpdateQueryBuilder put(int columnIndex, IdPutInterface id) {
-        id.put(columnIndex, _builder);
+        if (id != null) {
+            id.put(columnIndex, _builder);
+        }
+        else if (_table.columns().get(columnIndex).isText()) {
+            _builder.put(columnIndex, null);
+        }
+        else {
+            _builder.put(columnIndex, 0);
+        }
+
         return this;
     }
 

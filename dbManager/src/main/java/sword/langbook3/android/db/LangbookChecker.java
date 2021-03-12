@@ -6,10 +6,10 @@ import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.SearchResult;
 
-public interface LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> extends QuizzesChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, DefinitionsChecker, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
+public interface LangbookChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> extends QuizzesChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId>, DefinitionsChecker, SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
     ImmutableSet<String> findConversionConflictWords(ConversionProposal<AlphabetId> newConversion);
-    AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId> getAcceptationsDetails(AcceptationId staticAcceptation, AlphabetId preferredAlphabet);
-    ImmutableList<SearchResult<AcceptationId>> getSearchHistory();
+    AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> getAcceptationsDetails(AcceptationId staticAcceptation, AlphabetId preferredAlphabet);
+    ImmutableList<SearchResult<AcceptationId, RuleId>> getSearchHistory();
 
     default boolean allValidAlphabets(Correlation<AlphabetId> texts) {
         final ImmutableSet<LanguageId> languages = texts.keySet().map(this::getLanguageFromAlphabet).toSet().toImmutable();

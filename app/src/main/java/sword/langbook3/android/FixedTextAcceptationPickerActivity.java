@@ -4,13 +4,14 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.database.DbQuery;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
 public final class FixedTextAcceptationPickerActivity extends SearchActivity {
@@ -28,7 +29,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
         activity.startActivityForResult(intent, requestCode);
     }
 
-    private ImmutableIntKeyMap<String> _ruleTexts;
+    private ImmutableMap<RuleId, String> _ruleTexts;
     private AcceptationId _confirmDynamicAcceptation;
 
     @Override
@@ -51,7 +52,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     }
 
     @Override
-    ImmutableList<SearchResult<AcceptationId>> queryAcceptationResults(String query) {
+    ImmutableList<SearchResult<AcceptationId, RuleId>> queryAcceptationResults(String query) {
         return DbManager.getInstance().getManager().findAcceptationAndRulesFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 

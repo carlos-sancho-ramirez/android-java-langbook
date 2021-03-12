@@ -2,11 +2,11 @@ package sword.langbook3.android.models;
 
 import sword.collections.ImmutableList;
 
-public final class QuizDetails<AlphabetId, BunchId> {
+public final class QuizDetails<AlphabetId, BunchId, RuleId> {
     public final BunchId bunch;
-    public final ImmutableList<QuestionFieldDetails<AlphabetId>> fields;
+    public final ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields;
 
-    public QuizDetails(BunchId bunch, ImmutableList<QuestionFieldDetails<AlphabetId>> fields) {
+    public QuizDetails(BunchId bunch, ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
         if (bunch == null || fields == null || fields.size() < 2 || !fields.anyMatch(field -> !field.isAnswer()) || !fields.anyMatch(QuestionFieldDetails::isAnswer)) {
             throw new IllegalArgumentException();
         }

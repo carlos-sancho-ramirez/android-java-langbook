@@ -8,6 +8,7 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
 public final class AcceptationPickerActivity extends SearchActivity {
@@ -81,7 +82,7 @@ public final class AcceptationPickerActivity extends SearchActivity {
     }
 
     @Override
-    ImmutableList<SearchResult<AcceptationId>> queryAcceptationResults(String query) {
+    ImmutableList<SearchResult<AcceptationId, RuleId>> queryAcceptationResults(String query) {
         return DbManager.getInstance().getManager().findAcceptationFromText(query, getSearchRestrictionType(), new ImmutableIntRange(0, MAX_RESULTS - 1));
     }
 

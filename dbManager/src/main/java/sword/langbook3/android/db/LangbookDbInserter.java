@@ -160,7 +160,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static Integer insertAgent(DbInserter db, AgentRegister<? extends CorrelationIdInterface> register) {
+    static Integer insertAgent(DbInserter db, AgentRegister<? extends CorrelationIdInterface, ? extends RuleIdInterface> register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getTargetBunchSetColumnIndex(), register.targetBunchSetId)
@@ -217,9 +217,9 @@ final class LangbookDbInserter {
         }
     }
 
-    static <AlphabetId extends AlphabetIdInterface> void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails<AlphabetId>> fields) {
+    static <AlphabetId extends AlphabetIdInterface, RuleId extends RuleIdInterface> void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
         final LangbookDbSchema.QuestionFieldSets table = Tables.questionFieldSets;
-        for (QuestionFieldDetails<AlphabetId> field : fields) {
+        for (QuestionFieldDetails<AlphabetId, RuleId> field : fields) {
             final DbInsertQuery query = new DbInsertQueryBuilder(table)
                     .put(table.getSetIdColumnIndex(), setId)
                     .put(table.getRuleColumnIndex(), field.rule)

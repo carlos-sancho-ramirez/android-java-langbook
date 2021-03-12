@@ -2,8 +2,8 @@ package sword.langbook3.android.db;
 
 import sword.database.Database;
 
-public final class LangbookDbManagerImpl extends LangbookDatabaseManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> implements LangbookDbManager {
+public final class LangbookDbManagerImpl extends LangbookDatabaseManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, RuleId> implements LangbookDbManager {
     public LangbookDbManagerImpl(Database db) {
-        super(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), new AcceptationIdManager(), new BunchIdManager());
+        super(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), new AcceptationIdManager(), new BunchIdManager(), new RuleIdManager());
     }
 }

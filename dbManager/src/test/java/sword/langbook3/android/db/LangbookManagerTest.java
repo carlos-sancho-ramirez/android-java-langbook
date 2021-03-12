@@ -21,15 +21,15 @@ import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgen
 import static sword.langbook3.android.db.AgentsManagerTest.setOf;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId extends AcceptationIdInterface, BunchId> extends QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, DefinitionsManagerTest, SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
+interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId extends AcceptationIdInterface, BunchId, RuleId> extends QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId>, DefinitionsManagerTest, SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> {
 
     @Override
-    LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> createManager(MemoryDatabase db);
+    LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -43,8 +43,9 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
 
         final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
-        final int pluralRule = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getMaxConcept() + 1;
         final BunchId substantiveBunch = conceptAsBunchId(substantiveConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         assertNotNull(manager.addAgent(setOf(), setOf(substantiveBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveBunch, carAcc));
@@ -65,7 +66,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -81,8 +82,9 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
         final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
-        final int pluralRule = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getMaxConcept() + 1;
         final BunchId substantiveBunch = conceptAsBunchId(substantiveConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         assertNotNull(manager.addAgent(setOf(), setOf(substantiveBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
 
         assertTrue(manager.addAcceptationInBunch(substantiveBunch, carAcc));
@@ -106,7 +108,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -123,8 +125,9 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
 
         final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
-        final int pluralRule = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getMaxConcept() + 1;
         final BunchId substantiveBunch = conceptAsBunchId(substantiveConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         final int agentId = manager.addAgent(setOf(), setOf(substantiveBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
 
         assertTrue(manager.addAcceptationInBunch(substantiveBunch, carAcc));
@@ -148,7 +151,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
     @Test
     default void testRemoveHeadChainedAgentWhereRuledAcceptationOfTheTailChainedAgentIsUsedAsSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -171,12 +174,14 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
         addSimpleAcceptation(manager, esAlphabet, pluralConcept, "plural");
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
-        final int headAgent = addSingleAlphabetAgent(manager, setOf(arVerbBunch), setOf(), setOf(), esAlphabet, null, null, "ar", "ar", 0);
+        final int headAgent = addSingleAlphabetAgent(manager, setOf(arVerbBunch), setOf(), setOf(), esAlphabet, null, null, "ar", "ar", null);
 
-        final int tailAgent = addSingleAlphabetAgent(manager, setOf(), setOf(arVerbBunch), setOf(), esAlphabet, null, null, "ar", "o", firstPersonConcept);
+        final RuleId firstPersonRule = conceptAsRuleId(firstPersonConcept);
+        final int tailAgent = addSingleAlphabetAgent(manager, setOf(), setOf(arVerbBunch), setOf(), esAlphabet, null, null, "ar", "o", firstPersonRule);
 
         final BunchId pluralableBunch = conceptAsBunchId(pluralableConcept);
-        final int pluralAgent = addSingleAlphabetAgent(manager, setOf(), setOf(pluralableBunch), setOf(), esAlphabet, null, null, "", "s", pluralConcept);
+        final RuleId pluralRule = conceptAsRuleId(pluralConcept);
+        final int pluralAgent = addSingleAlphabetAgent(manager, setOf(), setOf(pluralableBunch), setOf(), esAlphabet, null, null, "", "s", pluralRule);
 
         assertTrue(manager.addAcceptationInBunch(pluralableBunch, toothAcc));
 

@@ -7,7 +7,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -22,7 +22,7 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
     public final AcceptationId originalAcceptationId;
     public final String originalAcceptationText;
     public final int appliedAgentId;
-    public final int appliedRuleId;
+    public final RuleId appliedRuleId;
     public final AcceptationId appliedRuleAcceptationId;
     public final ImmutableList<CorrelationId> correlationIds;
     public final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations;
@@ -37,9 +37,9 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
     public final ImmutableList<DynamizableResult<AcceptationId>> bunchChildren;
     public final ImmutableList<DynamizableResult<AcceptationId>> bunchesWhereAcceptationIsIncluded;
     public final ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations;
-    public final ImmutableIntKeyMap<String> ruleTexts;
+    public final ImmutableMap<RuleId, String> ruleTexts;
     public final ImmutableIntPairMap involvedAgents;
-    public final ImmutableIntPairMap agentRules;
+    public final ImmutableIntKeyMap<RuleId> agentRules;
     public final ImmutableIntKeyMap<String> sampleSentences;
 
     /**
@@ -53,7 +53,7 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
             AcceptationId originalAcceptationId,
             String originalAcceptationText,
             int appliedAgentId,
-            int appliedRuleId,
+            RuleId appliedRuleId,
             AcceptationId appliedRuleAcceptationId,
             ImmutableList<CorrelationId> correlationIds,
             ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations,
@@ -68,14 +68,14 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
             ImmutableList<DynamizableResult<AcceptationId>> bunchChildren,
             ImmutableList<DynamizableResult<AcceptationId>> bunchesWhereAcceptationIsIncluded,
             ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations,
-            ImmutableIntKeyMap<String> ruleTexts,
+            ImmutableMap<RuleId, String> ruleTexts,
             ImmutableIntPairMap involvedAgents,
-            ImmutableIntPairMap agentRules,
+            ImmutableIntKeyMap<RuleId> agentRules,
             ImmutableMap<LanguageId, String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
         if (language == null || originalAcceptationId != null && (originalAcceptationText == null ||
-                appliedAgentId == 0 || appliedRuleId == 0 || appliedRuleAcceptationId == null) ||
+                appliedAgentId == 0 || appliedRuleId == null || appliedRuleAcceptationId == null) ||
                 correlationIds == null || correlations == null ||
                 texts == null || acceptationsSharingTexts == null ||
                 acceptationsSharingTextsDisplayableTexts == null || definitionComplementTexts == null ||
@@ -86,7 +86,7 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
             throw new IllegalArgumentException();
         }
 
-        if (appliedRuleId != 0 && ruleTexts.get(appliedRuleId, null) == null) {
+        if (appliedRuleId != null && ruleTexts.get(appliedRuleId, null) == null) {
             throw new IllegalArgumentException();
         }
 

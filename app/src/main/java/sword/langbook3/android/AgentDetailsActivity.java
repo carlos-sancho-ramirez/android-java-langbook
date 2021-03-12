@@ -20,6 +20,7 @@ import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.DisplayableItem;
 
@@ -48,7 +49,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
     boolean _deleteDialogPresent;
 
-    AgentRegister<CorrelationId> _register;
+    AgentRegister<CorrelationId, RuleId> _register;
     private int _dbWriteVersion;
 
     private ListView _listView;
@@ -133,10 +134,10 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         addCorrelationSection(checker, getString(R.string.agentEndMatcherHeader), _register.endMatcherId, alphabetTexts, builder);
         addCorrelationSection(checker, getString(R.string.agentEndAdderHeader), _register.endAdderId, alphabetTexts, builder);
 
-        if (_register.rule != 0) {
+        if (_register.rule != null) {
             builder.add(new AcceptationDetailsAdapter.HeaderItem(getString(R.string.agentRuleHeader)));
 
-            final DisplayableItem<AcceptationId> ruleResult = checker.readConceptAcceptationAndText(_register.rule, _preferredAlphabet);
+            final DisplayableItem<AcceptationId> ruleResult = checker.readConceptAcceptationAndText(_register.rule.getConceptId(), _preferredAlphabet);
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(ruleResult.id, ruleResult.text, false));
         }
 

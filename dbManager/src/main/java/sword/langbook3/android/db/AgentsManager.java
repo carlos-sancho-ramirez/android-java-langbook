@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableSet;
 
-public interface AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> extends BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
+public interface AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> {
 
     /**
      * Include a new agent into the database and returns its identifier if succeeded,
@@ -31,18 +31,18 @@ public interface AgentsManager<LanguageId, AlphabetId, CorrelationId, Acceptatio
      *             This is required only if the resulting acceptation text is different from the source acceptation text.
      *             This will happen if <code>startMatcher</code> does not match <code>startAdder</code>,
      *             or <code>endMatcher</code> does not match <code>endAdder</code>.
-     *             If the resulting text matches the source text, then 0 is expected here.
+     *             If the resulting text matches the source text, then <code>null</code> is expected here.
      * @return An identifier for the new agent if all OK, or null if not possible to add the agent.
      */
     Integer addAgent(ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
-            ImmutableCorrelation<AlphabetId> endAdder, int rule);
+            ImmutableCorrelation<AlphabetId> endAdder, RuleId rule);
 
     boolean updateAgent(int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
             ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
-            ImmutableCorrelation<AlphabetId> endAdder, int rule);
+            ImmutableCorrelation<AlphabetId> endAdder, RuleId rule);
 
     void removeAgent(int agentId);
 }

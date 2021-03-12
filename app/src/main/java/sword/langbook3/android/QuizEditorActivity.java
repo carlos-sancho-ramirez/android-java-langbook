@@ -13,7 +13,6 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.AlphabetId;
@@ -21,6 +20,7 @@ import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 public final class QuizEditorActivity extends Activity implements View.OnClickListener {
@@ -93,7 +93,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
     private static final class FieldState {
         int type;
         AlphabetId alphabet;
-        int rule;
+        RuleId rule;
     }
 
     private final ArrayList<FieldState> _questionFields = new ArrayList<>(1);
@@ -102,7 +102,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
     private AlphabetId _preferredAlphabet;
 
     private ImmutableMap<AlphabetId, String> _alphabetItems;
-    private ImmutableIntKeyMap<String> _ruleItems;
+    private ImmutableMap<RuleId, String> _ruleItems;
 
     private final class FieldListener implements Spinner.OnItemSelectedListener, View.OnClickListener {
 
@@ -121,7 +121,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
                     fieldState.type = position;
                     final int visibility;
                     if (position == FieldTypes.appliedRule) {
-                        if (fieldState.rule == 0) {
+                        if (fieldState.rule == null) {
                             final int pos = ruleSpinner.getSelectedItemPosition();
                             if (_ruleItems != null && pos >= 0 && pos < _ruleItems.size()) {
                                 fieldState.rule = _ruleItems.keyAt(pos);
@@ -253,16 +253,16 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         findViewById(R.id.startButton).setOnClickListener(this);
     }
 
-    private static QuestionFieldDetails<AlphabetId> composeQuestionField(FieldState field) {
+    private static QuestionFieldDetails<AlphabetId, RuleId> composeQuestionField(FieldState field) {
         return new QuestionFieldDetails<>(field.alphabet, field.rule, field.type - 1);
     }
 
-    private static QuestionFieldDetails<AlphabetId> composeAnswerField(FieldState field) {
+    private static QuestionFieldDetails<AlphabetId, RuleId> composeAnswerField(FieldState field) {
         return new QuestionFieldDetails<>(field.alphabet, field.rule, QuestionFieldFlags.IS_ANSWER | (field.type - 1));
     }
 
-    private ImmutableList<QuestionFieldDetails<AlphabetId>> composeFields() {
-        final ImmutableList.Builder<QuestionFieldDetails<AlphabetId>> builder = new ImmutableList.Builder<>();
+    private ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> composeFields() {
+        final ImmutableList.Builder<QuestionFieldDetails<AlphabetId, RuleId>> builder = new ImmutableList.Builder<>();
         for (FieldState state : _questionFields) {
             builder.add(composeQuestionField(state));
         }

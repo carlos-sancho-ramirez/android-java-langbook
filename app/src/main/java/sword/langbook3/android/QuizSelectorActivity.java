@@ -28,6 +28,7 @@ import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
@@ -53,14 +54,14 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     private AlphabetId _preferredAlphabet;
     private BunchId _bunch;
-    private ImmutableIntKeyMap<String> _ruleTexts;
+    private ImmutableMap<RuleId, String> _ruleTexts;
 
     private boolean _finishIfEmptyWhenStarting;
     private boolean _activityStarted;
     private ListView _listView;
     private ActionMode _listActionMode;
 
-    private String getRuleText(LangbookDbChecker checker, int rule) {
+    private String getRuleText(LangbookDbChecker checker, RuleId rule) {
         if (_ruleTexts == null) {
             _ruleTexts = checker.readAllRules(_preferredAlphabet);
         }
@@ -68,7 +69,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         return _ruleTexts.get(rule);
     }
 
-    private static int getTypeStringResId(QuestionFieldDetails<AlphabetId> field) {
+    private static int getTypeStringResId(QuestionFieldDetails<AlphabetId, RuleId> field) {
         switch (field.getType()) {
             case QuestionFieldFlags.TYPE_SAME_ACC:
                 return R.string.questionTypeSameAcceptation;
@@ -84,14 +85,14 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookDbChecker checker, BunchId bunch) {
-        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId>>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
+        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
         final ImmutableMap<AlphabetId, String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
         final int quizCount = resultMap.size();
         final QuizSelectorAdapter.Item[] items = new QuizSelectorAdapter.Item[quizCount];
 
         for (int i = 0; i < quizCount; i++) {
             final int quizId = resultMap.keyAt(i);
-            final ImmutableSet<QuestionFieldDetails<AlphabetId>> set = resultMap.valueAt(i);
+            final ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>> set = resultMap.valueAt(i);
 
             final ImmutableList<String> fieldTexts = set.map(field -> {
                 final MutableList<String> texts = MutableList.empty();
