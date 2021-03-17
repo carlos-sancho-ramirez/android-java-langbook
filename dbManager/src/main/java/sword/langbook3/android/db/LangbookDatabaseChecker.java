@@ -362,8 +362,7 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         return getColumnMax(table, table.getArrayIdColumnIndex());
     }
 
-    @Override
-    public int getMaxConcept() {
+    int getMaxConcept() {
         int max = getMaxConceptInAcceptations();
         int temp = getMaxConceptInRuledConcepts();
         if (temp > max) {
@@ -396,6 +395,11 @@ abstract class LangbookDatabaseChecker<LanguageId extends LanguageIdInterface, A
         }
 
         return max;
+    }
+
+    @Override
+    public int getNextAvailableConceptId() {
+        return getMaxConcept() + 1;
     }
 
     @Override

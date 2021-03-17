@@ -238,7 +238,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             if (sentenceId == NO_SENTENCE_ID) {
                 int concept = getConcept();
                 if (concept == 0) {
-                    concept = manager.getMaxConcept() + 1;
+                    concept = manager.getNextAvailableConceptId();
                 }
 
                 final int newSentenceId = manager.addSentence(concept, newText, spans);

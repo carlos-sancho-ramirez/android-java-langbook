@@ -53,10 +53,10 @@ interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptati
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int inConcept = inManager.getMaxConcept() + 1;
+        final int inConcept = inManager.getNextAvailableConceptId();
         final AcceptationId acceptation = addSpanishSingAcceptation(inManager, inAlphabet, inConcept);
 
-        final int bunchConcept = inManager.getMaxConcept() + 1;
+        final int bunchConcept = inManager.getNextAvailableConceptId();
         final String bunchText = "verbo de primera conjugación";
         addSimpleAcceptation(inManager, inAlphabet, bunchConcept, bunchText);
 
@@ -81,13 +81,13 @@ interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptati
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inSingConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inSingAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
 
-        final int inDrinkConcept = inManager.getMaxConcept() + 1;
+        final int inDrinkConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inDrinkAcceptation = addSimpleAcceptation(inManager, inAlphabet, inDrinkConcept, "saltar");
 
-        final int bunchConcept = inManager.getMaxConcept() + 1;
+        final int bunchConcept = inManager.getNextAvailableConceptId();
         final String bunchText = "verbo de primera conjugación";
         addSimpleAcceptation(inManager, inAlphabet, bunchConcept, bunchText);
 
@@ -122,16 +122,16 @@ interface BunchesSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptati
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int inConcept = inManager.getMaxConcept() + 1;
+        final int inConcept = inManager.getNextAvailableConceptId();
         final AcceptationId singAcceptation = addSimpleAcceptation(inManager, inAlphabet, inConcept, "cantar");
 
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         final AcceptationId arVerbAcceptation = addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo ar");
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         inManager.addAcceptationInBunch(arVerbBunch, singAcceptation);
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
         final BunchId verbBunch = conceptAsBunchId(verbConcept);

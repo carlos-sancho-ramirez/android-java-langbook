@@ -238,7 +238,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
 
         final AlphabetId secondAlphabet = getNextAvailableId(manager);
@@ -269,7 +269,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final MemoryDatabase outDb = cloneBySerializing(db);
@@ -284,7 +284,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
 
         final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
                 .add(new ImmutableCorrelation.Builder<AlphabetId>()
@@ -350,7 +350,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
                 .build();
         final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, convMap);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
 
         final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
                 .add(new ImmutableCorrelation.Builder<AlphabetId>()

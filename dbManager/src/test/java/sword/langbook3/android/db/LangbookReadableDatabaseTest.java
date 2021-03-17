@@ -34,7 +34,7 @@ final class LangbookReadableDatabaseTest {
     }
 
     private AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
-        return new AlphabetIdHolder(manager.getMaxConcept() + 1);
+        return new AlphabetIdHolder(manager.getNextAvailableConceptId());
     }
 
     private BunchIdHolder conceptAsBunchId(int conceptId) {

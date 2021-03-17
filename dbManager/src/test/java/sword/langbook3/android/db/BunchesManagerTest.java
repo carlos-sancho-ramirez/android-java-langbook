@@ -37,7 +37,7 @@ interface BunchesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
         final LanguageId language = langPair.language;
         final AlphabetId alphabet = langPair.mainAlphabet;
-        final int verbConcept = manager.getMaxConcept() + 1;
+        final int verbConcept = manager.getNextAvailableConceptId();
         final int singConcept = verbConcept + 1;
 
         final AcceptationId singAcceptation = addSimpleAcceptation(manager, alphabet, singConcept, "cantar");
@@ -56,7 +56,7 @@ interface BunchesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int kanjiAlphabet = manager.getMaxConcept() + 1;
+        final int kanjiAlphabet = manager.getNextAvailableConceptId();
         final int kanaAlphabet = kanjiAlphabet + 1;
         final int myVocabularyConcept = kanaAlphabet + 1;
         final int arVerbConcept = myVocabularyConcept + 1;
@@ -79,7 +79,7 @@ interface BunchesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int animalConcept = manager.getMaxConcept() + 1;
+        final int animalConcept = manager.getNextAvailableConceptId();
         final int catConcept = animalConcept + 1;
 
         final AcceptationId animalAcc = addSimpleAcceptation(manager, alphabet, animalConcept, "animal");
@@ -97,13 +97,13 @@ interface BunchesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int guyConcept = manager.getMaxConcept() + 1;
+        final int guyConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
 
-        final int personConcept = manager.getMaxConcept() + 1;
+        final int personConcept = manager.getNextAvailableConceptId();
         final AcceptationId personAcc = addSimpleAcceptation(manager, alphabet, personConcept, "persona");
 
-        final int johnConcept = manager.getMaxConcept() + 1;
+        final int johnConcept = manager.getNextAvailableConceptId();
         final AcceptationId johnAcc = addSimpleAcceptation(manager, alphabet, johnConcept, "John");
         final BunchId guyBunch = conceptAsBunchId(guyConcept);
         final BunchId personBunch = conceptAsBunchId(personConcept);
@@ -129,18 +129,18 @@ interface BunchesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int guyConcept = manager.getMaxConcept() + 1;
+        final int guyConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, alphabet, guyConcept, "individuo");
 
-        final int personConcept = manager.getMaxConcept() + 1;
+        final int personConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, alphabet, personConcept, "persona");
 
-        final int johnConcept = manager.getMaxConcept() + 1;
+        final int johnConcept = manager.getNextAvailableConceptId();
         final AcceptationId johnAcc = addSimpleAcceptation(manager, alphabet, johnConcept, "John");
         final BunchId guyBunch = conceptAsBunchId(guyConcept);
         manager.addAcceptationInBunch(guyBunch, johnAcc);
 
-        final int johnConcept2 = manager.getMaxConcept() + 1;
+        final int johnConcept2 = manager.getNextAvailableConceptId();
         final AcceptationId johnAcc2 = addSimpleAcceptation(manager, alphabet, johnConcept2, "John");
         final BunchId personBunch = conceptAsBunchId(personConcept);
         manager.addAcceptationInBunch(personBunch, johnAcc2);

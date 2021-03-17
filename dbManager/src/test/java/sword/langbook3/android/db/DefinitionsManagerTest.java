@@ -18,7 +18,7 @@ interface DefinitionsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final DefinitionsManager manager = createManager(db);
 
-        final int animalConcept = manager.getMaxConcept() + 1;
+        final int animalConcept = manager.getNextAvailableConceptId();
         final int catConcept = animalConcept + 1;
         final int quadrupedConcept = catConcept + 1;
 
@@ -34,7 +34,7 @@ interface DefinitionsManagerTest {
         final MemoryDatabase db = new MemoryDatabase();
         final DefinitionsManager manager = createManager(db);
 
-        final int animalConcept = manager.getMaxConcept() + 1;
+        final int animalConcept = manager.getNextAvailableConceptId();
         final int catConcept = animalConcept + 1;
         final int quadrupedConcept = catConcept + 1;
         final int felineConcept = quadrupedConcept + 1;

@@ -174,7 +174,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private AcceptationId addAcceptation(LangbookDbManager manager) {
         int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
         if (concept == NO_CONCEPT) {
-            concept = manager.getMaxConcept() + 1;
+            concept = manager.getNextAvailableConceptId();
         }
 
         return manager.addAcceptation(concept, _options.valueAt(_selection));

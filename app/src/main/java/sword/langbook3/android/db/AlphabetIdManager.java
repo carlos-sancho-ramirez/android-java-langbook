@@ -15,7 +15,7 @@ public final class AlphabetIdManager implements IntSetter<AlphabetId> {
     }
 
     public static AlphabetId getNextAvailableId(ConceptsChecker manager) {
-        return new AlphabetId(manager.getMaxConcept() + 1);
+        return new AlphabetId(manager.getNextAvailableConceptId());
     }
 
     public static int getConceptId(AlphabetId alphabetId) {

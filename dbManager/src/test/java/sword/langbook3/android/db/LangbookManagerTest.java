@@ -33,17 +33,17 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int carConcept = manager.getMaxConcept() + 1;
+        final int carConcept = manager.getNextAvailableConceptId();
         final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
-        final int substantiveConcept = manager.getMaxConcept() + 1;
+        final int substantiveConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
         final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
 
         final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
-        final int pluralConcept = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getNextAvailableConceptId();
         final BunchId substantiveBunch = conceptAsBunchId(substantiveConcept);
         final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         assertNotNull(manager.addAgent(setOf(), setOf(substantiveBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -56,7 +56,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
                 .add(newSpan(text, "coches", carPluralAcc))
                 .build();
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final int sentence = manager.addSentence(concept, text, spans);
 
         assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
@@ -70,19 +70,19 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int carConcept = manager.getMaxConcept() + 1;
+        final int carConcept = manager.getNextAvailableConceptId();
         final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
-        final int mineConcept = manager.getMaxConcept() + 1;
+        final int mineConcept = manager.getNextAvailableConceptId();
         final AcceptationId mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
 
-        final int substantiveConcept = manager.getMaxConcept() + 1;
+        final int substantiveConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
         final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
         final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
-        final int pluralConcept = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getNextAvailableConceptId();
         final BunchId substantiveBunch = conceptAsBunchId(substantiveConcept);
         final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         assertNotNull(manager.addAgent(setOf(), setOf(substantiveBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule));
@@ -96,7 +96,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
                 .add(newSpan(text, "mío", mineAcc))
                 .build();
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final int sentence = manager.addSentence(concept, text, spans);
         assertTrue(manager.removeAcceptationFromBunch(substantiveBunch, carAcc));
         assertEmpty(manager.getSampleSentences(carAcc));
@@ -112,20 +112,20 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int carConcept = manager.getMaxConcept() + 1;
+        final int carConcept = manager.getNextAvailableConceptId();
         final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
 
-        final int mineConcept = manager.getMaxConcept() + 1;
+        final int mineConcept = manager.getNextAvailableConceptId();
         final AcceptationId mineAcc = addSimpleAcceptation(manager, esAlphabet, mineConcept, "mío");
 
-        final int substantiveConcept = manager.getMaxConcept() + 1;
+        final int substantiveConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, substantiveConcept, "sustantivo");
 
         final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
 
         final ImmutableCorrelation<AlphabetId> adder = emptyCorrelation.put(esAlphabet, "s");
 
-        final int pluralConcept = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getNextAvailableConceptId();
         final BunchId substantiveBunch = conceptAsBunchId(substantiveConcept);
         final RuleId pluralRule = conceptAsRuleId(pluralConcept);
         final int agentId = manager.addAgent(setOf(), setOf(substantiveBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, adder, pluralRule);
@@ -139,7 +139,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
                 .add(newSpan(text, "mío", mineAcc))
                 .build();
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final int sentence = manager.addSentence(concept, text, spans);
         manager.removeAgent(agentId);
         assertTrue(manager.getSampleSentences(carAcc).isEmpty());
@@ -155,22 +155,22 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int brushConcept = manager.getMaxConcept() + 1;
+        final int brushConcept = manager.getNextAvailableConceptId();
         final AcceptationId brushAcc = addSimpleAcceptation(manager, esAlphabet, brushConcept, "cepillar");
 
-        final int toothConcept = manager.getMaxConcept() + 1;
+        final int toothConcept = manager.getNextAvailableConceptId();
         final AcceptationId toothAcc = addSimpleAcceptation(manager, esAlphabet, toothConcept, "diente");
 
-        final int arVerbConcept = manager.getMaxConcept() + 1;
+        final int arVerbConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int pluralableConcept = manager.getMaxConcept() + 1;
+        final int pluralableConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, pluralableConcept, "pluralizable");
 
-        final int firstPersonConcept = manager.getMaxConcept() + 1;
+        final int firstPersonConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, firstPersonConcept, "primera persona");
 
-        final int pluralConcept = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, pluralConcept, "plural");
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
@@ -195,7 +195,7 @@ interface LangbookManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlation
                 .add(newSpan(text, "dientes", teethAcc))
                 .build();
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final int sentence = manager.addSentence(concept, text, spans);
 
         manager.removeAgent(headAgent);

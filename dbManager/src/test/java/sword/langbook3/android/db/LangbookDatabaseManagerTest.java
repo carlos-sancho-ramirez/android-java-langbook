@@ -29,7 +29,7 @@ final class LangbookDatabaseManagerTest implements LangbookManagerTest<LanguageI
 
     @Override
     public AlphabetIdHolder getNextAvailableAlphabetId(ConceptsChecker manager) {
-        return new AlphabetIdHolder(manager.getMaxConcept() + 1);
+        return new AlphabetIdHolder(manager.getNextAvailableConceptId());
     }
 
     @Override

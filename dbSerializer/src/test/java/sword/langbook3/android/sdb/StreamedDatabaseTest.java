@@ -59,7 +59,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
 
     @Override
     public AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
-        return new AlphabetIdHolder(manager.getMaxConcept() + 1);
+        return new AlphabetIdHolder(manager.getNextAvailableConceptId());
     }
 
     @Override
@@ -82,21 +82,21 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
         final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> inManager = createManager(inDb);
         final AlphabetIdHolder alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int feminableWordsConcept = inManager.getMaxConcept() + 1;
+        final int feminableWordsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, feminableWordsConcept, "feminizable");
 
-        final int pluralableWordsConcept = inManager.getMaxConcept() + 1;
+        final int pluralableWordsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, pluralableWordsConcept, "pluralizable");
 
-        final int boyConcept = inManager.getMaxConcept() + 1;
+        final int boyConcept = inManager.getNextAvailableConceptId();
         final AcceptationIdHolder boyAcc = addSimpleAcceptation(inManager, alphabet, boyConcept, "chico");
         final BunchIdHolder feminableWordsBunch = conceptAsBunchId(feminableWordsConcept);
         inManager.addAcceptationInBunch(feminableWordsBunch, boyAcc);
 
-        final int femenineConcept = inManager.getMaxConcept() + 1;
+        final int femenineConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, femenineConcept, "femenino");
 
-        final int pluralConcept = inManager.getMaxConcept() + 1;
+        final int pluralConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, pluralConcept, "plural");
 
         final BunchIdHolder pluralableWordsBunch = conceptAsBunchId(pluralableWordsConcept);
@@ -114,7 +114,7 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
                 .add(newSpan(sentenceText, "chicas", girlsAcc))
                 .build();
 
-        final int sentenceConcept = inManager.getMaxConcept() + 1;
+        final int sentenceConcept = inManager.getNextAvailableConceptId();
         inManager.addSentence(sentenceConcept, sentenceText, spans);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);

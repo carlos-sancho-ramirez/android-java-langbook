@@ -229,7 +229,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
 
         final String convertedText = manager.getConversion(new ImmutablePair<>(mainAlphabet, secondAlphabet)).convert("casa");
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
         final ImmutableCorrelation<AlphabetId> texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
@@ -247,7 +247,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
         final AlphabetId secondAlphabet = getNextAvailableAlphabetId(manager);
 
@@ -275,7 +275,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
         final AlphabetId secondAlphabet = getNextAvailableAlphabetId(manager);
         final Conversion<AlphabetId> conversion = new Conversion<>(mainAlphabet, secondAlphabet, upperCaseConversion);
@@ -297,7 +297,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
 
         final AlphabetId enMainAlphabet = manager.addLanguage("en").mainAlphabet;
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final AcceptationId esAcc = addSimpleAcceptation(manager, esMainAlphabet, concept, "casa");
         final AcceptationId enAcc = addSimpleAcceptation(manager, enMainAlphabet, concept, "house");
         assertNotEquals(esAcc, enAcc);
@@ -314,7 +314,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
 
         final AcceptationId acceptation = addSimpleAcceptation(manager, alphabet, concept, "cantar");
         assertSinglePair(alphabet, "cantar", manager.getAcceptationTexts(acceptation));
@@ -328,7 +328,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
 
         final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
                 .add(new ImmutableCorrelation.Builder<AlphabetId>()
@@ -368,7 +368,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
                 .build();
         final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, convMap);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
 
         final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
                 .add(new ImmutableCorrelation.Builder<AlphabetId>()
@@ -396,14 +396,14 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager1 = createManager(db1);
 
         final AlphabetId alphabet1 = manager1.addLanguage("es").mainAlphabet;
-        final int concept1 = manager1.getMaxConcept() + 1;
+        final int concept1 = manager1.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager1, alphabet1, concept1, "cantar");
 
         final MemoryDatabase db2 = new MemoryDatabase();
         final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager2 = createManager(db2);
 
         final AlphabetId alphabet2 = manager2.addLanguage("es").mainAlphabet;
-        final int concept2 = manager2.getMaxConcept() + 1;
+        final int concept2 = manager2.getNextAvailableConceptId();
         assertEquals(acceptationId, addSimpleAcceptation(manager2, alphabet2, concept2, "cantar"));
         assertEquals(db1, db2);
 
@@ -435,7 +435,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final Conversion<AlphabetId> conversion1 = new Conversion<>(kanaAlphabet, roumajiAlphabet, convMap);
         manager.addAlphabetAsConversionTarget(conversion1);
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager, kanaAlphabet, concept, "ねこ");
 
         final ImmutableCorrelation<AlphabetId> texts1 = manager.getAcceptationTexts(acceptationId);
@@ -479,7 +479,7 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final Conversion<AlphabetId> conversion = new Conversion<>(kanaAlphabet, roumajiAlphabet, convMap);
         assertTrue(manager.replaceConversion(conversion));
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager, kanaAlphabet, concept, "ねこ");
         final ImmutableCorrelation<AlphabetId> texts = manager.getAcceptationTexts(acceptationId);
         assertSize(2, texts);
@@ -493,10 +493,10 @@ public interface AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, 
         final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int guyConcept = manager.getMaxConcept() + 1;
+        final int guyConcept = manager.getNextAvailableConceptId();
         final AcceptationId guyAcc = addSimpleAcceptation(manager, alphabet, guyConcept, "persona");
 
-        final int personConcept = manager.getMaxConcept() + 1;
+        final int personConcept = manager.getNextAvailableConceptId();
         final AcceptationId personAcc = addSimpleAcceptation(manager, alphabet, personConcept, "persona");
         assertNotEquals(guyAcc, personAcc);
 

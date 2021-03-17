@@ -15,7 +15,7 @@ public final class LanguageIdManager implements IntSetter<LanguageId> {
     }
 
     public static LanguageId getNextAvailableId(ConceptsChecker manager) {
-        return new LanguageId(manager.getMaxConcept() + 1);
+        return new LanguageId(manager.getNextAvailableConceptId());
     }
 
     public static int getConceptId(LanguageId alphabetId) {

@@ -92,7 +92,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final AlphabetId kanaAlphabet = getNextAvailableAlphabetId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
 
-        final int myVocabularyConcept = manager.getMaxConcept() + 1;
+        final int myVocabularyConcept = manager.getNextAvailableConceptId();
         final int arVerbConcept = myVocabularyConcept + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -125,7 +125,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final AlphabetId kanaAlphabet = getNextAvailableAlphabetId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
 
-        final int myVocabularyConcept = manager.getMaxConcept() + 1;
+        final int myVocabularyConcept = manager.getNextAvailableConceptId();
         final int arVerbConcept = myVocabularyConcept + 1;
         final int actionConcept = arVerbConcept + 1;
         final int nominalizationRule = actionConcept + 1;
@@ -161,7 +161,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final Conversion<AlphabetId> conversion = new Conversion<>(alphabet, upperCaseAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final ImmutableSet<BunchId> noBunches = setOf();
@@ -170,7 +170,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
                 .put(alphabet, "er")
                 .build();
 
-        final int secondConjugationVerbConcept = manager.getMaxConcept() + 1;
+        final int secondConjugationVerbConcept = manager.getNextAvailableConceptId();
         final BunchId secondConjugationVerbBunch = conceptAsBunchId(secondConjugationVerbConcept);
         manager.addAgent(setOf(secondConjugationVerbBunch), noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, null);
 
@@ -201,7 +201,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final Conversion<AlphabetId> conversion = new Conversion<>(alphabet, upperCaseAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        final int concept = manager.getMaxConcept() + 1;
+        final int concept = manager.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final ImmutableSet<BunchId> noBunches = setOf();
@@ -210,7 +210,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
                 .put(alphabet, "ar")
                 .build();
 
-        final int firstConjugationVerbConcept = manager.getMaxConcept() + 1;
+        final int firstConjugationVerbConcept = manager.getNextAvailableConceptId();
         final BunchId firstConjugationVerbBunch = conceptAsBunchId(firstConjugationVerbConcept);
         manager.addAgent(setOf(firstConjugationVerbBunch), noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, null);
 
@@ -239,37 +239,37 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
 
-        final int singConcept = manager.getMaxConcept() + 1;
+        final int singConcept = manager.getNextAvailableConceptId();
         final AcceptationId esSingAcc = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
         addSimpleAcceptation(manager, enAlphabet, singConcept, "sing");
 
-        final int eatConcept = manager.getMaxConcept() + 1;
+        final int eatConcept = manager.getNextAvailableConceptId();
         final AcceptationId esEatAcc = addSimpleAcceptation(manager, esAlphabet, eatConcept, "comer");
         addSimpleAcceptation(manager, enAlphabet, eatConcept, "eat");
 
-        final int bigConcept = manager.getMaxConcept() + 1;
+        final int bigConcept = manager.getNextAvailableConceptId();
         final AcceptationId esBigAcc = addSimpleAcceptation(manager, esAlphabet, bigConcept, "grande");
         addSimpleAcceptation(manager, enAlphabet, bigConcept, "big");
 
-        final int smallConcept = manager.getMaxConcept() + 1;
+        final int smallConcept = manager.getNextAvailableConceptId();
         final AcceptationId esSmallAcc = addSimpleAcceptation(manager, esAlphabet, smallConcept, "pequeño");
         addSimpleAcceptation(manager, enAlphabet, smallConcept, "small");
 
-        final int verbsConcept = manager.getMaxConcept() + 1;
+        final int verbsConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, verbsConcept, "verbos");
 
         final BunchId verbsBunch = conceptAsBunchId(verbsConcept);
         manager.addAcceptationInBunch(verbsBunch, esSingAcc);
         manager.addAcceptationInBunch(verbsBunch, esEatAcc);
 
-        final int adjConcept = manager.getMaxConcept() + 1;
+        final int adjConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, adjConcept, "adjetivos");
 
         final BunchId adjBunch = conceptAsBunchId(adjConcept);
         manager.addAcceptationInBunch(adjBunch, esBigAcc);
         manager.addAcceptationInBunch(adjBunch, esSmallAcc);
 
-        final int targetConcept = manager.getMaxConcept() + 1;
+        final int targetConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, targetConcept, "palabras");
 
         final BunchId targetBunch = conceptAsBunchId(targetConcept);

@@ -124,7 +124,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
         final RuleId gerundRule = conceptAsRuleId(gerund);
@@ -159,10 +159,10 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int singConcept = inManager.getMaxConcept() + 1;
+        final int singConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
         final RuleId gerundRule = conceptAsRuleId(gerund);
@@ -210,10 +210,10 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int exceptionsConcept = inManager.getMaxConcept() + 1;
+        final int exceptionsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, exceptionsConcept, "excepciones");
 
         final BunchId exceptionsBunch = conceptAsBunchId(exceptionsConcept);
@@ -252,13 +252,13 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int exceptionsConcept = inManager.getMaxConcept() + 1;
+        final int exceptionsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, exceptionsConcept, "excepciones");
 
-        final int singConcept = inManager.getMaxConcept() + 1;
+        final int singConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
         final BunchId exceptionsBunch = conceptAsBunchId(exceptionsConcept);
@@ -308,13 +308,13 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int exceptionsConcept = inManager.getMaxConcept() + 1;
+        final int exceptionsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, exceptionsConcept, "excepciones");
 
-        final int palate = inManager.getMaxConcept() + 1;
+        final int palate = inManager.getNextAvailableConceptId();
         final AcceptationId palateAcc = addSimpleAcceptation(inManager, alphabet, palate, "paladar");
 
         final BunchId exceptionsBunch = conceptAsBunchId(exceptionsConcept);
@@ -355,16 +355,16 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int exceptionsConcept = inManager.getMaxConcept() + 1;
+        final int exceptionsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, exceptionsConcept, "excepciones");
 
-        final int singConcept = inManager.getMaxConcept() + 1;
+        final int singConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
-        final int palate = inManager.getMaxConcept() + 1;
+        final int palate = inManager.getNextAvailableConceptId();
         final AcceptationId palateAcc = addSimpleAcceptation(inManager, alphabet, palate, "paladar");
 
         final BunchId exceptionsBunch = conceptAsBunchId(exceptionsConcept);
@@ -415,10 +415,10 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int gerundConcept = inManager.getMaxConcept() + 1;
+        final int gerundConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerundConcept, "gerundios");
 
         final BunchId gerundBunch = conceptAsBunchId(gerundConcept);
@@ -458,13 +458,13 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int gerundConcept = inManager.getMaxConcept() + 1;
+        final int gerundConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerundConcept, "gerundios");
 
-        final int secondConcept = inManager.getMaxConcept() + 1;
+        final int secondConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, secondConcept, "mis palabras");
 
         final BunchId gerundBunch = conceptAsBunchId(gerundConcept);
@@ -510,13 +510,13 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int gerundConcept = inManager.getMaxConcept() + 1;
+        final int gerundConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerundConcept, "gerundios");
 
-        final int singConcept = inManager.getMaxConcept() + 1;
+        final int singConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
         final BunchId gerundBunch = conceptAsBunchId(gerundConcept);
@@ -569,16 +569,16 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int gerundConcept = inManager.getMaxConcept() + 1;
+        final int gerundConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerundConcept, "gerundios");
 
-        final int secondConcept = inManager.getMaxConcept() + 1;
+        final int secondConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, secondConcept, "mis palabras");
 
-        final int singConcept = inManager.getMaxConcept() + 1;
+        final int singConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
         final BunchId gerundBunch = conceptAsBunchId(gerundConcept);
@@ -634,10 +634,10 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int repeat = inManager.getMaxConcept() + 1;
+        final int repeat = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, repeat, "repetición");
 
-        final int singConcept = inManager.getMaxConcept() + 1;
+        final int singConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
         final RuleId repeatRule = conceptAsRuleId(repeat);
@@ -684,7 +684,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
 
@@ -736,7 +736,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
 
@@ -790,7 +790,7 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         final int verbConcept = gerund + 1;
         final int concept = verbConcept + 1;
 
@@ -847,10 +847,10 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
@@ -888,13 +888,13 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int transitiveVerbConcept = inManager.getMaxConcept() + 1;
+        final int transitiveVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, transitiveVerbConcept, "verbo transitivo");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
@@ -936,13 +936,13 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
-        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inSingConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
@@ -986,16 +986,16 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
-        final int secondConcept = inManager.getMaxConcept() + 1;
+        final int secondConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, secondConcept, "mis palabras");
 
-        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inSingConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
@@ -1042,13 +1042,13 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int arEndedNounsConcept = inManager.getMaxConcept() + 1;
+        final int arEndedNounsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arEndedNounsConcept, "sustantivos acabados en ar");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
@@ -1093,16 +1093,16 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int arEndedNounsConcept = inManager.getMaxConcept() + 1;
+        final int arEndedNounsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arEndedNounsConcept, "sustantivos acabados en ar");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
-        final int actionConcept = inManager.getMaxConcept() + 1;
+        final int actionConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, actionConcept, "acción");
 
         final BunchId verbBunch = conceptAsBunchId(verbConcept);
@@ -1151,16 +1151,16 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int arEndedNounsConcept = inManager.getMaxConcept() + 1;
+        final int arEndedNounsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arEndedNounsConcept, "sustantivos acabados en ar");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
-        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inSingConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         inManager.addAcceptationInBunch(arVerbBunch, inAcceptation);
@@ -1208,19 +1208,19 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int arEndedNounsConcept = inManager.getMaxConcept() + 1;
+        final int arEndedNounsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arEndedNounsConcept, "sustantivos acabados en ar");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
-        final int actionConcept = inManager.getMaxConcept() + 1;
+        final int actionConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, actionConcept, "acción");
 
-        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inSingConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         inManager.addAcceptationInBunch(arVerbBunch, inAcceptation);
@@ -1272,16 +1272,16 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int arEndedNounsConcept = inManager.getMaxConcept() + 1;
+        final int arEndedNounsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arEndedNounsConcept, "sustantivos acabados en ar");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
-        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inSingConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
         final BunchId arVerbBunch = conceptAsBunchId(arVerbConcept);
         final BunchId arEndedNounsBunch = conceptAsBunchId(arEndedNounsConcept);
@@ -1330,16 +1330,16 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
-        final int arVerbConcept = inManager.getMaxConcept() + 1;
+        final int arVerbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arVerbConcept, "verbo de primera conjugación");
 
-        final int arEndedNounsConcept = inManager.getMaxConcept() + 1;
+        final int arEndedNounsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, arEndedNounsConcept, "sustantivos acabados en ar");
 
-        final int verbConcept = inManager.getMaxConcept() + 1;
+        final int verbConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, inAlphabet, verbConcept, "verbo");
 
-        final int inSingConcept = inManager.getMaxConcept() + 1;
+        final int inSingConcept = inManager.getNextAvailableConceptId();
         final AcceptationId inAcceptation = addSimpleAcceptation(inManager, inAlphabet, inSingConcept, "cantar");
         final BunchId arEndedNounsBunch = conceptAsBunchId(arEndedNounsConcept);
         inManager.addAcceptationInBunch(arEndedNounsBunch, inAcceptation);
@@ -1391,10 +1391,10 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final Conversion<AlphabetId> conversion = new Conversion<>(alphabet, upperCaseAlphabet, AcceptationsSerializerTest.upperCaseConversion);
         inManager.addAlphabetAsConversionTarget(conversion);
 
-        final int gerund = inManager.getMaxConcept() + 1;
+        final int gerund = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, gerund, "gerundio");
 
-        final int singConcept = inManager.getMaxConcept() + 1;
+        final int singConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, singConcept, "cantar");
 
         final RuleId gerundRule = conceptAsRuleId(gerund);
@@ -1449,19 +1449,19 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
-        final int singConcept = manager.getMaxConcept() + 1;
+        final int singConcept = manager.getNextAvailableConceptId();
         final AcceptationId singAcceptation = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
 
-        final int myConcept = manager.getMaxConcept() + 1;
+        final int myConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, myConcept, "palabras");
         final BunchId myBunch = conceptAsBunchId(myConcept);
         manager.addAcceptationInBunch(myBunch, singAcceptation);
 
-        final int studyConcept = manager.getMaxConcept() + 1;
+        final int studyConcept = manager.getNextAvailableConceptId();
         final AcceptationId studyAcceptation = addSimpleAcceptation(manager, jaAlphabet, studyConcept, "べんきょう");
         manager.addAcceptationInBunch(myBunch, studyAcceptation);
 
-        final int verbalitationConcept = manager.getMaxConcept() + 1;
+        final int verbalitationConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, verbalitationConcept, "verbalización");
 
         final RuleId verbalitationRule = conceptAsRuleId(verbalitationConcept);
@@ -1481,21 +1481,21 @@ interface AgentsSerializerTest<LanguageId, AlphabetId, CorrelationId, Acceptatio
         final AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(inDb);
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int studentConcept = manager.getMaxConcept() + 1;
+        final int studentConcept = manager.getNextAvailableConceptId();
         final AcceptationId studentAcceptation = addSimpleAcceptation(manager, esAlphabet, studentConcept, "alumno");
 
-        final int concept1 = manager.getMaxConcept() + 1;
+        final int concept1 = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, concept1, "palabras masculinas");
         final BunchId bunch1 = conceptAsBunchId(concept1);
         manager.addAcceptationInBunch(bunch1, studentAcceptation);
 
-        final int concept2 = manager.getMaxConcept() + 1;
+        final int concept2 = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, concept2, "palabras femeninas");
 
-        final int femenineConcept = manager.getMaxConcept() + 1;
+        final int femenineConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, femenineConcept, "femenino");
 
-        final int pluralConcept = manager.getMaxConcept() + 1;
+        final int pluralConcept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, esAlphabet, pluralConcept, "plural");
 
         final BunchId bunch2 = conceptAsBunchId(concept2);
