@@ -32,6 +32,7 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.BunchIdParceler;
+import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationEntryListParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
@@ -610,7 +611,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 throw new AssertionError();
             }
 
-            final int concept = manager.conceptFromAcceptation(acceptation);
+            final ConceptId concept = manager.conceptFromAcceptation(acceptation);
             _state.rule = RuleIdManager.conceptAsRuleId(concept);
 
             final String text = manager.readConceptText(concept, _preferredAlphabet);

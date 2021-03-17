@@ -9,6 +9,8 @@ import android.widget.EditText;
 
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.ConceptIdBundler;
 
 public final class SentenceEditorActivity extends Activity implements View.OnClickListener {
 
@@ -26,9 +28,9 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         String SENTENCE_ID = BundleKeys.SENTENCE_ID;
     }
 
-    static void openWithConcept(Activity activity, int requestCode, int concept) {
+    static void openWithConcept(Activity activity, int requestCode, ConceptId concept) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
-        intent.putExtra(ArgKeys.CONCEPT, concept);
+        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -54,8 +56,8 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         return AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
     }
 
-    private int getConcept() {
-        return getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
+    private ConceptId getConcept() {
+        return ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
     }
 
     @Override

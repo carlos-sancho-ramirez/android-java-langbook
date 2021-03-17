@@ -8,6 +8,8 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
@@ -35,9 +37,9 @@ public final class AcceptationPickerActivity extends SearchActivity {
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, int concept) {
+    public static void open(Activity activity, int requestCode, ConceptId concept) {
         final Intent intent = new Intent(activity, AcceptationPickerActivity.class);
-        intent.putExtra(ArgKeys.CONCEPT, concept);
+        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -52,7 +54,7 @@ public final class AcceptationPickerActivity extends SearchActivity {
 
     @Override
     void openLanguagePicker(String query) {
-        final int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
+        final ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
         LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, query, concept);
     }
 

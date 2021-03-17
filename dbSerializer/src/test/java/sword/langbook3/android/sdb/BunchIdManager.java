@@ -1,9 +1,9 @@
 package sword.langbook3.android.sdb;
 
 import sword.database.DbValue;
-import sword.langbook3.android.db.IntSetter;
+import sword.langbook3.android.db.ConceptualizableSetter;
 
-final class BunchIdManager implements IntSetter<BunchIdHolder> {
+final class BunchIdManager implements ConceptualizableSetter<ConceptIdHolder, BunchIdHolder> {
 
     @Override
     public BunchIdHolder getKeyFromInt(int key) {
@@ -13,5 +13,10 @@ final class BunchIdManager implements IntSetter<BunchIdHolder> {
     @Override
     public BunchIdHolder getKeyFromDbValue(DbValue value) {
         return getKeyFromInt(value.toInt());
+    }
+
+    @Override
+    public BunchIdHolder getKeyFromConceptId(ConceptIdHolder concept) {
+        return new BunchIdHolder(concept.key);
     }
 }

@@ -22,6 +22,7 @@ import static sword.collections.TraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.collections.EqualUtils.equal;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
 import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
+import static sword.langbook3.android.db.AcceptationsManagerTest.obtainNewAcceptation;
 import static sword.langbook3.android.db.AgentsManagerTest.setOf;
 import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
@@ -33,10 +34,10 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
  * <li>Quizzes</li>
  * <li>Knowledge</li>
  */
-interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends AgentsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> {
+interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends AgentsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> {
 
     @Override
-    QuizzesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> createManager(MemoryDatabase db);
+    QuizzesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> createManager(MemoryDatabase db);
 
     static <K> void assertSinglePair(K expectedKey, int expectedValue, IntValueMap<K> map) {
         SizableTestUtils.assertSize(1, map);
@@ -52,7 +53,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
 
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId> void addJapaneseSingAcceptation(AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId kanjiAlphabet, AlphabetId kanaAlphabet, int concept) {
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> void addJapaneseSingAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId kanjiAlphabet, AlphabetId kanaAlphabet, ConceptId concept) {
         final ImmutableCorrelation<AlphabetId> correlation1 = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(kanjiAlphabet, "歌")
                 .put(kanaAlphabet, "うた")
@@ -71,12 +72,12 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         manager.addAcceptation(concept, correlationArray);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> Integer addAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> Integer addAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
         final ImmutableCorrelation<AlphabetId> empty = ImmutableCorrelation.empty();
         return manager.addAgent(targetBunches, sourceBunches, ImmutableHashSet.empty(), empty, empty, empty, empty, null);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> boolean updateAgent(AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> boolean updateAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
         final ImmutableCorrelation<AlphabetId> empty = ImmutableCorrelation.empty();
         return manager.updateAgent(agentId, targetBunches, sourceBunches, ImmutableHashSet.empty(), empty, empty, empty, empty, null);
     }
@@ -84,7 +85,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
     @Test
     default void testAddAcceptationInBunchAndQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
+        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -92,16 +93,10 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
         final AlphabetId kanaAlphabet = getNextAvailableAlphabetId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
 
-        final int myVocabularyConcept = manager.getNextAvailableConceptId();
-        final int arVerbConcept = myVocabularyConcept + 1;
-        final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
-
+        final ConceptId singConcept = manager.getNextAvailableConceptId();
         final AcceptationId esAcceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
 
-        final BunchId myVocabularyBunch = conceptAsBunchId(myVocabularyConcept);
+        final BunchId myVocabularyBunch = obtainNewBunch(manager, alphabet, "myVocabulary");
         manager.addAcceptationInBunch(myVocabularyBunch, esAcceptation);
 
         addJapaneseSingAcceptation(manager, kanjiAlphabet, kanaAlphabet, singConcept);
@@ -118,20 +113,14 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
     @Test
     default void testAddQuizAndAcceptationInBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
+        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kanaAlphabet = getNextAvailableAlphabetId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(kanaAlphabet, kanjiAlphabet));
 
-        final int myVocabularyConcept = manager.getNextAvailableConceptId();
-        final int arVerbConcept = myVocabularyConcept + 1;
-        final int actionConcept = arVerbConcept + 1;
-        final int nominalizationRule = actionConcept + 1;
-        final int pluralRule = nominalizationRule + 1;
-        final int singConcept = pluralRule + 1;
-
+        final ConceptId singConcept = manager.getNextAvailableConceptId();
         final AcceptationId esAcceptation = addSpanishSingAcceptation(manager, alphabet, singConcept);
         addJapaneseSingAcceptation(manager, kanjiAlphabet, kanaAlphabet, singConcept);
 
@@ -140,7 +129,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
                 .add(new QuestionFieldDetails<>(kanjiAlphabet, null, LangbookDbSchema.QuestionFieldFlags.IS_ANSWER | LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT))
                 .build();
 
-        final BunchId myVocabularyBunch = conceptAsBunchId(myVocabularyConcept);
+        final BunchId myVocabularyBunch = obtainNewBunch(manager, alphabet, "myVocabulary");
         final int quizId = manager.obtainQuiz(myVocabularyBunch, fields);
         assertEmpty(manager.getCurrentKnowledge(quizId));
 
@@ -154,15 +143,14 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
     @Test
     default void testUpdateAcceptationCorrelationArray() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
+        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId upperCaseAlphabet = getNextAvailableAlphabetId(manager);
         final Conversion<AlphabetId> conversion = new Conversion<>(alphabet, upperCaseAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        final int concept = manager.getNextAvailableConceptId();
-        final AcceptationId acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
+        final AcceptationId acceptationId = obtainNewAcceptation(manager, alphabet, "cantar");
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final ImmutableCorrelation<AlphabetId> nullCorrelation = new ImmutableCorrelation.Builder<AlphabetId>().build();
@@ -170,8 +158,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
                 .put(alphabet, "er")
                 .build();
 
-        final int secondConjugationVerbConcept = manager.getNextAvailableConceptId();
-        final BunchId secondConjugationVerbBunch = conceptAsBunchId(secondConjugationVerbConcept);
+        final BunchId secondConjugationVerbBunch = obtainNewBunch(manager, alphabet, "secondconjugationverb");
         manager.addAgent(setOf(secondConjugationVerbBunch), noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, null);
 
         final ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> quizFields = new ImmutableList.Builder<QuestionFieldDetails<AlphabetId, RuleId>>()
@@ -194,15 +181,14 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
     @Test
     default void testUpdateAcceptationCorrelationArrayFromMatching() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
+        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId upperCaseAlphabet = getNextAvailableAlphabetId(manager);
         final Conversion<AlphabetId> conversion = new Conversion<>(alphabet, upperCaseAlphabet, upperCaseConversion);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
-        final int concept = manager.getNextAvailableConceptId();
-        final AcceptationId acceptationId = addSimpleAcceptation(manager, alphabet, concept, "cantar");
+        final AcceptationId acceptationId = obtainNewAcceptation(manager, alphabet, "cantar");
 
         final ImmutableSet<BunchId> noBunches = setOf();
         final ImmutableCorrelation<AlphabetId> nullCorrelation = new ImmutableCorrelation.Builder<AlphabetId>().build();
@@ -210,8 +196,7 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
                 .put(alphabet, "ar")
                 .build();
 
-        final int firstConjugationVerbConcept = manager.getNextAvailableConceptId();
-        final BunchId firstConjugationVerbBunch = conceptAsBunchId(firstConjugationVerbConcept);
+        final BunchId firstConjugationVerbBunch = obtainNewBunch(manager, alphabet, "firstconjugationverb");
         manager.addAgent(setOf(firstConjugationVerbBunch), noBunches, noBunches, nullCorrelation, nullCorrelation, matcher, matcher, null);
 
         final ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> quizFields = new ImmutableList.Builder<QuestionFieldDetails<AlphabetId, RuleId>>()
@@ -234,45 +219,36 @@ interface QuizzesManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationI
     @Test
     default void testIncludeExtraTargetBunchInAgentFillingBunchForQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
+        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
 
-        final int singConcept = manager.getNextAvailableConceptId();
+        final ConceptId singConcept = manager.getNextAvailableConceptId();
         final AcceptationId esSingAcc = addSimpleAcceptation(manager, esAlphabet, singConcept, "cantar");
         addSimpleAcceptation(manager, enAlphabet, singConcept, "sing");
 
-        final int eatConcept = manager.getNextAvailableConceptId();
+        final ConceptId eatConcept = manager.getNextAvailableConceptId();
         final AcceptationId esEatAcc = addSimpleAcceptation(manager, esAlphabet, eatConcept, "comer");
         addSimpleAcceptation(manager, enAlphabet, eatConcept, "eat");
 
-        final int bigConcept = manager.getNextAvailableConceptId();
+        final ConceptId bigConcept = manager.getNextAvailableConceptId();
         final AcceptationId esBigAcc = addSimpleAcceptation(manager, esAlphabet, bigConcept, "grande");
         addSimpleAcceptation(manager, enAlphabet, bigConcept, "big");
 
-        final int smallConcept = manager.getNextAvailableConceptId();
+        final ConceptId smallConcept = manager.getNextAvailableConceptId();
         final AcceptationId esSmallAcc = addSimpleAcceptation(manager, esAlphabet, smallConcept, "pequeño");
         addSimpleAcceptation(manager, enAlphabet, smallConcept, "small");
 
-        final int verbsConcept = manager.getNextAvailableConceptId();
-        addSimpleAcceptation(manager, esAlphabet, verbsConcept, "verbos");
-
-        final BunchId verbsBunch = conceptAsBunchId(verbsConcept);
+        final BunchId verbsBunch = obtainNewBunch(manager, esAlphabet, "verbos");
         manager.addAcceptationInBunch(verbsBunch, esSingAcc);
         manager.addAcceptationInBunch(verbsBunch, esEatAcc);
 
-        final int adjConcept = manager.getNextAvailableConceptId();
-        addSimpleAcceptation(manager, esAlphabet, adjConcept, "adjetivos");
-
-        final BunchId adjBunch = conceptAsBunchId(adjConcept);
+        final BunchId adjBunch = obtainNewBunch(manager, esAlphabet, "adjetivos");
         manager.addAcceptationInBunch(adjBunch, esBigAcc);
         manager.addAcceptationInBunch(adjBunch, esSmallAcc);
 
-        final int targetConcept = manager.getNextAvailableConceptId();
-        addSimpleAcceptation(manager, esAlphabet, targetConcept, "palabras");
-
-        final BunchId targetBunch = conceptAsBunchId(targetConcept);
+        final BunchId targetBunch = obtainNewBunch(manager, esAlphabet, "palabras");
         final int agent = addAgent(manager, setOf(targetBunch), setOf(verbsBunch));
         final int quiz = manager.obtainQuiz(targetBunch, ImmutableList.<QuestionFieldDetails<AlphabetId, RuleId>>empty()
                 .append(new QuestionFieldDetails<>(esAlphabet, null, LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC))

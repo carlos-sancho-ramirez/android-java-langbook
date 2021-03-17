@@ -20,6 +20,7 @@ import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.IntSetter;
 import sword.langbook3.android.db.LangbookDbSchema;
+import sword.langbook3.android.db.LanguageIdInterface;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -45,11 +46,10 @@ import static sword.collections.TraversableTestUtils.getSingleValue;
  * <li>Conversions</li>
  * <li>Acceptations</li>
  */
-public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public interface AcceptationsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CorrelationId, AcceptationId> {
 
-    AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> createManager(MemoryDatabase db);
-    AlphabetId getNextAvailableId(ConceptsChecker manager);
-    int getLanguageConceptId(LanguageId language);
+    AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> createManager(MemoryDatabase db);
+    AlphabetId getNextAvailableId(ConceptsChecker<ConceptId> manager);
     IntSetter<AcceptationId> getAcceptationIdManager();
 
     static MemoryDatabase cloneBySerializing(MemoryDatabase inDb) {
@@ -106,8 +106,8 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
             .put("z", "Z")
             .build();
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId> AcceptationId addSimpleAcceptation(
-            AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId alphabet, int concept, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> AcceptationId addSimpleAcceptation(
+            AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -127,11 +127,11 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddFirstLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         manager.addLanguage("es");
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final ImmutableSet<AlphabetId> outAlphabets = outManager.findAlphabetsByLanguage(outLanguage);
@@ -142,14 +142,14 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testRemoveFirstAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         LanguageId inEsLanguage = manager.addLanguage("es").language;
         manager.addLanguage("en");
         manager.removeLanguage(inEsLanguage);
 
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         assertNull(outManager.findLanguageByCode("es"));
         final LanguageId outEnLanguage = outManager.findLanguageByCode("en");
@@ -161,7 +161,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
         final LanguageId language = langPair.language;
@@ -170,7 +170,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         manager.addAlphabetCopyingFromOther(secondAlphabet, mainAlphabet);
 
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outEsLanguage = outManager.findLanguageByCode("es");
         final ImmutableSet<AlphabetId> outEsAlphabets = outManager.findAlphabetsByLanguage(outEsLanguage);
@@ -180,16 +180,16 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddAlphabetCopyingFromOtherWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("ja");
 
         final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
-        addSimpleAcceptation(manager, mainAlphabet, getLanguageConceptId(language), "日本語");
+        addSimpleAcceptation(manager, mainAlphabet, language.getConceptId(), "日本語");
         manager.addAlphabetCopyingFromOther(getNextAvailableId(manager), mainAlphabet);
 
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("ja");
         final ImmutableSet<AlphabetId> outAlphabets = outManager.findAlphabetsByLanguage(outLanguage);
@@ -204,7 +204,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
@@ -215,7 +215,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
+        final AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
 
         final LanguageId outLanguage = checker.findLanguageByCode("es");
         final ImmutableSet<AlphabetId> outAlphabets = checker.findAlphabetsByLanguage(outLanguage);
@@ -231,14 +231,14 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddAlphabetAsConversionTargetWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
         final LanguageId language = langPair.language;
         final AlphabetId mainAlphabet = langPair.mainAlphabet;
 
-        final int concept = manager.getNextAvailableConceptId();
+        final ConceptId concept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, mainAlphabet, concept, "casa");
 
         final AlphabetId secondAlphabet = getNextAvailableId(manager);
@@ -246,7 +246,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
 
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
+        final AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
 
         final LanguageId outLanguage = checker.findLanguageByCode("es");
         final ImmutableSet<AlphabetId> outAlphabets = checker.findAlphabetsByLanguage(outLanguage);
@@ -266,10 +266,10 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
-        final int concept = manager.getNextAvailableConceptId();
+        final ConceptId concept = manager.getNextAvailableConceptId();
         addSimpleAcceptation(manager, alphabet, concept, "cantar");
 
         final MemoryDatabase outDb = cloneBySerializing(db);
@@ -279,12 +279,12 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableId(manager);
         assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
-        final int concept = manager.getNextAvailableConceptId();
+        final ConceptId concept = manager.getNextAvailableConceptId();
 
         final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
                 .add(new ImmutableCorrelation.Builder<AlphabetId>()
@@ -300,7 +300,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         manager.addAcceptation(concept, correlationArray);
 
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
+        final AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
 
         final LanguageId outLanguage = checker.findLanguageByCode("ja");
         final ImmutableSet<AlphabetId> outAlphabets = checker.findAlphabetsByLanguage(outLanguage);
@@ -333,7 +333,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
     @Test
     default void testAddJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableId(manager);
@@ -350,7 +350,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
                 .build();
         final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, convMap);
         assertTrue(manager.addAlphabetAsConversionTarget(conversion));
-        final int concept = manager.getNextAvailableConceptId();
+        final ConceptId concept = manager.getNextAvailableConceptId();
 
         final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
                 .add(new ImmutableCorrelation.Builder<AlphabetId>()
@@ -366,7 +366,7 @@ public interface AcceptationsSerializerTest<LanguageId, AlphabetId, CorrelationI
         manager.addAcceptation(concept, correlationArray);
 
         final MemoryDatabase outDb = cloneBySerializing(db);
-        final AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
+        final AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> checker = createManager(outDb);
 
         final LanguageId outLanguage = checker.findLanguageByCode("ja");
         final ImmutableSet<AlphabetId> outAlphabets = checker.findAlphabetsByLanguage(outLanguage);

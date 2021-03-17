@@ -19,9 +19,6 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
-import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
-
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
     private ImmutableMap<RuleId, String> _ruleTexts;
@@ -55,7 +52,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 return true;
 
             case R.id.menuItemQuiz:
-                QuizSelectorActivity.open(this, conceptAsBunchId(NO_BUNCH));
+                QuizSelectorActivity.open(this, null);
                 return true;
 
             case R.id.menuItemNewAgent:

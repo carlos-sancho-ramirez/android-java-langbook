@@ -6,11 +6,15 @@ import sword.database.DbValue;
 
 import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
 
-final class BunchIdHolder implements BunchIdInterface {
+final class BunchIdHolder implements BunchIdInterface<ConceptIdHolder> {
 
     final int key;
 
     BunchIdHolder(int key) {
+        if (key == 0) {
+            throw new IllegalArgumentException();
+        }
+
         this.key = key;
     }
 
@@ -43,8 +47,8 @@ final class BunchIdHolder implements BunchIdInterface {
     }
 
     @Override
-    public int getConceptId() {
-        return key;
+    public ConceptIdHolder getConceptId() {
+        return new ConceptIdHolder(key);
     }
 
     @Override

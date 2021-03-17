@@ -7,7 +7,7 @@ public final class CorrelationComposer {
             throw new IllegalArgumentException();
         }
 
-        final int concept = LanguageIdManager.getConceptId(newLanguageId);
+        final int concept = newLanguageId.key;
         final ImmutableCorrelation.Builder<AlphabetId> builder = new ImmutableCorrelation.Builder<>();
         for (int rawAlphabet = concept + 1; rawAlphabet <= concept + alphabetCount; rawAlphabet++) {
             builder.put(new AlphabetId(rawAlphabet), null);

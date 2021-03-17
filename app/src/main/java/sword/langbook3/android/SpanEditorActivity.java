@@ -21,6 +21,8 @@ import sword.collections.MutableIntValueMap;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
@@ -52,10 +54,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
     private SpanEditorActivityState _state;
 
-    static void openWithConcept(Activity activity, int requestCode, String text, int concept) {
+    static void openWithConcept(Activity activity, int requestCode, String text, ConceptId concept) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
-        intent.putExtra(ArgKeys.CONCEPT, concept);
+        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -101,14 +103,14 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
     }
 
-    private int getConcept() {
-        return getIntent().getIntExtra(ArgKeys.CONCEPT, 0);
+    private ConceptId getConcept() {
+        return ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
     }
 
     // We should prevent having sentences without neither spans nor other sentence sharing the same meaning,
     // as it will be not possible to reference them within the app.
     private boolean shouldAllowNoSpans() {
-        return getSentenceId() != NO_SENTENCE_ID || getConcept() != 0;
+        return getSentenceId() != NO_SENTENCE_ID || getConcept() != null;
     }
 
     private void insertInitialSpans(int sentenceId) {
@@ -236,8 +238,8 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             final LangbookDbManager manager = DbManager.getInstance().getManager();
             final int sentenceId = getSentenceId();
             if (sentenceId == NO_SENTENCE_ID) {
-                int concept = getConcept();
-                if (concept == 0) {
+                ConceptId concept = getConcept();
+                if (concept == null) {
                     concept = manager.getNextAvailableConceptId();
                 }
 

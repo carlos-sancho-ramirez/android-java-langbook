@@ -4,7 +4,6 @@ import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueMap;
@@ -19,7 +18,6 @@ import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
@@ -89,10 +87,10 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
 
-public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, AlphabetId extends AlphabetIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface, RuleId extends RuleIdInterface> extends LangbookDatabaseChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, RuleId> implements LangbookManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> {
+public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, RuleId extends RuleIdInterface<ConceptId>> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, RuleId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> {
 
-    public LangbookDatabaseManager(Database db, IntSetter<LanguageId> languageIdManager, IntSetter<AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, IntSetter<BunchId> bunchIdSetter, IntSetter<RuleId> ruleIdSetter) {
-        super(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, ruleIdSetter);
+    public LangbookDatabaseManager(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter) {
+        super(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, ruleIdSetter);
     }
 
     private boolean applyMatchersAddersAndConversions(
@@ -173,14 +171,14 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return id;
     }
 
-    private int insertRuledConcept(RuleId rule, int concept) {
-        final int ruledConcept = getMaxConcept() + 1;
-        LangbookDbInserter.insertRuledConcept(_db, ruledConcept, rule.getConceptId(), concept);
+    private ConceptId insertRuledConcept(RuleId rule, ConceptId concept) {
+        final ConceptId ruledConcept = getNextAvailableConceptId();
+        LangbookDbInserter.insertRuledConcept(_db, ruledConcept, rule, concept);
         return ruledConcept;
     }
 
-    private int obtainRuledConcept(RuleId rule, int concept) {
-        final Integer id = findRuledConcept(rule, concept);
+    private ConceptId obtainRuledConcept(RuleId rule, ConceptId concept) {
+        final ConceptId id = findRuledConcept(rule, concept);
         return (id != null)? id : insertRuledConcept(rule, concept);
     }
 
@@ -383,8 +381,8 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
                     final CorrelationId correlationId = obtainCorrelation(corrBuilder.build());
                     final CorrelationArrayId correlationArrayId = obtainSimpleCorrelationArray(correlationId);
 
-                    final int baseConcept = conceptFromAcceptation(acc);
-                    final int ruledConcept = obtainRuledConcept(details.rule, baseConcept);
+                    final ConceptId baseConcept = conceptFromAcceptation(acc);
+                    final ConceptId ruledConcept = obtainRuledConcept(details.rule, baseConcept);
                     final AcceptationId newAcc = insertAcceptation(_db, _acceptationIdSetter, ruledConcept, correlationArrayId);
                     insertRuledAcceptation(_db, newAcc, agentId, acc);
 
@@ -420,7 +418,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return (id != null)? id : insertBunchSet(bunchSet);
     }
 
-    private void updateAcceptationConcept(AcceptationId acceptation, int newConcept) {
+    private void updateAcceptationConcept(AcceptationId acceptation, ConceptIdInterface newConcept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getIdColumnIndex(), acceptation)
@@ -495,7 +493,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             final boolean mustChangeResultingText;
             if (sampleStaticAcc != null) {
                 final AcceptationId sampleDynAcc = oldProcessedMap.get(sampleStaticAcc);
-                final int sampleRuledConcept = conceptFromAcceptation(sampleDynAcc);
+                final ConceptId sampleRuledConcept = conceptFromAcceptation(sampleDynAcc);
                 final RuleId sampleRule = getRuleByRuledConcept(sampleRuledConcept);
                 hasSameRule = equal(sampleRule, agentDetails.rule);
                 canReuseOldRuledConcept = hasSameRule || findAgentsByRule(sampleRule).isEmpty();
@@ -517,15 +515,15 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             }
 
             if (!hasSameRule) {
-                final ImmutableIntPairMap ruledConceptsInvertedMap = findRuledConceptsByRuleInvertedMap(agentDetails.rule);
+                final ImmutableMap<ConceptId, ConceptId> ruledConceptsInvertedMap = findRuledConceptsByRuleInvertedMap(agentDetails.rule);
                 for (AcceptationId staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
                     final AcceptationId dynAcc = oldProcessedMap.get(staticAcc);
-                    final int baseConcept = conceptFromAcceptation(staticAcc);
-                    final int foundRuledConcept = ruledConceptsInvertedMap.get(baseConcept, 0);
+                    final ConceptId baseConcept = conceptFromAcceptation(staticAcc);
+                    final ConceptId foundRuledConcept = ruledConceptsInvertedMap.get(baseConcept, null);
 
                     if (canReuseOldRuledConcept) {
-                        final int ruledConcept = conceptFromAcceptation(dynAcc);
-                        if (foundRuledConcept != 0) {
+                        final ConceptId ruledConcept = conceptFromAcceptation(dynAcc);
+                        if (foundRuledConcept != null) {
                             updateAcceptationConcept(dynAcc, foundRuledConcept);
                             if (!deleteRuledConcept(_db, ruledConcept)) {
                                 throw new AssertionError();
@@ -543,7 +541,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
                         }
                     }
                     else {
-                        final int newRuledConcept = (foundRuledConcept != 0)? foundRuledConcept : insertRuledConcept(agentDetails.rule, baseConcept);
+                        final ConceptId newRuledConcept = (foundRuledConcept != null)? foundRuledConcept : insertRuledConcept(agentDetails.rule, baseConcept);
                         updateAcceptationConcept(dynAcc, newRuledConcept);
                     }
                 }
@@ -635,8 +633,8 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
                         final CorrelationId correlationId = obtainCorrelation(corrBuilder.build());
                         final CorrelationArrayId correlationArrayId = obtainSimpleCorrelationArray(correlationId);
-                        final int baseConcept = conceptFromAcceptation(acc);
-                        final int ruledConcept = obtainRuledConcept(agentDetails.rule, baseConcept);
+                        final ConceptId baseConcept = conceptFromAcceptation(acc);
+                        final ConceptId ruledConcept = obtainRuledConcept(agentDetails.rule, baseConcept);
                         final AcceptationId newAcc = insertAcceptation(_db, _acceptationIdSetter, ruledConcept, correlationArrayId);
                         insertRuledAcceptation(_db, newAcc, agentId, acc);
 
@@ -1145,7 +1143,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         removeFromStringQueryTable(acceptation);
         removeFromSentenceSpans(acceptation);
 
-        final int concept = conceptFromAcceptation(acceptation);
+        final ConceptId concept = conceptFromAcceptation(acceptation);
         final CorrelationArrayId correlationArray = correlationArrayFromAcceptation(acceptation);
         final boolean removed = LangbookDeleter.deleteAcceptation(_db, acceptation);
         deleteSearchHistoryForAcceptation(_db, acceptation);
@@ -1153,7 +1151,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         if (removed) {
             final boolean withoutSynonymsOrTranslations = findAcceptationsByConcept(concept).size() <= 1;
             if (withoutSynonymsOrTranslations) {
-                deleteBunch(_db, _bunchIdSetter.getKeyFromInt(concept));
+                deleteBunch(_db, _bunchIdSetter.getKeyFromConceptId(concept));
             }
 
             deleteRuledAcceptation(_db, acceptation);
@@ -1225,8 +1223,8 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
                         final CorrelationId correlationId = obtainCorrelation(corrBuilder.build());
                         final CorrelationArrayId correlationArrayId = obtainSimpleCorrelationArray(correlationId);
-                        final int baseConcept = conceptFromAcceptation(acc);
-                        final int ruledConcept = obtainRuledConcept(agentDetails.rule, baseConcept);
+                        final ConceptId baseConcept = conceptFromAcceptation(acc);
+                        final ConceptId ruledConcept = obtainRuledConcept(agentDetails.rule, baseConcept);
                         final AcceptationId newAcc = insertAcceptation(_db, _acceptationIdSetter, ruledConcept, correlationArrayId);
                         insertRuledAcceptation(_db, newAcc, agentId, acc);
                         addedAcceptations.add(newAcc);
@@ -1579,7 +1577,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return changed;
     }
 
-    private AcceptationId addAcceptation(int concept, CorrelationArrayId correlationArrayId) {
+    private AcceptationId addAcceptation(ConceptId concept, CorrelationArrayId correlationArrayId) {
         final Correlation<AlphabetId> texts = readCorrelationArrayTextAndItsAppliedConversions(correlationArrayId);
         if (texts == null) {
             return null;
@@ -1608,7 +1606,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     @Override
-    public AcceptationId addAcceptation(int concept, ImmutableCorrelationArray<AlphabetId> correlationArray) {
+    public AcceptationId addAcceptation(ConceptId concept, ImmutableCorrelationArray<AlphabetId> correlationArray) {
         final CorrelationArrayId correlationArrayId = obtainCorrelationArray(correlationArray.map(this::obtainCorrelation));
         return addAcceptation(concept, correlationArrayId);
     }
@@ -1687,7 +1685,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     private boolean canAcceptationBeRemoved(AcceptationId acceptation) {
-        final int concept = conceptFromAcceptation(acceptation);
+        final ConceptId concept = conceptFromAcceptation(acceptation);
         final boolean withSynonymsOrTranslations = !findAcceptationsByConcept(concept).remove(acceptation).isEmpty();
         return (withSynonymsOrTranslations || !hasAgentsRequiringAcceptation(concept)) &&
                 !findRuledAcceptationByBaseAcceptation(acceptation).anyMatch(acc -> !canAcceptationBeRemoved(acc));
@@ -1706,31 +1704,31 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return true;
     }
 
-    private void updateConceptsInComplementedConcepts(int oldConcept, int newConcept) {
+    private void updateConceptsInComplementedConcepts(ConceptId oldConcept, ConceptId newConcept) {
         final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
 
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getBaseColumnIndex(), oldConcept)
                 .put(table.getBaseColumnIndex(), newConcept)
                 .build();
         _db.update(query);
 
-        query = new DbUpdateQuery.Builder(table)
+        query = new DbUpdateQueryBuilder(table)
                 .where(table.getIdColumnIndex(), oldConcept)
                 .put(table.getIdColumnIndex(), newConcept)
                 .build();
         _db.update(query);
 
-        query = new DbUpdateQuery.Builder(table)
+        query = new DbUpdateQueryBuilder(table)
                 .where(table.getComplementColumnIndex(), oldConcept)
                 .put(table.getComplementColumnIndex(), newConcept)
                 .build();
         _db.update(query);
     }
 
-    private MutableIntKeyMap<MutableSet<AcceptationId>> getAcceptationsInBunchGroupedByAgent(int bunch) {
+    private MutableIntKeyMap<MutableSet<AcceptationId>> getAcceptationsInBunchGroupedByAgent(BunchId bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        DbQuery oldConceptQuery = new DbQuery.Builder(table)
+        DbQuery oldConceptQuery = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .select(table.getAgentColumnIndex(), table.getAcceptationColumnIndex());
         final MutableIntKeyMap<MutableSet<AcceptationId>> map = MutableIntKeyMap.empty();
@@ -1745,14 +1743,14 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return map;
     }
 
-    private void updateBunchAcceptationConcepts(int oldConcept, int newConcept) {
+    private void updateBunchAcceptationConcepts(ConceptId oldConcept, ConceptId newConcept) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final MutableIntKeyMap<MutableSet<AcceptationId>> oldBunchAcceptations = getAcceptationsInBunchGroupedByAgent(oldConcept);
+        final MutableIntKeyMap<MutableSet<AcceptationId>> oldBunchAcceptations = getAcceptationsInBunchGroupedByAgent(_bunchIdSetter.getKeyFromConceptId(oldConcept));
         if (oldBunchAcceptations.isEmpty()) {
             return;
         }
 
-        final MutableIntKeyMap<MutableSet<AcceptationId>> newBunchAcceptations = getAcceptationsInBunchGroupedByAgent(newConcept);
+        final MutableIntKeyMap<MutableSet<AcceptationId>> newBunchAcceptations = getAcceptationsInBunchGroupedByAgent(_bunchIdSetter.getKeyFromConceptId(newConcept));
         final ImmutableIntSet involvedAgents = oldBunchAcceptations.keySet().toImmutable().addAll(newBunchAcceptations.keySet());
 
         final ImmutableIntKeyMap<Set<AcceptationId>> duplicated = involvedAgents.assign(agent -> {
@@ -1765,31 +1763,31 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
 
         for (int agent : duplicated.keySet()) {
             for (AcceptationId acc : duplicated.get(agent)) {
-                if (!deleteBunchAcceptation(_db, _bunchIdSetter.getKeyFromInt(oldConcept), acc, agent)) {
+                if (!deleteBunchAcceptation(_db, _bunchIdSetter.getKeyFromConceptId(oldConcept), acc, agent)) {
                     throw new AssertionError();
                 }
             }
         }
 
-        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), oldConcept)
                 .put(table.getBunchColumnIndex(), newConcept)
                 .build();
         _db.update(query);
     }
 
-    private void updateQuestionRules(int oldRule, int newRule) {
+    private void updateQuestionRules(RuleId oldRule, RuleId newRule) {
         final LangbookDbSchema.QuestionFieldSets table = LangbookDbSchema.Tables.questionFieldSets;
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getRuleColumnIndex(), oldRule)
                 .put(table.getRuleColumnIndex(), newRule)
                 .build();
         _db.update(query);
     }
 
-    private void updateQuizBunches(int oldBunch, int newBunch) {
+    private void updateQuizBunches(BunchId oldBunch, BunchId newBunch) {
         final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), oldBunch)
                 .put(table.getBunchColumnIndex(), newBunch)
                 .build();
@@ -1817,22 +1815,22 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         _db.update(query);
     }
 
-    private void updateBunchSetBunches(int oldBunch, int newBunch) {
+    private void updateBunchSetBunches(BunchId oldBunch, BunchId newBunch) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        final IntKeyMap<MutableIntSet> oldBunchSets = readBunchSetsWhereBunchIsIncluded(oldBunch);
+        final IntKeyMap<MutableSet<BunchId>> oldBunchSets = readBunchSetsWhereBunchIsIncluded(oldBunch);
         if (oldBunchSets.isEmpty()) {
             return;
         }
 
-        final MutableIntKeyMap<MutableIntSet> newBunchSets = readBunchSetsWhereBunchIsIncluded(newBunch);
+        final MutableIntKeyMap<MutableSet<BunchId>> newBunchSets = readBunchSetsWhereBunchIsIncluded(newBunch);
         if (!newBunchSets.isEmpty()) {
             for (int index : oldBunchSets.indexes()) {
                 final int oldSetId = oldBunchSets.keyAt(index);
-                final MutableIntSet oldSet = oldBunchSets.valueAt(index);
+                final MutableSet<BunchId> oldSet = oldBunchSets.valueAt(index);
 
                 final boolean hasBoth = oldSet.contains(newBunch);
                 if (hasBoth) {
-                    final ImmutableIntSet desiredBunch = oldSet.toImmutable().remove(oldBunch);
+                    final ImmutableSet<BunchId> desiredBunch = oldSet.toImmutable().remove(oldBunch);
                     final int reusableBunchIndex = newBunchSets.indexWhere(desiredBunch::equalSet);
                     if (reusableBunchIndex >= 0) {
                         updateBunchSetsInAgents(oldSetId, newBunchSets.keyAt(reusableBunchIndex));
@@ -1845,7 +1843,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
                     }
                 }
                 else {
-                    final ImmutableIntSet set = oldSet.filterNot(v -> v == oldBunch).toImmutable().add(newBunch);
+                    final ImmutableSet<BunchId> set = oldSet.filterNot(v -> equal(v, oldBunch)).toImmutable().add(newBunch);
                     final int foundIndex = newBunchSets.indexWhere(set::equalSet);
                     if (foundIndex >= 0) {
                         if (!deleteBunchSet(_db, oldSetId)) {
@@ -1858,25 +1856,25 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             }
         }
 
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), oldBunch)
                 .put(table.getBunchColumnIndex(), newBunch)
                 .build();
         _db.update(query);
     }
 
-    private void updateAgentRules(int oldRule, int newRule) {
+    private void updateAgentRules(RuleId oldRule, RuleId newRule) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getRuleColumnIndex(), oldRule)
                 .put(table.getRuleColumnIndex(), newRule)
                 .build();
         _db.update(query);
     }
 
-    private Map<AcceptationId, CorrelationArrayId> getAcceptationsByConcept(int concept) {
+    private Map<AcceptationId, CorrelationArrayId> getAcceptationsByConcept(ConceptId concept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbQuery readQuery = new DbQuery.Builder(table)
+        final DbQuery readQuery = new DbQueryBuilder(table)
                 .where(table.getConceptColumnIndex(), concept)
                 .select(table.getIdColumnIndex(), table.getCorrelationArrayColumnIndex());
 
@@ -1891,53 +1889,58 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         return map;
     }
 
-    private void updateAcceptationConcepts(int oldConcept, int newConcept) {
+    private void updateAcceptationConcepts(ConceptId oldConcept, ConceptId newConcept) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
-        final DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getConceptColumnIndex(), oldConcept)
                 .put(table.getConceptColumnIndex(), newConcept)
                 .build();
         _db.update(query);
     }
 
-    private void updateRuledConceptsConcept(int oldConcept, int newConcept) {
+    private void updateRuledConceptsConcept(ConceptId oldConcept, ConceptId newConcept) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getConceptColumnIndex(), oldConcept)
                 .put(table.getConceptColumnIndex(), newConcept)
                 .build();
         _db.update(query);
     }
 
-    private void updateRuledConceptsRule(int ruledConcept, int newRule) {
+    private void updateRuledConceptsRule(ConceptId ruledConcept, RuleId newRule) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
-        DbUpdateQuery query = new DbUpdateQuery.Builder(table)
+        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getIdColumnIndex(), ruledConcept)
                 .put(table.getRuleColumnIndex(), newRule)
                 .build();
         _db.update(query);
     }
 
-    private boolean mergeConcepts(int linkedConcept, int oldConcept) {
-        if (oldConcept == linkedConcept) {
+    private boolean mergeConcepts(ConceptId linkedConcept, ConceptId oldConcept) {
+        if (equal(oldConcept, linkedConcept)) {
             return false;
         }
 
-        final ImmutableIntSet nonLinkableConcepts = getAlphabetAndLanguageConcepts();
+        final ImmutableSet<ConceptId> nonLinkableConcepts = getAlphabetAndLanguageConcepts();
         if (nonLinkableConcepts.contains(linkedConcept)) {
             return false;
         }
 
-        if (oldConcept == 0 || linkedConcept == 0) {
+        if (oldConcept == null || linkedConcept == null) {
             throw new AssertionError();
         }
 
+        final BunchId oldConceptAsBunch = _bunchIdSetter.getKeyFromConceptId(oldConcept);
+        final BunchId linkedConceptAsBunch = _bunchIdSetter.getKeyFromConceptId(linkedConcept);
+        final RuleId oldConceptAsRule = _ruleIdSetter.getKeyFromConceptId(oldConcept);
+        final RuleId linkedConceptAsRule = _ruleIdSetter.getKeyFromConceptId(linkedConcept);
+
         updateConceptsInComplementedConcepts(oldConcept, linkedConcept);
         updateBunchAcceptationConcepts(oldConcept, linkedConcept);
-        updateQuestionRules(oldConcept, linkedConcept);
-        updateQuizBunches(oldConcept, linkedConcept);
-        updateBunchSetBunches(oldConcept, linkedConcept);
-        updateAgentRules(oldConcept, linkedConcept);
+        updateQuestionRules(oldConceptAsRule, linkedConceptAsRule);
+        updateQuizBunches(oldConceptAsBunch, linkedConceptAsBunch);
+        updateBunchSetBunches(oldConceptAsBunch, linkedConceptAsBunch);
+        updateAgentRules(oldConceptAsRule, linkedConceptAsRule);
 
         final Map<AcceptationId, CorrelationArrayId> oldAcceptations = getAcceptationsByConcept(oldConcept);
         if (!oldAcceptations.isEmpty()) {
@@ -1975,16 +1978,16 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             updateAcceptationConcepts(oldConcept, linkedConcept);
         }
 
-        final MutableIntPairMap oldRuledConcepts = findRuledConceptsByConceptInvertedMap(oldConcept);
+        final MutableMap<RuleId, ConceptId> oldRuledConcepts = findRuledConceptsByConceptInvertedMap(oldConcept);
         if (!oldRuledConcepts.isEmpty()) {
-            final MutableIntPairMap newRuledConcepts = findRuledConceptsByConceptInvertedMap(linkedConcept);
-            final ImmutableIntSet newRuledConceptsRules = newRuledConcepts.keySet().toImmutable();
+            final MutableMap<RuleId, ConceptId> newRuledConcepts = findRuledConceptsByConceptInvertedMap(linkedConcept);
+            final ImmutableSet<RuleId> newRuledConceptsRules = newRuledConcepts.keySet().toImmutable();
             for (int oldRuledConceptIndex : oldRuledConcepts.indexes()) {
-                final int rule = oldRuledConcepts.keyAt(oldRuledConceptIndex);
-                final int oldRuledConcept = oldRuledConcepts.valueAt(oldRuledConceptIndex);
+                final RuleId rule = oldRuledConcepts.keyAt(oldRuledConceptIndex);
+                final ConceptId oldRuledConcept = oldRuledConcepts.valueAt(oldRuledConceptIndex);
                 final boolean isCommonRule = newRuledConceptsRules.contains(rule);
                 if (isCommonRule) {
-                    final int newRuledConcept = newRuledConcepts.get(rule);
+                    final ConceptId newRuledConcept = newRuledConcepts.get(rule);
                     if (!deleteRuledConcept(_db, oldRuledConcept)) {
                         throw new AssertionError();
                     }
@@ -1997,20 +2000,18 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
             }
         }
 
-        final RuleId oldConceptAsRule = _ruleIdSetter.getKeyFromInt(oldConcept);
-        final ImmutableIntPairMap oldRuledConceptsMap = findRuledConceptsByRuleInvertedMap(oldConceptAsRule);
+        final ImmutableMap<ConceptId, ConceptId> oldRuledConceptsMap = findRuledConceptsByRuleInvertedMap(oldConceptAsRule);
         final int oldRuledConceptsMapSize = oldRuledConceptsMap.size();
         if (oldRuledConceptsMapSize > 0) {
-            final RuleId linkedConceptAsRule = _ruleIdSetter.getKeyFromInt(linkedConcept);
-            final ImmutableIntPairMap newRuledConceptsMap = findRuledConceptsByRuleInvertedMap(linkedConceptAsRule);
-            final ImmutableIntSet newRuledConceptsMapKeys = newRuledConceptsMap.keySet();
+            final ImmutableMap<ConceptId, ConceptId> newRuledConceptsMap = findRuledConceptsByRuleInvertedMap(linkedConceptAsRule);
+            final ImmutableSet<ConceptId> newRuledConceptsMapKeys = newRuledConceptsMap.keySet();
             for (int i = 0; i < oldRuledConceptsMapSize; i++) {
-                final int baseConcept = oldRuledConceptsMap.keyAt(i);
+                final ConceptId baseConcept = oldRuledConceptsMap.keyAt(i);
                 if (newRuledConceptsMapKeys.contains(baseConcept)) {
                     mergeConcepts(newRuledConceptsMap.get(baseConcept), oldRuledConceptsMap.valueAt(i));
                 }
                 else {
-                    updateRuledConceptsRule(oldRuledConceptsMap.valueAt(i), linkedConcept);
+                    updateRuledConceptsRule(oldRuledConceptsMap.valueAt(i), linkedConceptAsRule);
                 }
             }
         }
@@ -2019,13 +2020,13 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     @Override
-    public boolean shareConcept(AcceptationId linkedAcceptation, int oldConcept) {
+    public boolean shareConcept(AcceptationId linkedAcceptation, ConceptId oldConcept) {
         return mergeConcepts(conceptFromAcceptation(linkedAcceptation), oldConcept);
     }
 
     @Override
-    public void duplicateAcceptationWithThisConcept(AcceptationId linkedAcceptation, int concept) {
-        if (concept == 0) {
+    public void duplicateAcceptationWithThisConcept(AcceptationId linkedAcceptation, ConceptId concept) {
+        if (concept == null) {
             throw new AssertionError();
         }
 
@@ -2174,15 +2175,15 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
         _db.update(query);
     }
 
-    private int obtainConceptComposition(ImmutableIntSet concepts) {
-        final Integer compositionConcept = findConceptComposition(concepts);
+    private ConceptId obtainConceptComposition(ImmutableSet<ConceptId> concepts) {
+        final ConceptId compositionConcept = findConceptComposition(concepts);
         if (compositionConcept == null) {
-            int newCompositionConcept = getMaxConcept() + 1;
-            if (concepts.max() >= newCompositionConcept) {
-                newCompositionConcept = concepts.max() + 1;
+            ConceptId newCompositionConcept = getNextAvailableConceptId();
+            for (ConceptId concept : concepts) {
+                newCompositionConcept = _conceptIdSetter.recheckAvailability(newCompositionConcept, concept);
             }
 
-            for (int item : concepts) {
+            for (ConceptId item : concepts) {
                 insertConceptCompositionEntry(_db, newCompositionConcept, item);
             }
 
@@ -2193,12 +2194,12 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     @Override
-    public void addDefinition(int baseConcept, int concept, ImmutableIntSet complements) {
+    public void addDefinition(ConceptId baseConcept, ConceptId concept, ImmutableSet<ConceptId> complements) {
         LangbookDbInserter.insertComplementedConcept(_db, baseConcept, concept, obtainConceptComposition(complements));
     }
 
     @Override
-    public boolean removeDefinition(int complementedConcept) {
+    public boolean removeDefinition(ConceptId complementedConcept) {
         // TODO: This method should remove any orphan concept composition to avoid rubbish
         return deleteComplementedConcept(_db, complementedConcept);
     }
@@ -2255,7 +2256,7 @@ public class LangbookDatabaseManager<LanguageId extends LanguageIdInterface, Alp
     }
 
     @Override
-    public Integer addSentence(int concept, String text, Set<SentenceSpan<AcceptationId>> spans) {
+    public Integer addSentence(ConceptId concept, String text, Set<SentenceSpan<AcceptationId>> spans) {
         if (!checkValidTextAndSpans(text, spans)) {
             return null;
         }

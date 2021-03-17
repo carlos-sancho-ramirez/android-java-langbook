@@ -124,12 +124,12 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             errorMessage = getString(R.string.languageAdderLanguageCodeInUse);
         }
 
-        final LanguageId languageId = LanguageIdManager.getNextAvailableId(checker);
+        final LanguageId languageId = LanguageIdManager.conceptAsLanguageId(checker.getNextAvailableConceptId());
 
         if (errorMessage == null) {
             _state.setBasicDetails(code, languageId, alphabetCount);
             final String title = getString(R.string.newLanguageNameActivityTitle);
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getEmptyCorrelation(), LanguageIdManager.getConceptId(languageId));
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getEmptyCorrelation(), languageId.getConceptId());
         }
         else {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();

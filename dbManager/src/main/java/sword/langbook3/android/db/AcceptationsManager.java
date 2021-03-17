@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
 
     /**
      * Add a new language for the given code.
@@ -51,7 +51,7 @@ public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId, Acce
      * @param correlationArray Correlation array for this acceptation.
      * @return An identifier for the new acceptation just included, or null in case the acceptation cannot be added.
      */
-    AcceptationId addAcceptation(int concept, ImmutableCorrelationArray<AlphabetId> correlationArray);
+    AcceptationId addAcceptation(ConceptId concept, ImmutableCorrelationArray<AlphabetId> correlationArray);
 
     boolean updateAcceptationCorrelationArray(AcceptationId acceptation, ImmutableCorrelationArray<AlphabetId> newCorrelationArray);
     boolean removeAcceptation(AcceptationId acceptation);
@@ -66,7 +66,7 @@ public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId, Acce
      * @param oldConcept Concept to be replaced by the linked one.
      * @return Whether the database has changed.
      */
-    boolean shareConcept(AcceptationId linkedAcceptation, int oldConcept);
+    boolean shareConcept(AcceptationId linkedAcceptation, ConceptId oldConcept);
 
     /**
      * Extract the correlation array assigned to the given linkedAcceptation and
@@ -74,7 +74,7 @@ public interface AcceptationsManager<LanguageId, AlphabetId, CorrelationId, Acce
      * @param linkedAcceptation Acceptation from where the correlation array reference has to be copied.
      * @param concept Concept to be applied to the new acceptation created.
      */
-    void duplicateAcceptationWithThisConcept(AcceptationId linkedAcceptation, int concept);
+    void duplicateAcceptationWithThisConcept(AcceptationId linkedAcceptation, ConceptId concept);
 
     /**
      * Replace a conversion in the database, insert a new one if non existing, or remove and existing one if the given is empty.

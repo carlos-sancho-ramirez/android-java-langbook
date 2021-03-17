@@ -1,13 +1,23 @@
 package sword.langbook3.android.db;
 
-public abstract class ConceptId {
-    final int key;
+public final class ConceptId extends ConceptualId implements ConceptIdInterface {
 
     ConceptId(int key) {
-        if (key == 0) {
-            throw new IllegalArgumentException();
-        }
+        super(key);
+    }
 
-        this.key = key;
+    @Override
+    public int hashCode() {
+        return key;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof ConceptId && ((ConceptId) other).key == key;
+    }
+
+    @Override
+    public String toString() {
+        return Integer.toString(key);
     }
 }

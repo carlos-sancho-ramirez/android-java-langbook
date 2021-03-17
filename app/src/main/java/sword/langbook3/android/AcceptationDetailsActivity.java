@@ -32,6 +32,7 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
@@ -70,7 +71,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private AcceptationId _acceptation;
-    private AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> _model;
+    private AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 

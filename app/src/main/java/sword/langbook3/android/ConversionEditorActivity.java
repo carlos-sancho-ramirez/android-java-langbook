@@ -21,7 +21,6 @@ import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdBundler;
-import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.ParcelableConversion;
@@ -89,8 +88,8 @@ public final class ConversionEditorActivity extends Activity implements ListView
         final AlphabetId sourceAlphabet = getSourceAlphabet();
         final AlphabetId targetAlphabet = getTargetAlphabet();
 
-        final String sourceText = checker.readConceptText(AlphabetIdManager.getConceptId(sourceAlphabet), preferredAlphabet);
-        final String targetText = (targetAlphabet != null)? checker.readConceptText(AlphabetIdManager.getConceptId(targetAlphabet), preferredAlphabet) : "?";
+        final String sourceText = checker.readConceptText(sourceAlphabet.getConceptId(), preferredAlphabet);
+        final String targetText = (targetAlphabet != null)? checker.readConceptText(targetAlphabet.getConceptId(), preferredAlphabet) : "?";
         setTitle(sourceText + " -> " + targetText);
 
         _conversion = (targetAlphabet != null)? checker.getConversion(new ImmutablePair<>(sourceAlphabet, targetAlphabet)) :

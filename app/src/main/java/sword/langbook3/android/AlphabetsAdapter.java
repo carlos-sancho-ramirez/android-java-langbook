@@ -12,12 +12,11 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LanguageId;
 
 final class AlphabetsAdapter extends BaseAdapter {
-    private final ImmutableMap<ConceptId, String> _concepts;
-    private final ImmutableList<ConceptId> _conceptList;
+    private final ImmutableMap<Object, String> _concepts;
+    private final ImmutableList<Object> _conceptList;
 
     private LayoutInflater _inflater;
 
@@ -25,7 +24,7 @@ final class AlphabetsAdapter extends BaseAdapter {
             ImmutableMap<LanguageId, ImmutableSet<AlphabetId>> map,
             ImmutableMap<LanguageId, String> languages,
             ImmutableMap<AlphabetId, String> alphabets) {
-        final ImmutableMap.Builder<ConceptId, String> conceptsBuilder = new ImmutableHashMap.Builder<>();
+        final ImmutableMap.Builder<Object, String> conceptsBuilder = new ImmutableHashMap.Builder<>();
         for (Map.Entry<LanguageId, String> entry : languages.entries()) {
             conceptsBuilder.put(entry.key(), entry.value());
         }
@@ -35,7 +34,7 @@ final class AlphabetsAdapter extends BaseAdapter {
         }
         _concepts = conceptsBuilder.build();
 
-        final ImmutableList.Builder<ConceptId> conceptListBuilder = new ImmutableList.Builder<>();
+        final ImmutableList.Builder<Object> conceptListBuilder = new ImmutableList.Builder<>();
         final int langCount = map.size();
         for (int i = 0; i < langCount; i++) {
             conceptListBuilder.append(map.keyAt(i));
@@ -68,7 +67,7 @@ final class AlphabetsAdapter extends BaseAdapter {
     }
 
     @Override
-    public ConceptId getItem(int position) {
+    public Object getItem(int position) {
         return _conceptList.valueAt(position);
     }
 

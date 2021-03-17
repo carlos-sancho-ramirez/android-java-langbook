@@ -1,33 +1,14 @@
 package sword.langbook3.android.db;
 
-import sword.database.DbIdentifiableQueryBuilder;
-import sword.database.DbSettableQueryBuilder;
-import sword.database.DbValue;
-
-public final class RuleId extends ConceptId implements RuleIdInterface {
+public final class RuleId extends ConceptualId implements RuleIdInterface<ConceptId> {
 
     RuleId(int key) {
         super(key);
     }
 
     @Override
-    public boolean sameValue(DbValue value) {
-        return value.toInt() == key;
-    }
-
-    @Override
-    public int getConceptId() {
-        return key;
-    }
-
-    @Override
-    public void where(int columnIndex, DbIdentifiableQueryBuilder builder) {
-        builder.where(columnIndex, key);
-    }
-
-    @Override
-    public void put(int columnIndex, DbSettableQueryBuilder builder) {
-        builder.put(columnIndex, key);
+    public ConceptId getConceptId() {
+        return new ConceptId(key);
     }
 
     @Override

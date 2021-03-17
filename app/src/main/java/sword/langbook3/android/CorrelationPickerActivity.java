@@ -20,6 +20,8 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdComparator;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdBundler;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.CorrelationId;
@@ -31,7 +33,6 @@ import sword.langbook3.android.db.ParcelableCorrelationArray;
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_PICK_BUNCHES = 1;
-    static final int NO_CONCEPT = 0;
 
     interface ArgKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
@@ -64,14 +65,14 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      *
      * @param activity Activity that opens this activity.
      * @param requestCode Request code that will be used on {@link Activity#onActivityResult(int, int, android.content.Intent)}.
-     * @param concept Optional concept where this correlation array will be attached to, or {@link #NO_CONCEPT} if none.
+     * @param concept Optional concept where this correlation array will be attached to, or null if none.
      * @param texts Texts entered by the user in the WordEditorActivity.
      */
-    public static void open(Activity activity, int requestCode, int concept, Correlation<AlphabetId> texts) {
+    public static void open(Activity activity, int requestCode, ConceptId concept, Correlation<AlphabetId> texts) {
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
-        if (concept != NO_CONCEPT) {
-            intent.putExtra(ArgKeys.CONCEPT, concept);
+        if (concept != null) {
+            ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         }
 
         activity.startActivityForResult(intent, requestCode);
@@ -172,8 +173,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     private AcceptationId addAcceptation(LangbookDbManager manager) {
-        int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
-        if (concept == NO_CONCEPT) {
+        ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
+        if (concept == null) {
             concept = manager.getNextAvailableConceptId();
         }
 

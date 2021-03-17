@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.database.DbValue;
 
-final class AlphabetIdManager implements IntSetter<AlphabetIdHolder> {
+final class AlphabetIdManager implements ConceptualizableSetter<ConceptIdHolder, AlphabetIdHolder> {
 
     @Override
     public AlphabetIdHolder getKeyFromInt(int key) {
@@ -12,5 +12,10 @@ final class AlphabetIdManager implements IntSetter<AlphabetIdHolder> {
     @Override
     public AlphabetIdHolder getKeyFromDbValue(DbValue value) {
         return getKeyFromInt(value.toInt());
+    }
+
+    @Override
+    public AlphabetIdHolder getKeyFromConceptId(ConceptIdHolder concept) {
+        return new AlphabetIdHolder(concept.key);
     }
 }

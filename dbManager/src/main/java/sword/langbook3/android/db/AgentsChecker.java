@@ -1,6 +1,5 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
@@ -12,7 +11,7 @@ import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.SearchResult;
 
-public interface AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends BunchesChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
+public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends BunchesChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
 
     /**
      * Check all bunches including agents that may match the given texts.
@@ -38,8 +37,8 @@ public interface AgentsChecker<LanguageId, AlphabetId, CorrelationId, Acceptatio
     ImmutableList<DisplayableItem<AcceptationId>> readBunchSetAcceptationsAndTexts(int bunchSet, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult<AcceptationId, RuleId>> findAcceptationAndRulesFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
     AcceptationId getStaticAcceptationFromDynamic(AcceptationId dynamicAcceptation);
-    Integer findRuledConcept(RuleId rule, int concept);
-    ImmutableIntPairMap findRuledConceptsByRule(RuleId rule);
+    ConceptId findRuledConcept(RuleId rule, ConceptId concept);
+    ImmutableMap<ConceptId, ConceptId> findRuledConceptsByRule(RuleId rule);
     AcceptationId findRuledAcceptationByAgentAndBaseAcceptation(int agentId, AcceptationId baseAcceptation);
     String readAcceptationMainText(AcceptationId acceptation);
     ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(BunchId bunch, AcceptationId acceptation);

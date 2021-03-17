@@ -22,7 +22,7 @@ import static sword.langbook3.android.db.AgentsManagerTest.setOf;
 
 final class LangbookReadableDatabaseTest {
 
-    private void addAgent(LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager, BunchIdHolder sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, RuleIdHolder rule) {
+    private void addAgent(LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager, BunchIdHolder sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, RuleIdHolder rule) {
         final ImmutableSet<BunchIdHolder> emptyBunchSet = ImmutableHashSet.empty();
         final ImmutableSet<BunchIdHolder> verbBunchSet = emptyBunchSet.add(sourceBunch);
 
@@ -33,21 +33,22 @@ final class LangbookReadableDatabaseTest {
         manager.addAgent(setOf(), verbBunchSet, emptyBunchSet, emptyCorrelation, emptyCorrelation, endMatcher, endAdder, rule);
     }
 
-    private AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
-        return new AlphabetIdHolder(manager.getNextAvailableConceptId());
+    private AlphabetIdHolder getNextAvailableId(ConceptsChecker<ConceptIdHolder> manager) {
+        return new AlphabetIdHolder(manager.getNextAvailableConceptId().key);
     }
 
-    private BunchIdHolder conceptAsBunchId(int conceptId) {
-        return new BunchIdHolder(conceptId);
+    private BunchIdHolder conceptAsBunchId(ConceptIdHolder conceptId) {
+        return new BunchIdHolder(conceptId.key);
     }
 
-    private RuleIdHolder conceptAsRuleId(int conceptId) {
-        return (conceptId == 0)? null : new RuleIdHolder(conceptId);
+    private RuleIdHolder conceptAsRuleId(ConceptIdHolder conceptId) {
+        return (conceptId == null)? null : new RuleIdHolder(conceptId.key);
     }
 
     @Test
     void testReadAllMatchingBunches() {
         final MemoryDatabase db = new MemoryDatabase();
+        final ConceptIdManager conceptIdManager = new ConceptIdManager();
         final LanguageIdManager languageIdManager = new LanguageIdManager();
         final AlphabetIdManager alphabetIdManager = new AlphabetIdManager();
         final SymbolArrayIdManager symbolArrayIdManager = new SymbolArrayIdManager();
@@ -56,12 +57,12 @@ final class LangbookReadableDatabaseTest {
         final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
         final BunchIdManager bunchIdManager = new BunchIdManager();
         final RuleIdManager ruleIdManager = new RuleIdManager();
-        final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
+        final LangbookDatabaseManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
-        final int gerundConcept = manager.getMaxConcept() + 1;
-        final int pluralConcept = gerundConcept + 1;
-        final int verbConceptId = pluralConcept + 1;
-        final int femaleNounConceptId = verbConceptId + 1;
+        final ConceptIdHolder gerundConcept = manager.getNextAvailableConceptId();
+        final ConceptIdHolder pluralConcept = conceptIdManager.recheckAvailability(gerundConcept, gerundConcept);
+        final ConceptIdHolder verbConceptId = conceptIdManager.recheckAvailability(pluralConcept, pluralConcept);
+        final ConceptIdHolder femaleNounConceptId = conceptIdManager.recheckAvailability(verbConceptId, verbConceptId);
 
         final String verbBunchTitle = "verbos (1a conjugación)";
         addSimpleAcceptation(manager, alphabet, verbConceptId, verbBunchTitle);
@@ -87,6 +88,7 @@ final class LangbookReadableDatabaseTest {
 
     @Test
     void testFindAcceptationFromText() {
+        final ConceptIdManager conceptIdManager = new ConceptIdManager();
         final LanguageIdManager languageIdManager = new LanguageIdManager();
         final AlphabetIdManager alphabetIdManager = new AlphabetIdManager();
         final SymbolArrayIdManager symbolArrayIdManager = new SymbolArrayIdManager();
@@ -121,19 +123,25 @@ final class LangbookReadableDatabaseTest {
                     final ImmutableList<String> textList = textListBuilder.build();
 
                     final MemoryDatabase db = new MemoryDatabase();
-                    final LangbookDatabaseManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
+                    final LangbookDatabaseManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
                     final AlphabetIdHolder alphabet1 = manager.addLanguage("xx").mainAlphabet;
                     final AlphabetIdHolder alphabet2 = getNextAvailableId(manager);
                     assertTrue(manager.addAlphabetCopyingFromOther(alphabet2, alphabet1));
 
-                    final int concept1 = manager.getMaxConcept() + 1;
-                    final int concept2 = concept1 + 1;
-                    final int concept3 = concept2 + 1;
+                    final ConceptIdHolder concept1 = manager.getNextAvailableConceptId();
+                    final ConceptIdHolder concept2 = conceptIdManager.recheckAvailability(concept1, concept1);
 
                     final ImmutableList.Builder<AcceptationIdHolder> accListBuilder = new ImmutableList.Builder<>();
-                    for (int i = 0; i < textList.size(); i++) {
-                        accListBuilder.append(addSimpleAcceptation(manager, alphabet1, concept1 + i, textList.valueAt(i)));
+                    accListBuilder.append(addSimpleAcceptation(manager, alphabet1, concept1, textList.valueAt(0)));
+                    if (textList.size() >= 2) {
+                        accListBuilder.append(addSimpleAcceptation(manager, alphabet1, concept2, textList.valueAt(1)));
                     }
+
+                    if (textList.size() == 3) {
+                        final ConceptIdHolder concept3 = conceptIdManager.recheckAvailability(concept2, concept2);
+                        accListBuilder.append(addSimpleAcceptation(manager, alphabet1, concept3, textList.valueAt(2)));
+                    }
+
                     final ImmutableList<AcceptationIdHolder> accList = accListBuilder.build();
 
                     final int restrictionStringType = DbQuery.RestrictionStringTypes.STARTS_WITH;

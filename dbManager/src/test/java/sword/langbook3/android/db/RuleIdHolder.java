@@ -4,7 +4,7 @@ import sword.database.DbIdentifiableQueryBuilder;
 import sword.database.DbSettableQueryBuilder;
 import sword.database.DbValue;
 
-final class RuleIdHolder implements RuleIdInterface {
+final class RuleIdHolder implements RuleIdInterface<ConceptIdHolder> {
 
     final int key;
 
@@ -45,8 +45,8 @@ final class RuleIdHolder implements RuleIdInterface {
     }
 
     @Override
-    public int getConceptId() {
-        return key;
+    public ConceptIdHolder getConceptId() {
+        return new ConceptIdHolder(key);
     }
 
     @Override

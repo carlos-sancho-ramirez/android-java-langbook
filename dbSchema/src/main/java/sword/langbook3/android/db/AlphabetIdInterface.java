@@ -1,7 +1,4 @@
 package sword.langbook3.android.db;
 
-import sword.database.DbValue;
-
-public interface AlphabetIdInterface extends IdWhereInterface, IdPutInterface {
-    boolean sameValue(DbValue value);
+public interface AlphabetIdInterface<ConceptId> extends ConceptualizableIdInterface<ConceptId> {
 }

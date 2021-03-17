@@ -5,7 +5,7 @@ import sword.collections.ImmutableSet;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
-public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public interface SentencesChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
     /**
      * Checks if the given symbolArray is not used neither as a correlation nor as a conversion,
      * and then it is merely a sentence.
@@ -29,5 +29,5 @@ public interface SentencesChecker<LanguageId, AlphabetId, SymbolArrayId, Correla
      * @return Keys for the returned map are the sentence identifiers, values are the text representation of that sentence.
      */
     ImmutableIntKeyMap<String> getSampleSentences(AcceptationId staticAcceptation);
-    SentenceDetailsModel<AcceptationId> getSentenceDetails(int sentenceId);
+    SentenceDetailsModel<ConceptId, AcceptationId> getSentenceDetails(int sentenceId);
 }

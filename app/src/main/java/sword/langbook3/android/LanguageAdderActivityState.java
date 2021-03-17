@@ -5,14 +5,13 @@ import android.os.Parcelable;
 
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.AlphabetIdManager;
+import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.CorrelationArrayParceler;
 import sword.langbook3.android.db.CorrelationComposer;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
-import sword.langbook3.android.db.LanguageIdManager;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -56,9 +55,13 @@ public final class LanguageAdderActivityState implements Parcelable {
         return _languageCode == null || _alphabetCorrelationArrays == null || _alphabetCorrelationArrays.size() < _alphabetCount;
     }
 
-    int getCurrentConcept() {
-        final int languageConcept = LanguageIdManager.getConceptId(_newLanguageId);
-        return (_alphabetCorrelationArrays != null)? languageConcept + _alphabetCorrelationArrays.size() + 1 : languageConcept;
+    ConceptId getCurrentConcept() {
+        if (_alphabetCorrelationArrays == null) {
+            return _newLanguageId.getConceptId();
+        }
+        else {
+            return _newLanguageId.getSuggestedAlphabetId(_alphabetCorrelationArrays.size()).getConceptId();
+        }
     }
 
     ImmutableCorrelation<AlphabetId> getEmptyCorrelation() {
@@ -184,19 +187,19 @@ public final class LanguageAdderActivityState implements Parcelable {
 
         final AlphabetId sourceAlphabet = langPair.mainAlphabet;
         for (int i = 1; i < _alphabetCount; i++) {
-            final AlphabetId alphabet = AlphabetIdManager.getNextAvailableId(manager);
+            final AlphabetId alphabet = _newLanguageId.getSuggestedAlphabetId(i);
             if (!manager.addAlphabetCopyingFromOther(alphabet, sourceAlphabet)) {
                 throw new AssertionError();
             }
         }
 
-        final int newLanguageConcept = LanguageIdManager.getConceptId(_newLanguageId);
+        final ConceptId newLanguageConcept = _newLanguageId.getConceptId();
         if (manager.addAcceptation(newLanguageConcept, _languageCorrelationArray) == null) {
             throw new AssertionError();
         }
 
         for (int i = 0; i < _alphabetCount; i++) {
-            if (manager.addAcceptation(newLanguageConcept + i + 1, _alphabetCorrelationArrays.valueAt(i)) == null) {
+            if (manager.addAcceptation(_newLanguageId.getSuggestedAlphabetId(i).getConceptId(), _alphabetCorrelationArrays.valueAt(i)) == null) {
                 throw new AssertionError();
             }
         }

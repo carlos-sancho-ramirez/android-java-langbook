@@ -7,7 +7,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> {
+public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -17,7 +17,7 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
         int processed = 16;
     }
 
-    public final int concept;
+    public final ConceptId concept;
     public final IdTextPairResult<LanguageId> language;
     public final AcceptationId originalAcceptationId;
     public final String originalAcceptationText;
@@ -48,7 +48,7 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
     public final ImmutableMap<LanguageId, String> languageTexts;
 
     public AcceptationDetailsModel(
-            int concept,
+            ConceptId concept,
             IdTextPairResult<LanguageId> language,
             AcceptationId originalAcceptationId,
             String originalAcceptationText,
@@ -74,7 +74,7 @@ public final class AcceptationDetailsModel<LanguageId, AlphabetId, CorrelationId
             ImmutableMap<LanguageId, String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
-        if (language == null || originalAcceptationId != null && (originalAcceptationText == null ||
+        if (concept == null || language == null || originalAcceptationId != null && (originalAcceptationText == null ||
                 appliedAgentId == 0 || appliedRuleId == null || appliedRuleAcceptationId == null) ||
                 correlationIds == null || correlations == null ||
                 texts == null || acceptationsSharingTexts == null ||

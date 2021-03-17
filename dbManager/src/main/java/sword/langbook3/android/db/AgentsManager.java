@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableSet;
 
-public interface AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends BunchesManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, AgentsChecker<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> {
+public interface AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> extends BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> {
 
     /**
      * Include a new agent into the database and returns its identifier if succeeded,

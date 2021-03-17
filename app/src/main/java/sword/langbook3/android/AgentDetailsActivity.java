@@ -16,7 +16,6 @@ import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
@@ -127,7 +126,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
             builder.add(new AcceptationDetailsAdapter.AcceptationNavigableItem(r.id, r.text, false));
         }
 
-        final SyncCacheMap<AlphabetId, String> alphabetTexts = new SyncCacheMap<>(alphabet -> checker.readConceptText(AlphabetIdManager.getConceptId(alphabet), _preferredAlphabet));
+        final SyncCacheMap<AlphabetId, String> alphabetTexts = new SyncCacheMap<>(alphabet -> checker.readConceptText(alphabet.getConceptId(), _preferredAlphabet));
 
         addCorrelationSection(checker, getString(R.string.agentStartMatcherHeader), _register.startMatcherId, alphabetTexts, builder);
         addCorrelationSection(checker, getString(R.string.agentStartAdderHeader), _register.startAdderId, alphabetTexts, builder);

@@ -22,14 +22,14 @@ import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
 import static sword.langbook3.android.sdb.AgentsSerializerTest.setOf;
 
-final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolder, AlphabetIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> {
+final class StreamedDatabaseTest implements AgentsSerializerTest<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> {
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId> AcceptationId addSimpleAcceptation(AcceptationsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId alphabet, int concept, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> AcceptationId addSimpleAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept, String text) {
         return BunchesSerializerTest.addSimpleAcceptation(manager, alphabet, concept, text);
     }
 
-    static <LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> int addSingleAlphabetAgent(
-            AgentsManager<LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> int addSingleAlphabetAgent(
+            AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, RuleId rule) {
         return AgentsSerializerTest.addSingleAlphabetAgent(manager, targetBunches, sourceBunches, diffBunches, alphabet, startMatcherText, startAdderText, endMatcherText, endAdderText, rule);
@@ -39,32 +39,29 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
         return new SentenceSpan<>(rangeOf(text, segment), acceptation);
     }
 
+    private final AlphabetIdManager alphabetIdManager = new AlphabetIdManager();
     private final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
+    private final BunchIdManager bunchIdManager = new BunchIdManager();
     private final RuleIdManager ruleIdManager = new RuleIdManager();
 
     @Override
-    public LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> createManager(MemoryDatabase db) {
-        return new LangbookDatabaseManager<>(db, new LanguageIdManager(), new AlphabetIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager, new BunchIdManager(), ruleIdManager);
+    public LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> createManager(MemoryDatabase db) {
+        return new LangbookDatabaseManager<>(db, new ConceptIdManager(), new LanguageIdManager(), alphabetIdManager, new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager, bunchIdManager, ruleIdManager);
     }
 
     @Override
-    public RuleIdHolder conceptAsRuleId(int conceptId) {
-        return ruleIdManager.getKeyFromInt(conceptId);
+    public RuleIdHolder conceptAsRuleId(ConceptIdHolder conceptId) {
+        return ruleIdManager.getKeyFromConceptId(conceptId);
     }
 
     @Override
-    public BunchIdHolder conceptAsBunchId(int conceptId) {
-        return new BunchIdHolder(conceptId);
+    public BunchIdHolder conceptAsBunchId(ConceptIdHolder conceptId) {
+        return bunchIdManager.getKeyFromConceptId(conceptId);
     }
 
     @Override
-    public AlphabetIdHolder getNextAvailableId(ConceptsChecker manager) {
-        return new AlphabetIdHolder(manager.getNextAvailableConceptId());
-    }
-
-    @Override
-    public int getLanguageConceptId(LanguageIdHolder language) {
-        return language.key;
+    public AlphabetIdHolder getNextAvailableId(ConceptsChecker<ConceptIdHolder> manager) {
+        return alphabetIdManager.getKeyFromConceptId(manager.getNextAvailableConceptId());
     }
 
     @Override
@@ -79,24 +76,24 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
     @Test
     void testSerializeSentenceWithDynamicAcceptationAsSpan() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> inManager = createManager(inDb);
+        final LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> inManager = createManager(inDb);
         final AlphabetIdHolder alphabet = inManager.addLanguage("es").mainAlphabet;
 
-        final int feminableWordsConcept = inManager.getNextAvailableConceptId();
+        final ConceptIdHolder feminableWordsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, feminableWordsConcept, "feminizable");
 
-        final int pluralableWordsConcept = inManager.getNextAvailableConceptId();
+        final ConceptIdHolder pluralableWordsConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, pluralableWordsConcept, "pluralizable");
 
-        final int boyConcept = inManager.getNextAvailableConceptId();
+        final ConceptIdHolder boyConcept = inManager.getNextAvailableConceptId();
         final AcceptationIdHolder boyAcc = addSimpleAcceptation(inManager, alphabet, boyConcept, "chico");
         final BunchIdHolder feminableWordsBunch = conceptAsBunchId(feminableWordsConcept);
         inManager.addAcceptationInBunch(feminableWordsBunch, boyAcc);
 
-        final int femenineConcept = inManager.getNextAvailableConceptId();
+        final ConceptIdHolder femenineConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, femenineConcept, "femenino");
 
-        final int pluralConcept = inManager.getNextAvailableConceptId();
+        final ConceptIdHolder pluralConcept = inManager.getNextAvailableConceptId();
         addSimpleAcceptation(inManager, alphabet, pluralConcept, "plural");
 
         final BunchIdHolder pluralableWordsBunch = conceptAsBunchId(pluralableWordsConcept);
@@ -114,11 +111,11 @@ final class StreamedDatabaseTest implements AgentsSerializerTest<LanguageIdHolde
                 .add(newSpan(sentenceText, "chicas", girlsAcc))
                 .build();
 
-        final int sentenceConcept = inManager.getNextAvailableConceptId();
+        final ConceptIdHolder sentenceConcept = inManager.getNextAvailableConceptId();
         inManager.addSentence(sentenceConcept, sentenceText, spans);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final LangbookManager<LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> outManager = createManager(outDb);
+        final LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> outManager = createManager(outDb);
 
         final AcceptationIdHolder outBoyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "chico"));
         final ImmutableIntKeyMap<String> outSentences = outManager.getSampleSentences(outBoyAcceptation);

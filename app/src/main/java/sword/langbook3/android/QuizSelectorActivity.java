@@ -46,8 +46,14 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     public static void open(Context context, BunchId bunch) {
         Intent intent = new Intent(context, QuizSelectorActivity.class);
-        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.BUNCH, bunch);
+        if (bunch != null) {
+            BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.BUNCH, bunch);
+        }
         context.startActivity(intent);
+    }
+
+    public static void open(Context context) {
+        context.startActivity(new Intent(context, QuizSelectorActivity.class));
     }
 
     private QuizSelectorActivityState _state;

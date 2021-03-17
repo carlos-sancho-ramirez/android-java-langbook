@@ -101,7 +101,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static <AcceptationId> AcceptationId insertAcceptation(DbInserter db, IntSetter<AcceptationId> acceptationIdSetter, int concept, CorrelationArrayIdInterface correlationArray) {
+    static <AcceptationId> AcceptationId insertAcceptation(DbInserter db, IntSetter<AcceptationId> acceptationIdSetter, ConceptIdInterface concept, CorrelationArrayIdInterface correlationArray) {
         final LangbookDbSchema.AcceptationsTable table = Tables.acceptations;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getConceptColumnIndex(), concept)
@@ -110,18 +110,18 @@ final class LangbookDbInserter {
         return acceptationIdSetter.getKeyFromInt(db.insert(query));
     }
 
-    static void insertConceptCompositionEntry(DbInserter db, int compositionId, int item) {
+    static void insertConceptCompositionEntry(DbInserter db, ConceptIdInterface compositionId, ConceptIdInterface item) {
         final LangbookDbSchema.ConceptCompositionsTable table = Tables.conceptCompositions;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getComposedColumnIndex(), compositionId)
                 .put(table.getItemColumnIndex(), item)
                 .build();
         db.insert(query);
     }
 
-    static void insertComplementedConcept(DbInserter db, int base, int complementedConcept, int complement) {
+    static void insertComplementedConcept(DbInserter db, ConceptIdInterface base, ConceptIdInterface complementedConcept, ConceptIdInterface complement) {
         final LangbookDbSchema.ComplementedConceptsTable table = Tables.complementedConcepts;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getIdColumnIndex(), complementedConcept)
                 .put(table.getBaseColumnIndex(), base)
                 .put(table.getComplementColumnIndex(), complement)
@@ -175,9 +175,9 @@ final class LangbookDbInserter {
         return db.insert(query);
     }
 
-    static void insertRuledConcept(DbInserter db, int ruledConcept, int rule, int baseConcept) {
+    static <ConceptId extends ConceptIdInterface> void insertRuledConcept(DbInserter db, ConceptId ruledConcept, RuleIdInterface<ConceptId> rule, ConceptId baseConcept) {
         final LangbookDbSchema.RuledConceptsTable table = Tables.ruledConcepts;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getIdColumnIndex(), ruledConcept)
                 .put(table.getRuleColumnIndex(), rule)
                 .put(table.getConceptColumnIndex(), baseConcept)
@@ -287,7 +287,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static int insertSentence(DbInserter db, int concept, SymbolArrayIdInterface symbolArray) {
+    static int insertSentence(DbInserter db, ConceptIdInterface concept, SymbolArrayIdInterface symbolArray) {
         final LangbookDbSchema.SentencesTable table = Tables.sentences;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getConceptColumnIndex(), concept)

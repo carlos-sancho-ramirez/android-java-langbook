@@ -1,8 +1,8 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableSet;
 
-public interface DefinitionsManager extends DefinitionsChecker {
-    void addDefinition(int baseConcept, int concept, ImmutableIntSet complements);
-    boolean removeDefinition(int complementedConcept);
+public interface DefinitionsManager<ConceptId> extends DefinitionsChecker<ConceptId> {
+    void addDefinition(ConceptId baseConcept, ConceptId concept, ImmutableSet<ConceptId> complements);
+    boolean removeDefinition(ConceptId complementedConcept);
 }

@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.database.DbValue;
 
-public final class LanguageIdManager implements IntSetter<LanguageId> {
+public final class LanguageIdManager implements ConceptualizableSetter<ConceptId, LanguageId> {
 
     @Override
     public LanguageId getKeyFromInt(int key) {
@@ -14,11 +14,12 @@ public final class LanguageIdManager implements IntSetter<LanguageId> {
         return getKeyFromInt(value.toInt());
     }
 
-    public static LanguageId getNextAvailableId(ConceptsChecker manager) {
-        return new LanguageId(manager.getNextAvailableConceptId());
+    public static LanguageId conceptAsLanguageId(ConceptId concept) {
+        return (concept == null)? null : new LanguageId(concept.key);
     }
 
-    public static int getConceptId(LanguageId alphabetId) {
-        return (alphabetId != null)? alphabetId.key : 0;
+    @Override
+    public LanguageId getKeyFromConceptId(ConceptId concept) {
+        return conceptAsLanguageId(concept);
     }
 }

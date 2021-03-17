@@ -54,9 +54,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteComplementedConcept(Deleter db, int complementedConcept) {
+    static boolean deleteComplementedConcept(Deleter db, ConceptIdInterface complementedConcept) {
         final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), complementedConcept)
                 .build();
 
@@ -130,9 +130,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchSetBunch(Deleter db, int setId, int bunch) {
+    static boolean deleteBunchSetBunch(Deleter db, int setId, BunchIdInterface<?> bunch) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getSetIdColumnIndex(), setId)
                 .where(table.getBunchColumnIndex(), bunch)
                 .build();
@@ -140,9 +140,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteRuledConcept(Deleter db, int id) {
+    static boolean deleteRuledConcept(Deleter db, ConceptIdInterface id) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), id)
                 .build();
         return db.delete(query);

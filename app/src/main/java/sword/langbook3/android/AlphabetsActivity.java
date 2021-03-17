@@ -23,12 +23,14 @@ import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.AlphabetIdManager;
+import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.models.Conversion;
+
+import static sword.langbook3.android.db.AlphabetIdManager.conceptAsAlphabetId;
 
 public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener, AdapterView.OnItemSelectedListener, CompoundButton.OnCheckedChangeListener {
 
@@ -137,8 +139,9 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     @Override
     public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-        if (_adapter.getItemViewType(position) == AlphabetsAdapter.ViewTypes.ALPHABET) {
-            final AlphabetId alphabet = (AlphabetId) _adapter.getItem(position);
+        final Object rawItem = _adapter.getItem(position);
+        if (rawItem instanceof AlphabetId) {
+            final AlphabetId alphabet = (AlphabetId) rawItem;
             final boolean canBeRemoved = DbManager.getInstance().getManager().checkAlphabetCanBeRemoved(alphabet);
             final boolean isTargetForConversion = _conversions.keySet().contains(alphabet);
 
@@ -157,7 +160,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
             }
         }
         else {
-            final LanguageId languageId = (LanguageId) _adapter.getItem(position);
+            final LanguageId languageId = (LanguageId) rawItem;
             _state.showLanguageOptions(languageId);
             showLanguageOptionsDialog();
         }
@@ -289,8 +292,8 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         if (requestCode == REQUEST_CODE_NEW_ALPHABET) {
             final AcceptationId acceptation = (data != null)? AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION) : null;
             if (resultCode == RESULT_OK && acceptation != null) {
-                final int alphabetConcept = DbManager.getInstance().getManager().conceptFromAcceptation(acceptation);
-                final AlphabetId alphabet = AlphabetIdManager.conceptAsAlphabetId(alphabetConcept);
+                final ConceptId alphabetConcept = DbManager.getInstance().getManager().conceptFromAcceptation(acceptation);
+                final AlphabetId alphabet = conceptAsAlphabetId(alphabetConcept);
                 _state.showSourceAlphabetPickingState(alphabet);
                 showSourceAlphabetPickerDialog();
             }

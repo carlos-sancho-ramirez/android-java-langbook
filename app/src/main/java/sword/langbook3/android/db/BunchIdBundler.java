@@ -6,8 +6,6 @@ import android.os.Bundle;
 import sword.collections.List;
 import sword.collections.MutableList;
 
-import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
-
 public final class BunchIdBundler {
 
     public static BunchId readAsIntentExtra(Intent intent, String key) {
@@ -28,7 +26,7 @@ public final class BunchIdBundler {
         final int[] bunchArray = intent.getIntArrayExtra(key);
         final MutableList<BunchId> bunchList = MutableList.empty();
         for (int bunch : bunchArray) {
-            bunchList.append(conceptAsBunchId(bunch));
+            bunchList.append(new BunchId(bunch));
         }
 
         return bunchList;
@@ -39,7 +37,7 @@ public final class BunchIdBundler {
             final int size = bunchList.size();
             final int[] bunchArray = new int[size];
             for (int i = 0; i < size; i++) {
-                bunchArray[i] = bunchList.valueAt(i).getConceptId();
+                bunchArray[i] = bunchList.valueAt(i).key;
             }
             intent.putExtra(key, bunchArray);
         }

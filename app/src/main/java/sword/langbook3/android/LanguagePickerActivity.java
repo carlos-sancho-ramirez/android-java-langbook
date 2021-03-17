@@ -8,9 +8,9 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.LanguageId;
-
-import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 
 public final class LanguagePickerActivity extends Activity implements ListView.OnItemClickListener {
 
@@ -31,9 +31,9 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, String searchQuery, int concept) {
+    public static void open(Activity activity, int requestCode, String searchQuery, ConceptId concept) {
         final Intent intent = new Intent(activity, LanguagePickerActivity.class);
-        intent.putExtra(ArgKeys.CONCEPT, concept);
+        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -51,7 +51,7 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        final int concept = getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT);
+        final ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
         final String searchQuery = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
         final LanguageId languageId = ((LanguagePickerAdapter) parent.getAdapter()).getItem(position);
         WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, languageId, searchQuery, concept);

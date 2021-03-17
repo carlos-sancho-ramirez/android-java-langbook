@@ -11,7 +11,6 @@ import android.widget.ListView;
 import sword.collections.ImmutablePair;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdBundler;
-import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.models.Conversion;
 
@@ -54,8 +53,8 @@ public final class ConversionDetailsActivity extends Activity {
         final AlphabetId sourceAlphabet = getSourceAlphabet();
         final AlphabetId targetAlphabet = getTargetAlphabet();
 
-        final String sourceText = checker.readConceptText(AlphabetIdManager.getConceptId(sourceAlphabet), preferredAlphabet);
-        final String targetText = checker.readConceptText(AlphabetIdManager.getConceptId(targetAlphabet), preferredAlphabet);
+        final String sourceText = checker.readConceptText(sourceAlphabet.getConceptId(), preferredAlphabet);
+        final String targetText = checker.readConceptText(targetAlphabet.getConceptId(), preferredAlphabet);
         setTitle(sourceText + " -> " + targetText);
 
         final Conversion<AlphabetId> conversion = checker.getConversion(new ImmutablePair<>(sourceAlphabet, targetAlphabet));

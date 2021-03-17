@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.database.DbValue;
 
-final class RuleIdManager implements IntSetter<RuleIdHolder> {
+final class RuleIdManager implements ConceptualizableSetter<ConceptIdHolder, RuleIdHolder> {
 
     @Override
     public RuleIdHolder getKeyFromInt(int key) {
@@ -12,5 +12,10 @@ final class RuleIdManager implements IntSetter<RuleIdHolder> {
     @Override
     public RuleIdHolder getKeyFromDbValue(DbValue value) {
         return getKeyFromInt(value.toInt());
+    }
+
+    @Override
+    public RuleIdHolder getKeyFromConceptId(ConceptIdHolder concept) {
+        return new RuleIdHolder(concept.key);
     }
 }

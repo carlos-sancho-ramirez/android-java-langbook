@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.database.DbValue;
 
-public final class BunchIdManager implements IntSetter<BunchId> {
+public final class BunchIdManager implements ConceptualizableSetter<ConceptId, BunchId> {
 
     @Override
     public BunchId getKeyFromInt(int key) {
@@ -14,7 +14,12 @@ public final class BunchIdManager implements IntSetter<BunchId> {
         return getKeyFromInt(value.toInt());
     }
 
-    public static BunchId conceptAsBunchId(int concept) {
-        return new BunchId(concept);
+    public static BunchId conceptAsBunchId(ConceptId concept) {
+        return (concept == null)? null : new BunchId(concept.key);
+    }
+
+    @Override
+    public BunchId getKeyFromConceptId(ConceptId concept) {
+        return conceptAsBunchId(concept);
     }
 }

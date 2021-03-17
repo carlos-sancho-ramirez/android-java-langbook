@@ -1,10 +1,6 @@
 package sword.langbook3.android.db;
 
-import sword.database.DbValue;
-
-public interface BunchIdInterface extends IdWhereInterface, IdPutInterface {
-    boolean sameValue(DbValue value);
-    int getConceptId();
+public interface BunchIdInterface<ConceptId> extends ConceptualizableIdInterface<ConceptId> {
 
     /**
      * Key used in quizzes definitions to specify that there is no bunch linked to this quiz.

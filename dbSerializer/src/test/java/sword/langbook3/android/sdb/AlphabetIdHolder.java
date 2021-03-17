@@ -5,11 +5,15 @@ import sword.database.DbSettableQueryBuilder;
 import sword.database.DbValue;
 import sword.langbook3.android.db.AlphabetIdInterface;
 
-final class AlphabetIdHolder implements AlphabetIdInterface {
+final class AlphabetIdHolder implements AlphabetIdInterface<ConceptIdHolder> {
 
     final int key;
 
     AlphabetIdHolder(int key) {
+        if (key == 0) {
+            throw new IllegalArgumentException();
+        }
+
         this.key = key;
     }
 
@@ -49,5 +53,10 @@ final class AlphabetIdHolder implements AlphabetIdInterface {
     @Override
     public void put(int columnIndex, DbSettableQueryBuilder builder) {
         builder.put(columnIndex, key);
+    }
+
+    @Override
+    public ConceptIdHolder getConceptId() {
+        return new ConceptIdHolder(key);
     }
 }

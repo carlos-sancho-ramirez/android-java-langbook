@@ -5,11 +5,15 @@ import sword.database.DbSettableQueryBuilder;
 import sword.database.DbValue;
 import sword.langbook3.android.db.LanguageIdInterface;
 
-final class LanguageIdHolder implements LanguageIdInterface {
+final class LanguageIdHolder implements LanguageIdInterface<ConceptIdHolder> {
 
     final int key;
 
     LanguageIdHolder(int key) {
+        if (key == 0) {
+            throw new IllegalArgumentException();
+        }
+
         this.key = key;
     }
 
@@ -42,8 +46,8 @@ final class LanguageIdHolder implements LanguageIdInterface {
     }
 
     @Override
-    public int getConceptId() {
-        return key;
+    public ConceptIdHolder getConceptId() {
+        return new ConceptIdHolder(key);
     }
 
     @Override

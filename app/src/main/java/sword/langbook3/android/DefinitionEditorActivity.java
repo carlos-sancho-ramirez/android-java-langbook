@@ -11,11 +11,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntArraySet;
-import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.ConceptIdParceler;
 import sword.langbook3.android.db.LangbookDbChecker;
 
 public final class DefinitionEditorActivity extends Activity implements View.OnClickListener {
@@ -62,14 +64,14 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final TextView baseConceptTextView = findViewById(R.id.baseConceptText);
 
-        final String text = (_state.baseConcept == 0)? null : checker.readConceptText(_state.baseConcept, preferredAlphabet);
+        final String text = (_state.baseConcept == null)? null : checker.readConceptText(_state.baseConcept, preferredAlphabet);
         baseConceptTextView.setText(text);
 
         final LinearLayout complementsPanel = findViewById(R.id.complementsPanel);
         complementsPanel.removeAllViews();
 
         final LayoutInflater inflater = LayoutInflater.from(this);
-        for (int complementConcept : _state.complements) {
+        for (ConceptId complementConcept : _state.complements) {
             inflater.inflate(R.layout.definition_editor_complement_entry, complementsPanel, true);
             final TextView textView = complementsPanel.getChildAt(complementsPanel.getChildCount() - 1).findViewById(R.id.text);
             textView.setText(checker.readConceptText(complementConcept, preferredAlphabet));
@@ -94,7 +96,7 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
     }
 
     private void saveAndFinish() {
-        if (_state.baseConcept == 0) {
+        if (_state.baseConcept == null) {
             Toast.makeText(this, R.string.baseConceptMissing, Toast.LENGTH_SHORT).show();
         }
         else {
@@ -112,7 +114,7 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
         if (requestCode == REQUEST_CODE_PICK_BASE && resultCode == RESULT_OK && data != null) {
             final LangbookDbChecker checker = DbManager.getInstance().getManager();
             final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-            _state.baseConcept = (pickedAcceptation != null)? checker.conceptFromAcceptation(pickedAcceptation) : 0;
+            _state.baseConcept = (pickedAcceptation != null)? checker.conceptFromAcceptation(pickedAcceptation) : null;
             updateUi();
         }
         else if (requestCode == REQUEST_CODE_PICK_COMPLEMENT && resultCode == RESULT_OK && data != null) {
@@ -129,8 +131,8 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
     }
 
     public static final class State implements Parcelable {
-        public int baseConcept;
-        public ImmutableIntSet complements = ImmutableIntArraySet.empty();
+        public ConceptId baseConcept;
+        public ImmutableSet<ConceptId> complements = ImmutableHashSet.empty();
 
         @Override
         public int describeContents() {
@@ -139,14 +141,14 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
 
         @Override
         public void writeToParcel(Parcel dest, int flags) {
-            dest.writeInt(baseConcept);
+            ConceptIdParceler.write(dest, baseConcept);
 
             final int complementCount = (complements != null)? complements.size() : 0;
             dest.writeInt(complementCount);
 
             if (complementCount > 0) {
-                for (int complement : complements) {
-                    dest.writeInt(complement);
+                for (ConceptId complement : complements) {
+                    ConceptIdParceler.write(dest, complement);
                 }
             }
         }
@@ -155,11 +157,11 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
             @Override
             public State createFromParcel(Parcel in) {
                 final State state = new State();
-                state.baseConcept = in.readInt();
+                state.baseConcept = ConceptIdParceler.read(in);
 
                 final int complementCount = in.readInt();
                 for (int i = 0; i < complementCount; i++) {
-                    state.complements = state.complements.add(in.readInt());
+                    state.complements = state.complements.add(ConceptIdParceler.read(in));
                 }
 
                 return state;

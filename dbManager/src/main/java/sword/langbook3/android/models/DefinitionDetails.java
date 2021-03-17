@@ -1,19 +1,19 @@
 package sword.langbook3.android.models;
 
-import sword.collections.ImmutableIntArraySet;
-import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableSet;
 
-public final class DefinitionDetails {
+public final class DefinitionDetails<ConceptId> {
 
-    public final int baseConcept;
-    public final ImmutableIntSet complements;
+    public final ConceptId baseConcept;
+    public final ImmutableSet<ConceptId> complements;
 
-    public DefinitionDetails(int baseConcept, ImmutableIntSet complements) {
-        if (baseConcept == 0) {
+    public DefinitionDetails(ConceptId baseConcept, ImmutableSet<ConceptId> complements) {
+        if (baseConcept == null) {
             throw new IllegalArgumentException();
         }
 
         this.baseConcept = baseConcept;
-        this.complements = (complements == null)? ImmutableIntArraySet.empty() : complements;
+        this.complements = (complements == null)? ImmutableHashSet.empty() : complements;
     }
 }

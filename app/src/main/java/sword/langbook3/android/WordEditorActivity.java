@@ -31,6 +31,8 @@ import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
@@ -40,7 +42,6 @@ import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.CorrelationPickerActivity.NO_CONCEPT;
 import static sword.langbook3.android.collections.EqualUtils.equal;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
@@ -69,24 +70,24 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> _conversions =
             new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
-    public static void open(Activity activity, int requestCode, LanguageId language, String searchQuery, int concept) {
+    public static void open(Activity activity, int requestCode, LanguageId language, String searchQuery, ConceptId concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        intent.putExtra(ArgKeys.CONCEPT, concept);
+        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
         intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, LanguageId language, int concept) {
+    public static void open(Activity activity, int requestCode, LanguageId language, ConceptId concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        intent.putExtra(ArgKeys.CONCEPT, concept);
+        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, String title, Correlation<AlphabetId> correlation, int concept) {
+    public static void open(Activity activity, int requestCode, String title, Correlation<AlphabetId> correlation, ConceptId concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        intent.putExtra(ArgKeys.CONCEPT, concept);
+        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.TITLE, title);
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, correlation);
         activity.startActivityForResult(intent, requestCode);
@@ -369,7 +370,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
             if (_existingAcceptation == null) {
                 CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
-                        getIntent().getIntExtra(ArgKeys.CONCEPT, NO_CONCEPT), builder.build());
+                        ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT), builder.build());
             }
             else {
                 CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,

@@ -17,28 +17,26 @@ import static sword.collections.IntKeyMapTestUtils.assertSinglePair;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
+import static sword.langbook3.android.db.AcceptationsManagerTest.obtainNewAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsManagerTest<LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
 
     @Override
-    SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> createManager(MemoryDatabase db);
+    SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddSentences() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
 
-        final int carConcept = manager.getNextAvailableConceptId();
-        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
+        final AcceptationId greatAcc = obtainNewAcceptation(manager, esAlphabet, "genial");
 
-        final int greatConcept = manager.getNextAvailableConceptId();
-        final AcceptationId greatAcc = addSimpleAcceptation(manager, esAlphabet, greatConcept, "genial");
-
-        final int redConcept = manager.getNextAvailableConceptId();
+        final ConceptId redConcept = manager.getNextAvailableConceptId();
         final AcceptationId redEsAcc = addSimpleAcceptation(manager, esAlphabet, redConcept, "rojo");
         final AcceptationId redEnAcc = addSimpleAcceptation(manager, enAlphabet, redConcept, "red");
 
@@ -60,10 +58,10 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
                 .add(newSpan(text3, "red", redEnAcc))
                 .build();
 
-        final int concept1 = manager.getNextAvailableConceptId();
+        final ConceptId concept1 = manager.getNextAvailableConceptId();
         final int sentence1 = manager.addSentence(concept1, text1, spans1);
 
-        final int concept2 = manager.getNextAvailableConceptId();
+        final ConceptId concept2 = manager.getNextAvailableConceptId();
         final int sentence2 = manager.addSentence(concept2, text2, spans2);
         final int sentence3 = manager.addSentence(concept2, text3, spans3);
 
@@ -77,9 +75,9 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
                 .build();
         assertEqualMap(expectedCarMatchingSentences, manager.getSampleSentences(carAcc));
 
-        final SentenceDetailsModel<AcceptationId> sentenceDetails1 = manager.getSentenceDetails(sentence1);
-        final SentenceDetailsModel<AcceptationId> sentenceDetails2 = manager.getSentenceDetails(sentence2);
-        final SentenceDetailsModel<AcceptationId> sentenceDetails3 = manager.getSentenceDetails(sentence3);
+        final SentenceDetailsModel<ConceptId, AcceptationId> sentenceDetails1 = manager.getSentenceDetails(sentence1);
+        final SentenceDetailsModel<ConceptId, AcceptationId> sentenceDetails2 = manager.getSentenceDetails(sentence2);
+        final SentenceDetailsModel<ConceptId, AcceptationId> sentenceDetails3 = manager.getSentenceDetails(sentence3);
 
         assertEquals(text1, sentenceDetails1.text);
         assertEquals(spans1, sentenceDetails1.spans);
@@ -97,18 +95,15 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
     @Test
     default void testReplaceSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
 
-        final int carConcept = manager.getNextAvailableConceptId();
-        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
+        final AcceptationId greatAcc = obtainNewAcceptation(manager, esAlphabet, "genial");
 
-        final int greatConcept = manager.getNextAvailableConceptId();
-        final AcceptationId greatAcc = addSimpleAcceptation(manager, esAlphabet, greatConcept, "genial");
-
-        final int redConcept = manager.getNextAvailableConceptId();
+        final ConceptId redConcept = manager.getNextAvailableConceptId();
         final AcceptationId redEsAcc = addSimpleAcceptation(manager, esAlphabet, redConcept, "rojo");
         final AcceptationId redEnAcc = addSimpleAcceptation(manager, enAlphabet, redConcept, "red");
 
@@ -130,7 +125,7 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
                 .add(newSpan(text2, "red", redEnAcc))
                 .build();
 
-        final int concept1 = manager.getNextAvailableConceptId();
+        final ConceptId concept1 = manager.getNextAvailableConceptId();
         final int sentence1 = manager.addSentence(concept1, text1a, spans1a);
         assertTrue(manager.updateSentenceTextAndSpans(sentence1, text1b, spans1b));
 
@@ -141,8 +136,8 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
         assertSinglePair(sentence2, text2, manager.getSampleSentences(redEnAcc));
         assertSinglePair(sentence1, text1b, manager.getSampleSentences(carAcc));
 
-        final SentenceDetailsModel<AcceptationId> sentenceDetails1 = manager.getSentenceDetails(sentence1);
-        final SentenceDetailsModel<AcceptationId> sentenceDetails2 = manager.getSentenceDetails(sentence2);
+        final SentenceDetailsModel<ConceptId, AcceptationId> sentenceDetails1 = manager.getSentenceDetails(sentence1);
+        final SentenceDetailsModel<ConceptId, AcceptationId> sentenceDetails2 = manager.getSentenceDetails(sentence2);
 
         assertEquals(text1b, sentenceDetails1.text);
         assertEquals(spans1b, sentenceDetails1.spans);
@@ -156,12 +151,11 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
     @Test
     default void testReplaceSentenceWithSameText() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int carConcept = manager.getNextAvailableConceptId();
-        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
 
         final String text = "Mi coche es genial";
 
@@ -169,11 +163,10 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
                 .add(newSpan(text, "coche", carAcc))
                 .build();
 
-        final int concept = manager.getNextAvailableConceptId();
+        final ConceptId concept = manager.getNextAvailableConceptId();
         final int sentence = manager.addSentence(concept, text, spans1);
 
-        final int greatConcept = manager.getNextAvailableConceptId();
-        final AcceptationId greatAcc = addSimpleAcceptation(manager, esAlphabet, greatConcept, "genial");
+        final AcceptationId greatAcc = obtainNewAcceptation(manager, esAlphabet, "genial");
 
         final ImmutableSet<SentenceSpan<AcceptationId>> spans2 = spans1.add(newSpan(text, "genial", greatAcc));
 
@@ -181,7 +174,7 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
         assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
         assertSinglePair(sentence, text, manager.getSampleSentences(greatAcc));
 
-        final SentenceDetailsModel<AcceptationId> sentenceDetails1 = manager.getSentenceDetails(sentence);
+        final SentenceDetailsModel<ConceptId, AcceptationId> sentenceDetails1 = manager.getSentenceDetails(sentence);
 
         assertEquals(concept, sentenceDetails1.concept);
         assertEquals(text, sentenceDetails1.text);
@@ -191,15 +184,12 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
     @Test
     default void testRemoveSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int carConcept = manager.getNextAvailableConceptId();
-        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
-
-        final int greatConcept = manager.getNextAvailableConceptId();
-        final AcceptationId greatAcc = addSimpleAcceptation(manager, esAlphabet, greatConcept, "genial");
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
+        final AcceptationId greatAcc = obtainNewAcceptation(manager, esAlphabet, "genial");
 
         final String text = "Mi coche es genial";
 
@@ -208,7 +198,7 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
                 .add(newSpan(text, "genial", greatAcc))
                 .build();
 
-        final int concept1 = manager.getNextAvailableConceptId();
+        final ConceptId concept1 = manager.getNextAvailableConceptId();
         manager.removeSentence(manager.addSentence(concept1, text, spans));
 
         assertEmpty(manager.getSampleSentences(carAcc));
@@ -218,15 +208,12 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
     @Test
     default void testRemoveAcceptationIncludedInASpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
-        final int carConcept = manager.getNextAvailableConceptId();
-        final AcceptationId carAcc = addSimpleAcceptation(manager, esAlphabet, carConcept, "coche");
-
-        final int redConcept = manager.getNextAvailableConceptId();
-        final AcceptationId redAcc = addSimpleAcceptation(manager, esAlphabet, redConcept, "rojo");
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
+        final AcceptationId redAcc = obtainNewAcceptation(manager, esAlphabet, "rojo");
 
         final String text = "El coche es rojo";
 
@@ -235,7 +222,7 @@ interface SentencesManagerTest<LanguageId, AlphabetId, SymbolArrayId, Correlatio
                 .add(newSpan(text, "rojo", redAcc))
                 .build();
 
-        final int concept = manager.getNextAvailableConceptId();
+        final ConceptId concept = manager.getNextAvailableConceptId();
         final int sentence = manager.addSentence(concept, text, spans);
         assertTrue(manager.removeAcceptation(carAcc));
 

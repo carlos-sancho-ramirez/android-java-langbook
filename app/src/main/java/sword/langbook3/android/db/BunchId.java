@@ -1,38 +1,19 @@
 package sword.langbook3.android.db;
 
-import sword.database.DbIdentifiableQueryBuilder;
-import sword.database.DbSettableQueryBuilder;
-import sword.database.DbValue;
-
-public final class BunchId extends ConceptId implements BunchIdInterface {
+public final class BunchId extends ConceptualId implements BunchIdInterface<ConceptId> {
 
     BunchId(int key) {
         super(key);
     }
 
     @Override
-    public boolean sameValue(DbValue value) {
-        return value.toInt() == key;
-    }
-
-    @Override
-    public int getConceptId() {
-        return key;
+    public ConceptId getConceptId() {
+        return new ConceptId(key);
     }
 
     @Override
     public boolean isNoBunchForQuiz() {
         return key == 0;
-    }
-
-    @Override
-    public void where(int columnIndex, DbIdentifiableQueryBuilder builder) {
-        builder.where(columnIndex, key);
-    }
-
-    @Override
-    public void put(int columnIndex, DbSettableQueryBuilder builder) {
-        builder.put(columnIndex, key);
     }
 
     @Override

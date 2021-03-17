@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.database.DbValue;
 
-public final class AlphabetIdManager implements IntSetter<AlphabetId> {
+public final class AlphabetIdManager implements ConceptualizableSetter<ConceptId, AlphabetId> {
 
     @Override
     public AlphabetId getKeyFromInt(int key) {
@@ -14,15 +14,16 @@ public final class AlphabetIdManager implements IntSetter<AlphabetId> {
         return getKeyFromInt(value.toInt());
     }
 
-    public static AlphabetId getNextAvailableId(ConceptsChecker manager) {
-        return new AlphabetId(manager.getNextAvailableConceptId());
+    public static AlphabetId conceptAsAlphabetId(ConceptId concept) {
+        return (concept == null)? null : new AlphabetId(concept.key);
     }
 
     public static int getConceptId(AlphabetId alphabetId) {
         return (alphabetId != null)? alphabetId.key : 0;
     }
 
-    public static AlphabetId conceptAsAlphabetId(int alphabetConcept) {
-        return (alphabetConcept != 0)? new AlphabetId(alphabetConcept) : null;
+    @Override
+    public AlphabetId getKeyFromConceptId(ConceptId concept) {
+        return conceptAsAlphabetId(concept);
     }
 }
