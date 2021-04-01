@@ -16,6 +16,7 @@ import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchSetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
@@ -48,7 +49,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
 
     boolean _deleteDialogPresent;
 
-    AgentRegister<CorrelationId, RuleId> _register;
+    AgentRegister<CorrelationId, BunchSetId, RuleId> _register;
     private int _dbWriteVersion;
 
     private ListView _listView;

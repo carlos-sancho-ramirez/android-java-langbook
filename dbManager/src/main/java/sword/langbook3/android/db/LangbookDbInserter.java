@@ -27,7 +27,7 @@ final class LangbookDbInserter {
         return (intResult != null)? symbolArrayIdSetter.getKeyFromInt(intResult) : null;
     }
 
-    static void insertAlphabet(DbInserter db, AlphabetIdInterface id, LanguageIdInterface language) {
+    static <ConceptId> void insertAlphabet(DbInserter db, AlphabetIdInterface<ConceptId> id, LanguageIdInterface<ConceptId> language) {
         final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getIdColumnIndex(), id)
@@ -36,7 +36,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static void insertLanguage(DbInserter db, LanguageIdInterface id, String code, AlphabetIdInterface mainAlphabet) {
+    static <ConceptId> void insertLanguage(DbInserter db, LanguageIdInterface<ConceptId> id, String code, AlphabetIdInterface<ConceptId> mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = Tables.languages;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getCodeColumnIndex(), code)
@@ -46,7 +46,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static void insertConversion(DbInserter db, AlphabetIdInterface sourceAlphabet, AlphabetIdInterface targetAlphabet, SymbolArrayIdInterface source, SymbolArrayIdInterface target) {
+    static <ConceptId> void insertConversion(DbInserter db, AlphabetIdInterface<ConceptId> sourceAlphabet, AlphabetIdInterface<ConceptId> targetAlphabet, SymbolArrayIdInterface source, SymbolArrayIdInterface target) {
         final LangbookDbSchema.ConversionsTable table = Tables.conversions;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
@@ -57,7 +57,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static void insertCorrelationEntry(DbInserter db, CorrelationIdInterface correlationId, AlphabetIdInterface alphabet, SymbolArrayIdInterface symbolArray) {
+    static <ConceptId> void insertCorrelationEntry(DbInserter db, CorrelationIdInterface correlationId, AlphabetIdInterface<ConceptId> alphabet, SymbolArrayIdInterface symbolArray) {
         final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getCorrelationIdColumnIndex(), correlationId)
@@ -69,7 +69,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertCorrelation(DbInserter db, CorrelationIdInterface correlationId, Map<? extends AlphabetIdInterface, ? extends SymbolArrayIdInterface> correlation) {
+    static <ConceptId> void insertCorrelation(DbInserter db, CorrelationIdInterface correlationId, Map<? extends AlphabetIdInterface<ConceptId>, ? extends SymbolArrayIdInterface> correlation) {
         final int mapLength = correlation.size();
         if (mapLength == 0) {
             throw new IllegalArgumentException();
@@ -129,7 +129,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static void insertBunchAcceptation(DbInserter db, BunchIdInterface bunch, AcceptationIdInterface acceptation, int agent) {
+    static <ConceptId> void insertBunchAcceptation(DbInserter db, BunchIdInterface<ConceptId> bunch, AcceptationIdInterface acceptation, int agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = Tables.bunchAcceptations;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getBunchColumnIndex(), bunch)
@@ -142,7 +142,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static <BunchId extends BunchIdInterface> void insertBunchSet(DbInserter db, int setId, Set<BunchId> bunches) {
+    static <ConceptId, BunchId extends BunchIdInterface<ConceptId>> void insertBunchSet(DbInserter db, BunchSetIdInterface setId, Set<BunchId> bunches) {
         if (bunches.isEmpty()) {
             throw new IllegalArgumentException();
         }
@@ -160,7 +160,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static Integer insertAgent(DbInserter db, AgentRegister<? extends CorrelationIdInterface, ? extends RuleIdInterface> register) {
+    static <ConceptId> Integer insertAgent(DbInserter db, AgentRegister<? extends CorrelationIdInterface, ? extends BunchSetIdInterface, ? extends RuleIdInterface<ConceptId>> register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getTargetBunchSetColumnIndex(), register.targetBunchSetId)
@@ -201,8 +201,8 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertStringQuery(DbInserter db, String str,
-            String mainStr, AcceptationIdInterface mainAcceptation, AcceptationIdInterface dynAcceptation, AlphabetIdInterface strAlphabet) {
+    static <ConceptId> void insertStringQuery(DbInserter db, String str,
+            String mainStr, AcceptationIdInterface mainAcceptation, AcceptationIdInterface dynAcceptation, AlphabetIdInterface<ConceptId> strAlphabet) {
         final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getStringColumnIndex(), str)
@@ -217,7 +217,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static <AlphabetId extends AlphabetIdInterface, RuleId extends RuleIdInterface> void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
+    static <ConceptId, AlphabetId extends AlphabetIdInterface<ConceptId>, RuleId extends RuleIdInterface<ConceptId>> void insertQuestionFieldSet(DbInserter db, int setId, Iterable<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
         final LangbookDbSchema.QuestionFieldSets table = Tables.questionFieldSets;
         for (QuestionFieldDetails<AlphabetId, RuleId> field : fields) {
             final DbInsertQuery query = new DbInsertQueryBuilder(table)
@@ -233,7 +233,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static int insertQuizDefinition(DbInserter db, BunchIdInterface bunch, int setId) {
+    static <ConceptId> int insertQuizDefinition(DbInserter db, BunchIdInterface<ConceptId> bunch, int setId) {
         final LangbookDbSchema.QuizDefinitionsTable table = Tables.quizDefinitions;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getBunchColumnIndex(), bunch)

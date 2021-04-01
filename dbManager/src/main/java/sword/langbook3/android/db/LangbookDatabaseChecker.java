@@ -37,7 +37,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
@@ -69,7 +68,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
-abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, RuleId extends RuleIdInterface<ConceptId>> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, RuleId> {
+abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> {
 
     final Database _db;
     final ConceptSetter<ConceptId> _conceptIdSetter;
@@ -80,10 +79,11 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     final IntSetter<CorrelationArrayId> _correlationArrayIdSetter;
     final IntSetter<AcceptationId> _acceptationIdSetter;
     final ConceptualizableSetter<ConceptId, BunchId> _bunchIdSetter;
+    final BunchSetIntSetter<BunchSetId> _bunchSetIdSetter;
     final ConceptualizableSetter<ConceptId, RuleId> _ruleIdSetter;
 
-    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter) {
-        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || ruleIdSetter == null) {
+    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter) {
+        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || bunchSetIdSetter == null || ruleIdSetter == null) {
             throw new IllegalArgumentException();
         }
 
@@ -96,6 +96,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         _correlationArrayIdSetter = correlationArrayIdSetter;
         _acceptationIdSetter = acceptationIdSetter;
         _bunchIdSetter = bunchIdSetter;
+        _bunchSetIdSetter = bunchSetIdSetter;
         _ruleIdSetter = ruleIdSetter;
     }
 
@@ -539,9 +540,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return !startMatcher.isEmpty() || !endMatcher.isEmpty();
     }
 
-    private ImmutableSet<BunchId> readBunchesFromSetOfBunchSets(ImmutableIntSet bunchSets) {
+    private ImmutableSet<BunchId> readBunchesFromSetOfBunchSets(ImmutableSet<BunchSetId> bunchSets) {
         final ImmutableSet.Builder<BunchId> builder = new ImmutableHashSet.Builder<>();
-        for (int bunchSet : bunchSets) {
+        for (BunchSetId bunchSet : bunchSets) {
             for (BunchId bunch : getBunchSet(bunchSet)) {
                 builder.add(bunch);
             }
@@ -561,12 +562,12 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
         final SyncCacheMap<CorrelationId, ImmutableCorrelation<AlphabetId>> cachedCorrelations =
                 new SyncCacheMap<>(this::getCorrelationWithText);
-        final ImmutableIntSet.Builder validBunchSetsBuilder = new ImmutableIntSetCreator();
+        final ImmutableHashSet.Builder<BunchSetId> validBunchSetsBuilder = new ImmutableHashSet.Builder<>();
 
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                int bunchSet = row.get(0).toInt();
+                BunchSetId bunchSet = _bunchSetIdSetter.getKeyFromDbValue(row.get(0));
                 CorrelationId startMatcherId = _correlationIdSetter.getKeyFromDbValue(row.get(1));
                 CorrelationId endMatcherId = _correlationIdSetter.getKeyFromDbValue(row.get(2));
 
@@ -1651,7 +1652,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public AgentRegister<CorrelationId, RuleId> getAgentRegister(int agentId) {
+    public AgentRegister<CorrelationId, BunchSetId, RuleId> getAgentRegister(int agentId) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), agentId)
@@ -1666,9 +1667,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
         final List<DbValue> agentRow = selectOptionalSingleRow(query);
         if (agentRow != null) {
-            final int targetBunchSetId = agentRow.get(0).toInt();
-            final int sourceBunchSetId = agentRow.get(1).toInt();
-            final int diffBunchSetId = agentRow.get(2).toInt();
+            final BunchSetId targetBunchSetId = _bunchSetIdSetter.getKeyFromDbValue(agentRow.get(0));
+            final BunchSetId sourceBunchSetId = _bunchSetIdSetter.getKeyFromDbValue(agentRow.get(1));
+            final BunchSetId diffBunchSetId = _bunchSetIdSetter.getKeyFromDbValue(agentRow.get(2));
             final CorrelationId startMatcherId = _correlationIdSetter.getKeyFromDbValue(agentRow.get(3));
             final CorrelationId startAdderId = _correlationIdSetter.getKeyFromDbValue(agentRow.get(4));
             final CorrelationId endMatcherId = _correlationIdSetter.getKeyFromDbValue(agentRow.get(5));
@@ -1683,7 +1684,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
     @Override
     public AgentDetails<AlphabetId, BunchId, RuleId> getAgentDetails(int agentId) {
-        final AgentRegister<CorrelationId, RuleId> register = getAgentRegister(agentId);
+        final AgentRegister<CorrelationId, BunchSetId, RuleId> register = getAgentRegister(agentId);
         final ImmutableSet<BunchId> targetBunches = getBunchSet(register.targetBunchSetId);
         final ImmutableSet<BunchId> sourceBunches = getBunchSet(register.sourceBunchSetId);
         final ImmutableSet<BunchId> diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
@@ -1701,7 +1702,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableList<DisplayableItem<AcceptationId>> readBunchSetAcceptationsAndTexts(int bunchSet, AlphabetId preferredAlphabet) {
+    public ImmutableList<DisplayableItem<AcceptationId>> readBunchSetAcceptationsAndTexts(BunchSetId bunchSet, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -1709,7 +1710,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final int accOffset = bunchSets.columns().size();
         final int stringsOffset = accOffset + acceptations.columns().size();
 
-        final DbQuery query = new DbQuery.Builder(bunchSets)
+        final DbQuery query = new DbQueryBuilder(bunchSets)
                 .join(acceptations, bunchSets.getBunchColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(bunchSets.getSetIdColumnIndex(), bunchSet)
@@ -2030,13 +2031,13 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableSet<BunchId> getBunchSet(int setId) {
-        if (setId == 0) {
+    public ImmutableSet<BunchId> getBunchSet(BunchSetId setId) {
+        if (setId.isDeclaredEmpty()) {
             return ImmutableHashSet.empty();
         }
 
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getSetIdColumnIndex(), setId)
                 .select(table.getBunchColumnIndex());
 
@@ -2926,10 +2927,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .anyMatch(str -> conversion.convert(str) == null);
     }
 
-    Integer findBunchSet(Set<BunchId> bunches) {
+    BunchSetId findBunchSet(Set<BunchId> bunches) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         if (bunches.isEmpty()) {
-            return table.nullReference();
+            return _bunchSetIdSetter.getDeclaredEmpty();
         }
 
         final DbQuery query = new DbQueryBuilder(table)
@@ -2942,17 +2943,17 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 final MutableSet<BunchId> set = MutableHashSet.empty();
-                int setId = row.get(0).toInt();
+                BunchSetId setId = _bunchSetIdSetter.getKeyFromDbValue(row.get(0));
                 set.add(_bunchIdSetter.getKeyFromDbValue(row.get(1)));
 
                 while (result.hasNext()) {
                     row = result.next();
-                    if (row.get(0).toInt() != setId) {
+                    if (!setId.sameValue(row.get(0))) {
                         if (set.equals(bunches)) {
                             return setId;
                         }
 
-                        setId = row.get(0).toInt();
+                        setId = _bunchSetIdSetter.getKeyFromDbValue(row.get(0));
                         set.clear();
                     }
 
@@ -3136,9 +3137,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return null;
     }
 
-    int getMaxBunchSetId() {
+    BunchSetId getNextAvailableBunchSetId() {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
-        return getColumnMax(table, table.getSetIdColumnIndex());
+        final int max = getColumnMax(table, table.getSetIdColumnIndex());
+        return _bunchSetIdSetter.getKeyFromInt(max + 1);
     }
 
     int getMaxQuestionFieldSetId() {
@@ -3164,18 +3166,18 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return selectExistAtLeastOneRow(query);
     }
 
-    MutableIntKeyMap<MutableSet<BunchId>> readBunchSetsWhereBunchIsIncluded(BunchId bunch) {
+    MutableMap<BunchSetId, MutableSet<BunchId>> readBunchSetsWhereBunchIsIncluded(BunchId bunch) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         final DbQuery query = new DbQueryBuilder(table)
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
                 .where(table.getBunchColumnIndex(), bunch)
                 .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
-        final MutableIntKeyMap<MutableSet<BunchId>> map = MutableIntKeyMap.empty();
-        final SyncCacheIntKeyNonNullValueMap<MutableSet<BunchId>> cache = new SyncCacheIntKeyNonNullValueMap<>(map, id -> MutableHashSet.empty());
+        final MutableMap<BunchSetId, MutableSet<BunchId>> map = MutableHashMap.empty();
+        final SyncCacheMap<BunchSetId, MutableSet<BunchId>> cache = new SyncCacheMap<>(map, id -> MutableHashSet.empty());
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int bunchSetId = row.get(0).toInt();
+                final BunchSetId bunchSetId = _bunchSetIdSetter.getKeyFromDbValue(row.get(0));
                 final BunchId thisBunch = _bunchIdSetter.getKeyFromDbValue(row.get(1));
                 cache.get(bunchSetId).add(thisBunch);
             }
@@ -3197,7 +3199,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 List<DbValue> row = result.next();
-                final int bunchSetId = row.get(1).toInt();
+                final BunchSetId bunchSetId = _bunchSetIdSetter.getKeyFromDbValue(row.get(1));
                 builder.put(row.get(0).toInt(), getBunchSet(bunchSetId));
             }
         }
@@ -3218,7 +3220,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), getBunchSet(row.get(1).toInt()));
+                final BunchSetId bunchSetId = _bunchSetIdSetter.getKeyFromDbValue(row.get(1));
+                builder.put(row.get(0).toInt(), getBunchSet(bunchSetId));
             }
         }
 
@@ -3375,7 +3378,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return selectExistAtLeastOneRow(query);
     }
 
-    boolean isBunchSetInUse(int setId) {
+    boolean isBunchSetInUse(BunchSetId setId) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
 
         final DbQuery query = new DbQuery.Builder(agents).select(
@@ -3383,8 +3386,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 agents.getSourceBunchSetColumnIndex(),
                 agents.getDiffBunchSetColumnIndex());
 
-        return _db.select(query).anyMatch(row -> row.get(0).toInt() == setId ||
-                row.get(1).toInt() == setId || row.get(2).toInt() == setId);
+        return _db.select(query).anyMatch(row -> setId.sameValue(row.get(0)) ||
+                setId.sameValue(row.get(1)) || setId.sameValue(row.get(2)));
     }
 
     ConceptId findConceptComposition(ImmutableSet<ConceptId> concepts) {

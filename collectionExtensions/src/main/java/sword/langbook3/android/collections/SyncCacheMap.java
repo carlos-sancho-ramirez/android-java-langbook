@@ -2,15 +2,21 @@ package sword.langbook3.android.collections;
 
 import sword.collections.Function;
 import sword.collections.MutableHashMap;
+import sword.collections.MutableMap;
 
 public final class SyncCacheMap<K, V> {
 
+    private final MutableMap<K, V> _map;
     private final Function<? super K, ? extends V> _supplier;
-    private final MutableHashMap<K, V> _map;
 
     public SyncCacheMap(Function<? super K, ? extends V> supplier) {
-        _supplier = supplier;
         _map = MutableHashMap.empty();
+        _supplier = supplier;
+    }
+
+    public SyncCacheMap(MutableMap<K, V> map, Function<? super K, ? extends V> supplier) {
+        _map = map;
+        _supplier = supplier;
     }
 
     public V get(K key) {

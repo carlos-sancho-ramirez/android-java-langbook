@@ -18,6 +18,12 @@ public final class LangbookDbSchema implements DbSchema {
     public static final int NO_BUNCH = 0;
 
     /**
+     * Reserved bunch set identifier that should never be included as set identifier in the BunchSets table.
+     * This way, it is guaranteed that this bunch set is always empty, even if the database is not queried.
+     */
+    public static final int EMPTY_BUNCH_SET_ID = 0;
+
+    /**
      * Used in agents' rule field to indicate that there is no rule assigned.
      */
     public static final int NO_RULE = 0;
@@ -249,7 +255,7 @@ public final class LangbookDbSchema implements DbSchema {
         }
 
         public int nullReference() {
-            return 0;
+            return EMPTY_BUNCH_SET_ID;
         }
     }
 

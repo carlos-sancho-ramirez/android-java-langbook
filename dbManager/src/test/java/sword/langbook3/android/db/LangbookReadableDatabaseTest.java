@@ -22,7 +22,7 @@ import static sword.langbook3.android.db.AgentsManagerTest.setOf;
 
 final class LangbookReadableDatabaseTest {
 
-    private void addAgent(LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager, BunchIdHolder sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, RuleIdHolder rule) {
+    private void addAgent(LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder> manager, BunchIdHolder sourceBunch, AlphabetIdHolder alphabet, String endMatcherText, String endAdderText, RuleIdHolder rule) {
         final ImmutableSet<BunchIdHolder> emptyBunchSet = ImmutableHashSet.empty();
         final ImmutableSet<BunchIdHolder> verbBunchSet = emptyBunchSet.add(sourceBunch);
 
@@ -56,8 +56,9 @@ final class LangbookReadableDatabaseTest {
         final CorrelationArrayIdManager correlationArrayIdManager = new CorrelationArrayIdManager();
         final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
         final BunchIdManager bunchIdManager = new BunchIdManager();
+        final BunchSetIdManager bunchSetIdManager = new BunchSetIdManager();
         final RuleIdManager ruleIdManager = new RuleIdManager();
-        final LangbookDatabaseManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
+        final LangbookDatabaseManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, bunchSetIdManager, ruleIdManager);
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptIdHolder gerundConcept = manager.getNextAvailableConceptId();
         final ConceptIdHolder pluralConcept = conceptIdManager.recheckAvailability(gerundConcept, gerundConcept);
@@ -96,6 +97,7 @@ final class LangbookReadableDatabaseTest {
         final CorrelationArrayIdManager correlationArrayIdManager = new CorrelationArrayIdManager();
         final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
         final BunchIdManager bunchIdManager = new BunchIdManager();
+        final BunchSetIdManager bunchSetIdManager = new BunchSetIdManager();
         final RuleIdManager ruleIdManager = new RuleIdManager();
 
         final ImmutableSet<String> texts = new ImmutableHashSet.Builder<String>()
@@ -123,7 +125,7 @@ final class LangbookReadableDatabaseTest {
                     final ImmutableList<String> textList = textListBuilder.build();
 
                     final MemoryDatabase db = new MemoryDatabase();
-                    final LangbookDatabaseManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, ruleIdManager);
+                    final LangbookDatabaseManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder> manager = new LangbookDatabaseManager<>(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdManager, correlationArrayIdManager, acceptationIdManager, bunchIdManager, bunchSetIdManager, ruleIdManager);
                     final AlphabetIdHolder alphabet1 = manager.addLanguage("xx").mainAlphabet;
                     final AlphabetIdHolder alphabet2 = getNextAvailableId(manager);
                     assertTrue(manager.addAlphabetCopyingFromOther(alphabet2, alphabet1));
