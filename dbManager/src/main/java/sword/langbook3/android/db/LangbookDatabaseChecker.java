@@ -1762,6 +1762,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final AcceptationId baseAcceptation;
 
         AcceptationFromTextResult(String str, String mainStr, AcceptationId acceptation, AcceptationId baseAcceptation) {
+            if (str == null || mainStr == null || acceptation == null || baseAcceptation == null) {
+                throw new IllegalArgumentException();
+            }
+
             this.str = str;
             this.mainStr = mainStr;
             this.acceptation = acceptation;
@@ -1769,7 +1773,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
 
         boolean isDynamic() {
-            return acceptation != baseAcceptation;
+            return !acceptation.equals(baseAcceptation);
         }
     }
 

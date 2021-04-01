@@ -15,7 +15,7 @@ public final class SearchResult<ID, RuleId> {
     private final ImmutableList<RuleId> _appliedRules;
 
     public SearchResult(String str, String mainStr, ID id, boolean isDynamic, String mainAccMainStr, ImmutableList<RuleId> appliedRules) {
-        if (!(id instanceof AcceptationIdInterface) && !(id instanceof Integer) || str == null || mainStr == null) {
+        if (!(id instanceof AcceptationIdInterface) && !(id instanceof Integer) || str == null || mainStr == null || appliedRules == null) {
             throw new IllegalArgumentException();
         }
 

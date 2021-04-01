@@ -3,6 +3,7 @@ package sword.langbook3.android.db;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
@@ -16,6 +17,7 @@ import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.MorphologyResult;
+import sword.langbook3.android.models.SearchResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1924,5 +1926,52 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
         final AcceptationId callAccidentalPastAcc = ruledAccs2.keyAt(equal(ruledAccs2.valueAt(0), singJaAcc)? 1 : 0);
         assertSinglePair(jaAlphabet, "呼んじまった", manager.getAcceptationTexts(callAccidentalPastAcc));
+    }
+
+    @Test
+    default void testFindAcceptationAndRulesFromTextForStaticAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
+
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> searchResults = manager.findAcceptationAndRulesFromText("cant", DbQuery.RestrictionStringTypes.STARTS_WITH, new ImmutableIntRange(0, 19));
+        assertSize(1, searchResults);
+
+        final SearchResult<AcceptationId, RuleId> searchResult = searchResults.valueAt(0);
+        assertFalse(searchResult.isDynamic());
+        assertEquals(singAcceptation, searchResult.getId());
+        assertEmpty(searchResult.getAppliedRules());
+        assertEquals("cantar", searchResult.getStr());
+        assertEquals("cantar", searchResult.getMainStr());
+    }
+
+    @Test
+    default void testFindAcceptationAndRulesFromTextForDynamicAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, RuleId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, alphabet, "origen");
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, singAcceptation));
+
+        final RuleId firstPersonOfPresentRule = obtainNewRule(manager, alphabet, "primera persona del presente de indicativo");
+        final int agentId = addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch), setOf(), alphabet, null, null, "ar", "o", firstPersonOfPresentRule);
+
+        final AcceptationId ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, singAcceptation);
+
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> searchResults = manager.findAcceptationAndRulesFromText("canto", DbQuery.RestrictionStringTypes.STARTS_WITH, new ImmutableIntRange(0, 19));
+        assertSize(1, searchResults);
+
+        final SearchResult<AcceptationId, RuleId> searchResult = searchResults.valueAt(0);
+        assertTrue(searchResult.isDynamic());
+        assertEquals(ruledAcceptation, searchResult.getId());
+        assertContainsOnly(firstPersonOfPresentRule, searchResult.getAppliedRules());
+        assertEquals("canto", searchResult.getStr());
+        assertEquals("canto", searchResult.getMainStr());
+        assertEquals("cantar", searchResult.getMainAccMainStr());
     }
 }
