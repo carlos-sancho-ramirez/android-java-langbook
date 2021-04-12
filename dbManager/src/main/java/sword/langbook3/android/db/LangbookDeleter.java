@@ -227,17 +227,17 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteSentence(Deleter db, int sentenceId) {
+    static boolean deleteSentence(Deleter db, SentenceIdInterface sentenceId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), sentenceId)
                 .build();
         return db.delete(query);
     }
 
-    static boolean deleteSpansBySentenceId(Deleter db, int sentenceId) {
+    static boolean deleteSpansBySentenceId(Deleter db, SentenceIdInterface sentenceId) {
         final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(spans)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(spans)
                 .where(spans.getSentenceIdColumnIndex(), sentenceId)
                 .build();
         return db.delete(query);

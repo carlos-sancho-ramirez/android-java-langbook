@@ -37,6 +37,8 @@ import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.RuleId;
+import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.db.SentenceIdBundler;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
 import sword.langbook3.android.models.DisplayableItem;
@@ -71,7 +73,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private AcceptationId _acceptation;
-    private AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId> _model;
+    private AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId, SentenceId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -236,7 +238,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         boolean sentenceFound = false;
         final int sampleSentenceCount = _model.sampleSentences.size();
         for (int i = 0; i < sampleSentenceCount; i++) {
-            final int sentenceId = _model.sampleSentences.keyAt(i);
+            final SentenceId sentenceId = _model.sampleSentences.keyAt(i);
             final String sentence = _model.sampleSentences.valueAt(i);
 
             if (!sentenceFound) {
@@ -632,8 +634,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 }
             }
             else if (requestCode == REQUEST_CODE_CREATE_SENTENCE) {
-                final int sentenceId = (data != null)? data.getIntExtra(SentenceEditorActivity.ResultKeys.SENTENCE_ID, 0) : 0;
-                if (sentenceId != 0) {
+                final SentenceId sentenceId = (data != null)? SentenceIdBundler.readAsIntentExtra(data, SentenceEditorActivity.ResultKeys.SENTENCE_ID) : null;
+                if (sentenceId != null) {
                     SentenceDetailsActivity.open(this, REQUEST_CODE_CLICK_NAVIGATION, sentenceId);
                 }
             }

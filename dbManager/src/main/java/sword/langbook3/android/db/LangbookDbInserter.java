@@ -270,7 +270,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertSpan(DbInserter db, int sentenceId, ImmutableIntRange range, AcceptationIdInterface dynamicAcceptation) {
+    static void insertSpan(DbInserter db, SentenceIdInterface sentenceId, ImmutableIntRange range, AcceptationIdInterface dynamicAcceptation) {
         if (range == null || range.min() < 0) {
             throw new IllegalArgumentException();
         }
@@ -288,13 +288,13 @@ final class LangbookDbInserter {
         }
     }
 
-    static int insertSentence(DbInserter db, ConceptIdInterface concept, SymbolArrayIdInterface symbolArray) {
+    static <SentenceId> SentenceId insertSentence(DbInserter db, IntSetter<SentenceId> sentenceIdSetter, ConceptIdInterface concept, SymbolArrayIdInterface symbolArray) {
         final LangbookDbSchema.SentencesTable table = Tables.sentences;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getConceptColumnIndex(), concept)
                 .put(table.getSymbolArrayColumnIndex(), symbolArray)
                 .build();
 
-        return db.insert(query);
+        return sentenceIdSetter.getKeyFromInt(db.insert(query));
     }
 }

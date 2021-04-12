@@ -1,11 +1,11 @@
 package sword.langbook3.android.db;
 
-import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
-public interface SentencesChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public interface SentencesChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
     /**
      * Checks if the given symbolArray is not used neither as a correlation nor as a conversion,
      * and then it is merely a sentence.
@@ -17,9 +17,9 @@ public interface SentencesChecker<ConceptId, LanguageId, AlphabetId, SymbolArray
      * @param sentenceId Identifier for the sentence
      * @return The text for the sentence, or null if the identifier points to nothing
      */
-    String getSentenceText(int sentenceId);
+    String getSentenceText(SentenceId sentenceId);
 
-    ImmutableSet<SentenceSpan<AcceptationId>> getSentenceSpans(int sentenceId);
+    ImmutableSet<SentenceSpan<AcceptationId>> getSentenceSpans(SentenceId sentenceId);
 
     /**
      * Return a map for all sentences that has at least one span with the static acceptation provided,
@@ -28,6 +28,6 @@ public interface SentencesChecker<ConceptId, LanguageId, AlphabetId, SymbolArray
      * @param staticAcceptation Static acceptation to by found.
      * @return Keys for the returned map are the sentence identifiers, values are the text representation of that sentence.
      */
-    ImmutableIntKeyMap<String> getSampleSentences(AcceptationId staticAcceptation);
-    SentenceDetailsModel<ConceptId, AcceptationId> getSentenceDetails(int sentenceId);
+    ImmutableMap<SentenceId, String> getSampleSentences(AcceptationId staticAcceptation);
+    SentenceDetailsModel<ConceptId, AcceptationId, SentenceId> getSentenceDetails(SentenceId sentenceId);
 }

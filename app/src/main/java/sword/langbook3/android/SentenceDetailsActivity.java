@@ -20,6 +20,8 @@ import android.widget.Toast;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.db.SentenceIdBundler;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
@@ -38,9 +40,9 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         String DISPLAYING_DELETE_DIALOG = "dd";
     }
 
-    static void open(Activity activity, int requestCode, int sentenceId) {
+    static void open(Activity activity, int requestCode, SentenceId sentenceId) {
         final Intent intent = new Intent(activity, SentenceDetailsActivity.class);
-        intent.putExtra(ArgKeys.SENTENCE_ID, sentenceId);
+        SentenceIdBundler.writeAsIntentExtra(intent, ArgKeys.SENTENCE_ID, sentenceId);
 
         if (requestCode != 0) {
             activity.startActivityForResult(intent, requestCode);
@@ -51,8 +53,9 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     }
 
     private TextView _sentenceTextView;
+    private SentenceDetailsAdapter _adapter;
     private ListView _listView;
-    private SentenceDetailsModel<ConceptId, AcceptationId> _model;
+    private SentenceDetailsModel<ConceptId, AcceptationId, SentenceId> _model;
     private boolean _justCreated;
 
     private boolean _displayingDeleteDialog;
@@ -71,8 +74,8 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         }
     }
 
-    private int getSentenceId() {
-        return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, 0);
+    private SentenceId getSentenceId() {
+        return SentenceIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SENTENCE_ID);
     }
 
     private void updateSentenceTextView() {
@@ -94,7 +97,8 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
     }
 
     private void updateOtherSentences() {
-        _listView.setAdapter(new SentenceDetailsAdapter(_model.sameMeaningSentences));
+        _adapter = new SentenceDetailsAdapter(_model.sameMeaningSentences);
+        _listView.setAdapter(_adapter);
         _listView.setOnItemClickListener(this);
     }
 
@@ -151,7 +155,7 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        SentenceDetailsActivity.open(this, REQUEST_CODE_OPEN_SENTENCE, (int) id);
+        SentenceDetailsActivity.open(this, REQUEST_CODE_OPEN_SENTENCE, _adapter.getSentenceIdAt(position));
     }
 
     @Override

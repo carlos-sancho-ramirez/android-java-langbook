@@ -6,21 +6,26 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import sword.collections.ImmutableIntKeyMap;
+import sword.collections.ImmutableMap;
+import sword.langbook3.android.db.SentenceId;
 
 final class SentenceDetailsAdapter extends BaseAdapter {
 
-    private final ImmutableIntKeyMap<String> sentences;
+    private final ImmutableMap<SentenceId, String> sentences;
 
     private LayoutInflater inflater;
 
-    SentenceDetailsAdapter(ImmutableIntKeyMap<String> sentences) {
+    SentenceDetailsAdapter(ImmutableMap<SentenceId, String> sentences) {
         this.sentences = sentences;
     }
 
     @Override
     public int getCount() {
         return sentences.size();
+    }
+
+    public SentenceId getSentenceIdAt(int position) {
+        return sentences.keyAt(position);
     }
 
     @Override
@@ -30,7 +35,7 @@ final class SentenceDetailsAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
-        return sentences.keyAt(position);
+        return position;
     }
 
     @Override

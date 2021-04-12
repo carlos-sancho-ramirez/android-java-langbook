@@ -80,10 +80,10 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
 
-public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> {
+public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
 
-    public LangbookDatabaseManager(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter, IntSetter<QuizId> quizIdSetter) {
-        super(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, bunchSetIdSetter, ruleIdSetter, agentIdSetter, quizIdSetter);
+    public LangbookDatabaseManager(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter, IntSetter<QuizId> quizIdSetter, IntSetter<SentenceId> sentenceIdSetter) {
+        super(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, bunchSetIdSetter, ruleIdSetter, agentIdSetter, quizIdSetter, sentenceIdSetter);
     }
 
     private boolean applyMatchersAddersAndConversions(
@@ -1366,8 +1366,8 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return false;
         }
 
-        final ImmutableIntSet correlationIds = findCorrelationsByLanguage(language);
-        final ImmutableIntSet correlationUsedInAgents = findCorrelationsUsedInAgents();
+        final ImmutableSet<CorrelationId> correlationIds = findCorrelationsByLanguage(language);
+        final ImmutableSet<CorrelationId> correlationUsedInAgents = findCorrelationsUsedInAgents();
 
         // For now, if there are agents using affected correlations. This rejects to remove the language
         if (!correlationIds.filter(correlationUsedInAgents::contains).isEmpty()) {
@@ -2209,7 +2209,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean removeSentence(int sentenceId) {
+    public boolean removeSentence(SentenceId sentenceId) {
         final SymbolArrayId symbolArrayId = getSentenceSymbolArray(sentenceId);
         if (symbolArrayId == null || !deleteSentence(_db, sentenceId)) {
             return false;
@@ -2254,13 +2254,13 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public Integer addSentence(ConceptId concept, String text, Set<SentenceSpan<AcceptationId>> spans) {
+    public SentenceId addSentence(ConceptId concept, String text, Set<SentenceSpan<AcceptationId>> spans) {
         if (!checkValidTextAndSpans(text, spans)) {
             return null;
         }
 
         final SymbolArrayId symbolArray = obtainSymbolArray(text);
-        final int sentenceId = insertSentence(_db, concept, symbolArray);
+        final SentenceId sentenceId = insertSentence(_db, _sentenceIdSetter, concept, symbolArray);
         for (SentenceSpan<AcceptationId> span : spans) {
             insertSpan(_db, sentenceId, span.range, span.acceptation);
         }
@@ -2276,7 +2276,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return _db.update(query);
     }
 
-    private boolean updateSentenceSymbolArrayId(int sentenceId, SymbolArrayIdInterface newSymbolArrayId) {
+    private boolean updateSentenceSymbolArrayId(SentenceId sentenceId, SymbolArrayIdInterface newSymbolArrayId) {
         final LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
         final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getIdColumnIndex(), sentenceId)
@@ -2286,7 +2286,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean updateSentenceTextAndSpans(int sentenceId, String newText, Set<SentenceSpan<AcceptationId>> newSpans) {
+    public boolean updateSentenceTextAndSpans(SentenceId sentenceId, String newText, Set<SentenceSpan<AcceptationId>> newSpans) {
         final SymbolArrayId oldSymbolArrayId = getSentenceSymbolArray(sentenceId);
         if (oldSymbolArrayId == null || !checkValidTextAndSpans(newText, newSpans)) {
             return false;

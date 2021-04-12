@@ -26,9 +26,9 @@ import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.db.SentenceIdBundler;
 import sword.langbook3.android.models.SentenceSpan;
-
-import static sword.langbook3.android.SentenceEditorActivity.NO_SENTENCE_ID;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
@@ -68,10 +68,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void openWithSentenceId(Activity activity, int requestCode, String text, int sentenceId) {
+    static void openWithSentenceId(Activity activity, int requestCode, String text, SentenceId sentenceId) {
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.TEXT, text);
-        intent.putExtra(ArgKeys.SENTENCE_ID, sentenceId);
+        SentenceIdBundler.writeAsIntentExtra(intent, ArgKeys.SENTENCE_ID, sentenceId);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -95,8 +95,8 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return string;
     }
 
-    private int getSentenceId() {
-        return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, NO_SENTENCE_ID);
+    private SentenceId getSentenceId() {
+        return SentenceIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SENTENCE_ID);
     }
 
     private AcceptationId getAcceptationId() {
@@ -110,10 +110,10 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     // We should prevent having sentences without neither spans nor other sentence sharing the same meaning,
     // as it will be not possible to reference them within the app.
     private boolean shouldAllowNoSpans() {
-        return getSentenceId() != NO_SENTENCE_ID || getConcept() != null;
+        return getSentenceId() != null || getConcept() != null;
     }
 
-    private void insertInitialSpans(int sentenceId) {
+    private void insertInitialSpans(SentenceId sentenceId) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final String sentence = getText();
         final ImmutableSet<SentenceSpan<AcceptationId>> spans = checker.getSentenceSpans(sentenceId);
@@ -161,9 +161,9 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         if (savedInstanceState == null) {
             _state = new SpanEditorActivityState();
 
-            final int sentenceId = getSentenceId();
+            final SentenceId sentenceId = getSentenceId();
             final AcceptationId acceptation = getAcceptationId();
-            if (sentenceId != NO_SENTENCE_ID) {
+            if (sentenceId != null) {
                 insertInitialSpans(sentenceId);
             }
             else if (acceptation != null) {
@@ -236,18 +236,18 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         else {
             final String newText = getText();
             final LangbookDbManager manager = DbManager.getInstance().getManager();
-            final int sentenceId = getSentenceId();
-            if (sentenceId == NO_SENTENCE_ID) {
+            final SentenceId sentenceId = getSentenceId();
+            if (sentenceId == null) {
                 ConceptId concept = getConcept();
                 if (concept == null) {
                     concept = manager.getNextAvailableConceptId();
                 }
 
-                final int newSentenceId = manager.addSentence(concept, newText, spans);
+                final SentenceId newSentenceId = manager.addSentence(concept, newText, spans);
                 Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
 
                 final Intent intent = new Intent();
-                intent.putExtra(ResultKeys.SENTENCE_ID, newSentenceId);
+                SentenceIdBundler.writeAsIntentExtra(intent, ResultKeys.SENTENCE_ID, newSentenceId);
                 setResult(RESULT_OK, intent);
             }
             else {

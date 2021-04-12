@@ -1,13 +1,12 @@
 package sword.langbook3.android.models;
 
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId> {
+public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId, SentenceId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -40,7 +39,7 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
     public final ImmutableMap<RuleId, String> ruleTexts;
     public final ImmutableIntValueMap<AgentId> involvedAgents;
     public final ImmutableMap<AgentId, RuleId> agentRules;
-    public final ImmutableIntKeyMap<String> sampleSentences;
+    public final ImmutableMap<SentenceId, String> sampleSentences;
 
     /**
      * Maps languages with the suitable representation text.
@@ -72,7 +71,7 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
             ImmutableIntValueMap<AgentId> involvedAgents,
             ImmutableMap<AgentId, RuleId> agentRules,
             ImmutableMap<LanguageId, String> languageTexts,
-            ImmutableIntKeyMap<String> sampleSentences
+            ImmutableMap<SentenceId, String> sampleSentences
     ) {
         if (concept == null || language == null || originalAcceptationId != null && (originalAcceptationText == null ||
                 appliedAgentId == null || appliedRuleId == null || appliedRuleAcceptationId == null) ||

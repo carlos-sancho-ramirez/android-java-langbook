@@ -19,6 +19,7 @@ import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.SentenceId;
 
 public final class AcceptationDetailsAdapter extends BaseAdapter {
 
@@ -176,9 +177,9 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
     static final class SentenceNavigableItem extends Item {
 
-        private final int _id;
+        private final SentenceId _id;
 
-        SentenceNavigableItem(int id, String text) {
+        SentenceNavigableItem(SentenceId id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }

@@ -11,10 +11,10 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdBundler;
+import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.db.SentenceIdBundler;
 
 public final class SentenceEditorActivity extends Activity implements View.OnClickListener {
-
-    static final int NO_SENTENCE_ID = 0;
 
     private static final int REQUEST_CODE_ADD_SPAN = 1;
 
@@ -40,16 +40,16 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
         activity.startActivityForResult(intent, requestCode);
     }
 
-    static void openWithSentenceId(Activity activity, int requestCode, int sentenceId) {
+    static void openWithSentenceId(Activity activity, int requestCode, SentenceId sentenceId) {
         final Intent intent = new Intent(activity, SentenceEditorActivity.class);
-        intent.putExtra(ArgKeys.SENTENCE_ID, sentenceId);
+        SentenceIdBundler.writeAsIntentExtra(intent, ArgKeys.SENTENCE_ID, sentenceId);
         activity.startActivityForResult(intent, requestCode);
     }
 
     private EditText _textField;
 
-    private int getSentenceId() {
-        return getIntent().getIntExtra(ArgKeys.SENTENCE_ID, NO_SENTENCE_ID);
+    private SentenceId getSentenceId() {
+        return SentenceIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SENTENCE_ID);
     }
 
     private AcceptationId getAcceptationId() {
@@ -76,8 +76,8 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
             return false;
         });
 
-        final int sentenceId = getSentenceId();
-        if (sentenceId != NO_SENTENCE_ID) {
+        final SentenceId sentenceId = getSentenceId();
+        if (sentenceId != null) {
             _textField.setText(DbManager.getInstance().getManager().getSentenceText(sentenceId));
         }
     }
@@ -88,14 +88,14 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
     }
 
     private void openSpanEditor() {
-        final int sentenceId = getSentenceId();
+        final SentenceId sentenceId = getSentenceId();
         final AcceptationId acceptation = getAcceptationId();
         final String text = _textField.getText().toString();
 
         if (acceptation != null) {
             SpanEditorActivity.openWithAcceptation(this, REQUEST_CODE_ADD_SPAN, text, acceptation);
         }
-        else if (sentenceId == NO_SENTENCE_ID) {
+        else if (sentenceId == null) {
             SpanEditorActivity.openWithConcept(this, REQUEST_CODE_ADD_SPAN, text, getConcept());
         }
         else {
@@ -106,10 +106,10 @@ public final class SentenceEditorActivity extends Activity implements View.OnCli
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            final int sentenceId = (data != null)? data.getIntExtra(SpanEditorActivity.ResultKeys.SENTENCE_ID, 0) : 0;
-            if (sentenceId != 0) {
+            final SentenceId sentenceId = (data != null)? SentenceIdBundler.readAsIntentExtra(data, SpanEditorActivity.ResultKeys.SENTENCE_ID) : null;
+            if (sentenceId != null) {
                 final Intent intent = new Intent();
-                intent.putExtra(ResultKeys.SENTENCE_ID, sentenceId);
+                SentenceIdBundler.writeAsIntentExtra(intent, ResultKeys.SENTENCE_ID, sentenceId);
                 setResult(RESULT_OK, intent);
             }
             else {
