@@ -22,6 +22,8 @@ import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.QuizId;
+import sword.langbook3.android.db.QuizIdBundler;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
@@ -55,15 +57,15 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         String BAD_ANSWER_COUNT = BundleKeys.BAD_ANSWER_COUNT;
     }
 
-    public static void open(Activity activity, int requestCode, int quizId) {
+    public static void open(Activity activity, int requestCode, QuizId quizId) {
         Intent intent = new Intent(activity, QuestionActivity.class);
-        intent.putExtra(ArgKeys.QUIZ, quizId);
+        QuizIdBundler.writeAsIntentExtra(intent, ArgKeys.QUIZ, quizId);
         activity.startActivityForResult(intent, requestCode);
     }
 
     private MutableIntValueMap<AcceptationId> _knowledge = MutableIntValueHashMap.empty();
 
-    private int _quizId;
+    private QuizId _quizId;
     private QuizDetails<AlphabetId, BunchId, RuleId> _quizDetails;
     private TextView[] _fieldTextViews;
 
@@ -181,7 +183,7 @@ public final class QuestionActivity extends Activity implements View.OnClickList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.question_activity);
 
-        _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
+        _quizId = QuizIdBundler.readAsIntentExtra(getIntent(), ArgKeys.QUIZ);
         findViewById(R.id.revealAnswerButton).setOnClickListener(this);
         findViewById(R.id.goodAnswerButton).setOnClickListener(this);
         findViewById(R.id.badAnswerButton).setOnClickListener(this);

@@ -181,7 +181,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteKnowledge(Deleter db, int quizId, AcceptationIdInterface acceptation) {
+    static boolean deleteKnowledge(Deleter db, QuizIdInterface quizId, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getQuizDefinitionColumnIndex(), quizId)
@@ -191,18 +191,18 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteKnowledgeForQuiz(Deleter db, int quizId) {
+    static boolean deleteKnowledgeForQuiz(Deleter db, QuizIdInterface quizId) {
         final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getQuizDefinitionColumnIndex(), quizId)
                 .build();
 
         return db.delete(query);
     }
 
-    static boolean deleteQuiz(Deleter db, int id) {
+    static boolean deleteQuiz(Deleter db, QuizIdInterface id) {
         final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), id)
                 .build();
 

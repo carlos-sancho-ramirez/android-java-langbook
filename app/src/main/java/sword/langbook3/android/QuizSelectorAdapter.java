@@ -6,6 +6,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import sword.langbook3.android.db.QuizId;
 import sword.langbook3.android.models.Progress;
 
 final class QuizSelectorAdapter extends BaseAdapter {
@@ -57,19 +58,19 @@ final class QuizSelectorAdapter extends BaseAdapter {
     }
 
     static class Item {
-        private final int _quizId;
+        private final QuizId _quizId;
         private final String _questionText;
         private final String _answerText;
         private final Progress _progress;
 
-        Item(int quizId, String questionText, String answerText, Progress progress) {
+        Item(QuizId quizId, String questionText, String answerText, Progress progress) {
             _quizId = quizId;
             _questionText = questionText;
             _answerText = answerText;
             _progress = progress;
         }
 
-        int getQuizId() {
+        QuizId getQuizId() {
             return _quizId;
         }
     }

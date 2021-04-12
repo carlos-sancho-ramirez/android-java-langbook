@@ -66,7 +66,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
-abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> {
+abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> {
 
     final Database _db;
     final ConceptSetter<ConceptId> _conceptIdSetter;
@@ -80,9 +80,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     final BunchSetIntSetter<BunchSetId> _bunchSetIdSetter;
     final ConceptualizableSetter<ConceptId, RuleId> _ruleIdSetter;
     final IntSetter<AgentId> _agentIdSetter;
+    final IntSetter<QuizId> _quizIdSetter;
 
-    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter) {
-        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || bunchSetIdSetter == null || ruleIdSetter == null || agentIdSetter == null) {
+    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter, IntSetter<QuizId> quizIdSetter) {
+        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || bunchSetIdSetter == null || ruleIdSetter == null || agentIdSetter == null || quizIdSetter == null) {
             throw new IllegalArgumentException();
         }
 
@@ -98,6 +99,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         _bunchSetIdSetter = bunchSetIdSetter;
         _ruleIdSetter = ruleIdSetter;
         _agentIdSetter = agentIdSetter;
+        _quizIdSetter = quizIdSetter;
     }
 
     private List<DbValue> selectSingleRow(DbQuery query) {
@@ -621,7 +623,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>>> readQuizSelectorEntriesForBunch(BunchId bunch) {
+    public ImmutableMap<QuizId, ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>>> readQuizSelectorEntriesForBunch(BunchId bunch) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final LangbookDbSchema.QuestionFieldSets fieldSets = LangbookDbSchema.Tables.questionFieldSets;
 
@@ -635,11 +637,11 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                         offset + fieldSets.getRuleColumnIndex(),
                         offset + fieldSets.getFlagsColumnIndex());
 
-        final MutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>>> resultMap = MutableIntKeyMap.empty();
+        final MutableMap<QuizId, ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>>> resultMap = MutableHashMap.empty();
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int quizId = row.get(0).toInt();
+                final QuizId quizId = _quizIdSetter.getKeyFromDbValue(row.get(0));
                 final RuleId rule = _ruleIdSetter.getKeyFromDbValue(row.get(2));
                 final QuestionFieldDetails<AlphabetId, RuleId> field = new QuestionFieldDetails<>(_alphabetIdSetter.getKeyFromDbValue(row.get(1)), rule, row.get(3).toInt());
                 final ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>> set = resultMap.get(quizId, ImmutableHashSet.empty());
@@ -651,10 +653,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public Progress readQuizProgress(int quizId) {
+    public Progress readQuizProgress(QuizId quizId) {
         final LangbookDbSchema.KnowledgeTable knowledge = LangbookDbSchema.Tables.knowledge;
 
-        final DbQuery query = new DbQuery.Builder(knowledge)
+        final DbQuery query = new DbQueryBuilder(knowledge)
                 .where(knowledge.getQuizDefinitionColumnIndex(), quizId)
                 .select(knowledge.getScoreColumnIndex());
 
@@ -1488,11 +1490,11 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public QuizDetails<AlphabetId, BunchId, RuleId> getQuizDetails(int quizId) {
+    public QuizDetails<AlphabetId, BunchId, RuleId> getQuizDetails(QuizId quizId) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final LangbookDbSchema.QuestionFieldSets questions = LangbookDbSchema.Tables.questionFieldSets;
         final int offset = quizzes.columns().size();
-        final DbQuery query = new DbQuery.Builder(quizzes)
+        final DbQuery query = new DbQueryBuilder(quizzes)
                 .join(questions, quizzes.getQuestionFieldsColumnIndex(), questions.getSetIdColumnIndex())
                 .where(quizzes.getIdColumnIndex(), quizId)
                 .select(quizzes.getBunchColumnIndex(),
@@ -1580,9 +1582,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableIntValueMap<AcceptationId> getCurrentKnowledge(int quizId) {
+    public ImmutableIntValueMap<AcceptationId> getCurrentKnowledge(QuizId quizId) {
         final LangbookDbSchema.KnowledgeTable table = LangbookDbSchema.Tables.knowledge;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getQuizDefinitionColumnIndex(), quizId)
                 .select(table.getAcceptationColumnIndex(), table.getScoreColumnIndex());
 
@@ -3010,7 +3012,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    Integer findQuizDefinition(BunchId bunch, int setId) {
+    QuizId findQuizDefinition(BunchId bunch, int setId) {
         final LangbookDbSchema.QuizDefinitionsTable table = LangbookDbSchema.Tables.quizDefinitions;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -3018,7 +3020,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .select(table.getIdColumnIndex());
 
         try (DbResult result = _db.select(query)) {
-            final Integer value = result.hasNext()? result.next().get(0).toInt() : null;
+            final QuizId value = result.hasNext()? _quizIdSetter.getKeyFromDbValue(result.next().get(0)) : null;
             if (result.hasNext()) {
                 throw new AssertionError("Only one quiz definition expected");
             }
@@ -3052,13 +3054,13 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    ImmutableIntSet findQuizzesByBunch(BunchId bunch) {
+    ImmutableSet<QuizId> findQuizzesByBunch(BunchId bunch) {
         final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
         final DbQuery query = new DbQueryBuilder(quizzes)
                 .where(quizzes.getBunchColumnIndex(), bunch)
                 .select(quizzes.getIdColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _quizIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     Integer findQuestionFieldSet(Iterable<QuestionFieldDetails<AlphabetId, RuleId>> collection) {

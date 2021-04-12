@@ -15,8 +15,6 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
@@ -28,13 +26,14 @@ import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.QuizId;
+import sword.langbook3.android.db.QuizIdBundler;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
 public final class QuizSelectorActivity extends Activity implements ListView.OnItemClickListener, ListView.MultiChoiceModeListener, DialogInterface.OnClickListener {
 
     private static final int REQUEST_CODE_EDITOR = 1;
-    private static final int NO_QUIZ = 0;
 
     private interface ArgKeys {
         String BUNCH = BundleKeys.BUNCH;
@@ -91,13 +90,13 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     }
 
     private QuizSelectorAdapter.Item[] composeAdapterItems(LangbookDbChecker checker, BunchId bunch) {
-        final ImmutableIntKeyMap<ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
+        final ImmutableMap<QuizId, ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>>> resultMap = checker.readQuizSelectorEntriesForBunch(bunch);
         final ImmutableMap<AlphabetId, String> allAlphabets = checker.readAllAlphabets(_preferredAlphabet);
         final int quizCount = resultMap.size();
         final QuizSelectorAdapter.Item[] items = new QuizSelectorAdapter.Item[quizCount];
 
         for (int i = 0; i < quizCount; i++) {
-            final int quizId = resultMap.keyAt(i);
+            final QuizId quizId = resultMap.keyAt(i);
             final ImmutableSet<QuestionFieldDetails<AlphabetId, RuleId>> set = resultMap.valueAt(i);
 
             final ImmutableList<String> fieldTexts = set.map(field -> {
@@ -178,7 +177,7 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        final int quizId = ((QuizSelectorAdapter) parent.getAdapter()).getItem(position).getQuizId();
+        final QuizId quizId = ((QuizSelectorAdapter) parent.getAdapter()).getItem(position).getQuizId();
         QuizResultActivity.open(this, quizId);
     }
 
@@ -207,8 +206,8 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_EDITOR) {
-            final int quizId = (data != null)? data.getIntExtra(QuizEditorActivity.ResultKeys.QUIZ, NO_QUIZ) : NO_QUIZ;
-            if (resultCode == RESULT_OK && quizId != NO_QUIZ) {
+            final QuizId quizId = (data != null)? QuizIdBundler.readAsIntentExtra(data, QuizEditorActivity.ResultKeys.QUIZ) : null;
+            if (resultCode == RESULT_OK && quizId != null) {
                 QuizResultActivity.open(this, quizId);
             }
             else if (_activityStarted) {
@@ -276,14 +275,14 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
     @Override
     public void onClick(DialogInterface dialog, int which) {
         final QuizSelectorAdapter adapter = (QuizSelectorAdapter) _listView.getAdapter();
-        final ImmutableIntList quizzes = _state.getListSelection().mapToInt(position -> adapter.getItem(position).getQuizId());
+        final ImmutableList<QuizId> quizzes = _state.getListSelection().map(position -> adapter.getItem(position).getQuizId());
         _state.clearDeleteStateAndSelection();
         final ActionMode listActionMode = _listActionMode;
         _listActionMode = null;
         listActionMode.finish();
 
         final LangbookDbManager manager = DbManager.getInstance().getManager();
-        for (int quizId : quizzes) {
+        for (QuizId quizId : quizzes) {
             manager.removeQuiz(quizId);
         }
         showFeedback(getString(R.string.deleteQuizzesFeedback));

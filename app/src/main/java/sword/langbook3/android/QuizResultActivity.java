@@ -8,6 +8,8 @@ import android.view.View;
 import android.widget.TextView;
 
 import sword.collections.ImmutableIntList;
+import sword.langbook3.android.db.QuizId;
+import sword.langbook3.android.db.QuizIdBundler;
 import sword.langbook3.android.models.Progress;
 
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
@@ -26,9 +28,9 @@ public final class QuizResultActivity extends Activity {
         String BAD_ANSWER_AMOUNT = "bA";
     }
 
-    public static void open(Context context, int quizId) {
+    public static void open(Context context, QuizId quizId) {
         Intent intent = new Intent(context, QuizResultActivity.class);
-        intent.putExtra(ArgKeys.QUIZ, quizId);
+        QuizIdBundler.writeAsIntentExtra(intent, ArgKeys.QUIZ, quizId);
         context.startActivity(intent);
     }
 
@@ -36,7 +38,7 @@ public final class QuizResultActivity extends Activity {
     private int _goodAnswerCount;
     private int _badAnswerCount;
 
-    private int _quizId;
+    private QuizId _quizId;
     private TextView _textView;
     private View _knowledgeBarView;
     private Progress _progress;
@@ -52,7 +54,7 @@ public final class QuizResultActivity extends Activity {
             _badAnswerCount = savedInstanceState.getInt(SavedKeys.BAD_ANSWER_AMOUNT);
         }
 
-        _quizId = getIntent().getIntExtra(ArgKeys.QUIZ, 0);
+        _quizId = QuizIdBundler.readAsIntentExtra(getIntent(), ArgKeys.QUIZ);
         _textView = findViewById(R.id.textView);
         _knowledgeBarView = findViewById(R.id.knowledgeBarView);
     }

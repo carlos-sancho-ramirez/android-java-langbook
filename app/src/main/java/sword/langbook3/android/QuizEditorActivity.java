@@ -20,6 +20,8 @@ import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbSchema.QuestionFieldFlags;
+import sword.langbook3.android.db.QuizId;
+import sword.langbook3.android.db.QuizIdBundler;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.QuestionFieldDetails;
 
@@ -274,10 +276,10 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
     }
 
     private void startQuiz() {
-        final int quizId = DbManager.getInstance().getManager().obtainQuiz(_bunch, composeFields());
+        final QuizId quizId = DbManager.getInstance().getManager().obtainQuiz(_bunch, composeFields());
 
         final Intent intent = new Intent();
-        intent.putExtra(ResultKeys.QUIZ, quizId);
+        QuizIdBundler.writeAsIntentExtra(intent, ResultKeys.QUIZ, quizId);
         setResult(RESULT_OK, intent);
         finish();
     }

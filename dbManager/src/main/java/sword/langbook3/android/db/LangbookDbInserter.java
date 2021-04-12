@@ -234,17 +234,17 @@ final class LangbookDbInserter {
         }
     }
 
-    static <ConceptId> int insertQuizDefinition(DbInserter db, BunchIdInterface<ConceptId> bunch, int setId) {
+    static <ConceptId, QuizId> QuizId insertQuizDefinition(DbInserter db, IntSetter<QuizId> quizIdSetter, BunchIdInterface<ConceptId> bunch, int setId) {
         final LangbookDbSchema.QuizDefinitionsTable table = Tables.quizDefinitions;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getBunchColumnIndex(), bunch)
                 .put(table.getQuestionFieldsColumnIndex(), setId)
                 .build();
 
-        return db.insert(query);
+        return quizIdSetter.getKeyFromInt(db.insert(query));
     }
 
-    static <AcceptationId extends AcceptationIdInterface> void insertAllPossibilities(DbInserter db, int quizId, Set<AcceptationId> acceptations) {
+    static <AcceptationId extends AcceptationIdInterface> void insertAllPossibilities(DbInserter db, QuizIdInterface quizId, Set<AcceptationId> acceptations) {
         final LangbookDbSchema.KnowledgeTable table = Tables.knowledge;
         for (AcceptationId acceptation : acceptations) {
             final DbInsertQuery query = new DbInsertQueryBuilder(table)
