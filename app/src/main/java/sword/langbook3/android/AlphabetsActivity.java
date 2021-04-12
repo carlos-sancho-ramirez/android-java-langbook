@@ -169,7 +169,13 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     private void showLanguageOptionsDialog() {
-        final String[] items = {"Add alphabet", "Delete language"};
+        final String addAlphabetOption = getString(R.string.addAlphabetOption);
+        final String deleteLanguageOption = getString(R.string.deleteLanguageOption);
+        final String[] items = {
+                addAlphabetOption,
+                deleteLanguageOption
+        };
+
         new AlertDialog.Builder(this)
                 .setItems(items, (dialog, which) -> {
                     if (which == 0) {
@@ -186,7 +192,13 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     private void showAlphabetOptionsDialog() {
-        final String[] items = {"Check conversion", "Delete alphabet"};
+        final String checkConversionOption = getString(R.string.checkConversionOption);
+        final String deleteAlphabetOption = getString(R.string.deleteAlphabetOption);
+        final String[] items = {
+                checkConversionOption,
+                deleteAlphabetOption
+        };
+
         new AlertDialog.Builder(this)
                 .setItems(items, (dialog, which) -> {
                     if (which == 0) {
