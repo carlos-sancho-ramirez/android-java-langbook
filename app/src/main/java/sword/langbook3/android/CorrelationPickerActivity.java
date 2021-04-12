@@ -45,6 +45,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     interface ResultKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CORRELATION_ARRAY = BundleKeys.CORRELATION_ARRAY;
     }
 
@@ -194,7 +195,9 @@ public final class CorrelationPickerActivity extends Activity implements View.On
                     }
                     Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
 
-                    setResult(RESULT_OK);
+                    final Intent intent = new Intent();
+                    AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.ACCEPTATION, accId);
+                    setResult(RESULT_OK, intent);
                     finish();
                 }
                 else {
