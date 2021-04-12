@@ -110,7 +110,9 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
+        final ConceptId expectedLanguageConceptId = manager.getNextAvailableConceptId();
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
+        assertEquals(expectedLanguageConceptId, langPair.language.getConceptId());
 
         assertEquals(langPair.language, manager.findLanguageByCode("es"));
         assertContainsOnly(langPair.mainAlphabet, manager.findAlphabetsByLanguage(langPair.language));

@@ -1336,7 +1336,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return null;
         }
 
-        final int lastConcept = getMaxConcept() + 1;
+        final int lastConcept = getMaxConcept();
         final LanguageId language = _languageIdSetter.getKeyFromInt(lastConcept + 1);
         final AlphabetId alphabet = _alphabetIdSetter.getKeyFromInt(lastConcept + 2);
         LangbookDbInserter.insertLanguage(_db, language, code, alphabet);
