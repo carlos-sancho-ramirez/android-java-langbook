@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static sword.collections.IntTraversableTestUtils.getSingleValue;
 import static sword.collections.MapTestUtils.assertSinglePair;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
@@ -39,7 +38,7 @@ import static sword.langbook3.android.sdb.AcceptationsSerializerTest.findAccepta
  * Values the the AcceptationsSerializer should serialize are limited to:
  * <li>Bunches</li>
  */
-interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId> extends BunchesSerializerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
+interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesSerializerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
 
     static <T> ImmutableSet<T> setOf() {
         return ImmutableHashSet.empty();
@@ -53,13 +52,13 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         return new ImmutableHashSet.Builder<T>().add(a).add(b).build();
     }
 
-    final class ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId> {
+    final class ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> {
         private final MemoryDatabase db;
         private final IntSetter<AcceptationId> acceptationIdSetter;
-        private final AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> checker;
+        private final AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> checker;
         private final MutableHashSet<ConceptId> found = MutableHashSet.empty();
 
-        ConceptFinder(MemoryDatabase db, IntSetter<AcceptationId> acceptationIdSetter, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> checker) {
+        ConceptFinder(MemoryDatabase db, IntSetter<AcceptationId> acceptationIdSetter, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> checker) {
             this.db = db;
             this.acceptationIdSetter = acceptationIdSetter;
             this.checker = checker;
@@ -91,7 +90,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId> int addSingleAlphabetAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> AgentId addSingleAlphabetAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, RuleId rule) {
         final ImmutableCorrelation<AlphabetId> startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
@@ -109,17 +108,17 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
-    AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> createManager(MemoryDatabase db);
+    AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> createManager(MemoryDatabase db);
     RuleId conceptAsRuleId(ConceptId conceptId);
 
-    default ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> newConceptFinder(MemoryDatabase db, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> checker) {
+    default ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> newConceptFinder(MemoryDatabase db, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> checker) {
         return new ConceptFinder<>(db, getAcceptationIdManager(), checker);
     }
 
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -130,13 +129,13 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
         final ConceptId outGerundConcept = newConceptFinder(outDb, outManager).find("gerundio");
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -154,7 +153,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -168,19 +167,19 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
         final ConceptId outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
         bunchFinder.assertUnknown(outSingConcept);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -205,7 +204,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchNoMatchingAcceptationWithEmptyDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -220,16 +219,16 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(exceptionsBunch), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outExceptionsConcept = bunchFinder.find("excepciones");
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -247,7 +246,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptationWithEmptyDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -265,12 +264,12 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(exceptionsBunch), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outExceptionsConcept = bunchFinder.find("excepciones");
 
@@ -278,7 +277,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         final ConceptId outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
         bunchFinder.assertUnknown(outSingConcept);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -303,7 +302,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchNoMatchingAcceptationWithMatchingAcceptationInDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -323,16 +322,16 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(exceptionsBunch), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outExceptionsConcept = bunchFinder.find("excepciones");
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -350,7 +349,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingAcceptationWithMatchingAcceptationInDiff() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -373,12 +372,12 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(exceptionsBunch), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outExceptionsConcept = bunchFinder.find("excepciones");
 
@@ -386,7 +385,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         final ConceptId outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
         bunchFinder.assertUnknown(outSingConcept);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -410,7 +409,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithTargetWithoutSourceBunchNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -425,16 +424,16 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(gerundBunch), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outGerundBunchConcept = bunchFinder.find("gerundios");
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertContainsOnly(conceptAsBunchId(outGerundBunchConcept), outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -453,7 +452,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithMultipleTargetsWithoutSourceBunchNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -472,17 +471,17 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(gerundBunch, secondBunch), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outGerundBunchConcept = bunchFinder.find("gerundios");
         final ConceptId outSecondBunchConcept = bunchFinder.find("mis palabras");
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
 
         final BunchId outGerundBunch = conceptAsBunchId(outGerundBunchConcept);
@@ -505,7 +504,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithTargetWithoutSourceBunchMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -523,12 +522,12 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(gerundBunch), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outGerundBunchConcept = bunchFinder.find("gerundios");
 
@@ -536,7 +535,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         final ConceptId outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
         bunchFinder.assertUnknown(outSingConcept);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
 
         final BunchId outGerundBunch = conceptAsBunchId(outGerundBunchConcept);
@@ -564,7 +563,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithMultipleTargetsWithoutSourceBunchMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -586,12 +585,12 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(gerundBunch, secondBunch), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outGerundBunchConcept = bunchFinder.find("gerundios");
         final ConceptId outSecondBunchConcept = bunchFinder.find("mis palabras");
@@ -600,7 +599,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         final ConceptId outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
         bunchFinder.assertUnknown(outSingConcept);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         final BunchId outGerundBunchBunch = conceptAsBunchId(outGerundBunchConcept);
         final BunchId outSecondBunch = conceptAsBunchId(outSecondBunchConcept);
@@ -629,7 +628,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithoutSourceBunchMatchingBothStaticAndDynamicAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
 
@@ -643,19 +642,19 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(), alphabet, null, null, "ar", "arar", repeatRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outRepeatConcept = bunchFinder.find("repetición");
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
         final ConceptId outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
         bunchFinder.assertUnknown(outSingConcept);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -680,7 +679,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithEmptySourceBunch() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId gerund = inManager.getNextAvailableConceptId();
@@ -697,12 +696,12 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
 
@@ -714,7 +713,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         assertEmpty(outManager.getAcceptationsInBunch(outVerbBunch));
         assertEmpty(outManager.findBunchesWhereAcceptationIsIncluded(outSingAcceptation));
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertContainsOnly(outVerbBunch, outAgentDetails.sourceBunches);
@@ -733,7 +732,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleNoMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId gerund = inManager.getNextAvailableConceptId();
@@ -752,12 +751,12 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "er", "iendo", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
 
@@ -769,7 +768,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outVerbBunch));
         assertContainsOnly(outVerbBunch, outManager.findBunchesWhereAcceptationIsIncluded(outSingAcceptation));
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertContainsOnly(outVerbBunch, outAgentDetails.sourceBunches);
@@ -788,7 +787,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId gerund = inManager.getNextAvailableConceptId();
@@ -806,12 +805,12 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final LanguageId outLanguage = outManager.findLanguageByCode("es");
         final AlphabetId outAlphabet = getSingleValue(outManager.findAlphabetsByLanguage(outLanguage));
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
 
@@ -823,7 +822,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         assertContainsOnly(outSingAcceptation, outManager.getAcceptationsInBunch(outVerbBunch));
         assertContainsOnly(outVerbBunch, outManager.findBunchesWhereAcceptationIsIncluded(outSingAcceptation));
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertContainsOnly(outVerbBunch, outAgentDetails.sourceBunches);
@@ -846,7 +845,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToTargetAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -861,11 +860,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         inManager.addAgent(setOf(verbBunch), setOf(arVerbBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
 
@@ -887,7 +886,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -906,11 +905,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         inManager.addAgent(setOf(verbBunch, transitiveVerbBunch), setOf(arVerbBunch), setOf(), emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outTransitiveVerbConcept = bunchFinder.find("verbo transitivo");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -935,7 +934,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToTargetAgentWithAMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -958,11 +957,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         inManager.addAgent(setOf(verbBunch), sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
 
@@ -985,7 +984,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsAgentWithAMatchingAcceptation() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -1011,11 +1010,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         inManager.addAgent(setOf(verbBunch, secondBunch), sourceBunches, noBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outSecondConcept = bunchFinder.find("mis palabras");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -1041,7 +1040,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -1063,11 +1062,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         inManager.addAgent(setOf(verbBunch), sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outArEndedNounConcept = bunchFinder.find("sustantivos acabados en ar");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -1092,7 +1091,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsWithDiffBunchAgentWithoutMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -1118,11 +1117,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         inManager.addAgent(targetBunches, sourceBunches, diffBunches, emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outArEndedNounConcept = bunchFinder.find("sustantivos acabados en ar");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -1150,7 +1149,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -1174,11 +1173,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outArEndedNounConcept = bunchFinder.find("sustantivos acabados en ar");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -1207,7 +1206,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToMultipleTargetsWithDiffBunchAgentWithMatchingAcceptations() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -1235,11 +1234,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outArEndedNoundConcept = bunchFinder.find("sustantivos acabados en ar");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -1271,7 +1270,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithMatchingAcceptationsInBothSourceAndDiffBunches() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -1296,11 +1295,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outArEndedNounConcept = bunchFinder.find("sustantivos acabados en ar");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -1329,7 +1328,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeCopyFromSingleSourceToTargetWithDiffBunchAgentWithMatchingAcceptationsOnlyInDiffBunch() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
         final ConceptId arVerbConcept = inManager.getNextAvailableConceptId();
@@ -1353,11 +1352,11 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
                 emptyCorrelation, emptyCorrelation, emptyCorrelation, emptyCorrelation, null);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outArVerbConcept = bunchFinder.find("verbo de primera conjugación");
         final ConceptId outArEndedNounConcept = bunchFinder.find("sustantivos acabados en ar");
         final ConceptId outVerbConcept = bunchFinder.find("verbo");
@@ -1386,7 +1385,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentApplyingRuleWithConversionPresent() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> inManager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> inManager = createManager(inDb);
 
         final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
         final AlphabetId upperCaseAlphabet = getNextAvailableId(inManager);
@@ -1403,21 +1402,21 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(inManager, setOf(), setOf(), setOf(), alphabet, null, null, "ar", "ando", gerundRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = outManager.getConversionsMap();
         assertSize(1, conversionMap);
         final AlphabetId outAlphabet = conversionMap.valueAt(0);
         final AlphabetId outUpperCaseAlphabet = conversionMap.keyAt(0);
 
-        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> bunchFinder = newConceptFinder(outDb, outManager);
+        final ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> bunchFinder = newConceptFinder(outDb, outManager);
         final ConceptId outGerundConcept = bunchFinder.find("gerundio");
 
         final AcceptationId outSingAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "cantar"));
         final ConceptId outSingConcept = outManager.conceptFromAcceptation(outSingAcceptation);
         bunchFinder.assertUnknown(outSingConcept);
 
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         final AgentDetails<AlphabetId, BunchId, RuleId> outAgentDetails = outManager.getAgentDetails(outAgentId);
         assertEmpty(outAgentDetails.targetBunches);
         assertEmpty(outAgentDetails.sourceBunches);
@@ -1447,7 +1446,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
     @Test
     default void testSerializeAgentWithJustEndAdderForAcceptationFromOtherLanguage() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> manager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(inDb);
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
@@ -1470,17 +1469,17 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(manager, setOf(), setOf(myBunch), setOf(), jaAlphabet, null, null, null, "する", verbalitationRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final AcceptationId outStudyAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "べんきょう"));
-        final int outAgentId = getSingleValue(outManager.getAgentIds());
+        final AgentId outAgentId = getSingleValue(outManager.getAgentIds());
         assertContainsOnly(outStudyAcceptation, manager.getAgentProcessedMap(outAgentId).keySet());
     }
 
     @Test
     default void testSerializeChainedAgentsApplyingRules() {
         final MemoryDatabase inDb = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> manager = createManager(inDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(inDb);
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
         final ConceptId studentConcept = manager.getNextAvailableConceptId();
@@ -1508,7 +1507,7 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         addSingleAlphabetAgent(manager, setOf(), setOf(bunch1, bunch2), setOf(), esAlphabet, null, null, null, "s", pluralRule);
 
         final MemoryDatabase outDb = cloneBySerializing(inDb);
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> outManager = createManager(outDb);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
 
         final AcceptationId outStudentAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "alumno"));
         final ConceptId outStudentConcept = outManager.conceptFromAcceptation(outStudentAcceptation);

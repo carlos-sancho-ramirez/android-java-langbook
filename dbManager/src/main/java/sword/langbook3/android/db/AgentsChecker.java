@@ -1,7 +1,6 @@
 package sword.langbook3.android.db;
 
 import sword.collections.ImmutableIntRange;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
@@ -11,7 +10,7 @@ import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.SearchResult;
 
-public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId> extends BunchesChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
+public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
 
     /**
      * Check all bunches including agents that may match the given texts.
@@ -30,21 +29,21 @@ public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId,
      */
     ImmutableMap<BunchId, String> readAllMatchingBunches(ImmutableCorrelation<AlphabetId> texts, AlphabetId preferredAlphabet);
     ImmutableMap<RuleId, String> readAllRules(AlphabetId preferredAlphabet);
-    ImmutableIntSet getAgentIds();
+    ImmutableSet<AgentId> getAgentIds();
     ImmutableList<SearchResult<AcceptationId, RuleId>> findAcceptationFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
-    AgentRegister<CorrelationId, BunchSetId, RuleId> getAgentRegister(int agentId);
-    AgentDetails<AlphabetId, BunchId, RuleId> getAgentDetails(int agentId);
+    AgentRegister<CorrelationId, BunchSetId, RuleId> getAgentRegister(AgentId agentId);
+    AgentDetails<AlphabetId, BunchId, RuleId> getAgentDetails(AgentId agentId);
     ImmutableList<DisplayableItem<AcceptationId>> readBunchSetAcceptationsAndTexts(BunchSetId bunchSet, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult<AcceptationId, RuleId>> findAcceptationAndRulesFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
     AcceptationId getStaticAcceptationFromDynamic(AcceptationId dynamicAcceptation);
     ConceptId findRuledConcept(RuleId rule, ConceptId concept);
     ImmutableMap<ConceptId, ConceptId> findRuledConceptsByRule(RuleId rule);
-    AcceptationId findRuledAcceptationByAgentAndBaseAcceptation(int agentId, AcceptationId baseAcceptation);
+    AcceptationId findRuledAcceptationByAgentAndBaseAcceptation(AgentId agentId, AcceptationId baseAcceptation);
     String readAcceptationMainText(AcceptationId acceptation);
-    ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(BunchId bunch, AcceptationId acceptation);
-    ImmutableMap<AcceptationId, AcceptationId> getAgentProcessedMap(int agentId);
-    MorphologyReaderResult<AcceptationId, RuleId> readMorphologiesFromAcceptation(AcceptationId acceptation, AlphabetId preferredAlphabet);
-    ImmutableSet<AcceptationId> getAcceptationsInBunchByBunchAndAgent(BunchId bunch, int agent);
+    ImmutableSet<AgentId> findAllAgentsThatIncludedAcceptationInBunch(BunchId bunch, AcceptationId acceptation);
+    ImmutableMap<AcceptationId, AcceptationId> getAgentProcessedMap(AgentId agentId);
+    MorphologyReaderResult<AcceptationId, RuleId, AgentId> readMorphologiesFromAcceptation(AcceptationId acceptation, AlphabetId preferredAlphabet);
+    ImmutableSet<AcceptationId> getAcceptationsInBunchByBunchAndAgent(BunchId bunch, AgentId agent);
     ImmutableSet<BunchId> getBunchSet(BunchSetId setId);
     AcceptationId findRuledAcceptationByRuleAndBaseAcceptation(RuleId rule, AcceptationId baseAcceptation);
 }

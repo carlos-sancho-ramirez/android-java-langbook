@@ -18,8 +18,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
-import sword.collections.IntKeyMap;
-import sword.collections.IntPairMap;
+import sword.collections.IntValueMap;
 import sword.collections.Map;
 import sword.langbook3.android.AcceptationDetailsActivityState.IntrinsicStates;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
@@ -30,6 +29,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
+import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ConceptId;
@@ -39,9 +39,9 @@ import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
-import sword.langbook3.android.models.DerivedAcceptationResult;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
+import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.SynonymTranslationResult;
 
 import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
@@ -71,7 +71,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private AcceptationId _acceptation;
-    private AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> _model;
+    private AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -207,17 +207,17 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        final ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations = _model.derivedAcceptations;
+        final ImmutableMap<AcceptationId, IdentifiableResult<AgentId>> derivedAcceptations = _model.derivedAcceptations;
         final int derivedAcceptationsCount = derivedAcceptations.size();
         for (int i = 0; i < derivedAcceptationsCount; i++) {
             final AcceptationId accId = derivedAcceptations.keyAt(i);
-            final DerivedAcceptationResult r = derivedAcceptations.valueAt(i);
+            final IdentifiableResult<AgentId> r = derivedAcceptations.valueAt(i);
             if (!morphologyFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionDerivedAcceptations)));
                 morphologyFound = true;
             }
 
-            final String ruleText = _model.ruleTexts.get(_model.agentRules.get(r.agent));
+            final String ruleText = _model.ruleTexts.get(_model.agentRules.get(r.id));
             result.add(new AcceptationNavigableItem(accId, ruleText + " -> " + r.text, true));
         }
 
@@ -248,7 +248,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean agentFound = false;
-        for (IntPairMap.Entry entry : _model.involvedAgents.entries()) {
+        for (IntValueMap.Entry<AgentId> entry : _model.involvedAgents.entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;
@@ -267,7 +267,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AgentNavigableItem(entry.key(), s.toString()));
         }
 
-        for (IntKeyMap.Entry<RuleId> entry : _model.agentRules.entries()) {
+        for (Map.Entry<AgentId, RuleId> entry : _model.agentRules.entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;

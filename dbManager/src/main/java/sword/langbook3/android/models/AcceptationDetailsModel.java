@@ -1,13 +1,13 @@
 package sword.langbook3.android.models;
 
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntPairMap;
+import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> {
+public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId> {
 
     public interface InvolvedAgentResultFlags {
         int target = 1;
@@ -21,7 +21,7 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
     public final IdTextPairResult<LanguageId> language;
     public final AcceptationId originalAcceptationId;
     public final String originalAcceptationText;
-    public final int appliedAgentId;
+    public final AgentId appliedAgentId;
     public final RuleId appliedRuleId;
     public final AcceptationId appliedRuleAcceptationId;
     public final ImmutableList<CorrelationId> correlationIds;
@@ -36,10 +36,10 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
     public final ImmutableMap<AcceptationId, SynonymTranslationResult<LanguageId>> synonymsAndTranslations;
     public final ImmutableList<DynamizableResult<AcceptationId>> bunchChildren;
     public final ImmutableList<DynamizableResult<AcceptationId>> bunchesWhereAcceptationIsIncluded;
-    public final ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations;
+    public final ImmutableMap<AcceptationId, IdentifiableResult<AgentId>> derivedAcceptations;
     public final ImmutableMap<RuleId, String> ruleTexts;
-    public final ImmutableIntPairMap involvedAgents;
-    public final ImmutableIntKeyMap<RuleId> agentRules;
+    public final ImmutableIntValueMap<AgentId> involvedAgents;
+    public final ImmutableMap<AgentId, RuleId> agentRules;
     public final ImmutableIntKeyMap<String> sampleSentences;
 
     /**
@@ -52,7 +52,7 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
             IdTextPairResult<LanguageId> language,
             AcceptationId originalAcceptationId,
             String originalAcceptationText,
-            int appliedAgentId,
+            AgentId appliedAgentId,
             RuleId appliedRuleId,
             AcceptationId appliedRuleAcceptationId,
             ImmutableList<CorrelationId> correlationIds,
@@ -67,15 +67,15 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
             ImmutableMap<AcceptationId, SynonymTranslationResult<LanguageId>> synonymsAndTranslations,
             ImmutableList<DynamizableResult<AcceptationId>> bunchChildren,
             ImmutableList<DynamizableResult<AcceptationId>> bunchesWhereAcceptationIsIncluded,
-            ImmutableMap<AcceptationId, DerivedAcceptationResult> derivedAcceptations,
+            ImmutableMap<AcceptationId, IdentifiableResult<AgentId>> derivedAcceptations,
             ImmutableMap<RuleId, String> ruleTexts,
-            ImmutableIntPairMap involvedAgents,
-            ImmutableIntKeyMap<RuleId> agentRules,
+            ImmutableIntValueMap<AgentId> involvedAgents,
+            ImmutableMap<AgentId, RuleId> agentRules,
             ImmutableMap<LanguageId, String> languageTexts,
             ImmutableIntKeyMap<String> sampleSentences
     ) {
         if (concept == null || language == null || originalAcceptationId != null && (originalAcceptationText == null ||
-                appliedAgentId == 0 || appliedRuleId == null || appliedRuleAcceptationId == null) ||
+                appliedAgentId == null || appliedRuleId == null || appliedRuleAcceptationId == null) ||
                 correlationIds == null || correlations == null ||
                 texts == null || acceptationsSharingTexts == null ||
                 acceptationsSharingTextsDisplayableTexts == null || definitionComplementTexts == null ||

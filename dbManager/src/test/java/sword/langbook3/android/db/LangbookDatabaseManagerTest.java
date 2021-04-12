@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.database.MemoryDatabase;
 
-final class LangbookDatabaseManagerTest implements LangbookManagerTest<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder> {
+final class LangbookDatabaseManagerTest implements LangbookManagerTest<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder> {
 
     private final ConceptIdManager _conceptIdManager = new ConceptIdManager();
     private final AlphabetIdManager _alphabetIdManager = new AlphabetIdManager();
@@ -11,8 +11,8 @@ final class LangbookDatabaseManagerTest implements LangbookManagerTest<ConceptId
     private final RuleIdManager _ruleIdManager = new RuleIdManager();
 
     @Override
-    public LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder> createManager(MemoryDatabase db) {
-        return new LangbookDatabaseManager<>(db, _conceptIdManager, new LanguageIdManager(), _alphabetIdManager, new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), _acceptationIdManager, _bunchIdManager, new BunchSetIdManager(), _ruleIdManager);
+    public LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder> createManager(MemoryDatabase db) {
+        return new LangbookDatabaseManager<>(db, _conceptIdManager, new LanguageIdManager(), _alphabetIdManager, new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), _acceptationIdManager, _bunchIdManager, new BunchSetIdManager(), _ruleIdManager, new AgentIdManager());
     }
 
     @Override

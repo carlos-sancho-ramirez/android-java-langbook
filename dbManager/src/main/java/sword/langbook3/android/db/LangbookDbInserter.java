@@ -129,7 +129,7 @@ final class LangbookDbInserter {
         db.insert(query);
     }
 
-    static <ConceptId> void insertBunchAcceptation(DbInserter db, BunchIdInterface<ConceptId> bunch, AcceptationIdInterface acceptation, int agent) {
+    static <ConceptId> void insertBunchAcceptation(DbInserter db, BunchIdInterface<ConceptId> bunch, AcceptationIdInterface acceptation, AgentIdInterface agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = Tables.bunchAcceptations;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getBunchColumnIndex(), bunch)
@@ -160,7 +160,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static <ConceptId> Integer insertAgent(DbInserter db, AgentRegister<? extends CorrelationIdInterface, ? extends BunchSetIdInterface, ? extends RuleIdInterface<ConceptId>> register) {
+    static <ConceptId, AgentId> AgentId insertAgent(DbInserter db, IntSetter<AgentId> agentIdSetter, AgentRegister<? extends CorrelationIdInterface, ? extends BunchSetIdInterface, ? extends RuleIdInterface<ConceptId>> register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getTargetBunchSetColumnIndex(), register.targetBunchSetId)
@@ -172,7 +172,8 @@ final class LangbookDbInserter {
                 .put(table.getEndAdderColumnIndex(), register.endAdderId)
                 .put(table.getRuleColumnIndex(), register.rule)
                 .build();
-        return db.insert(query);
+        final Integer rawId = db.insert(query);
+        return (rawId != null)? agentIdSetter.getKeyFromInt(rawId) : null;
     }
 
     static <ConceptId extends ConceptIdInterface> void insertRuledConcept(DbInserter db, ConceptId ruledConcept, RuleIdInterface<ConceptId> rule, ConceptId baseConcept) {
@@ -188,7 +189,7 @@ final class LangbookDbInserter {
         }
     }
 
-    static void insertRuledAcceptation(DbInserter db, AcceptationIdInterface ruledAcceptation, int agent, AcceptationIdInterface baseAcceptation) {
+    static void insertRuledAcceptation(DbInserter db, AcceptationIdInterface ruledAcceptation, AgentIdInterface agent, AcceptationIdInterface baseAcceptation) {
         final LangbookDbSchema.RuledAcceptationsTable table = Tables.ruledAcceptations;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getIdColumnIndex(), ruledAcceptation)

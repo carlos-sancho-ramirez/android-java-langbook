@@ -15,6 +15,8 @@ import android.widget.Toast;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AgentId;
+import sword.langbook3.android.db.AgentIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchSetId;
 import sword.langbook3.android.db.CorrelationId;
@@ -38,14 +40,14 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         String DELETE_DIALOG_PRESENT = "ddp";
     }
 
-    public static void open(Context context, int agent) {
+    public static void open(Context context, AgentId agent) {
         Intent intent = new Intent(context, AgentDetailsActivity.class);
-        intent.putExtra(ArgKeys.AGENT, agent);
+        AgentIdBundler.writeAsIntentExtra(intent, ArgKeys.AGENT, agent);
         context.startActivity(intent);
     }
 
     private AlphabetId _preferredAlphabet;
-    int _agentId;
+    AgentId _agentId;
 
     boolean _deleteDialogPresent;
 
@@ -67,7 +69,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
         }
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _agentId = getIntent().getIntExtra(ArgKeys.AGENT, 0);
+        _agentId = AgentIdBundler.readAsIntentExtra(getIntent(), ArgKeys.AGENT);
         if (savedInstanceState != null) {
             _deleteDialogPresent = savedInstanceState.getBoolean(SavedKeys.DELETE_DIALOG_PRESENT);
         }

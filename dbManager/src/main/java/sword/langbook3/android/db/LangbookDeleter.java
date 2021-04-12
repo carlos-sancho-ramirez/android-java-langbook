@@ -45,9 +45,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteAgent(Deleter db, int id) {
+    static boolean deleteAgent(Deleter db, AgentIdInterface id) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), id)
                 .build();
 
@@ -63,7 +63,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunch(Deleter db, BunchIdInterface bunch) {
+    static <ConceptId> boolean deleteBunch(Deleter db, BunchIdInterface<ConceptId> bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -72,7 +72,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptation(Deleter db, BunchIdInterface bunch, AcceptationIdInterface acceptation, int agent) {
+    static <ConceptId> boolean deleteBunchAcceptation(Deleter db, BunchIdInterface<ConceptId> bunch, AcceptationIdInterface acceptation, AgentIdInterface agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -83,9 +83,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptationsByAgent(Deleter db, int agentId) {
+    static boolean deleteBunchAcceptationsByAgent(Deleter db, AgentIdInterface agentId) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
                 .build();
 
@@ -101,7 +101,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptationsByAgentAndBunch(Deleter db, int agentId, BunchIdInterface bunch) {
+    static <ConceptId> boolean deleteBunchAcceptationsByAgentAndBunch(Deleter db, AgentIdInterface agentId, BunchIdInterface<ConceptId> bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
@@ -111,7 +111,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteBunchAcceptationsByAgentAndAcceptation(Deleter db, int agentId, AcceptationIdInterface acceptation) {
+    static boolean deleteBunchAcceptationsByAgentAndAcceptation(Deleter db, AgentIdInterface agentId, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
@@ -156,9 +156,9 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static boolean deleteRuledAcceptationByAgent(Deleter db, int agentId) {
+    static boolean deleteRuledAcceptationByAgent(Deleter db, AgentIdInterface agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbDeleteQuery query = new DbDeleteQuery.Builder(table)
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
                 .build();
         return db.delete(query);
@@ -251,7 +251,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean deleteConversionRegister(Deleter db, ImmutablePair<AlphabetId, AlphabetId> alphabets, SymbolArrayIdInterface sourceSymbolArrayId, SymbolArrayIdInterface targetSymbolArrayId) {
+    static <ConceptId, AlphabetId extends AlphabetIdInterface<ConceptId>> boolean deleteConversionRegister(Deleter db, ImmutablePair<AlphabetId, AlphabetId> alphabets, SymbolArrayIdInterface sourceSymbolArrayId, SymbolArrayIdInterface targetSymbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getSourceAlphabetColumnIndex(), alphabets.left)
@@ -262,7 +262,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean deleteConversion(Database db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
+    static <ConceptId, AlphabetId extends AlphabetIdInterface<ConceptId>> boolean deleteConversion(Database db, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
@@ -271,7 +271,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <LanguageId extends LanguageIdInterface> boolean deleteLanguage(Database db, LanguageId language) {
+    static <ConceptId, LanguageId extends LanguageIdInterface<ConceptId>> boolean deleteLanguage(Database db, LanguageId language) {
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), language)
@@ -280,7 +280,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <LanguageId extends LanguageIdInterface> boolean deleteAlphabetsForLanguage(Database db, LanguageId language) {
+    static <ConceptId, LanguageId extends LanguageIdInterface<ConceptId>> boolean deleteAlphabetsForLanguage(Database db, LanguageId language) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getLanguageColumnIndex(), language)
@@ -288,7 +288,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean deleteAlphabet(Database db, AlphabetId alphabet) {
+    static <ConceptId, AlphabetId extends AlphabetIdInterface<ConceptId>> boolean deleteAlphabet(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getIdColumnIndex(), alphabet)
@@ -296,7 +296,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean deleteAlphabetFromCorrelations(Database db, AlphabetId alphabet) {
+    static <ConceptId, AlphabetId extends AlphabetIdInterface<ConceptId>> boolean deleteAlphabetFromCorrelations(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getAlphabetColumnIndex(), alphabet)
@@ -304,7 +304,7 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
-    static <AlphabetId extends AlphabetIdInterface> boolean deleteAlphabetFromStringQueries(Database db, AlphabetId alphabet) {
+    static <ConceptId, AlphabetId extends AlphabetIdInterface<ConceptId>> boolean deleteAlphabetFromStringQueries(Database db, AlphabetId alphabet) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
                 .where(table.getStringAlphabetColumnIndex(), alphabet)

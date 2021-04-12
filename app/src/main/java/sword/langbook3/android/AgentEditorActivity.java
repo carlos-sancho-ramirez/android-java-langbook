@@ -28,6 +28,8 @@ import sword.collections.MutableList;
 import sword.collections.MutableSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
+import sword.langbook3.android.db.AgentId;
+import sword.langbook3.android.db.AgentIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdBundler;
@@ -51,8 +53,6 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private static final int REQUEST_CODE_PICK_SOURCE_BUNCH = 2;
     private static final int REQUEST_CODE_PICK_DIFF_BUNCH = 3;
     private static final int REQUEST_CODE_PICK_RULE = 4;
-
-    private static final int NO_RULE = 0;
 
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
@@ -88,9 +88,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         context.startActivity(intent);
     }
 
-    public static void open(Context context, int agentId) {
+    public static void open(Context context, AgentId agentId) {
         final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.AGENT, agentId);
+        AgentIdBundler.writeAsIntentExtra(intent, ArgKeys.AGENT, agentId);
         context.startActivity(intent);
     }
 
@@ -188,8 +188,8 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private LinearLayout _endMatchersContainer;
     private LinearLayout _endAddersContainer;
 
-    private int getAgentId() {
-        return getIntent().getIntExtra(ArgKeys.AGENT, 0);
+    private AgentId getAgentId() {
+        return AgentIdBundler.readAsIntentExtra(getIntent(), ArgKeys.AGENT);
     }
 
     private BunchId getSourceBunch() {
@@ -281,11 +281,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         else {
             _state = new State();
 
-            final int agentId = getAgentId();
+            final AgentId agentId = getAgentId();
             final BunchId sourceBunch = getSourceBunch();
             final BunchId diffBunch = getDiffBunch();
             final BunchId targetBunch = getTargetBunch();
-            if (agentId != 0) {
+            if (agentId != null) {
                 final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = checker.getAgentDetails(agentId);
                 _state.targetBunches = agentDetails.targetBunches.toList().mutate();
                 _state.sourceBunches = agentDetails.sourceBunches.toList().mutate();
@@ -544,13 +544,13 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
                     final RuleId rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? null : _state.rule;
 
-                    final int givenAgentId = getAgentId();
+                    final AgentId givenAgentId = getAgentId();
                     final LangbookDbManager manager = DbManager.getInstance().getManager();
                     final ImmutableSet<BunchId> targetBunches = _state.targetBunches.toImmutable().toSet();
                     final ImmutableSet<BunchId> sourceBunches = _state.sourceBunches.toImmutable().toSet();
                     final ImmutableSet<BunchId> diffBunches = _state.diffBunches.toImmutable().toSet();
-                    if (givenAgentId == 0) {
-                        final Integer agentId = manager.addAgent(targetBunches, sourceBunches, diffBunches,
+                    if (givenAgentId == null) {
+                        final AgentId agentId = manager.addAgent(targetBunches, sourceBunches, diffBunches,
                                 startMatcher, startAdder, endMatcher, endAdder, rule);
                         final int message = (agentId != null) ? R.string.newAgentFeedback : R.string.newAgentError;
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();

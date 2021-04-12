@@ -15,6 +15,7 @@ import android.widget.TextView;
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
@@ -120,9 +121,9 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         return false;
     }
 
-    private ImmutableList<SearchResult<Integer, RuleId>> agentSearchResults() {
+    private ImmutableList<SearchResult<AgentId, RuleId>> agentSearchResults() {
         return DbManager.getInstance().getManager().getAgentIds().map(agentId -> {
-            final String str = AGENT_QUERY_PREFIX + agentId;
+            final String str = AGENT_QUERY_PREFIX + agentId.composeHumanReadableName();
             return new SearchResult<>(str, str, agentId, false);
         });
     }
@@ -160,7 +161,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
             onAcceptationSelected((AcceptationId) itemId);
         }
         else {
-            AgentDetailsActivity.open(this, (Integer) itemId);
+            AgentDetailsActivity.open(this, (AgentId) itemId);
         }
     }
 

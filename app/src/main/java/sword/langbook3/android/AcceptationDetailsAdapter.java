@@ -15,6 +15,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
@@ -155,9 +156,9 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
     static final class AgentNavigableItem extends Item {
 
-        private final int _id;
+        private final AgentId _id;
 
-        AgentNavigableItem(int id, String text) {
+        AgentNavigableItem(AgentId id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }

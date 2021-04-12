@@ -3,7 +3,6 @@ package sword.langbook3.android.db;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
 import sword.collections.ImmutableIntValueMap;
@@ -11,14 +10,11 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
-import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.Map;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
-import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.collections.Set;
@@ -30,7 +26,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
@@ -87,10 +82,10 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
 
-public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> {
+public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> {
 
-    public LangbookDatabaseManager(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter) {
-        super(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, bunchSetIdSetter, ruleIdSetter);
+    public LangbookDatabaseManager(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter) {
+        super(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, bunchSetIdSetter, ruleIdSetter, agentIdSetter);
     }
 
     private boolean applyMatchersAddersAndConversions(
@@ -351,7 +346,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return obtainCorrelationArray(new ImmutableList.Builder<CorrelationId>().append(correlationId).build());
     }
 
-    private void runAgent(int agentId, AgentDetails<AlphabetId, BunchId, RuleId> details) {
+    private void runAgent(AgentId agentId, AgentDetails<AlphabetId, BunchId, RuleId> details) {
         final ImmutableSet<AcceptationId> matchingAcceptations = findMatchingAcceptations(details.sourceBunches, details.diffBunches, details.startMatcher, details.endMatcher);
         final ImmutableSet<AcceptationId> processedAcceptations;
         if (!details.modifyCorrelations()) {
@@ -434,7 +429,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
      *                               resulting in a different source acceptation to be ruled here.
      * @return A bunch set containing all target bunches that changed, or empty if there is no change.
      */
-    private ImmutableSet<BunchId> rerunAgent(int agentId, MutableSet<AcceptationId> deletedDynamicAcceptations, boolean sourceAgentChangedText) {
+    private ImmutableSet<BunchId> rerunAgent(AgentId agentId, MutableSet<AcceptationId> deletedDynamicAcceptations, boolean sourceAgentChangedText) {
         final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = getAgentDetails(agentId);
         final ImmutableSet<AcceptationId> matchingAcceptations = findMatchingAcceptations(
                 agentDetails.sourceBunches, agentDetails.diffBunches,
@@ -664,7 +659,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public Integer addAgent(
+    public AgentId addAgent(
             ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
@@ -698,7 +693,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return null;
         }
 
-        final Integer agentId = LangbookDbInserter.insertAgent(_db, register);
+        final AgentId agentId = LangbookDbInserter.insertAgent(_db, _agentIdSetter, register);
         if (agentId != null) {
             final AgentDetails<AlphabetId, BunchId, RuleId> details = new AgentDetails<>(targetBunches, sourceBunches, diffBunches,
                     startMatcher, startAdder, endMatcher, endAdder, rule);
@@ -709,7 +704,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         while (!updatedBunches.isEmpty()) {
             final ImmutableSet.Builder<BunchId> builder = new ImmutableHashSet.Builder<>();
             for (BunchId bunch : updatedBunches) {
-                for (IntKeyMap.Entry<ImmutableSet<BunchId>> entry : findAffectedAgentsByItsSourceWithTarget(bunch).entries()) {
+                for (Map.Entry<AgentId, ImmutableSet<BunchId>> entry : findAffectedAgentsByItsSourceWithTarget(bunch).entries()) {
                     rerunAgent(entry.key(), null, false);
                     for (BunchId b : entry.value()) {
                         builder.add(b);
@@ -742,22 +737,22 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return obtainCorrelation(correlation.map(this::obtainSymbolArray));
     }
 
-    private ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableSet<BunchId>>> getAgentExecutionOrder() {
+    private ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> getAgentExecutionOrder() {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex(), table.getTargetBunchSetColumnIndex(), table.getSourceBunchSetColumnIndex(), table.getDiffBunchSetColumnIndex());
 
-        final MutableIntKeyMap<ImmutableSet<BunchId>> agentDependencies = MutableIntKeyMap.empty();
-        final MutableIntKeyMap<ImmutableSet<BunchId>> agentDependenciesWithNull = MutableIntKeyMap.empty();
+        final MutableMap<AgentId, ImmutableSet<BunchId>> agentDependencies = MutableHashMap.empty();
+        final MutableMap<AgentId, ImmutableSet<BunchId>> agentDependenciesWithNull = MutableHashMap.empty();
 
-        final MutableIntSet agentsWithoutSource = MutableIntArraySet.empty();
-        final MutableIntKeyMap<ImmutableSet<BunchId>> agentTargets = MutableIntKeyMap.empty();
+        final MutableSet<AgentId> agentsWithoutSource = MutableHashSet.empty();
+        final MutableMap<AgentId, ImmutableSet<BunchId>> agentTargets = MutableHashMap.empty();
         final SyncCacheMap<BunchSetId, ImmutableSet<BunchId>> bunchSets = new SyncCacheMap<>(this::getBunchSet);
         try (DbResult dbResult = _db.select(query)) {
             final ImmutableSet<BunchId> justNullDependency = ImmutableHashSet.<BunchId>empty().add(null);
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                final int id = row.get(0).toInt();
+                final AgentId id = _agentIdSetter.getKeyFromDbValue(row.get(0));
 
                 agentTargets.put(id, bunchSets.get(_bunchSetIdSetter.getKeyFromDbValue(row.get(1))));
 
@@ -775,13 +770,13 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         }
 
         final int agentCount = agentDependencies.size();
-        final int[] agentList = new int[agentCount];
+        final Object[] agentList = new Object[agentCount];
         for (int i = 0; i < agentCount; i++) {
-            final int agentId = agentDependencies.keyAt(i);
+            final AgentId agentId = agentDependencies.keyAt(i);
             final ImmutableSet<BunchId> targets = agentTargets.get(agentId);
             boolean inserted = false;
             for (int j = 0; j < i; j++) {
-                if (agentDependencies.get(agentList[j]).anyMatch(targets::contains)) {
+                if (agentDependencies.get((AgentId) agentList[j]).anyMatch(targets::contains)) {
                     for (int k = i; k > j; k--) {
                         agentList[k] = agentList[k - 1];
                     }
@@ -796,13 +791,13 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             }
         }
 
-        final ImmutableIntList sortedIdentifiers = ImmutableIntList.from(agentList);
+        final ImmutableList<AgentId> sortedIdentifiers = (ImmutableList<AgentId>) ((ImmutableList) ImmutableList.from(agentList));
         return new ImmutablePair<>(sortedIdentifiers, agentDependenciesWithNull.toImmutable());
     }
 
     @Override
     public boolean updateAgent(
-            int agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
+            AgentId agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
         if (sourceBunches.anyMatch(diffBunches::contains)) {
@@ -900,11 +895,11 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 .build();
         _db.update(updateQuery);
 
-        final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
-        for (int thisAgentId : agentExecutionOrder.left) {
+        final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
+        for (AgentId thisAgentId : agentExecutionOrder.left) {
             final ImmutableSet<BunchId> dependencies = agentExecutionOrder.right.get(thisAgentId);
-            if (thisAgentId == agentId || dependencies.anyMatch(touchedBunches::contains)) {
-                final boolean sourceAgentChangedText = thisAgentId != agentId && correlationChanged;
+            if (thisAgentId.equals(agentId) || dependencies.anyMatch(touchedBunches::contains)) {
+                final boolean sourceAgentChangedText = !thisAgentId.equals(agentId) && correlationChanged;
                 touchedBunches.addAll(rerunAgent(thisAgentId, null, sourceAgentChangedText));
             }
         }
@@ -980,7 +975,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public void removeAgent(int agentId) {
+    public void removeAgent(AgentId agentId) {
         // This implementation has lot of holes.
         // 1. It is assuming that there is no chained agents
         // 2. It is assuming that agents sets only contains a single agent.
@@ -1035,7 +1030,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         while (!updatedBunches.isEmpty()) {
             ImmutableSet.Builder<BunchId> builder = new ImmutableHashSet.Builder<>();
             for (BunchId bunch : updatedBunches) {
-                for (IntKeyMap.Entry<ImmutableSet<BunchId>> entry : findAffectedAgentsByItsSourceWithTarget(bunch).entries()) {
+                for (Map.Entry<AgentId, ImmutableSet<BunchId>> entry : findAffectedAgentsByItsSourceWithTarget(bunch).entries()) {
                     rerunAgent(entry.key(), null, false);
                     for (BunchId b : entry.value()) {
                         builder.add(b);
@@ -1161,7 +1156,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return removed;
     }
 
-    private ImmutableSet<BunchId> rerunAgentWhenAcceptationIncludedInBunch(int agentId, MutableSet<AcceptationId> addedAcceptations) {
+    private ImmutableSet<BunchId> rerunAgentWhenAcceptationIncludedInBunch(AgentId agentId, MutableSet<AcceptationId> addedAcceptations) {
         final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = getAgentDetails(agentId);
         final ImmutableSet<AcceptationId> matchingAcceptations = findMatchingAcceptationsAmongGiven(addedAcceptations, agentDetails.sourceBunches,
                 agentDetails.diffBunches, agentDetails.startMatcher, agentDetails.endMatcher);
@@ -1279,16 +1274,16 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return false;
         }
 
-        LangbookDbInserter.insertBunchAcceptation(_db, bunch, acceptation, 0);
+        LangbookDbInserter.insertBunchAcceptation(_db, bunch, acceptation, null);
 
-        final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableSet<BunchId>>> agentSortingResult = getAgentExecutionOrder();
+        final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> agentSortingResult = getAgentExecutionOrder();
         final MutableSet<BunchId> updatedBunches = MutableHashSet.empty();
         updatedBunches.add(bunch);
 
         MutableSet<AcceptationId> addedAcceptations = MutableHashSet.empty();
         addedAcceptations.add(acceptation);
 
-        for (int agentId : agentSortingResult.left) {
+        for (AgentId agentId : agentSortingResult.left) {
             if (agentSortingResult.right.get(agentId).anyMatch(updatedBunches::contains)) {
                 updatedBunches.addAll(rerunAgentWhenAcceptationIncludedInBunch(agentId, addedAcceptations));
             }
@@ -1300,7 +1295,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
     @Override
     public boolean removeAcceptationFromBunch(BunchId bunch, AcceptationId acceptation) {
-        if (LangbookDeleter.deleteBunchAcceptation(_db, bunch, acceptation, 0)) {
+        if (LangbookDeleter.deleteBunchAcceptation(_db, bunch, acceptation, null)) {
             final ImmutableSet.Builder<BunchId> allUpdatedBunchesBuilder = new ImmutableHashSet.Builder<>();
             ImmutableSet<BunchId> updatedBunches = new ImmutableHashSet.Builder<BunchId>().add(bunch).build();
             MutableSet<AcceptationId> removedDynamicAcceptations = MutableHashSet.empty();
@@ -1308,14 +1303,14 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 final ImmutableSet.Builder<BunchId> builder = new ImmutableHashSet.Builder<>();
                 for (BunchId b : updatedBunches) {
                     allUpdatedBunchesBuilder.add(b);
-                    for (IntKeyMap.Entry<ImmutableSet<BunchId>> entry : findAffectedAgentsByItsSourceWithTarget(b).entries()) {
+                    for (Map.Entry<AgentId, ImmutableSet<BunchId>> entry : findAffectedAgentsByItsSourceWithTarget(b).entries()) {
                         rerunAgent(entry.key(), removedDynamicAcceptations, false);
                         for (BunchId bb : entry.value()) {
                             builder.add(bb);
                         }
                     }
 
-                    for (IntKeyMap.Entry<ImmutableSet<BunchId>> entry : findAffectedAgentsByItsDiffWithTarget(b).entries()) {
+                    for (Map.Entry<AgentId, ImmutableSet<BunchId>> entry : findAffectedAgentsByItsDiffWithTarget(b).entries()) {
                         rerunAgent(entry.key(), removedDynamicAcceptations, false);
                         for (BunchId bb : entry.value()) {
                             builder.add(bb);
@@ -1591,12 +1586,12 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             insertStringQuery(_db, str, mainStr, acceptation, acceptation, alphabet);
         }
 
-        final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableSet<BunchId>>> sortedAgents = getAgentExecutionOrder();
-        final ImmutableIntKeyMap<ImmutableSet<BunchId>> agentDependencies = sortedAgents.right;
+        final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> sortedAgents = getAgentExecutionOrder();
+        final ImmutableMap<AgentId, ImmutableSet<BunchId>> agentDependencies = sortedAgents.right;
         final MutableSet<BunchId> touchedBunches = MutableHashSet.empty();
         touchedBunches.add(null);
 
-        for (int agentId : sortedAgents.left) {
+        for (AgentId agentId : sortedAgents.left) {
             if (!agentDependencies.get(agentId).filter(touchedBunches::contains).isEmpty()) {
                 touchedBunches.addAll(rerunAgent(agentId, null, false));
             }
@@ -1644,18 +1639,18 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
             final MutableSet<BunchId> touchedBunches = MutableHashSet.empty();
 
-            final ImmutableIntSet.Builder affectedAgentsBuilder = new ImmutableIntSetCreator();
-            for (int agentId : findAgentsWithoutSourceBunches()) {
+            final ImmutableSet.Builder<AgentId> affectedAgentsBuilder = new ImmutableHashSet.Builder<>();
+            for (AgentId agentId : findAgentsWithoutSourceBunches()) {
                 affectedAgentsBuilder.add(agentId);
             }
 
-            for (int agentId : findAffectedAgentsByAcceptationCorrelationModification(acceptation)) {
+            for (AgentId agentId : findAffectedAgentsByAcceptationCorrelationModification(acceptation)) {
                 affectedAgentsBuilder.add(agentId);
             }
 
-            final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
-            final ImmutableIntSet affectedAgents = affectedAgentsBuilder.build();
-            for (int thisAgentId : agentExecutionOrder.left) {
+            final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
+            final ImmutableSet<AgentId> affectedAgents = affectedAgentsBuilder.build();
+            for (AgentId thisAgentId : agentExecutionOrder.left) {
                 final ImmutableSet<BunchId> dependencies = agentExecutionOrder.right.get(thisAgentId);
                 if (affectedAgents.contains(thisAgentId) || dependencies.anyMatch(touchedBunches::contains)) {
                     touchedBunches.addAll(rerunAgent(thisAgentId, null, false));
@@ -1726,17 +1721,19 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         _db.update(query);
     }
 
-    private MutableIntKeyMap<MutableSet<AcceptationId>> getAcceptationsInBunchGroupedByAgent(BunchId bunch) {
+    private MutableMap<AgentId, MutableSet<AcceptationId>> getAcceptationsInBunchGroupedByAgent(BunchId bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         DbQuery oldConceptQuery = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
                 .select(table.getAgentColumnIndex(), table.getAcceptationColumnIndex());
-        final MutableIntKeyMap<MutableSet<AcceptationId>> map = MutableIntKeyMap.empty();
-        final SyncCacheIntKeyNonNullValueMap<MutableSet<AcceptationId>> syncCache = new SyncCacheIntKeyNonNullValueMap<>(map, k -> MutableHashSet.empty());
+        final MutableMap<AgentId, MutableSet<AcceptationId>> map = MutableHashMap.empty();
+        final SyncCacheMap<AgentId, MutableSet<AcceptationId>> syncCache = new SyncCacheMap<>(map, k -> MutableHashSet.empty());
         try (DbResult dbResult = _db.select(oldConceptQuery)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                syncCache.get(row.get(0).toInt()).add(_acceptationIdSetter.getKeyFromDbValue(row.get(1)));
+                final AgentId agentId = _agentIdSetter.getKeyFromDbValue(row.get(0));
+                final AcceptationId acceptationId = _acceptationIdSetter.getKeyFromDbValue(row.get(1));
+                syncCache.get(agentId).add(acceptationId);
             }
         }
 
@@ -1745,15 +1742,15 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
     private void updateBunchAcceptationConcepts(ConceptId oldConcept, ConceptId newConcept) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final MutableIntKeyMap<MutableSet<AcceptationId>> oldBunchAcceptations = getAcceptationsInBunchGroupedByAgent(_bunchIdSetter.getKeyFromConceptId(oldConcept));
+        final MutableMap<AgentId, MutableSet<AcceptationId>> oldBunchAcceptations = getAcceptationsInBunchGroupedByAgent(_bunchIdSetter.getKeyFromConceptId(oldConcept));
         if (oldBunchAcceptations.isEmpty()) {
             return;
         }
 
-        final MutableIntKeyMap<MutableSet<AcceptationId>> newBunchAcceptations = getAcceptationsInBunchGroupedByAgent(_bunchIdSetter.getKeyFromConceptId(newConcept));
-        final ImmutableIntSet involvedAgents = oldBunchAcceptations.keySet().toImmutable().addAll(newBunchAcceptations.keySet());
+        final MutableMap<AgentId, MutableSet<AcceptationId>> newBunchAcceptations = getAcceptationsInBunchGroupedByAgent(_bunchIdSetter.getKeyFromConceptId(newConcept));
+        final ImmutableSet<AgentId> involvedAgents = oldBunchAcceptations.keySet().toImmutable().addAll(newBunchAcceptations.keySet());
 
-        final ImmutableIntKeyMap<Set<AcceptationId>> duplicated = involvedAgents.assign(agent -> {
+        final ImmutableMap<AgentId, Set<AcceptationId>> duplicated = involvedAgents.assign(agent -> {
             MutableSet<AcceptationId> rawNewAccSet = newBunchAcceptations.get(agent, null);
             final MutableSet<AcceptationId> newAccSet = (rawNewAccSet == null)? MutableHashSet.empty() : rawNewAccSet;
             MutableSet<AcceptationId> rawOldAccSet = oldBunchAcceptations.get(agent, null);
@@ -1761,7 +1758,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return newAccSet.filter(oldAccSet::contains);
         }).filterNot(Set::isEmpty);
 
-        for (int agent : duplicated.keySet()) {
+        for (AgentId agent : duplicated.keySet()) {
             for (AcceptationId acc : duplicated.get(agent)) {
                 if (!deleteBunchAcceptation(_db, _bunchIdSetter.getKeyFromConceptId(oldConcept), acc, agent)) {
                     throw new AssertionError();
@@ -1958,16 +1955,17 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 DbQuery oldConceptQuery = new DbQueryBuilder(table)
                         .where(table.getAcceptationColumnIndex(), oldAcc)
                         .select(table.getAgentColumnIndex(), table.getBunchColumnIndex());
-                final MutableIntKeyMap<MutableSet<BunchId>> map = MutableIntKeyMap.empty();
-                final SyncCacheIntKeyNonNullValueMap<MutableSet<BunchId>> syncCache = new SyncCacheIntKeyNonNullValueMap<>(map, k -> MutableHashSet.empty());
+                final MutableMap<AgentId, MutableSet<BunchId>> map = MutableHashMap.empty();
+                final SyncCacheMap<AgentId, MutableSet<BunchId>> syncCache = new SyncCacheMap<>(map, k -> MutableHashSet.empty());
                 try (DbResult dbResult = _db.select(oldConceptQuery)) {
                     while (dbResult.hasNext()) {
                         final List<DbValue> row = dbResult.next();
-                        syncCache.get(row.get(0).toInt()).add(_bunchIdSetter.getKeyFromDbValue(row.get(1)));
+                        final AgentId agentId = _agentIdSetter.getKeyFromDbValue(row.get(0));
+                        syncCache.get(agentId).add(_bunchIdSetter.getKeyFromDbValue(row.get(1)));
                     }
                 }
 
-                for (int agent : map.keySet()) {
+                for (AgentId agent : map.keySet()) {
                     for (BunchId bunch : map.get(agent)) {
                         insertBunchAcceptation(_db, bunch, newAcc, agent);
                     }

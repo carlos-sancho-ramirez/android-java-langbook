@@ -12,4 +12,8 @@ public final class EqualUtils {
     public static boolean isNull(Object reference) {
         return reference == null;
     }
+
+    public static boolean nonNull(Object reference) {
+        return reference != null;
+    }
 }

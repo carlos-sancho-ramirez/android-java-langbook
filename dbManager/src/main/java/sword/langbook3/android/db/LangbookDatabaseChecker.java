@@ -5,7 +5,6 @@ import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
-import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntSetCreator;
@@ -22,7 +21,6 @@ import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueMap;
@@ -37,6 +35,7 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
+import sword.langbook3.android.collections.EqualUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
@@ -45,7 +44,6 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DefinitionDetails;
-import sword.langbook3.android.models.DerivedAcceptationResult;
 import sword.langbook3.android.models.DerivedAcceptationsReaderResult;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
@@ -68,7 +66,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
-abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId> {
+abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> {
 
     final Database _db;
     final ConceptSetter<ConceptId> _conceptIdSetter;
@@ -81,9 +79,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     final ConceptualizableSetter<ConceptId, BunchId> _bunchIdSetter;
     final BunchSetIntSetter<BunchSetId> _bunchSetIdSetter;
     final ConceptualizableSetter<ConceptId, RuleId> _ruleIdSetter;
+    final IntSetter<AgentId> _agentIdSetter;
 
-    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter) {
-        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || bunchSetIdSetter == null || ruleIdSetter == null) {
+    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter) {
+        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || bunchSetIdSetter == null || ruleIdSetter == null || agentIdSetter == null) {
             throw new IllegalArgumentException();
         }
 
@@ -98,6 +97,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         _bunchIdSetter = bunchIdSetter;
         _bunchSetIdSetter = bunchSetIdSetter;
         _ruleIdSetter = ruleIdSetter;
+        _agentIdSetter = agentIdSetter;
     }
 
     private List<DbValue> selectSingleRow(DbQuery query) {
@@ -129,21 +129,6 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
             return result.next();
         }
-    }
-
-    private Integer selectOptionalFirstIntColumn(DbQuery query) {
-        Integer result = null;
-        try (DbResult dbResult = _db.select(query)) {
-            if (dbResult.hasNext()) {
-                result = dbResult.next().get(0).toInt();
-            }
-
-            if (dbResult.hasNext()) {
-                throw new AssertionError("Only 0 or 1 row was expected");
-            }
-        }
-
-        return result;
     }
 
     private String selectOptionalFirstTextColumn(DbQuery query) {
@@ -822,12 +807,12 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return builder.build();
     }
 
-    private static final class AcceptationOrigin<AcceptationId> {
+    private static final class AcceptationOrigin<AcceptationId, AgentId> {
         final AcceptationId originalAcceptationId;
-        final int appliedAgent;
+        final AgentId appliedAgent;
         final String originalAcceptationText;
 
-        AcceptationOrigin(AcceptationId originalAcceptationId, int appliedAgent, String originalAcceptationText) {
+        AcceptationOrigin(AcceptationId originalAcceptationId, AgentId appliedAgent, String originalAcceptationText) {
             this.originalAcceptationId = originalAcceptationId;
             this.appliedAgent = appliedAgent;
             this.originalAcceptationText = originalAcceptationText;
@@ -846,7 +831,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
     }
 
-    private AcceptationOrigin<AcceptationId> readOriginalAcceptation(AcceptationId acceptation, AlphabetId preferredAlphabet) {
+    private AcceptationOrigin<AcceptationId, AgentId> readOriginalAcceptation(AcceptationId acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final int offset = ruledAcceptations.columns().size();
@@ -860,14 +845,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                         offset + strings.getStringColumnIndex());
 
         AcceptationId id = null;
-        int agentId = 0;
+        AgentId agentId = null;
         String text = null;
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 if (id == null || preferredAlphabet.sameValue(row.get(2))) {
                     id = _acceptationIdSetter.getKeyFromDbValue(row.get(0));
-                    agentId = row.get(1).toInt();
+                    agentId = _agentIdSetter.getKeyFromDbValue(row.get(1));
                     text = row.get(3).toText();
                 }
             }
@@ -876,14 +861,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return (id == null)? null : new AcceptationOrigin<>(id, agentId, text);
     }
 
-    private AppliedRule<AcceptationId, RuleId> readRulePreferredTextByAgent(int agentId, AlphabetId preferredAlphabet) {
+    private AppliedRule<AcceptationId, RuleId> readRulePreferredTextByAgent(AgentId agentId, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final int accOffset = agents.columns().size();
         final int strOffset = accOffset + acceptations.columns().size();
 
-        final DbQuery query = new DbQuery.Builder(agents)
+        final DbQuery query = new DbQueryBuilder(agents)
                 .join(acceptations, agents.getRuleColumnIndex(), acceptations.getConceptColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(agents.getIdColumnIndex(), agentId)
@@ -1230,7 +1215,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return acceptationsMap.keySet().map(bunch -> new DynamizableResult<>(acceptationsMap.get(bunch), !bunchesWhereIncludedStatically.contains(bunch), textsMap.get(bunch))).toImmutable();
     }
 
-    private DerivedAcceptationsReaderResult<AcceptationId, RuleId> readDerivedAcceptations(AcceptationId acceptation, AlphabetId preferredAlphabet) {
+    private DerivedAcceptationsReaderResult<AcceptationId, RuleId, AgentId> readDerivedAcceptations(AcceptationId acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -1249,8 +1234,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                         agentsOffset + agents.getRuleColumnIndex());
 
         final MutableMap<AcceptationId, String> texts = MutableHashMap.empty();
-        final MutableIntValueMap<AcceptationId> accAgents = MutableIntValueHashMap.empty();
-        final MutableIntKeyMap<RuleId> agentRules = MutableIntKeyMap.empty();
+        final MutableMap<AcceptationId, AgentId> accAgents = MutableHashMap.empty();
+        final MutableMap<AgentId, RuleId> agentRules = MutableHashMap.empty();
 
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
@@ -1263,7 +1248,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 }
 
                 if (dynAccNotFound) {
-                    final int agent = row.get(3).toInt();
+                    final AgentId agent = _agentIdSetter.getKeyFromDbValue(row.get(3));
                     final RuleId rule = _ruleIdSetter.getKeyFromDbValue(row.get(4));
                     accAgents.put(dynAcc, agent);
                     agentRules.put(agent, rule);
@@ -1271,7 +1256,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             }
         }
 
-        final ImmutableMap<AcceptationId, DerivedAcceptationResult> acceptations = accAgents.keySet().assign(acc -> new DerivedAcceptationResult(accAgents.get(acc), texts.get(acc))).toImmutable();
+        final ImmutableMap<AcceptationId, IdentifiableResult<AgentId>> acceptations = accAgents.keySet().assign(acc -> new IdentifiableResult<>(accAgents.get(acc), texts.get(acc))).toImmutable();
         final ImmutableMap<RuleId, String> ruleTexts = agentRules.toSet().assign(rule -> readConceptText(rule.getConceptId(), preferredAlphabet)).toImmutable();
         return new DerivedAcceptationsReaderResult<>(acceptations, ruleTexts, agentRules.toImmutable());
     }
@@ -1315,7 +1300,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return accTexts.keySet().map(acc -> new DynamizableResult<>(acc, !includedStatically.contains(acc), accTexts.get(acc))).toImmutable();
     }
 
-    private ImmutableIntSet readAgentsWhereAcceptationIsTarget(AcceptationId staticAcceptation) {
+    private ImmutableSet<AgentId> readAgentsWhereAcceptationIsTarget(AcceptationId staticAcceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -1328,10 +1313,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .where(acceptations.getIdColumnIndex(), staticAcceptation)
                 .select(agentsOffset + agents.getIdColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private ImmutableIntSet readAgentsWhereAcceptationIsSource(AcceptationId staticAcceptation) {
+    private ImmutableSet<AgentId> readAgentsWhereAcceptationIsSource(AcceptationId staticAcceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
@@ -1345,10 +1330,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .where(acceptations.getIdColumnIndex(), staticAcceptation)
                 .select(agentsOffset + agents.getIdColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private ImmutableIntSet readAgentsWhereAcceptationIsRule(AcceptationId staticAcceptation) {
+    private ImmutableSet<AgentId> readAgentsWhereAcceptationIsRule(AcceptationId staticAcceptation) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
 
@@ -1356,17 +1341,17 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .join(agents, acceptations.getConceptColumnIndex(), agents.getRuleColumnIndex())
                 .where(acceptations.getIdColumnIndex(), staticAcceptation)
                 .select(acceptations.columns().size() + agents.getIdColumnIndex());
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private ImmutableIntSet readAgentsWhereAcceptationIsProcessed(AcceptationId acceptation) {
+    private ImmutableSet<AgentId> readAgentsWhereAcceptationIsProcessed(AcceptationId acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
 
         final DbQuery query = new DbQueryBuilder(bunchAcceptations)
                 .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(bunchAcceptations.getAgentColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).filter(agentId -> agentId != 0).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).filter(EqualUtils::nonNull).toSet().toImmutable();
     }
 
     /**
@@ -1374,24 +1359,24 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
      * @param staticAcceptation Identifier for the acceptation to analyze.
      * @return a map whose keys are agent identifier and values are flags. Flags should match the values at {@link sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags}
      */
-    private ImmutableIntPairMap readAcceptationInvolvedAgents(AcceptationId staticAcceptation) {
-        final MutableIntPairMap flags = MutableIntPairMap.empty();
+    private ImmutableIntValueMap<AgentId> readAcceptationInvolvedAgents(AcceptationId staticAcceptation) {
+        final MutableIntValueMap<AgentId> flags = MutableIntValueHashMap.empty();
 
-        for (int agentId : readAgentsWhereAcceptationIsTarget(staticAcceptation)) {
+        for (AgentId agentId : readAgentsWhereAcceptationIsTarget(staticAcceptation)) {
             flags.put(agentId, flags.get(agentId, 0) | AcceptationDetailsModel.InvolvedAgentResultFlags.target);
         }
 
-        for (int agentId : readAgentsWhereAcceptationIsSource(staticAcceptation)) {
+        for (AgentId agentId : readAgentsWhereAcceptationIsSource(staticAcceptation)) {
             flags.put(agentId, flags.get(agentId, 0) | AcceptationDetailsModel.InvolvedAgentResultFlags.source);
         }
 
         // TODO: Diff not implemented as right now it is impossible
 
-        for (int agentId : readAgentsWhereAcceptationIsRule(staticAcceptation)) {
+        for (AgentId agentId : readAgentsWhereAcceptationIsRule(staticAcceptation)) {
             flags.put(agentId, flags.get(agentId, 0) | AcceptationDetailsModel.InvolvedAgentResultFlags.rule);
         }
 
-        for (int agentId : readAgentsWhereAcceptationIsProcessed(staticAcceptation)) {
+        for (AgentId agentId : readAgentsWhereAcceptationIsProcessed(staticAcceptation)) {
             flags.put(agentId, flags.get(agentId, 0) | AcceptationDetailsModel.InvolvedAgentResultFlags.processed);
         }
 
@@ -1399,21 +1384,21 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId> getAcceptationsDetails(AcceptationId staticAcceptation, AlphabetId preferredAlphabet) {
+    public AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId> getAcceptationsDetails(AcceptationId staticAcceptation, AlphabetId preferredAlphabet) {
         final ConceptId concept = conceptFromAcceptation(staticAcceptation);
         if (concept == null) {
             return null;
         }
 
-        final AcceptationOrigin<AcceptationId> origin = readOriginalAcceptation(staticAcceptation, preferredAlphabet);
+        final AcceptationOrigin<AcceptationId, AgentId> origin = readOriginalAcceptation(staticAcceptation, preferredAlphabet);
         final AcceptationId originalAcceptationId = (origin != null)? origin.originalAcceptationId : null;
-        final int appliedAgentId = (origin != null)? origin.appliedAgent : 0;
+        final AgentId appliedAgentId = (origin != null)? origin.appliedAgent : null;
         final String originalAcceptationText = (origin != null)? origin.originalAcceptationText : null;
 
         final AcceptationId appliedRuleAcceptationId;
         final RuleId appliedRuleId;
         final String appliedRuleAcceptationText;
-        if (appliedAgentId != 0) {
+        if (appliedAgentId != null) {
             final AppliedRule<AcceptationId, RuleId> appliedRule = readRulePreferredTextByAgent(appliedAgentId, preferredAlphabet);
             appliedRuleAcceptationId = appliedRule.acceptationId;
             appliedRuleId = appliedRule.rule;
@@ -1454,9 +1439,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
 
         final ImmutableList<DynamizableResult<AcceptationId>> bunchesWhereAcceptationIsIncluded = readBunchesWhereAcceptationIsIncluded(staticAcceptation, preferredAlphabet);
-        final DerivedAcceptationsReaderResult<AcceptationId, RuleId> morphologyResults = readDerivedAcceptations(staticAcceptation, preferredAlphabet);
+        final DerivedAcceptationsReaderResult<AcceptationId, RuleId, AgentId> morphologyResults = readDerivedAcceptations(staticAcceptation, preferredAlphabet);
         final ImmutableList<DynamizableResult<AcceptationId>> bunchChildren = readAcceptationBunchChildren(staticAcceptation, preferredAlphabet);
-        final ImmutableIntPairMap involvedAgents = readAcceptationInvolvedAgents(staticAcceptation);
+        final ImmutableIntValueMap<AgentId> involvedAgents = readAcceptationInvolvedAgents(staticAcceptation);
 
         final ImmutableMap<RuleId, String> ruleTexts = (appliedRuleAcceptationId == null)? morphologyResults.ruleTexts :
                 morphologyResults.ruleTexts.put(appliedRuleId, appliedRuleAcceptationText);
@@ -1614,12 +1599,12 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableIntSet getAgentIds() {
+    public ImmutableSet<AgentId> getAgentIds() {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     @Override
@@ -1652,9 +1637,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public AgentRegister<CorrelationId, BunchSetId, RuleId> getAgentRegister(int agentId) {
+    public AgentRegister<CorrelationId, BunchSetId, RuleId> getAgentRegister(AgentId agentId) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), agentId)
                 .select(table.getTargetBunchSetColumnIndex(),
                         table.getSourceBunchSetColumnIndex(),
@@ -1683,7 +1668,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public AgentDetails<AlphabetId, BunchId, RuleId> getAgentDetails(int agentId) {
+    public AgentDetails<AlphabetId, BunchId, RuleId> getAgentDetails(AgentId agentId) {
         final AgentRegister<CorrelationId, BunchSetId, RuleId> register = getAgentRegister(agentId);
         final ImmutableSet<BunchId> targetBunches = getBunchSet(register.targetBunchSetId);
         final ImmutableSet<BunchId> sourceBunches = getBunchSet(register.sourceBunchSetId);
@@ -1899,7 +1884,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public AcceptationId findRuledAcceptationByAgentAndBaseAcceptation(int agentId, AcceptationId baseAcceptation) {
+    public AcceptationId findRuledAcceptationByAgentAndBaseAcceptation(AgentId agentId, AcceptationId baseAcceptation) {
         final LangbookDbSchema.RuledAcceptationsTable ruledAccs = LangbookDbSchema.Tables.ruledAcceptations;
         final DbQuery query = new DbQueryBuilder(ruledAccs)
                 .where(ruledAccs.getAcceptationColumnIndex(), baseAcceptation)
@@ -1925,7 +1910,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableIntSet findAllAgentsThatIncludedAcceptationInBunch(BunchId bunch, AcceptationId acceptation) {
+    public ImmutableSet<AgentId> findAllAgentsThatIncludedAcceptationInBunch(BunchId bunch, AcceptationId acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
 
         final DbQuery query = new DbQueryBuilder(bunchAcceptations)
@@ -1933,13 +1918,13 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(bunchAcceptations.getAgentColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     @Override
-    public ImmutableMap<AcceptationId, AcceptationId> getAgentProcessedMap(int agentId) {
+    public ImmutableMap<AcceptationId, AcceptationId> getAgentProcessedMap(AgentId agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
                 .select(table.getAcceptationColumnIndex(), table.getIdColumnIndex());
 
@@ -1957,7 +1942,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public MorphologyReaderResult<AcceptationId, RuleId> readMorphologiesFromAcceptation(AcceptationId acceptation, AlphabetId preferredAlphabet) {
+    public MorphologyReaderResult<AcceptationId, RuleId, AgentId> readMorphologiesFromAcceptation(AcceptationId acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
         final LangbookDbSchema.RuledAcceptationsTable ruledAcceptations = LangbookDbSchema.Tables.ruledAcceptations;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
@@ -1979,14 +1964,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final MutableMap<AcceptationId, String> texts = MutableHashMap.empty();
         final MutableMap<AcceptationId, AcceptationId> sourceAccs = MutableHashMap.empty();
         final MutableMap<AcceptationId, RuleId> accRules = MutableHashMap.empty();
-        final MutableIntKeyMap<RuleId> agentRules = MutableIntKeyMap.empty();
+        final MutableMap<AgentId, RuleId> agentRules = MutableHashMap.empty();
 
         try (DbResult dbResult = _db.select(mainQuery)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 final AcceptationId dynAcc = _acceptationIdSetter.getKeyFromDbValue(row.get(0));
                 final DbValue alphabet = row.get(1);
-                final int agent = row.get(4).toInt();
+                final AgentId agent = _agentIdSetter.getKeyFromDbValue(row.get(4));
                 final RuleId rule = _ruleIdSetter.getKeyFromDbValue(row.get(5));
 
                 final boolean dynAccNotFound = texts.get(dynAcc, null) == null;
@@ -2020,7 +2005,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableSet<AcceptationId> getAcceptationsInBunchByBunchAndAgent(BunchId bunch, int agent) {
+    public ImmutableSet<AcceptationId> getAcceptationsInBunchByBunchAndAgent(BunchId bunch, AgentId agent) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
@@ -3041,16 +3026,16 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
     }
 
-    ImmutableIntSet findAgentsWithoutSourceBunches() {
+    ImmutableSet<AgentId> findAgentsWithoutSourceBunches() {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
                 .where(agents.getSourceBunchSetColumnIndex(), 0)
                 .select(agents.getIdColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    ImmutableIntSet findAffectedAgentsByAcceptationCorrelationModification(AcceptationId acceptation) {
+    ImmutableSet<AgentId> findAffectedAgentsByAcceptationCorrelationModification(AcceptationId acceptation) {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.BunchAcceptationsTable bunchAcceptations = LangbookDbSchema.Tables.bunchAcceptations;
@@ -3064,7 +3049,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .where(bunchAccOffset + bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(agents.getIdColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
     ImmutableIntSet findQuizzesByBunch(BunchId bunch) {
@@ -3157,9 +3142,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return _db.select(query).map(row -> _symbolArrayIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    boolean isBunchAcceptationPresentByAgent(int agentId) {
+    boolean isBunchAcceptationPresentByAgent(AgentId agentId) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
                 .select(table.getIdColumnIndex());
 
@@ -3186,7 +3171,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return map;
     }
 
-    ImmutableIntKeyMap<ImmutableSet<BunchId>> findAffectedAgentsByItsSourceWithTarget(BunchId bunch) {
+    ImmutableMap<AgentId, ImmutableSet<BunchId>> findAffectedAgentsByItsSourceWithTarget(BunchId bunch) {
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final int offset = bunchSets.columns().size();
@@ -3195,19 +3180,19 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .where(bunchSets.getBunchColumnIndex(), bunch)
                 .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchSetColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<ImmutableSet<BunchId>> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AgentId, ImmutableSet<BunchId>> builder = new ImmutableHashMap.Builder<>();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 List<DbValue> row = result.next();
                 final BunchSetId bunchSetId = _bunchSetIdSetter.getKeyFromDbValue(row.get(1));
-                builder.put(row.get(0).toInt(), getBunchSet(bunchSetId));
+                builder.put(_agentIdSetter.getKeyFromDbValue(row.get(0)), getBunchSet(bunchSetId));
             }
         }
 
         return builder.build();
     }
 
-    ImmutableIntKeyMap<ImmutableSet<BunchId>> findAffectedAgentsByItsDiffWithTarget(BunchId bunch) {
+    ImmutableMap<AgentId, ImmutableSet<BunchId>> findAffectedAgentsByItsDiffWithTarget(BunchId bunch) {
         final LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final int offset = bunchSets.columns().size();
@@ -3216,12 +3201,13 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .where(bunchSets.getBunchColumnIndex(), bunch)
                 .select(offset + agents.getIdColumnIndex(), offset + agents.getTargetBunchSetColumnIndex());
 
-        final ImmutableIntKeyMap.Builder<ImmutableSet<BunchId>> builder = new ImmutableIntKeyMap.Builder<>();
+        final ImmutableMap.Builder<AgentId, ImmutableSet<BunchId>> builder = new ImmutableHashMap.Builder<>();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final BunchSetId bunchSetId = _bunchSetIdSetter.getKeyFromDbValue(row.get(1));
-                builder.put(row.get(0).toInt(), getBunchSet(bunchSetId));
+                final AgentId agentId = _agentIdSetter.getKeyFromDbValue(row.get(0));
+                builder.put(agentId, getBunchSet(bunchSetId));
             }
         }
 
@@ -3638,18 +3624,18 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return fields.map(mapFunc).reduce((a, b) -> a.filter(b::contains));
     }
 
-    ImmutableSet<AcceptationId> getAllRuledAcceptationsForAgent(int agentId) {
+    ImmutableSet<AcceptationId> getAllRuledAcceptationsForAgent(AgentId agentId) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
                 .select(table.getIdColumnIndex());
 
         return _db.select(query).map(row -> _acceptationIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    ImmutableMap<AcceptationId, AcceptationId> getFilteredAgentProcessedMap(int agentId, Set<AcceptationId> acceptations) {
+    ImmutableMap<AcceptationId, AcceptationId> getFilteredAgentProcessedMap(AgentId agentId, Set<AcceptationId> acceptations) {
         final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
-        final DbQuery query = new DbQuery.Builder(table)
+        final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getAgentColumnIndex(), agentId)
                 .select(table.getAcceptationColumnIndex(), table.getIdColumnIndex());
 
