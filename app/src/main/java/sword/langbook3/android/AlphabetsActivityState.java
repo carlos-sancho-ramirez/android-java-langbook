@@ -58,10 +58,12 @@ public final class AlphabetsActivityState implements Parcelable {
 
     private AlphabetsActivityState(Parcel in) {
         _intrinsicState = in.readInt();
-        if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS) {
+
+        if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS || _intrinsicState == IntrinsicStates.LANGUAGE_DELETE_CONFIRMATION || _intrinsicState == IntrinsicStates.PICKING_NEW_ALPHABET_ACCEPTATION || _intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
             _languageId = LanguageIdParceler.read(in);
         }
-        else if (_intrinsicState != IntrinsicStates.NORMAL) {
+
+        if (_intrinsicState != IntrinsicStates.NORMAL) {
             _alphabetId = AlphabetIdParceler.read(in);
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
                 _newAlphabetConcept = AlphabetIdParceler.read(in);
@@ -271,10 +273,11 @@ public final class AlphabetsActivityState implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(_intrinsicState);
-        if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS) {
+        if (_intrinsicState == IntrinsicStates.SHOWING_LANGUAGE_OPTIONS || _intrinsicState == IntrinsicStates.LANGUAGE_DELETE_CONFIRMATION || _intrinsicState == IntrinsicStates.PICKING_NEW_ALPHABET_ACCEPTATION || _intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
             LanguageIdParceler.write(dest, _languageId);
         }
-        else if (_intrinsicState != IntrinsicStates.NORMAL) {
+
+        if (_intrinsicState != IntrinsicStates.NORMAL) {
             AlphabetIdParceler.write(dest, _alphabetId);
             if (_intrinsicState == IntrinsicStates.PICKING_SOURCE_ALPHABET) {
                 AlphabetIdParceler.write(dest, _newAlphabetConcept);
