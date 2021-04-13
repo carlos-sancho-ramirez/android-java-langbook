@@ -1632,7 +1632,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 final AcceptationId acc = _acceptationIdSetter.getKeyFromDbValue(row.get(2));
                 final AcceptationId dynAcc = _acceptationIdSetter.getKeyFromDbValue(row.get(3));
 
-                map.put(dynAcc, new SearchResult<>(str, mainStr, dynAcc, dynAcc != acc));
+                map.put(dynAcc, new SearchResult<>(str, mainStr, dynAcc, !dynAcc.equals(acc)));
             }
         }
 
