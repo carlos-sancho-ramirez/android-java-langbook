@@ -21,6 +21,11 @@ final class LangbookDatabaseManagerTest implements LangbookManagerTest<ConceptId
     }
 
     @Override
+    public ConceptualizableSetter<ConceptIdHolder, AlphabetIdHolder> getAlphabetIdManager() {
+        return _alphabetIdManager;
+    }
+
+    @Override
     public BunchIdHolder conceptAsBunchId(ConceptIdHolder conceptId) {
         return _bunchIdManager.getKeyFromConceptId(conceptId);
     }

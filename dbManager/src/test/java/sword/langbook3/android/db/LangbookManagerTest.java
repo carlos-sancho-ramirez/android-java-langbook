@@ -18,7 +18,7 @@ import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgen
 import static sword.langbook3.android.db.AgentsManagerTest.setOf;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface LangbookManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, QuizId, SentenceId> extends QuizzesManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId>, DefinitionsManagerTest<ConceptId>, SentencesManagerTest<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> {
+interface LangbookManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId, CorrelationId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, QuizId, SentenceId> extends QuizzesManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId>, DefinitionsManagerTest<ConceptId>, SentencesManagerTest<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> {
 
     @Override
     LangbookManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> createManager(MemoryDatabase db);

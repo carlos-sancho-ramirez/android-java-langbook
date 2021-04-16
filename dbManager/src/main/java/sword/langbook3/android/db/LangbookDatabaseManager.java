@@ -1,8 +1,8 @@
 package sword.langbook3.android.db;
 
+import sword.collections.Function;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
-import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableIntValueMap;
 import sword.collections.ImmutableList;
@@ -89,7 +89,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     private boolean applyMatchersAddersAndConversions(
             MutableCorrelation<AlphabetId> correlation,
             AgentDetails<AlphabetId, BunchId, RuleId> details, ImmutableMap<AlphabetId, AlphabetId> conversionMap,
-            SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions) {
+            Function<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversionSupplier) {
         final ImmutableSet<AlphabetId> correlationAlphabets = correlation.keySet().toImmutable();
         for (Map.Entry<AlphabetId, String> entry : details.startMatcher.entries()) {
             final AlphabetId key = entry.key();
@@ -138,7 +138,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         for (int conversionIndex = 0; conversionIndex < conversionCount; conversionIndex++) {
             if (keySet.contains(conversionMap.valueAt(conversionIndex))) {
                 final ImmutablePair<AlphabetId, AlphabetId> pair = new ImmutablePair<>(conversionMap.valueAt(conversionIndex), conversionMap.keyAt(conversionIndex));
-                final String result = conversions.get(pair).convert(correlation.get(pair.left));
+                final String result = conversionSupplier.apply(pair).convert(correlation.get(pair.left));
                 if (result == null) {
                     validConversion = false;
                     break;
@@ -361,7 +361,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 final ImmutablePair<ImmutableCorrelation<AlphabetId>, AcceptationId> textsAndMain = readAcceptationTextsAndMain(acc);
                 final MutableCorrelation<AlphabetId> correlation = textsAndMain.left.mutate();
 
-                final boolean validConversion = applyMatchersAddersAndConversions(correlation, details, conversionMap, conversions);
+                final boolean validConversion = applyMatchersAddersAndConversions(correlation, details, conversionMap, conversions::get);
                 if (validConversion) {
                     final ImmutableSet<AlphabetId> conversionTargets = conversionMap.keySet();
                     final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
@@ -497,7 +497,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 else {
                     final MutableCorrelation<AlphabetId> accText = getAcceptationTexts(sampleStaticAcc).mutate();
                     final ImmutableCorrelation<AlphabetId> sampleDynAccText = getAcceptationTexts(sampleDynAcc);
-                    final boolean validConversion = applyMatchersAddersAndConversions(accText, agentDetails, conversionMap, conversions);
+                    final boolean validConversion = applyMatchersAddersAndConversions(accText, agentDetails, conversionMap, conversions::get);
                     mustChangeResultingText = !validConversion || !accText.equalCorrelation(sampleDynAccText);
                 }
             }
@@ -544,7 +544,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 for (AcceptationId staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
                     final MutableCorrelation<AlphabetId> correlation = getAcceptationTexts(staticAcc).mutate();
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
-                            conversionMap, conversions);
+                            conversionMap, conversions::get);
                     if (validConversion) {
                         final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
                         for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
@@ -615,7 +615,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                     final ImmutablePair<ImmutableCorrelation<AlphabetId>, AcceptationId> textsAndMain = readAcceptationTextsAndMain(acc);
                     final MutableCorrelation<AlphabetId> correlation = textsAndMain.left.mutate();
 
-                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, conversions);
+                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, conversions::get);
                     if (validConversion) {
                         final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
                         for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
@@ -1206,7 +1206,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                     final MutableCorrelation<AlphabetId> correlation = textsAndMain.left.mutate();
 
                     final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
-                            conversionMap, conversions);
+                            conversionMap, conversions::get);
                     if (validConversion) {
                         final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
                         for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
@@ -1512,6 +1512,34 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 final AcceptationId dynAcc = _acceptationIdSetter.getKeyFromDbValue(row.get(3));
 
                 insertStringQuery(_db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+            }
+        }
+    }
+
+    private void applyConversionOnStaticAcceptationsOnly(Conversion<AlphabetId> conversion) {
+        final AlphabetId sourceAlphabet = conversion.getSourceAlphabet();
+
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
+                .whereColumnValueMatch(table.getMainAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex())
+                .select(
+                        table.getStringColumnIndex(),
+                        table.getMainStringColumnIndex(),
+                        table.getDynamicAcceptationColumnIndex());
+
+        try (DbResult result = _db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final String str = conversion.convert(row.get(0).toText());
+                if (str == null) {
+                    throw new AssertionError("Unable to convert word " + row.get(0).toText());
+                }
+
+                final String mainStr = row.get(1).toText();
+                final AcceptationId acc = _acceptationIdSetter.getKeyFromDbValue(row.get(2));
+
+                insertStringQuery(_db, str, mainStr, acc, acc, conversion.getTargetAlphabet());
             }
         }
     }
@@ -2042,43 +2070,115 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         _db.delete(query);
     }
 
-    private void updateStringQueryTableDueToConversionUpdate(Conversion<AlphabetId> newConversion) {
-        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+    private void removePreviouslyProcessedRuledAcceptation(AgentId agentId, ImmutableSet<BunchId> targetBunches, AcceptationId dynamicAcceptation) {
+        deleteKnowledge(_db, dynamicAcceptation);
+        for (BunchId targetBunch : targetBunches) {
+            deleteBunchAcceptation(_db, targetBunch, dynamicAcceptation, agentId);
+        }
+        deleteStringQueriesForDynamicAcceptation(_db, dynamicAcceptation);
+        deleteSpansByDynamicAcceptation(_db, dynamicAcceptation);
+        if (!deleteAcceptation(_db, dynamicAcceptation) | !deleteRuledAcceptation(_db, dynamicAcceptation)) {
+            throw new AssertionError();
+        }
+    }
 
-        final int offset = table.columns().size();
-        final DbQuery query = new DbQueryBuilder(table)
-                .join(table, table.getDynamicAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex())
-                .where(table.getStringAlphabetColumnIndex(), newConversion.getTargetAlphabet())
-                .where(offset + table.getStringAlphabetColumnIndex(), newConversion.getSourceAlphabet())
-                .select(
-                        table.getDynamicAcceptationColumnIndex(),
-                        table.getStringColumnIndex(),
-                        offset + table.getStringColumnIndex());
+    private void rerunAgentForChangedConversion(AgentId agentId, Conversion<AlphabetId> newConversion) {
+        final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = getAgentDetails(agentId);
+        final ImmutableSet<AcceptationId> matchingAcceptations = findMatchingAcceptations(
+                agentDetails.sourceBunches, agentDetails.diffBunches,
+                agentDetails.startMatcher, agentDetails.endMatcher);
 
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-        final DbResult dbResult = _db.select(query);
-        while (dbResult.hasNext()) {
-            final List<DbValue> row = dbResult.next();
-            final int dynAcc = row.get(0).toInt();
-            final String source = row.get(2).toText();
-            final String currentTarget = row.get(1).toText();
-            final String newTarget = newConversion.convert(source);
-            if (!equal(currentTarget, newTarget)) {
-                builder.put(dynAcc, newTarget);
+        final boolean ruleApplied = agentDetails.modifyCorrelations();
+        if (!ruleApplied) {
+            final ImmutableMap<BunchId, ImmutableSet<AcceptationId>> alreadyProcessedAcceptations = agentDetails.targetBunches.assign(targetBunch -> getAcceptationsInBunchByBunchAndAgent(targetBunch, agentId));
+
+            for (BunchId targetBunch : agentDetails.targetBunches) {
+                for (AcceptationId acc : alreadyProcessedAcceptations.get(targetBunch)) {
+                    if (!matchingAcceptations.contains(acc)) {
+                        if (!deleteBunchAcceptation(_db, targetBunch, acc, agentId)) {
+                            throw new AssertionError();
+                        }
+                    }
+                }
+            }
+
+            final ImmutableSet<AcceptationId> allAlreadyProcessedAcceptations = alreadyProcessedAcceptations
+                    .reduce((a, b) -> a.filter(b::contains), ImmutableHashSet.empty());
+            final ImmutableSet<AcceptationId> processedAcceptations = matchingAcceptations.filterNot(allAlreadyProcessedAcceptations::contains);
+
+            for (BunchId targetBunch : agentDetails.targetBunches) {
+                for (AcceptationId acc : processedAcceptations) {
+                    insertBunchAcceptation(_db, targetBunch, acc, agentId);
+                }
             }
         }
+        else {
+            final SyncCacheMap<AlphabetId, AlphabetId> mainAlphabets = new SyncCacheMap<>(this::readMainAlphabetFromAlphabet);
+            final ImmutableMap<AcceptationId, AcceptationId> oldProcessedMap = getAgentProcessedMap(agentId);
+            final ImmutableSet<AcceptationId> alreadyProcessedAcceptations = oldProcessedMap.keySet();
 
-        final ImmutableIntKeyMap<String> updateMap = builder.build();
-        final int updateCount = updateMap.size();
-        for (int i = 0; i < updateCount; i++) {
-            final DbUpdateQuery upQuery = new DbUpdateQueryBuilder(table)
-                    .where(table.getStringAlphabetColumnIndex(), newConversion.getTargetAlphabet())
-                    .where(table.getDynamicAcceptationColumnIndex(), updateMap.keyAt(i))
-                    .put(table.getStringColumnIndex(), updateMap.valueAt(i))
-                    .build();
+            final AlphabetId sourceAlphabet = newConversion.getSourceAlphabet();
+            final AlphabetId targetAlphabet = newConversion.getTargetAlphabet();
+            final AlphabetId mainAlphabet = mainAlphabets.get(targetAlphabet);
 
-            if (!_db.update(upQuery)) {
-                throw new AssertionError();
+            final ImmutableMap<AlphabetId, AlphabetId> conversionMap = ImmutableHashMap.<AlphabetId, AlphabetId>empty().put(targetAlphabet, sourceAlphabet);
+            for (AcceptationId staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
+                final StringQueryAcceptationDetails<AlphabetId, AcceptationId> stringQueryAcceptationDetails = getStringQueryAcceptationDetails(staticAcc);
+                final MutableCorrelation<AlphabetId> correlation = stringQueryAcceptationDetails.texts.mutate();
+                if (correlation.containsKey(sourceAlphabet)) {
+                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
+                            conversionMap, pair -> newConversion);
+                    if (validConversion) {
+                        final AcceptationId dynAcc = oldProcessedMap.get(staticAcc);
+                        insertStringQuery(_db, correlation.get(targetAlphabet), correlation.get(mainAlphabet), stringQueryAcceptationDetails.mainAcceptation, dynAcc, targetAlphabet);
+                    }
+                    else {
+                        removePreviouslyProcessedRuledAcceptation(agentId, agentDetails.targetBunches, oldProcessedMap.get(staticAcc));
+                    }
+                }
+            }
+
+            for (Map.Entry<AcceptationId, AcceptationId> accPair : oldProcessedMap.entries()) {
+                if (!matchingAcceptations.contains(accPair.key())) {
+                    removePreviouslyProcessedRuledAcceptation(agentId, agentDetails.targetBunches, accPair.value());
+                }
+            }
+
+            final ImmutableMap.Builder<AcceptationId, AcceptationId> processedAccMapBuilder = new ImmutableHashMap.Builder<>();
+            for (AcceptationId acc : matchingAcceptations.filterNot(alreadyProcessedAcceptations::contains)) {
+                final ImmutablePair<ImmutableCorrelation<AlphabetId>, AcceptationId> textsAndMain = readAcceptationTextsAndMain(acc);
+                final MutableCorrelation<AlphabetId> correlation = textsAndMain.left.mutate();
+
+                final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, pair -> newConversion);
+                if (validConversion) {
+                    final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
+                    for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
+                        if (!targetAlphabet.equals(entry.key())) {
+                            corrBuilder.put(entry.key(), obtainSymbolArray(entry.value()));
+                        }
+                    }
+
+                    final CorrelationId correlationId = obtainCorrelation(corrBuilder.build());
+                    final CorrelationArrayId correlationArrayId = obtainSimpleCorrelationArray(correlationId);
+                    final ConceptId baseConcept = conceptFromAcceptation(acc);
+                    final ConceptId ruledConcept = obtainRuledConcept(agentDetails.rule, baseConcept);
+                    final AcceptationId newAcc = insertAcceptation(_db, _acceptationIdSetter, ruledConcept, correlationArrayId);
+                    insertRuledAcceptation(_db, newAcc, agentId, acc);
+
+                    for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
+                        final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
+                        insertStringQuery(_db, entry.value(), mainText, textsAndMain.right, newAcc, entry.key());
+                    }
+                    processedAccMapBuilder.put(acc, newAcc);
+                }
+            }
+            final ImmutableMap<AcceptationId, AcceptationId> processedAcceptationsMap = processedAccMapBuilder.build();
+
+            for (BunchId targetBunch : agentDetails.targetBunches) {
+                final ImmutableSet<AcceptationId> alreadyIncludedAcceptations = getAcceptationsInBunchByBunchAndAgent(targetBunch, agentId);
+                for (AcceptationId acc : processedAcceptationsMap.filterNot(alreadyIncludedAcceptations::contains)) {
+                    insertBunchAcceptation(_db, targetBunch, acc, agentId);
+                }
             }
         }
     }
@@ -2097,30 +2197,27 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return false;
         }
 
-        if (conversion.getMap().isEmpty()) {
-            final Conversion<AlphabetId> oldConversion = getConversion(conversion.getAlphabets());
-            if (oldConversion.getMap().isEmpty()) {
-                return false;
-            }
-            else {
-                unapplyConversion(oldConversion);
-                updateJustConversion(conversion);
-                return true;
-            }
+        final Conversion<AlphabetId> oldConversion = getConversion(conversion.getAlphabets());
+        if (oldConversion.getMap().equalMap(conversion.getMap())) {
+            return false;
         }
 
-        if (checkConversionConflicts(conversion)) {
-            final Conversion<AlphabetId> oldConversion = updateJustConversion(conversion);
-            if (oldConversion.getMap().isEmpty()) {
-                applyConversion(conversion);
-            }
-            else {
-                updateStringQueryTableDueToConversionUpdate(conversion);
-            }
-            return true;
+        if (!checkConversionConflictsOnStaticAcceptationsOnly(conversion)) {
+            return false;
         }
 
-        return false;
+        if (!oldConversion.getMap().isEmpty()) {
+            unapplyConversion(oldConversion);
+        }
+        updateJustConversion(conversion);
+        applyConversionOnStaticAcceptationsOnly(conversion);
+
+        final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
+        for (AgentId thisAgentId : agentExecutionOrder.left) {
+            rerunAgentForChangedConversion(thisAgentId, conversion);
+        }
+
+        return true;
     }
 
     private int insertQuestionFieldSet(Iterable<QuestionFieldDetails<AlphabetId, RuleId>> fields) {

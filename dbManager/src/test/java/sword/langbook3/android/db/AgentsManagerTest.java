@@ -2,6 +2,7 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
@@ -16,6 +17,7 @@ import sword.database.DbResult;
 import sword.database.DbValue;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.AgentRegister;
+import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.SearchResult;
 
@@ -48,11 +50,12 @@ import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAccept
  * <li>Ruled acceptations</li>
  * <li>Agents</li>
  */
-interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface> extends BunchesManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
+interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface> extends BunchesManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
 
     @Override
     AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> createManager(MemoryDatabase db);
     ConceptSetter<ConceptId> getConceptIdManager();
+    ConceptualizableSetter<ConceptId, AlphabetId> getAlphabetIdManager();
     IntSetter<AcceptationId> getAcceptationIdManager();
     RuleId conceptAsRuleId(ConceptId conceptId);
 
@@ -1972,5 +1975,368 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         assertEquals("canto", searchResult.getStr());
         assertEquals("canto", searchResult.getMainStr());
         assertEquals("cantar", searchResult.getMainAccMainStr());
+    }
+
+    @Test
+    default void testModifyConversionFromNonMatchingToMatchingAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("け", "ke")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("て", "te")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .build();
+
+        final AlphabetId roumaji = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+
+        final AcceptationId highAcceptation = obtainNewAcceptation(manager, kana, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, highAcceptation));
+
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        final AgentId agent = addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, highAcceptation));
+
+        final ImmutableMap<String, String> newConversionMap = conversionMap
+                .put("く", "ku")
+                .put("な", "na");
+
+        final Conversion<AlphabetId> newConversion = new Conversion<>(kana, roumaji, newConversionMap);
+        assertTrue(manager.replaceConversion(newConversion));
+
+        final AcceptationId notHighAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, highAcceptation);
+        assertNotNull(notHighAcceptation);
+        assertNotEquals(highAcceptation, notHighAcceptation);
+
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> searchResults = manager.findAcceptationAndRulesFromText("taka", DbQuery.RestrictionStringTypes.STARTS_WITH, new ImmutableIntRange(0, 19));
+        assertSize(2, searchResults);
+
+        final SearchResult<AcceptationId, RuleId> notHighSearchResult;
+        if (highAcceptation.equals(searchResults.valueAt(0).getId())) {
+            notHighSearchResult = searchResults.valueAt(1);
+            assertEquals(notHighAcceptation, notHighSearchResult.getId());
+        }
+        else {
+            notHighSearchResult = searchResults.valueAt(0);
+            assertEquals(notHighAcceptation, notHighSearchResult.getId());
+            assertEquals(highAcceptation, searchResults.valueAt(1).getId());
+        }
+
+        assertContainsOnly(negativeRule, notHighSearchResult.getAppliedRules());
+        assertEquals("たかくない", notHighSearchResult.getMainStr());
+        assertEquals("takakunai", notHighSearchResult.getStr());
+        assertTrue(notHighSearchResult.isDynamic());
+    }
+
+    @Test
+    default void testModifyConversionFromMatchingToNonMatchingAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("く", "ku")
+                .put("け", "ke")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("て", "te")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .put("な", "na")
+                .build();
+
+        final AlphabetId roumaji = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+
+        final AcceptationId highAcceptation = obtainNewAcceptation(manager, kana, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, highAcceptation));
+
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        final AgentId agent = addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+
+        final AcceptationId notHighAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, highAcceptation);
+        assertNotNull(notHighAcceptation);
+        assertNotEquals(highAcceptation, notHighAcceptation);
+
+        ImmutableList<SearchResult<AcceptationId, RuleId>> searchResults = manager.findAcceptationAndRulesFromText("taka", DbQuery.RestrictionStringTypes.STARTS_WITH, new ImmutableIntRange(0, 19));
+        assertSize(2, searchResults);
+
+        final SearchResult<AcceptationId, RuleId> notHighSearchResult;
+        if (highAcceptation.equals(searchResults.valueAt(0).getId())) {
+            notHighSearchResult = searchResults.valueAt(1);
+            assertEquals(notHighAcceptation, notHighSearchResult.getId());
+        }
+        else {
+            notHighSearchResult = searchResults.valueAt(0);
+            assertEquals(notHighAcceptation, notHighSearchResult.getId());
+            assertEquals(highAcceptation, searchResults.valueAt(1).getId());
+        }
+
+        assertContainsOnly(negativeRule, notHighSearchResult.getAppliedRules());
+        assertEquals("たかくない", notHighSearchResult.getMainStr());
+        assertEquals("takakunai", notHighSearchResult.getStr());
+        assertTrue(notHighSearchResult.isDynamic());
+
+        final ImmutableMap<String, String> newConversionMap = conversionMap.filter(str -> !"ku".equals(str) && !"na".equals(str));
+        final Conversion<AlphabetId> newConversion = new Conversion<>(kana, roumaji, newConversionMap);
+        assertTrue(manager.replaceConversion(newConversion));
+
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, highAcceptation));
+
+        searchResults = manager.findAcceptationAndRulesFromText("taka", DbQuery.RestrictionStringTypes.STARTS_WITH, new ImmutableIntRange(0, 19));
+        assertSize(1, searchResults);
+        assertEquals(highAcceptation, searchResults.valueAt(0).getId());
+    }
+
+    @Test
+    default void testModifyConversionFromNonMatchingToMatchingAcceptationInChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("け", "ke")
+                .put("こ", "ko")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("った", "tta")
+                .put("て", "te")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .build();
+
+        final AlphabetId roumaji = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+
+        final AcceptationId highAcceptation = obtainNewAcceptation(manager, kana, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, highAcceptation));
+
+        final BunchId targetBunch = obtainNewBunch(manager, kana, "ひていてき");
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        final RuleId pastRule = obtainNewRule(manager, kana, "かこ");
+        final AgentId agent1 = addSingleAlphabetAgent(manager, setOf(targetBunch), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+        final AgentId agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch, targetBunch), setOf(), kana, null, null, "い", "かった", pastRule);
+
+        final ImmutableMap<String, String> newConversionMap = conversionMap
+                .put("く", "ku")
+                .put("な", "na");
+
+        final Conversion<AlphabetId> newConversion = new Conversion<>(kana, roumaji, newConversionMap);
+        assertTrue(manager.replaceConversion(newConversion));
+
+        final AcceptationId notHighAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, highAcceptation);
+        final AcceptationId wasHighAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, highAcceptation);
+        final AcceptationId wasNotHighAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, notHighAcceptation);
+        assertNotNull(notHighAcceptation);
+        assertNotNull(wasHighAcceptation);
+        assertNotNull(wasNotHighAcceptation);
+        assertNotEquals(highAcceptation, notHighAcceptation);
+        assertNotEquals(highAcceptation, wasHighAcceptation);
+        assertNotEquals(highAcceptation, wasNotHighAcceptation);
+        assertNotEquals(notHighAcceptation, wasHighAcceptation);
+        assertNotEquals(notHighAcceptation, wasNotHighAcceptation);
+        assertNotEquals(wasHighAcceptation, wasNotHighAcceptation);
+
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> searchResults = manager.findAcceptationAndRulesFromText("taka", DbQuery.RestrictionStringTypes.STARTS_WITH, new ImmutableIntRange(0, 19));
+        assertSize(4, searchResults);
+
+        final SearchResult<AcceptationId, RuleId> notHighSearchResult = searchResults.findFirst(result -> notHighAcceptation.equals(result.getId()), null);
+        assertContainsOnly(negativeRule, notHighSearchResult.getAppliedRules());
+        assertEquals("たかくない", notHighSearchResult.getMainStr());
+        assertEquals("takakunai", notHighSearchResult.getStr());
+        assertTrue(notHighSearchResult.isDynamic());
+
+        final SearchResult<AcceptationId, RuleId> wasHighSearchResult = searchResults.findFirst(result -> wasHighAcceptation.equals(result.getId()), null);
+        assertContainsOnly(pastRule, wasHighSearchResult.getAppliedRules());
+        assertEquals("たかかった", wasHighSearchResult.getMainStr());
+        assertEquals("takakatta", wasHighSearchResult.getStr());
+        assertTrue(wasHighSearchResult.isDynamic());
+
+        final SearchResult<AcceptationId, RuleId> wasNotHighSearchResult = searchResults.findFirst(result -> wasNotHighAcceptation.equals(result.getId()), null);
+        assertContainsOnly(negativeRule, pastRule, wasNotHighSearchResult.getAppliedRules());
+        assertEquals("たかくなかった", wasNotHighSearchResult.getMainStr());
+        assertEquals("takakunakatta", wasNotHighSearchResult.getStr());
+        assertTrue(wasNotHighSearchResult.isDynamic());
+    }
+
+    @Test
+    default void testModifyConversionFromMatchingToNonMatchingAcceptationInChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("く", "ku")
+                .put("け", "ke")
+                .put("こ", "ko")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("った", "tta")
+                .put("て", "te")
+                .put("な", "na")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .build();
+
+        final AlphabetId roumaji = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+
+        final AcceptationId highAcceptation = obtainNewAcceptation(manager, kana, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, highAcceptation));
+
+        final BunchId targetBunch = obtainNewBunch(manager, kana, "ひていてき");
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        final RuleId pastRule = obtainNewRule(manager, kana, "かこ");
+        final AgentId agent1 = addSingleAlphabetAgent(manager, setOf(targetBunch), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+        final AgentId agent2 = addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch, targetBunch), setOf(), kana, null, null, "い", "かった", pastRule);
+
+        final ImmutableMap<String, String> newConversionMap = conversionMap.filter(str -> !str.equals("ku") && !str.equals("na"));
+        final Conversion<AlphabetId> newConversion = new Conversion<>(kana, roumaji, newConversionMap);
+        assertTrue(manager.replaceConversion(newConversion));
+
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, highAcceptation));
+        final AcceptationId wasHighAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, highAcceptation);
+        assertNotNull(wasHighAcceptation);
+        assertNotEquals(highAcceptation, wasHighAcceptation);
+
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> searchResults = manager.findAcceptationAndRulesFromText("taka", DbQuery.RestrictionStringTypes.STARTS_WITH, new ImmutableIntRange(0, 19));
+        assertSize(2, searchResults);
+
+        final SearchResult<AcceptationId, RuleId> highSearchResult = searchResults.findFirst(result -> highAcceptation.equals(result.getId()), null);
+        assertEmpty(highSearchResult.getAppliedRules());
+        assertEquals("たかい", highSearchResult.getMainStr());
+        assertEquals("takai", highSearchResult.getStr());
+        assertFalse(highSearchResult.isDynamic());
+
+        final SearchResult<AcceptationId, RuleId> wasHighSearchResult = searchResults.findFirst(result -> wasHighAcceptation.equals(result.getId()), null);
+        assertContainsOnly(pastRule, wasHighSearchResult.getAppliedRules());
+        assertEquals("たかかった", wasHighSearchResult.getMainStr());
+        assertEquals("takakatta", wasHighSearchResult.getStr());
+        assertTrue(wasHighSearchResult.isDynamic());
+    }
+
+    @Test
+    default void testModifyConversionFromNonMatchingToMatchingAcceptationInNonRuleChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("け", "ke")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("て", "te")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .build();
+
+        final AlphabetId roumaji = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+
+        final AcceptationId highAcceptation = obtainNewAcceptation(manager, kana, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, highAcceptation));
+
+        final BunchId middleBunch = obtainNewBunch(manager, kana, "ひていてき");
+        final BunchId targetBunch = obtainNewBunch(manager, kana, "よい");
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        final AgentId agent1 = addSingleAlphabetAgent(manager, setOf(middleBunch), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+        final AgentId agent2 = addSingleAlphabetAgent(manager, setOf(targetBunch), setOf(sourceBunch, middleBunch), setOf(), null, null, null, null, null, null);
+        assertContainsOnly(highAcceptation, manager.getAcceptationsInBunch(targetBunch));
+
+        final ImmutableMap<String, String> newConversionMap = conversionMap
+                .put("く", "ku")
+                .put("な", "na");
+
+        final Conversion<AlphabetId> newConversion = new Conversion<>(kana, roumaji, newConversionMap);
+        assertTrue(manager.replaceConversion(newConversion));
+
+        final AcceptationId notHighAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, highAcceptation);
+        assertNotNull(notHighAcceptation);
+        assertNotEquals(highAcceptation, notHighAcceptation);
+        assertContainsOnly(highAcceptation, notHighAcceptation, manager.getAcceptationsInBunch(targetBunch));
+    }
+
+    @Test
+    default void testModifyConversionFromMatchingToNonMatchingAcceptationInNonRuleChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("く", "ku")
+                .put("け", "ke")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("て", "te")
+                .put("な", "na")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .build();
+
+        final AlphabetId roumaji = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+
+        final AcceptationId highAcceptation = obtainNewAcceptation(manager, kana, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, highAcceptation));
+
+        final BunchId middleBunch = obtainNewBunch(manager, kana, "ひていてき");
+        final BunchId targetBunch = obtainNewBunch(manager, kana, "よい");
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        final AgentId agent1 = addSingleAlphabetAgent(manager, setOf(middleBunch), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+        assertNotNull(addSingleAlphabetAgent(manager, setOf(targetBunch), setOf(sourceBunch, middleBunch), setOf(), null, null, null, null, null, null));
+
+        final ImmutableMap<String, String> newConversionMap = conversionMap.filter(str -> !"ku".equals(str) && !"na".equals(str));
+        final Conversion<AlphabetId> newConversion = new Conversion<>(kana, roumaji, newConversionMap);
+        assertTrue(manager.replaceConversion(newConversion));
+
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, highAcceptation));
+        assertContainsOnly(highAcceptation, manager.getAcceptationsInBunch(targetBunch));
     }
 }

@@ -217,6 +217,46 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return _db.select(query).map(row -> _alphabetIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
+    static final class StringQueryAcceptationDetails<AlphabetId, AcceptationId> {
+        final AcceptationId mainAcceptation;
+        final String mainText;
+        final ImmutableCorrelation<AlphabetId> texts;
+
+        StringQueryAcceptationDetails(AcceptationId mainAcceptation, String mainText, ImmutableCorrelation<AlphabetId> texts) {
+            this.mainAcceptation = mainAcceptation;
+            this.mainText = mainText;
+            this.texts = texts;
+        }
+    }
+
+    StringQueryAcceptationDetails<AlphabetId, AcceptationId> getStringQueryAcceptationDetails(AcceptationId acceptation) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(table.getMainAcceptationColumnIndex(), table.getStringAlphabetColumnIndex(), table.getStringColumnIndex(), table.getMainStringColumnIndex());
+
+        AcceptationId mainAcceptation = null;
+        String mainString = null;
+
+        final ImmutableMap.Builder<AlphabetId, String> builder = new ImmutableHashMap.Builder<>();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.put(_alphabetIdSetter.getKeyFromDbValue(row.get(1)), row.get(2).toText());
+
+                if (mainAcceptation == null) {
+                    mainAcceptation = _acceptationIdSetter.getKeyFromDbValue(row.get(0));
+                    mainString = row.get(3).toText();
+                }
+                else if (!mainAcceptation.sameValue(row.get(0)) || !mainString.equals(row.get(3).toText())) {
+                    throw new AssertionError();
+                }
+            }
+        }
+
+        return new StringQueryAcceptationDetails<>(mainAcceptation, mainString, new ImmutableCorrelation<>(builder.build()));
+    }
+
     @Override
     public ImmutableCorrelation<AlphabetId> getAcceptationTexts(AcceptationId acceptation) {
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
@@ -2902,6 +2942,16 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         try (DbResult result = _db.select(query)) {
             return result.hasNext();
         }
+    }
+
+    boolean checkConversionConflictsOnStaticAcceptationsOnly(ConversionProposal<AlphabetId> conversion) {
+        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet())
+                .whereColumnValueMatch(table.getMainAcceptationColumnIndex(), table.getDynamicAcceptationColumnIndex())
+                .select(table.getStringColumnIndex());
+
+        return !_db.select(query).anyMatch(row -> conversion.convert(row.get(0).toText()) == null);
     }
 
     boolean checkConversionConflicts(ConversionProposal<AlphabetId> conversion) {
