@@ -61,6 +61,10 @@ public final class ImmutableCorrelationArray<AlphabetId> implements Traversable<
         });
     }
 
+    public ImmutableList<ImmutableCorrelation<AlphabetId>> toList() {
+        return array;
+    }
+
     @Override
     public int hashCode() {
         return array.hashCode();
