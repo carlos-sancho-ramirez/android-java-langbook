@@ -701,19 +701,21 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
             if (mustChangeResultingText) {
                 for (AcceptationId staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
-                    final MutableCorrelation<AlphabetId> correlation = getAcceptationTexts(staticAcc).mutate();
-                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails,
-                            conversionMap, conversions::get);
-                    if (validConversion) {
-                        final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
-                        for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
-                            if (!conversionTargets.contains(entry.key())) {
-                                corrBuilder.put(entry.key(), obtainSymbolArray(entry.value()));
+                    final ImmutableCorrelationArray<AlphabetId> correlationArray = getAcceptationCorrelationArrayWithText(staticAcc);
+                    final ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableCorrelation<AlphabetId>> processResult = applyMatchersAddersAndConversions(correlationArray, agentDetails, conversionMap, conversions::get);
+                    if (processResult != null) {
+                        final ImmutableCorrelationArray<AlphabetId> modifiedCorrelationArray = processResult.left;
+                        final ImmutableList<CorrelationId> correlationIds = modifiedCorrelationArray.map(correlation -> {
+                            final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
+                            for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
+                                if (!conversionTargets.contains(entry.key())) {
+                                    corrBuilder.put(entry.key(), obtainSymbolArray(entry.value()));
+                                }
                             }
-                        }
+                            return obtainCorrelation(corrBuilder.build());
+                        });
 
-                        final CorrelationId correlationId = obtainCorrelation(corrBuilder.build());
-                        final CorrelationArrayId correlationArrayId = obtainSimpleCorrelationArray(correlationId);
+                        final CorrelationArrayId correlationArrayId = obtainCorrelationArray(correlationIds);
                         final AcceptationId dynAcc = oldProcessedMap.get(staticAcc);
 
                         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
@@ -726,9 +728,9 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                         }
                         targetChanged = true;
 
-                        for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
+                        for (Map.Entry<AlphabetId, String> entry : processResult.right.entries()) {
                             final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-                            final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
+                            final String mainText = processResult.right.get(mainAlphabets.get(entry.key()), entry.value());
                             updateQuery = new DbUpdateQueryBuilder(strings)
                                     .put(strings.getStringColumnIndex(), entry.value())
                                     .put(strings.getMainStringColumnIndex(), mainText)
@@ -771,28 +773,32 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final ImmutableMap.Builder<AcceptationId, AcceptationId> processedAccMapBuilder = new ImmutableHashMap.Builder<>();
             for (AcceptationId acc : matchingAcceptations) {
                 if (toBeProcessed.contains(acc)) {
-                    final ImmutablePair<ImmutableCorrelation<AlphabetId>, AcceptationId> textsAndMain = readAcceptationTextsAndMain(acc);
-                    final MutableCorrelation<AlphabetId> correlation = textsAndMain.left.mutate();
+                    final ImmutableCorrelationArray<AlphabetId> correlationArray = getAcceptationCorrelationArrayWithText(acc);
 
-                    final boolean validConversion = applyMatchersAddersAndConversions(correlation, agentDetails, conversionMap, conversions::get);
-                    if (validConversion) {
-                        final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
-                        for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
-                            if (!conversionTargets.contains(entry.key())) {
-                                corrBuilder.put(entry.key(), obtainSymbolArray(entry.value()));
+                    final ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableCorrelation<AlphabetId>> processResult = applyMatchersAddersAndConversions(correlationArray, agentDetails, conversionMap, conversions::get);
+                    if (processResult != null) {
+                        final ImmutableCorrelationArray<AlphabetId> modifiedCorrelationArray = processResult.left;
+
+                        final ImmutableList<CorrelationId> correlationIds = modifiedCorrelationArray.map(correlation -> {
+                            final ImmutableMap.Builder<AlphabetId, SymbolArrayId> corrBuilder = new ImmutableHashMap.Builder<>();
+                            for (ImmutableMap.Entry<AlphabetId, String> entry : correlation.entries()) {
+                                if (!conversionTargets.contains(entry.key())) {
+                                    corrBuilder.put(entry.key(), obtainSymbolArray(entry.value()));
+                                }
                             }
-                        }
+                            return obtainCorrelation(corrBuilder.build());
+                        });
 
-                        final CorrelationId correlationId = obtainCorrelation(corrBuilder.build());
-                        final CorrelationArrayId correlationArrayId = obtainSimpleCorrelationArray(correlationId);
+                        final CorrelationArrayId correlationArrayId = obtainCorrelationArray(correlationIds);
                         final ConceptId baseConcept = conceptFromAcceptation(acc);
                         final ConceptId ruledConcept = obtainRuledConcept(agentDetails.rule, baseConcept);
                         final AcceptationId newAcc = insertAcceptation(_db, _acceptationIdSetter, ruledConcept, correlationArrayId);
                         insertRuledAcceptation(_db, newAcc, agentId, acc);
 
-                        for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
-                            final String mainText = correlation.get(mainAlphabets.get(entry.key()), entry.value());
-                            insertStringQuery(_db, entry.value(), mainText, textsAndMain.right, newAcc, entry.key());
+                        final AcceptationId staticAcceptation = getStaticAcceptationFromDynamic(acc);
+                        for (Map.Entry<AlphabetId, String> entry : processResult.right.entries()) {
+                            final String mainText = processResult.right.get(mainAlphabets.get(entry.key()), entry.value());
+                            insertStringQuery(_db, entry.value(), mainText, staticAcceptation, newAcc, entry.key());
                         }
                         processedAccMapBuilder.put(acc, newAcc);
                     }
