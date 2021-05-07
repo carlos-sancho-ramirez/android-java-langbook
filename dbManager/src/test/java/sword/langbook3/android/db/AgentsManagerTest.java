@@ -152,17 +152,21 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         return conceptAsRuleId(obtainNewConcept(manager, alphabet, text));
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr) {
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr, String expectedMainAccMainStr, ImmutableList<RuleId> expectedRules) {
         final ImmutableList<SearchResult<AcceptationId, RuleId>> list = manager.findAcceptationAndRulesFromText(str, DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 19));
         assertSize(1, list);
 
         SearchResult<AcceptationId, RuleId> searchResult = list.valueAt(0);
         assertEquals(acceptation, searchResult.getId());
         assertEquals(str, searchResult.getStr());
-        assertEmpty(searchResult.getAppliedRules());
+        assertEquals(expectedRules, searchResult.getAppliedRules());
         assertEquals(expectedMainStr, searchResult.getMainStr());
-        assertEquals(expectedMainStr, searchResult.getMainAccMainStr());
-        assertFalse(searchResult.isDynamic());
+        assertEquals(expectedMainAccMainStr, searchResult.getMainAccMainStr());
+        assertNotEquals(expectedRules.isEmpty(), searchResult.isDynamic());
+    }
+
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr) {
+        assertSearchResult(manager, acceptation, str, expectedMainStr, expectedMainStr, ImmutableList.empty());
     }
 
     @Test
@@ -3395,5 +3399,48 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         final ImmutableList<CorrelationId> correlationIds = manager.getAcceptationCorrelationArray(wannaEatAcceptation);
         assertSize(1, correlationIds);
         assertEquals(shitaiCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(0)));
+    }
+
+    @Test
+    default void testAddAgentIncludesMixtureOfAlphabetsForTaberu3AndSugiru1() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("食", "た");
+        final ImmutableCorrelation<AlphabetId> beCorrelation = correlationComposer.compose("べ", "べ");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+
+        final ImmutableCorrelationArray<AlphabetId> eatCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(taCorrelation)
+                .append(beCorrelation)
+                .append(ruCorrelation)
+                .build();
+
+        final ConceptId eatConcept = manager.getNextAvailableConceptId();
+        final AcceptationId eatAcceptation = manager.addAcceptation(eatConcept, eatCorrelationArray);
+        assertNotNull(eatAcceptation);
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "source");
+        manager.addAcceptationInBunch(sourceBunch, eatAcceptation);
+
+        final ImmutableCorrelation<AlphabetId> sugiruCorrelation = correlationComposer.compose("過ぎる", "すぎる");
+        final RuleId exceedRule = obtainNewRule(manager, enAlphabet, "exceed");
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final AgentId agent = manager.addAgent(setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelation, ruCorrelation, sugiruCorrelation, exceedRule);
+
+        final AcceptationId eatTooMuchAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(eatTooMuchAcceptation);
+
+        final ImmutableList<RuleId> expectedRules = ImmutableList.<RuleId>empty().append(exceedRule);
+        assertSearchResult(manager, eatTooMuchAcceptation, "食べ過ぎる", "食べ過ぎる", "食べる", expectedRules);
+        assertSearchResult(manager, eatTooMuchAcceptation, "食べすぎる", "食べ過ぎる", "食べる", expectedRules);
+        assertSearchResult(manager, eatTooMuchAcceptation, "たべ過ぎる", "食べ過ぎる", "食べる", expectedRules);
+        assertSearchResult(manager, eatTooMuchAcceptation, "たべすぎる", "食べ過ぎる", "食べる", expectedRules);
     }
 }

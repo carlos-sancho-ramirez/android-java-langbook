@@ -538,10 +538,14 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                     insertRuledAcceptation(_db, newAcc, agentId, acc);
 
                     final AcceptationId staticAcceptation = getStaticAcceptationFromDynamic(acc);
+                    final MutableSet<String> inserted = MutableHashSet.empty();
+                    final String mainText = processResult.right.valueAt(0);
                     for (Map.Entry<AlphabetId, String> entry : processResult.right.entries()) {
-                        final String mainText = processResult.right.get(mainAlphabets.get(entry.key()), entry.value());
-                        insertStringQuery(_db, entry.value(), mainText, staticAcceptation, newAcc, entry.key());
+                        final String str = entry.value();
+                        inserted.add(str);
+                        insertStringQuery(_db, str, mainText, staticAcceptation, newAcc, entry.key());
                     }
+                    insertPossibleCombinations(staticAcceptation, newAcc, mainText, inserted, "", modifiedCorrelationArray.toList());
                     processedAccBuilder.add(newAcc);
                 }
             }
@@ -1768,17 +1772,17 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return changed;
     }
 
-    private void insertPossibleCombinations(AcceptationId acceptation, String mainStr, MutableSet<String> inserted, String accumulatedText, ImmutableList<ImmutableCorrelation<AlphabetId>> remainingCorrelations) {
+    private void insertPossibleCombinations(AcceptationId mainAcceptation, AcceptationId dynAcceptation, String mainStr, MutableSet<String> inserted, String accumulatedText, ImmutableList<ImmutableCorrelation<AlphabetId>> remainingCorrelations) {
         if (remainingCorrelations.isEmpty()) {
             if (accumulatedText.length() > 0 && !inserted.contains(accumulatedText)) {
                 inserted.add(accumulatedText);
-                insertStringQuery(_db, accumulatedText, mainStr, acceptation, acceptation, null);
+                insertStringQuery(_db, accumulatedText, mainStr, mainAcceptation, dynAcceptation, null);
             }
         }
         else {
             final ImmutableList<ImmutableCorrelation<AlphabetId>> newList = remainingCorrelations.skip(1);
             for (String text : remainingCorrelations.valueAt(0)) {
-                insertPossibleCombinations(acceptation, mainStr, inserted, accumulatedText + text, newList);
+                insertPossibleCombinations(mainAcceptation, dynAcceptation, mainStr, inserted, accumulatedText + text, newList);
             }
         }
     }
@@ -1808,7 +1812,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             inserted.add(str);
             insertStringQuery(_db, str, mainStr, acceptation, acceptation, alphabet);
         }
-        insertPossibleCombinations(acceptation, mainStr, inserted, "", correlations.toImmutable());
+        insertPossibleCombinations(acceptation, acceptation, mainStr, inserted, "", correlations.toImmutable());
 
         final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> sortedAgents = getAgentExecutionOrder();
         final ImmutableMap<AgentId, ImmutableSet<BunchId>> agentDependencies = sortedAgents.right;
@@ -1862,7 +1866,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 inserted.add(str);
                 insertStringQuery(_db, str, mainStr, acceptation, acceptation, alphabet);
             }
-            insertPossibleCombinations(acceptation, mainStr, inserted, "", correlationArray.toList());
+            insertPossibleCombinations(acceptation, acceptation, mainStr, inserted, "", correlationArray.toList());
 
             final MutableSet<BunchId> touchedBunches = MutableHashSet.empty();
 
