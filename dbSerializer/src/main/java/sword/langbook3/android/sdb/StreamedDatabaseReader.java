@@ -1046,11 +1046,20 @@ public final class StreamedDatabaseReader {
             for (int i = 0; i < arraysLength; i++) {
                 final int arrayLength = ibs.readIntHuffmanSymbol(lengthTable);
 
-                final ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
-                for (int j = 0; j < arrayLength; j++) {
-                    builder.add(correlationIdMap[ibs.readHuffmanSymbol(correlationTable)]);
+                final int arrayId;
+                if (arrayLength == 0) {
+                    arrayId = EMPTY_CORRELATION_ARRAY_ID;
                 }
-                result[i] = obtainCorrelationArray(_db, builder.build());
+                else {
+                    final ImmutableIntList.Builder builder = new ImmutableIntList.Builder();
+                    for (int j = 0; j < arrayLength; j++) {
+                        builder.add(correlationIdMap[ibs.readHuffmanSymbol(correlationTable)]);
+                    }
+
+                    arrayId = i + 1;
+                    insertCorrelationArray(_db, arrayId, builder.build());
+                }
+                result[i] = arrayId;
             }
         }
 
