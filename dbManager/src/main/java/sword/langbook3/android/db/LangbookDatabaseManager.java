@@ -795,10 +795,16 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                         insertRuledAcceptation(_db, newAcc, agentId, acc);
 
                         final AcceptationId staticAcceptation = getStaticAcceptationFromDynamic(acc);
+
+                        deleteStringQueriesForDynamicAcceptation(_db, newAcc);
+                        final MutableSet<String> inserted = MutableHashSet.empty();
+                        final String mainText = processResult.right.valueAt(0);
                         for (Map.Entry<AlphabetId, String> entry : processResult.right.entries()) {
-                            final String mainText = processResult.right.get(mainAlphabets.get(entry.key()), entry.value());
-                            insertStringQuery(_db, entry.value(), mainText, staticAcceptation, newAcc, entry.key());
+                            final String str = entry.value();
+                            inserted.add(str);
+                            insertStringQuery(_db, str, mainText, staticAcceptation, newAcc, entry.key());
                         }
+                        insertPossibleCombinations(staticAcceptation, newAcc, mainText, inserted, "", modifiedCorrelationArray.toList());
                         processedAccMapBuilder.put(acc, newAcc);
                     }
                 }
