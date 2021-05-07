@@ -152,6 +152,87 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         return conceptAsRuleId(obtainNewConcept(manager, alphabet, text));
     }
 
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr) {
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> list = manager.findAcceptationAndRulesFromText(str, DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 19));
+        assertSize(1, list);
+
+        SearchResult<AcceptationId, RuleId> searchResult = list.valueAt(0);
+        assertEquals(acceptation, searchResult.getId());
+        assertEquals(str, searchResult.getStr());
+        assertEmpty(searchResult.getAppliedRules());
+        assertEquals(expectedMainStr, searchResult.getMainStr());
+        assertEquals(expectedMainStr, searchResult.getMainAccMainStr());
+        assertFalse(searchResult.isDynamic());
+    }
+
+    @Test
+    default void testAddAcceptationHasMixtureOfAlphabetsWhenAddingAJapaneseAcceptationWithoutConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getNextAvailableAlphabetId(manager);
+        assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
+        final ConceptId concept = manager.getNextAvailableConceptId();
+
+        final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "注")
+                        .put(kana, "ちゅう")
+                        .build())
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "文")
+                        .put(kana, "もん")
+                        .build())
+                .build();
+
+        final AcceptationId acceptation = manager.addAcceptation(concept, correlationArray);
+        assertSearchResult(manager, acceptation, "注文", "注文");
+        assertSearchResult(manager, acceptation, "注もん", "注文");
+        assertSearchResult(manager, acceptation, "ちゅう文", "注文");
+        assertSearchResult(manager, acceptation, "ちゅうもん", "注文");
+    }
+
+    @Test
+    default void testAddAcceptationHasMixtureOfAlphabetsWhenAddingAJapaneseAcceptationWithConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getNextAvailableAlphabetId(manager);
+        assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
+
+        final AlphabetId roumaji = getNextAvailableAlphabetId(manager);
+        final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
+                .put("あ", "a")
+                .put("も", "mo")
+                .put("ん", "n")
+                .put("う", "u")
+                .put("ちゅ", "chu")
+                .put("ち", "chi")
+                .build();
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, convMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+        final ConceptId concept = manager.getNextAvailableConceptId();
+
+        final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "注")
+                        .put(kana, "ちゅう")
+                        .build())
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "文")
+                        .put(kana, "もん")
+                        .build())
+                .build();
+
+        final AcceptationId acceptation = manager.addAcceptation(concept, correlationArray);
+        assertSearchResult(manager, acceptation, "注文", "注文");
+        assertSearchResult(manager, acceptation, "注もん", "注文");
+        assertSearchResult(manager, acceptation, "ちゅう文", "注文");
+        assertSearchResult(manager, acceptation, "ちゅうもん", "注文");
+    }
+
     @Test
     default void testAddAgentWhenApplyingRule() {
         final MemoryDatabase db = new MemoryDatabase();

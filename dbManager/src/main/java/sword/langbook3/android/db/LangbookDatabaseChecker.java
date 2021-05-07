@@ -268,7 +268,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
-                builder.put(_alphabetIdSetter.getKeyFromDbValue(row.get(0)), row.get(1).toText());
+                final AlphabetId alphabet = _alphabetIdSetter.getKeyFromDbValue(row.get(0));
+                if (alphabet != null) {
+                    builder.put(alphabet, row.get(1).toText());
+                }
             }
         }
 
@@ -3387,10 +3390,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return new MutableCorrelation<>(texts);
     }
 
-    Correlation<AlphabetId> readCorrelationArrayTextAndItsAppliedConversions(CorrelationArrayId correlationArrayId) {
-        final MutableCorrelation<AlphabetId> texts = readCorrelationArrayTexts(correlationArrayId);
+    boolean includeConvertedTexts(MutableCorrelation<AlphabetId> texts) {
         if (texts.isEmpty()) {
-            return null;
+            return false;
         }
 
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = getConversionsMap();
@@ -3401,7 +3403,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                     final ImmutablePair<AlphabetId, AlphabetId> pair = new ImmutablePair<>(conversionMap.valueAt(conversionIndex), conversionMap.keyAt(conversionIndex));
                     final String convertedText = getConversion(pair).convert(entry.value());
                     if (convertedText == null) {
-                        return null;
+                        return false;
                     }
 
                     texts.put(pair.right, convertedText);
@@ -3409,7 +3411,12 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             }
         }
 
-        return texts;
+        return true;
+    }
+
+    Correlation<AlphabetId> readCorrelationArrayTextAndItsAppliedConversions(CorrelationArrayId correlationArrayId) {
+        final MutableCorrelation<AlphabetId> texts = readCorrelationArrayTexts(correlationArrayId);
+        return includeConvertedTexts(texts)? texts : null;
     }
 
     boolean isCorrelationArrayInUse(CorrelationArrayId correlationArrayId) {

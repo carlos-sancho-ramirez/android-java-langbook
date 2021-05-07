@@ -7,7 +7,7 @@ final class AlphabetIdManager implements ConceptualizableSetter<ConceptIdHolder,
 
     @Override
     public AlphabetIdHolder getKeyFromInt(int key) {
-        return new AlphabetIdHolder(key);
+        return (key != 0) ? new AlphabetIdHolder(key) : null;
     }
 
     @Override

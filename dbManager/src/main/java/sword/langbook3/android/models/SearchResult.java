@@ -33,7 +33,7 @@ public final class SearchResult<ID, RuleId> {
     }
 
     public SearchResult(String str, String mainStr, ID id, boolean isDynamic) {
-        this(str, mainStr, id, isDynamic, null, ImmutableList.empty());
+        this(str, mainStr, id, isDynamic, mainStr, ImmutableList.empty());
     }
 
     public String getStr() {

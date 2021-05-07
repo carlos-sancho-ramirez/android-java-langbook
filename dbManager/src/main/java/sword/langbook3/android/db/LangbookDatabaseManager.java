@@ -1768,19 +1768,47 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return changed;
     }
 
+    private void insertPossibleCombinations(AcceptationId acceptation, String mainStr, MutableSet<String> inserted, String accumulatedText, ImmutableList<ImmutableCorrelation<AlphabetId>> remainingCorrelations) {
+        if (remainingCorrelations.isEmpty()) {
+            if (accumulatedText.length() > 0 && !inserted.contains(accumulatedText)) {
+                inserted.add(accumulatedText);
+                insertStringQuery(_db, accumulatedText, mainStr, acceptation, acceptation, null);
+            }
+        }
+        else {
+            final ImmutableList<ImmutableCorrelation<AlphabetId>> newList = remainingCorrelations.skip(1);
+            for (String text : remainingCorrelations.valueAt(0)) {
+                insertPossibleCombinations(acceptation, mainStr, inserted, accumulatedText + text, newList);
+            }
+        }
+    }
+
     private AcceptationId addAcceptation(ConceptId concept, CorrelationArrayId correlationArrayId) {
-        final Correlation<AlphabetId> texts = readCorrelationArrayTextAndItsAppliedConversions(correlationArrayId);
-        if (texts == null) {
+        final List<CorrelationId> correlationIds = getCorrelationArray(correlationArrayId);
+        final List<ImmutableCorrelation<AlphabetId>> correlations = correlationIds.map(this::getCorrelationWithText);
+
+        final MutableCorrelation<AlphabetId> texts = MutableCorrelation.empty();
+        for (ImmutableCorrelation<AlphabetId> correlation : correlations) {
+            for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
+                texts.put(entry.key(), texts.get(entry.key(), "") + entry.value());
+            }
+        }
+
+        if (!includeConvertedTexts(texts)) {
             return null;
         }
 
         final String mainStr = texts.valueAt(0);
         final AcceptationId acceptation = insertAcceptation(_db, _acceptationIdSetter, concept, correlationArrayId);
+
+        final MutableSet<String> inserted = MutableHashSet.empty();
         for (Map.Entry<AlphabetId, String> entry : texts.entries()) {
             final AlphabetId alphabet = entry.key();
             final String str = entry.value();
+            inserted.add(str);
             insertStringQuery(_db, str, mainStr, acceptation, acceptation, alphabet);
         }
+        insertPossibleCombinations(acceptation, mainStr, inserted, "", correlations.toImmutable());
 
         final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> sortedAgents = getAgentExecutionOrder();
         final ImmutableMap<AgentId, ImmutableSet<BunchId>> agentDependencies = sortedAgents.right;
