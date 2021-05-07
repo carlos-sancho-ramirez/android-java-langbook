@@ -1019,7 +1019,16 @@ public final class StreamedDatabaseReader {
                 for (IntPairMap.Entry entry : corrMap.entries()) {
                     corr.put(entry.key(), symbolArraysIdMap[entry.value()]);
                 }
-                result[i] = obtainCorrelation(_db, corr);
+
+                final int correlationId;
+                if (corr.size() == 0) {
+                    correlationId = EMPTY_CORRELATION_ID;
+                }
+                else {
+                    correlationId = i + 1;
+                    insertCorrelation(_db, correlationId, corr);;
+                }
+                result[i] = correlationId;
             }
         }
 
