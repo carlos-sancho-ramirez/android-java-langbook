@@ -61,7 +61,7 @@ public final class DatabaseInflater {
     public DatabaseInflater(DbImporter.Database db, InputStream is, ProgressListener listener) {
         _db = db;
         _listener = listener;
-        _dbReader = new StreamedDatabaseReader(db, is, (listener != null)? new Listener(listener, 0.3f) : null);
+        _dbReader = new StreamedDatabaseReader(db, is, (listener != null)? new Listener(listener, 0.25f) : null);
     }
 
     private void setProgress(float progress, String message) {
@@ -782,7 +782,7 @@ public final class DatabaseInflater {
     public void read() throws IOException {
         final StreamedDatabaseReader.Result result = _dbReader.read();
 
-        setProgress(0.2f, "Indexing strings");
+        setProgress(0.25f, "Indexing strings");
         final IntKeyMap<? extends Traversable<Conversion>> conversions = result.composeConversionMap();
         fillSearchQueryTable(conversions);
 

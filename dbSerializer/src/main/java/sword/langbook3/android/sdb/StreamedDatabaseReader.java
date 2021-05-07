@@ -1517,7 +1517,7 @@ public final class StreamedDatabaseReader {
                 final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap);
 
                 // Import relevant dynamic acceptations
-                setProgress(0.9f, "Reading dynamic acceptations");
+                setProgress(0.9f, "Reading referenced dynamic acceptations");
                 final AgentAcceptationPair[] agentAcceptationPairs = readRelevantRuledAcceptations(ibs, acceptationIdMap,
                         agentReadResult.agentsWithRule);
 
