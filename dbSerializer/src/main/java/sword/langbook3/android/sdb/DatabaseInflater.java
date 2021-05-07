@@ -532,7 +532,7 @@ public final class DatabaseInflater {
 
     private void applyAgent(int agentId, int accId, int concept,
             ImmutableIntSet targetBunches, ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
-            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr, int mainAcc, IntKeyMap<? extends Traversable<Conversion>> conversions) {
+            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr, int mainAcc, boolean modifyWords, IntKeyMap<? extends Traversable<Conversion>> conversions) {
         boolean matching = true;
 
         final int startMatcherLength = startMatcher.size();
@@ -556,7 +556,6 @@ public final class DatabaseInflater {
 
         if (matching) {
             int targetAccId = accId;
-            final boolean modifyWords = !startMatcher.equals(startAdder) || !endMatcher.equals(endAdder);
 
             if (modifyWords) {
                 final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = getAcceptationCorrelationArrayWithText(accId);
@@ -608,6 +607,7 @@ public final class DatabaseInflater {
         final ImmutableIntKeyMap<String> startAdder = correlationCache.get(register.startAdderId);
         final ImmutableIntKeyMap<String> endMatcher = correlationCache.get(register.endMatcherId);
         final ImmutableIntKeyMap<String> endAdder = correlationCache.get(register.endAdderId);
+        final boolean modifyWords = !startMatcher.equals(startAdder) || !endMatcher.equals(endAdder);
 
         final int bunchAccsOffset = bunchSets.columns().size();
         final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
@@ -685,7 +685,7 @@ public final class DatabaseInflater {
                     if (newAccId != accId) {
                         if (noExcludedAcc) {
                             applyAgent(agentId, accId, concept, targetBunches,
-                                    startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc, conversions);
+                                    startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc, modifyWords, conversions);
                         }
 
                         accId = newAccId;
@@ -704,7 +704,7 @@ public final class DatabaseInflater {
 
                 if (noExcludedAcc) {
                     applyAgent(agentId, accId, concept, targetBunches,
-                            startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc, conversions);
+                            startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc, modifyWords, conversions);
                 }
             }
         }
