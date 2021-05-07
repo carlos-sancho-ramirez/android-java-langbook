@@ -106,7 +106,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testAddFirstLanguage() {
+    default void testAddLanguageForFirstLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -119,7 +119,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testAddSameLanguageTwice() {
+    default void testAddLanguageWhenAddingTheSameLanguageTwice() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -131,7 +131,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testRemoveUniqueLanguage() {
+    default void testRemoveLanguageWhenUnique() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -141,7 +141,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testRemoveFirstAddedLanguage() {
+    default void testRemoveLanguageWhenRemovingFirstAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -155,7 +155,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testRemoveLastAddedLanguage() {
+    default void testRemoveLanguageWhenRemovingLastAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -226,7 +226,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testAddAlphabetAsConversionTargetWithoutCorrelations() {
+    default void testAddAcceptationWhenAddingAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -323,7 +323,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testAddSpanishAcceptation() {
+    default void testAddAcceptationForSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -335,7 +335,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testAddJapaneseAcceptationWithoutConversion() {
+    default void testAddAcceptationWhenAddingAJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
@@ -363,7 +363,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     }
 
     @Test
-    default void testAddJapaneseAcceptationWithConversion() {
+    default void testAddAcceptationWhenAddingAJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
 
