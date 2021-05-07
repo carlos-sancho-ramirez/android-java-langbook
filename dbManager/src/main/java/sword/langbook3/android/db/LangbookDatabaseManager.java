@@ -510,7 +510,6 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final ImmutableMap<AlphabetId, AlphabetId> conversionMap = getConversionsMap();
             final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions = new SyncCacheMap<>(this::getConversion);
 
-            final SyncCacheMap<AlphabetId, AlphabetId> mainAlphabets = new SyncCacheMap<>(this::readMainAlphabetFromAlphabet);
             final ImmutableSet.Builder<AcceptationId> processedAccBuilder = new ImmutableHashSet.Builder<>();
 
             for (AcceptationId acc : matchingAcceptations) {
@@ -732,19 +731,15 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                         }
                         targetChanged = true;
 
+                        deleteStringQueriesForDynamicAcceptation(_db, dynAcc);
+                        final MutableSet<String> inserted = MutableHashSet.empty();
+                        final String mainText = processResult.right.valueAt(0);
                         for (Map.Entry<AlphabetId, String> entry : processResult.right.entries()) {
-                            final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-                            final String mainText = processResult.right.get(mainAlphabets.get(entry.key()), entry.value());
-                            updateQuery = new DbUpdateQueryBuilder(strings)
-                                    .put(strings.getStringColumnIndex(), entry.value())
-                                    .put(strings.getMainStringColumnIndex(), mainText)
-                                    .where(strings.getDynamicAcceptationColumnIndex(), dynAcc)
-                                    .where(strings.getStringAlphabetColumnIndex(), entry.key())
-                                    .build();
-                            if (!_db.update(updateQuery)) {
-                                throw new AssertionError();
-                            }
+                            final String str = entry.value();
+                            inserted.add(str);
+                            insertStringQuery(_db, str, mainText, staticAcc, dynAcc, entry.key());
                         }
+                        insertPossibleCombinations(staticAcc, dynAcc, mainText, inserted, "", modifiedCorrelationArray.toList());
                     }
                 }
             }
