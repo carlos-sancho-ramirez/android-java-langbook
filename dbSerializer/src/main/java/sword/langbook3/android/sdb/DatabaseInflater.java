@@ -2,17 +2,22 @@ package sword.langbook3.android.sdb;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntKeyMap;
-import sword.collections.MutableIntPairMap;
+import sword.collections.MutableIntList;
+import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
 import sword.database.DbExporter;
@@ -22,6 +27,7 @@ import sword.database.DbInserter;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
+import sword.langbook3.android.collections.ImmutableListUtils;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
@@ -204,21 +210,6 @@ public final class DatabaseInflater {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 
-    private void insertPossibleCombinations(int acceptation, String mainStr, MutableSet<String> inserted, String accumulatedText, ImmutableList<? extends IntKeyMap<String>> remainingCorrelations) {
-        if (remainingCorrelations.isEmpty()) {
-            if (accumulatedText.length() > 0 && !inserted.contains(accumulatedText)) {
-                inserted.add(accumulatedText);
-                insertStringQuery(_db, accumulatedText, mainStr, acceptation, acceptation, 0);
-            }
-        }
-        else {
-            final ImmutableList<? extends IntKeyMap<String>> newList = remainingCorrelations.skip(1);
-            for (String text : remainingCorrelations.valueAt(0)) {
-                insertPossibleCombinations(acceptation, mainStr, inserted, accumulatedText + text, newList);
-            }
-        }
-    }
-
     private void insertTexts(int acceptationId, List<? extends IntKeyMap<String>> correlationArray) {
         final MutableIntKeyMap<String> plainTexts = MutableIntKeyMap.empty();
         for (IntKeyMap<String> correlation : correlationArray) {
@@ -232,7 +223,7 @@ public final class DatabaseInflater {
         }
 
         final MutableSet<String> inserted = plainTexts.toSet().mutate();
-        insertPossibleCombinations(acceptationId, plainTexts.valueAt(0), inserted, "", correlationArray.toImmutable());
+        insertPossibleCombinations(acceptationId, acceptationId, plainTexts.valueAt(0), inserted, "", correlationArray.toImmutable());
     }
 
     private void fillSearchQueryTable() {
@@ -319,9 +310,227 @@ public final class DatabaseInflater {
         }
     }
 
+    private ImmutablePair<ImmutableIntList /* CorrelationId */, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> getAcceptationCorrelations(int acceptationId) {
+        final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
+
+        final int corrArraysOffset = acceptations.columns().size();
+        final int corrOffset = corrArraysOffset + correlationArrays.columns().size();
+        final int symbolsOffset = corrOffset + correlations.columns().size();
+
+        final DbQuery query = new DbQuery.Builder(acceptations)
+                .join(correlationArrays, acceptations.getCorrelationArrayColumnIndex(), correlationArrays.getArrayIdColumnIndex())
+                .join(correlations, corrArraysOffset + correlationArrays.getCorrelationColumnIndex(), correlations.getCorrelationIdColumnIndex())
+                .join(symbols, corrOffset + correlations.getSymbolArrayColumnIndex(), symbols.getIdColumnIndex())
+                .where(acceptations.getIdColumnIndex(), acceptationId)
+                .orderBy(
+                        corrArraysOffset + correlationArrays.getArrayPositionColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex())
+                .select(
+                        corrArraysOffset + correlationArrays.getArrayPositionColumnIndex(),
+                        corrOffset + correlations.getCorrelationIdColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex(),
+                        symbolsOffset + symbols.getStrColumnIndex()
+                );
+
+        final MutableIntList correlationIds = MutableIntList.empty();
+        final MutableIntKeyMap<ImmutableIntKeyMap<String>> correlationMap = MutableIntKeyMap.empty();
+        try (DbResult dbResult = _db.select(query)) {
+            if (dbResult.hasNext()) {
+                List<DbValue> row = dbResult.next();
+                ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+                int pos = row.get(0).toInt();
+                int correlationId = row.get(1).toInt();
+                if (pos != correlationIds.size()) {
+                    throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
+                }
+
+                builder.put(row.get(2).toInt(), row.get(3).toText());
+
+                while (dbResult.hasNext()) {
+                    row = dbResult.next();
+                    int newPos = row.get(0).toInt();
+                    if (newPos != pos) {
+                        correlationMap.put(correlationId, builder.build());
+                        correlationIds.append(correlationId);
+                        correlationId = row.get(1).toInt();
+                        builder = new ImmutableIntKeyMap.Builder<>();
+                        pos = newPos;
+                    }
+
+                    if (newPos != correlationIds.size()) {
+                        throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
+                    }
+                    builder.put(row.get(2).toInt(), row.get(3).toText());
+                }
+                correlationMap.put(correlationId, builder.build());
+                correlationIds.append(correlationId);
+            }
+        }
+
+        return new ImmutablePair<>(correlationIds.toImmutable(), correlationMap.toImmutable());
+    }
+
+    private ImmutableList<ImmutableIntKeyMap<String>> getAcceptationCorrelationArrayWithText(int acceptationId) {
+        final ImmutablePair<ImmutableIntList, ImmutableIntKeyMap<ImmutableIntKeyMap<String>>> pair = getAcceptationCorrelations(acceptationId);
+        return pair.left.map(pair.right::get);
+    }
+
+    private ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntKeyMap<String>> applyMatchersAddersAndConversions(
+            ImmutableList<ImmutableIntKeyMap<String>> correlationArray,
+            ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder) {
+        final int correlationArrayLength = correlationArray.size();
+        if (correlationArrayLength == 0) {
+            return null;
+        }
+
+        final Iterator<ImmutableIntKeyMap<String>> correlationArrayIt = correlationArray.iterator();
+        final ImmutableIntSet correlationAlphabets = correlationArrayIt.next().keySet();
+
+        while (correlationArrayIt.hasNext()) {
+            final MutableIntSet missingAlphabets = correlationAlphabets.mutate();
+            for (int alphabet : correlationArrayIt.next().keySet()) {
+                if (!missingAlphabets.remove(alphabet)) {
+                    return null;
+                }
+            }
+
+            if (!missingAlphabets.isEmpty()) {
+                return null;
+            }
+        }
+
+        if (startAdder.keySet().anyMatch(key -> !correlationAlphabets.contains(key))) {
+            return null;
+        }
+
+        if (endAdder.keySet().anyMatch(key -> !correlationAlphabets.contains(key))) {
+            return null;
+        }
+
+        ImmutableList<ImmutableIntKeyMap<String>> modifiedCorrelationArray = correlationArray.toList();
+        for (IntKeyMap.Entry<String> entry : startMatcher.entries()) {
+            final int alphabet = entry.key();
+            if (!correlationAlphabets.contains(alphabet)) {
+                return null;
+            }
+
+            final int length = entry.value().length();
+            while (modifiedCorrelationArray.size() > 1 && length >= modifiedCorrelationArray.valueAt(0).get(alphabet).length()) {
+                final int currentSize = modifiedCorrelationArray.size();
+                final MutableIntKeyMap<String> newFirstCorrelation = modifiedCorrelationArray.valueAt(0).mutate();
+                final ImmutableIntKeyMap<String> secondCorrelation = modifiedCorrelationArray.valueAt(1);
+                for (int alp : correlationAlphabets) {
+                    newFirstCorrelation.put(alp, newFirstCorrelation.get(alp) + secondCorrelation.get(alp));
+                }
+
+                final ImmutableList.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableList.Builder<>();
+                builder.append(newFirstCorrelation.toImmutable());
+                for (int i = 2; i < currentSize; i++) {
+                    builder.append(modifiedCorrelationArray.valueAt(i));
+                }
+
+                modifiedCorrelationArray = builder.build();
+            }
+
+            final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(0);
+            final ImmutableIntKeyMap<String> newCorrelation = oldCorrelation.put(alphabet, oldCorrelation.get(alphabet).substring(length));
+            modifiedCorrelationArray = modifiedCorrelationArray.skip(1).prepend(newCorrelation);
+        }
+
+        final ImmutableIntKeyMap<String> firstCorrelation = modifiedCorrelationArray.valueAt(0);
+        if (firstCorrelation.anyMatch(String::isEmpty)) {
+            if (firstCorrelation.anyMatch(text -> !text.isEmpty())) {
+                return null;
+            }
+
+            modifiedCorrelationArray = modifiedCorrelationArray.skip(1);
+        }
+
+        for (IntKeyMap.Entry<String> entry : endMatcher.entries()) {
+            final int alphabet = entry.key();
+            if (!correlationAlphabets.contains(alphabet)) {
+                return null;
+            }
+
+            final int length = entry.value().length();
+            while (modifiedCorrelationArray.size() > 1 && length >= modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1).get(alphabet).length()) {
+                final int currentSize = modifiedCorrelationArray.size();
+                final MutableIntKeyMap<String> newLastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 2).mutate();
+                final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 1);
+                for (int alp : correlationAlphabets) {
+                    newLastCorrelation.put(alp, newLastCorrelation.get(alp) + lastCorrelation.get(alp));
+                }
+
+                final ImmutableList.Builder<ImmutableIntKeyMap<String>> builder = new ImmutableList.Builder<>();
+                for (int i = 0; i < currentSize - 2; i++) {
+                    builder.append(modifiedCorrelationArray.valueAt(i));
+                }
+                builder.append(newLastCorrelation.toImmutable());
+
+                modifiedCorrelationArray = builder.build();
+            }
+
+            final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
+            final String oldText = oldCorrelation.get(alphabet);
+            final int substringLimit = oldText.length() - length;
+            if (substringLimit < 0) {
+                return null;
+            }
+
+            final ImmutableIntKeyMap<String> newCorrelation = oldCorrelation.put(alphabet, oldText.substring(0, substringLimit));
+            modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1).append(newCorrelation);
+        }
+
+        final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
+        if (lastCorrelation.anyMatch(String::isEmpty)) {
+            if (lastCorrelation.anyMatch(text -> !text.isEmpty())) {
+                return null;
+            }
+
+            modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1);
+        }
+
+        if (!startAdder.isEmpty()) {
+            modifiedCorrelationArray = modifiedCorrelationArray.prepend(startAdder);
+        }
+
+        if (!endAdder.isEmpty()) {
+            modifiedCorrelationArray = modifiedCorrelationArray.append(endAdder);
+        }
+
+        // Create plain correlation
+        MutableIntKeyMap<String> correlation = correlationAlphabets.assign(alp -> "").mutate();
+        for (ImmutableIntKeyMap<String> corr : modifiedCorrelationArray) {
+            for (IntKeyMap.Entry<String> entry : corr.entries()) {
+                final int alphabet = entry.key();
+                correlation.put(alphabet, correlation.get(alphabet) + entry.value());
+            }
+        }
+
+        return new ImmutablePair<>(modifiedCorrelationArray, correlation.toImmutable());
+    }
+
+    private void insertPossibleCombinations(int mainAcceptation, int dynAcceptation, String mainStr, MutableSet<String> inserted, String accumulatedText, ImmutableList<? extends IntKeyMap<String>> remainingCorrelations) {
+        if (remainingCorrelations.isEmpty()) {
+            if (accumulatedText.length() > 0 && !inserted.contains(accumulatedText)) {
+                inserted.add(accumulatedText);
+                insertStringQuery(_db, accumulatedText, mainStr, mainAcceptation, dynAcceptation, 0);
+            }
+        }
+        else {
+            final ImmutableList<? extends IntKeyMap<String>> newList = remainingCorrelations.skip(1);
+            for (String text : remainingCorrelations.valueAt(0)) {
+                insertPossibleCombinations(mainAcceptation, dynAcceptation, mainStr, inserted, accumulatedText + text, newList);
+            }
+        }
+    }
+
     private void applyAgent(int agentId, int accId, int concept,
-            ImmutableIntSet targetBunches, IntKeyMap<String> startMatcher, IntKeyMap<String> startAdder,
-            IntKeyMap<String> endMatcher, IntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr, int mainAcc) {
+            ImmutableIntSet targetBunches, ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
+            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr, int mainAcc) {
         boolean matching = true;
 
         final int startMatcherLength = startMatcher.size();
@@ -348,59 +557,25 @@ public final class DatabaseInflater {
             final boolean modifyWords = !startMatcher.equals(startAdder) || !endMatcher.equals(endAdder);
 
             if (modifyWords) {
-                final MutableIntKeyMap<String> resultCorr = MutableIntKeyMap.empty();
-                final int corrLength = corr.size();
-                for (int i = 0; i < corrLength; i++) {
-                    final int alphabet = corr.keyAt(i);
-
-                    final String startMatcherStr = startMatcher.get(alphabet, null);
-                    final int startRemoveLength = (startMatcherStr != null) ? startMatcherStr.length() : 0;
-
-                    final String endMatcherStr = endMatcher.get(alphabet, null);
-                    final int endRemoveLength = (endMatcherStr != null) ? endMatcherStr.length() : 0;
-
-                    final String corrStr = corr.valueAt(i);
-                    final int endSubstringIndex = corrStr.length() - endRemoveLength;
-                    if (endSubstringIndex > startRemoveLength) {
-                        final String resultStr = corrStr.substring(startRemoveLength, corrStr.length() - endRemoveLength);
-                        resultCorr.put(alphabet, resultStr);
-                    }
-                }
-
-                final int startAdderLength = startAdder.size();
-                for (int i = 0; i < startAdderLength; i++) {
-                    final int alphabet = startAdder.keyAt(i);
-                    final String prefix = startAdder.valueAt(i);
-                    final String currentStr = resultCorr.get(alphabet, null);
-                    final String resultStr = (currentStr != null) ? prefix + currentStr : prefix;
-                    resultCorr.put(alphabet, resultStr);
-                }
-
-                final int endAdderLength = endAdder.size();
-                for (int i = 0; i < endAdderLength; i++) {
-                    final int alphabet = endAdder.keyAt(i);
-                    final String suffix = endAdder.valueAt(i);
-                    final String currentStr = resultCorr.get(alphabet, null);
-                    final String resultStr = (currentStr != null) ? currentStr + suffix : suffix;
-                    resultCorr.put(alphabet, resultStr);
-                }
+                final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = getAcceptationCorrelationArrayWithText(accId);
+                final ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntKeyMap<String>> processResult = applyMatchersAddersAndConversions(correlationArray, startMatcher, startAdder, endMatcher, endAdder);
 
                 final int newConcept = obtainRuledConcept(_db, rule, concept);
-                final int resultCorrLength = resultCorr.size();
-                final MutableIntPairMap resultCorrIds = MutableIntPairMap.empty();
-                for (int i = 0; i < resultCorrLength; i++) {
-                    final int alphabet = resultCorr.keyAt(i);
-                    resultCorrIds.put(alphabet, obtainSymbolArray(_db, resultCorr.valueAt(i)));
-                }
+                final int corrArrayId = obtainCorrelationArray(_db, processResult.left.mapToInt(correlation -> {
+                    final ImmutableIntPairMap intPairCorrelation = correlation.mapToInt(text -> obtainSymbolArray(_db, text));
+                    return obtainCorrelation(_db, intPairCorrelation);
+                }));
 
-                final int corrId = obtainCorrelation(_db, resultCorrIds);
-                final int corrArrayId = obtainSimpleCorrelationArray(_db, corrId);
                 final int dynAccId = insertAcceptation(_db, newConcept, corrArrayId);
                 insertRuledAcceptation(_db, dynAccId, agentId, accId);
 
-                for (int i = 0; i < resultCorrLength; i++) {
-                    insertStringQuery(_db, resultCorr.valueAt(i), resultCorr.valueAt(0), mainAcc, dynAccId, resultCorr.keyAt(i));
+                final MutableSet<String> inserted = MutableHashSet.empty();
+                for (IntKeyMap.Entry<String> entry : processResult.right.entries()) {
+                    final String text = entry.value();
+                    inserted.add(text);
+                    insertStringQuery(_db, text, processResult.right.valueAt(0), mainAcc, dynAccId, entry.key());
                 }
+                insertPossibleCombinations(mainAcc, dynAccId, processResult.right.valueAt(0), inserted, "", processResult.left);
 
                 targetAccId = dynAccId;
             }
