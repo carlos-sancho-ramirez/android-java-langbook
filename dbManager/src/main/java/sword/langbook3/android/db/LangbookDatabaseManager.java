@@ -1841,25 +1841,28 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
         final boolean changed = _db.update(query);
         if (changed) {
-            final Correlation<AlphabetId> texts = readCorrelationArrayTextAndItsAppliedConversions(newCorrelationArrayId);
-            if (texts == null) {
+            final MutableCorrelation<AlphabetId> texts = MutableCorrelation.empty();
+            for (ImmutableCorrelation<AlphabetId> correlation : correlationArray) {
+                for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
+                    texts.put(entry.key(), texts.get(entry.key(), "") + entry.value());
+                }
+            }
+
+            if (!includeConvertedTexts(texts)) {
                 throw new AssertionError();
             }
 
             final String mainStr = texts.valueAt(0);
-            for (Map.Entry<AlphabetId, String> entry : texts.entries()) {
-                final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
-                final DbUpdateQuery updateQuery = new DbUpdateQueryBuilder(strings)
-                        .where(strings.getDynamicAcceptationColumnIndex(), acceptation)
-                        .where(strings.getStringAlphabetColumnIndex(), entry.key())
-                        .put(strings.getMainStringColumnIndex(), mainStr)
-                        .put(strings.getStringColumnIndex(), entry.value())
-                        .build();
+            deleteStringQueriesForDynamicAcceptation(_db, acceptation);
 
-                if (!_db.update(updateQuery)) {
-                    throw new AssertionError();
-                }
+            final MutableSet<String> inserted = MutableHashSet.empty();
+            for (Map.Entry<AlphabetId, String> entry : texts.entries()) {
+                final AlphabetId alphabet = entry.key();
+                final String str = entry.value();
+                inserted.add(str);
+                insertStringQuery(_db, str, mainStr, acceptation, acceptation, alphabet);
             }
+            insertPossibleCombinations(acceptation, mainStr, inserted, "", correlationArray.toList());
 
             final MutableSet<BunchId> touchedBunches = MutableHashSet.empty();
 
