@@ -20,6 +20,7 @@ import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
+import sword.collections.Traversable;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
 import sword.database.DbInsertQuery;
@@ -210,7 +211,7 @@ public final class DatabaseInflater {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 
-    private void insertTexts(int acceptationId, List<? extends IntKeyMap<String>> correlationArray) {
+    private void insertTexts(int acceptationId, List<? extends IntKeyMap<String>> correlationArray, IntKeyMap<? extends Traversable<Conversion>> conversions) {
         final MutableIntKeyMap<String> plainTexts = MutableIntKeyMap.empty();
         for (IntKeyMap<String> correlation : correlationArray) {
             for (IntKeyMap.Entry<String> entry : correlation.entries()) {
@@ -218,15 +219,31 @@ public final class DatabaseInflater {
             }
         }
 
+        final MutableSet<String> inserted = plainTexts.toSet().mutate();
         for (IntKeyMap.Entry<String> entry : plainTexts.entries()) {
-            insertStringQuery(_db, entry.value(), plainTexts.valueAt(0), acceptationId, acceptationId, entry.key());
+            final int alphabet = entry.key();
+            final String text = entry.value();
+            final String mainText = plainTexts.valueAt(0);
+            insertStringQuery(_db, text, mainText, acceptationId, acceptationId, alphabet);
+
+            final Traversable<Conversion> conversionsToApply = conversions.get(alphabet, null);
+            if (conversionsToApply != null) {
+                for (Conversion conversion : conversionsToApply) {
+                    final String convertedText = conversion.convert(text);
+                    if (convertedText == null) {
+                        throw new AssertionError();
+                    }
+
+                    insertStringQuery(_db, convertedText, mainText, acceptationId, acceptationId, conversion.getTargetAlphabet());
+                    inserted.add(convertedText);
+                }
+            }
         }
 
-        final MutableSet<String> inserted = plainTexts.toSet().mutate();
         insertPossibleCombinations(acceptationId, acceptationId, plainTexts.valueAt(0), inserted, "", correlationArray.toImmutable());
     }
 
-    private void fillSearchQueryTable() {
+    private void fillSearchQueryTable(IntKeyMap<? extends Traversable<Conversion>> conversions) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays; // J1
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations; // J2
@@ -263,7 +280,7 @@ public final class DatabaseInflater {
                     row = result.next();
                     final int newAccId = row.get(0).toInt();
                     if (newAccId != accId) {
-                        insertTexts(accId, correlationArray);
+                        insertTexts(accId, correlationArray, conversions);
                         accId = newAccId;
                         correlationArray.clear();
                     }
@@ -276,36 +293,7 @@ public final class DatabaseInflater {
                     correlationArray.get(arrayPos).put(row.get(2).toInt(), row.get(3).toText());
                 }
 
-                insertTexts(accId, correlationArray);
-            }
-        }
-    }
-
-    private static void applyConversion(DbImporter.Database db, Conversion conversion) {
-        final int sourceAlphabet = conversion.getSourceAlphabet();
-
-        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getStringAlphabetColumnIndex(), sourceAlphabet)
-                .select(
-                        table.getStringColumnIndex(),
-                        table.getMainStringColumnIndex(),
-                        table.getMainAcceptationColumnIndex(),
-                        table.getDynamicAcceptationColumnIndex());
-
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final String str = conversion.convert(row.get(0).toText());
-                if (str == null) {
-                    throw new AssertionError("Unable to convert word " + row.get(0).toText());
-                }
-
-                final String mainStr = row.get(1).toText();
-                final int mainAcc = row.get(2).toInt();
-                final int dynAcc = row.get(3).toInt();
-
-                insertStringQuery(db, str, mainStr, mainAcc, dynAcc, conversion.getTargetAlphabet());
+                insertTexts(accId, correlationArray, conversions);
             }
         }
     }
@@ -380,7 +368,7 @@ public final class DatabaseInflater {
 
     private ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntKeyMap<String>> applyMatchersAddersAndConversions(
             ImmutableList<ImmutableIntKeyMap<String>> correlationArray,
-            ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder) {
+            ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, IntKeyMap<? extends Traversable<Conversion>> conversions) {
         final int correlationArrayLength = correlationArray.size();
         if (correlationArrayLength == 0) {
             return null;
@@ -510,6 +498,20 @@ public final class DatabaseInflater {
             }
         }
 
+        // Apply and verify conversions
+        for (int alphabet : correlationAlphabets) {
+            final Traversable<Conversion> conversionToApply = conversions.get(alphabet, null);
+            if (conversionToApply != null) {
+                for (Conversion conversion : conversionToApply) {
+                    final String convertedText = conversion.convert(correlation.get(alphabet));
+                    if (convertedText == null) {
+                        return null;
+                    }
+                    correlation.put(conversion.getTargetAlphabet(), convertedText);
+                }
+            }
+        }
+
         return new ImmutablePair<>(modifiedCorrelationArray, correlation.toImmutable());
     }
 
@@ -530,7 +532,7 @@ public final class DatabaseInflater {
 
     private void applyAgent(int agentId, int accId, int concept,
             ImmutableIntSet targetBunches, ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder,
-            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr, int mainAcc) {
+            ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, IntKeyMap<String> corr, int mainAcc, IntKeyMap<? extends Traversable<Conversion>> conversions) {
         boolean matching = true;
 
         final int startMatcherLength = startMatcher.size();
@@ -558,35 +560,42 @@ public final class DatabaseInflater {
 
             if (modifyWords) {
                 final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = getAcceptationCorrelationArrayWithText(accId);
-                final ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntKeyMap<String>> processResult = applyMatchersAddersAndConversions(correlationArray, startMatcher, startAdder, endMatcher, endAdder);
+                final ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntKeyMap<String>> processResult = applyMatchersAddersAndConversions(correlationArray, startMatcher, startAdder, endMatcher, endAdder, conversions);
 
-                final int newConcept = obtainRuledConcept(_db, rule, concept);
-                final int corrArrayId = obtainCorrelationArray(_db, processResult.left.mapToInt(correlation -> {
-                    final ImmutableIntPairMap intPairCorrelation = correlation.mapToInt(text -> obtainSymbolArray(_db, text));
-                    return obtainCorrelation(_db, intPairCorrelation);
-                }));
+                if (processResult != null) {
+                    final int newConcept = obtainRuledConcept(_db, rule, concept);
+                    final int corrArrayId = obtainCorrelationArray(_db, processResult.left.mapToInt(correlation -> {
+                        final ImmutableIntPairMap intPairCorrelation = correlation.mapToInt(text -> obtainSymbolArray(_db, text));
+                        return obtainCorrelation(_db, intPairCorrelation);
+                    }));
 
-                final int dynAccId = insertAcceptation(_db, newConcept, corrArrayId);
-                insertRuledAcceptation(_db, dynAccId, agentId, accId);
+                    final int dynAccId = insertAcceptation(_db, newConcept, corrArrayId);
+                    insertRuledAcceptation(_db, dynAccId, agentId, accId);
 
-                final MutableSet<String> inserted = MutableHashSet.empty();
-                for (IntKeyMap.Entry<String> entry : processResult.right.entries()) {
-                    final String text = entry.value();
-                    inserted.add(text);
-                    insertStringQuery(_db, text, processResult.right.valueAt(0), mainAcc, dynAccId, entry.key());
+                    final MutableSet<String> inserted = MutableHashSet.empty();
+                    for (IntKeyMap.Entry<String> entry : processResult.right.entries()) {
+                        final String text = entry.value();
+                        inserted.add(text);
+                        insertStringQuery(_db, text, processResult.right.valueAt(0), mainAcc, dynAccId, entry.key());
+                    }
+                    insertPossibleCombinations(mainAcc, dynAccId, processResult.right.valueAt(0), inserted, "", processResult.left);
+
+                    targetAccId = dynAccId;
                 }
-                insertPossibleCombinations(mainAcc, dynAccId, processResult.right.valueAt(0), inserted, "", processResult.left);
-
-                targetAccId = dynAccId;
+                else {
+                    matching = false;
+                }
             }
 
-            for (int targetBunch : targetBunches) {
-                insertBunchAcceptation(_db, targetBunch, targetAccId, agentId);
+            if (matching) {
+                for (int targetBunch : targetBunches) {
+                    insertBunchAcceptation(_db, targetBunch, targetAccId, agentId);
+                }
             }
         }
     }
 
-    private void runAgent(int agentId) {
+    private void runAgent(int agentId, IntKeyMap<? extends Traversable<Conversion>> conversions) {
         LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         LangbookDbSchema.BunchAcceptationsTable bunchAccs = LangbookDbSchema.Tables.bunchAcceptations;
@@ -676,7 +685,7 @@ public final class DatabaseInflater {
                     if (newAccId != accId) {
                         if (noExcludedAcc) {
                             applyAgent(agentId, accId, concept, targetBunches,
-                                    startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc);
+                                    startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc, conversions);
                         }
 
                         accId = newAccId;
@@ -695,7 +704,7 @@ public final class DatabaseInflater {
 
                 if (noExcludedAcc) {
                     applyAgent(agentId, accId, concept, targetBunches,
-                            startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc);
+                            startMatcher, startAdder, endMatcher, endAdder, register.rule, corr, mainAcc, conversions);
                 }
             }
         }
@@ -741,18 +750,12 @@ public final class DatabaseInflater {
         return ids;
     }
 
-    private void runAgents(IntKeyMap<StreamedDatabaseReader.AgentBunches> agents) {
+    private void runAgents(IntKeyMap<StreamedDatabaseReader.AgentBunches> agents, IntKeyMap<? extends Traversable<Conversion>> conversions) {
         final int agentCount = agents.size();
         int index = 0;
         for (int agentId : sortAgents(agents)) {
             setProgress(0.4f + ((0.8f - 0.4f) / agentCount) * index, "Running agent " + (++index) + " out of " + agentCount);
-            runAgent(agentId);
-        }
-    }
-
-    private void applyConversions(Conversion[] conversions) {
-        for (Conversion conversion : conversions) {
-            applyConversion(_db, conversion);
+            runAgent(agentId, conversions);
         }
     }
 
@@ -780,13 +783,11 @@ public final class DatabaseInflater {
         final StreamedDatabaseReader.Result result = _dbReader.read();
 
         setProgress(0.2f, "Indexing strings");
-        fillSearchQueryTable();
+        final IntKeyMap<? extends Traversable<Conversion>> conversions = result.composeConversionMap();
+        fillSearchQueryTable(conversions);
 
         setProgress(0.3f, "Running agents");
-        runAgents(result.agents);
-
-        setProgress(0.8f, "Applying conversions");
-        applyConversions(result.conversions);
+        runAgents(result.agents, conversions);
 
         setProgress(0.9f, "Inserting sentence spans");
         insertSentences(result.spans, result.accIdMap, result.agentAcceptationPairs);

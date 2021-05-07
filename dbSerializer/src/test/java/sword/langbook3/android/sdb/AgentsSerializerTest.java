@@ -2,6 +2,7 @@ package sword.langbook3.android.sdb;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
@@ -1965,5 +1966,85 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         final ImmutableList<CorrelationId> correlationIds = outManager.getAcceptationCorrelationArray(wannaEatAcceptation);
         assertSize(1, correlationIds);
         assertEquals(shitaiCorrelation, outManager.getCorrelationWithText(correlationIds.valueAt(0)));
+    }
+
+    @Test
+    default void testAgentsInflationIncludesRuledAcceptationsWithValidConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("く", "ku")
+                .put("け", "ke")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("て", "te")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .put("な", "na")
+                .build();
+
+        final AlphabetId roumaji = getNextAvailableId(manager);
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        manager.addAlphabetAsConversionTarget(conversion);
+
+        final ConceptId highConcept = manager.getNextAvailableConceptId();
+        final AcceptationId highAcceptation = addSimpleAcceptation(manager, kana, highConcept, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        manager.addAcceptationInBunch(sourceBunch, highAcceptation);
+
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+
+        final MemoryDatabase outDb = cloneBySerializing(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
+
+        final AcceptationId notHighAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "たかくない"));
+        assertContainsOnly(notHighAcceptation, findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "takakunai"));
+    }
+
+    @Test
+    default void testAgentsInflationDoesNotIncludeRuledAcceptationsWithInvalidConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("い", "i")
+                .put("う", "u")
+                .put("か", "ka")
+                .put("き", "ki")
+                .put("け", "ke")
+                .put("し", "shi")
+                .put("た", "ta")
+                .put("て", "te")
+                .put("ひ", "hi")
+                .put("よ", "yo")
+                .build();
+
+        final AlphabetId roumaji = getNextAvailableId(manager);
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        manager.addAlphabetAsConversionTarget(conversion);
+
+        final ConceptId highConcept = manager.getNextAvailableConceptId();
+        final AcceptationId highAcceptation = addSimpleAcceptation(manager, kana, highConcept, "たかい");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, kana, "いけいようし");
+        manager.addAcceptationInBunch(sourceBunch, highAcceptation);
+
+        final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
+        addSingleAlphabetAgent(manager, setOf(), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
+
+        final MemoryDatabase outDb = cloneBySerializing(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> outManager = createManager(outDb);
+
+        assertEmpty(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "たかくない"));
+        assertEmpty(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "takakunai"));
     }
 }

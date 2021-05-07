@@ -1,9 +1,7 @@
 package sword.langbook3.android.sdb;
 
-import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
-import sword.collections.ImmutableSet;
 import sword.collections.Map;
 import sword.collections.SortFunction;
 import sword.collections.SortUtils;
@@ -67,35 +65,5 @@ public final class Conversion {
         }
 
         return result;
-    }
-
-    /**
-     * Apply the given conversion in the inverse order to find all original
-     * strings that can be converted to the given text.
-     *
-     * @param text Converted text to be analyzed
-     * @return A set with all source texts that results in the given text once the conversion is applied. This will be empty is none, but never null.
-     */
-    public ImmutableSet<String> findSourceTexts(String text) {
-        final ImmutableSet.Builder<String> builder = new ImmutableHashSet.Builder<>();
-        if (text == null) {
-            return builder.build();
-        }
-
-        final int mapSize = _map.size();
-        for (int i = 0; i < mapSize; i++) {
-            final String source = _map.keyAt(i);
-            final String target = _map.valueAt(i);
-            if (target.equals(text)) {
-                builder.add(source);
-            }
-            else if (text.startsWith(target)) {
-                for (String result : findSourceTexts(text.substring(target.length()))) {
-                    builder.add(source + result);
-                }
-            }
-        }
-
-        return builder.build();
     }
 }

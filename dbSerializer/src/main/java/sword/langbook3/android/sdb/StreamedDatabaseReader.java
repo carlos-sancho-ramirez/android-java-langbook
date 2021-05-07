@@ -33,11 +33,14 @@ import sword.collections.IntSet;
 import sword.collections.IntTraverser;
 import sword.collections.List;
 import sword.collections.MutableHashMap;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
+import sword.collections.MutableSet;
+import sword.collections.Traversable;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
 import sword.database.DbImporter.Database;
@@ -48,6 +51,7 @@ import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.collections.ImmutableIntPair;
+import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
@@ -1378,6 +1382,16 @@ public final class StreamedDatabaseReader {
             this.accIdMap = accIdMap;
             this.agentAcceptationPairs = agentAcceptationPairs;
             this.spans = spans;
+        }
+
+        public IntKeyMap<? extends Traversable<Conversion>> composeConversionMap() {
+            final MutableIntKeyMap<MutableSet<Conversion>> result = MutableIntKeyMap.empty();
+            final SyncCacheIntKeyNonNullValueMap<MutableSet<Conversion>> conversionsCacheMap = new SyncCacheIntKeyNonNullValueMap<>(result, alphabet -> MutableHashSet.empty());
+            for (Conversion conversion : conversions) {
+                conversionsCacheMap.get(conversion.getSourceAlphabet()).add(conversion);
+            }
+
+            return result;
         }
     }
 
