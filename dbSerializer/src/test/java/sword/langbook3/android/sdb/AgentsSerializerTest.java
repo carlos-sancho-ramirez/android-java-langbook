@@ -3,9 +3,13 @@ package sword.langbook3.android.sdb;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
+import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
+import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.AgentsChecker;
@@ -18,6 +22,7 @@ import sword.langbook3.android.db.LanguageIdInterface;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.MorphologyResult;
+import sword.langbook3.android.models.SearchResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -27,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static sword.collections.MapTestUtils.assertSinglePair;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
+import static sword.collections.TraversableTestUtils.assertContains;
 import static sword.collections.TraversableTestUtils.assertContainsOnly;
 import static sword.collections.TraversableTestUtils.getSingleValue;
 import static sword.langbook3.android.sdb.AcceptationsSerializerTest.cloneBySerializing;
@@ -108,11 +114,123 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr, String expectedMainAccMainStr, ImmutableList<RuleId> expectedRules) {
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> list = manager.findAcceptationAndRulesFromText(str, DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 19));
+        assertSize(1, list);
+
+        SearchResult<AcceptationId, RuleId> searchResult = list.valueAt(0);
+        assertEquals(acceptation, searchResult.getId());
+        assertEquals(str, searchResult.getStr());
+        assertEquals(expectedRules, searchResult.getAppliedRules());
+        assertEquals(expectedMainStr, searchResult.getMainStr());
+        assertEquals(expectedMainAccMainStr, searchResult.getMainAccMainStr());
+        assertNotEquals(expectedRules.isEmpty(), searchResult.isDynamic());
+    }
+
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr) {
+        assertSearchResult(manager, acceptation, str, expectedMainStr, expectedMainStr, ImmutableList.empty());
+    }
+
     AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> createManager(MemoryDatabase db);
     RuleId conceptAsRuleId(ConceptId conceptId);
 
     default ConceptFinder<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> newConceptFinder(MemoryDatabase db, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> checker) {
         return new ConceptFinder<>(db, getAcceptationIdManager(), checker);
+    }
+
+    @Test
+    default void testAddAcceptationIncludesMixtureOfAlphabetsWhenAddingJapaneseAcceptationWithoutConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getNextAvailableId(manager);
+        assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
+        final ConceptId concept = manager.getNextAvailableConceptId();
+
+        final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "注")
+                        .put(kana, "ちゅう")
+                        .build())
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "文")
+                        .put(kana, "もん")
+                        .build())
+                .build();
+
+        manager.addAcceptation(concept, correlationArray);
+
+        final MemoryDatabase outDb = cloneBySerializing(db);
+        final AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> checker = createManager(outDb);
+
+        final LanguageId outLanguage = checker.findLanguageByCode("ja");
+        final ImmutableSet<AlphabetId> outAlphabets = checker.findAlphabetsByLanguage(outLanguage);
+        assertSize(2, outAlphabets);
+
+        final AlphabetId outMainAlphabet = checker.findMainAlphabetForLanguage(outLanguage);
+        assertContains(outMainAlphabet, outAlphabets);
+
+        final AcceptationId outAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "注文"));
+        assertSearchResult(checker, outAcceptation, "注文", "注文");
+        assertSearchResult(checker, outAcceptation, "注もん", "注文");
+        assertSearchResult(checker, outAcceptation, "ちゅう文", "注文");
+        assertSearchResult(checker, outAcceptation, "ちゅうもん", "注文");
+    }
+
+    @Test
+    default void testAddAcceptationIncludesMixtureOfAlphabetsWhenAddingJapaneseAcceptationWithConversion() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getNextAvailableId(manager);
+        assertTrue(manager.addAlphabetCopyingFromOther(kana, kanji));
+
+        final AlphabetId roumaji = getNextAvailableId(manager);
+        final MutableHashMap<String, String> convMap = new MutableHashMap.Builder<String, String>()
+                .put("あ", "a")
+                .put("も", "mo")
+                .put("ん", "n")
+                .put("う", "u")
+                .put("ちゅ", "chu")
+                .put("ち", "chi")
+                .build();
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, convMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+        final ConceptId concept = manager.getNextAvailableConceptId();
+
+        final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "注")
+                        .put(kana, "ちゅう")
+                        .build())
+                .add(new ImmutableCorrelation.Builder<AlphabetId>()
+                        .put(kanji, "文")
+                        .put(kana, "もん")
+                        .build())
+                .build();
+
+        manager.addAcceptation(concept, correlationArray);
+
+        final MemoryDatabase outDb = cloneBySerializing(db);
+        final AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> checker = createManager(outDb);
+
+        final LanguageId outLanguage = checker.findLanguageByCode("ja");
+        final ImmutableSet<AlphabetId> outAlphabets = checker.findAlphabetsByLanguage(outLanguage);
+
+        final AlphabetId outKanjiAlphabet = checker.findMainAlphabetForLanguage(outLanguage);
+        assertContains(outKanjiAlphabet, outAlphabets);
+        final ImmutableMap<AlphabetId, AlphabetId> outConversionMap = checker.findConversions(outAlphabets);
+        final AlphabetId outKanaAlphabet = getSingleValue(outConversionMap);
+        final AlphabetId outRoumajiAlphabet = outConversionMap.keyAt(0);
+        assertContainsOnly(outKanjiAlphabet, outKanaAlphabet, outRoumajiAlphabet, outAlphabets);
+
+        final AcceptationId outAcceptation = getSingleValue(findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "注文"));
+        assertSearchResult(checker, outAcceptation, "注文", "注文");
+        assertSearchResult(checker, outAcceptation, "注もん", "注文");
+        assertSearchResult(checker, outAcceptation, "ちゅう文", "注文");
+        assertSearchResult(checker, outAcceptation, "ちゅうもん", "注文");
     }
 
     @Test

@@ -8,10 +8,13 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
+import sword.collections.ImmutableList;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
+import sword.collections.MutableList;
+import sword.collections.MutableSet;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
 import sword.database.DbInsertQuery;
@@ -23,7 +26,6 @@ import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
-import static sword.database.DbQuery.concat;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.getCorrelationWithText;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.getMaxConcept;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
@@ -202,62 +204,89 @@ public final class DatabaseInflater {
         return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
     }
 
+    private void insertPossibleCombinations(int acceptation, String mainStr, MutableSet<String> inserted, String accumulatedText, ImmutableList<? extends IntKeyMap<String>> remainingCorrelations) {
+        if (remainingCorrelations.isEmpty()) {
+            if (accumulatedText.length() > 0 && !inserted.contains(accumulatedText)) {
+                inserted.add(accumulatedText);
+                insertStringQuery(_db, accumulatedText, mainStr, acceptation, acceptation, 0);
+            }
+        }
+        else {
+            final ImmutableList<? extends IntKeyMap<String>> newList = remainingCorrelations.skip(1);
+            for (String text : remainingCorrelations.valueAt(0)) {
+                insertPossibleCombinations(acceptation, mainStr, inserted, accumulatedText + text, newList);
+            }
+        }
+    }
+
+    private void insertTexts(int acceptationId, List<? extends IntKeyMap<String>> correlationArray) {
+        final MutableIntKeyMap<String> plainTexts = MutableIntKeyMap.empty();
+        for (IntKeyMap<String> correlation : correlationArray) {
+            for (IntKeyMap.Entry<String> entry : correlation.entries()) {
+                plainTexts.put(entry.key(), plainTexts.get(entry.key(), "") + entry.value());
+            }
+        }
+
+        for (IntKeyMap.Entry<String> entry : plainTexts.entries()) {
+            insertStringQuery(_db, entry.value(), plainTexts.valueAt(0), acceptationId, acceptationId, entry.key());
+        }
+
+        final MutableSet<String> inserted = plainTexts.toSet().mutate();
+        insertPossibleCombinations(acceptationId, plainTexts.valueAt(0), inserted, "", correlationArray.toImmutable());
+    }
+
     private void fillSearchQueryTable() {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations; // J0
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays; // J1
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations; // J2
         final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays; // J3
-        final LangbookDbSchema.AlphabetsTable alphabets = LangbookDbSchema.Tables.alphabets;
-        final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;
 
         final int corrArrayOffset = acceptations.columns().size();
         final int corrOffset = corrArrayOffset + correlationArrays.columns().size();
         final int symbolArrayOffset = corrOffset + correlations.columns().size();
-        final int alphabetsOffset = symbolArrayOffset + symbolArrays.columns().size();
-        final int langOffset = alphabetsOffset + alphabets.columns().size();
-        final int corrOffset2 = langOffset + languages.columns().size();
-        final int symbolArrayOffset2 = corrOffset2 + correlations.columns().size();
 
-        final DbQuery innerQuery = new DbQuery.Builder(acceptations)
+        final DbQuery query = new DbQuery.Builder(acceptations)
                 .join(correlationArrays, acceptations.getCorrelationArrayColumnIndex(), correlationArrays.getArrayIdColumnIndex())
                 .join(correlations, corrArrayOffset + correlationArrays.getCorrelationColumnIndex(), correlations.getCorrelationIdColumnIndex())
                 .join(symbolArrays, corrOffset + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
-                .join(alphabets, corrOffset + correlations.getAlphabetColumnIndex(), alphabets.getIdColumnIndex())
-                .join(languages, alphabetsOffset + alphabets.getLanguageColumnIndex(), languages.getIdColumnIndex())
-                .join(correlations, corrArrayOffset + correlationArrays.getCorrelationColumnIndex(), correlations.getCorrelationIdColumnIndex())
-                .join(symbolArrays, corrOffset2 + correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
-                .whereColumnValueMatch(langOffset + languages.getMainAlphabetColumnIndex(), corrOffset2 + correlations.getAlphabetColumnIndex())
-                .orderBy(
-                        acceptations.getIdColumnIndex(),
-                        corrOffset + correlations.getAlphabetColumnIndex(),
-                        corrArrayOffset + correlationArrays.getArrayPositionColumnIndex())
+                .orderBy(acceptations.getIdColumnIndex())
                 .select(
                         acceptations.getIdColumnIndex(),
+                        corrArrayOffset + correlationArrays.getArrayPositionColumnIndex(),
                         corrOffset + correlations.getAlphabetColumnIndex(),
-                        symbolArrayOffset2 + symbolArrays.getStrColumnIndex(),
                         symbolArrayOffset + symbolArrays.getStrColumnIndex());
 
-        final DbQuery query = new DbQuery.Builder(innerQuery)
-                .groupBy(0, 1)
-                .select(0, 1, concat(3), concat(2));
+        try (DbResult result = _db.select(query)) {
+            if (result.hasNext()) {
+                List<DbValue> row = result.next();
+                int accId = row.get(0).toInt();
+                final MutableList<MutableIntKeyMap<String>> correlationArray = MutableList.empty();
+                int arrayPos = row.get(1).toInt();
+                while (correlationArray.size() <= arrayPos) {
+                    correlationArray.append(MutableIntKeyMap.empty());
+                }
 
-        final DbResult result = _db.select(query);
-        try {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final int accId = row.get(0).toInt();
-                final int alphabet = row.get(1).toInt();
-                final String str = row.get(2).toText();
-                final String mainStr = row.get(3).toText();
+                correlationArray.get(arrayPos).put(row.get(2).toInt(), row.get(3).toText());
 
-                // TODO: Change this to point to the dynamic acceptation in Japanese. More JOINS are required whenever agents are applied
-                final int dynAccId = accId;
+                while (result.hasNext()) {
+                    row = result.next();
+                    final int newAccId = row.get(0).toInt();
+                    if (newAccId != accId) {
+                        insertTexts(accId, correlationArray);
+                        accId = newAccId;
+                        correlationArray.clear();
+                    }
 
-                insertStringQuery(_db, str, mainStr, accId, dynAccId, alphabet);
+                    arrayPos = row.get(1).toInt();
+                    while (correlationArray.size() <= arrayPos) {
+                        correlationArray.append(MutableIntKeyMap.empty());
+                    }
+
+                    correlationArray.get(arrayPos).put(row.get(2).toInt(), row.get(3).toText());
+                }
+
+                insertTexts(accId, correlationArray);
             }
-        }
-        finally {
-            result.close();
         }
     }
 
@@ -455,10 +484,11 @@ public final class DatabaseInflater {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
                 int accId = row.get(0).toInt();
+                int alphabet = row.get(1).toInt();
                 boolean noExcludedAcc = !diffAccs.contains(accId);
                 final MutableIntKeyMap<String> corr = MutableIntKeyMap.empty();
-                if (noExcludedAcc) {
-                    corr.put(row.get(1).toInt(), row.get(2).toText());
+                if (alphabet != 0 && noExcludedAcc) {
+                    corr.put(alphabet, row.get(2).toText());
                 }
                 int mainAcc = row.get(3).toInt();
                 int concept = row.get(4).toInt();
@@ -467,6 +497,7 @@ public final class DatabaseInflater {
                 while (result.hasNext()) {
                     row = result.next();
                     newAccId = row.get(0).toInt();
+                    alphabet = row.get(1).toInt();
                     if (newAccId != accId) {
                         if (noExcludedAcc) {
                             applyAgent(agentId, accId, concept, targetBunches,
@@ -477,13 +508,13 @@ public final class DatabaseInflater {
                         noExcludedAcc = !diffAccs.contains(accId);
                         corr.clear();
                         if (noExcludedAcc) {
-                            corr.put(row.get(1).toInt(), row.get(2).toText());
+                            corr.put(alphabet, row.get(2).toText());
                             mainAcc = row.get(3).toInt();
                             concept = row.get(4).toInt();
                         }
                     }
-                    else if (noExcludedAcc) {
-                        corr.put(row.get(1).toInt(), row.get(2).toText());
+                    else if (alphabet != 0 && noExcludedAcc) {
+                        corr.put(alphabet, row.get(2).toText());
                     }
                 }
 
