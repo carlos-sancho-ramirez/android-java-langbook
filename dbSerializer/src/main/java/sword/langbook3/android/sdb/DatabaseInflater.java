@@ -11,7 +11,6 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
-import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableHashSet;
@@ -29,6 +28,7 @@ import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
 import sword.langbook3.android.collections.ImmutableListUtils;
+import sword.langbook3.android.collections.MutableIntListUtils;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
@@ -376,8 +376,25 @@ public final class DatabaseInflater {
         }
     }
 
+    private static class ApplyResult {
+        final ImmutableList<ImmutableIntKeyMap<String>> correlationArray;
+        final ImmutableIntKeyMap<String> plainCorrelation;
+        final ImmutableIntList knownCorrelationIds;
+
+        ApplyResult(ImmutableList<ImmutableIntKeyMap<String>> correlationArray, ImmutableIntKeyMap<String> plainCorrelation, ImmutableIntList knownCorrelationIds) {
+            if (knownCorrelationIds.size() != correlationArray.size()) {
+                throw new IllegalArgumentException();
+            }
+
+            this.correlationArray = correlationArray;
+            this.plainCorrelation = plainCorrelation;
+            this.knownCorrelationIds = knownCorrelationIds;
+        }
+    }
+
     private final class AgentApplier {
         final int _agentId;
+        final AgentRegister _register;
         final ImmutableIntSet _targetBunches;
         final ImmutableIntKeyMap<String> _startMatcher;
         final ImmutableIntKeyMap<String> _startAdder;
@@ -391,8 +408,9 @@ public final class DatabaseInflater {
         final ImmutableIntSet _startAdderKeys;
         final ImmutableIntSet _endAdderKeys;
 
-        AgentApplier(int agentId, ImmutableIntSet targetBunches, ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, boolean modifyWords, IntKeyMap<? extends Traversable<Conversion>> conversions, IntSupplier correlationIdSupplier) {
+        AgentApplier(int agentId, AgentRegister register, ImmutableIntSet targetBunches, ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, boolean modifyWords, IntKeyMap<? extends Traversable<Conversion>> conversions, IntSupplier correlationIdSupplier) {
             _agentId = agentId;
+            _register = register;
             _targetBunches = targetBunches;
             _startMatcher = startMatcher;
             _startAdder = startAdder;
@@ -407,14 +425,16 @@ public final class DatabaseInflater {
             _endAdderKeys = endAdder.keySet();
         }
 
-        private ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntKeyMap<String>> applyMatchersAddersAndConversions(ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+        private ApplyResult applyMatchersAddersAndConversions(ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
             final int correlationArrayLength = correlationArray.size();
             if (correlationArrayLength == 0) {
                 return null;
             }
 
+            MutableIntList knownCorrelationIds = MutableIntList.empty();
             final Iterator<ImmutableIntKeyMap<String>> correlationArrayIt = correlationArray.iterator();
             final ImmutableIntSet correlationAlphabets = correlationArrayIt.next().keySet();
+            knownCorrelationIds.append(0);
 
             while (correlationArrayIt.hasNext()) {
                 final MutableIntSet missingAlphabets = correlationAlphabets.mutate();
@@ -427,6 +447,8 @@ public final class DatabaseInflater {
                 if (!missingAlphabets.isEmpty()) {
                     return null;
                 }
+
+                knownCorrelationIds.append(0);
             }
 
             if (_startAdderKeys.anyMatch(key -> !correlationAlphabets.contains(key))) {
@@ -460,6 +482,7 @@ public final class DatabaseInflater {
                     }
 
                     modifiedCorrelationArray = builder.build();
+                    knownCorrelationIds.removeAt(0);
                 }
 
                 final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(0);
@@ -474,6 +497,7 @@ public final class DatabaseInflater {
                 }
 
                 modifiedCorrelationArray = modifiedCorrelationArray.skip(1);
+                knownCorrelationIds.removeAt(0);
             }
 
             for (IntKeyMap.Entry<String> entry : _endMatcher.entries()) {
@@ -498,6 +522,7 @@ public final class DatabaseInflater {
                     builder.append(newLastCorrelation.toImmutable());
 
                     modifiedCorrelationArray = builder.build();
+                    knownCorrelationIds.removeAt(currentSize - 1);
                 }
 
                 final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
@@ -518,14 +543,17 @@ public final class DatabaseInflater {
                 }
 
                 modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1);
+                knownCorrelationIds.removeAt(knownCorrelationIds.size() - 1);
             }
 
             if (!_startAdder.isEmpty()) {
                 modifiedCorrelationArray = modifiedCorrelationArray.prepend(_startAdder);
+                MutableIntListUtils.prepend(knownCorrelationIds, _register.startAdderId);
             }
 
             if (!_endAdder.isEmpty()) {
                 modifiedCorrelationArray = modifiedCorrelationArray.append(_endAdder);
+                knownCorrelationIds.append(_register.endAdderId);
             }
 
             // Create plain correlation
@@ -551,7 +579,7 @@ public final class DatabaseInflater {
                 }
             }
 
-            return new ImmutablePair<>(modifiedCorrelationArray, correlation.toImmutable());
+            return new ApplyResult(modifiedCorrelationArray, correlation.toImmutable(), knownCorrelationIds.toImmutable());
         }
 
         void apply(int accId, int concept, IntKeyMap<String> corr, int mainAcc) {
@@ -581,27 +609,34 @@ public final class DatabaseInflater {
 
                 if (_modifyWords) {
                     final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = getAcceptationCorrelationArrayWithText(accId);
-                    final ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntKeyMap<String>> processResult = applyMatchersAddersAndConversions(correlationArray);
+                    final ApplyResult processResult = applyMatchersAddersAndConversions(correlationArray);
 
                     if (processResult != null) {
                         final int newConcept = obtainRuledConcept(_db, _rule, concept);
-                        final int corrArrayId = obtainCorrelationArray(_db, processResult.left.mapToInt(correlation -> {
-                            final ImmutableIntPairMap intPairCorrelation = correlation.mapToInt(text -> obtainSymbolArray(_db, text));
-                            return obtainCorrelation(_db, intPairCorrelation, _correlationIdSupplier);
+                        final int corrArrayId = obtainCorrelationArray(_db, processResult.correlationArray.indexes().mapToInt(index -> {
+                            final int knownId = processResult.knownCorrelationIds.valueAt(index);
+                            if (knownId != 0) {
+                                return knownId;
+                            }
+                            else {
+                                final ImmutableIntKeyMap<String> correlation = processResult.correlationArray.valueAt(index);
+                                final ImmutableIntPairMap intPairCorrelation = correlation.mapToInt(text -> obtainSymbolArray(_db, text));
+                                return obtainCorrelation(_db, intPairCorrelation, _correlationIdSupplier);
+                            }
                         }));
 
                         final int dynAccId = insertAcceptation(_db, newConcept, corrArrayId);
                         insertRuledAcceptation(_db, dynAccId, _agentId, accId);
 
                         final MutableSet<String> inserted = MutableHashSet.empty();
-                        final ImmutableIntKeyMap<String> correlation = processResult.right;
+                        final ImmutableIntKeyMap<String> correlation = processResult.plainCorrelation;
                         final String mainStr = correlation.valueAt(0);
                         for (IntKeyMap.Entry<String> entry : correlation.entries()) {
                             final String text = entry.value();
                             inserted.add(text);
                             insertStringQuery(_db, text, mainStr, mainAcc, dynAccId, entry.key());
                         }
-                        insertPossibleCombinations(mainAcc, dynAccId, mainStr, inserted, "", processResult.left);
+                        insertPossibleCombinations(mainAcc, dynAccId, mainStr, inserted, "", processResult.correlationArray);
 
                         targetAccId = dynAccId;
                     }
@@ -689,7 +724,7 @@ public final class DatabaseInflater {
                             acceptationsOffset + acceptations.getConceptColumnIndex());
         }
 
-        final AgentApplier agentApplier = new AgentApplier(agentId, targetBunches, startMatcher, startAdder, endMatcher, endAdder, register.rule, modifyWords, conversions, correlationIdSupplier);
+        final AgentApplier agentApplier = new AgentApplier(agentId, register, targetBunches, startMatcher, startAdder, endMatcher, endAdder, register.rule, modifyWords, conversions, correlationIdSupplier);
         try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
