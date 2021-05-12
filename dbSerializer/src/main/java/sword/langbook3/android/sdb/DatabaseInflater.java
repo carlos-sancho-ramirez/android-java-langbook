@@ -11,6 +11,7 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
+import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.List;
 import sword.collections.MutableHashSet;
@@ -207,10 +208,6 @@ public final class DatabaseInflater {
         return (id != null)? id : insertRuledConcept(db, rule, concept);
     }
 
-    private static Integer obtainSimpleCorrelationArray(DbImporter.Database db, int correlationId) {
-        return obtainCorrelationArray(db, new ImmutableIntList.Builder().append(correlationId).build());
-    }
-
     private void insertTexts(int acceptationId, List<? extends IntKeyMap<String>> correlationArray, IntKeyMap<? extends Traversable<Conversion>> conversions) {
         final MutableIntKeyMap<String> plainTexts = MutableIntKeyMap.empty();
         for (IntKeyMap<String> correlation : correlationArray) {
@@ -298,7 +295,7 @@ public final class DatabaseInflater {
         }
     }
 
-    private ImmutableList<ImmutableIntKeyMap<String>> getAcceptationCorrelationArrayWithText(int acceptationId) {
+    private ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntList> getAcceptationCorrelationArrayWithText(int acceptationId) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
@@ -358,7 +355,8 @@ public final class DatabaseInflater {
             }
         }
 
-        return correlationIds.toImmutable().map(correlationMap::get);
+        final ImmutableIntList imCorrelationIds = correlationIds.toImmutable();
+        return new ImmutablePair<>(imCorrelationIds.map(correlationMap::get), imCorrelationIds);
     }
 
     private void insertPossibleCombinations(int mainAcceptation, int dynAcceptation, String mainStr, MutableSet<String> inserted, String accumulatedText, ImmutableList<? extends IntKeyMap<String>> remainingCorrelations) {
@@ -425,16 +423,14 @@ public final class DatabaseInflater {
             _endAdderKeys = endAdder.keySet();
         }
 
-        private ApplyResult applyMatchersAddersAndConversions(ImmutableList<ImmutableIntKeyMap<String>> correlationArray) {
+        private ApplyResult applyMatchersAddersAndConversions(ImmutableList<ImmutableIntKeyMap<String>> correlationArray, ImmutableIntList knownCorrelationIds) {
             final int correlationArrayLength = correlationArray.size();
             if (correlationArrayLength == 0) {
                 return null;
             }
 
-            MutableIntList knownCorrelationIds = MutableIntList.empty();
             final Iterator<ImmutableIntKeyMap<String>> correlationArrayIt = correlationArray.iterator();
             final ImmutableIntSet correlationAlphabets = correlationArrayIt.next().keySet();
-            knownCorrelationIds.append(0);
 
             while (correlationArrayIt.hasNext()) {
                 final MutableIntSet missingAlphabets = correlationAlphabets.mutate();
@@ -447,8 +443,6 @@ public final class DatabaseInflater {
                 if (!missingAlphabets.isEmpty()) {
                     return null;
                 }
-
-                knownCorrelationIds.append(0);
             }
 
             if (_startAdderKeys.anyMatch(key -> !correlationAlphabets.contains(key))) {
@@ -459,6 +453,7 @@ public final class DatabaseInflater {
                 return null;
             }
 
+            final MutableIntList modifiedKnownCorrelationIds = knownCorrelationIds.mutate();
             ImmutableList<ImmutableIntKeyMap<String>> modifiedCorrelationArray = correlationArray.toList();
             for (IntKeyMap.Entry<String> entry : _startMatcher.entries()) {
                 final int alphabet = entry.key();
@@ -467,7 +462,7 @@ public final class DatabaseInflater {
                 }
 
                 final int length = entry.value().length();
-                while (modifiedCorrelationArray.size() > 1 && length >= modifiedCorrelationArray.valueAt(0).get(alphabet).length()) {
+                while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.valueAt(0).get(alphabet).length()) {
                     final int currentSize = modifiedCorrelationArray.size();
                     final MutableIntKeyMap<String> newFirstCorrelation = modifiedCorrelationArray.valueAt(0).mutate();
                     final ImmutableIntKeyMap<String> secondCorrelation = modifiedCorrelationArray.valueAt(1);
@@ -481,23 +476,27 @@ public final class DatabaseInflater {
                         builder.append(modifiedCorrelationArray.valueAt(i));
                     }
 
+                    modifiedKnownCorrelationIds.removeAt(0);
+                    MutableIntListUtils.set(modifiedKnownCorrelationIds, 0, 0);
                     modifiedCorrelationArray = builder.build();
-                    knownCorrelationIds.removeAt(0);
                 }
 
                 final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(0);
                 final ImmutableIntKeyMap<String> newCorrelation = oldCorrelation.put(alphabet, oldCorrelation.get(alphabet).substring(length));
                 modifiedCorrelationArray = modifiedCorrelationArray.skip(1).prepend(newCorrelation);
+                MutableIntListUtils.set(modifiedKnownCorrelationIds, 0, 0);
             }
 
             final ImmutableIntKeyMap<String> firstCorrelation = modifiedCorrelationArray.valueAt(0);
-            if (firstCorrelation.anyMatch(String::isEmpty)) {
-                if (firstCorrelation.anyMatch(text -> !text.isEmpty())) {
-                    return null;
-                }
-
-                modifiedCorrelationArray = modifiedCorrelationArray.skip(1);
-                knownCorrelationIds.removeAt(0);
+            if (!firstCorrelation.anyMatch(String::isEmpty)) {
+                // All fine
+            }
+            else if (!firstCorrelation.anyMatch(text -> !text.isEmpty())) {
+                modifiedCorrelationArray = modifiedCorrelationArray.removeAt(0);
+                modifiedKnownCorrelationIds.removeAt(0);
+            }
+            else {
+                return null;
             }
 
             for (IntKeyMap.Entry<String> entry : _endMatcher.entries()) {
@@ -507,7 +506,7 @@ public final class DatabaseInflater {
                 }
 
                 final int length = entry.value().length();
-                while (modifiedCorrelationArray.size() > 1 && length >= modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1).get(alphabet).length()) {
+                while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1).get(alphabet).length()) {
                     final int currentSize = modifiedCorrelationArray.size();
                     final MutableIntKeyMap<String> newLastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 2).mutate();
                     final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 1);
@@ -522,7 +521,8 @@ public final class DatabaseInflater {
                     builder.append(newLastCorrelation.toImmutable());
 
                     modifiedCorrelationArray = builder.build();
-                    knownCorrelationIds.removeAt(currentSize - 1);
+                    modifiedKnownCorrelationIds.removeAt(currentSize - 1);
+                    MutableIntListUtils.set(modifiedKnownCorrelationIds, currentSize - 2, 0);
                 }
 
                 final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
@@ -534,26 +534,29 @@ public final class DatabaseInflater {
 
                 final ImmutableIntKeyMap<String> newCorrelation = oldCorrelation.put(alphabet, oldText.substring(0, substringLimit));
                 modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1).append(newCorrelation);
+                MutableIntListUtils.set(modifiedKnownCorrelationIds, modifiedKnownCorrelationIds.size() - 1, 0);
             }
 
             final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
-            if (lastCorrelation.anyMatch(String::isEmpty)) {
-                if (lastCorrelation.anyMatch(text -> !text.isEmpty())) {
-                    return null;
-                }
-
+            if (!lastCorrelation.anyMatch(String::isEmpty)) {
+                // All fine
+            }
+            else if (!lastCorrelation.anyMatch(text -> !text.isEmpty())) {
                 modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1);
-                knownCorrelationIds.removeAt(knownCorrelationIds.size() - 1);
+                modifiedKnownCorrelationIds.removeAt(modifiedKnownCorrelationIds.size() - 1);
+            }
+            else {
+                return null;
             }
 
             if (!_startAdder.isEmpty()) {
                 modifiedCorrelationArray = modifiedCorrelationArray.prepend(_startAdder);
-                MutableIntListUtils.prepend(knownCorrelationIds, _register.startAdderId);
+                MutableIntListUtils.prepend(modifiedKnownCorrelationIds, _register.startAdderId);
             }
 
             if (!_endAdder.isEmpty()) {
                 modifiedCorrelationArray = modifiedCorrelationArray.append(_endAdder);
-                knownCorrelationIds.append(_register.endAdderId);
+                modifiedKnownCorrelationIds.append(_register.endAdderId);
             }
 
             // Create plain correlation
@@ -579,7 +582,7 @@ public final class DatabaseInflater {
                 }
             }
 
-            return new ApplyResult(modifiedCorrelationArray, correlation.toImmutable(), knownCorrelationIds.toImmutable());
+            return new ApplyResult(modifiedCorrelationArray, correlation.toImmutable(), modifiedKnownCorrelationIds.toImmutable());
         }
 
         void apply(int accId, int concept, IntKeyMap<String> corr, int mainAcc) {
@@ -608,8 +611,8 @@ public final class DatabaseInflater {
                 int targetAccId = accId;
 
                 if (_modifyWords) {
-                    final ImmutableList<ImmutableIntKeyMap<String>> correlationArray = getAcceptationCorrelationArrayWithText(accId);
-                    final ApplyResult processResult = applyMatchersAddersAndConversions(correlationArray);
+                    final ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntList> correlationArrayResult = getAcceptationCorrelationArrayWithText(accId);
+                    final ApplyResult processResult = applyMatchersAddersAndConversions(correlationArrayResult.left, correlationArrayResult.right);
 
                     if (processResult != null) {
                         final int newConcept = obtainRuledConcept(_db, _rule, concept);

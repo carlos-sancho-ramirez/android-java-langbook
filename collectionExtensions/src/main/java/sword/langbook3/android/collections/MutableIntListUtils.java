@@ -14,6 +14,20 @@ public final class MutableIntListUtils {
         }
     }
 
+    public static void set(MutableIntList list, int index, int value) {
+        final ImmutableIntList immutable = list.toImmutable();
+        final int size = immutable.size();
+        list.clear();
+        for (int i = 0; i < size; i++) {
+            if (i == index) {
+                list.append(value);
+            }
+            else {
+                list.append(immutable.valueAt(i));
+            }
+        }
+    }
+
     private MutableIntListUtils() {
     }
 }
