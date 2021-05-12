@@ -361,15 +361,6 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private static boolean isSymbolArrayPresent(DbExporter.Database db, int symbolArray) {
-        final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), symbolArray)
-                .select(table.getIdColumnIndex());
-
-        return selectExistingRow(db, query);
-    }
-
     private static Integer findCorrelation(DbExporter.Database db, IntPairMap correlation) {
         if (correlation.size() == 0) {
             return EMPTY_CORRELATION_ID;
@@ -681,21 +672,13 @@ public final class StreamedDatabaseReader {
         return id;
     }
 
-    static Integer obtainCorrelation(DbImporter.Database db, IntPairMap correlation) {
+    static int obtainCorrelation(DbImporter.Database db, IntPairMap correlation, IntSupplier newIdSupplier) {
         final Integer foundId = findCorrelation(db, correlation);
         if (foundId != null) {
             return foundId;
         }
 
-        if (!areAllAlphabetsFromSameLanguage(db, correlation.keySet())) {
-            return null;
-        }
-
-        if (correlation.anyMatch(strId -> !isSymbolArrayPresent(db, strId))) {
-            return null;
-        }
-
-        final int newCorrelationId = getMaxCorrelationId(db) + 1;
+        final int newCorrelationId = newIdSupplier.get();
         insertCorrelation(db, newCorrelationId, correlation);
         return newCorrelationId;
     }
@@ -1393,13 +1376,15 @@ public final class StreamedDatabaseReader {
         public final int[] accIdMap;
         public final AgentAcceptationPair[] agentAcceptationPairs;
         public final SentenceSpan[] spans;
+        public final int numberOfCorrelations;
 
-        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, AgentAcceptationPair[] agentAcceptationPairs, SentenceSpan[] spans) {
+        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, AgentAcceptationPair[] agentAcceptationPairs, SentenceSpan[] spans, int numberOfCorrelations) {
             this.conversions = conversions;
             this.agents = agents;
             this.accIdMap = accIdMap;
             this.agentAcceptationPairs = agentAcceptationPairs;
             this.spans = spans;
+            this.numberOfCorrelations = numberOfCorrelations;
         }
 
         public IntKeyMap<? extends Traversable<Conversion>> composeConversionMap() {
@@ -1494,7 +1479,7 @@ public final class StreamedDatabaseReader {
                     throw new IOException();
                 }
 
-                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new AgentAcceptationPair[0], new SentenceSpan[0]);
+                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new AgentAcceptationPair[0], new SentenceSpan[0], 0);
             }
             else {
                 final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
@@ -1549,7 +1534,7 @@ public final class StreamedDatabaseReader {
                 final ImmutableIntSet insertedSentences = readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
                 insertMissingSentences(spans, insertedSentences);
-                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans);
+                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length);
             }
         }
         finally {

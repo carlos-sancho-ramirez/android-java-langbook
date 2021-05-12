@@ -386,11 +386,12 @@ public final class DatabaseInflater {
         final int _rule;
         final boolean _modifyWords;
         final IntKeyMap<? extends Traversable<Conversion>> _conversions;
+        final IntSupplier _correlationIdSupplier;
 
         final ImmutableIntSet _startAdderKeys;
         final ImmutableIntSet _endAdderKeys;
 
-        AgentApplier(int agentId, ImmutableIntSet targetBunches, ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, boolean modifyWords, IntKeyMap<? extends Traversable<Conversion>> conversions) {
+        AgentApplier(int agentId, ImmutableIntSet targetBunches, ImmutableIntKeyMap<String> startMatcher, ImmutableIntKeyMap<String> startAdder, ImmutableIntKeyMap<String> endMatcher, ImmutableIntKeyMap<String> endAdder, int rule, boolean modifyWords, IntKeyMap<? extends Traversable<Conversion>> conversions, IntSupplier correlationIdSupplier) {
             _agentId = agentId;
             _targetBunches = targetBunches;
             _startMatcher = startMatcher;
@@ -400,6 +401,7 @@ public final class DatabaseInflater {
             _rule = rule;
             _modifyWords = modifyWords;
             _conversions = conversions;
+            _correlationIdSupplier = correlationIdSupplier;
 
             _startAdderKeys = startAdder.keySet();
             _endAdderKeys = endAdder.keySet();
@@ -585,7 +587,7 @@ public final class DatabaseInflater {
                         final int newConcept = obtainRuledConcept(_db, _rule, concept);
                         final int corrArrayId = obtainCorrelationArray(_db, processResult.left.mapToInt(correlation -> {
                             final ImmutableIntPairMap intPairCorrelation = correlation.mapToInt(text -> obtainSymbolArray(_db, text));
-                            return obtainCorrelation(_db, intPairCorrelation);
+                            return obtainCorrelation(_db, intPairCorrelation, _correlationIdSupplier);
                         }));
 
                         final int dynAccId = insertAcceptation(_db, newConcept, corrArrayId);
@@ -617,7 +619,7 @@ public final class DatabaseInflater {
         }
     }
 
-    private void runAgent(int agentId, IntKeyMap<? extends Traversable<Conversion>> conversions) {
+    private void runAgent(int agentId, IntKeyMap<? extends Traversable<Conversion>> conversions, IntSupplier correlationIdSupplier) {
         LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         LangbookDbSchema.BunchSetsTable bunchSets = LangbookDbSchema.Tables.bunchSets;
         LangbookDbSchema.BunchAcceptationsTable bunchAccs = LangbookDbSchema.Tables.bunchAcceptations;
@@ -687,7 +689,7 @@ public final class DatabaseInflater {
                             acceptationsOffset + acceptations.getConceptColumnIndex());
         }
 
-        final AgentApplier agentApplier = new AgentApplier(agentId, targetBunches, startMatcher, startAdder, endMatcher, endAdder, register.rule, modifyWords, conversions);
+        final AgentApplier agentApplier = new AgentApplier(agentId, targetBunches, startMatcher, startAdder, endMatcher, endAdder, register.rule, modifyWords, conversions, correlationIdSupplier);
         try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
@@ -772,12 +774,12 @@ public final class DatabaseInflater {
         return ids;
     }
 
-    private void runAgents(IntKeyMap<StreamedDatabaseReader.AgentBunches> agents, IntKeyMap<? extends Traversable<Conversion>> conversions) {
+    private void runAgents(IntKeyMap<StreamedDatabaseReader.AgentBunches> agents, IntKeyMap<? extends Traversable<Conversion>> conversions, IntSupplier correlationIdSupplier) {
         final int agentCount = agents.size();
         int index = 0;
         for (int agentId : sortAgents(agents)) {
             setProgress(0.4f + ((0.8f - 0.4f) / agentCount) * index, "Running agent " + (++index) + " out of " + agentCount);
-            runAgent(agentId, conversions);
+            runAgent(agentId, conversions, correlationIdSupplier);
         }
     }
 
@@ -801,6 +803,19 @@ public final class DatabaseInflater {
         }
     }
 
+    private static final class IdSupplier implements IntSupplier {
+        private int _lastAssignedId;
+
+        IdSupplier(int lastAssignedId) {
+            _lastAssignedId = lastAssignedId;
+        }
+
+        @Override
+        public int get() {
+            return ++_lastAssignedId;
+        }
+    }
+
     public void read() throws IOException {
         final StreamedDatabaseReader.Result result = _dbReader.read();
 
@@ -809,7 +824,9 @@ public final class DatabaseInflater {
         fillSearchQueryTable(conversions);
 
         setProgress(0.3f, "Running agents");
-        runAgents(result.agents, conversions);
+        //runAgents(result.agents, conversions);
+        final IntSupplier correlationIdSupplier = new IdSupplier(result.numberOfCorrelations);
+        runAgents(result.agents, conversions, correlationIdSupplier);
 
         setProgress(0.9f, "Inserting sentence spans");
         insertSentences(result.spans, result.accIdMap, result.agentAcceptationPairs);
