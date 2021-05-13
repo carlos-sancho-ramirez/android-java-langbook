@@ -410,6 +410,10 @@ public final class StreamedDatabaseReader {
     }
 
     private static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
+        if (array.isEmpty()) {
+            return EMPTY_CORRELATION_ARRAY_ID;
+        }
+
         final LangbookDbSchema.CorrelationArraysTable table = Tables.correlationArrays;
         final int offset = table.columns().size();
         final DbQuery query = new DbQuery.Builder(table)
@@ -683,46 +687,13 @@ public final class StreamedDatabaseReader {
         return newCorrelationId;
     }
 
-    static Integer obtainCorrelationArray(DbImporter.Database db, IntList correlations) {
+    static int obtainCorrelationArray(DbImporter.Database db, IntList correlations, IntSupplier newIdSupplier) {
         final Integer foundId = findCorrelationArray(db, correlations);
         if (foundId != null) {
             return foundId;
         }
 
-        if (correlations.isEmpty()) {
-            return null;
-        }
-
-        final List<ImmutableIntKeyMap<String>> array = correlations.map(id -> getCorrelationWithText(db, id));
-        if (array.anyMatch(ImmutableIntKeyMap::isEmpty)) {
-            return null;
-        }
-
-        final ImmutableIntSet alphabets = array.map(ImmutableIntKeyMap::keySet).reduce(ImmutableIntSet::addAll);
-        if (!areAllAlphabetsFromSameLanguage(db, alphabets)) {
-            return null;
-        }
-
-        final ImmutableIntPairMap conversionMap = getConversionsMap(db);
-        if (alphabets.anyMatch(conversionMap.keySet()::contains)) {
-            return null;
-        }
-
-        for (int alphabet : alphabets) {
-            final int index = conversionMap.indexOf(alphabet);
-            if (index >= 0) {
-                final int targetAlphabet = conversionMap.keyAt(index);
-                final Conversion conversion = getConversion(db, new ImmutableIntPair(alphabet, targetAlphabet));
-                final String sourceText = array.map(c -> c.get(alphabet, "")).reduce((a, b) -> a + b);
-                final String targetText = conversion.convert(sourceText);
-                if (targetText == null) {
-                    return null;
-                }
-            }
-        }
-
-        final int maxArrayId = getMaxCorrelationArrayId(db);
-        final int newArrayId = maxArrayId + ((maxArrayId + 1 != EMPTY_CORRELATION_ARRAY_ID)? 1 : 2);
+        final int newArrayId = newIdSupplier.get();
         insertCorrelationArray(db, newArrayId, correlations);
         return newArrayId;
     }
@@ -1377,14 +1348,16 @@ public final class StreamedDatabaseReader {
         public final AgentAcceptationPair[] agentAcceptationPairs;
         public final SentenceSpan[] spans;
         public final int numberOfCorrelations;
+        public final int numberOfCorrelationArrays;
 
-        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, AgentAcceptationPair[] agentAcceptationPairs, SentenceSpan[] spans, int numberOfCorrelations) {
+        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, AgentAcceptationPair[] agentAcceptationPairs, SentenceSpan[] spans, int numberOfCorrelations, int numberOfCorrelationArrays) {
             this.conversions = conversions;
             this.agents = agents;
             this.accIdMap = accIdMap;
             this.agentAcceptationPairs = agentAcceptationPairs;
             this.spans = spans;
             this.numberOfCorrelations = numberOfCorrelations;
+            this.numberOfCorrelationArrays = numberOfCorrelationArrays;
         }
 
         public IntKeyMap<? extends Traversable<Conversion>> composeConversionMap() {
@@ -1479,7 +1452,7 @@ public final class StreamedDatabaseReader {
                     throw new IOException();
                 }
 
-                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new AgentAcceptationPair[0], new SentenceSpan[0], 0);
+                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new AgentAcceptationPair[0], new SentenceSpan[0], 0, 0);
             }
             else {
                 final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
@@ -1534,7 +1507,7 @@ public final class StreamedDatabaseReader {
                 final ImmutableIntSet insertedSentences = readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
                 insertMissingSentences(spans, insertedSentences);
-                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length);
+                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, correlationArrayIdMap.length);
             }
         }
         finally {
