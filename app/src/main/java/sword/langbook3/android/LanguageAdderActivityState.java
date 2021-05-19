@@ -15,7 +15,7 @@ import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.collections.SortUtils.equal;
 
 public final class LanguageAdderActivityState implements Parcelable {
 

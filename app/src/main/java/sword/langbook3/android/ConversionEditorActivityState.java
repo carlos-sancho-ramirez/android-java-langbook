@@ -21,7 +21,7 @@ import sword.collections.SortUtils;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.collections.SortUtils.equal;
 
 public final class ConversionEditorActivityState implements Parcelable {
 

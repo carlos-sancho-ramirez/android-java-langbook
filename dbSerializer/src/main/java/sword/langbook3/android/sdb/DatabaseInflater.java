@@ -28,8 +28,6 @@ import sword.database.DbInserter;
 import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.ImmutableListUtils;
-import sword.langbook3.android.collections.MutableIntListUtils;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
@@ -479,14 +477,14 @@ public final class DatabaseInflater {
                     }
 
                     modifiedKnownCorrelationIds.removeAt(0);
-                    MutableIntListUtils.set(modifiedKnownCorrelationIds, 0, 0);
+                    modifiedKnownCorrelationIds.put(0, 0);
                     modifiedCorrelationArray = builder.build();
                 }
 
                 final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(0);
                 final ImmutableIntKeyMap<String> newCorrelation = oldCorrelation.put(alphabet, oldCorrelation.get(alphabet).substring(length));
                 modifiedCorrelationArray = modifiedCorrelationArray.skip(1).prepend(newCorrelation);
-                MutableIntListUtils.set(modifiedKnownCorrelationIds, 0, 0);
+                modifiedKnownCorrelationIds.put(0, 0);
             }
 
             final ImmutableIntKeyMap<String> firstCorrelation = modifiedCorrelationArray.valueAt(0);
@@ -524,7 +522,7 @@ public final class DatabaseInflater {
 
                     modifiedCorrelationArray = builder.build();
                     modifiedKnownCorrelationIds.removeAt(currentSize - 1);
-                    MutableIntListUtils.set(modifiedKnownCorrelationIds, currentSize - 2, 0);
+                    modifiedKnownCorrelationIds.put(currentSize - 2, 0);
                 }
 
                 final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
@@ -535,8 +533,8 @@ public final class DatabaseInflater {
                 }
 
                 final ImmutableIntKeyMap<String> newCorrelation = oldCorrelation.put(alphabet, oldText.substring(0, substringLimit));
-                modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1).append(newCorrelation);
-                MutableIntListUtils.set(modifiedKnownCorrelationIds, modifiedKnownCorrelationIds.size() - 1, 0);
+                modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1).append(newCorrelation);
+                modifiedKnownCorrelationIds.put(modifiedKnownCorrelationIds.size() - 1, 0);
             }
 
             final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
@@ -544,7 +542,7 @@ public final class DatabaseInflater {
                 // All fine
             }
             else if (!lastCorrelation.anyMatch(text -> !text.isEmpty())) {
-                modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1);
+                modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1);
                 modifiedKnownCorrelationIds.removeAt(modifiedKnownCorrelationIds.size() - 1);
             }
             else {
@@ -553,7 +551,7 @@ public final class DatabaseInflater {
 
             if (!_startAdder.isEmpty()) {
                 modifiedCorrelationArray = modifiedCorrelationArray.prepend(_startAdder);
-                MutableIntListUtils.prepend(modifiedKnownCorrelationIds, _register.startAdderId);
+                modifiedKnownCorrelationIds.prepend(_register.startAdderId);
             }
 
             if (!_endAdder.isEmpty()) {

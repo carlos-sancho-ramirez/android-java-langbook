@@ -42,7 +42,7 @@ import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.collections.SortUtils.equal;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 

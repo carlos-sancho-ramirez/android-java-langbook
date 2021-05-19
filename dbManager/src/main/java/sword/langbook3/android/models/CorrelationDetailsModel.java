@@ -3,7 +3,7 @@ package sword.langbook3.android.models;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Predicate;
-import sword.langbook3.android.collections.EqualUtils;
+import sword.collections.SortUtils;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class CorrelationDetailsModel<AlphabetId, CorrelationId, AcceptationId> {
@@ -52,7 +52,7 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId, Acceptatio
             throw new IllegalArgumentException();
         }
 
-        final Predicate<String> isNull = EqualUtils::isNull;
+        final Predicate<String> isNull = SortUtils::isNull;
         if (correlation.isEmpty() || correlation.anyMatch(isNull)) {
             throw new IllegalArgumentException();
         }
@@ -70,7 +70,7 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId, Acceptatio
         }
 
         if (!correlationKeySet.equals(relatedCorrelationsByAlphabet.keySet()) ||
-                relatedCorrelationsByAlphabet.anyMatch(EqualUtils::isNull)) {
+                relatedCorrelationsByAlphabet.anyMatch(SortUtils::isNull)) {
             throw new IllegalArgumentException();
         }
 

@@ -34,7 +34,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.EqualUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
@@ -58,7 +57,7 @@ import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.SynonymTranslationResult;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.collections.SortUtils.equal;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
@@ -1402,7 +1401,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .where(bunchAcceptations.getAcceptationColumnIndex(), acceptation)
                 .select(bunchAcceptations.getAgentColumnIndex());
 
-        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).filter(EqualUtils::nonNull).toSet().toImmutable();
+        return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).filter(SortUtils::nonNull).toSet().toImmutable();
     }
 
     /**

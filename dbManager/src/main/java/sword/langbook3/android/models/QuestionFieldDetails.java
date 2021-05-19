@@ -2,7 +2,7 @@ package sword.langbook3.android.models;
 
 import sword.langbook3.android.db.LangbookDbSchema;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.collections.SortUtils.equal;
 
 public final class QuestionFieldDetails<AlphabetId, RuleId> {
     public final AlphabetId alphabet;

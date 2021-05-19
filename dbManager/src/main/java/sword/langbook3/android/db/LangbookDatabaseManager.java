@@ -26,7 +26,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.ImmutableListUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
@@ -36,7 +35,7 @@ import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
 import sword.langbook3.android.models.SentenceSpan;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.collections.SortUtils.equal;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
@@ -257,7 +256,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             }
 
             final ImmutableCorrelation<AlphabetId> newCorrelation = oldCorrelation.put(alphabet, oldText.substring(0, substringLimit));
-            modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1).append(newCorrelation);
+            modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1).append(newCorrelation);
         }
 
         final ImmutableCorrelation<AlphabetId> lastCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
@@ -266,7 +265,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 return null;
             }
 
-            modifiedCorrelationArray = ImmutableListUtils.skipLast(modifiedCorrelationArray, 1);
+            modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1);
         }
 
         if (!details.startAdder.isEmpty()) {

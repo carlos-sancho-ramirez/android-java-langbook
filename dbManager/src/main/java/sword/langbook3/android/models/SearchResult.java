@@ -4,7 +4,7 @@ import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AcceptationIdInterface;
 import sword.langbook3.android.db.AgentIdInterface;
 
-import static sword.langbook3.android.collections.EqualUtils.equal;
+import static sword.collections.SortUtils.equal;
 
 public final class SearchResult<ID, RuleId> {
 
