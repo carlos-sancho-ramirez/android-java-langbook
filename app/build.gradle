@@ -81,6 +81,6 @@ dependencies {
     implementation project(':dbManager')
     implementation project(':dbSerializer')
     implementation project(':dbSchema')
-    implementation project(':database')
+    implementation "com.github.carlos-sancho-ramirez:lib-java-database:$DATABASE_VERSION"
     implementation "com.github.carlos-sancho-ramirez:lib-java-collections:$COLLECTIONS_VERSION"
 }

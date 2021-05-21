@@ -16,7 +16,7 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':collectionExtensions')
-    implementation project(':database')
+    implementation "com.github.carlos-sancho-ramirez:lib-java-database:$DATABASE_VERSION"
     implementation project(':dbSchema')
     implementation "com.github.carlos-sancho-ramirez:lib-java-collections:$COLLECTIONS_VERSION"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.4.0'

@@ -2,7 +2,7 @@ package sword.langbook3.android.models;
 
 import sword.langbook3.android.db.BunchSetIdInterface;
 
-import static sword.database.CommonUtils.equal;
+import static sword.collections.SortUtils.equal;
 
 public final class AgentRegister<CorrelationId, BunchSetId extends BunchSetIdInterface, RuleId> {
     public final BunchSetId targetBunchSetId;
