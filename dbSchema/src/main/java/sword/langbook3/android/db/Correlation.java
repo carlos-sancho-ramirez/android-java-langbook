@@ -69,7 +69,7 @@ public interface Correlation<AlphabetId> extends Map<AlphabetId, String> {
 
         @Override
         public String toString() {
-            return "Correlation.Entry("+ alphabet + ", " + text + ')';
+            return "Correlation.Entry(" + alphabet + ", " + text + ')';
         }
 
         @Override

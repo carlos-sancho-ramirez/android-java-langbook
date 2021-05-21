@@ -980,7 +980,7 @@ public final class StreamedDatabaseReader {
                 }
                 else {
                     correlationId = i + 1;
-                    insertCorrelation(_db, correlationId, corr);;
+                    insertCorrelation(_db, correlationId, corr);
                 }
                 result[i] = correlationId;
             }

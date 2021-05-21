@@ -826,7 +826,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public AgentId addAgent(
+    public final AgentId addAgent(
             ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
@@ -963,7 +963,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean updateAgent(
+    public final boolean updateAgent(
             AgentId agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelation<AlphabetId> startAdder,
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
@@ -1143,7 +1143,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public void removeAgent(AgentId agentId) {
+    public final void removeAgent(AgentId agentId) {
         // This implementation has lot of holes.
         // 1. It is assuming that there is no chained agents
         // 2. It is assuming that agents sets only contains a single agent.
@@ -1445,7 +1445,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean addAcceptationInBunch(BunchId bunch, AcceptationId acceptation) {
+    public final boolean addAcceptationInBunch(BunchId bunch, AcceptationId acceptation) {
         if (isAcceptationStaticallyInBunch(bunch, acceptation)) {
             return false;
         }
@@ -1470,7 +1470,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean removeAcceptationFromBunch(BunchId bunch, AcceptationId acceptation) {
+    public final boolean removeAcceptationFromBunch(BunchId bunch, AcceptationId acceptation) {
         if (LangbookDeleter.deleteBunchAcceptation(_db, bunch, acceptation, null)) {
             final ImmutableSet.Builder<BunchId> allUpdatedBunchesBuilder = new ImmutableHashSet.Builder<>();
             ImmutableSet<BunchId> updatedBunches = new ImmutableHashSet.Builder<BunchId>().add(bunch).build();
@@ -1508,7 +1508,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public LanguageCreationResult<LanguageId, AlphabetId> addLanguage(String code) {
+    public final LanguageCreationResult<LanguageId, AlphabetId> addLanguage(String code) {
         if (findLanguageByCode(code) != null) {
             return null;
         }
@@ -1523,7 +1523,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean removeLanguage(LanguageId language) {
+    public final boolean removeLanguage(LanguageId language) {
         // For now, if there is a bunch whose concept is only linked to acceptations of the language to be removed,
         // the removal is rejected, as there will not be any way to access that bunch any more in an AcceptationsDetailsActivity.
         // Only exception to the previous rule is the case where all acceptations within the bunch belongs to the language that is about to be removed.
@@ -1593,7 +1593,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean addAlphabetCopyingFromOther(AlphabetId alphabet, AlphabetId sourceAlphabet) {
+    public final boolean addAlphabetCopyingFromOther(AlphabetId alphabet, AlphabetId sourceAlphabet) {
         if (isAlphabetPresent(alphabet)) {
             return false;
         }
@@ -1722,7 +1722,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean addAlphabetAsConversionTarget(Conversion<AlphabetId> conversion) {
+    public final boolean addAlphabetAsConversionTarget(Conversion<AlphabetId> conversion) {
         final LanguageId language = getLanguageFromAlphabet(conversion.getSourceAlphabet());
         if (language == null) {
             return false;
@@ -1747,7 +1747,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean removeAlphabet(AlphabetId alphabet) {
+    public final boolean removeAlphabet(AlphabetId alphabet) {
         // There must be at least another alphabet in the same language to avoid leaving the language without alphabets
         if (alphabetsWithinLanguage(alphabet).size() < 2) {
             return false;
@@ -1833,13 +1833,13 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public AcceptationId addAcceptation(ConceptId concept, ImmutableCorrelationArray<AlphabetId> correlationArray) {
+    public final AcceptationId addAcceptation(ConceptId concept, ImmutableCorrelationArray<AlphabetId> correlationArray) {
         final CorrelationArrayId correlationArrayId = obtainCorrelationArray(correlationArray.map(this::obtainCorrelation));
         return addAcceptation(concept, correlationArrayId);
     }
 
     @Override
-    public boolean updateAcceptationCorrelationArray(AcceptationId acceptation, ImmutableCorrelationArray<AlphabetId> correlationArray) {
+    public final boolean updateAcceptationCorrelationArray(AcceptationId acceptation, ImmutableCorrelationArray<AlphabetId> correlationArray) {
         final CorrelationArrayId newCorrelationArrayId = obtainCorrelationArray(correlationArray.map(this::obtainCorrelation));
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
@@ -1923,7 +1923,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean removeAcceptation(AcceptationId acceptation) {
+    public final boolean removeAcceptation(AcceptationId acceptation) {
         if (!canAcceptationBeRemoved(acceptation)) {
             return false;
         }
@@ -2254,12 +2254,12 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean shareConcept(AcceptationId linkedAcceptation, ConceptId oldConcept) {
+    public final boolean shareConcept(AcceptationId linkedAcceptation, ConceptId oldConcept) {
         return mergeConcepts(conceptFromAcceptation(linkedAcceptation), oldConcept);
     }
 
     @Override
-    public void duplicateAcceptationWithThisConcept(AcceptationId linkedAcceptation, ConceptId concept) {
+    public final void duplicateAcceptationWithThisConcept(AcceptationId linkedAcceptation, ConceptId concept) {
         if (concept == null) {
             throw new AssertionError();
         }
@@ -2392,7 +2392,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean replaceConversion(Conversion<AlphabetId> conversion) {
+    public final boolean replaceConversion(Conversion<AlphabetId> conversion) {
         final AlphabetId sourceAlphabet = conversion.getSourceAlphabet();
         final AlphabetId targetAlphabet = conversion.getTargetAlphabet();
         final LanguageId languageObj = getLanguageFromAlphabet(sourceAlphabet);
@@ -2439,7 +2439,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public QuizId obtainQuiz(BunchId bunch, ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
+    public final QuizId obtainQuiz(BunchId bunch, ImmutableList<QuestionFieldDetails<AlphabetId, RuleId>> fields) {
         final Integer existingSetId = findQuestionFieldSet(fields);
         final QuizId existingQuizId = (existingSetId != null)? findQuizDefinition(bunch, existingSetId) : null;
 
@@ -2458,13 +2458,13 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public void removeQuiz(QuizId quizId) {
+    public final void removeQuiz(QuizId quizId) {
         deleteKnowledgeForQuiz(_db, quizId);
         deleteQuiz(_db, quizId);
     }
 
     @Override
-    public void updateScore(QuizId quizId, AcceptationId acceptation, int score) {
+    public final void updateScore(QuizId quizId, AcceptationId acceptation, int score) {
         if (score < MIN_ALLOWED_SCORE || score > MAX_ALLOWED_SCORE) {
             throw new IllegalArgumentException();
         }
@@ -2497,24 +2497,24 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public void addDefinition(ConceptId baseConcept, ConceptId concept, ImmutableSet<ConceptId> complements) {
+    public final void addDefinition(ConceptId baseConcept, ConceptId concept, ImmutableSet<ConceptId> complements) {
         LangbookDbInserter.insertComplementedConcept(_db, baseConcept, concept, obtainConceptComposition(complements));
     }
 
     @Override
-    public boolean removeDefinition(ConceptId complementedConcept) {
+    public final boolean removeDefinition(ConceptId complementedConcept) {
         // TODO: This method should remove any orphan concept composition to avoid rubbish
         return deleteComplementedConcept(_db, complementedConcept);
     }
 
     @Override
-    public void updateSearchHistory(AcceptationId dynamicAcceptation) {
+    public final void updateSearchHistory(AcceptationId dynamicAcceptation) {
         deleteSearchHistoryForAcceptation(_db, dynamicAcceptation);
         insertSearchHistoryEntry(_db, dynamicAcceptation);
     }
 
     @Override
-    public boolean removeSentence(SentenceId sentenceId) {
+    public final boolean removeSentence(SentenceId sentenceId) {
         final SymbolArrayId symbolArrayId = getSentenceSymbolArray(sentenceId);
         if (symbolArrayId == null || !deleteSentence(_db, sentenceId)) {
             return false;
@@ -2559,7 +2559,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public SentenceId addSentence(ConceptId concept, String text, Set<SentenceSpan<AcceptationId>> spans) {
+    public final SentenceId addSentence(ConceptId concept, String text, Set<SentenceSpan<AcceptationId>> spans) {
         if (!checkValidTextAndSpans(text, spans)) {
             return null;
         }
@@ -2591,7 +2591,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     @Override
-    public boolean updateSentenceTextAndSpans(SentenceId sentenceId, String newText, Set<SentenceSpan<AcceptationId>> newSpans) {
+    public final boolean updateSentenceTextAndSpans(SentenceId sentenceId, String newText, Set<SentenceSpan<AcceptationId>> newSpans) {
         final SymbolArrayId oldSymbolArrayId = getSentenceSymbolArray(sentenceId);
         if (oldSymbolArrayId == null || !checkValidTextAndSpans(newText, newSpans)) {
             return false;

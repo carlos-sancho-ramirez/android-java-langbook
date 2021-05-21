@@ -488,15 +488,14 @@ public final class DatabaseInflater {
             }
 
             final ImmutableIntKeyMap<String> firstCorrelation = modifiedCorrelationArray.valueAt(0);
-            if (!firstCorrelation.anyMatch(String::isEmpty)) {
-                // All fine
-            }
-            else if (!firstCorrelation.anyMatch(text -> !text.isEmpty())) {
-                modifiedCorrelationArray = modifiedCorrelationArray.removeAt(0);
-                modifiedKnownCorrelationIds.removeAt(0);
-            }
-            else {
-                return null;
+            if (firstCorrelation.anyMatch(String::isEmpty)) {
+                if (!firstCorrelation.anyMatch(text -> !text.isEmpty())) {
+                    modifiedCorrelationArray = modifiedCorrelationArray.removeAt(0);
+                    modifiedKnownCorrelationIds.removeAt(0);
+                }
+                else {
+                    return null;
+                }
             }
 
             for (IntKeyMap.Entry<String> entry : _endMatcher.entries()) {
@@ -538,15 +537,14 @@ public final class DatabaseInflater {
             }
 
             final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
-            if (!lastCorrelation.anyMatch(String::isEmpty)) {
-                // All fine
-            }
-            else if (!lastCorrelation.anyMatch(text -> !text.isEmpty())) {
-                modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1);
-                modifiedKnownCorrelationIds.removeAt(modifiedKnownCorrelationIds.size() - 1);
-            }
-            else {
-                return null;
+            if (lastCorrelation.anyMatch(String::isEmpty)) {
+                if (!lastCorrelation.anyMatch(text -> !text.isEmpty())) {
+                    modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1);
+                    modifiedKnownCorrelationIds.removeAt(modifiedKnownCorrelationIds.size() - 1);
+                }
+                else {
+                    return null;
+                }
             }
 
             if (!_startAdder.isEmpty()) {
