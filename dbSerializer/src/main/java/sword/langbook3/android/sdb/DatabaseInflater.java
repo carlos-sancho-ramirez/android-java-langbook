@@ -736,7 +736,7 @@ public final class DatabaseInflater {
         }
     }
 
-    private ImmutableIntKeyMap<String> concatenateTexts(Traversable<ImmutableIntKeyMap<String>> correlationArray) {
+    static ImmutableIntKeyMap<String> concatenateTexts(Traversable<ImmutableIntKeyMap<String>> correlationArray) {
         if (correlationArray.isEmpty()) {
             return ImmutableIntKeyMap.empty();
         }
@@ -769,10 +769,6 @@ public final class DatabaseInflater {
         final ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntList> endAdderPair = getCorrelationArrayWithText(register.endAdderId);
         final ImmutableList<ImmutableIntKeyMap<String>> endAdderArray = endAdderPair.left;
         final ImmutableIntList endAdderCorrelationIds = endAdderPair.right;
-
-        if (startAdderArray.size() > 1 || endAdderArray.size() > 1) {
-            throw new AssertionError("Should be not possible with the current serializing version");
-        }
 
         final boolean modifyWords = !startMatcher.equals(concatenateTexts(startAdderArray)) || !endMatcher.equals(concatenateTexts(endAdderArray));
 

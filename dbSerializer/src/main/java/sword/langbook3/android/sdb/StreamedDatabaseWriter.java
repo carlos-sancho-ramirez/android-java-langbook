@@ -54,10 +54,11 @@ import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.collections.ImmutableIntPair;
-import sword.langbook3.android.collections.SyncCacheIntPairMap;
+import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
+import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 
 public final class StreamedDatabaseWriter {
@@ -71,6 +72,12 @@ public final class StreamedDatabaseWriter {
      * This is expected not to be present in the Database.
      */
     private final int nullCorrelationSetId = 0;
+
+    /**
+     * Reserved array id for the empty correlation arrays.
+     * This is expected not to be present in the Database.
+     */
+    private final int emptyCorrelationArrayId = 0;
 
     private static class CharWriter implements ProcedureWithIOException<Character> {
 
@@ -559,7 +566,15 @@ public final class StreamedDatabaseWriter {
         final ImmutableList.Builder<ImmutableIntList> builder = new ImmutableList.Builder<>();
         final MutableIntPairMap lengthFrequencies = MutableIntPairMap.empty();
         final ImmutableIntPairMap.Builder idMapBuilder = new ImmutableIntPairMap.Builder();
+
         int index = 0;
+        final boolean shouldEmptyCorrelationBePresent = exportable.contains(emptyCorrelationArrayId);
+        if (shouldEmptyCorrelationBePresent) {
+            builder.add(ImmutableIntList.empty());
+            idMapBuilder.put(nullCorrelationSetId, index++);
+            lengthFrequencies.put(0, 1);
+        }
+
         try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();
@@ -889,23 +904,44 @@ public final class StreamedDatabaseWriter {
         return !b.isEmpty() && (a.isEmpty() || a.min() < b.min() || a.min() == b.min() && setLessThan(a.removeAt(0), b.removeAt(0)));
     }
 
-    private int getSingleCorrelationIdFromArray(int arrayId) {
-        final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getArrayIdColumnIndex(), arrayId)
-                .select(table.getCorrelationColumnIndex());
-
-        try (DbResult dbResult = _db.select(query)) {
-            final int correlationId = dbResult.next().get(0).toInt();
-            if (dbResult.hasNext()) {
-                throw new UnsupportedOperationException("Only agents with adders with just one correlationId can be serialised");
-            }
-
-            return correlationId;
+    private ImmutableIntKeyMap<String> getCorrelation(int correlationId) {
+        if (correlationId == LangbookDbSchema.EMPTY_CORRELATION_ID) {
+            return ImmutableIntKeyMap.empty();
         }
+
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(symbolArrays, table.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(table.getCorrelationIdColumnIndex(), correlationId)
+                .select(table.getAlphabetColumnIndex(), table.columns().size() + symbolArrays.getStrColumnIndex());
+
+        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                result.put(row.get(0).toInt(), row.get(1).toText());
+            }
+        }
+
+        return result.toImmutable();
     }
 
-    private ImmutableIntList writeAgents(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap correlationIdMap) throws IOException {
+    private ImmutableIntList getCorrelationArray(int arrayId) {
+        if (arrayId == LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID) {
+            return ImmutableIntList.empty();
+        }
+
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(correlationArrays)
+                .where(correlationArrays.getArrayIdColumnIndex(), arrayId)
+                .orderBy(correlationArrays.getArrayPositionColumnIndex())
+                .select(correlationArrays.getCorrelationColumnIndex());
+
+        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toList().toImmutable();
+    }
+
+    private ImmutableIntList writeAgents(ImmutableIntPairMap conceptIdMap, ImmutableIntPairMap correlationIdMap, ImmutableIntPairMap correlationArrayIdMap) throws IOException {
         final ImmutableIntKeyMap<ImmutableIntSet> bunchSets = getBunchSets(conceptIdMap)
                 .put(LangbookDbSchema.Tables.bunchSets.nullReference(), ImmutableIntArraySet.empty());
 
@@ -976,7 +1012,6 @@ public final class StreamedDatabaseWriter {
         _obs.writeHuffmanSymbol(naturalNumberTable, agentCount);
 
         final MutableIntList agentsWithRule = MutableIntList.empty();
-        final SyncCacheIntPairMap arrayToSimpleCorrelationMap = new SyncCacheIntPairMap(this::getSingleCorrelationIdFromArray);
         if (!agents.isEmpty()) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
             final IntWriter intWriter = new IntWriter(nat3Table);
@@ -990,7 +1025,10 @@ public final class StreamedDatabaseWriter {
             final int maxBunch = StreamedDatabaseConstants.minValidConcept + conceptIdMap.size() - 1;
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(minSource, maxBunch);
 
+            final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> correlationSyncCache = new SyncCacheIntKeyNonNullValueMap<>(this::getCorrelation);
+            final SyncCacheIntKeyNonNullValueMap<ImmutableIntList> correlationArraysSyncCache = new SyncCacheIntKeyNonNullValueMap<>(this::getCorrelationArray);
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.size() - 1);
+            final RangedIntegerHuffmanTable correlationArrayTable = new RangedIntegerHuffmanTable(0, correlationArrayIdMap.size() - 1);
             ImmutableIntSet lastTargets = ImmutableIntArraySet.empty();
             ImmutableIntSet lastSources = ImmutableIntArraySet.empty();
             for (AgentRegister agent : agents) {
@@ -1033,15 +1071,16 @@ public final class StreamedDatabaseWriter {
                     minDiff = diffBunches.min();
                 }
 
-                final int startAdderCorrelationId = (agent.startAdderId == 0)? 0 : arrayToSimpleCorrelationMap.get(agent.startAdderId);
-                final int endAdderCorrelationId = (agent.endAdderId == 0)? 0 : arrayToSimpleCorrelationMap.get(agent.endAdderId);
-
                 _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(agent.startMatcherId));
-                _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(startAdderCorrelationId));
+                _obs.writeHuffmanSymbol(correlationArrayTable, correlationArrayIdMap.get(agent.startAdderId));
                 _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(agent.endMatcherId));
-                _obs.writeHuffmanSymbol(correlationTable, correlationIdMap.get(endAdderCorrelationId));
+                _obs.writeHuffmanSymbol(correlationArrayTable, correlationArrayIdMap.get(agent.endAdderId));
 
-                final boolean hasRule = agent.startMatcherId != startAdderCorrelationId || agent.endMatcherId != endAdderCorrelationId;
+                final ImmutableIntKeyMap<String> startMatcher = correlationSyncCache.get(agent.startMatcherId);
+                final ImmutableIntKeyMap<String> plainStartAdder = concatenateTexts(correlationArraysSyncCache.get(agent.startAdderId).map(correlationSyncCache::get));
+                final ImmutableIntKeyMap<String> endMatcher = correlationSyncCache.get(agent.endMatcherId);
+                final ImmutableIntKeyMap<String> plainEndAdder = concatenateTexts(correlationArraysSyncCache.get(agent.endAdderId).map(correlationSyncCache::get));
+                final boolean hasRule = !startMatcher.equalMap(plainStartAdder) || !endMatcher.equalMap(plainEndAdder);
                 if (hasRule) {
                     final int rule = conceptIdMap.get(agent.rule);
                     _obs.writeHuffmanSymbol(conceptTable, rule);
@@ -1140,6 +1179,20 @@ public final class StreamedDatabaseWriter {
         }
     }
 
+    private void listCorrelationArraysUsedAsAdder(ImmutableIntSet.Builder builder) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(table.getStartAdderArrayColumnIndex(), table.getEndAdderArrayColumnIndex());
+
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                builder.add(row.get(0).toInt());
+                builder.add(row.get(1).toInt());
+            }
+        }
+    }
+
     private ExportableAcceptationsAndCorrelationArrays listExportableAcceptationsAndCorrelationArrays() {
         final ImmutableIntSet ruledAcceptations = listRuledAcceptations();
         final ImmutableIntSet searchableStaticAcceptations = listSearchableStaticAcceptations();
@@ -1162,6 +1215,7 @@ public final class StreamedDatabaseWriter {
             }
         }
 
+        listCorrelationArraysUsedAsAdder(correlationArrays);
         return new ExportableAcceptationsAndCorrelationArrays(acceptations.build(), correlationArrays.build());
     }
 
@@ -1181,33 +1235,9 @@ public final class StreamedDatabaseWriter {
         return correlations.build();
     }
 
-    private ImmutableIntSet listAgentAdderCorrelations(int adderColumn) {
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
-        final DbQuery query = new DbQuery.Builder(agents)
-                .join(correlationArrays, adderColumn, correlationArrays.getArrayIdColumnIndex())
-                .select(agents.columns().size() + correlationArrays.getCorrelationColumnIndex());
-
-        final ImmutableIntSet.Builder correlations = new ImmutableIntSetCreator();
-        try (DbResult result = _db.select(query)) {
-            while (result.hasNext()) {
-                correlations.add(result.next().get(0).toInt());
-            }
-        }
-
-        return correlations.build();
-    }
-
-    private ImmutableIntSet listAgentCorrelations() {
-        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
-        return listAgentMatcherCorrelations()
-                .addAll(listAgentAdderCorrelations(agents.getStartAdderArrayColumnIndex()))
-                .addAll(listAgentAdderCorrelations(agents.getEndAdderArrayColumnIndex()));
-    }
-
     private ImmutableIntSet listExportableCorrelations(ImmutableIntSet correlationArrays) {
         final ImmutableIntSet.Builder correlations = new ImmutableIntSetCreator();
-        for (int corrId : listAgentCorrelations()) {
+        for (int corrId : listAgentMatcherCorrelations()) {
             correlations.add(corrId);
         }
 
@@ -1639,7 +1669,7 @@ public final class StreamedDatabaseWriter {
             writeBunchAcceptations(conceptIdMap, accIdMap);
 
             setProgress(0.8f, "Writing agents");
-            final ImmutableIntList agentsWithRule = writeAgents(conceptIdMap, correlationIdMap);
+            final ImmutableIntList agentsWithRule = writeAgents(conceptIdMap, correlationIdMap, correlationArrayIdMap);
 
             setProgress(0.9f, "Writing dynamic acceptations");
             final MutableIntPairMap extendedAccIdMap = accIdMap.mutate();

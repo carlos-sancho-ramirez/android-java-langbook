@@ -59,6 +59,7 @@ import sword.langbook3.android.sdb.models.AgentRegister;
 
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
+import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
 
 public final class StreamedDatabaseReader {
 
@@ -1093,32 +1094,49 @@ public final class StreamedDatabaseReader {
         }
     }
 
-    private static final class CorrelationArrayIdSupplier implements IntSupplier {
-        private final int _initialAssignedId;
-        private int _lastAssignedId;
-
-        CorrelationArrayIdSupplier(int lastAssignedId) {
-            _initialAssignedId = lastAssignedId;
-            _lastAssignedId = lastAssignedId;
+    private ImmutableIntKeyMap<String> getCorrelation(int correlationId) {
+        if (correlationId == LangbookDbSchema.EMPTY_CORRELATION_ID) {
+            return ImmutableIntKeyMap.empty();
         }
 
-        @Override
-        public int get() {
-            return ++_lastAssignedId;
+        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
+        final DbQuery query = new DbQuery.Builder(table)
+                .join(symbolArrays, table.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(table.getCorrelationIdColumnIndex(), correlationId)
+                .select(table.getAlphabetColumnIndex(), table.columns().size() + symbolArrays.getStrColumnIndex());
+
+        final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                result.put(row.get(0).toInt(), row.get(1).toText());
+            }
         }
 
-        public int assignedCount() {
-            return _lastAssignedId - _initialAssignedId;
+        return result.toImmutable();
+    }
+
+    private ImmutableIntList getCorrelationArray(int arrayId) {
+        if (arrayId == LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID) {
+            return ImmutableIntList.empty();
         }
+
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(correlationArrays)
+                .where(correlationArrays.getArrayIdColumnIndex(), arrayId)
+                .orderBy(correlationArrays.getArrayPositionColumnIndex())
+                .select(correlationArrays.getCorrelationColumnIndex());
+
+        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toList().toImmutable();
     }
 
     private AgentReadResult readAgents(
-            InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap, int lastAssignedCorrelationArrayId) throws IOException {
+            InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap, int[] correlationArrayIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
         final MutableIntSet agentsWithRule = MutableIntArraySet.empty();
-        final CorrelationArrayIdSupplier correlationArrayIdSupplier = new CorrelationArrayIdSupplier(lastAssignedCorrelationArrayId);
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -1145,6 +1163,10 @@ public final class StreamedDatabaseReader {
 
             final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(validConcepts.min(), validConcepts.max());
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
+            final RangedIntegerHuffmanTable correlationArrayTable = new RangedIntegerHuffmanTable(0, correlationArrayIdMap.length - 1);
+
+            final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> correlationSyncCache = new SyncCacheIntKeyNonNullValueMap<>(this::getCorrelation);
+            final SyncCacheIntKeyNonNullValueMap<ImmutableIntList> correlationArraysSyncCache = new SyncCacheIntKeyNonNullValueMap<>(this::getCorrelationArray);
 
             ImmutableIntSet lastTargets = ImmutableIntArraySet.empty();
             ImmutableIntSet lastSources = ImmutableIntArraySet.empty();
@@ -1187,11 +1209,16 @@ public final class StreamedDatabaseReader {
                 }
 
                 final int startMatcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final int startAdderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                final int startAdderArrayId = correlationArrayIdMap[ibs.readHuffmanSymbol(correlationArrayTable)];
                 final int endMatcherId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
-                final int endAdderId = correlationIdMap[ibs.readHuffmanSymbol(correlationTable)];
+                final int endAdderArrayId = correlationArrayIdMap[ibs.readHuffmanSymbol(correlationArrayTable)];
 
-                final boolean hasRule = startMatcherId != startAdderId || endMatcherId != endAdderId;
+                final ImmutableIntKeyMap<String> startMatcher = correlationSyncCache.get(startMatcherId);
+                final ImmutableIntKeyMap<String> plainStartAdder = concatenateTexts(correlationArraysSyncCache.get(startAdderArrayId).map(correlationSyncCache::get));
+                final ImmutableIntKeyMap<String> endMatcher = correlationSyncCache.get(endMatcherId);
+                final ImmutableIntKeyMap<String> plainEndAdder = concatenateTexts(correlationArraysSyncCache.get(endAdderArrayId).map(correlationSyncCache::get));
+
+                final boolean hasRule = !startMatcher.equalMap(plainStartAdder) || !endMatcher.equalMap(plainEndAdder);
                 final int rule = hasRule?
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
@@ -1200,8 +1227,6 @@ public final class StreamedDatabaseReader {
                 final int sourceBunchSetId = insertedBunchSets.get(sourceBunches);
                 final int diffBunchSetId = insertedBunchSets.get(diffBunches);
 
-                final int startAdderArrayId = (startAdderId == 0)? 0 : obtainCorrelationArray(_db, new ImmutableIntList.Builder().append(startAdderId).build(), correlationArrayIdSupplier);
-                final int endAdderArrayId = (endAdderId == 0)? 0 : obtainCorrelationArray(_db, new ImmutableIntList.Builder().append(endAdderId).build(), correlationArrayIdSupplier);
                 final AgentRegister register = new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderArrayId, endMatcherId, endAdderArrayId, rule);
                 final int agentId = insertAgent(_db, register);
 
@@ -1213,7 +1238,7 @@ public final class StreamedDatabaseReader {
             }
         }
 
-        return new AgentReadResult(builder.build(), agentsWithRule.toImmutable(), correlationArrayIdSupplier.assignedCount());
+        return new AgentReadResult(builder.build(), agentsWithRule.toImmutable());
     }
 
     public static class AgentAcceptationPair {
@@ -1396,12 +1421,10 @@ public final class StreamedDatabaseReader {
     private static final class AgentReadResult {
         final ImmutableIntKeyMap<AgentBunches> agents;
         final ImmutableIntSet agentsWithRule;
-        final int numberOfAddedCorrelationArrays;
 
-        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet agentsWithRule, int numberOfAddedCorrelationArrays) {
+        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet agentsWithRule) {
             this.agents = agents;
             this.agentsWithRule = agentsWithRule;
-            this.numberOfAddedCorrelationArrays = numberOfAddedCorrelationArrays;
         }
     }
 
@@ -1514,7 +1537,7 @@ public final class StreamedDatabaseReader {
 
                 // Import agents
                 setProgress(0.8f, "Reading agents");
-                final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap, correlationArrayIdMap.length);
+                final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap, correlationArrayIdMap);
 
                 // Import relevant dynamic acceptations
                 setProgress(0.9f, "Reading referenced dynamic acceptations");
@@ -1531,8 +1554,7 @@ public final class StreamedDatabaseReader {
                 final ImmutableIntSet insertedSentences = readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
                 insertMissingSentences(spans, insertedSentences);
-                final int numberOfCorrelationArrays = correlationArrayIdMap.length + agentReadResult.numberOfAddedCorrelationArrays;
-                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, numberOfCorrelationArrays);
+                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, correlationArrayIdMap.length);
             }
         }
         finally {
