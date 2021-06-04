@@ -2,6 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.collections.Function;
 import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.IntResultFunction;
 import sword.collections.Map;
@@ -29,6 +30,10 @@ public final class ImmutableCorrelationArray<AlphabetId> implements Traversable<
     @Override
     public Traverser<ImmutableCorrelation<AlphabetId>> iterator() {
         return array.iterator();
+    }
+
+    public ImmutableIntSet indexes() {
+        return array.indexes();
     }
 
     public ImmutableCorrelationArray<AlphabetId> filter(Predicate<? super ImmutableCorrelation<AlphabetId>> predicate) {

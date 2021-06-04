@@ -523,9 +523,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return getAcceptationCorrelations(acceptation).left;
     }
 
-    ImmutableCorrelationArray<AlphabetId> getAcceptationCorrelationArrayWithText(AcceptationId acceptation) {
+    ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> getAcceptationCorrelationArrayWithText(AcceptationId acceptation) {
         final ImmutablePair<ImmutableList<CorrelationId>, ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>>> pair = getAcceptationCorrelations(acceptation);
-        return new ImmutableCorrelationArray<>(pair.left.map(pair.right::get));
+        return new ImmutablePair<>(new ImmutableCorrelationArray<>(pair.left.map(pair.right::get)), pair.left);
     }
 
     @Override
