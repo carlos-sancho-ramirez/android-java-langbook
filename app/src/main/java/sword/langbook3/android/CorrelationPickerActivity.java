@@ -38,6 +38,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CONCEPT = BundleKeys.CONCEPT;
         String CORRELATION_MAP = BundleKeys.CORRELATION_MAP;
+        String SAVE_ACCEPTATION = BundleKeys.SAVE_ACCEPTATION;
     }
 
     private interface SavedKeys {
@@ -54,6 +55,22 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     private ListView _listView;
     private ImmutableSet<ImmutableCorrelationArray<AlphabetId>> _options;
     private ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> _knownCorrelations;
+
+    /**
+     * Opens the correlation picker in order to build a new correlation array.
+     *
+     * This method is intended for defining correlation arrays for agent adders, where there is neither a concept nor an acceptation linked.
+     * In this case, this activity will not store anything into the database. Once a correlation array is selected, it will return the selected correlation array.
+     *
+     * @param activity Activity that opens this activity.
+     * @param requestCode Request code that will be used on {@link Activity#onActivityResult(int, int, android.content.Intent)}.
+     * @param texts Texts entered by the user in the WordEditorActivity.
+     */
+    public static void open(Activity activity, int requestCode, Correlation<AlphabetId> texts) {
+        final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
+        CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
+        activity.startActivityForResult(intent, requestCode);
+    }
 
     /**
      * Opens the correlation picker in order to build a new correlation array.
@@ -76,6 +93,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         }
 
+        intent.putExtra(ArgKeys.SAVE_ACCEPTATION, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -92,6 +110,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
         AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
+        intent.putExtra(ArgKeys.SAVE_ACCEPTATION, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -215,9 +234,19 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
+    private boolean mustSaveAcceptation() {
+        return getIntent().getBooleanExtra(ArgKeys.SAVE_ACCEPTATION, false);
+    }
+
     private void completeCorrelationPickingTask() {
         final AcceptationId existingAcceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
-        if (existingAcceptation == null) {
+        if (!mustSaveAcceptation()) {
+            final Intent intent = new Intent();
+            intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(_options.valueAt(_selection)));
+            setResult(RESULT_OK, intent);
+            finish();
+        }
+        else if (existingAcceptation == null) {
             MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
         }
         else {

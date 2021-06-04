@@ -20,6 +20,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.List;
@@ -36,10 +37,14 @@ import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.BunchIdParceler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.CorrelationArrayParceler;
 import sword.langbook3.android.db.CorrelationEntryListParceler;
+import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.db.ParcelableCorrelationArray;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.db.RuleIdManager;
 import sword.langbook3.android.db.RuleIdParceler;
@@ -49,10 +54,12 @@ import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
 
 public final class AgentEditorActivity extends Activity implements View.OnClickListener {
 
-    private static final int REQUEST_CODE_PICK_TARGET_BUNCH = 1;
-    private static final int REQUEST_CODE_PICK_SOURCE_BUNCH = 2;
-    private static final int REQUEST_CODE_PICK_DIFF_BUNCH = 3;
-    private static final int REQUEST_CODE_PICK_RULE = 4;
+    private static final int REQUEST_CODE_DEFINE_START_ADDER = 1;
+    private static final int REQUEST_CODE_DEFINE_END_ADDER = 2;
+    private static final int REQUEST_CODE_PICK_TARGET_BUNCH = 3;
+    private static final int REQUEST_CODE_PICK_SOURCE_BUNCH = 4;
+    private static final int REQUEST_CODE_PICK_DIFF_BUNCH = 5;
+    private static final int REQUEST_CODE_PICK_RULE = 6;
 
     private interface ArgKeys {
         String AGENT = BundleKeys.AGENT;
@@ -99,9 +106,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         MutableList<BunchId> sourceBunches = MutableList.empty();
         MutableList<BunchId> diffBunches = MutableList.empty();
         MutableList<Correlation.Entry<AlphabetId>> startMatcher = MutableList.empty();
-        MutableList<Correlation.Entry<AlphabetId>> startAdder = MutableList.empty();
+        ImmutableCorrelationArray<AlphabetId> startAdder = ImmutableCorrelationArray.empty();
         MutableList<Correlation.Entry<AlphabetId>> endMatcher = MutableList.empty();
-        MutableList<Correlation.Entry<AlphabetId>> endAdder = MutableList.empty();
+        ImmutableCorrelationArray<AlphabetId> endAdder = ImmutableCorrelationArray.empty();
         RuleId rule;
 
         State() {
@@ -124,9 +131,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
 
             CorrelationEntryListParceler.readInto(in, startMatcher);
-            CorrelationEntryListParceler.readInto(in, startAdder);
+            startAdder = CorrelationArrayParceler.read(in);
             CorrelationEntryListParceler.readInto(in, endMatcher);
-            CorrelationEntryListParceler.readInto(in, endAdder);
+            endAdder = CorrelationArrayParceler.read(in);
 
             rule = RuleIdParceler.read(in);
         }
@@ -149,9 +156,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             }
 
             CorrelationEntryListParceler.write(dest, startMatcher);
-            CorrelationEntryListParceler.write(dest, startAdder);
+            CorrelationArrayParceler.write(dest, startAdder);
             CorrelationEntryListParceler.write(dest, endMatcher);
-            CorrelationEntryListParceler.write(dest, endAdder);
+            CorrelationArrayParceler.write(dest, endAdder);
 
             RuleIdParceler.write(dest, rule);
         }
@@ -184,9 +191,9 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     private LinearLayout _sourceBunchesContainer;
     private LinearLayout _diffBunchesContainer;
     private LinearLayout _startMatchersContainer;
-    private LinearLayout _startAddersContainer;
+    private LinearLayout _startAdderEntry;
     private LinearLayout _endMatchersContainer;
-    private LinearLayout _endAddersContainer;
+    private LinearLayout _endAdderEntry;
 
     private AgentId getAgentId() {
         return AgentIdBundler.readAsIntentExtra(getIntent(), ArgKeys.AGENT);
@@ -250,15 +257,12 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         updateBunchSet(checker, _diffBunchesContainer, _state.diffBunches);
 
         updateCorrelation(_startMatchersContainer, _state.startMatcher);
-        updateCorrelation(_startAddersContainer, _state.startAdder);
+        bindAdder(_startAdderEntry, _state.startAdder);
         updateCorrelation(_endMatchersContainer, _state.endMatcher);
-        updateCorrelation(_endAddersContainer, _state.endAdder);
+        bindAdder(_endAdderEntry, _state.endAdder);
 
-        if (_state.startMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
-                _state.startAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
-                _state.endMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) ||
-                _state.endAdder.anyMatch(entry -> !TextUtils.isEmpty(entry.text))) {
-
+        if (_state.startMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) || !_state.startAdder.isEmpty() ||
+                _state.endMatcher.anyMatch(entry -> !TextUtils.isEmpty(entry.text)) || !_state.endAdder.isEmpty()) {
             enableFlagAndRuleFields();
         }
 
@@ -286,14 +290,14 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             final BunchId diffBunch = getDiffBunch();
             final BunchId targetBunch = getTargetBunch();
             if (agentId != null) {
-                final AgentDetails<AlphabetId, BunchId, RuleId> agentDetails = checker.getAgentDetails(agentId);
+                final AgentDetails<AlphabetId, CorrelationId, BunchId, RuleId> agentDetails = checker.getAgentDetails(agentId);
                 _state.targetBunches = agentDetails.targetBunches.toList().mutate();
                 _state.sourceBunches = agentDetails.sourceBunches.toList().mutate();
                 _state.diffBunches = agentDetails.diffBunches.toList().mutate();
                 _state.startMatcher = agentDetails.startMatcher.toCorrelationEntryList();
-                _state.startAdder = agentDetails.startAdder.toCorrelationEntryList();
+                _state.startAdder = agentDetails.startAdder;
                 _state.endMatcher = agentDetails.endMatcher.toCorrelationEntryList();
-                _state.endAdder = agentDetails.endAdder.toCorrelationEntryList();
+                _state.endAdder = agentDetails.endAdder;
                 _state.rule = agentDetails.rule;
             }
             else if (targetBunch != null) {
@@ -316,9 +320,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         _diffBunchesContainer = findViewById(R.id.diffBunchesContainer);
 
         _startMatchersContainer = findViewById(R.id.startMatchersContainer);
-        _startAddersContainer = findViewById(R.id.startAddersContainer);
+        _startAdderEntry = findViewById(R.id.startAdderEntry);
+        findViewById(R.id.startAdderRemoveButton).setOnClickListener(this);
         _endMatchersContainer = findViewById(R.id.endMatchersContainer);
-        _endAddersContainer = findViewById(R.id.endAddersContainer);
+        _endAdderEntry = findViewById(R.id.endAdderEntry);
+        findViewById(R.id.endAdderRemoveButton).setOnClickListener(this);
 
         findViewById(R.id.addStartMatcherButton).setOnClickListener(this);
         findViewById(R.id.addStartAdderButton).setOnClickListener(this);
@@ -470,6 +476,17 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         view.findViewById(R.id.removeButton).setOnClickListener(v -> removeBunch(container, bunches, bunch));
     }
 
+    private void bindAdder(View view, ImmutableCorrelationArray<AlphabetId> correlationArray) {
+        if (correlationArray.isEmpty()) {
+            view.setVisibility(View.GONE);
+        }
+        else {
+            final String text = CorrelationPickerAdapter.toPlainText(correlationArray, ImmutableHashSet.empty());
+            view.<TextView>findViewById(R.id.textView).setText(text);
+            view.setVisibility(View.VISIBLE);
+        }
+    }
+
     private static void removeBunch(ViewGroup container, MutableList<BunchId> bunches, BunchId bunch) {
         final int index = bunches.indexOf(bunch);
         if (index < 0) {
@@ -510,9 +527,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.addStartAdderButton:
-                entry = new Correlation.Entry<>(_alphabets.keyAt(0), null);
-                _state.startAdder.append(entry);
-                addEntry(entry, _startAddersContainer, _state.startAdder);
+                LanguagePickerActivity.open(this, REQUEST_CODE_DEFINE_START_ADDER);
                 break;
 
             case R.id.addEndMatcherButton:
@@ -522,13 +537,21 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.addEndAdderButton:
-                entry = new Correlation.Entry<>(_alphabets.keyAt(0), null);
-                _state.endAdder.append(entry);
-                addEntry(entry, _endAddersContainer, _state.endAdder);
+                LanguagePickerActivity.open(this, REQUEST_CODE_DEFINE_END_ADDER);
                 break;
 
             case R.id.ruleChangeButton:
                 AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_RULE);
+                break;
+
+            case R.id.startAdderRemoveButton:
+                _state.startAdder = ImmutableCorrelationArray.empty();
+                bindAdder(_startAdderEntry, _state.startAdder);
+                break;
+
+            case R.id.endAdderRemoveButton:
+                _state.endAdder = ImmutableCorrelationArray.empty();
+                bindAdder(_endAdderEntry, ImmutableCorrelationArray.empty());
                 break;
 
             case R.id.saveButton:
@@ -538,11 +561,11 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 }
                 else {
                     final ImmutableCorrelation<AlphabetId> startMatcher = buildCorrelation(_state.startMatcher);
-                    final ImmutableCorrelation<AlphabetId> startAdder = buildCorrelation(_state.startAdder);
+                    final ImmutableCorrelationArray<AlphabetId> startAdder = _state.startAdder;
                     final ImmutableCorrelation<AlphabetId> endMatcher = buildCorrelation(_state.endMatcher);
-                    final ImmutableCorrelation<AlphabetId> endAdder = buildCorrelation(_state.endAdder);
+                    final ImmutableCorrelationArray<AlphabetId> endAdder = _state.endAdder;
 
-                    final RuleId rule = (startMatcher.equals(startAdder) && endMatcher.equals(endAdder))? null : _state.rule;
+                    final RuleId rule = (startMatcher.equals(startAdder.concatenateTexts()) && endMatcher.equals(endAdder.concatenateTexts()))? null : _state.rule;
 
                     final AgentId givenAgentId = getAgentId();
                     final LangbookDbManager manager = DbManager.getInstance().getManager();
@@ -575,7 +598,17 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
-        if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH && resultCode == RESULT_OK) {
+        if (requestCode == REQUEST_CODE_DEFINE_START_ADDER && resultCode == RESULT_OK) {
+            final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(LanguagePickerActivity.ResultKeys.CORRELATION_ARRAY);
+            _state.startAdder = parcelableCorrelationArray.get();
+            bindAdder(_startAdderEntry, _state.startAdder);
+        }
+        else if (requestCode == REQUEST_CODE_DEFINE_END_ADDER && resultCode == RESULT_OK) {
+            final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(LanguagePickerActivity.ResultKeys.CORRELATION_ARRAY);
+            _state.endAdder = parcelableCorrelationArray.get();
+            bindAdder(_endAdderEntry, _state.endAdder);
+        }
+        else if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH && resultCode == RESULT_OK) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
             if (acceptation == null) {
                 throw new AssertionError();
@@ -644,51 +677,41 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
 
         final MutableSet<AlphabetId> alphabets = MutableHashSet.empty();
+        final ImmutableCorrelation.Builder<AlphabetId> startMatcherBuilder = new ImmutableCorrelation.Builder<>();
         for (Correlation.Entry<AlphabetId> entry : _state.startMatcher) {
             if (alphabets.contains(entry.alphabet)) {
                 return "Unable to duplicate alphabet in start matcher";
             }
             alphabets.add(entry.alphabet);
+            startMatcherBuilder.put(entry.alphabet, entry.text);
 
             if (TextUtils.isEmpty(entry.text)) {
                 return "Start matcher entries cannot be empty";
             }
         }
+        final ImmutableCorrelation<AlphabetId> startMatcher = startMatcherBuilder.build();
 
         alphabets.clear();
-        for (Correlation.Entry<AlphabetId> entry : _state.startAdder) {
-            if (alphabets.contains(entry.alphabet)) {
-                return "Unable to duplicate alphabet in start adder";
-            }
-            alphabets.add(entry.alphabet);
-        }
-
-        alphabets.clear();
+        final ImmutableCorrelation.Builder<AlphabetId> endMatcherBuilder = new ImmutableCorrelation.Builder<>();
         for (Correlation.Entry<AlphabetId> entry : _state.endMatcher) {
             if (alphabets.contains(entry.alphabet)) {
                 return "Unable to duplicate alphabet in end matcher";
             }
             alphabets.add(entry.alphabet);
+            endMatcherBuilder.put(entry.alphabet, entry.text);
 
             if (TextUtils.isEmpty(entry.text)) {
                 return "End matcher entries cannot be empty";
             }
         }
-
-        alphabets.clear();
-        for (Correlation.Entry<AlphabetId> entry : _state.endAdder) {
-            if (alphabets.contains(entry.alphabet)) {
-                return "Unable to duplicate alphabet in end adder";
-            }
-            alphabets.add(entry.alphabet);
-        }
+        final ImmutableCorrelation<AlphabetId> endMatcher = endMatcherBuilder.build();
 
         if (sources.isEmpty() && _state.startMatcher.isEmpty() && _state.endMatcher.isEmpty()) {
             // This would select all acceptations from the database, which has no sense
             return "Source bunches and matchers cannot be both empty";
         }
 
-        final boolean ruleRequired = !_state.startMatcher.equals(_state.startAdder) || !_state.endMatcher.equals(_state.endAdder);
+        final boolean ruleRequired = !startMatcher.equals(_state.startAdder.concatenateTexts()) || !endMatcher.equals(_state.endAdder.concatenateTexts());
         if (ruleRequired && _state.rule == null) {
             return "Rule is required when matcher and adder do not match";
         }

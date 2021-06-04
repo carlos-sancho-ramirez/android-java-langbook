@@ -8,11 +8,21 @@ import android.widget.TextView;
 
 import sword.collections.Function;
 import sword.collections.ImmutableSet;
+import sword.collections.Traversable;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 
 final class CorrelationPickerAdapter extends BaseAdapter {
+
+    public static String toPlainText(ImmutableCorrelationArray<AlphabetId> correlationArray, Traversable<ImmutableCorrelation<AlphabetId>> knownCorrelations) {
+        final Function<ImmutableCorrelation<AlphabetId>, String> mapFunc = correlation -> {
+            final String str = correlation.reduce((a,b) -> a + '/' + b);
+            return knownCorrelations.contains(correlation)? "<" + str + ">" : str;
+        };
+
+        return correlationArray.map(mapFunc).reduce((a, b) -> a + " + " + b);
+    }
 
     private final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> _entries;
     private final ImmutableSet<ImmutableCorrelation<AlphabetId>> _knownCorrelations;
@@ -53,13 +63,7 @@ final class CorrelationPickerAdapter extends BaseAdapter {
             view = convertView;
         }
 
-        final ImmutableCorrelationArray<AlphabetId> array = _entries.valueAt(position);
-        final Function<ImmutableCorrelation<AlphabetId>, String> mapFunc = correlation -> {
-            final String str = correlation.reduce((a,b) -> a + '/' + b);
-            return _knownCorrelations.contains(correlation)? "<" + str + ">" : str;
-        };
-        final String text = array.map(mapFunc).reduce((a,b) -> a + " + " + b);
-
+        final String text = toPlainText(_entries.valueAt(position), _knownCorrelations);
         final TextView textView = view.findViewById(R.id.textView);
         textView.setText(text);
 

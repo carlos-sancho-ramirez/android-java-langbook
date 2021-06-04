@@ -621,9 +621,9 @@ public final class StreamedDatabaseReader {
                 .put(table.getSourceBunchSetColumnIndex(), register.sourceBunchSetId)
                 .put(table.getDiffBunchSetColumnIndex(), register.diffBunchSetId)
                 .put(table.getStartMatcherColumnIndex(), register.startMatcherId)
-                .put(table.getStartAdderColumnIndex(), register.startAdderId)
+                .put(table.getStartAdderArrayColumnIndex(), register.startAdderId)
                 .put(table.getEndMatcherColumnIndex(), register.endMatcherId)
-                .put(table.getEndAdderColumnIndex(), register.endAdderId)
+                .put(table.getEndAdderArrayColumnIndex(), register.endAdderId)
                 .put(table.getRuleColumnIndex(), register.rule)
                 .build();
         return db.insert(query);
@@ -1093,12 +1093,32 @@ public final class StreamedDatabaseReader {
         }
     }
 
+    private static final class CorrelationArrayIdSupplier implements IntSupplier {
+        private final int _initialAssignedId;
+        private int _lastAssignedId;
+
+        CorrelationArrayIdSupplier(int lastAssignedId) {
+            _initialAssignedId = lastAssignedId;
+            _lastAssignedId = lastAssignedId;
+        }
+
+        @Override
+        public int get() {
+            return ++_lastAssignedId;
+        }
+
+        public int assignedCount() {
+            return _lastAssignedId - _initialAssignedId;
+        }
+    }
+
     private AgentReadResult readAgents(
-            InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap) throws IOException {
+            InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap, int lastAssignedCorrelationArrayId) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
         final MutableIntSet agentsWithRule = MutableIntArraySet.empty();
+        final CorrelationArrayIdSupplier correlationArrayIdSupplier = new CorrelationArrayIdSupplier(lastAssignedCorrelationArrayId);
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -1180,7 +1200,9 @@ public final class StreamedDatabaseReader {
                 final int sourceBunchSetId = insertedBunchSets.get(sourceBunches);
                 final int diffBunchSetId = insertedBunchSets.get(diffBunches);
 
-                final AgentRegister register = new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderId, endMatcherId, endAdderId, rule);
+                final int startAdderArrayId = (startAdderId == 0)? 0 : obtainCorrelationArray(_db, new ImmutableIntList.Builder().append(startAdderId).build(), correlationArrayIdSupplier);
+                final int endAdderArrayId = (endAdderId == 0)? 0 : obtainCorrelationArray(_db, new ImmutableIntList.Builder().append(endAdderId).build(), correlationArrayIdSupplier);
+                final AgentRegister register = new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderArrayId, endMatcherId, endAdderArrayId, rule);
                 final int agentId = insertAgent(_db, register);
 
                 builder.put(agentId, new AgentBunches(targetBunches, sourceBunches, diffBunches));
@@ -1191,7 +1213,7 @@ public final class StreamedDatabaseReader {
             }
         }
 
-        return new AgentReadResult(builder.build(), agentsWithRule.toImmutable());
+        return new AgentReadResult(builder.build(), agentsWithRule.toImmutable(), correlationArrayIdSupplier.assignedCount());
     }
 
     public static class AgentAcceptationPair {
@@ -1374,10 +1396,12 @@ public final class StreamedDatabaseReader {
     private static final class AgentReadResult {
         final ImmutableIntKeyMap<AgentBunches> agents;
         final ImmutableIntSet agentsWithRule;
+        final int numberOfAddedCorrelationArrays;
 
-        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet agentsWithRule) {
+        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet agentsWithRule, int numberOfAddedCorrelationArrays) {
             this.agents = agents;
             this.agentsWithRule = agentsWithRule;
+            this.numberOfAddedCorrelationArrays = numberOfAddedCorrelationArrays;
         }
     }
 
@@ -1490,7 +1514,7 @@ public final class StreamedDatabaseReader {
 
                 // Import agents
                 setProgress(0.8f, "Reading agents");
-                final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap);
+                final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap, correlationArrayIdMap.length);
 
                 // Import relevant dynamic acceptations
                 setProgress(0.9f, "Reading referenced dynamic acceptations");
@@ -1507,7 +1531,8 @@ public final class StreamedDatabaseReader {
                 final ImmutableIntSet insertedSentences = readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
                 insertMissingSentences(spans, insertedSentences);
-                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, correlationArrayIdMap.length);
+                final int numberOfCorrelationArrays = correlationArrayIdMap.length + agentReadResult.numberOfAddedCorrelationArrays;
+                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, numberOfCorrelationArrays);
             }
         }
         finally {

@@ -19,20 +19,20 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
  * BunchesManager responsibilities include all responsibilities from AcceptationsManager, and include the following ones:
  * <li>Bunches</li>
  */
-interface BunchesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CorrelationId, AcceptationId, BunchId> extends AcceptationsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+interface BunchesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> extends AcceptationsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> {
 
     @Override
-    BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> createManager(MemoryDatabase db);
+    BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> createManager(MemoryDatabase db);
     BunchId conceptAsBunchId(ConceptId conceptId);
 
-    static <ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> AcceptationId addSpanishSingAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept) {
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addSpanishSingAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept) {
         return addSimpleAcceptation(manager, alphabet, concept, "cantar");
     }
 
     @Test
     default void testRemoveLanguageThatIncludeAcceptationsAsBunches() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
         final LanguageId language = langPair.language;
@@ -54,7 +54,7 @@ interface BunchesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testCallingTwiceAddAcceptationInBunchDoesNotDuplicate() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -72,7 +72,7 @@ interface BunchesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testRemoveAcceptationForBunchWithAcceptationsInside() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -91,7 +91,7 @@ interface BunchesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testShareConceptRemovesDuplicatedBunchAcceptations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId guyConcept = manager.getNextAvailableConceptId();
@@ -123,7 +123,7 @@ interface BunchesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testShareConceptKeepAcceptationsInBunchWhenRemovingDuplicatedAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> manager = createManager(db);
+        final BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId guyConcept = manager.getNextAvailableConceptId();

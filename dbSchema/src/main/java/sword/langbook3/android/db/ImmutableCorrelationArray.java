@@ -55,6 +55,10 @@ public final class ImmutableCorrelationArray<AlphabetId> implements Traversable<
     }
 
     public ImmutableCorrelation<AlphabetId> concatenateTexts() {
+        if (array.isEmpty()) {
+            return ImmutableCorrelation.empty();
+        }
+
         return reduce((corr1, corr2) -> {
             final MutableCorrelation<AlphabetId> mixed = corr1.mutate();
             for (Map.Entry<AlphabetId, String> entry : corr2.entries()) {
@@ -64,6 +68,11 @@ public final class ImmutableCorrelationArray<AlphabetId> implements Traversable<
 
             return mixed.toImmutable();
         });
+    }
+
+    public ImmutableCorrelationArray<AlphabetId> reverse() {
+        final ImmutableList<ImmutableCorrelation<AlphabetId>> newArray = array.reverse();
+        return (array == newArray)? this : new ImmutableCorrelationArray<>(newArray);
     }
 
     public ImmutableList<ImmutableCorrelation<AlphabetId>> toList() {

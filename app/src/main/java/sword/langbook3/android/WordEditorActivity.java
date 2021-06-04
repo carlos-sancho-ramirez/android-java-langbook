@@ -43,6 +43,7 @@ import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.collections.SortUtils.equal;
+import static sword.langbook3.android.collections.ImmutableMapUtils.filterByKeyNot;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
@@ -56,6 +57,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         String LANGUAGE = BundleKeys.LANGUAGE;
         String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
         String TITLE = BundleKeys.TITLE;
+        String EVALUATE_CONVERSIONS = BundleKeys.EVALUATE_CONVERSIONS;
     }
 
     private interface SavedKeys {
@@ -70,11 +72,22 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> _conversions =
             new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
+    /**
+     * Open a wizard to fulfill the plain texts for an specific language, and select an specific correlation array.
+     * Using this method will not take into account the conversions. This method is intended to define agent adders.
+     */
+    public static void open(Activity activity, int requestCode, LanguageId language) {
+        final Intent intent = new Intent(activity, WordEditorActivity.class);
+        LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     public static void open(Activity activity, int requestCode, LanguageId language, String searchQuery, ConceptId concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
         intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
+        intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -82,6 +95,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
+        intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -90,12 +104,14 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.TITLE, title);
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, correlation);
+        intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
     public static void open(Context context, AcceptationId acceptation) {
         final Intent intent = new Intent(context, WordEditorActivity.class);
         AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
+        intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
         context.startActivity(intent);
     }
 
@@ -246,6 +262,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         return queryTextIsValid.toImmutable();
     }
 
+    private boolean mustEvaluateConversions() {
+        return getIntent().getBooleanExtra(ArgKeys.EVALUATE_CONVERSIONS, false);
+    }
+
     private void updateFields() {
         _formPanel.removeAllViews();
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
@@ -268,9 +288,15 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
             fieldNames = getArgumentCorrelation().keySet().assign(alphabet -> "");
             fieldConversions = ImmutableHashMap.empty();
         }
-        else {
+        else if (mustEvaluateConversions()) {
             fieldNames = checker.readAlphabetsForLanguage(language, preferredAlphabet);
             fieldConversions = checker.findConversions(fieldNames.keySet());
+        }
+        else {
+            final ImmutableMap<AlphabetId, String> alphabetNames = checker.readAlphabetsForLanguage(language, preferredAlphabet);
+            final ImmutableMap<AlphabetId, AlphabetId> conversionMap = checker.findConversions(alphabetNames.keySet());
+            fieldNames = filterByKeyNot(alphabetNames, conversionMap::containsKey);
+            fieldConversions = ImmutableHashMap.empty();
         }
 
         final LayoutInflater inflater = getLayoutInflater();
@@ -368,7 +394,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 
-            if (_existingAcceptation == null) {
+            if (!mustEvaluateConversions()) {
+                CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, builder.build());
+            }
+            else if (_existingAcceptation == null) {
                 CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
                         ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT), builder.build());
             }

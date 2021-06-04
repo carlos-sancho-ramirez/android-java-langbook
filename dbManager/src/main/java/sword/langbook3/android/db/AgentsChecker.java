@@ -10,7 +10,7 @@ import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.SearchResult;
 
-public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId> {
+public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> {
 
     /**
      * Check all bunches including agents that may match the given texts.
@@ -31,8 +31,8 @@ public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId,
     ImmutableMap<RuleId, String> readAllRules(AlphabetId preferredAlphabet);
     ImmutableSet<AgentId> getAgentIds();
     ImmutableList<SearchResult<AcceptationId, RuleId>> findAcceptationFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
-    AgentRegister<CorrelationId, BunchSetId, RuleId> getAgentRegister(AgentId agentId);
-    AgentDetails<AlphabetId, BunchId, RuleId> getAgentDetails(AgentId agentId);
+    AgentRegister<CorrelationId, CorrelationArrayId, BunchSetId, RuleId> getAgentRegister(AgentId agentId);
+    AgentDetails<AlphabetId, CorrelationId, BunchId, RuleId> getAgentDetails(AgentId agentId);
     ImmutableList<DisplayableItem<AcceptationId>> readBunchSetAcceptationsAndTexts(BunchSetId bunchSet, AlphabetId preferredAlphabet);
     ImmutableList<SearchResult<AcceptationId, RuleId>> findAcceptationAndRulesFromText(String queryText, int restrictionStringType, ImmutableIntRange range);
     AcceptationId getStaticAcceptationFromDynamic(AcceptationId dynamicAcceptation);

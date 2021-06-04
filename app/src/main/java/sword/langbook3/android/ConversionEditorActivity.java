@@ -132,12 +132,10 @@ public final class ConversionEditorActivity extends Activity implements ListView
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
                 if (checkConflicts(manager, newConversion)) {
                     if (manager.isAlphabetPresent(getTargetAlphabet())) {
-                        if (!manager.replaceConversion(newConversion)) {
-                            throw new AssertionError();
+                        if (manager.replaceConversion(newConversion)) {
+                            Toast.makeText(this, R.string.updateConversionFeedback, Toast.LENGTH_SHORT).show();
+                            setResult(RESULT_OK);
                         }
-
-                        Toast.makeText(this, R.string.updateConversionFeedback, Toast.LENGTH_SHORT).show();
-                        setResult(RESULT_OK);
                     }
                     else {
                         final Intent intent = new Intent();

@@ -9,7 +9,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DisplayableItem;
 
-public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> extends ConceptsChecker<ConceptId> {
+public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId> {
     LanguageId findLanguageByCode(String code);
 
     /**
@@ -24,6 +24,7 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Correlat
     Conversion<AlphabetId> getConversion(ImmutablePair<AlphabetId, AlphabetId> pair);
     ImmutableMap<AlphabetId, AlphabetId> getConversionsMap();
     ImmutableList<CorrelationId> getAcceptationCorrelationArray(AcceptationId acceptation);
+    ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> getCorrelationArrayWithText(CorrelationArrayId correlationArrayId);
     ImmutableSet<AcceptationId> findAcceptationsByConcept(ConceptId concept);
     ConceptId conceptFromAcceptation(AcceptationId acceptationId);
     boolean isAlphabetPresent(AlphabetId targetAlphabet);

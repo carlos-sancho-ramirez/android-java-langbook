@@ -99,7 +99,7 @@ public final class LangbookDbSchema implements DbSchema {
             return 4;
         }
 
-        public int getStartAdderColumnIndex() {
+        public int getStartAdderArrayColumnIndex() {
             return 5;
         }
 
@@ -107,10 +107,20 @@ public final class LangbookDbSchema implements DbSchema {
             return 6;
         }
 
-        public int getEndAdderColumnIndex() {
+        public int getEndAdderArrayColumnIndex() {
             return 7;
         }
 
+        /**
+         * Rule applied by this agent, if any.
+         *
+         * This value will match {@link #NO_RULE} if the agent is not applying any rule.
+         * And this can only happen if the matchers and adders of this agent matches and
+         * then the resulting correlation array is exactly the same as the original one.
+         *
+         * This value will never match {@link #NO_RULE} if the agent is altering the
+         * correlation array in the produced acceptations.
+         */
         public int getRuleColumnIndex() {
             return 8;
         }

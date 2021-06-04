@@ -15,11 +15,13 @@ public interface BundleKeys {
     String CORRELATION_MAP = "cMap";
     String DIFF_BUNCH = "db";
     String DYNAMIC_ACCEPTATION = "da";
+    String EVALUATE_CONVERSIONS = "ec";
     String GOOD_ANSWER_COUNT = "goodAnswer";
     String LANGUAGE = "language";
     String QUIZ = "quiz";
     String SEARCH_QUERY = "searchQuery";
     String SENTENCE_ID = "seId";
+    String SAVE_ACCEPTATION = "sa";
     String SOURCE_ALPHABET = "sAlph";
     String SOURCE_BUNCH = "sb";
     String STATIC_ACCEPTATION = "sa";

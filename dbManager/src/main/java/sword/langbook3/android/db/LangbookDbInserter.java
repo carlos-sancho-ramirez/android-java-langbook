@@ -160,16 +160,16 @@ final class LangbookDbInserter {
         }
     }
 
-    static <ConceptId, AgentId> AgentId insertAgent(DbInserter db, IntSetter<AgentId> agentIdSetter, AgentRegister<? extends CorrelationIdInterface, ? extends BunchSetIdInterface, ? extends RuleIdInterface<ConceptId>> register) {
+    static <ConceptId, AgentId> AgentId insertAgent(DbInserter db, IntSetter<AgentId> agentIdSetter, AgentRegister<? extends CorrelationIdInterface, ? extends CorrelationArrayIdInterface, ? extends BunchSetIdInterface, ? extends RuleIdInterface<ConceptId>> register) {
         final LangbookDbSchema.AgentsTable table = Tables.agents;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getTargetBunchSetColumnIndex(), register.targetBunchSetId)
                 .put(table.getSourceBunchSetColumnIndex(), register.sourceBunchSetId)
                 .put(table.getDiffBunchSetColumnIndex(), register.diffBunchSetId)
                 .put(table.getStartMatcherColumnIndex(), register.startMatcherId)
-                .put(table.getStartAdderColumnIndex(), register.startAdderId)
+                .put(table.getStartAdderArrayColumnIndex(), register.startAdderId)
                 .put(table.getEndMatcherColumnIndex(), register.endMatcherId)
-                .put(table.getEndAdderColumnIndex(), register.endAdderId)
+                .put(table.getEndAdderArrayColumnIndex(), register.endAdderId)
                 .put(table.getRuleColumnIndex(), register.rule)
                 .build();
         final Integer rawId = db.insert(query);

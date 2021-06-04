@@ -123,11 +123,24 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/startAddersContainer"
+            android:id="@+id/startAdderEntry"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingLeft="@dimen/agentEditorSectionPadding"
-            android:orientation="vertical"/>
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/startAdderRemoveButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/removeButton"/>
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -171,11 +184,24 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/endAddersContainer"
+            android:id="@+id/endAdderEntry"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingLeft="@dimen/agentEditorSectionPadding"
-            android:orientation="vertical"/>
+            android:visibility="gone">
+
+            <TextView
+                android:id="@id/textView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/endAdderRemoveButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/removeButton"/>
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/rulePickerPanel"

@@ -58,13 +58,14 @@ import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.models.SynonymTranslationResult;
 
 import static sword.collections.SortUtils.equal;
+import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
-abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
+abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
 
     final Database _db;
     final ConceptSetter<ConceptId> _conceptIdSetter;
@@ -518,6 +519,66 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return new ImmutablePair<>(correlationIds.toImmutable(), correlationMap.toImmutable());
     }
 
+    private ImmutablePair<ImmutableList<CorrelationId>, ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>>> getCorrelations(CorrelationArrayId correlationArrayId) {
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final LangbookDbSchema.CorrelationsTable correlations = LangbookDbSchema.Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbols = LangbookDbSchema.Tables.symbolArrays;
+
+        final int corrOffset = correlationArrays.columns().size();
+        final int symbolsOffset = corrOffset + correlations.columns().size();
+
+        final DbQuery query = new DbQueryBuilder(correlationArrays)
+                .join(correlations, correlationArrays.getCorrelationColumnIndex(), correlations.getCorrelationIdColumnIndex())
+                .join(symbols, corrOffset + correlations.getSymbolArrayColumnIndex(), symbols.getIdColumnIndex())
+                .where(correlationArrays.getArrayIdColumnIndex(), correlationArrayId)
+                .orderBy(
+                        correlationArrays.getArrayPositionColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex())
+                .select(
+                        correlationArrays.getArrayPositionColumnIndex(),
+                        corrOffset + correlations.getCorrelationIdColumnIndex(),
+                        corrOffset + correlations.getAlphabetColumnIndex(),
+                        symbolsOffset + symbols.getStrColumnIndex()
+                );
+
+        final MutableList<CorrelationId> correlationIds = MutableList.empty();
+        final MutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlationMap = MutableHashMap.empty();
+        try (DbResult dbResult = _db.select(query)) {
+            if (dbResult.hasNext()) {
+                List<DbValue> row = dbResult.next();
+                ImmutableCorrelation.Builder<AlphabetId> builder = new ImmutableCorrelation.Builder<>();
+                int pos = row.get(0).toInt();
+                CorrelationId correlationId = _correlationIdSetter.getKeyFromDbValue(row.get(1));
+                if (pos != correlationIds.size()) {
+                    throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
+                }
+
+                builder.put(_alphabetIdSetter.getKeyFromDbValue(row.get(2)), row.get(3).toText());
+
+                while (dbResult.hasNext()) {
+                    row = dbResult.next();
+                    int newPos = row.get(0).toInt();
+                    if (newPos != pos) {
+                        correlationMap.put(correlationId, builder.build());
+                        correlationIds.append(correlationId);
+                        correlationId = _correlationIdSetter.getKeyFromDbValue(row.get(1));
+                        builder = new ImmutableCorrelation.Builder<>();
+                        pos = newPos;
+                    }
+
+                    if (newPos != correlationIds.size()) {
+                        throw new AssertionError("Expected position " + correlationIds.size() + ", but it was " + pos);
+                    }
+                    builder.put(_alphabetIdSetter.getKeyFromDbValue(row.get(2)), row.get(3).toText());
+                }
+                correlationMap.put(correlationId, builder.build());
+                correlationIds.append(correlationId);
+            }
+        }
+
+        return new ImmutablePair<>(correlationIds.toImmutable(), correlationMap.toImmutable());
+    }
+
     @Override
     public ImmutableList<CorrelationId> getAcceptationCorrelationArray(AcceptationId acceptation) {
         return getAcceptationCorrelations(acceptation).left;
@@ -525,6 +586,12 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
     ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> getAcceptationCorrelationArrayWithText(AcceptationId acceptation) {
         final ImmutablePair<ImmutableList<CorrelationId>, ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>>> pair = getAcceptationCorrelations(acceptation);
+        return new ImmutablePair<>(new ImmutableCorrelationArray<>(pair.left.map(pair.right::get)), pair.left);
+    }
+
+    @Override
+    public ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> getCorrelationArrayWithText(CorrelationArrayId correlationArrayId) {
+        final ImmutablePair<ImmutableList<CorrelationId>, ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>>> pair = getCorrelations(correlationArrayId);
         return new ImmutablePair<>(new ImmutableCorrelationArray<>(pair.left.map(pair.right::get)), pair.left);
     }
 
@@ -1687,7 +1754,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public AgentRegister<CorrelationId, BunchSetId, RuleId> getAgentRegister(AgentId agentId) {
+    public AgentRegister<CorrelationId, CorrelationArrayId, BunchSetId, RuleId> getAgentRegister(AgentId agentId) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), agentId)
@@ -1695,9 +1762,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                         table.getSourceBunchSetColumnIndex(),
                         table.getDiffBunchSetColumnIndex(),
                         table.getStartMatcherColumnIndex(),
-                        table.getStartAdderColumnIndex(),
+                        table.getStartAdderArrayColumnIndex(),
                         table.getEndMatcherColumnIndex(),
-                        table.getEndAdderColumnIndex(),
+                        table.getEndAdderArrayColumnIndex(),
                         table.getRuleColumnIndex());
 
         final List<DbValue> agentRow = selectOptionalSingleRow(query);
@@ -1706,9 +1773,9 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             final BunchSetId sourceBunchSetId = _bunchSetIdSetter.getKeyFromDbValue(agentRow.get(1));
             final BunchSetId diffBunchSetId = _bunchSetIdSetter.getKeyFromDbValue(agentRow.get(2));
             final CorrelationId startMatcherId = _correlationIdSetter.getKeyFromDbValue(agentRow.get(3));
-            final CorrelationId startAdderId = _correlationIdSetter.getKeyFromDbValue(agentRow.get(4));
+            final CorrelationArrayId startAdderId = _correlationArrayIdSetter.getKeyFromDbValue(agentRow.get(4));
             final CorrelationId endMatcherId = _correlationIdSetter.getKeyFromDbValue(agentRow.get(5));
-            final CorrelationId endAdderId = _correlationIdSetter.getKeyFromDbValue(agentRow.get(6));
+            final CorrelationArrayId endAdderId = _correlationArrayIdSetter.getKeyFromDbValue(agentRow.get(6));
             final RuleId ruleId = _ruleIdSetter.getKeyFromDbValue(agentRow.get(7));
             return new AgentRegister<>(targetBunchSetId, sourceBunchSetId, diffBunchSetId,
                     startMatcherId, startAdderId, endMatcherId, endAdderId, ruleId);
@@ -1718,22 +1785,21 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public AgentDetails<AlphabetId, BunchId, RuleId> getAgentDetails(AgentId agentId) {
-        final AgentRegister<CorrelationId, BunchSetId, RuleId> register = getAgentRegister(agentId);
+    public AgentDetails<AlphabetId, CorrelationId, BunchId, RuleId> getAgentDetails(AgentId agentId) {
+        final AgentRegister<CorrelationId, CorrelationArrayId, BunchSetId, RuleId> register = getAgentRegister(agentId);
         final ImmutableSet<BunchId> targetBunches = getBunchSet(register.targetBunchSetId);
         final ImmutableSet<BunchId> sourceBunches = getBunchSet(register.sourceBunchSetId);
         final ImmutableSet<BunchId> diffBunches = (register.sourceBunchSetId != register.diffBunchSetId)?
                 getBunchSet(register.diffBunchSetId) : sourceBunches;
 
-        final SyncCacheMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlationCache =
-                new SyncCacheMap<>(this::getCorrelationWithText);
-        final ImmutableCorrelation<AlphabetId> startMatcher = correlationCache.get(register.startMatcherId);
-        final ImmutableCorrelation<AlphabetId> startAdder = correlationCache.get(register.startAdderId);
-        final ImmutableCorrelation<AlphabetId> endMatcher = correlationCache.get(register.endMatcherId);
-        final ImmutableCorrelation<AlphabetId> endAdder = correlationCache.get(register.endAdderId);
+        final ImmutableCorrelation<AlphabetId> startMatcher = getCorrelationWithText(register.startMatcherId);
+        final ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> startAdderPair = getCorrelationArrayWithText(register.startAdderId);
+        final ImmutableCorrelation<AlphabetId> endMatcher = getCorrelationWithText(register.endMatcherId);
+        final ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> endAdderPair = getCorrelationArrayWithText(register.endAdderId);
 
         return new AgentDetails<>(targetBunches, sourceBunches, diffBunches,
-                startMatcher, startAdder, endMatcher, endAdder, register.rule);
+                startMatcher, startAdderPair.left, startAdderPair.right,
+                endMatcher, endAdderPair.left, endAdderPair.right, register.rule);
     }
 
     @Override
@@ -2688,23 +2754,46 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return builder.build();
     }
 
-    ImmutableSet<CorrelationId> findCorrelationsUsedInAgents() {
+    private ImmutableSet<CorrelationId> findCorrelationsUsedInAgentMatchers() {
         final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(agents)
-                .select(agents.getStartMatcherColumnIndex(), agents.getEndMatcherColumnIndex(),
-                        agents.getStartAdderColumnIndex(), agents.getEndAdderColumnIndex());
+                .select(agents.getStartMatcherColumnIndex(), agents.getEndMatcherColumnIndex());
 
         final ImmutableSet.Builder<CorrelationId> builder = new ImmutableHashSet.Builder<>();
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
                 List<DbValue> row = dbResult.next();
-                for (int i = 0; i < 4; i++) {
+                for (int i = 0; i < 2; i++) {
                     builder.add(_correlationIdSetter.getKeyFromDbValue(row.get(i)));
                 }
             }
         }
 
         return builder.build();
+    }
+
+    private ImmutableSet<CorrelationId> findCorrelationsUsedInAgentAdders(int adderColumn) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(correlationArrays, adderColumn, correlationArrays.getArrayIdColumnIndex())
+                .select(correlationArrays.getCorrelationColumnIndex());
+
+        final ImmutableSet.Builder<CorrelationId> builder = new ImmutableHashSet.Builder<>();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                builder.add(_correlationIdSetter.getKeyFromDbValue(dbResult.next().get(0)));
+            }
+        }
+
+        return builder.build();
+    }
+
+    ImmutableSet<CorrelationId> findCorrelationsUsedInAgents() {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        return findCorrelationsUsedInAgentMatchers()
+                .addAll(findCorrelationsUsedInAgentAdders(agents.getStartAdderArrayColumnIndex()))
+                .addAll(findCorrelationsUsedInAgentAdders(agents.getEndAdderArrayColumnIndex()));
     }
 
     ImmutableSet<AcceptationId> findAcceptationsByLanguage(LanguageId language) {
@@ -2874,6 +2963,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     CorrelationArrayId findCorrelationArray(List<CorrelationId> array) {
+        if (array.isEmpty()) {
+            return _correlationArrayIdSetter.getKeyFromInt(EMPTY_CORRELATION_ARRAY_ID);
+        }
+
         final LangbookDbSchema.CorrelationArraysTable table = LangbookDbSchema.Tables.correlationArrays;
         final int offset = table.columns().size();
         final DbQuery query = new DbQueryBuilder(table)
@@ -3297,20 +3390,51 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return selectExistAtLeastOneRow(query);
     }
 
-    private boolean isCorrelationUsedInAnyAgent(CorrelationId correlationId) {
-        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getStartMatcherColumnIndex(), table.getEndMatcherColumnIndex(), table.getStartAdderColumnIndex(), table.getEndAdderColumnIndex());
+    private boolean isCorrelationUsedInAgentMatchers(CorrelationId correlationId) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQuery.Builder(agents)
+                .select(agents.getStartMatcherColumnIndex(), agents.getEndMatcherColumnIndex());
 
         try (DbResult dbResult = _db.select(query)) {
             while (dbResult.hasNext()) {
-                if (dbResult.next().anyMatch(correlationId::sameValue)) {
+                List<DbValue> row = dbResult.next();
+                for (int i = 0; i < 2; i++) {
+                    if (correlationId.sameValue(row.get(i))) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isCorrelationUsedAsAgentAdder(int adderColumn, CorrelationId correlationId) {
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final DbQuery query = new DbQuery.Builder(agents)
+                .join(correlationArrays, adderColumn, correlationArrays.getArrayIdColumnIndex())
+                .select(correlationArrays.getCorrelationColumnIndex());
+
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                if (correlationId.sameValue(dbResult.next().get(0))) {
                     return true;
                 }
             }
         }
 
         return false;
+    }
+
+    private boolean isCorrelationUsedInAnyAgent(CorrelationId correlationId) {
+        if (isCorrelationUsedInAgentMatchers(correlationId)) {
+            return true;
+        }
+
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        return isCorrelationUsedAsAgentAdder(agents.getStartAdderArrayColumnIndex(), correlationId) ||
+                isCorrelationUsedAsAgentAdder(agents.getEndAdderArrayColumnIndex(), correlationId);
     }
 
     boolean isCorrelationInUse(CorrelationId correlationId) {

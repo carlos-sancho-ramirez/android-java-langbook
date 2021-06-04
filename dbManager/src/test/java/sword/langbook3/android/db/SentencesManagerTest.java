@@ -20,15 +20,15 @@ import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAccept
 import static sword.langbook3.android.db.AcceptationsManagerTest.obtainNewAcceptation;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> extends AcceptationsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> extends AcceptationsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> {
 
     @Override
-    SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> createManager(MemoryDatabase db);
+    SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddSentences() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
@@ -95,7 +95,7 @@ interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId 
     @Test
     default void testReplaceSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
@@ -151,7 +151,7 @@ interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId 
     @Test
     default void testReplaceSentenceWithSameText() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -184,7 +184,7 @@ interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId 
     @Test
     default void testRemoveSentence() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -208,7 +208,7 @@ interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId 
     @Test
     default void testRemoveAcceptationIncludedInASpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, AcceptationId, SentenceId> manager = createManager(db);
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 

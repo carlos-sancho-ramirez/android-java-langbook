@@ -2,7 +2,7 @@ package sword.langbook3.android.db;
 
 import sword.collections.ImmutableSet;
 
-public interface AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId>, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> {
+public interface AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId>, AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> {
 
     /**
      * Include a new agent into the database and returns its identifier if succeeded,
@@ -23,10 +23,10 @@ public interface AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId,
      *                    If this is empty, all acceptations in source will be processed.
      * @param startMatcher Correlation used to filter any acceptation from source.
      *                     Any acceptation that has at least one text that does not begin with this correlation, will be excluded from the process.
-     * @param startAdder Correlation used to replace acceptation texts matched by the <code>startMatcher</code>.
+     * @param startAdder Correlation array used to replace acceptation texts matched by the <code>startMatcher</code>.
      * @param endMatcher Correlation used to filter any acceptation from source.
      *                   Any acceptation that has at least one text that does not finish with this correlation, will be excluded from the process.
-     * @param endAdder Correlation used to replace acceptation texts matched by the <code>endMatcher</code>.
+     * @param endAdder Correlation array used to replace acceptation texts matched by the <code>endMatcher</code>.
      * @param rule Concept for the rule that this agent is applying.
      *             This is required only if the resulting acceptation text is different from the source acceptation text.
      *             This will happen if <code>startMatcher</code> does not match <code>startAdder</code>,
@@ -36,13 +36,13 @@ public interface AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId,
      */
     AgentId addAgent(ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
-            ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
-            ImmutableCorrelation<AlphabetId> endAdder, RuleId rule);
+            ImmutableCorrelationArray<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
+            ImmutableCorrelationArray<AlphabetId> endAdder, RuleId rule);
 
     boolean updateAgent(AgentId agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
-            ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
-            ImmutableCorrelation<AlphabetId> endAdder, RuleId rule);
+            ImmutableCorrelationArray<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
+            ImmutableCorrelationArray<AlphabetId> endAdder, RuleId rule);
 
     void removeAgent(AgentId agentId);
 }

@@ -3,7 +3,7 @@ package sword.langbook3.android.db;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId> {
+public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> {
 
     /**
      * Add a new language for the given code.
@@ -82,7 +82,7 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Correlat
      * This will fail if the alphabets for the conversions are not existing or they do not belong to the same language.
      *
      * @param conversion New conversion to be included.
-     * @return True if something changed in the database. Usually false in case the new conversion cannot be applied.
+     * @return True if something changed in the database. False in case the new conversion cannot be applied, or it is exactly the same as it was there before.
      */
     boolean replaceConversion(Conversion<AlphabetId> conversion);
 }

@@ -1,30 +1,41 @@
 package sword.langbook3.android.models;
 
 import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 
-public final class AgentDetails<AlphabetId, BunchId, RuleId> {
+public final class AgentDetails<AlphabetId, CorrelationId, BunchId, RuleId> {
     public final ImmutableSet<BunchId> targetBunches;
     public final ImmutableSet<BunchId> sourceBunches;
     public final ImmutableSet<BunchId> diffBunches;
     public final ImmutableCorrelation<AlphabetId> startMatcher;
-    public final ImmutableCorrelation<AlphabetId> startAdder;
+    public final ImmutableCorrelationArray<AlphabetId> startAdder;
+    public final ImmutableList<CorrelationId> startAdderCorrelationIds;
     public final ImmutableCorrelation<AlphabetId> endMatcher;
-    public final ImmutableCorrelation<AlphabetId> endAdder;
+    public final ImmutableCorrelationArray<AlphabetId> endAdder;
+    public final ImmutableList<CorrelationId> endAdderCorrelationIds;
     public final RuleId rule;
 
-    public AgentDetails(ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
-            ImmutableSet<BunchId> diffBunches, ImmutableCorrelation<AlphabetId> startMatcher,
-            ImmutableCorrelation<AlphabetId> startAdder, ImmutableCorrelation<AlphabetId> endMatcher,
-            ImmutableCorrelation<AlphabetId> endAdder, RuleId rule) {
+    public AgentDetails(ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
+            ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelationArray<AlphabetId> startAdder, ImmutableList<CorrelationId> startAdderCorrelationIds,
+            ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelationArray<AlphabetId> endAdder, ImmutableList<CorrelationId> endAdderCorrelationIds, RuleId rule) {
 
         if (startMatcher == null) {
             startMatcher = ImmutableCorrelation.empty();
         }
 
         if (startAdder == null) {
-            startAdder = ImmutableCorrelation.empty();
+            startAdder = ImmutableCorrelationArray.empty();
+        }
+
+        if (startAdderCorrelationIds == null) {
+            startAdderCorrelationIds = ImmutableList.empty();
+        }
+
+        if (startAdder.size() != startAdderCorrelationIds.size()) {
+            throw new IllegalArgumentException();
         }
 
         if (endMatcher == null) {
@@ -32,10 +43,18 @@ public final class AgentDetails<AlphabetId, BunchId, RuleId> {
         }
 
         if (endAdder == null) {
-            endAdder = ImmutableCorrelation.empty();
+            endAdder = ImmutableCorrelationArray.empty();
         }
 
-        if (startMatcher.equalCorrelation(startAdder) && endMatcher.equalCorrelation(endAdder)) {
+        if (endAdderCorrelationIds == null) {
+            endAdderCorrelationIds = ImmutableList.empty();
+        }
+
+        if (endAdder.size() != endAdderCorrelationIds.size()) {
+            throw new IllegalArgumentException();
+        }
+
+        if (startMatcher.equalCorrelation(startAdder.concatenateTexts()) && endMatcher.equalCorrelation(endAdder.concatenateTexts())) {
             if (targetBunches.isEmpty()) {
                 throw new IllegalArgumentException();
             }
@@ -70,12 +89,14 @@ public final class AgentDetails<AlphabetId, BunchId, RuleId> {
         this.diffBunches = diffBunches;
         this.startMatcher = startMatcher;
         this.startAdder = startAdder;
+        this.startAdderCorrelationIds = startAdderCorrelationIds;
         this.endMatcher = endMatcher;
         this.endAdder = endAdder;
+        this.endAdderCorrelationIds = endAdderCorrelationIds;
         this.rule = rule;
     }
 
     public boolean modifyCorrelations() {
-        return !startMatcher.equals(startAdder) || !endMatcher.equals(endAdder);
+        return rule != null;
     }
 }

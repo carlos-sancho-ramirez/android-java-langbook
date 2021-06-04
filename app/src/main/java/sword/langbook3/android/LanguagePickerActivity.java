@@ -23,6 +23,17 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
 
     interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
+        String CORRELATION_ARRAY = BundleKeys.CORRELATION_ARRAY;
+    }
+
+    /**
+     * Open a wizard to define a correlation array.
+     *
+     * This will open first the list of language to pick one of them, then will jump to the {@link WordEditorActivity} to fill the texts, and finally will jump to the {@link CorrelationPickerActivity}.
+     */
+    public static void open(Activity activity, int requestCode) {
+        final Intent intent = new Intent(activity, LanguagePickerActivity.class);
+        activity.startActivityForResult(intent, requestCode);
     }
 
     public static void open(Activity activity, int requestCode, String searchQuery) {
@@ -54,7 +65,12 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
         final ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
         final String searchQuery = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
         final LanguageId languageId = ((LanguagePickerAdapter) parent.getAdapter()).getItem(position);
-        WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, languageId, searchQuery, concept);
+        if (searchQuery != null) {
+            WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, languageId, searchQuery, concept);
+        }
+        else {
+            WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, languageId);
+        }
     }
 
     @Override
