@@ -2510,7 +2510,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 while (result.hasNext()) {
                     row = result.next();
                     CorrelationId newCorrelationId = _correlationIdSetter.getKeyFromDbValue(row.get(0));
-                    if (newCorrelationId != correlationId) {
+                    if (!newCorrelationId.equals(correlationId)) {
                         if (builder.build().equals(immutableCorrelation)) {
                             return correlationId;
                         }
