@@ -727,6 +727,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         // TODO: Logic in the word should be somehow centralised with #checkConversionConflicts method
         final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
         final DbQuery query = new DbQueryBuilder(table)
+                .whereColumnValueMatch(table.getDynamicAcceptationColumnIndex(), table.getMainAcceptationColumnIndex())
                 .where(table.getStringAlphabetColumnIndex(), newConversion.getSourceAlphabet())
                 .select(table.getStringColumnIndex());
 
@@ -3052,17 +3053,6 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .select(table.getStringColumnIndex());
 
         return !_db.select(query).anyMatch(row -> conversion.convert(row.get(0).toText()) == null);
-    }
-
-    boolean checkConversionConflicts(ConversionProposal<AlphabetId> conversion) {
-        final LangbookDbSchema.StringQueriesTable table = LangbookDbSchema.Tables.stringQueries;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getStringAlphabetColumnIndex(), conversion.getSourceAlphabet())
-                .select(table.getStringColumnIndex());
-
-        return !_db.select(query)
-                .map(row -> row.get(0).toText())
-                .anyMatch(str -> conversion.convert(str) == null);
     }
 
     BunchSetId findBunchSet(Set<BunchId> bunches) {

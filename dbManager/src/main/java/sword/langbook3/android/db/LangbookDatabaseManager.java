@@ -1761,17 +1761,20 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return false;
         }
 
-        if (!checkConversionConflicts(conversion)) {
+        if (!checkConversionConflictsOnStaticAcceptationsOnly(conversion)) {
             return false;
         }
 
         insertAlphabet(_db, conversion.getTargetAlphabet(), language);
 
-        if (!updateJustConversion(conversion).getMap().isEmpty()) {
-            throw new AssertionError();
+        updateJustConversion(conversion);
+        applyConversionOnStaticAcceptationsOnly(conversion);
+
+        final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
+        for (AgentId thisAgentId : agentExecutionOrder.left) {
+            rerunAgentForChangedConversion(thisAgentId, conversion);
         }
 
-        applyConversion(conversion);
         return true;
     }
 

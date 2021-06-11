@@ -4005,4 +4005,65 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         assertEquals(naCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(4)));
         assertEquals(iCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(5)));
     }
+
+    @Test
+    default void testAddAlphabetAsConversionTargetWhenRuledAcceptationCannotBeConverted() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final ImmutableCorrelation<AlphabetId> takaCorrelation = correlationComposer.compose("高", "たか");
+        final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
+        final ImmutableCorrelationArray<AlphabetId> takaiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(takaCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final ConceptId highConcept = manager.getNextAvailableConceptId();
+        final AcceptationId highAcceptation = manager.addAcceptation(highConcept, takaiCorrelationArray);
+        assertNotNull(highAcceptation);
+
+        final ImmutableCorrelation<AlphabetId> kattaCorrelation = correlationComposer.compose("かった", "かった");
+        final ImmutableCorrelationArray<AlphabetId> kattaCorrelationArray = ImmutableCorrelationArray.<AlphabetId>empty().prepend(kattaCorrelation);
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final RuleId pastRule = obtainNewRule(manager, enAlphabet, "past");
+        final AgentId pastAgent = manager.addAgent(setOf(), setOf(), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kattaCorrelationArray, pastRule);
+
+        final ImmutableCorrelation<AlphabetId> rouCorrelation = correlationComposer.compose("ロー", "ロー");
+        final ImmutableCorrelation<AlphabetId> maCorrelation = correlationComposer.compose("マ", "マ");
+        final ImmutableCorrelation<AlphabetId> jiCorrelation = correlationComposer.compose("字", "じ");
+        final ImmutableCorrelationArray<AlphabetId> roumajiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(rouCorrelation)
+                .append(maCorrelation)
+                .append(jiCorrelation)
+                .build();
+
+        final ConceptId roumajiConcept = manager.getNextAvailableConceptId();
+        final AcceptationId roumajiAcceptation = manager.addAcceptation(roumajiConcept, roumajiCorrelationArray);
+        assertNotNull(roumajiAcceptation);
+
+        final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
+                .put("た", "ta")
+                .put("か", "ka")
+                .put("い", "i")
+                .put("ロー", "rou")
+                .put("マ", "ma")
+                .put("じ", "ji")
+                .build();
+
+        final AlphabetId roumaji = getAlphabetIdManager().getKeyFromConceptId(roumajiConcept);
+        final Conversion<AlphabetId> conversion = new Conversion<>(kana, roumaji, conversionMap);
+        assertTrue(manager.addAlphabetAsConversionTarget(conversion));
+
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(pastAgent, highAcceptation));
+        assertSize(1, manager.findAcceptationFromText("高い", DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 19)));
+        assertEmpty(manager.findAcceptationAndRulesFromText("高かった", DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 19)));
+    }
 }
