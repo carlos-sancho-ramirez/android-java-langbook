@@ -3915,4 +3915,94 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         assertEquals(giCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(3)));
         assertEquals(ruCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(4)));
     }
+
+    @Test
+    default void testUpdateAgentWhenAddingATargetBunchThatIsAlreadyASourceBunchForAnotherAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
+        final ImmutableCorrelation<AlphabetId> kattaCorrelation = correlationComposer.compose("かった", "かった");
+        final ImmutableCorrelationArray<AlphabetId> kattaCorrelationArray = ImmutableCorrelationArray.<AlphabetId>empty().prepend(kattaCorrelation);
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final BunchId canBePastBunch = obtainNewBunch(manager, enAlphabet, "can be past");
+        final RuleId pastRule = obtainNewRule(manager, enAlphabet, "past");
+        final AgentId pastAgent = manager.addAgent(setOf(), setOf(canBePastBunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kattaCorrelationArray, pastRule);
+
+        final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("食", "た");
+        final ImmutableCorrelation<AlphabetId> beCorrelation = correlationComposer.compose("べ", "べ");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+
+        final ImmutableCorrelationArray<AlphabetId> eatCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(taCorrelation)
+                .append(beCorrelation)
+                .append(ruCorrelation)
+                .build();
+
+        final ConceptId eatConcept = manager.getNextAvailableConceptId();
+        final AcceptationId eatAcceptation = manager.addAcceptation(eatConcept, eatCorrelationArray);
+        assertNotNull(eatAcceptation);
+
+        final BunchId verbBunch = obtainNewBunch(manager, enAlphabet, "ichidan verb");
+        manager.addAcceptationInBunch(verbBunch, eatAcceptation);
+
+        final ImmutableCorrelation<AlphabetId> suCorrelation = correlationComposer.compose("過", "す");
+        final ImmutableCorrelation<AlphabetId> giCorrelation = correlationComposer.compose("ぎ", "ぎ");
+        final ImmutableCorrelationArray<AlphabetId> sugiruCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(suCorrelation)
+                .append(giCorrelation)
+                .append(ruCorrelation)
+                .build();
+
+        final RuleId exceedRule = obtainNewRule(manager, enAlphabet, "exceed");
+        final AgentId exceedAgent = manager.addAgent(setOf(), setOf(verbBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, sugiruCorrelationArray, exceedRule);
+
+        final BunchId canBeNegatedBunch = obtainNewBunch(manager, enAlphabet, "can be negated");
+
+        final ImmutableCorrelation<AlphabetId> naCorrelation = correlationComposer.compose("な", "な");
+        final ImmutableCorrelationArray<AlphabetId> naiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(naCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final RuleId negativeRule = obtainNewRule(manager, enAlphabet, "negative");
+        final AgentId negativeAgent = manager.addAgent(setOf(canBePastBunch), setOf(verbBunch, canBeNegatedBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, naiCorrelationArray, negativeRule);
+
+        assertTrue(manager.updateAgent(exceedAgent, setOf(canBeNegatedBunch), setOf(verbBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, sugiruCorrelationArray, exceedRule));
+
+        final AcceptationId notEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(negativeAgent, eatAcceptation);
+        assertNotNull(notEatAcceptation);
+
+        final AcceptationId eatTooMuchAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(exceedAgent, eatAcceptation);
+        assertNotNull(eatTooMuchAcceptation);
+        assertNotEquals(notEatAcceptation, eatTooMuchAcceptation);
+
+        final AcceptationId notEatTooMuchAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(negativeAgent, eatTooMuchAcceptation);
+        assertNotNull(notEatTooMuchAcceptation);
+        assertNotEquals(notEatAcceptation, notEatTooMuchAcceptation);
+        assertNotEquals(eatTooMuchAcceptation, notEatTooMuchAcceptation);
+
+        final ImmutableList<RuleId> expectedRules = ImmutableList.<RuleId>empty().append(negativeRule).append(exceedRule);
+        assertSearchResult(manager, notEatTooMuchAcceptation, "食べ過ぎない", "食べ過ぎない", "食べる", expectedRules);
+        assertSearchResult(manager, notEatTooMuchAcceptation, "食べすぎない", "食べ過ぎない", "食べる", expectedRules);
+        assertSearchResult(manager, notEatTooMuchAcceptation, "たべ過ぎない", "食べ過ぎない", "食べる", expectedRules);
+        assertSearchResult(manager, notEatTooMuchAcceptation, "たべすぎない", "食べ過ぎない", "食べる", expectedRules);
+
+        final ImmutableList<CorrelationId> correlationIds = manager.getAcceptationCorrelationArray(notEatTooMuchAcceptation);
+        assertSize(6, correlationIds);
+        assertEquals(taCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(0)));
+        assertEquals(beCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(1)));
+        assertEquals(suCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(2)));
+        assertEquals(giCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(3)));
+        assertEquals(naCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(4)));
+        assertEquals(iCorrelation, manager.getCorrelationWithText(correlationIds.valueAt(5)));
+    }
 }

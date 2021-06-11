@@ -917,6 +917,16 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return obtainCorrelation(correlation.map(this::obtainSymbolArray));
     }
 
+    private static final class AgentDependencyNode<AgentId> {
+        final ImmutableSet<AgentId> targets;
+        final ImmutableSet<AgentId> sources;
+
+        AgentDependencyNode(ImmutableSet<AgentId> targets, ImmutableSet<AgentId> sources) {
+            this.targets = targets;
+            this.sources = sources;
+        }
+    }
+
     private ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> getAgentExecutionOrder() {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbQuery query = new DbQuery.Builder(table)
@@ -949,30 +959,37 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             }
         }
 
-        final int agentCount = agentDependencies.size();
-        final Object[] agentList = new Object[agentCount];
-        for (int i = 0; i < agentCount; i++) {
-            final AgentId agentId = agentDependencies.keyAt(i);
-            final ImmutableSet<BunchId> targets = agentTargets.get(agentId);
-            boolean inserted = false;
-            for (int j = 0; j < i; j++) {
-                if (agentDependencies.get((AgentId) agentList[j]).anyMatch(targets::contains)) {
-                    for (int k = i; k > j; k--) {
-                        agentList[k] = agentList[k - 1];
-                    }
-                    agentList[j] = agentId;
-                    inserted = true;
-                    break;
+        final ImmutableSet<AgentId> allAgentIds = agentTargets.keySet().toImmutable();
+        final ImmutableMap<AgentId, AgentDependencyNode<AgentId>> nodes = allAgentIds.assign(agentId -> {
+            final ImmutableSet<BunchId> targetBunches = agentTargets.get(agentId);
+            final ImmutableSet<AgentId> targetAgents = agentDependencies.filter(dependencies -> targetBunches.anyMatch(dependencies::contains)).keySet().toImmutable();
+
+            final ImmutableSet<BunchId> sourceBunches = agentDependencies.get(agentId);
+            final ImmutableSet<AgentId> sourceAgents = agentTargets.filter(targets -> sourceBunches.anyMatch(targets::contains)).keySet().toImmutable();
+
+            return new AgentDependencyNode<>(targetAgents, sourceAgents);
+        });
+
+        final MutableSet<AgentId> pendingAgents = allAgentIds.mutate();
+        final MutableList<AgentId> sortered = MutableList.empty();
+
+        while (!pendingAgents.isEmpty()) {
+            boolean somethingChanged = false;
+            for (AgentId agentId : pendingAgents.toImmutable()) {
+                final AgentDependencyNode<AgentId> node = nodes.get(agentId);
+                if (!node.sources.anyMatch(pendingAgents::contains)) {
+                    sortered.append(agentId);
+                    pendingAgents.remove(agentId);
+                    somethingChanged = true;
                 }
             }
 
-            if (!inserted) {
-                agentList[i] = agentId;
+            if (!somethingChanged) {
+                throw new AssertionError();
             }
         }
 
-        final ImmutableList<AgentId> sortedIdentifiers = (ImmutableList<AgentId>) ((ImmutableList) ImmutableList.from(agentList));
-        return new ImmutablePair<>(sortedIdentifiers, agentDependenciesWithNull.toImmutable());
+        return new ImmutablePair<>(sortered.toImmutable(), agentDependenciesWithNull.toImmutable());
     }
 
     @Override
@@ -1063,7 +1080,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return false;
         }
 
-        if (rule != register.rule) {
+        if (!equal(rule, register.rule)) {
             updateQueryBuilder.put(table.getRuleColumnIndex(), rule);
             somethingChanged = true;
         }
