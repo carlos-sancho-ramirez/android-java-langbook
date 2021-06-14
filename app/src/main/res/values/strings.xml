@@ -205,4 +205,8 @@
     <string name="agentEditorAddButton">Add</string>
     <string name="agentEditorSaveButton">Save</string>
     <string name="agentEditorRuleDefaultText">Select a rule</string>
+
+    <!-- Performance test activity -->
+    <string name="menuItemPerformanceTest">Test</string>
+    <string name="startButtonText">Start</string>
 </resources>

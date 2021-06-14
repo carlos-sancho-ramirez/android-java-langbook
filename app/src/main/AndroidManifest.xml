@@ -94,6 +94,10 @@
         <activity
             android:name=".WelcomeActivity"
             android:label="@string/appName"/>
+
+        <!-- This should be only available if the performance test is available -->
+        <activity android:name=".PerformanceTestActivity"/>
+
     </application>
 
 </manifest>

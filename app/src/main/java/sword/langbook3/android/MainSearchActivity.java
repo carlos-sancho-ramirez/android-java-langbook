@@ -59,6 +59,10 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 AgentEditorActivity.open(this);
                 return true;
 
+            case R.id.menuItemPerformanceTest:
+                PerformanceTestActivity.open(this);
+                return true;
+
             case R.id.menuItemSettings:
                 SettingsActivity.open(this, REQUEST_CODE_OPEN_SETTINGS);
                 return true;

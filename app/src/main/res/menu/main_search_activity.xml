@@ -18,6 +18,11 @@
         android:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/menuItemPerformanceTest"
+        android:title="@string/menuItemPerformanceTest"
+        android:showAsAction="ifRoom"/>
+
+    <item
         android:id="@+id/menuItemSettings"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="@string/menuItemSettings"
