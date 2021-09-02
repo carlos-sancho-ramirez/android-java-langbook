@@ -2376,7 +2376,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return !isAlphabetUsedInQuestions(alphabet);
     }
 
-    private ImmutableMap<AcceptationId, String> readAcceptationsIncludingCorrelation(CorrelationId correlation, AlphabetId preferredAlphabet) {
+    private ImmutableMap<AcceptationId, String> readStaticAcceptationsIncludingCorrelation(CorrelationId correlation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.AcceptationsTable acceptations = LangbookDbSchema.Tables.acceptations;
         final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
         final LangbookDbSchema.StringQueriesTable strings = LangbookDbSchema.Tables.stringQueries;
@@ -2387,6 +2387,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .join(acceptations, correlationArrays.getArrayIdColumnIndex(), acceptations.getCorrelationArrayColumnIndex())
                 .join(strings, accOffset + acceptations.getIdColumnIndex(), strings.getDynamicAcceptationColumnIndex())
                 .where(correlationArrays.getCorrelationColumnIndex(), correlation)
+                .whereColumnValueMatch(strOffset + strings.getDynamicAcceptationColumnIndex(), strOffset + strings.getMainAcceptationColumnIndex())
                 .select(accOffset + acceptations.getIdColumnIndex(),
                         strOffset + strings.getStringAlphabetColumnIndex(),
                         strOffset + strings.getStringColumnIndex());
@@ -2449,7 +2450,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
 
         final ImmutableMap<AlphabetId, String> alphabets = readAllAlphabets(preferredAlphabet);
-        final ImmutableMap<AcceptationId, String> acceptations = readAcceptationsIncludingCorrelation(correlationId, preferredAlphabet);
+        final ImmutableMap<AcceptationId, String> acceptations = readStaticAcceptationsIncludingCorrelation(correlationId, preferredAlphabet);
 
         final int entryCount = correlation.size();
         final MutableMap<AlphabetId, ImmutableSet<CorrelationId>> relatedCorrelationsByAlphabet = MutableHashMap.empty();
