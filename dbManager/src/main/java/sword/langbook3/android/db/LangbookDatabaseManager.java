@@ -2519,6 +2519,10 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     private ConceptId obtainConceptComposition(ImmutableSet<ConceptId> concepts) {
+        if (concepts.isEmpty()) {
+            return null;
+        }
+
         final ConceptId compositionConcept = findConceptComposition(concepts);
         if (compositionConcept == null) {
             ConceptId newCompositionConcept = getNextAvailableConceptId();
