@@ -23,6 +23,31 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Override
     RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> createManager(MemoryDatabase db);
 
+    static <ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> AcceptationId addTaberuAcceptation(RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer) {
+        final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("食", "た");
+        final ImmutableCorrelation<AlphabetId> beCorrelation = correlationComposer.compose("べ", "べ");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+
+        final ImmutableCorrelationArray<AlphabetId> eatCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(taCorrelation)
+                .append(beCorrelation)
+                .append(ruCorrelation)
+                .build();
+
+        final ConceptId eatConcept = manager.getNextAvailableConceptId();
+        return manager.addAcceptation(eatConcept, eatCorrelationArray);
+    }
+
+    static <ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> AgentId addDesireAgent(RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer, BunchId sourceBunch, RuleId desireRule) {
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+        final ImmutableCorrelation<AlphabetId> taiCorrelation = correlationComposer.compose("たい", "たい");
+        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = composeSingleElementArray(taiCorrelation);
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        return manager.addAgent(setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+    }
+
     @Test
     default void testAddSentenceContainingOneRuledAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
@@ -34,26 +59,12 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         manager.addAlphabetCopyingFromOther(kana, kanji);
 
         final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
-        final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("食", "た");
-        final ImmutableCorrelation<AlphabetId> beCorrelation = correlationComposer.compose("べ", "べ");
-        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
-        final ImmutableCorrelation<AlphabetId> taiCorrelation = correlationComposer.compose("たい", "たい");
-        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = composeSingleElementArray(taiCorrelation);
         final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
-        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
-        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
 
         final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
-        final AgentId agent = manager.addAgent(setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+        final AgentId agent = addDesireAgent(manager, correlationComposer, sourceBunch, desireRule);
 
-        final ImmutableCorrelationArray<AlphabetId> eatCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
-                .append(taCorrelation)
-                .append(beCorrelation)
-                .append(ruCorrelation)
-                .build();
-
-        final ConceptId eatConcept = manager.getNextAvailableConceptId();
-        final AcceptationId eatAcceptation = manager.addAcceptation(eatConcept, eatCorrelationArray);
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
         assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
         final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
         assertNotNull(wannaEatAcceptation);
@@ -80,26 +91,12 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         manager.addAlphabetCopyingFromOther(kana, kanji);
 
         final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
-        final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("食", "た");
-        final ImmutableCorrelation<AlphabetId> beCorrelation = correlationComposer.compose("べ", "べ");
-        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
-        final ImmutableCorrelation<AlphabetId> taiCorrelation = correlationComposer.compose("たい", "たい");
-        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = composeSingleElementArray(taiCorrelation);
         final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
-        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
-        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
 
         final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
-        final AgentId agent = manager.addAgent(setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+        final AgentId agent = addDesireAgent(manager, correlationComposer, sourceBunch, desireRule);
 
-        final ImmutableCorrelationArray<AlphabetId> eatCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
-                .append(taCorrelation)
-                .append(beCorrelation)
-                .append(ruCorrelation)
-                .build();
-
-        final ConceptId eatConcept = manager.getNextAvailableConceptId();
-        final AcceptationId eatAcceptation = manager.addAcceptation(eatConcept, eatCorrelationArray);
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
         assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
         final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
 
@@ -118,5 +115,39 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
                 .where(table.getSentenceColumnIndex(), sentence)
                 .select(table.getRuleColumnIndex());
         assertEquals(0, db.select(query).size());
+    }
+
+    @Test
+    default void testUpdateSentenceAddingRuledAcceptationSpan() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたい", ImmutableHashSet.empty());
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final AgentId agent = addDesireAgent(manager, correlationComposer, sourceBunch, desireRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(wannaEatAcceptation);
+
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(new SentenceSpan<>(new ImmutableIntRange(4, 7), wannaEatAcceptation))
+                .build();
+
+        assertTrue(manager.updateSentenceTextAndSpans(sentence, "ケーキを食べたい", sentenceSpans));
+
+        final ImmutableMap<SentenceId, String> sampleSentences = manager.getSampleSentencesApplyingRule(desireRule);
+        assertSinglePair(sentence, "ケーキを食べたい", sampleSentences);
     }
 }
