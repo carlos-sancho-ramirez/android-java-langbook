@@ -74,6 +74,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelationArray;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
+import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatchesBySentenceId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptationByAgent;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledConcept;
@@ -2566,6 +2567,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         }
 
         deleteSpansBySentenceId(_db, sentenceId);
+        deleteRuleSentenceMatchesBySentenceId(_db, sentenceId);
         if (isSymbolArrayMerelyASentence(symbolArrayId) &&
                 findSentencesBySymbolArrayId(symbolArrayId).isEmpty() &&
                 !deleteSymbolArray(_db, symbolArrayId)) {

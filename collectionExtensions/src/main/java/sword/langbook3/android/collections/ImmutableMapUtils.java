@@ -2,7 +2,9 @@ package sword.langbook3.android.collections;
 
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
+import sword.collections.Map;
 import sword.collections.Predicate;
+import sword.collections.TransformerWithKey;
 
 public final class ImmutableMapUtils {
 
@@ -26,6 +28,16 @@ public final class ImmutableMapUtils {
         }
 
         return builder.build();
+    }
+
+    public static <K, V> ImmutableMap<K, V> putAll(ImmutableMap<K, V> map, Map<K, V> other) {
+        final TransformerWithKey<K, V> transformer = other.iterator();
+        while (transformer.hasNext()) {
+            final V value = transformer.next();
+            map = map.put(transformer.key(), value);
+        }
+
+        return map;
     }
 
     private ImmutableMapUtils() {

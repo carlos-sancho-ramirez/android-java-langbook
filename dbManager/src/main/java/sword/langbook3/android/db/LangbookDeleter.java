@@ -251,6 +251,14 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static boolean deleteRuleSentenceMatchesBySentenceId(Deleter db, SentenceIdInterface sentenceId) {
+        final LangbookDbSchema.RuleSentenceMatchesTable matches = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(matches)
+                .where(matches.getSentenceColumnIndex(), sentenceId)
+                .build();
+        return db.delete(query);
+    }
+
     static <ConceptId, AlphabetId extends AlphabetIdInterface<ConceptId>> boolean deleteConversionRegister(Deleter db, ImmutablePair<AlphabetId, AlphabetId> alphabets, SymbolArrayIdInterface sourceSymbolArrayId, SymbolArrayIdInterface targetSymbolArrayId) {
         final LangbookDbSchema.ConversionsTable table = LangbookDbSchema.Tables.conversions;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
