@@ -251,6 +251,15 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static <ConceptId> boolean deleteRuleSentenceMatch(Deleter db, RuleIdInterface<ConceptId> rule, SentenceIdInterface sentenceId) {
+        final LangbookDbSchema.RuleSentenceMatchesTable matches = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(matches)
+                .where(matches.getRuleColumnIndex(), rule)
+                .where(matches.getSentenceColumnIndex(), sentenceId)
+                .build();
+        return db.delete(query);
+    }
+
     static boolean deleteRuleSentenceMatchesBySentenceId(Deleter db, SentenceIdInterface sentenceId) {
         final LangbookDbSchema.RuleSentenceMatchesTable matches = LangbookDbSchema.Tables.ruleSentenceMatches;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(matches)

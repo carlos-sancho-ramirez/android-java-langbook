@@ -2702,6 +2702,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return result.toImmutable();
     }
 
+    Set<RuleId> getAppliedRulesBySentenceId(SentenceId sentence) {
+        final LangbookDbSchema.RuleSentenceMatchesTable ruleSentenceMatches = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbQuery query = new DbQueryBuilder(ruleSentenceMatches)
+                .where(ruleSentenceMatches.getSentenceColumnIndex(), sentence)
+                .select(ruleSentenceMatches.getRuleColumnIndex());
+        return _db.select(query).map(row -> _ruleIdSetter.getKeyFromDbValue(row.get(0))).toSet();
+    }
+
     private static final class SentenceConceptAndText<ConceptId> {
         final ConceptId concept;
         final String text;
