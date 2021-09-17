@@ -44,6 +44,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
 import static sword.langbook3.android.db.LangbookDbInserter.insertQuizDefinition;
+import static sword.langbook3.android.db.LangbookDbInserter.insertRuleSentenceMatch;
 import static sword.langbook3.android.db.LangbookDbInserter.insertRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSearchHistoryEntry;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSentence;
@@ -2612,6 +2613,9 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         final SentenceId sentenceId = insertSentence(_db, _sentenceIdSetter, concept, symbolArray);
         for (SentenceSpan<AcceptationId> span : spans) {
             insertSpan(_db, sentenceId, span.range, span.acceptation);
+            for (RuleId rule : getAppliedRules(span.acceptation)) {
+                insertRuleSentenceMatch(_db, rule, sentenceId);
+            }
         }
         return sentenceId;
     }

@@ -297,4 +297,14 @@ final class LangbookDbInserter {
 
         return sentenceIdSetter.getKeyFromInt(db.insert(query));
     }
+
+    static <ConceptId> void insertRuleSentenceMatch(DbInserter db, RuleIdInterface<ConceptId> rule, SentenceIdInterface sentence) {
+        final LangbookDbSchema.RuleSentenceMatchesTable table = Tables.ruleSentenceMatches;
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getRuleColumnIndex(), rule)
+                .put(table.getSentenceColumnIndex(), sentence)
+                .build();
+
+        db.insert(query);
+    }
 }
