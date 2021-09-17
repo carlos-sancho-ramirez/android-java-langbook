@@ -2683,6 +2683,9 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
         for (SentenceSpan<AcceptationId> span : newSpans.filterNot(oldSpans::contains)) {
             insertSpan(_db, sentenceId, span.range, span.acceptation);
+            for (RuleId rule : getAppliedRules(span.acceptation)) {
+                insertRuleSentenceMatch(_db, rule, sentenceId);
+            }
         }
 
         return true;
