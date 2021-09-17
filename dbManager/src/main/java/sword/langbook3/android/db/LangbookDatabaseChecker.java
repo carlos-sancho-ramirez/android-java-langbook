@@ -34,6 +34,7 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
+import sword.langbook3.android.collections.ImmutableMapUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
@@ -1564,17 +1565,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final ImmutableMap<RuleId, String> ruleTexts = (appliedRuleAcceptationId == null)? morphologyResults.ruleTexts :
                 morphologyResults.ruleTexts.put(appliedRuleId, appliedRuleAcceptationText);
 
-        ImmutableMap<SentenceId, String> sampleSentences = getSampleSentences(staticAcceptation);
-        final ImmutableMap<SentenceId, String> sampleSentencesApplyingRule = getSampleSentencesApplyingRule(_ruleIdSetter.getKeyFromConceptId(concept));
-        // TODO: Change the following implementation as soon as ImmutableMap.putAll is available
-        final int sampleSentencesApplyingRuleCount = sampleSentencesApplyingRule.size();
-        if (sampleSentencesApplyingRuleCount > 0) {
-            final MutableMap<SentenceId, String> mutableMap = sampleSentences.mutate();
-            for (int i = 0; i < sampleSentencesApplyingRuleCount; i++) {
-                mutableMap.put(sampleSentencesApplyingRule.keyAt(i), sampleSentencesApplyingRule.valueAt(i));
-            }
-            sampleSentences = mutableMap.toImmutable();
-        }
+        final ImmutableMap<SentenceId, String> sampleSentences = ImmutableMapUtils.putAll(getSampleSentences(staticAcceptation),
+                getSampleSentencesApplyingRule(_ruleIdSetter.getKeyFromConceptId(concept)));
 
         final AcceptationId baseConceptAcceptationId = (definition.left != null)? definition.left.id : null;
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
