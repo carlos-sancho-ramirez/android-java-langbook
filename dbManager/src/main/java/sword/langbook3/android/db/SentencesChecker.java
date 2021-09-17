@@ -6,6 +6,7 @@ import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
 public interface SentencesChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> {
+
     /**
      * Checks if the given symbolArray is not used neither as a correlation nor as a conversion,
      * and then it is merely a sentence.
@@ -29,5 +30,6 @@ public interface SentencesChecker<ConceptId, LanguageId, AlphabetId, SymbolArray
      * @return Keys for the returned map are the sentence identifiers, values are the text representation of that sentence.
      */
     ImmutableMap<SentenceId, String> getSampleSentences(AcceptationId staticAcceptation);
+
     SentenceDetailsModel<ConceptId, AcceptationId, SentenceId> getSentenceDetails(SentenceId sentenceId);
 }

@@ -429,6 +429,20 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    public static final class RuleSentenceMatchesTable extends DbTable {
+        private RuleSentenceMatchesTable() {
+            super("RuleSentenceMatches", new DbIntColumn("rule"), new DbIntColumn("sentence"));
+        }
+
+        public int getRuleColumnIndex() {
+            return 1;
+        }
+
+        public int getSentenceColumnIndex() {
+            return 2;
+        }
+    }
+
     public static final class RuledAcceptationsTable extends DbTable {
 
         private RuledAcceptationsTable() {
@@ -589,6 +603,7 @@ public final class LangbookDbSchema implements DbSchema {
         LanguagesTable languages = new LanguagesTable();
         QuestionFieldSets questionFieldSets = new QuestionFieldSets();
         QuizDefinitionsTable quizDefinitions = new QuizDefinitionsTable();
+        RuleSentenceMatchesTable ruleSentenceMatches = new RuleSentenceMatchesTable();
         RuledAcceptationsTable ruledAcceptations = new RuledAcceptationsTable();
         RuledConceptsTable ruledConcepts = new RuledConceptsTable();
         SearchHistoryTable searchHistory = new SearchHistoryTable();
@@ -613,6 +628,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.languages)
             .add(Tables.questionFieldSets)
             .add(Tables.quizDefinitions)
+            .add(Tables.ruleSentenceMatches)
             .add(Tables.ruledAcceptations)
             .add(Tables.ruledConcepts)
             .add(Tables.searchHistory)

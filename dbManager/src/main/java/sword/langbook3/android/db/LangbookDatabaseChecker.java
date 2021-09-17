@@ -1564,7 +1564,18 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final ImmutableMap<RuleId, String> ruleTexts = (appliedRuleAcceptationId == null)? morphologyResults.ruleTexts :
                 morphologyResults.ruleTexts.put(appliedRuleId, appliedRuleAcceptationText);
 
-        final ImmutableMap<SentenceId, String> sampleSentences = getSampleSentences(staticAcceptation);
+        ImmutableMap<SentenceId, String> sampleSentences = getSampleSentences(staticAcceptation);
+        final ImmutableMap<SentenceId, String> sampleSentencesApplyingRule = getSampleSentencesApplyingRule(_ruleIdSetter.getKeyFromConceptId(concept));
+        // TODO: Change the following implementation as soon as ImmutableMap.putAll is available
+        final int sampleSentencesApplyingRuleCount = sampleSentencesApplyingRule.size();
+        if (sampleSentencesApplyingRuleCount > 0) {
+            final MutableMap<SentenceId, String> mutableMap = sampleSentences.mutate();
+            for (int i = 0; i < sampleSentencesApplyingRuleCount; i++) {
+                mutableMap.put(sampleSentencesApplyingRule.keyAt(i), sampleSentencesApplyingRule.valueAt(i));
+            }
+            sampleSentences = mutableMap.toImmutable();
+        }
+
         final AcceptationId baseConceptAcceptationId = (definition.left != null)? definition.left.id : null;
         final String baseConceptText = (definition.left != null)? definition.left.text : null;
         return new AcceptationDetailsModel<>(concept, languageResult, originalAcceptationId, originalAcceptationText,
@@ -2673,6 +2684,32 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return _db.select(query).map(row -> _sentenceIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable().assign(this::getSentenceText);
     }
 
+    @Override
+    public ImmutableMap<SentenceId, String> getSampleSentencesApplyingRule(RuleId appliedRule) {
+        final LangbookDbSchema.RuleSentenceMatchesTable ruleSentenceMatches = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final LangbookDbSchema.SentencesTable sentences = LangbookDbSchema.Tables.sentences;
+        final LangbookDbSchema.SymbolArraysTable texts = LangbookDbSchema.Tables.symbolArrays;
+
+        final int sentencesOffset = ruleSentenceMatches.columns().size();
+        final int textsOffset = sentencesOffset + sentences.columns().size();
+
+        final DbQuery query = new DbQueryBuilder(ruleSentenceMatches)
+                .join(sentences, ruleSentenceMatches.getSentenceColumnIndex(), sentences.getIdColumnIndex())
+                .join(texts, sentencesOffset + sentences.getSymbolArrayColumnIndex(), texts.getIdColumnIndex())
+                .where(ruleSentenceMatches.getRuleColumnIndex(), appliedRule)
+                .select(ruleSentenceMatches.getSentenceColumnIndex(), textsOffset + texts.getStrColumnIndex());
+
+        final MutableHashMap<SentenceId, String> result = MutableHashMap.empty();
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                result.put(_sentenceIdSetter.getKeyFromDbValue(row.get(0)), row.get(1).toText());
+            }
+        }
+
+        return result.toImmutable();
+    }
+
     private static final class SentenceConceptAndText<ConceptId> {
         final ConceptId concept;
         final String text;
@@ -3144,6 +3181,29 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
         final DbValue rawValue = selectOptionalFirstDbValue(query);
         return (rawValue != null)? _ruleIdSetter.getKeyFromDbValue(rawValue) : null;
+    }
+
+    private void getAppliedRulesIteration(AcceptationId acceptation, MutableList<RuleId> rules) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final LangbookDbSchema.AgentsTable agents = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQueryBuilder(table)
+                .join(agents, table.getAgentColumnIndex(), agents.getIdColumnIndex())
+                .where(table.getIdColumnIndex(), acceptation)
+                .select(table.getAcceptationColumnIndex(), table.columns().size() + agents.getRuleColumnIndex());
+
+        final List<DbValue> row = selectOptionalSingleRow(query);
+        if (row != null) {
+            final AcceptationId baseAcceptation = _acceptationIdSetter.getKeyFromDbValue(row.get(0));
+            final RuleId rule = _ruleIdSetter.getKeyFromDbValue(row.get(1));
+            getAppliedRulesIteration(baseAcceptation, rules);
+            rules.append(rule);
+        }
+    }
+
+    List<RuleId> getAppliedRules(AcceptationId acceptation) {
+        final MutableList<RuleId> rules = MutableList.empty();
+        getAppliedRulesIteration(acceptation, rules);
+        return rules;
     }
 
     ImmutableIntSet findAgentsByRule(RuleId rule) {
