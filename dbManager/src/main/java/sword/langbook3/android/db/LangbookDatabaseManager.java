@@ -74,6 +74,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelationArray;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
+import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatchesBySentenceId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptationByAgent;
@@ -2613,10 +2614,14 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
         final SymbolArrayId symbolArray = obtainSymbolArray(text);
         final SentenceId sentenceId = insertSentence(_db, _sentenceIdSetter, concept, symbolArray);
+        final MutableSet<RuleId> insertedRules = MutableHashSet.empty();
         for (SentenceSpan<AcceptationId> span : spans) {
             insertSpan(_db, sentenceId, span.range, span.acceptation);
             for (RuleId rule : getAppliedRules(span.acceptation)) {
-                insertRuleSentenceMatch(_db, rule, sentenceId);
+                if (!insertedRules.contains(rule)) {
+                    insertedRules.add(rule);
+                    insertRuleSentenceMatch(_db, rule, sentenceId);
+                }
             }
         }
         return sentenceId;
@@ -2647,6 +2652,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return false;
         }
 
+        final Set<RuleId> oldAppliedRules = getAppliedRulesBySentenceId(sentenceId);
         final ImmutableIntValueMap<SentenceSpan<AcceptationId>> oldSpanMap = getSentenceSpansWithIds(sentenceId);
 
         final SymbolArrayId foundSymbolArrayId = findSymbolArray(newText);
@@ -2675,17 +2681,35 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         }
 
         final ImmutableSet<SentenceSpan<AcceptationId>> oldSpans = oldSpanMap.keySet();
+
+        final MutableSet<RuleId> retainedRules = MutableHashSet.empty();
+        for (SentenceSpan<AcceptationId> span : oldSpans.filter(newSpans::contains)) {
+            retainedRules.addAll(getAppliedRules(span.acceptation));
+        }
+
         for (SentenceSpan<AcceptationId> span : oldSpans.filterNot(newSpans::contains)) {
             if (!deleteSpan(_db, oldSpanMap.get(span))) {
                 throw new AssertionError();
             }
         }
 
+        final MutableSet<RuleId> willBeRules = retainedRules.mutate();
+        for (SentenceSpan<AcceptationId> span : newSpans.filterNot(oldSpans::contains)) {
+            for (RuleId rule : getAppliedRules(span.acceptation)) {
+                willBeRules.add(rule);
+            }
+        }
+
+        for (RuleId rule : oldAppliedRules.filterNot(willBeRules::contains)) {
+            deleteRuleSentenceMatch(_db, rule, sentenceId);
+        }
+
         for (SentenceSpan<AcceptationId> span : newSpans.filterNot(oldSpans::contains)) {
             insertSpan(_db, sentenceId, span.range, span.acceptation);
-            for (RuleId rule : getAppliedRules(span.acceptation)) {
-                insertRuleSentenceMatch(_db, rule, sentenceId);
-            }
+        }
+
+        for (RuleId rule : willBeRules.filterNot(oldAppliedRules::contains)) {
+            insertRuleSentenceMatch(_db, rule, sentenceId);
         }
 
         return true;
