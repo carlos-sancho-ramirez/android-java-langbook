@@ -310,4 +310,44 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
                 .select(table.getRuleColumnIndex());
         assertEquals(1, db.select(query).size());
     }
+
+    @Test
+    default void testRemoveAgentWhenThereIsOneSentenceContainingOneRuledAcceptationFromThatAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final AgentId agent = addDesireAgent(manager, correlationComposer, sourceBunch, desireRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(wannaEatAcceptation);
+
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(new SentenceSpan<>(new ImmutableIntRange(4, 7), wannaEatAcceptation))
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたい", sentenceSpans);
+        manager.removeAgent(agent);
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getSentenceColumnIndex(), sentence)
+                .select(table.getRuleColumnIndex());
+        assertEquals(0, db.select(query).size());
+
+        assertEmpty(manager.getSentenceSpans(sentence));
+    }
 }
