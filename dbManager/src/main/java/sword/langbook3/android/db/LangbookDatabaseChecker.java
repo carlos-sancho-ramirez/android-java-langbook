@@ -2181,6 +2181,18 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return builder.build();
     }
 
+    ImmutableSet<SentenceId> getSentencesByDynamicAcceptation(AcceptationId acceptation) {
+        final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
+                .select(table.getIdColumnIndex(), table.getSentenceIdColumnIndex());
+
+        return _db.select(query)
+                .map(row -> _sentenceIdSetter.getKeyFromDbValue(row.get(0)))
+                .toSet()
+                .toImmutable();
+    }
+
     @Override
     public ImmutableMap<LanguageId, String> readAllLanguages(AlphabetId preferredAlphabet) {
         final LangbookDbSchema.LanguagesTable languages = LangbookDbSchema.Tables.languages;

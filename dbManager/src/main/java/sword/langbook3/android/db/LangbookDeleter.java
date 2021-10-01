@@ -251,19 +251,20 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static boolean deleteSpanBySentenceAndDynamicAcceptation(Deleter db, SentenceIdInterface sentence, AcceptationIdInterface dynamicAcceptation) {
+        final LangbookDbSchema.SpanTable spans = LangbookDbSchema.Tables.spans;
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(spans)
+                .where(spans.getSentenceIdColumnIndex(), sentence)
+                .where(spans.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
+                .build();
+        return db.delete(query);
+    }
+
     static <ConceptId> boolean deleteRuleSentenceMatch(Deleter db, RuleIdInterface<ConceptId> rule, SentenceIdInterface sentenceId) {
         final LangbookDbSchema.RuleSentenceMatchesTable matches = LangbookDbSchema.Tables.ruleSentenceMatches;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(matches)
                 .where(matches.getRuleColumnIndex(), rule)
                 .where(matches.getSentenceColumnIndex(), sentenceId)
-                .build();
-        return db.delete(query);
-    }
-
-    static <ConceptId> boolean deleteRuleSentenceMatchesByRuleId(Deleter db, RuleIdInterface<ConceptId> ruleId) {
-        final LangbookDbSchema.RuleSentenceMatchesTable matches = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbDeleteQuery query = new DbDeleteQueryBuilder(matches)
-                .where(matches.getRuleColumnIndex(), ruleId)
                 .build();
         return db.delete(query);
     }
