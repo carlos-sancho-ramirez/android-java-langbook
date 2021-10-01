@@ -75,6 +75,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatch;
+import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatchesByRuleId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatchesBySentenceId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptationByAgent;
@@ -1228,6 +1229,11 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 !isBunchSetInUse(agentRegister.diffBunchSetId) &&
                 !deleteBunchSet(_db, agentRegister.diffBunchSetId)) {
             throw new AssertionError();
+        }
+
+        if (agentRegister.rule != null) {
+            deleteRuleSentenceMatchesByRuleId(_db, agentRegister.rule);
+            // TODO: this should remove the sentences that are not reachable any more
         }
 
         ImmutableSet<BunchId> updatedBunches = targetBunches;
