@@ -75,7 +75,6 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledge;
 import static sword.langbook3.android.db.LangbookDeleter.deleteKnowledgeForQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteQuiz;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatch;
-import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatchesByRuleId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuleSentenceMatchesBySentenceId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteRuledAcceptationByAgent;
@@ -83,6 +82,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteRuledConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSearchHistoryForAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSentence;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSpan;
+import static sword.langbook3.android.db.LangbookDeleter.deleteSpanBySentenceAndDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSpansByDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
@@ -1209,7 +1209,13 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 throw new AssertionError();
             }
 
-            deleteSpansByDynamicAcceptation(_db, ruleAcceptation);
+            final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(ruleAcceptation);
+            for (SentenceId sentence : sentences) {
+                deleteSpanBySentenceAndDynamicAcceptation(_db, sentence, ruleAcceptation);
+                deleteRuleSentenceMatchesBySentenceId(_db, sentence);
+                // TODO: This may fail if the sentence include 2 words applying the same rule, but only one of them is going to be removed
+            }
+
             removeCorrelationArrayIfUnused(correlationArray);
         }
 
@@ -1229,11 +1235,6 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 !isBunchSetInUse(agentRegister.diffBunchSetId) &&
                 !deleteBunchSet(_db, agentRegister.diffBunchSetId)) {
             throw new AssertionError();
-        }
-
-        if (agentRegister.rule != null) {
-            deleteRuleSentenceMatchesByRuleId(_db, agentRegister.rule);
-            // TODO: this should remove the sentences that are not reachable any more
         }
 
         ImmutableSet<BunchId> updatedBunches = targetBunches;
