@@ -491,4 +491,156 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
 
         assertContainsOnly(wannaDrinkSpan, manager.getSentenceSpans(sentence));
     }
+
+    @Test
+    default void testRemoveAgentWhenThereIsOneSentenceContainingOneRuledAcceptationFromAChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+        final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("た", "た");
+        final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
+        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(taCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final BunchId middleBunch = obtainNewBunch(manager, enAlphabet, "words for desire");
+        final AgentId desireAgent = manager.addAgent(setOf(middleBunch), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+
+        final ImmutableCorrelation<AlphabetId> kuCorrelation = correlationComposer.compose("く", "く");
+        final ImmutableCorrelation<AlphabetId> naCorrelation = correlationComposer.compose("な", "な");
+        final ImmutableCorrelationArray<AlphabetId> kunaiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(kuCorrelation)
+                .append(naCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final RuleId negativeRule = obtainNewRule(manager, enAlphabet, "negative");
+        final AgentId negativeAgent = manager.addAgent(setOf(), setOf(middleBunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kunaiCorrelationArray, negativeRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(desireAgent, eatAcceptation);
+        final AcceptationId noWannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(negativeAgent, wannaEatAcceptation);
+        assertNotNull(noWannaEatAcceptation);
+
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(new SentenceSpan<>(new ImmutableIntRange(4, 9), noWannaEatAcceptation))
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたくない", sentenceSpans);
+        manager.removeAgent(desireAgent);
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertEmpty(manager.getSampleSentencesApplyingRule(negativeRule));
+
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getSentenceColumnIndex(), sentence)
+                .select(table.getRuleColumnIndex());
+        assertEquals(0, db.select(query).size());
+
+        assertEmpty(manager.getSentenceSpans(sentence));
+    }
+
+    @Test
+    default void testRemoveAgentWhenThereIsTwoSentencesAndOneIsContainingOneRuledAcceptationFromAChainedAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+        final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("た", "た");
+        final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
+        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(taCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final BunchId middleBunch = obtainNewBunch(manager, enAlphabet, "words for desire");
+        final AgentId desireAgent = manager.addAgent(setOf(middleBunch), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+
+        final ImmutableCorrelation<AlphabetId> kuCorrelation = correlationComposer.compose("く", "く");
+        final ImmutableCorrelation<AlphabetId> naCorrelation = correlationComposer.compose("な", "な");
+        final ImmutableCorrelationArray<AlphabetId> kunaiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(kuCorrelation)
+                .append(naCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final RuleId negativeRule = obtainNewRule(manager, enAlphabet, "negative");
+        final AgentId negativeAgent = manager.addAgent(setOf(), setOf(middleBunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kunaiCorrelationArray, negativeRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(desireAgent, eatAcceptation);
+        final AcceptationId noWannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(negativeAgent, wannaEatAcceptation);
+        assertNotNull(noWannaEatAcceptation);
+
+        final ImmutableCorrelation<AlphabetId> akaCorrelation = correlationComposer.compose("赤", "あか");
+
+        final ImmutableCorrelationArray<AlphabetId> akaiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(akaCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final ConceptId redConcept = manager.getNextAvailableConceptId();
+        final AcceptationId redAcceptation = manager.addAcceptation(redConcept, akaiCorrelationArray);
+        assertTrue(manager.addAcceptationInBunch(middleBunch, redAcceptation));
+        final AcceptationId noRedAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(negativeAgent, redAcceptation);
+        assertNotNull(noRedAcceptation);
+
+        final Set<SentenceSpan<AcceptationId>> sentence1Spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(new SentenceSpan<>(new ImmutableIntRange(4, 9), noWannaEatAcceptation))
+                .build();
+
+        final ConceptId sentence1Concept = manager.getNextAvailableConceptId();
+        final SentenceId sentence1 = manager.addSentence(sentence1Concept, "ケーキを食べたくない", sentence1Spans);
+
+        final Set<SentenceSpan<AcceptationId>> sentence2Spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(new SentenceSpan<>(new ImmutableIntRange(2, 5), noRedAcceptation))
+                .build();
+
+        final ConceptId sentence2Concept = manager.getNextAvailableConceptId();
+        final SentenceId sentence2 = manager.addSentence(sentence2Concept, "車は赤くない", sentence2Spans);
+
+        manager.removeAgent(desireAgent);
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertSinglePair(sentence2, "車は赤くない", manager.getSampleSentencesApplyingRule(negativeRule));
+
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        DbQuery query = new DbQueryBuilder(table)
+                .where(table.getSentenceColumnIndex(), sentence1)
+                .select(table.getRuleColumnIndex());
+        assertEquals(0, db.select(query).size());
+
+        query = new DbQueryBuilder(table)
+                .where(table.getSentenceColumnIndex(), sentence2)
+                .select(table.getRuleColumnIndex());
+        assertEquals(1, db.select(query).size());
+    }
 }

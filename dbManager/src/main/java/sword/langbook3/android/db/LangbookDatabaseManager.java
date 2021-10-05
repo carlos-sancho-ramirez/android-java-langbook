@@ -771,7 +771,17 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                         deleteBunchAcceptation(_db, targetBunch, acc, agentId);
                     }
                     deleteStringQueriesForDynamicAcceptation(_db, acc);
-                    deleteSpansByDynamicAcceptation(_db, acc);
+                    final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(acc);
+                    for (SentenceId sentence : sentences) {
+                        deleteSpanBySentenceAndDynamicAcceptation(_db, sentence, acc);
+                        final ImmutableSet<RuleId> sentenceAppliedRules = getSentenceSpans(sentence).map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
+                                .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
+
+                        for (RuleId rule : getAppliedRulesBySentenceId(sentence).filterNot(sentenceAppliedRules::contains)) {
+                            deleteRuleSentenceMatch(_db, rule, sentence);
+                        }
+                    }
+
                     if (!deleteAcceptation(_db, acc) | !deleteRuledAcceptation(_db, acc)) {
                         throw new AssertionError();
                     }
