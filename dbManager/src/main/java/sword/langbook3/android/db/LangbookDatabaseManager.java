@@ -602,6 +602,19 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         _db.update(query);
     }
 
+    private void removeSentenceSpanByDynamicAcceptation(AcceptationId acceptation) {
+        final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(acceptation);
+        for (SentenceId sentence : sentences) {
+            deleteSpanBySentenceAndDynamicAcceptation(_db, sentence, acceptation);
+            final ImmutableSet<RuleId> sentenceAppliedRules = getSentenceSpans(sentence).map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
+                    .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
+
+            for (RuleId rule : getAppliedRulesBySentenceId(sentence).filterNot(sentenceAppliedRules::contains)) {
+                deleteRuleSentenceMatch(_db, rule, sentence);
+            }
+        }
+    }
+
     /**
      * Run again the specified agent.
      * @param sourceAgentChangedText If a ruled is applied, forces the recheck of the resulting texts.
@@ -724,6 +737,9 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
             if (mustChangeResultingText) {
                 for (AcceptationId staticAcc : matchingAcceptations.filter(alreadyProcessedAcceptations::contains)) {
+                    final AcceptationId dynAcc = oldProcessedMap.get(staticAcc);
+                    removeSentenceSpanByDynamicAcceptation(dynAcc);
+
                     final ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> correlationArrayResult = getAcceptationCorrelationArrayWithText(staticAcc);
                     final ApplyResult<AlphabetId, CorrelationId> processResult = applyMatchersAddersAndConversions(correlationArrayResult.left, register, agentDetails, conversionMap, conversions::get, correlationArrayResult.right);
                     if (processResult != null) {
@@ -735,7 +751,6 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                         });
 
                         final CorrelationArrayId correlationArrayId = obtainCorrelationArray(correlationIds);
-                        final AcceptationId dynAcc = oldProcessedMap.get(staticAcc);
 
                         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
                         DbUpdateQuery updateQuery = new DbUpdateQueryBuilder(table)
@@ -771,16 +786,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                         deleteBunchAcceptation(_db, targetBunch, acc, agentId);
                     }
                     deleteStringQueriesForDynamicAcceptation(_db, acc);
-                    final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(acc);
-                    for (SentenceId sentence : sentences) {
-                        deleteSpanBySentenceAndDynamicAcceptation(_db, sentence, acc);
-                        final ImmutableSet<RuleId> sentenceAppliedRules = getSentenceSpans(sentence).map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
-                                .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
-
-                        for (RuleId rule : getAppliedRulesBySentenceId(sentence).filterNot(sentenceAppliedRules::contains)) {
-                            deleteRuleSentenceMatch(_db, rule, sentence);
-                        }
-                    }
+                    removeSentenceSpanByDynamicAcceptation(acc);
 
                     if (!deleteAcceptation(_db, acc) | !deleteRuledAcceptation(_db, acc)) {
                         throw new AssertionError();
@@ -1360,18 +1366,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         LangbookDeleter.deleteKnowledge(_db, acceptation);
         removeFromBunches(acceptation);
         removeFromStringQueryTable(acceptation);
-
-        for (SentenceId sentence : getSentencesByDynamicAcceptation(acceptation)) {
-            deleteSpanBySentenceAndDynamicAcceptation(_db, sentence, acceptation);
-            final ImmutableSet<SentenceSpan<AcceptationId>> spans = getSentenceSpans(sentence);
-            final ImmutableSet<RuleId> sentenceAppliedRules = spans.map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
-                    .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
-            for (RuleId rule : getAppliedRulesBySentenceId(sentence)) {
-                if (!sentenceAppliedRules.contains(rule)) {
-                    deleteRuleSentenceMatch(_db, rule, sentence);
-                }
-            }
-        }
+        removeSentenceSpanByDynamicAcceptation(acceptation);
 
         final ConceptId concept = conceptFromAcceptation(acceptation);
         final CorrelationArrayId correlationArray = correlationArrayFromAcceptation(acceptation);
