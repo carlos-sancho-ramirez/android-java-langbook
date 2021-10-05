@@ -6,6 +6,7 @@ import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableMap;
 import sword.collections.Set;
+import sword.database.DbExporter;
 import sword.database.DbQuery;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
@@ -48,6 +49,22 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
         final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
         return manager.addAgent(setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+    }
+
+    static void assertNoRuleSentenceFoundForSentence(DbExporter.Database db, SentenceIdInterface sentence) {
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getSentenceColumnIndex(), sentence)
+                .select(table.getRuleColumnIndex());
+        assertEquals(0, db.select(query).size());
+    }
+
+    static void assertJustOneRuleSentenceFoundForSentence(DbExporter.Database db, SentenceIdInterface sentence) {
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getSentenceColumnIndex(), sentence)
+                .select(table.getRuleColumnIndex());
+        assertEquals(1, db.select(query).size());
     }
 
     @Test
@@ -113,12 +130,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
 
         final ImmutableMap<SentenceId, String> sampleSentences = manager.getSampleSentencesApplyingRule(desireRule);
         assertSinglePair(sentence, "ケーキを食べたいが、ピザも食べたい", sampleSentences);
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(1, db.select(query).size());
+        assertJustOneRuleSentenceFoundForSentence(db, sentence);
     }
 
     @Test
@@ -150,12 +162,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
 
         assertTrue(manager.removeSentence(sentence));
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(0, db.select(query).size());
+        assertNoRuleSentenceFoundForSentence(db, sentence);
     }
 
     @Test
@@ -225,12 +232,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
 
         final ImmutableMap<SentenceId, String> sampleSentences = manager.getSampleSentencesApplyingRule(desireRule);
         assertSinglePair(sentence, "ケーキを食べたいが、ピザも食べたい", sampleSentences);
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(1, db.select(query).size());
+        assertJustOneRuleSentenceFoundForSentence(db, sentence);
     }
 
     @Test
@@ -262,12 +264,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
 
         assertTrue(manager.updateSentenceTextAndSpans(sentence, "ケーキを食べたい", ImmutableHashSet.empty()));
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(0, db.select(query).size());
+        assertNoRuleSentenceFoundForSentence(db, sentence);
     }
 
     @Test
@@ -305,12 +302,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         assertTrue(manager.updateSentenceTextAndSpans(sentence, "ケーキを食べたいが、ピザも食べたい", newSpans));
         final ImmutableMap<SentenceId, String> sampleSentences = manager.getSampleSentencesApplyingRule(desireRule);
         assertSinglePair(sentence, "ケーキを食べたいが、ピザも食べたい", sampleSentences);
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(1, db.select(query).size());
+        assertJustOneRuleSentenceFoundForSentence(db, sentence);
     }
 
     @Test
@@ -343,13 +335,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         manager.removeAgent(agent);
 
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(0, db.select(query).size());
-
+        assertNoRuleSentenceFoundForSentence(db, sentence);
         assertEmpty(manager.getSentenceSpans(sentence));
     }
 
@@ -412,18 +398,9 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         manager.removeAgent(ruAgent);
 
         assertSinglePair(buySentence, "本は買いたい", manager.getSampleSentencesApplyingRule(desireRule));
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), eatSentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(0, db.select(query).size());
+        assertNoRuleSentenceFoundForSentence(db, eatSentence);
         assertEmpty(manager.getSentenceSpans(eatSentence));
-
-        query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), buySentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(1, db.select(query).size());
+        assertJustOneRuleSentenceFoundForSentence(db, buySentence);
         assertSize(1, manager.getSentenceSpans(buySentence));
     }
 
@@ -482,13 +459,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         manager.removeAgent(ruAgent);
 
         assertSinglePair(sentence, "ケーキが食べたい。お酒が飲みたい", manager.getSampleSentencesApplyingRule(desireRule));
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(1, db.select(query).size());
-
+        assertJustOneRuleSentenceFoundForSentence(db, sentence);
         assertContainsOnly(wannaDrinkSpan, manager.getSentenceSpans(sentence));
     }
 
@@ -546,13 +517,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
 
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
         assertEmpty(manager.getSampleSentencesApplyingRule(negativeRule));
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(0, db.select(query).size());
-
+        assertNoRuleSentenceFoundForSentence(db, sentence);
         assertEmpty(manager.getSentenceSpans(sentence));
     }
 
@@ -631,17 +596,8 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
 
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
         assertSinglePair(sentence2, "車は赤くない", manager.getSampleSentencesApplyingRule(negativeRule));
-
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence1)
-                .select(table.getRuleColumnIndex());
-        assertEquals(0, db.select(query).size());
-
-        query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence2)
-                .select(table.getRuleColumnIndex());
-        assertEquals(1, db.select(query).size());
+        assertNoRuleSentenceFoundForSentence(db, sentence1);
+        assertJustOneRuleSentenceFoundForSentence(db, sentence2);
     }
 
     @Test
@@ -674,13 +630,41 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         manager.removeAcceptation(eatAcceptation);
 
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertNoRuleSentenceFoundForSentence(db, sentence);
+        assertEmpty(manager.getSentenceSpans(sentence));
+    }
 
-        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getSentenceColumnIndex(), sentence)
-                .select(table.getRuleColumnIndex());
-        assertEquals(0, db.select(query).size());
+    @Test
+    default void testRemoveAcceptationFromBunchWhenAnAgentIsTransformingAcceptationsOfThatBunchAndTheResultIsIncludedInASentenceSpan() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final AgentId agent = addDesireAgent(manager, correlationComposer, sourceBunch, desireRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(wannaEatAcceptation);
+
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(new SentenceSpan<>(new ImmutableIntRange(4, 7), wannaEatAcceptation))
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたい", sentenceSpans);
+        manager.removeAcceptationFromBunch(sourceBunch, eatAcceptation);
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertNoRuleSentenceFoundForSentence(db, sentence);
         assertEmpty(manager.getSentenceSpans(sentence));
     }
 }
