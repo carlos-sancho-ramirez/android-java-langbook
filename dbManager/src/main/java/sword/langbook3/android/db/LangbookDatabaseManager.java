@@ -732,6 +732,21 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                         final ConceptId newRuledConcept = (foundRuledConcept != null)? foundRuledConcept : insertRuledConcept(agentDetails.rule, baseConcept);
                         updateAcceptationConcept(dynAcc, newRuledConcept);
                     }
+
+                    final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(dynAcc);
+                    for (SentenceId sentence : sentences) {
+                        final ImmutableSet<RuleId> sentenceAppliedRules = getSentenceSpans(sentence).map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
+                                .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
+
+                        final Set<RuleId> oldAppliedRules = getAppliedRulesBySentenceId(sentence);
+                        for (RuleId rule : oldAppliedRules.filterNot(sentenceAppliedRules::contains)) {
+                            deleteRuleSentenceMatch(_db, rule, sentence);
+                        }
+
+                        for (RuleId rule : sentenceAppliedRules.filterNot(oldAppliedRules::contains)) {
+                            insertRuleSentenceMatch(_db, rule, sentence);
+                        }
+                    }
                 }
             }
 
