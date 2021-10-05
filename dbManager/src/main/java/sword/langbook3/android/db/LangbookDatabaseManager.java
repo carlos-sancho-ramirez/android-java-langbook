@@ -1212,8 +1212,10 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(ruleAcceptation);
             for (SentenceId sentence : sentences) {
                 deleteSpanBySentenceAndDynamicAcceptation(_db, sentence, ruleAcceptation);
-                deleteRuleSentenceMatchesBySentenceId(_db, sentence);
-                // TODO: This may fail if the sentence include 2 words applying the same rule, but only one of them is going to be removed
+                final ImmutableSet<SentenceSpan<AcceptationId>> spans = getSentenceSpans(sentence);
+                if (!spans.anyMatch(span -> getAppliedRules(span.acceptation).contains(agentRegister.rule))) {
+                    deleteRuleSentenceMatchesBySentenceId(_db, sentence);
+                }
             }
 
             removeCorrelationArrayIfUnused(correlationArray);
