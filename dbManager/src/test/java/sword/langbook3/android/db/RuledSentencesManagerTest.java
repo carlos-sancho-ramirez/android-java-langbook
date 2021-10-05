@@ -8,10 +8,12 @@ import sword.collections.ImmutableMap;
 import sword.collections.Set;
 import sword.database.DbExporter;
 import sword.database.DbQuery;
+import sword.database.DbResult;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.SentenceSpan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.collections.MapTestUtils.assertSinglePair;
@@ -21,7 +23,7 @@ import static sword.collections.TraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.db.AgentsManagerTest.composeSingleElementArray;
 import static sword.langbook3.android.db.AgentsManagerTest.setOf;
 
-interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> extends AgentsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId>, SentencesManagerTest<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> {
+interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> extends AgentsManagerTest<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId>, SentencesManagerTest<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> {
 
     @Override
     RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> createManager(MemoryDatabase db);
@@ -65,6 +67,19 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
                 .where(table.getSentenceColumnIndex(), sentence)
                 .select(table.getRuleColumnIndex());
         assertEquals(1, db.select(query).size());
+    }
+
+    static <ConceptId> void assertSingleRuleSentenceMatchFoundForSentence(DbExporter.Database db, RuleIdInterface<ConceptId> expectedRule, SentenceIdInterface sentence) {
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getSentenceColumnIndex(), sentence)
+                .select(table.getRuleColumnIndex());
+
+        try (DbResult dbResult = db.select(query)) {
+            assertTrue(dbResult.hasNext());
+            assertTrue(expectedRule.sameValue(dbResult.next().get(0)));
+            assertFalse(dbResult.hasNext());
+        }
     }
 
     @Test
@@ -705,5 +720,49 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
         assertNoRuleSentenceFoundForSentence(db, sentence);
         assertEmpty(manager.getSentenceSpans(sentence));
+    }
+
+    @Test
+    default void testUpdateAgentRuleWhenThereIsOneSentenceContainingOneRuledAcceptationFromThatAgent() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+        final ImmutableCorrelation<AlphabetId> taiCorrelation = correlationComposer.compose("たい", "たい");
+        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = composeSingleElementArray(taiCorrelation);
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final AgentId agent = manager.addAgent(setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(wannaEatAcceptation);
+
+        final SentenceSpan<AcceptationId> sentenceSpan = new SentenceSpan<>(new ImmutableIntRange(4, 7), wannaEatAcceptation);
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(sentenceSpan)
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたい", sentenceSpans);
+
+        final RuleId desireRule2 = obtainNewRule(manager, enAlphabet, "desire2");
+        manager.updateAgent(agent, setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule2);
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertSinglePair(sentence, "ケーキを食べたい", manager.getSampleSentencesApplyingRule(desireRule2));
+        assertSingleRuleSentenceMatchFoundForSentence(db, desireRule2, sentence);
+        assertContainsOnly(sentenceSpan, manager.getSentenceSpans(sentence));
     }
 }
