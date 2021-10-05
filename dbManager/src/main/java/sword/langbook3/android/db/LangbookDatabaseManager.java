@@ -1360,7 +1360,18 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         LangbookDeleter.deleteKnowledge(_db, acceptation);
         removeFromBunches(acceptation);
         removeFromStringQueryTable(acceptation);
-        removeFromSentenceSpans(acceptation);
+
+        for (SentenceId sentence : getSentencesByDynamicAcceptation(acceptation)) {
+            deleteSpanBySentenceAndDynamicAcceptation(_db, sentence, acceptation);
+            final ImmutableSet<SentenceSpan<AcceptationId>> spans = getSentenceSpans(sentence);
+            final ImmutableSet<RuleId> sentenceAppliedRules = spans.map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
+                    .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
+            for (RuleId rule : getAppliedRulesBySentenceId(sentence)) {
+                if (!sentenceAppliedRules.contains(rule)) {
+                    deleteRuleSentenceMatch(_db, rule, sentence);
+                }
+            }
+        }
 
         final ConceptId concept = conceptFromAcceptation(acceptation);
         final CorrelationArrayId correlationArray = correlationArrayFromAcceptation(acceptation);
