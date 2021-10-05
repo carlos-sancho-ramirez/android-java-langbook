@@ -667,4 +667,43 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         assertNoRuleSentenceFoundForSentence(db, sentence);
         assertEmpty(manager.getSentenceSpans(sentence));
     }
+
+    @Test
+    default void testUpdateAcceptationCorrelationArrayWhenAnAgentIsTransformingItAndTheResultIsIncludedInASentenceSpan() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final AgentId agent = addDesireAgent(manager, correlationComposer, sourceBunch, desireRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(wannaEatAcceptation);
+
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(new SentenceSpan<>(new ImmutableIntRange(4, 7), wannaEatAcceptation))
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたい", sentenceSpans);
+        final ImmutableCorrelationArray<AlphabetId> newCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(correlationComposer.compose("投", "な"))
+                .append(correlationComposer.compose("げ", "げ"))
+                .append(correlationComposer.compose("る", "る"))
+                .build();
+        manager.updateAcceptationCorrelationArray(eatAcceptation, newCorrelationArray);
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertNoRuleSentenceFoundForSentence(db, sentence);
+        assertEmpty(manager.getSentenceSpans(sentence));
+    }
 }
