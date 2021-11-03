@@ -765,4 +765,88 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         assertSingleRuleSentenceMatchFoundForSentence(db, desireRule2, sentence);
         assertContainsOnly(sentenceSpan, manager.getSentenceSpans(sentence));
     }
+
+    @Test
+    default void testUpdateAgentRemovingSourceBunchContainingAnAcceptationWhenThereIsOneSentenceContainingItsRuledAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+        final ImmutableCorrelation<AlphabetId> taiCorrelation = correlationComposer.compose("たい", "たい");
+        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = composeSingleElementArray(taiCorrelation);
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final BunchId emptyBunch = obtainNewBunch(manager, enAlphabet, "no words");
+        final AgentId agent = manager.addAgent(setOf(), setOf(sourceBunch, emptyBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(wannaEatAcceptation);
+
+        final SentenceSpan<AcceptationId> sentenceSpan = new SentenceSpan<>(new ImmutableIntRange(4, 7), wannaEatAcceptation);
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(sentenceSpan)
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたい", sentenceSpans);
+
+        assertTrue(manager.updateAgent(agent, setOf(), setOf(emptyBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule));
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertEmpty(manager.getSentenceSpans(sentence));
+    }
+
+    @Test
+    default void testUpdateAgentChangingSourceBunchContainingAnAcceptationForAnEmptyOneWhenThereIsOneSentenceContainingTheRuledAcceptation() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId desireRule = obtainNewRule(manager, enAlphabet, "desire");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "my words");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+        final ImmutableCorrelation<AlphabetId> taiCorrelation = correlationComposer.compose("たい", "たい");
+        final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = composeSingleElementArray(taiCorrelation);
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final AgentId agent = manager.addAgent(setOf(), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId wannaEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent, eatAcceptation);
+        assertNotNull(wannaEatAcceptation);
+
+        final SentenceSpan<AcceptationId> sentenceSpan = new SentenceSpan<>(new ImmutableIntRange(4, 7), wannaEatAcceptation);
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(sentenceSpan)
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "ケーキを食べたい", sentenceSpans);
+
+        final BunchId emptyBunch = obtainNewBunch(manager, enAlphabet, "no words");
+        assertTrue(manager.updateAgent(agent, setOf(), setOf(emptyBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, taiCorrelationArray, desireRule));
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
+        assertEmpty(manager.getSentenceSpans(sentence));
+    }
 }
