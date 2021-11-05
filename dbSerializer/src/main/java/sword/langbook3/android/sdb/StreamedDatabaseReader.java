@@ -1136,7 +1136,7 @@ public final class StreamedDatabaseReader {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
-        final MutableIntSet agentsWithRule = MutableIntArraySet.empty();
+        final MutableIntPairMap agentRules = MutableIntPairMap.empty();
 
         if (agentsLength > 0) {
             final NaturalNumberHuffmanTable nat3Table = new NaturalNumberHuffmanTable(3);
@@ -1233,12 +1233,12 @@ public final class StreamedDatabaseReader {
                 builder.put(agentId, new AgentBunches(targetBunches, sourceBunches, diffBunches));
 
                 if (hasRule) {
-                    agentsWithRule.add(agentId);
+                    agentRules.put(agentId, rule);
                 }
             }
         }
 
-        return new AgentReadResult(builder.build(), agentsWithRule.toImmutable());
+        return new AgentReadResult(builder.build(), agentRules.toImmutable());
     }
 
     public static class AgentAcceptationPair {
@@ -1391,15 +1391,17 @@ public final class StreamedDatabaseReader {
     public static final class Result {
         public final Conversion[] conversions;
         public final IntKeyMap<AgentBunches> agents;
+        public final IntPairMap agentRules;
         public final int[] accIdMap;
         public final AgentAcceptationPair[] agentAcceptationPairs;
         public final SentenceSpan[] spans;
         public final int numberOfCorrelations;
         public final int numberOfCorrelationArrays;
 
-        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, int[] accIdMap, AgentAcceptationPair[] agentAcceptationPairs, SentenceSpan[] spans, int numberOfCorrelations, int numberOfCorrelationArrays) {
+        Result(Conversion[] conversions, IntKeyMap<AgentBunches> agents, IntPairMap agentRules, int[] accIdMap, AgentAcceptationPair[] agentAcceptationPairs, SentenceSpan[] spans, int numberOfCorrelations, int numberOfCorrelationArrays) {
             this.conversions = conversions;
             this.agents = agents;
+            this.agentRules = agentRules;
             this.accIdMap = accIdMap;
             this.agentAcceptationPairs = agentAcceptationPairs;
             this.spans = spans;
@@ -1420,11 +1422,11 @@ public final class StreamedDatabaseReader {
 
     private static final class AgentReadResult {
         final ImmutableIntKeyMap<AgentBunches> agents;
-        final ImmutableIntSet agentsWithRule;
+        final ImmutableIntPairMap agentRules;
 
-        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntSet agentsWithRule) {
+        AgentReadResult(ImmutableIntKeyMap<AgentBunches> agents, ImmutableIntPairMap agentsRules) {
             this.agents = agents;
-            this.agentsWithRule = agentsWithRule;
+            this.agentRules = agentsRules;
         }
     }
 
@@ -1499,7 +1501,7 @@ public final class StreamedDatabaseReader {
                     throw new IOException();
                 }
 
-                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), new int[0], new AgentAcceptationPair[0], new SentenceSpan[0], 0, 0);
+                return new Result(new Conversion[0], ImmutableIntKeyMap.empty(), ImmutableIntPairMap.empty(), new int[0], new AgentAcceptationPair[0], new SentenceSpan[0], 0, 0);
             }
             else {
                 final int maxSymbolArrayIndex = symbolArraysIdMap.length - 1;
@@ -1542,7 +1544,7 @@ public final class StreamedDatabaseReader {
                 // Import relevant dynamic acceptations
                 setProgress(0.9f, "Reading referenced dynamic acceptations");
                 final AgentAcceptationPair[] agentAcceptationPairs = readRelevantRuledAcceptations(ibs, acceptationIdMap,
-                        agentReadResult.agentsWithRule);
+                        agentReadResult.agentRules.keySet());
 
                 // Import sentence spans
                 setProgress(0.93f, "Writing sentence spans");
@@ -1554,7 +1556,7 @@ public final class StreamedDatabaseReader {
                 final ImmutableIntSet insertedSentences = readSentenceMeanings(ibs, symbolArraysIdMap, spans);
 
                 insertMissingSentences(spans, insertedSentences);
-                return new Result(conversions, agentReadResult.agents, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, correlationArrayIdMap.length);
+                return new Result(conversions, agentReadResult.agents, agentReadResult.agentRules, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, correlationArrayIdMap.length);
             }
         }
         finally {

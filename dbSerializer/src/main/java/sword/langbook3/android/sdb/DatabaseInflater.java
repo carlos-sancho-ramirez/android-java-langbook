@@ -13,8 +13,10 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
+import sword.collections.IntPairMap;
 import sword.collections.List;
 import sword.collections.MutableHashSet;
+import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntList;
 import sword.collections.MutableIntSet;
@@ -178,6 +180,18 @@ public final class DatabaseInflater {
                 .put(table.getStartColumnIndex(), range.min())
                 .put(table.getLengthColumnIndex(), range.size())
                 .put(table.getDynamicAcceptationColumnIndex(), dynamicAcceptation)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    private static void insertRuleSentenceMatch(DbInserter db, int rule, int sentenceId) {
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getRuleColumnIndex(), rule)
+                .put(table.getSentenceColumnIndex(), sentenceId)
                 .build();
 
         if (db.insert(query) == null) {
@@ -922,22 +936,32 @@ public final class DatabaseInflater {
     }
 
     private int findDynamicAcceptationFromPairs(int acceptationFileIndex, int[] accIdMap,
-            StreamedDatabaseReader.AgentAcceptationPair[] ruleAcceptationPairs) {
+            StreamedDatabaseReader.AgentAcceptationPair[] ruleAcceptationPairs, IntPairMap agentRules, MutableIntList appliedAgents) {
         if (acceptationFileIndex < accIdMap.length) {
             return accIdMap[acceptationFileIndex];
         }
         else {
             final StreamedDatabaseReader.AgentAcceptationPair pair = ruleAcceptationPairs[acceptationFileIndex - accIdMap.length];
-            final int dynAcc = findDynamicAcceptationFromPairs(pair.acceptation, accIdMap, ruleAcceptationPairs);
+            final int dynAcc = findDynamicAcceptationFromPairs(pair.acceptation, accIdMap, ruleAcceptationPairs, agentRules, appliedAgents);
+            appliedAgents.append(agentRules.get(pair.agent));
             return findRuledAcceptationByAgentAndBaseAcceptation(_db, pair.agent, dynAcc);
         }
     }
 
-    private void insertSentences(StreamedDatabaseReader.SentenceSpan[] spans, int[] accIdMap, StreamedDatabaseReader.AgentAcceptationPair[] ruleAcceptationPairs) {
+    private void insertSentences(StreamedDatabaseReader.SentenceSpan[] spans, int[] accIdMap, StreamedDatabaseReader.AgentAcceptationPair[] ruleAcceptationPairs, IntPairMap agentRules) {
+        final SyncCacheIntKeyNonNullValueMap<MutableIntSet> sentenceAppliedRules = new SyncCacheIntKeyNonNullValueMap<>(sentenceId -> MutableIntArraySet.empty());
         for (StreamedDatabaseReader.SentenceSpan span : spans) {
             final ImmutableIntRange range = new ImmutableIntRange(span.start, span.start + span.length - 1);
-            final int acc = findDynamicAcceptationFromPairs(span.acceptationFileIndex, accIdMap, ruleAcceptationPairs);
+            final MutableIntList appliedRules = MutableIntList.empty();
+            final int acc = findDynamicAcceptationFromPairs(span.acceptationFileIndex, accIdMap, ruleAcceptationPairs, agentRules, appliedRules);
             insertSpan(_db, span.sentenceId, range, acc);
+
+            for (int rule : appliedRules) {
+                final MutableIntSet alreadyAppliedRules = sentenceAppliedRules.get(span.sentenceId);
+                if (alreadyAppliedRules.add(rule)) {
+                    insertRuleSentenceMatch(_db, rule, span.sentenceId);
+                }
+            }
         }
     }
 
@@ -967,7 +991,7 @@ public final class DatabaseInflater {
         runAgents(result.agents, conversions, correlationIdSupplier, correlationArrayIdSupplier);
 
         setProgress(0.9f, "Inserting sentence spans");
-        insertSentences(result.spans, result.accIdMap, result.agentAcceptationPairs);
+        insertSentences(result.spans, result.accIdMap, result.agentAcceptationPairs, result.agentRules);
     }
 
     private static final class Listener implements ProgressListener {
