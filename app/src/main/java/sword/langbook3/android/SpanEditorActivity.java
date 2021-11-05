@@ -14,15 +14,20 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Map;
+import sword.collections.MutableHashSet;
+import sword.collections.MutableIntList;
 import sword.collections.MutableIntValueMap;
+import sword.collections.Traverser;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdBundler;
+import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
@@ -119,20 +124,37 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final ImmutableSet<SentenceSpan<AcceptationId>> spans = checker.getSentenceSpans(sentenceId);
         final MutableIntValueMap<SentenceSpan<AcceptationId>> builder = _state.getSpans();
         for (SentenceSpan<AcceptationId> span : spans) {
-            final ImmutableCorrelation<AlphabetId> texts = checker.getAcceptationTexts(span.acceptation);
-            final int mapSize = texts.size();
-            int index = 0;
-            int mapIndex;
-            for (mapIndex = 0; mapIndex < mapSize; mapIndex++) {
-                final String text = texts.valueAt(mapIndex);
-                index = sentence.indexOf(text);
-                if (index >= 0) {
-                    break;
+            final ImmutableList<CorrelationId> correlationIds = checker.getAcceptationCorrelationArray(span.acceptation);
+            final Traverser<CorrelationId> traverser = correlationIds.iterator();
+
+            final ImmutableCorrelation<AlphabetId> firstCorrelation = checker.getCorrelationWithText(traverser.next());
+            final MutableHashSet<ImmutableIntRange> matchingRanges = MutableHashSet.empty();
+            for (String correlationText : firstCorrelation.toSet()) {
+                final MutableIntList matchingIndexes = MutableIntList.empty();
+                int index = 0;
+                while (index >= 0) {
+                    index = sentence.indexOf(correlationText, index);
+                    if (index >= 0) {
+                        matchingIndexes.append(index);
+                        index++;
+                    }
+                }
+                matchingRanges.addAll(matchingIndexes.map(start -> new ImmutableIntRange(start, start + correlationText.length() - 1)));
+            }
+
+            while (traverser.hasNext() && !matchingRanges.isEmpty()) {
+                final ImmutableSet<String> correlationTexts = checker.getCorrelationWithText(traverser.next()).toSet();
+                for (ImmutableIntRange range : matchingRanges.donate()) {
+                    for (String correlationText : correlationTexts) {
+                        if (sentence.substring(range.max() + 1).startsWith(correlationText)) {
+                            matchingRanges.add(new ImmutableIntRange(range.min(), range.max() + correlationText.length()));
+                        }
+                    }
                 }
             }
 
-            if (mapIndex < mapSize) {
-                final ImmutableIntRange range = new ImmutableIntRange(index, index + texts.valueAt(mapIndex).length() - 1);
+            if (matchingRanges.size() == 1) {
+                final ImmutableIntRange range = matchingRanges.valueAt(0);
                 final SentenceSpan<AcceptationId> newSpan = range.equals(span.range)? span : new SentenceSpan<>(range, span.acceptation);
                 builder.put(newSpan, 1);
             }
