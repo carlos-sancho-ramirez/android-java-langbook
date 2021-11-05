@@ -1424,7 +1424,7 @@ public final class StreamedDatabaseWriter {
                 final int agentWithRuleIndex = agentsWithRule.indexOf(row.get(1).toInt());
 
                 rawPairs.put(ruledAcc, new AgentAcceptationPair(agentWithRuleIndex, baseAcc));
-                if (!originalAccKeys.contains(baseAcc) && rawPairs.get(baseAcc) == null) {
+                if (!originalAccKeys.contains(baseAcc) && rawPairs.get(baseAcc, null) == null) {
                     intermediateDynamicAcceptations.add(baseAcc);
                 }
             }
