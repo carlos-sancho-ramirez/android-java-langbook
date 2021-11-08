@@ -1916,80 +1916,85 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
     @Override
     public final boolean updateAcceptationCorrelationArray(AcceptationId acceptation, ImmutableCorrelationArray<AlphabetId> correlationArray) {
+        final CorrelationArrayId currentCorrelationArrayId = getAcceptationCorrelationArrayId(acceptation);
         final CorrelationArrayId newCorrelationArrayId = obtainCorrelationArray(correlationArray.map(this::obtainCorrelation));
+        if (currentCorrelationArrayId.equals(newCorrelationArrayId)) {
+            return false;
+        }
+
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
                 .where(table.getIdColumnIndex(), acceptation)
                 .put(table.getCorrelationArrayColumnIndex(), newCorrelationArrayId)
                 .build();
 
-        final boolean changed = _db.update(query);
-        if (changed) {
-            final MutableCorrelation<AlphabetId> texts = MutableCorrelation.empty();
-            for (ImmutableCorrelation<AlphabetId> correlation : correlationArray) {
-                for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
-                    texts.put(entry.key(), texts.get(entry.key(), "") + entry.value());
-                }
-            }
-
-            if (!includeConvertedTexts(texts)) {
-                throw new AssertionError();
-            }
-
-            final String mainStr = texts.valueAt(0);
-            deleteStringQueriesForDynamicAcceptation(_db, acceptation);
-
-            final MutableSet<String> inserted = MutableHashSet.empty();
-            for (Map.Entry<AlphabetId, String> entry : texts.entries()) {
-                final AlphabetId alphabet = entry.key();
-                final String str = entry.value();
-                inserted.add(str);
-                insertStringQuery(_db, str, mainStr, acceptation, acceptation, alphabet);
-            }
-            insertPossibleCombinations(acceptation, acceptation, mainStr, inserted, "", correlationArray.toList());
-
-            final MutableSet<BunchId> touchedBunches = MutableHashSet.empty();
-
-            final ImmutableSet.Builder<AgentId> affectedAgentsBuilder = new ImmutableHashSet.Builder<>();
-            for (AgentId agentId : findAgentsWithoutSourceBunches()) {
-                affectedAgentsBuilder.add(agentId);
-            }
-
-            for (AgentId agentId : findAffectedAgentsByAcceptationCorrelationModification(acceptation)) {
-                affectedAgentsBuilder.add(agentId);
-            }
-
-            final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
-            final ImmutableSet<AgentId> affectedAgents = affectedAgentsBuilder.build();
-            for (AgentId thisAgentId : agentExecutionOrder.left) {
-                final ImmutableSet<BunchId> dependencies = agentExecutionOrder.right.get(thisAgentId);
-                if (affectedAgents.contains(thisAgentId) || dependencies.anyMatch(touchedBunches::contains)) {
-                    final AgentRegister<CorrelationId, CorrelationArrayId, BunchSetId, RuleId> thisAgentRegister = getAgentRegister(thisAgentId);
-                    touchedBunches.addAll(rerunAgent(thisAgentId, thisAgentRegister, null, false));
-                }
-            }
-
-            final ImmutableSet.Builder<QuizId> quizIdsBuilder = new ImmutableHashSet.Builder<>();
-            final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
-            final DbQuery quizQuery = new DbQuery.Builder(quizzes)
-                    .select(quizzes.getIdColumnIndex(), quizzes.getBunchColumnIndex());
-            try (DbResult result = _db.select(quizQuery)) {
-                while (result.hasNext()) {
-                    final List<DbValue> row = result.next();
-                    final BunchId quizBunch = _bunchIdSetter.getKeyFromDbValue(row.get(1));
-                    if (quizBunch == null || touchedBunches.contains(quizBunch)) {
-                        final QuizId quizId = _quizIdSetter.getKeyFromDbValue(row.get(0));
-                        quizIdsBuilder.add(quizId);
-                    }
-                }
-            }
-
-            for (QuizId quizId : quizIdsBuilder.build()) {
-                recheckPossibleQuestions(quizId);
+        _db.update(query);
+        final MutableCorrelation<AlphabetId> texts = MutableCorrelation.empty();
+        for (ImmutableCorrelation<AlphabetId> correlation : correlationArray) {
+            for (Map.Entry<AlphabetId, String> entry : correlation.entries()) {
+                texts.put(entry.key(), texts.get(entry.key(), "") + entry.value());
             }
         }
 
-        return changed;
+        if (!includeConvertedTexts(texts)) {
+            throw new AssertionError();
+        }
+
+        final String mainStr = texts.valueAt(0);
+        deleteStringQueriesForDynamicAcceptation(_db, acceptation);
+
+        final MutableSet<String> inserted = MutableHashSet.empty();
+        for (Map.Entry<AlphabetId, String> entry : texts.entries()) {
+            final AlphabetId alphabet = entry.key();
+            final String str = entry.value();
+            inserted.add(str);
+            insertStringQuery(_db, str, mainStr, acceptation, acceptation, alphabet);
+        }
+        insertPossibleCombinations(acceptation, acceptation, mainStr, inserted, "", correlationArray.toList());
+
+        removeSentenceSpanByDynamicAcceptation(acceptation);
+
+        final MutableSet<BunchId> touchedBunches = MutableHashSet.empty();
+
+        final ImmutableSet.Builder<AgentId> affectedAgentsBuilder = new ImmutableHashSet.Builder<>();
+        for (AgentId agentId : findAgentsWithoutSourceBunches()) {
+            affectedAgentsBuilder.add(agentId);
+        }
+
+        for (AgentId agentId : findAffectedAgentsByAcceptationCorrelationModification(acceptation)) {
+            affectedAgentsBuilder.add(agentId);
+        }
+
+        final ImmutablePair<ImmutableList<AgentId>, ImmutableMap<AgentId, ImmutableSet<BunchId>>> agentExecutionOrder = getAgentExecutionOrder();
+        final ImmutableSet<AgentId> affectedAgents = affectedAgentsBuilder.build();
+        for (AgentId thisAgentId : agentExecutionOrder.left) {
+            final ImmutableSet<BunchId> dependencies = agentExecutionOrder.right.get(thisAgentId);
+            if (affectedAgents.contains(thisAgentId) || dependencies.anyMatch(touchedBunches::contains)) {
+                final AgentRegister<CorrelationId, CorrelationArrayId, BunchSetId, RuleId> thisAgentRegister = getAgentRegister(thisAgentId);
+                touchedBunches.addAll(rerunAgent(thisAgentId, thisAgentRegister, null, false));
+            }
+        }
+
+        final ImmutableSet.Builder<QuizId> quizIdsBuilder = new ImmutableHashSet.Builder<>();
+        final LangbookDbSchema.QuizDefinitionsTable quizzes = LangbookDbSchema.Tables.quizDefinitions;
+        final DbQuery quizQuery = new DbQuery.Builder(quizzes)
+                .select(quizzes.getIdColumnIndex(), quizzes.getBunchColumnIndex());
+        try (DbResult result = _db.select(quizQuery)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                final BunchId quizBunch = _bunchIdSetter.getKeyFromDbValue(row.get(1));
+                if (quizBunch == null || touchedBunches.contains(quizBunch)) {
+                    final QuizId quizId = _quizIdSetter.getKeyFromDbValue(row.get(0));
+                    quizIdsBuilder.add(quizId);
+                }
+            }
+        }
+
+        for (QuizId quizId : quizIdsBuilder.build()) {
+            recheckPossibleQuestions(quizId);
+        }
+
+        return true;
     }
 
     private boolean canAcceptationBeRemoved(AcceptationId acceptation) {

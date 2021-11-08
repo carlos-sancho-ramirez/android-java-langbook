@@ -11,6 +11,7 @@ import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.collections.MapTestUtils.assertEqualMap;
 import static sword.collections.MapTestUtils.assertSinglePair;
@@ -255,5 +256,73 @@ interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId 
         assertEmpty(manager.getSampleSentences(redAcc));
         assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
         assertEquals(carAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
+    }
+
+    @Test
+    default void testUpdateAcceptationCorrelationArrayWhenTheAcceptationIsIncludedInASentenceSpan() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
+
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
+        final AcceptationId redAcc = obtainNewAcceptation(manager, esAlphabet, "rojos");
+
+        final String text = "El coche es rojos";
+
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(newSpan(text, "coche", carAcc))
+                .add(newSpan(text, "rojos", redAcc))
+                .build();
+
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(concept, text, spans);
+
+        final ImmutableCorrelation<AlphabetId> newCorrelation = new ImmutableCorrelation.Builder<AlphabetId>()
+                .put(esAlphabet, "rojo")
+                .build();
+
+        final ImmutableCorrelationArray<AlphabetId> newCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(newCorrelation)
+                .build();
+
+        assertTrue(manager.updateAcceptationCorrelationArray(redAcc, newCorrelationArray));
+
+        assertEmpty(manager.getSampleSentences(redAcc));
+        assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
+        assertEquals(carAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
+    }
+
+    @Test
+    default void testUpdateAcceptationCorrelationArrayWhenTheAcceptationIsIncludedInASentenceSpanButTheTextDoesNotChange() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
+
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
+        final AcceptationId redAcc = obtainNewAcceptation(manager, esAlphabet, "rojo");
+
+        final String text = "El coche es rojo";
+
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(newSpan(text, "coche", carAcc))
+                .add(newSpan(text, "rojo", redAcc))
+                .build();
+
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(concept, text, spans);
+
+        final ImmutableCorrelation<AlphabetId> newCorrelation = new ImmutableCorrelation.Builder<AlphabetId>()
+                .put(esAlphabet, "rojo")
+                .build();
+
+        final ImmutableCorrelationArray<AlphabetId> newCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(newCorrelation)
+                .build();
+
+        assertFalse(manager.updateAcceptationCorrelationArray(redAcc, newCorrelationArray));
+
+        assertSinglePair(sentence, text, manager.getSampleSentences(redAcc));
+        assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
+        assertEquals(spans, manager.getSentenceSpans(sentence));
     }
 }

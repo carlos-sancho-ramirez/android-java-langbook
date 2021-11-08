@@ -150,6 +150,25 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return result;
     }
 
+    private DbValue selectFirstDbValue(DbQuery query) {
+        DbValue result = null;
+        try (DbResult dbResult = _db.select(query)) {
+            if (dbResult.hasNext()) {
+                result = dbResult.next().get(0);
+            }
+
+            if (dbResult.hasNext()) {
+                throw new AssertionError("Expected to find just one value. But there were more");
+            }
+        }
+
+        if (result == null) {
+            throw new AssertionError("Expected to find one value. But was empty");
+        }
+
+        return result;
+    }
+
     private DbValue selectOptionalFirstDbValue(DbQuery query) {
         DbValue result = null;
         try (DbResult dbResult = _db.select(query)) {
@@ -583,6 +602,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     @Override
     public ImmutableList<CorrelationId> getAcceptationCorrelationArray(AcceptationId acceptation) {
         return getAcceptationCorrelations(acceptation).left;
+    }
+
+    CorrelationArrayId getAcceptationCorrelationArrayId(AcceptationId acceptationId) {
+        final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), acceptationId)
+                .select(table.getCorrelationArrayColumnIndex());
+        return _correlationArrayIdSetter.getKeyFromDbValue(selectFirstDbValue(query));
     }
 
     ImmutablePair<ImmutableCorrelationArray<AlphabetId>, ImmutableList<CorrelationId>> getAcceptationCorrelationArrayWithText(AcceptationId acceptation) {
