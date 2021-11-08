@@ -206,7 +206,7 @@ interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId 
     }
 
     @Test
-    default void testRemoveAcceptationIncludedInASpan() {
+    default void testRemoveAcceptationIncludedInTheFirstSpan() {
         final MemoryDatabase db = new MemoryDatabase();
         final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
 
@@ -229,5 +229,31 @@ interface SentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId 
         assertEmpty(manager.getSampleSentences(carAcc));
         assertSinglePair(sentence, text, manager.getSampleSentences(redAcc));
         assertEquals(redAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
+    }
+
+    @Test
+    default void testRemoveAcceptationIncludedInTheLastSpan() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final SentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> manager = createManager(db);
+
+        final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
+
+        final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
+        final AcceptationId redAcc = obtainNewAcceptation(manager, esAlphabet, "rojo");
+
+        final String text = "El coche es rojo";
+
+        final ImmutableSet<SentenceSpan<AcceptationId>> spans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(newSpan(text, "coche", carAcc))
+                .add(newSpan(text, "rojo", redAcc))
+                .build();
+
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(concept, text, spans);
+        assertTrue(manager.removeAcceptation(redAcc));
+
+        assertEmpty(manager.getSampleSentences(redAcc));
+        assertSinglePair(sentence, text, manager.getSampleSentences(carAcc));
+        assertEquals(carAcc, getSingleValue(manager.getSentenceSpans(sentence)).acceptation);
     }
 }

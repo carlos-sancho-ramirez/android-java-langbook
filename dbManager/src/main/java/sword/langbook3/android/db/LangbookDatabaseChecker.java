@@ -2185,7 +2185,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final LangbookDbSchema.SpanTable table = LangbookDbSchema.Tables.spans;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getDynamicAcceptationColumnIndex(), acceptation)
-                .select(table.getIdColumnIndex(), table.getSentenceIdColumnIndex());
+                .select(table.getSentenceIdColumnIndex());
 
         return _db.select(query)
                 .map(row -> _sentenceIdSetter.getKeyFromDbValue(row.get(0)))
