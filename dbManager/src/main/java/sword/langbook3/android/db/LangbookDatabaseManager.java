@@ -679,10 +679,11 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final boolean hasSameRule;
             final boolean canReuseOldRuledConcept;
             final boolean mustChangeResultingText;
+            final RuleId sampleRule;
             if (sampleStaticAcc != null) {
                 final AcceptationId sampleDynAcc = oldProcessedMap.get(sampleStaticAcc);
                 final ConceptId sampleRuledConcept = conceptFromAcceptation(sampleDynAcc);
-                final RuleId sampleRule = getRuleByRuledConcept(sampleRuledConcept);
+                sampleRule = getRuleByRuledConcept(sampleRuledConcept);
                 hasSameRule = equal(sampleRule, agentDetails.rule);
                 canReuseOldRuledConcept = hasSameRule || findAgentsByRule(sampleRule).isEmpty();
 
@@ -700,6 +701,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 hasSameRule = false;
                 canReuseOldRuledConcept = false;
                 mustChangeResultingText = sourceAgentChangedText;
+                sampleRule = null;
             }
 
             if (!hasSameRule) {
@@ -731,22 +733,31 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                     else {
                         final ConceptId newRuledConcept = (foundRuledConcept != null)? foundRuledConcept : insertRuledConcept(agentDetails.rule, baseConcept);
                         updateAcceptationConcept(dynAcc, newRuledConcept);
-                    }
 
-                    final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(dynAcc);
-                    for (SentenceId sentence : sentences) {
-                        final ImmutableSet<RuleId> sentenceAppliedRules = getSentenceSpans(sentence).map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
-                                .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
+                        final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(dynAcc);
+                        for (SentenceId sentence : sentences) {
+                            final ImmutableSet<RuleId> sentenceAppliedRules = getSentenceSpans(sentence).map(span -> getAppliedRules(span.acceptation).toSet().toImmutable())
+                                    .reduce(ImmutableSet::addAll, ImmutableHashSet.empty());
 
-                        final Set<RuleId> oldAppliedRules = getAppliedRulesBySentenceId(sentence);
-                        for (RuleId rule : oldAppliedRules.filterNot(sentenceAppliedRules::contains)) {
-                            deleteRuleSentenceMatch(_db, rule, sentence);
+                            final Set<RuleId> oldAppliedRules = getAppliedRulesBySentenceId(sentence);
+                            for (RuleId rule : oldAppliedRules.filterNot(sentenceAppliedRules::contains)) {
+                                deleteRuleSentenceMatch(_db, rule, sentence);
+                            }
+
+                            for (RuleId rule : sentenceAppliedRules.filterNot(oldAppliedRules::contains)) {
+                                insertRuleSentenceMatch(_db, rule, sentence);
+                            }
                         }
-
-                        for (RuleId rule : sentenceAppliedRules.filterNot(oldAppliedRules::contains)) {
-                            insertRuleSentenceMatch(_db, rule, sentence);
-                        }
                     }
+                }
+
+                if (canReuseOldRuledConcept) {
+                    final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+                    final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                            .put(table.getRuleColumnIndex(), register.rule)
+                            .where(table.getRuleColumnIndex(), sampleRule)
+                            .build();
+                    _db.update(query);
                 }
             }
 

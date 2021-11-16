@@ -849,4 +849,58 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         assertEmpty(manager.getSampleSentencesApplyingRule(desireRule));
         assertEmpty(manager.getSentenceSpans(sentence));
     }
+
+    @Test
+    default void testUpdateAgentChangingRuleForTheFirstAgentInAChainWhereTheFinalResultingAcceptationIsIncludedInASentenceSpan() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final RuleId negativeRule = obtainNewRule(manager, enAlphabet, "negative");
+
+        final BunchId sourceBunch = obtainNewBunch(manager, enAlphabet, "source");
+        final BunchId intermediateBunch = obtainNewBunch(manager, enAlphabet, "intermediate");
+        final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
+        final ImmutableCorrelation<AlphabetId> naCorrelation = correlationComposer.compose("な", "な");
+        final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
+        final ImmutableCorrelationArray<AlphabetId> naiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(naCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+        final AgentId agent1 = manager.addAgent(setOf(intermediateBunch), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, naiCorrelationArray, negativeRule);
+
+        final ImmutableCorrelation<AlphabetId> kattaCorrelation = correlationComposer.compose("かった", "かった");
+        final ImmutableCorrelationArray<AlphabetId> kattaCorrelationArray = composeSingleElementArray(kattaCorrelation);
+
+        final RuleId pastRule = obtainNewRule(manager, enAlphabet, "past");
+        final AgentId agent2 = manager.addAgent(setOf(), setOf(intermediateBunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kattaCorrelationArray, pastRule);
+
+        final AcceptationId eatAcceptation = addTaberuAcceptation(manager, correlationComposer);
+        assertTrue(manager.addAcceptationInBunch(sourceBunch, eatAcceptation));
+        final AcceptationId noEatAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent1, eatAcceptation);
+        final AcceptationId noAteAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agent2, noEatAcceptation);
+
+        final SentenceSpan<AcceptationId> sentenceSpan = new SentenceSpan<>(new ImmutableIntRange(2, 7), noAteAcceptation);
+        final Set<SentenceSpan<AcceptationId>> sentenceSpans = new ImmutableHashSet.Builder<SentenceSpan<AcceptationId>>()
+                .add(sentenceSpan)
+                .build();
+
+        final ConceptId sentenceConcept = manager.getNextAvailableConceptId();
+        final SentenceId sentence = manager.addSentence(sentenceConcept, "何も食べなかった", sentenceSpans);
+
+        final RuleId noRule = obtainNewRule(manager, enAlphabet, "no!");
+        assertTrue(manager.updateAgent(agent1, setOf(intermediateBunch), setOf(sourceBunch), setOf(), emptyCorrelation, emptyCorrelationArray, ruCorrelation, naiCorrelationArray, noRule));
+
+        assertEmpty(manager.getSampleSentencesApplyingRule(negativeRule));
+        assertSinglePair(sentence, "何も食べなかった", manager.getSampleSentencesApplyingRule(pastRule));
+        assertSinglePair(sentence, "何も食べなかった", manager.getSampleSentencesApplyingRule(noRule));
+    }
 }
