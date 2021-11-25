@@ -35,6 +35,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
+import sword.langbook3.android.models.RuledAcceptationMutableRegister;
 import sword.langbook3.android.models.SentenceSpan;
 
 import static sword.collections.SortUtils.equal;
@@ -733,6 +734,48 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                     else {
                         final ConceptId newRuledConcept = (foundRuledConcept != null)? foundRuledConcept : insertRuledConcept(agentDetails.rule, baseConcept);
                         updateAcceptationConcept(dynAcc, newRuledConcept);
+
+                        if (sampleRule != null) {
+                            final RuledAcceptationMutableRegister<AcceptationId, AgentId> ruledAccRegister = new RuledAcceptationMutableRegister<>();
+
+                            final SyncCacheMap<AgentId, RuleId> agentRules = new SyncCacheMap<>(this::getAgentRule);
+                            for (SentenceId sentence : getSentencesApplyingRule(sampleRule)) {
+                                final ImmutableSet<SentenceSpan<AcceptationId>> spans = getSentenceSpans(sentence);
+                                boolean oldRuleFound = false;
+                                boolean newRuleFound = false;
+                                for (SentenceSpan<AcceptationId> span : spans) {
+                                    AcceptationId acceptation = span.acceptation;
+                                    boolean acceptationMatching = acceptation.equals(dynAcc);
+                                    while (!acceptationMatching && fillRuledAcceptation(acceptation, ruledAccRegister)) {
+                                        final RuleId stepRule = agentRules.get(ruledAccRegister.agent);
+                                        if (stepRule.equals(sampleRule)) {
+                                            oldRuleFound = true;
+                                            if (newRuleFound) {
+                                                break;
+                                            }
+                                        }
+                                        acceptation = ruledAccRegister.acceptation;
+                                        acceptationMatching = acceptation.equals(dynAcc);
+                                    }
+
+                                    if (acceptationMatching) {
+                                        newRuleFound = true;
+                                    }
+
+                                    if (oldRuleFound && newRuleFound) {
+                                        break;
+                                    }
+                                }
+
+                                if (!oldRuleFound) {
+                                    deleteRuleSentenceMatch(_db, sampleRule, sentence);
+                                }
+
+                                if (newRuleFound && !isRuleSentenceMatchPresent(agentDetails.rule, sentence)) {
+                                    insertRuleSentenceMatch(_db, agentDetails.rule, sentence);
+                                }
+                            }
+                        }
 
                         final ImmutableSet<SentenceId> sentences = getSentencesByDynamicAcceptation(dynAcc);
                         for (SentenceId sentence : sentences) {

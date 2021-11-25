@@ -53,6 +53,7 @@ import sword.langbook3.android.models.MorphologyResult;
 import sword.langbook3.android.models.Progress;
 import sword.langbook3.android.models.QuestionFieldDetails;
 import sword.langbook3.android.models.QuizDetails;
+import sword.langbook3.android.models.RuledAcceptationMutableRegister;
 import sword.langbook3.android.models.SearchResult;
 import sword.langbook3.android.models.SentenceDetailsModel;
 import sword.langbook3.android.models.SentenceSpan;
@@ -1784,6 +1785,17 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return map.toList().toImmutable().sort((a, b) -> !a.isDynamic() && b.isDynamic() || a.isDynamic() == b.isDynamic() && SortUtils.compareCharSequenceByUnicode(a.getStr(), b.getStr()));
     }
 
+    RuleId getAgentRule(AgentId agentId) {
+        final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), agentId)
+                .select(table.getRuleColumnIndex());
+
+        try (DbResult result = _db.select(query)) {
+            return result.hasNext()? _ruleIdSetter.getKeyFromDbValue(result.next().get(0)) : null;
+        }
+    }
+
     @Override
     public AgentRegister<CorrelationId, CorrelationArrayId, BunchSetId, RuleId> getAgentRegister(AgentId agentId) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
@@ -2741,6 +2753,16 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return result.toImmutable();
     }
 
+    ImmutableSet<SentenceId> getSentencesApplyingRule(RuleId appliedRule) {
+        final LangbookDbSchema.RuleSentenceMatchesTable ruleSentenceMatches = LangbookDbSchema.Tables.ruleSentenceMatches;
+
+        final DbQuery query = new DbQueryBuilder(ruleSentenceMatches)
+                .where(ruleSentenceMatches.getRuleColumnIndex(), appliedRule)
+                .select(ruleSentenceMatches.getSentenceColumnIndex());
+
+        return _db.select(query).map(row -> _sentenceIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
+    }
+
     Set<RuleId> getAppliedRulesBySentenceId(SentenceId sentence) {
         final LangbookDbSchema.RuleSentenceMatchesTable ruleSentenceMatches = LangbookDbSchema.Tables.ruleSentenceMatches;
         final DbQuery query = new DbQueryBuilder(ruleSentenceMatches)
@@ -3243,6 +3265,37 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final MutableList<RuleId> rules = MutableList.empty();
         getAppliedRulesIteration(acceptation, rules);
         return rules;
+    }
+
+    boolean isRuleSentenceMatchPresent(RuleId rule, SentenceId sentence) {
+        final LangbookDbSchema.RuleSentenceMatchesTable table = LangbookDbSchema.Tables.ruleSentenceMatches;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getRuleColumnIndex(), rule)
+                .where(table.getSentenceColumnIndex(), sentence)
+                .select(table.getIdColumnIndex());
+
+        try (DbResult dbResult = _db.select(query)) {
+            return dbResult.hasNext();
+        }
+    }
+
+    boolean fillRuledAcceptation(AcceptationId acceptation, RuledAcceptationMutableRegister<AcceptationId, AgentId> register) {
+        final LangbookDbSchema.RuledAcceptationsTable table = LangbookDbSchema.Tables.ruledAcceptations;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), acceptation)
+                .select(table.getAgentColumnIndex(), table.getAcceptationColumnIndex());
+
+        try (DbResult dbResult = _db.select(query)) {
+            if (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                register.agent = _agentIdSetter.getKeyFromDbValue(row.get(0));
+                register.acceptation = _acceptationIdSetter.getKeyFromDbValue(row.get(1));
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
     }
 
     ImmutableIntSet findAgentsByRule(RuleId rule) {
