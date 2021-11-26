@@ -602,11 +602,13 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(LanguagePickerActivity.ResultKeys.CORRELATION_ARRAY);
             _state.startAdder = parcelableCorrelationArray.get();
             bindAdder(_startAdderEntry, _state.startAdder);
+            enableFlagAndRuleFields();
         }
         else if (requestCode == REQUEST_CODE_DEFINE_END_ADDER && resultCode == RESULT_OK) {
             final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(LanguagePickerActivity.ResultKeys.CORRELATION_ARRAY);
             _state.endAdder = parcelableCorrelationArray.get();
             bindAdder(_endAdderEntry, _state.endAdder);
+            enableFlagAndRuleFields();
         }
         else if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH && resultCode == RESULT_OK) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
