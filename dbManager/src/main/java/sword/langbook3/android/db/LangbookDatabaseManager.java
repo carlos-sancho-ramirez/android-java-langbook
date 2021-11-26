@@ -28,6 +28,7 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
+import sword.langbook3.android.collections.MutableSetUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
@@ -931,6 +932,23 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelationArray<AlphabetId> endAdder, RuleId rule) {
         if (sourceBunches.anyMatch(diffBunches::contains) || sourceBunches.anyMatch(targetBunches::contains)) {
             return null;
+        }
+
+        if (!targetBunches.isEmpty()) {
+            final MutableSet<BunchId> checkedBunches = MutableHashSet.empty();
+            final MutableSet<BunchId> pendingBunches = targetBunches.mutate();
+            while (!pendingBunches.isEmpty()) {
+                final BunchId bunch = MutableSetUtils.pickLast(pendingBunches);
+                if (checkedBunches.add(bunch)) {
+                    final ImmutableMap<AgentId, ImmutableSet<BunchId>> result = findAffectedAgentsByItsSourceWithTarget(bunch);
+                    for (ImmutableSet<BunchId> agentTargets : result) {
+                        if (agentTargets.anyMatch(sourceBunches::contains)) {
+                            return null;
+                        }
+                        pendingBunches.addAll(agentTargets);
+                    }
+                }
+            }
         }
 
         final BunchSetId targetBunchSetId = obtainBunchSet(targetBunches);
