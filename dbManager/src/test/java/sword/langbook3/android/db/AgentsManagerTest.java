@@ -169,6 +169,29 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         assertSearchResult(manager, acceptation, str, expectedMainStr, expectedMainStr, ImmutableList.empty());
     }
 
+    static <ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addTakaiAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer) {
+        final ImmutableCorrelation<AlphabetId> takaCorrelation = correlationComposer.compose("高", "たか");
+        final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
+
+        final ImmutableCorrelationArray<AlphabetId> correlationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(takaCorrelation)
+                .append(iCorrelation)
+                .build();
+
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        return manager.addAcceptation(concept, correlationArray);
+    }
+
+    static <AlphabetId> ImmutableCorrelationArray<AlphabetId> composeKunaiCorrelationArray(DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer, ImmutableCorrelation<AlphabetId> iCorrelation) {
+        final ImmutableCorrelation<AlphabetId> kuCorrelation = correlationComposer.compose("く", "く");
+        final ImmutableCorrelation<AlphabetId> naCorrelation = correlationComposer.compose("な", "な");
+        return new ImmutableCorrelationArray.Builder<AlphabetId>()
+                .append(kuCorrelation)
+                .append(naCorrelation)
+                .append(iCorrelation)
+                .build();
+    }
+
     @Test
     default void testAddAcceptationHasMixtureOfAlphabetsWhenAddingAJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
@@ -2519,7 +2542,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         final BunchId targetBunch = obtainNewBunch(manager, kana, "よい");
         final RuleId negativeRule = obtainNewRule(manager, kana, "ひていてき");
         final AgentId agent1 = addSingleAlphabetAgent(manager, setOf(middleBunch), setOf(sourceBunch), setOf(), kana, null, null, "い", "くない", negativeRule);
-        final AgentId agent2 = addSingleAlphabetAgent(manager, setOf(targetBunch), setOf(sourceBunch, middleBunch), setOf(), null, null, null, null, null, null);
+        addSingleAlphabetAgent(manager, setOf(targetBunch), setOf(sourceBunch, middleBunch), setOf(), null, null, null, null, null, null);
         assertContainsOnly(highAcceptation, manager.getAcceptationsInBunch(targetBunch));
 
         final ImmutableMap<String, String> newConversionMap = conversionMap
@@ -3935,7 +3958,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
         final BunchId canBePastBunch = obtainNewBunch(manager, enAlphabet, "can be past");
         final RuleId pastRule = obtainNewRule(manager, enAlphabet, "past");
-        final AgentId pastAgent = manager.addAgent(setOf(), setOf(canBePastBunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kattaCorrelationArray, pastRule);
+        manager.addAgent(setOf(), setOf(canBePastBunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kattaCorrelationArray, pastRule);
 
         final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("食", "た");
         final ImmutableCorrelation<AlphabetId> beCorrelation = correlationComposer.compose("べ", "べ");
@@ -4017,16 +4040,8 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         manager.addAlphabetCopyingFromOther(kana, kanji);
 
         final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
-        final ImmutableCorrelation<AlphabetId> takaCorrelation = correlationComposer.compose("高", "たか");
         final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
-        final ImmutableCorrelationArray<AlphabetId> takaiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
-                .append(takaCorrelation)
-                .append(iCorrelation)
-                .build();
-
-        final ConceptId highConcept = manager.getNextAvailableConceptId();
-        final AcceptationId highAcceptation = manager.addAcceptation(highConcept, takaiCorrelationArray);
-        assertNotNull(highAcceptation);
+        final AcceptationId highAcceptation = addTakaiAcceptation(manager, correlationComposer);
 
         final ImmutableCorrelation<AlphabetId> kattaCorrelation = correlationComposer.compose("かった", "かった");
         final ImmutableCorrelationArray<AlphabetId> kattaCorrelationArray = ImmutableCorrelationArray.<AlphabetId>empty().prepend(kattaCorrelation);
@@ -4078,23 +4093,9 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         manager.addAlphabetCopyingFromOther(kana, kanji);
 
         final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
-        final ImmutableCorrelation<AlphabetId> takaCorrelation = correlationComposer.compose("高", "たか");
+        final AcceptationId highAcceptation = addTakaiAcceptation(manager, correlationComposer);
         final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
-        final ImmutableCorrelationArray<AlphabetId> takaiCorrelationArray = new ImmutableCorrelationArray.Builder<AlphabetId>()
-                .append(takaCorrelation)
-                .append(iCorrelation)
-                .build();
-
-        final ConceptId highConcept = manager.getNextAvailableConceptId();
-        final AcceptationId highAcceptation = manager.addAcceptation(highConcept, takaiCorrelationArray);
-        assertNotNull(highAcceptation);
-
-        final ImmutableCorrelation<AlphabetId> kuCorrelation = correlationComposer.compose("く", "く");
-        final ImmutableCorrelation<AlphabetId> naCorrelation = correlationComposer.compose("な", "な");
-        final ImmutableCorrelationArray<AlphabetId> kunaiCorrelationArray = ImmutableCorrelationArray.<AlphabetId>empty()
-                .prepend(kuCorrelation)
-                .prepend(naCorrelation)
-                .prepend(iCorrelation);
+        final ImmutableCorrelationArray<AlphabetId> kunaiCorrelationArray = composeKunaiCorrelationArray(correlationComposer, iCorrelation);
 
         final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
         final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
@@ -4109,5 +4110,36 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         assertSize(1, result);
         assertEquals(highAcceptation, result.valueAt(0).getId());
         assertEmpty(manager.findAcceptationAndRulesFromText("高くない", DbQuery.RestrictionStringTypes.EXACT, resultRange));
+    }
+
+    @Test
+    default void testUpdateAgentRejectsItIfItCreatesAnInfiniteLoopsOfItself() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
+        final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
+        final AlphabetId kana = getAlphabetIdManager().getKeyFromConceptId(manager.getNextAvailableConceptId());
+        manager.addAlphabetCopyingFromOther(kana, kanji);
+
+        final DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer = new DoubleAlphabetCorrelationComposer<>(kanji, kana);
+        final AcceptationId highAcceptation = addTakaiAcceptation(manager, correlationComposer);
+        final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
+        final ImmutableCorrelationArray<AlphabetId> kunaiCorrelationArray = composeKunaiCorrelationArray(correlationComposer, iCorrelation);
+        final ImmutableCorrelation<AlphabetId> emptyCorrelation = ImmutableCorrelation.empty();
+        final ImmutableCorrelationArray<AlphabetId> emptyCorrelationArray = ImmutableCorrelationArray.empty();
+
+        final BunchId bunch = obtainNewBunch(manager, enAlphabet, "my words");
+        assertTrue(manager.addAcceptationInBunch(bunch, highAcceptation));
+        final RuleId negativeRule = obtainNewRule(manager, enAlphabet, "negative");
+        final AgentId agent = manager.addAgent(setOf(), setOf(bunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kunaiCorrelationArray, negativeRule);
+        assertFalse(manager.updateAgent(agent, setOf(bunch), setOf(bunch), setOf(), emptyCorrelation, emptyCorrelationArray, iCorrelation, kunaiCorrelationArray, negativeRule));
+
+        final ImmutableIntRange resultRange = new ImmutableIntRange(0, 19);
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> result = manager.findAcceptationFromText("高い", DbQuery.RestrictionStringTypes.EXACT, resultRange);
+        assertSize(1, result);
+        assertEquals(highAcceptation, result.valueAt(0).getId());
+
+        assertSize(1, manager.findAcceptationFromText("高くない", DbQuery.RestrictionStringTypes.EXACT, resultRange));
     }
 }
