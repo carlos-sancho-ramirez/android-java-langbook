@@ -1113,6 +1113,28 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             return false;
         }
 
+        if (!targetBunches.isEmpty()) {
+            final MutableSet<BunchId> checkedBunches = MutableHashSet.empty();
+            final MutableSet<BunchId> pendingBunches = targetBunches.mutate();
+            while (!pendingBunches.isEmpty()) {
+                final BunchId bunch = MutableSetUtils.pickLast(pendingBunches);
+                if (checkedBunches.add(bunch)) {
+                    ImmutableMap<AgentId, ImmutableSet<BunchId>> result = findAffectedAgentsByItsSourceWithTarget(bunch);
+                    final int index = result.indexOfKey(agentId);
+                    if (index >= 0) {
+                        result = result.removeAt(index);
+                    }
+
+                    for (ImmutableSet<BunchId> agentTargets : result) {
+                        if (agentTargets.anyMatch(sourceBunches::contains)) {
+                            return false;
+                        }
+                        pendingBunches.addAll(agentTargets);
+                    }
+                }
+            }
+        }
+
         final MutableSet<BunchId> touchedBunches = MutableHashSet.empty();
         final ImmutableSet<BunchId> currentTargetBunches = getBunchSet(register.targetBunchSetId);
         for (BunchId targetBunch : currentTargetBunches.filterNot(targetBunches::contains)) {
