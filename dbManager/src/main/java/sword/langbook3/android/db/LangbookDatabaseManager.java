@@ -929,7 +929,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches, ImmutableSet<BunchId> diffBunches,
             ImmutableCorrelation<AlphabetId> startMatcher, ImmutableCorrelationArray<AlphabetId> startAdder,
             ImmutableCorrelation<AlphabetId> endMatcher, ImmutableCorrelationArray<AlphabetId> endAdder, RuleId rule) {
-        if (sourceBunches.anyMatch(diffBunches::contains)) {
+        if (sourceBunches.anyMatch(diffBunches::contains) || sourceBunches.anyMatch(targetBunches::contains)) {
             return null;
         }
 
