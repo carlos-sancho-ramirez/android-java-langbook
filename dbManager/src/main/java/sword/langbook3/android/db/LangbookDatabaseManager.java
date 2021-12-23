@@ -28,7 +28,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.MutableSetUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
@@ -938,7 +937,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final MutableSet<BunchId> checkedBunches = MutableHashSet.empty();
             final MutableSet<BunchId> pendingBunches = targetBunches.mutate();
             while (!pendingBunches.isEmpty()) {
-                final BunchId bunch = MutableSetUtils.pickLast(pendingBunches);
+                final BunchId bunch = pendingBunches.pickLast();
                 if (checkedBunches.add(bunch)) {
                     final ImmutableMap<AgentId, ImmutableSet<BunchId>> result = findAffectedAgentsByItsSourceWithTarget(bunch);
                     for (ImmutableSet<BunchId> agentTargets : result) {
@@ -1117,7 +1116,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final MutableSet<BunchId> checkedBunches = MutableHashSet.empty();
             final MutableSet<BunchId> pendingBunches = targetBunches.mutate();
             while (!pendingBunches.isEmpty()) {
-                final BunchId bunch = MutableSetUtils.pickLast(pendingBunches);
+                final BunchId bunch = pendingBunches.pickLast();
                 if (checkedBunches.add(bunch)) {
                     ImmutableMap<AgentId, ImmutableSet<BunchId>> result = findAffectedAgentsByItsSourceWithTarget(bunch);
                     final int index = result.indexOfKey(agentId);

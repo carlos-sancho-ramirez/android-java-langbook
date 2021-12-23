@@ -34,7 +34,6 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.ImmutableMapUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
@@ -1593,7 +1592,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final ImmutableMap<RuleId, String> ruleTexts = (appliedRuleAcceptationId == null)? morphologyResults.ruleTexts :
                 morphologyResults.ruleTexts.put(appliedRuleId, appliedRuleAcceptationText);
 
-        final ImmutableMap<SentenceId, String> sampleSentences = ImmutableMapUtils.putAll(getSampleSentences(staticAcceptation),
+        final ImmutableMap<SentenceId, String> sampleSentences = getSampleSentences(staticAcceptation).putAll(
                 getSampleSentencesApplyingRule(_ruleIdSetter.getKeyFromConceptId(concept)));
 
         final AcceptationId baseConceptAcceptationId = (definition.left != null)? definition.left.id : null;

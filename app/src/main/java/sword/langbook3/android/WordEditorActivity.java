@@ -43,7 +43,6 @@ import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.collections.SortUtils.equal;
-import static sword.langbook3.android.collections.ImmutableMapUtils.filterByKeyNot;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
@@ -295,7 +294,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         else {
             final ImmutableMap<AlphabetId, String> alphabetNames = checker.readAlphabetsForLanguage(language, preferredAlphabet);
             final ImmutableMap<AlphabetId, AlphabetId> conversionMap = checker.findConversions(alphabetNames.keySet());
-            fieldNames = filterByKeyNot(alphabetNames, conversionMap::containsKey);
+            fieldNames = alphabetNames.filterByKeyNot(conversionMap::containsKey);
             fieldConversions = ImmutableHashMap.empty();
         }
 
