@@ -11,7 +11,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".MainSearchActivity">
+        <activity
+            android:name=".MainSearchActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -95,5 +97,4 @@
             android:name=".WelcomeActivity"
             android:label="@string/appName"/>
     </application>
-
 </manifest>

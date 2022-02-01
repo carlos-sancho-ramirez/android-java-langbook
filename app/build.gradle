@@ -27,12 +27,12 @@ String readCommitHash() {
 }
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    compileSdkVersion 31
+    buildToolsVersion "31.0.0"
     defaultConfig {
         applicationId "sword.langbook3.android"
         minSdkVersion 17
-        targetSdkVersion 29
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0.0" + readCommitHash()
     }
