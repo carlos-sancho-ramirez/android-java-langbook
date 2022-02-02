@@ -84,7 +84,7 @@ public final class SQLiteDbQuery {
                 final int type = entry.value().type;
                 value = ((type == DbQuery.RestrictionTypes.EXACT)? "=" : " LIKE ") +
                         ((type == DbQuery.RestrictionStringTypes.ENDS_WITH || type == DbQuery.RestrictionStringTypes.CONTAINS)? "'%" : "'") +
-                        entry.value().value.toText() +
+                        entry.value().value.toText().replace("'", "''") +
                         ((type == DbQuery.RestrictionStringTypes.STARTS_WITH || type == DbQuery.RestrictionStringTypes.CONTAINS)? "%'" : "'");
             }
             else {
