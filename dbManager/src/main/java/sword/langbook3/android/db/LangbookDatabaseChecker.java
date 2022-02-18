@@ -4085,7 +4085,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public CharacterCompositionDetailsModel<CharacterId> getCharacterCompositionDetails(CharacterId characterId) {
+    public CharacterCompositionDetailsModel<CharacterId, AcceptationId> getCharacterCompositionDetails(CharacterId characterId) {
         final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
         final DbQuery dbQuery = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), characterId)
@@ -4106,6 +4106,21 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         final char character = findUnicodeForCharacter(characterId);
         final CharacterCompositionDetailsModel.Part<CharacterId> firstPart = getCharacterCompositionPart(first);
         final CharacterCompositionDetailsModel.Part<CharacterId> secondPart = getCharacterCompositionPart(second);
-        return new CharacterCompositionDetailsModel<>(character, firstPart, secondPart, compositionType);
+
+        final ImmutableMap<AcceptationId, CharacterCompositionDetailsModel.AcceptationInfo> acceptationsWhereIncluded;
+        if (character != INVALID_CHARACTER) {
+            final ImmutableList<SearchResult<AcceptationId, RuleId>> results = findAcceptationFromText("" + character, DbQuery.RestrictionStringTypes.CONTAINS, new ImmutableIntRange(0, 49));
+            final MutableMap<AcceptationId, CharacterCompositionDetailsModel.AcceptationInfo> builder = MutableHashMap.empty();
+            for (SearchResult<AcceptationId, RuleId> searchResult : results) {
+                builder.put(searchResult.getId(), new CharacterCompositionDetailsModel.AcceptationInfo(searchResult.getStr(), searchResult.isDynamic()));
+            }
+
+            acceptationsWhereIncluded = builder.toImmutable();
+        }
+        else {
+            acceptationsWhereIncluded = ImmutableHashMap.empty();
+        }
+
+        return new CharacterCompositionDetailsModel<>(character, firstPart, secondPart, compositionType, acceptationsWhereIncluded);
     }
 }

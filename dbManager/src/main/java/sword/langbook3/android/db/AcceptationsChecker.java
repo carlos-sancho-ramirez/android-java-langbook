@@ -5,11 +5,12 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Set;
+import sword.langbook3.android.models.CharacterCompositionDetailsModel;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DisplayableItem;
 
-public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId>, CharacterCompositionsChecker<CharacterId> {
+public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId> {
     LanguageId findLanguageByCode(String code);
 
     /**
@@ -42,4 +43,5 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(AcceptationId acceptation);
     ImmutableMap<AlphabetId, AlphabetId> findConversions(Set<AlphabetId> alphabets);
     ImmutableMap<String, AcceptationId> readTextAndDynamicAcceptationsMapFromAcceptation(AcceptationId acceptation);
+    CharacterCompositionDetailsModel<CharacterId, AcceptationId> getCharacterCompositionDetails(CharacterId characterId);
 }

@@ -1,6 +1,8 @@
 package sword.langbook3.android.models;
 
-public final class CharacterCompositionDetailsModel<CharacterId> {
+import sword.collections.ImmutableMap;
+
+public final class CharacterCompositionDetailsModel<CharacterId, AcceptationId> {
 
     /**
      * Visual representation of the character.
@@ -10,9 +12,10 @@ public final class CharacterCompositionDetailsModel<CharacterId> {
     public final Part<CharacterId> first;
     public final Part<CharacterId> second;
     public final int compositionType;
+    public final ImmutableMap<AcceptationId, AcceptationInfo> acceptationsWhereIncluded;
 
-    public CharacterCompositionDetailsModel(char character, Part<CharacterId> first, Part<CharacterId> second, int compositionType) {
-        if (first == null || second == null) {
+    public CharacterCompositionDetailsModel(char character, Part<CharacterId> first, Part<CharacterId> second, int compositionType, ImmutableMap<AcceptationId, AcceptationInfo> acceptationsWhereIncluded) {
+        if (first == null || second == null || acceptationsWhereIncluded == null) {
             throw new IllegalArgumentException();
         }
 
@@ -20,6 +23,7 @@ public final class CharacterCompositionDetailsModel<CharacterId> {
         this.first = first;
         this.second = second;
         this.compositionType = compositionType;
+        this.acceptationsWhereIncluded = acceptationsWhereIncluded;
     }
 
     public static final class Part<CharacterId> {
@@ -54,6 +58,20 @@ public final class CharacterCompositionDetailsModel<CharacterId> {
             this.id = id;
             this.character = character;
             this.isComposition = isComposition;
+        }
+    }
+
+    public static final class AcceptationInfo {
+        public String text;
+        public boolean isDynamic;
+
+        public AcceptationInfo(String text, boolean isDynamic) {
+            if (text == null) {
+                throw new IllegalArgumentException();
+            }
+
+            this.text = text;
+            this.isDynamic = isDynamic;
         }
     }
 }

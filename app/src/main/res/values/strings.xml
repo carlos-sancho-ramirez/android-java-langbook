@@ -207,5 +207,8 @@
     <string name="agentEditorSaveButton">Save</string>
     <string name="agentEditorRuleDefaultText">Select a rule</string>
     <string name="characterCompositionsParserErrorDialogTitle">Error on parsing character compositions file</string>
+
+    <!-- Character compositions -->
     <string name="characterCompositionType">Composition Type: %s</string>
+    <string name="characterCompositionAcceptationsHeader">Acceptations where included</string>
 </resources>
