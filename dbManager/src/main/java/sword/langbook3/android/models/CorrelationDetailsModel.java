@@ -6,7 +6,7 @@ import sword.collections.Predicate;
 import sword.collections.SortUtils;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class CorrelationDetailsModel<AlphabetId, CorrelationId, AcceptationId> {
+public final class CorrelationDetailsModel<AlphabetId, CharacterId, CorrelationId, AcceptationId> {
     /**
      * Map matching each alphabet with its alphabet name, according to the given preferred alphabet.
      */
@@ -41,14 +41,20 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId, Acceptatio
      */
     public final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations;
 
+    /**
+     * List of known characters in the database
+     */
+    public final ImmutableMap<Character, CharacterId> characters;
+
     public CorrelationDetailsModel(
             ImmutableMap<AlphabetId, String> alphabets,
             ImmutableCorrelation<AlphabetId> correlation,
             ImmutableMap<AcceptationId, String> acceptations,
             ImmutableMap<AlphabetId, ImmutableSet<CorrelationId>> relatedCorrelationsByAlphabet,
-            ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations) {
+            ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations,
+            ImmutableMap<Character, CharacterId> characters) {
         if (alphabets == null || correlation == null || acceptations == null ||
-                relatedCorrelationsByAlphabet == null || relatedCorrelations == null) {
+                relatedCorrelationsByAlphabet == null || relatedCorrelations == null || characters == null) {
             throw new IllegalArgumentException();
         }
 
@@ -85,5 +91,6 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId, Acceptatio
         this.acceptations = acceptations;
         this.relatedCorrelationsByAlphabet = relatedCorrelationsByAlphabet;
         this.relatedCorrelations = relatedCorrelations;
+        this.characters = characters;
     }
 }

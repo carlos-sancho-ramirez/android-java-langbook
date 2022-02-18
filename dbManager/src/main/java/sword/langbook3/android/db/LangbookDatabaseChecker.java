@@ -66,12 +66,13 @@ import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
 
-abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
+abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, CharacterId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
 
     final Database _db;
     final ConceptSetter<ConceptId> _conceptIdSetter;
     final ConceptualizableSetter<ConceptId, LanguageId> _languageIdSetter;
     final ConceptualizableSetter<ConceptId, AlphabetId> _alphabetIdSetter;
+    final IntSetter<CharacterId> _characterIdSetter;
     final IntSetter<SymbolArrayId> _symbolArrayIdSetter;
     final IntSetter<CorrelationId> _correlationIdSetter;
     final IntSetter<CorrelationArrayId> _correlationArrayIdSetter;
@@ -83,8 +84,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     final IntSetter<QuizId> _quizIdSetter;
     final IntSetter<SentenceId> _sentenceIdSetter;
 
-    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter, IntSetter<QuizId> quizIdSetter, IntSetter<SentenceId> sentenceIdSetter) {
-        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || bunchSetIdSetter == null || ruleIdSetter == null || agentIdSetter == null || quizIdSetter == null || sentenceIdSetter == null) {
+    LangbookDatabaseChecker(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<CharacterId> characterIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter, IntSetter<QuizId> quizIdSetter, IntSetter<SentenceId> sentenceIdSetter) {
+        if (db == null || conceptIdManager == null || languageIdManager == null || alphabetIdManager == null || characterIdManager == null || symbolArrayIdManager == null || correlationIdSetter == null || correlationArrayIdSetter == null || acceptationIdSetter == null || bunchIdSetter == null || bunchSetIdSetter == null || ruleIdSetter == null || agentIdSetter == null || quizIdSetter == null || sentenceIdSetter == null) {
             throw new IllegalArgumentException();
         }
 
@@ -92,6 +93,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         _conceptIdSetter = conceptIdManager;
         _languageIdSetter = languageIdManager;
         _alphabetIdSetter = alphabetIdManager;
+        _characterIdSetter = characterIdManager;
         _symbolArrayIdSetter = symbolArrayIdManager;
         _correlationIdSetter = correlationIdSetter;
         _correlationArrayIdSetter = correlationArrayIdSetter;
@@ -2496,7 +2498,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public CorrelationDetailsModel<AlphabetId, CorrelationId, AcceptationId> getCorrelationDetails(CorrelationId correlationId, AlphabetId preferredAlphabet) {
+    public CorrelationDetailsModel<AlphabetId, CharacterId, CorrelationId, AcceptationId> getCorrelationDetails(CorrelationId correlationId, AlphabetId preferredAlphabet) {
         final ImmutableCorrelation<AlphabetId> correlation = getCorrelationWithText(correlationId);
         if (correlation.isEmpty()) {
             return null;
@@ -2526,8 +2528,34 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             relatedCorrelationsByAlphabet.put(matchingAlphabet, setBuilder.build());
         }
 
+        final MutableSet<Character> foundCharacters = MutableHashSet.empty();
+        for (String text : correlation) {
+            final int textLength = text.length();
+            for (int i = 0; i < textLength; i++) {
+                foundCharacters.add(text.charAt(i));
+            }
+        }
+
+        final MutableMap<Character, CharacterId> characters = MutableHashMap.empty();
+        for (char ch : foundCharacters) {
+            final CharacterId characterId = findCharacter(ch);
+            if (characterId != null) {
+                characters.put(ch, characterId);
+            }
+        }
+
         return new CorrelationDetailsModel<>(alphabets, correlation, acceptations,
-                relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable());
+                relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable(), characters.toImmutable());
+    }
+
+    private CharacterId findCharacter(char ch) {
+        final LangbookDbSchema.UnicodeCharactersTable table = LangbookDbSchema.Tables.unicodeCharacters;
+        final DbQuery dbQuery = new DbQueryBuilder(table)
+                .where(table.getUnicodeColumnIndex(), ch)
+                .select(table.getIdColumnIndex());
+
+        final DbValue dbValue = selectOptionalFirstDbValue(dbQuery);
+        return (dbValue != null)? _characterIdSetter.getKeyFromDbValue(dbValue) : null;
     }
 
     @Override

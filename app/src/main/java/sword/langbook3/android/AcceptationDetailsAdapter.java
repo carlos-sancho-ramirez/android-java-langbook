@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
@@ -17,6 +18,7 @@ import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.SentenceId;
@@ -128,6 +130,30 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         @Override
         int getTextColorRes() {
             return _dynamic? R.color.agentDynamicTextColor : R.color.agentStaticTextColor;
+        }
+    }
+
+    static final class CharacterNavigableItem extends Item {
+
+        private final CharacterId _id;
+
+        CharacterNavigableItem(CharacterId id, String text) {
+            super(ItemTypes.UNKNOWN, text);
+            _id = id;
+        }
+
+        @Override
+        void navigate(Activity activity, int requestCode) {
+            Toast.makeText(activity, "To be implemented", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        boolean isEnabled() {
+            return true;
+        }
+
+        CharacterId getId() {
+            return _id;
         }
     }
 

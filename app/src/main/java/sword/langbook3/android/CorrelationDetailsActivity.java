@@ -8,6 +8,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import sword.collections.ImmutableList;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.AcceptationDetailsAdapter.AcceptationNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationNavigableItem;
@@ -15,10 +16,13 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.CorrelationIdBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.models.CorrelationDetailsModel;
+
+import static sword.langbook3.android.collections.StringUtils.stringToCharList;
 
 public final class CorrelationDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
@@ -35,7 +39,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     }
 
     private CorrelationId _correlationId;
-    private CorrelationDetailsModel<AlphabetId, CorrelationId, AcceptationId> _model;
+    private CorrelationDetailsModel<AlphabetId, CharacterId, CorrelationId, AcceptationId> _model;
     private AcceptationDetailsAdapter _listAdapter;
 
     private boolean _justLoaded;
@@ -48,10 +52,15 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         final int entryCount = _model.correlation.size();
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
         result.add(new HeaderItem("Displaying details for correlation " + _correlationId));
+        final ImmutableMap<Character, CharacterId> characters = _model.characters;
         for (int i = 0; i < entryCount; i++) {
             final String alphabetText = _model.alphabets.get(_model.correlation.keyAt(i));
             final String text = _model.correlation.valueAt(i);
-            result.add(new NonNavigableItem(alphabetText + " -> " + text));
+            final String itemText = alphabetText + " -> " + text;
+            final Character charMatching = stringToCharList(text).findFirst(characters::containsKey, null);
+            final AcceptationDetailsAdapter.Item item = (charMatching == null)? new NonNavigableItem(itemText) :
+                    new AcceptationDetailsAdapter.CharacterNavigableItem(characters.get(charMatching), itemText);
+            result.add(item);
         }
 
         final int acceptationCount = _model.acceptations.size();

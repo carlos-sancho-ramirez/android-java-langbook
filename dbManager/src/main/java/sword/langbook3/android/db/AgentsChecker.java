@@ -10,7 +10,7 @@ import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.SearchResult;
 
-public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> {
+public interface AgentsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> extends BunchesChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> {
 
     /**
      * Check all bunches including agents that may match the given texts.
