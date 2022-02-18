@@ -9,7 +9,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DisplayableItem;
 
-public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId> {
+public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId>, CharacterCompositionsChecker<CharacterId> {
     LanguageId findLanguageByCode(String code);
 
     /**

@@ -59,7 +59,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             final String itemText = alphabetText + " -> " + text;
             final Character charMatching = stringToCharList(text).findFirst(characters::containsKey, null);
             final AcceptationDetailsAdapter.Item item = (charMatching == null)? new NonNavigableItem(itemText) :
-                    new AcceptationDetailsAdapter.CharacterNavigableItem(characters.get(charMatching), itemText);
+                    new AcceptationDetailsAdapter.CharacterCompositionNavigableItem(characters.get(charMatching), itemText);
             result.add(item);
         }
 

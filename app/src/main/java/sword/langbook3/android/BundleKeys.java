@@ -10,9 +10,10 @@ public interface BundleKeys {
     String CONCEPT = "concept";
     String CONCEPT_USED = "conceptUsed";
     String CONFIRM_ONLY = "cO";
-    String CORRELATION = "cId";
-    String CORRELATION_ARRAY = "cArray";
-    String CORRELATION_MAP = "cMap";
+    String CHARACTER = "chId";
+    String CORRELATION = "coId";
+    String CORRELATION_ARRAY = "coArray";
+    String CORRELATION_MAP = "coMap";
     String DIFF_BUNCH = "db";
     String DYNAMIC_ACCEPTATION = "da";
     String EVALUATE_CONVERSIONS = "ec";

@@ -32,4 +32,8 @@
 
     <dimen name="searchEntryPadding">4dp</dimen>
     <dimen name="searchEntryRulePadding">8dp</dimen>
+    <dimen name="charBigScaleTextSize">80sp</dimen>
+    <dimen name="compositionPartsPadding">16dp</dimen>
+    <dimen name="charSmallScaleTextSize">56sp</dimen>
+    <dimen name="compositionPartsSpacing">20dp</dimen>
 </resources>

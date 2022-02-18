@@ -24,6 +24,7 @@
         <activity android:name=".AgentEditorActivity"/>
         <activity android:name=".AcceptationDetailsActivity"/>
         <activity android:name=".AgentDetailsActivity"/>
+        <activity android:name=".CharacterCompositionDetailsActivity"/>
         <activity android:name=".CorrelationDetailsActivity"/>
         <activity android:name=".QuestionActivity"/>
         <activity

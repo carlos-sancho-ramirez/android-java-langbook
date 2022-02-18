@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
@@ -133,27 +132,23 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    static final class CharacterNavigableItem extends Item {
+    static final class CharacterCompositionNavigableItem extends Item {
 
         private final CharacterId _id;
 
-        CharacterNavigableItem(CharacterId id, String text) {
+        CharacterCompositionNavigableItem(CharacterId id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
 
         @Override
         void navigate(Activity activity, int requestCode) {
-            Toast.makeText(activity, "To be implemented", Toast.LENGTH_SHORT).show();
+            CharacterCompositionDetailsActivity.open(activity, _id);
         }
 
         @Override
         boolean isEnabled() {
             return true;
-        }
-
-        CharacterId getId() {
-            return _id;
         }
     }
 
