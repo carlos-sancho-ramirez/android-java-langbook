@@ -83,4 +83,7 @@ dependencies {
     implementation project(':dbSchema')
     implementation "com.github.carlos-sancho-ramirez:lib-java-database:$DATABASE_VERSION"
     implementation "com.github.carlos-sancho-ramirez:lib-java-collections:$COLLECTIONS_VERSION"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.2"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.8.2"
+    testImplementation "com.github.carlos-sancho-ramirez:lib-java-collection-assertions:$COLLECTION_ASSERTIONS_VERSION"
 }

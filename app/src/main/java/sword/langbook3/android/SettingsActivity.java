@@ -49,10 +49,16 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         int SAVE = 1;
 
         /**
-         * If set, the file format is streamed database.
-         * If clear, the format is SQLite database file.
+         * If set, the file format is an SQLite database file.
+         * If clear, and {@link #CHAR_COMPOSITION} is also clear, the format is a streamed database file.
          */
         int SQLITE = 2;
+
+        /**
+         * If set, the file format is a character composition map.
+         * If clear, and {@link #SQLITE} is also clear, the format is a streamed database file.
+         */
+        int CHAR_COMPOSITION = 4;
     }
 
     private int _fileFlags;
@@ -68,6 +74,10 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
     private boolean expectsSqliteFileFormat() {
         return (_fileFlags & FileFlags.SQLITE) != 0;
+    }
+
+    private boolean expectsCharacterCompositionFileFormat() {
+        return (_fileFlags & FileFlags.CHAR_COMPOSITION) != 0;
     }
 
     private void pickFile() {
@@ -95,6 +105,28 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
         dialog.setView(dialogView);
         dialog.show();
+    }
+
+    private void loadCharacterComposition(Uri uri) {
+        if (uri != null) {
+            CharacterCompositionsParserResult parserResult = null;
+            try {
+                parserResult = new CharacterCompositionsFileReader(this, uri).read();
+            }
+            catch (Throwable t) {
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.characterCompositionsParserErrorDialogTitle)
+                        .setMessage(t.getMessage())
+                        .setCancelable(true)
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> { })
+                        .create().show();
+            }
+
+            if (parserResult != null) {
+                parserResult.saveInDatabase(DbManager.getInstance().getWritableDatabase());
+                Toast.makeText(this, R.string.importSuccess, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void importDatabase(Uri uri) {
@@ -148,6 +180,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         findViewById(R.id.exportStreamedDatabaseButton).setOnClickListener(this);
         findViewById(R.id.importSqliteDatabaseButton).setOnClickListener(this);
         findViewById(R.id.exportSqliteDatabaseButton).setOnClickListener(this);
+        findViewById(R.id.importCharacterCompositionsButton).setOnClickListener(this);
 
         _preferredAlphabetSpinner = findViewById(R.id.preferredAlphabetSpinner);
         updatePreferredAlphabetAdapter();
@@ -192,30 +225,29 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.importStreamedDatabaseButton:
-                _fileFlags = 0;
-                pickFile();
-                break;
+        final int viewId = view.getId();
+        boolean shouldPickFile = true;
+        if (viewId == R.id.importStreamedDatabaseButton) {
+            _fileFlags = 0;
+        }
+        else if (viewId == R.id.importSqliteDatabaseButton) {
+            _fileFlags = FileFlags.SQLITE;
+        }
+        else if (viewId == R.id.exportStreamedDatabaseButton) {
+            _fileFlags = FileFlags.SAVE;
+        }
+        else if (viewId == R.id.exportSqliteDatabaseButton) {
+            _fileFlags = FileFlags.SAVE | FileFlags.SQLITE;
+        }
+        else if (viewId == R.id.importCharacterCompositionsButton) {
+            _fileFlags = FileFlags.CHAR_COMPOSITION;
+        }
+        else {
+            shouldPickFile = false;
+        }
 
-            case R.id.importSqliteDatabaseButton:
-                _fileFlags = FileFlags.SQLITE;
-                pickFile();
-                break;
-
-            case R.id.exportStreamedDatabaseButton:
-                _fileFlags = FileFlags.SAVE;
-                pickFile();
-                break;
-
-            case R.id.exportSqliteDatabaseButton:
-                _fileFlags = FileFlags.SAVE | FileFlags.SQLITE;
-                pickFile();
-                break;
-
-            case R.id.progressPanel:
-                // Just consuming the event
-                break;
+        if (shouldPickFile) {
+            pickFile();
         }
     }
 
@@ -317,6 +349,9 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         else {
             if (expectsSqliteFileFormat()) {
                 loadSqliteDatabase(uri);
+            }
+            else if (expectsCharacterCompositionFileFormat()) {
+                loadCharacterComposition(uri);
             }
             else {
                 if (StorageUtils.isExternalFileUri(uri) && !hasReadPermission()) {

@@ -269,6 +269,42 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    /**
+     * Determines how a character is visually composed from the visual representation of 2 more simple characters.
+     *
+     * Some examples would be 'â', where characters '^' and 'a' are drawn one below the other.
+     * or maybe '明' where characters '日' and '月' are drawn side by side.
+     *
+     * All characters listed in this table expects are expected to be composed using exactly 2 simple characters.
+     * There are other characters more complex characters that they may require 3 or 4.
+     * In such case, the expectation is to chain compositions, joining 2 compositions for 3 simple characters,
+     * or 3 compositions for 4, and so on. Because of that, it is perfectly OK if a resulting composition does
+     * not exist in reality or there is no unicode assigned for it, while that result is used as a simple
+     * character for a new composition whose target already exists.
+     *
+     * The compositionType within this table is an abstraction of how both simple characters mut be manipulated
+     * in order to compose the new one: side-by-side, top-bottom, one boxing the other... the number does not
+     * mean anything, but 2 registers within this table with the same number as compositionType are expected to
+     * arrange the simple characters in the same way.
+     */
+    public static final class CharacterCompositionsTable extends DbTable {
+        private CharacterCompositionsTable() {
+            super("CharacterCompositions", new DbIntColumn("firstCharacter"), new DbIntColumn("secondCharacter"), new DbIntColumn("compositionType"));
+        }
+
+        public int getFirstCharacterColumnIndex() {
+            return 1;
+        }
+
+        public int getSecondCharacterColumnIndex() {
+            return 2;
+        }
+
+        public int getCompositionTypeColumnIndex() {
+            return 3;
+        }
+    }
+
     public static final class ConversionsTable extends DbTable {
 
         private ConversionsTable() {
@@ -588,13 +624,32 @@ public final class LangbookDbSchema implements DbSchema {
         }
     }
 
+    /**
+     * Determine the relationship between the characters used by the CharacterCompositionsTable and its unicode.
+     *
+     * Not all the characters found in the id, first or second characters of the {@link CharacterCompositionsTable}
+     * are required to be in this table. Some of the composition resulting characters may be intermediate steps
+     * in a chained character composition and may not have any unicode assigned. This table can be used in that
+     * sense to determine which of them have a real representation.
+     */
+    public static final class UnicodeCharactersTable extends DbTable {
+        private UnicodeCharactersTable() {
+            super("UnicodeCharacters", new DbIntColumn("unicode"));
+        }
+
+        public int getUnicodeColumnIndex() {
+            return 1;
+        }
+    }
+
     public interface Tables {
         AcceptationsTable acceptations = new AcceptationsTable();
         AgentsTable agents = new AgentsTable();
         AlphabetsTable alphabets = new AlphabetsTable();
         BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
-        ComplementedConceptsTable complementedConcepts = new ComplementedConceptsTable();
         BunchSetsTable bunchSets = new BunchSetsTable();
+        CharacterCompositionsTable characterCompositions = new CharacterCompositionsTable();
+        ComplementedConceptsTable complementedConcepts = new ComplementedConceptsTable();
         ConceptCompositionsTable conceptCompositions = new ConceptCompositionsTable();
         ConversionsTable conversions = new ConversionsTable();
         CorrelationsTable correlations = new CorrelationsTable();
@@ -611,6 +666,7 @@ public final class LangbookDbSchema implements DbSchema {
         SpanTable spans = new SpanTable();
         StringQueriesTable stringQueries = new StringQueriesTable();
         SymbolArraysTable symbolArrays = new SymbolArraysTable();
+        UnicodeCharactersTable unicodeCharacters = new UnicodeCharactersTable();
     }
 
     private final ImmutableList<DbTable> _tables = new ImmutableList.Builder<DbTable>()
@@ -619,6 +675,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.alphabets)
             .add(Tables.bunchAcceptations)
             .add(Tables.bunchSets)
+            .add(Tables.characterCompositions)
             .add(Tables.complementedConcepts)
             .add(Tables.conceptCompositions)
             .add(Tables.conversions)
@@ -636,6 +693,7 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.spans)
             .add(Tables.stringQueries)
             .add(Tables.symbolArrays)
+            .add(Tables.unicodeCharacters)
             .build();
 
     private final ImmutableList<DbIndex> _indexes = new ImmutableList.Builder<DbIndex>()
