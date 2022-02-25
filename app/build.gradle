@@ -78,6 +78,7 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':collectionExtensions')
+    implementation project(':databaseExtensions')
     implementation project(':dbManager')
     implementation project(':dbSerializer')
     implementation project(':dbSchema')

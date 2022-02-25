@@ -26,10 +26,10 @@ import sword.database.DbIndex;
 import sword.database.DbInsertQuery;
 import sword.database.DbQuery;
 import sword.database.DbResult;
-import sword.database.DbSchema;
 import sword.database.DbTable;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
+import sword.database.MutableSchemaDatabase;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LangbookDbManagerImpl;
 import sword.langbook3.android.db.LangbookDbSchema;
@@ -41,7 +41,6 @@ import static sword.langbook3.android.sqlite.SqliteUtils.sqlType;
 class DbManager extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "Langbook";
-    private static final int DB_VERSION = 5;
 
     private static DbManager _instance;
 
@@ -64,7 +63,7 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     private DbManager(Context context) {
-        super(context, DB_NAME, null, DB_VERSION);
+        super(context, DB_NAME, null, LangbookDbSchema.getInstance().currentSchemaVersionCode());
         _context = context;
     }
 
@@ -135,27 +134,25 @@ class DbManager extends SQLiteOpenHelper {
         return db.update(query.table().name(), cv, whereClause, values) > 0;
     }
 
-    private static void createTables(SQLiteDatabase db, DbSchema schema) {
-        for (DbTable table : schema.tables()) {
-            StringBuilder builder = new StringBuilder();
-            builder.append("CREATE TABLE ")
-                    .append(table.name())
-                    .append(" (");
+    private static void createTable(SQLiteDatabase db, DbTable table) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("CREATE TABLE ")
+                .append(table.name())
+                .append(" (");
 
-            final Function<DbColumn, String> mapFunc = column -> column.name() + ' ' + sqlType(column);
-            final String columns = table.columns().map(mapFunc)
-                    .reduce((left, right) -> left + ", " + right);
+        final Function<DbColumn, String> mapFunc = column -> column.name() + ' ' + sqlType(column);
+        final String columns = table.columns().map(mapFunc)
+                .reduce((left, right) -> left + ", " + right);
 
-            builder.append(columns).append(')');
-            db.execSQL(builder.toString());
-        }
+        builder.append(columns).append(')');
+        db.execSQL(builder.toString());
     }
 
-    private static void createIndexes(SQLiteDatabase db, DbSchema schema) {
-        int i = 0;
-        for (DbIndex index : schema.indexes()) {
-            db.execSQL("CREATE INDEX I" + (i++) + " ON " + index.table.name() + " (" + index.table.columns().get(index.column).name() + ')');
-        }
+    private static void createIndex(SQLiteDatabase db, DbIndex index) {
+        final DbTable table = index.table;
+        final String tableName = table.name();
+        final String columnName = table.columns().get(index.column).name();
+        db.execSQL("CREATE INDEX I" + tableName + 'C' + columnName + " ON " + tableName + " (" + columnName + ')');
     }
 
     final class DbAttachedQuery implements Traversable<List<DbValue>> {
@@ -325,9 +322,7 @@ class DbManager extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        final LangbookDbSchema schema = LangbookDbSchema.getInstance();
-        createTables(db, schema);
-        createIndexes(db, schema);
+        LangbookDbSchema.getInstance().setup(new UpgradableDatabase(db));
 
         if (_uri != null) {
             final Uri uri = _uri;
@@ -368,8 +363,9 @@ class DbManager extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-        // So far, version 5 is the only one expected. So this method should never be called
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        // Version 5 is the first within this project, so oldVersion should always be >= 5
+        LangbookDbSchema.getInstance().upgradeDatabaseVersion(new UpgradableDatabase(db), oldVersion, newVersion);
     }
 
     private static class TaskProgress {
@@ -501,7 +497,7 @@ class DbManager extends SQLiteOpenHelper {
         return _context.getDatabasePath(DB_NAME).toString();
     }
 
-    private final class ManagerDatabase implements Database {
+    private class ManagerDatabase implements Database {
 
         private int _dbWriteVersion = 1;
 
@@ -531,6 +527,25 @@ class DbManager extends SQLiteOpenHelper {
         @Override
         public int getWriteVersion() {
             return _dbWriteVersion;
+        }
+    }
+
+    private final class UpgradableDatabase extends ManagerDatabase implements MutableSchemaDatabase {
+
+        private final SQLiteDatabase _db;
+
+        UpgradableDatabase(SQLiteDatabase db) {
+            _db = db;
+        }
+
+        @Override
+        public void createTable(DbTable table) {
+            DbManager.createTable(_db, table);
+        }
+
+        @Override
+        public void createIndex(DbIndex index) {
+            DbManager.createIndex(_db, index);
         }
     }
 

@@ -4,11 +4,17 @@ import sword.collections.ImmutableList;
 import sword.database.DbIndex;
 import sword.database.DbIntColumn;
 import sword.database.DbSchema;
+import sword.database.DbSchemaDifference;
+import sword.database.DbSchemaUtils;
 import sword.database.DbTable;
 import sword.database.DbTextColumn;
 import sword.database.DbUniqueTextColumn;
+import sword.database.MutableSchemaDatabase;
+import sword.langbook3.android.collections.TraversableUtils;
 
-public final class LangbookDbSchema implements DbSchema {
+public final class LangbookDbSchema {
+
+    private static final int FIRST_VERSION_CODE = 5;
 
     /**
      * Bunch identifier used within a quiz definition to denote that no bunch should be used.
@@ -669,13 +675,12 @@ public final class LangbookDbSchema implements DbSchema {
         UnicodeCharactersTable unicodeCharacters = new UnicodeCharactersTable();
     }
 
-    private final ImmutableList<DbTable> _tables = new ImmutableList.Builder<DbTable>()
+    private final ImmutableList<DbTable> _tablesV5 = new ImmutableList.Builder<DbTable>()
             .add(Tables.acceptations)
             .add(Tables.agents)
             .add(Tables.alphabets)
             .add(Tables.bunchAcceptations)
             .add(Tables.bunchSets)
-            .add(Tables.characterCompositions)
             .add(Tables.complementedConcepts)
             .add(Tables.conceptCompositions)
             .add(Tables.conversions)
@@ -693,8 +698,11 @@ public final class LangbookDbSchema implements DbSchema {
             .add(Tables.spans)
             .add(Tables.stringQueries)
             .add(Tables.symbolArrays)
-            .add(Tables.unicodeCharacters)
             .build();
+
+    private final ImmutableList<DbTable> _tablesV6 = _tablesV5
+            .append(Tables.characterCompositions)
+            .append(Tables.unicodeCharacters);
 
     private final ImmutableList<DbIndex> _indexes = new ImmutableList.Builder<DbIndex>()
             .add(new DbIndex(Tables.stringQueries, Tables.stringQueries.getDynamicAcceptationColumnIndex()))
@@ -703,17 +711,84 @@ public final class LangbookDbSchema implements DbSchema {
             .add(new DbIndex(Tables.acceptations, Tables.acceptations.getConceptColumnIndex()))
             .build();
 
+    private static final class SchemaVersion implements DbSchema {
+
+        private final SchemaVersion _previous;
+        private final ImmutableList<DbTable> _tables;
+        private final ImmutableList<DbIndex> _indexes;
+
+        SchemaVersion(SchemaVersion previous, ImmutableList<DbTable> tables, ImmutableList<DbIndex> indexes) {
+            _previous = previous;
+            _tables = tables;
+            _indexes = indexes;
+        }
+
+        @Override
+        public ImmutableList<DbTable> tables() {
+            return _tables;
+        }
+
+        @Override
+        public ImmutableList<DbIndex> indexes() {
+            return _indexes;
+        }
+
+        void setup(MutableSchemaDatabase db) {
+            for (DbTable table : _tables) {
+                db.createTable(table);
+            }
+
+            for (DbIndex index : _indexes) {
+                db.createIndex(index);
+            }
+        }
+
+        void upgradeFromPreviousVersion(MutableSchemaDatabase db) {
+            final DbSchemaDifference difference = DbSchemaUtils.difference(_previous, this);
+
+            for (DbTable table : difference.newTables()) {
+                db.createTable(table);
+            }
+
+            for (DbIndex index : difference.newIndexes()) {
+                db.createIndex(index);
+            }
+        }
+    }
+
+    private final SchemaVersion _schemaVersion5 = new SchemaVersion(null, _tablesV5, _indexes);
+    private final SchemaVersion _schemaVersion6 = new SchemaVersion(_schemaVersion5, _tablesV6, _indexes);
+
+    private final ImmutableList<DbSchema> _schemaVersions = new ImmutableList.Builder<DbSchema>()
+            .add(_schemaVersion5)
+            .add(_schemaVersion6)
+            .build();
+
     private LangbookDbSchema() {
     }
 
-    @Override
-    public ImmutableList<DbTable> tables() {
-        return _tables;
+    /**
+     * Retrieves the schema version
+     * @param version Must be at least {@value #FIRST_VERSION_CODE}.
+     * @return The schema version.
+     */
+    public DbSchema schemaVersion(int version) {
+        return _schemaVersions.valueAt(version - FIRST_VERSION_CODE);
     }
 
-    @Override
-    public ImmutableList<DbIndex> indexes() {
-        return _indexes;
+    public int currentSchemaVersionCode() {
+        return _schemaVersions.size() + FIRST_VERSION_CODE - 1;
+    }
+
+    public void setup(MutableSchemaDatabase db) {
+        ((SchemaVersion) TraversableUtils.last(_schemaVersions)).setup(db);
+    }
+
+    public void upgradeDatabaseVersion(MutableSchemaDatabase db, int oldVersion, int newVersion) {
+        for (int currentVersion = oldVersion + 1; currentVersion <= newVersion; currentVersion++) {
+            final SchemaVersion newSchema = (SchemaVersion) schemaVersion(currentVersion);
+            newSchema.upgradeFromPreviousVersion(db);
+        }
     }
 
     private static LangbookDbSchema _instance;

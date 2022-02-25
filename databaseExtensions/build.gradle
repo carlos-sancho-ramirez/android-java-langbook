@@ -14,19 +14,8 @@ repositories {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation project(':collectionExtensions')
-    implementation project(':databaseExtensions')
     implementation "com.github.carlos-sancho-ramirez:lib-java-database:$DATABASE_VERSION"
     implementation "com.github.carlos-sancho-ramirez:lib-java-collections:$COLLECTIONS_VERSION"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.4.0'
-}
-
-test {
-    useJUnitPlatform()
-    testLogging {
-        events "skipped", "failed"
-    }
 }
 
 task sourceJar(type: Jar) {
@@ -37,18 +26,6 @@ task sourceJar(type: Jar) {
 task packageJavadoc(type: Jar) {
     from javadoc
     archiveClassifier = 'javadoc'
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifactId 'langbook-database-manager'
-            from components.java
-
-            artifact sourceJar
-            artifact packageJavadoc
-        }
-    }
 }
 
 javadoc {
