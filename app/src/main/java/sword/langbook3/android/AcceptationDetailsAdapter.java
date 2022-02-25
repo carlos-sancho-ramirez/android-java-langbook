@@ -17,7 +17,6 @@ import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.SentenceId;
@@ -132,18 +131,18 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    static final class CharacterCompositionNavigableItem extends Item {
+    static final class CharacterPickerNavigableItem extends Item {
 
-        private final CharacterId _id;
+        private final String _characterString;
 
-        CharacterCompositionNavigableItem(CharacterId id, String text) {
+        CharacterPickerNavigableItem(String characterString, String text) {
             super(ItemTypes.UNKNOWN, text);
-            _id = id;
+            _characterString = characterString;
         }
 
         @Override
         void navigate(Activity activity, int requestCode) {
-            CharacterCompositionDetailsActivity.open(activity, _id);
+            CharacterPickerActivity.open(activity, _characterString);
         }
 
         @Override

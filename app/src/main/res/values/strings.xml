@@ -211,4 +211,5 @@
     <!-- Character compositions -->
     <string name="characterCompositionType">Composition Type: %s</string>
     <string name="characterCompositionAcceptationsHeader">Acceptations where included</string>
+    <string name="characterPickerActivityTitle">Select a character</string>
 </resources>

@@ -34,11 +34,13 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
+import sword.langbook3.android.collections.StringUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.CharacterCompositionDetailsModel;
+import sword.langbook3.android.models.CharacterPickerItem;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.CorrelationDetailsModel;
@@ -4078,6 +4080,22 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return selectExistAtLeastOneRow(dbQuery);
     }
 
+    private boolean isCharacterCompositionPart(CharacterId characterId, int columnToMatch) {
+        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
+        final DbQuery dbQuery = new DbQueryBuilder(table)
+                .where(columnToMatch, characterId)
+                .select(table.getIdColumnIndex());
+
+        return selectExistAtLeastOneRow(dbQuery);
+    }
+
+    private boolean isCharacterCompositionPart(CharacterId characterId) {
+        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
+        // TODO: Avoid making 2 database queries whenever the where clause can be x OR y
+        return isCharacterCompositionPart(characterId, table.getFirstCharacterColumnIndex()) ||
+                isCharacterCompositionPart(characterId, table.getSecondCharacterColumnIndex());
+    }
+
     private CharacterCompositionDetailsModel.Part<CharacterId> getCharacterCompositionPart(CharacterId partId) {
         final char unicode = findUnicodeForCharacter(partId);
         final boolean isComposition = isCharacterComposition(partId);
@@ -4122,5 +4140,22 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
 
         return new CharacterCompositionDetailsModel<>(character, firstPart, secondPart, compositionType, acceptationsWhereIncluded);
+    }
+
+    private CharacterPickerItem<CharacterId> getCharacterPickerItem(char character) {
+        final CharacterId id = findCharacter(character);
+        boolean isComposition = false;
+        boolean isCompositionPart = false;
+        if (id != null) {
+            isComposition = isCharacterComposition(id);
+            isCompositionPart = isCharacterCompositionPart(id);
+        }
+
+        return new CharacterPickerItem<>(id, "" + character, isComposition, isCompositionPart);
+    }
+
+    @Override
+    public ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items) {
+        return StringUtils.stringToCharList(items).map(this::getCharacterPickerItem);
     }
 }

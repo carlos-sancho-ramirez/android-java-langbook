@@ -11,6 +11,7 @@ public interface BundleKeys {
     String CONCEPT_USED = "conceptUsed";
     String CONFIRM_ONLY = "cO";
     String CHARACTER = "chId";
+    String CHARACTER_STRING = "chStr";
     String CORRELATION = "coId";
     String CORRELATION_ARRAY = "coArray";
     String CORRELATION_MAP = "coMap";

@@ -36,4 +36,6 @@
     <dimen name="compositionPartsPadding">16dp</dimen>
     <dimen name="charSmallScaleTextSize">56sp</dimen>
     <dimen name="compositionPartsSpacing">20dp</dimen>
+    <dimen name="characterPickerItemPadding">8dp</dimen>
+    <dimen name="characterPickerItemTextSize">24sp</dimen>
 </resources>
