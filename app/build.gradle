@@ -19,7 +19,7 @@ String readCommitHash() {
         }
 
         if (gitRevParseResult.exitValue == 0) {
-            suffix = '.' + so.toString().trim()
+            suffix = '-' + so.toString().trim()
         }
     }
 
@@ -34,7 +34,7 @@ android {
         minSdkVersion 17
         targetSdkVersion 31
         versionCode 1
-        versionName "1.0.0" + readCommitHash()
+        versionName "3.1.0" + readCommitHash()
     }
 
     compileOptions {
