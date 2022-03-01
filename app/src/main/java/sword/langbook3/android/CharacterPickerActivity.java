@@ -35,6 +35,6 @@ public final class CharacterPickerActivity extends Activity {
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new CharacterPickerAdapter(items));
         listView.setOnItemClickListener((parent, view, position, id) ->
-                CharacterCompositionDetailsActivity.open(CharacterPickerActivity.this, items.valueAt(position).id));
+                CharacterDetailsActivity.open(CharacterPickerActivity.this, items.valueAt(position).id));
     }
 }

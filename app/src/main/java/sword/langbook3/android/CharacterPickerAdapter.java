@@ -39,16 +39,6 @@ final class CharacterPickerAdapter extends BaseAdapter {
     }
 
     @Override
-    public boolean areAllItemsEnabled() {
-        return false;
-    }
-
-    @Override
-    public boolean isEnabled(int position) {
-        return _items.valueAt(position).isComposed;
-    }
-
-    @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             if (_inflater == null) {

@@ -210,6 +210,8 @@
 
     <!-- Character compositions -->
     <string name="characterCompositionType">Composition Type: %s</string>
+    <string name="characterCompositionAsFirstHeader">Composed characters where this is first</string>
+    <string name="characterCompositionAsSecondHeader">Composed characters where this is second</string>
     <string name="characterCompositionAcceptationsHeader">Acceptations where included</string>
     <string name="characterPickerActivityTitle">Select a character</string>
 </resources>
