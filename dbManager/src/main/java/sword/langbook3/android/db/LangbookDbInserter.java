@@ -18,6 +18,15 @@ final class LangbookDbInserter {
     private LangbookDbInserter() {
     }
 
+    static <CharacterId> CharacterId insertCharacter(DbInserter db, IntSetter<CharacterId> characterIntSetter, char unicode) {
+        final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getUnicodeColumnIndex(), unicode)
+                .build();
+        final Integer intResult = db.insert(query);
+        return (intResult != null)? characterIntSetter.getKeyFromInt(intResult) : null;
+    }
+
     static <SymbolArrayId> SymbolArrayId insertSymbolArray(DbInserter db, IntSetter<SymbolArrayId> symbolArrayIdSetter, String str) {
         final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)

@@ -2555,7 +2555,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 relatedCorrelationsByAlphabet.toImmutable(), relatedCorrelations.toImmutable(), characters.toImmutable());
     }
 
-    private CharacterId findCharacter(char ch) {
+    CharacterId findCharacter(char ch) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
         final DbQuery dbQuery = new DbQueryBuilder(table)
                 .where(table.getUnicodeColumnIndex(), ch)

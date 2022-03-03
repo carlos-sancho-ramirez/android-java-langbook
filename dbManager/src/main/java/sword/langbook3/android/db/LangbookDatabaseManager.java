@@ -28,6 +28,7 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
+import sword.langbook3.android.collections.StringUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
@@ -43,6 +44,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
+import static sword.langbook3.android.db.LangbookDbInserter.insertCharacter;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
 import static sword.langbook3.android.db.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertRuleSentenceMatch;
@@ -349,7 +351,25 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 modifiedKnownCorrelationIds.toImmutable());
     }
 
+    private CharacterId obtainCharacter(char unicode) {
+        CharacterId id = insertCharacter(_db, _characterIdSetter, unicode);
+        if (id != null) {
+            return id;
+        }
+
+        id = findCharacter(unicode);
+        if (id == null) {
+            throw new AssertionError("Unable to insert, and not present");
+        }
+
+        return id;
+    }
+
     private SymbolArrayId obtainSymbolArray(String str) {
+        for (char unicode : StringUtils.stringToCharList(str)) {
+            obtainCharacter(unicode);
+        }
+
         SymbolArrayId id = insertSymbolArray(_db, _symbolArrayIdSetter, str);
         if (id != null) {
             return id;

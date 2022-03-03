@@ -8,6 +8,7 @@ import sword.database.DbSchemaDifference;
 import sword.database.DbSchemaUtils;
 import sword.database.DbTable;
 import sword.database.DbTextColumn;
+import sword.database.DbUniqueIntColumn;
 import sword.database.DbUniqueTextColumn;
 import sword.database.MutableSchemaDatabase;
 import sword.langbook3.android.collections.TraversableUtils;
@@ -640,7 +641,7 @@ public final class LangbookDbSchema {
      */
     public static final class UnicodeCharactersTable extends DbTable {
         private UnicodeCharactersTable() {
-            super("UnicodeCharacters", new DbIntColumn("unicode"));
+            super("UnicodeCharacters", new DbUniqueIntColumn("unicode"));
         }
 
         public int getUnicodeColumnIndex() {
