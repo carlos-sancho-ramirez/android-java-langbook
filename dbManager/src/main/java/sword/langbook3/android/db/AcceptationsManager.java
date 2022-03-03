@@ -85,4 +85,25 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
      * @return True if something changed in the database. False in case the new conversion cannot be applied, or it is exactly the same as it was there before.
      */
     boolean replaceConversion(Conversion<AlphabetId> conversion);
+
+    /**
+     * Creates a new character composition or replaces any existing one matching the identifier.
+     * This method will return false if due to an error the action cannot be completed.
+     * Potential errors that can be found are invalid characters on first or second,
+     * invalid composition type or composition types that may generate an infinite composition loop.
+     *
+     * @param characterId Identifier for the character
+     * @param first Character representation for the first part.
+     * @param second Character representation for the second part.
+     * @param compositionType Composition type
+     * @return Whether the create/update action succeeded.
+     */
+    boolean updateCharacterComposition(CharacterId characterId, char first, char second, int compositionType);
+
+    /**
+     * Removes the character composition linked to the given identifier.
+     *
+     * @param characterId Identifier for the composition.
+     */
+    boolean removeCharacterComposition(CharacterId characterId);
 }

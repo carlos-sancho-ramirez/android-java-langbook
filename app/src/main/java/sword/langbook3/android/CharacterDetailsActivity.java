@@ -1,9 +1,13 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -13,12 +17,20 @@ import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
 import sword.langbook3.android.models.CharacterDetailsModel;
 
+import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
+
 public final class CharacterDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
+
+    private static final int REQUEST_CODE_CHARACTER_COMPOSITION = 1;
 
     private CharacterDetailsAdapter _adapter;
 
     private interface ArgKeys {
         String CHARACTER = BundleKeys.CHARACTER;
+    }
+
+    private interface SavedKeys {
+        String DELETE_COMPOSITION_CONFIRMATION_DIALOG_PRESENT = "dccdp";
     }
 
     public static void open(Context context, CharacterId characterId) {
@@ -30,11 +42,14 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
     private CharacterId _characterId;
     private CharacterDetailsModel<CharacterId, AcceptationId> _model;
 
+    private boolean _showingDeleteCompositionDialog;
+
     private void updateModelAndUi() {
-        _model = DbManager.getInstance().getManager().getCharacterCompositionDetails(_characterId);
+        _model = DbManager.getInstance().getManager().getCharacterDetails(_characterId);
 
         if (_model != null) {
             _adapter.setModel(_model);
+            invalidateOptionsMenu();
         }
         else {
             finish();
@@ -52,6 +67,61 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
         listView.setOnItemClickListener(this);
         _characterId = CharacterIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CHARACTER);
         updateModelAndUi();
+
+        if (savedInstanceState != null) {
+            _showingDeleteCompositionDialog = savedInstanceState.getBoolean(SavedKeys.DELETE_COMPOSITION_CONFIRMATION_DIALOG_PRESENT);
+        }
+
+        if (_showingDeleteCompositionDialog) {
+            showDeleteConfirmationDialog();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        if (_model != null) {
+            final int menuRes = (_model.compositionType == UNKNOWN_COMPOSITION_TYPE)?
+                    R.menu.character_details_activity_no_composition :
+                    R.menu.character_details_activity_with_composition;
+            new MenuInflater(this).inflate(menuRes, menu);
+        }
+
+        return true;
+    }
+
+    private void deleteComposition() {
+        if (DbManager.getInstance().getManager().removeCharacterComposition(_characterId)) {
+            updateModelAndUi();
+        }
+    }
+
+    private void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.deleteCharacterCompositionConfirmationText)
+                .setPositiveButton(R.string.menuItemDelete, (d, w) -> {
+                    _showingDeleteCompositionDialog = false;
+                    deleteComposition();
+                })
+                .setOnCancelListener(d -> _showingDeleteCompositionDialog = false)
+                .create().show();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        final int itemId = item.getItemId();
+        if (itemId == R.id.menuItemAddCharacterComposition || itemId == R.id.menuItemEditCharacterComposition) {
+            CharacterCompositionEditorActivity.open(this, REQUEST_CODE_CHARACTER_COMPOSITION, _characterId);
+            return true;
+        }
+        else if (itemId == R.id.menuItemDeleteCharacterComposition) {
+            _showingDeleteCompositionDialog = true;
+            showDeleteConfirmationDialog();
+            return true;
+        }
+        else {
+            return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -62,6 +132,15 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
         }
         else if (item instanceof AcceptationId) {
             AcceptationDetailsActivity.open(this, (AcceptationId) item);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (_showingDeleteCompositionDialog) {
+            outState.putBoolean(SavedKeys.DELETE_COMPOSITION_CONFIRMATION_DIALOG_PRESENT, true);
         }
     }
 }

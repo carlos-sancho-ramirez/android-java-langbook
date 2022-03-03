@@ -316,4 +316,16 @@ final class LangbookDbInserter {
 
         db.insert(query);
     }
+
+    static <CharacterId extends CharacterIdInterface> void insertCharacterComposition(DbInserter db, CharacterId characterId, CharacterId first, CharacterId second, int compositionType) {
+        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getIdColumnIndex(), characterId)
+                .put(table.getFirstCharacterColumnIndex(), first)
+                .put(table.getSecondCharacterColumnIndex(), second)
+                .put(table.getCompositionTypeColumnIndex(), compositionType)
+                .build();
+
+        db.insert(query);
+    }
 }

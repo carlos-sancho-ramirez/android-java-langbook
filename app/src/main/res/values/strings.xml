@@ -66,6 +66,9 @@
     <string name="menuItemNewAgentAsSource">as Source</string>
     <string name="menuItemNewAgentAsDiff">as Diff</string>
     <string name="menuItemNewAgentAsTarget">as Target</string>
+    <string name="menuItemAddCharacterComposition">Add composition</string>
+    <string name="menuItemEditCharacterComposition">Edit composition</string>
+    <string name="menuItemDeleteCharacterComposition">Delete composition</string>
 
     <string name="deleteAcceptationConfirmationText">Are you sure that you want to remove this acceptation?</string>
     <string name="deleteDefinitionConfirmationText">Are you sure that you want to remove this acceptation definition?</string>
@@ -214,4 +217,17 @@
     <string name="characterCompositionAsSecondHeader">Composed characters where this is second</string>
     <string name="characterCompositionAcceptationsHeader">Acceptations where included</string>
     <string name="characterPickerActivityTitle">Select a character</string>
+    <string name="characterCompositionEditorFirstLabel">First</string>
+    <string name="characterCompositionEditorSecondLabel">Second</string>
+    <string name="characterCompositionEditorTypeLabel">Type</string>
+    <string name="characterCompositionEditorSaveButtonText">Save</string>
+    <string name="characterCompositionEditorFirstEmptyError">First cannot be empty</string>
+    <string name="characterCompositionEditorSecondEmptyError">Second cannot be empty</string>
+    <string name="characterCompositionEditorTypeEmptyError">Type cannot be empty</string>
+    <string name="characterCompositionEditorFirstHasBraceError">Invalid character used in First field</string>
+    <string name="characterCompositionEditorSecondHasBraceError">Invalid character used in Second field</string>
+    <string name="characterCompositionEditorFirstMulticharError">Only one character is allowed in First</string>
+    <string name="characterCompositionEditorSecondMulticharError">Only one character is allowed in Second</string>
+    <string name="characterCompositionEditorInvalidTypeError">Invalid type</string>
+    <string name="deleteCharacterCompositionConfirmationText">Are you sure that you want to remove the character composition?</string>
 </resources>

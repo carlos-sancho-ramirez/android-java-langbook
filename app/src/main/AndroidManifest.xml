@@ -28,6 +28,7 @@
             android:name=".CharacterPickerActivity"
             android:label="@string/characterPickerActivityTitle"/>
 
+        <activity android:name=".CharacterCompositionEditorActivity"/>
         <activity android:name=".CharacterDetailsActivity"/>
         <activity android:name=".CorrelationDetailsActivity"/>
         <activity android:name=".QuestionActivity"/>

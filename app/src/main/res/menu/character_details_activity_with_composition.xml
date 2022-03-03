@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menuItemEditCharacterComposition"
+        android:title="@string/menuItemEditCharacterComposition"
+        android:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menuItemDeleteCharacterComposition"
+        android:title="@string/menuItemDeleteCharacterComposition"
+        android:showAsAction="never"/>
+</menu>

@@ -45,6 +45,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibiliti
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertCharacter;
+import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterComposition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
 import static sword.langbook3.android.db.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertRuleSentenceMatch;
@@ -2871,5 +2872,33 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         }
 
         return true;
+    }
+
+    @Override
+    public final boolean updateCharacterComposition(CharacterId characterId, char first, char second, int compositionType) {
+        // TODO: Validate first, second and compositionType, especially to avoid composition loops
+        final CharacterId firstId = obtainCharacter(first);
+        final CharacterId secondId = obtainCharacter(second);
+        if (isCharacterComposition(characterId)) {
+            final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
+            final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                    .where(table.getIdColumnIndex(), characterId)
+                    .put(table.getFirstCharacterColumnIndex(), firstId)
+                    .put(table.getSecondCharacterColumnIndex(), secondId)
+                    .put(table.getCompositionTypeColumnIndex(), compositionType)
+                    .build();
+
+            _db.update(query);
+        }
+        else {
+            insertCharacterComposition(_db, characterId, firstId, secondId, compositionType);
+        }
+
+        return true;
+    }
+
+    @Override
+    public final boolean removeCharacterComposition(CharacterId characterId) {
+        return LangbookDeleter.deleteCharacterComposition(_db, characterId);
     }
 }

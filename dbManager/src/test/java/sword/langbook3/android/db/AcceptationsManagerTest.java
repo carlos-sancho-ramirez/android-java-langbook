@@ -8,6 +8,7 @@ import sword.collections.ImmutableSet;
 import sword.collections.MutableHashMap;
 import sword.collections.TraversableTestUtils;
 import sword.database.MemoryDatabase;
+import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -519,5 +520,24 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         assertSinglePair(alphabet, "persona", manager.getAcceptationTexts(personAcc));
         assertNull(manager.conceptFromAcceptation(guyAcc));
         assertEmpty(manager.getAcceptationTexts(guyAcc));
+    }
+
+    @Test
+    default void testUpdateCharacterComposition() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        assertTrue(manager.updateCharacterComposition(composed, '´', 'a', 2));
+        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        assertEquals('´', model.first.character);
+        assertEquals('a', model.second.character);
+        assertEquals(2, model.compositionType);
     }
 }

@@ -337,4 +337,12 @@ final class LangbookDeleter {
                 .build();
         return db.delete(query);
     }
+
+    static <CharacterId extends CharacterIdInterface> boolean deleteCharacterComposition(Database db, CharacterId characterId) {
+        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getIdColumnIndex(), characterId)
+                .build();
+        return db.delete(query);
+    }
 }

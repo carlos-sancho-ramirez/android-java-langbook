@@ -5,6 +5,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Set;
+import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterDetailsModel;
 import sword.langbook3.android.models.CharacterPickerItem;
 import sword.langbook3.android.models.Conversion;
@@ -39,11 +40,13 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutableMap<AlphabetId, String> readAlphabetsForLanguage(LanguageId language, AlphabetId preferredAlphabet);
     boolean checkAlphabetCanBeRemoved(AlphabetId alphabet);
     CorrelationDetailsModel<AlphabetId, CharacterId, CorrelationId, AcceptationId> getCorrelationDetails(CorrelationId id, AlphabetId preferredAlphabet);
+    CharacterId findCharacter(char ch);
     CorrelationId findCorrelation(Correlation<AlphabetId> correlation);
     boolean isAnyLanguagePresent();
     ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(AcceptationId acceptation);
     ImmutableMap<AlphabetId, AlphabetId> findConversions(Set<AlphabetId> alphabets);
     ImmutableMap<String, AcceptationId> readTextAndDynamicAcceptationsMapFromAcceptation(AcceptationId acceptation);
-    CharacterDetailsModel<CharacterId, AcceptationId> getCharacterCompositionDetails(CharacterId characterId);
+    CharacterDetailsModel<CharacterId, AcceptationId> getCharacterDetails(CharacterId characterId);
     ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items);
+    CharacterCompositionEditorModel<CharacterId> getCharacterCompositionDetails(CharacterId characterId);
 }
