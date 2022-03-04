@@ -312,6 +312,16 @@ public final class LangbookDbSchema {
         }
     }
 
+    public static final class CharacterTokensTable extends DbTable {
+        private CharacterTokensTable() {
+            super("CharacterTokens", new DbUniqueTextColumn("token"));
+        }
+
+        public int getTokenColumnIndex() {
+            return 1;
+        }
+    }
+
     public static final class ConversionsTable extends DbTable {
 
         private ConversionsTable() {
@@ -656,6 +666,7 @@ public final class LangbookDbSchema {
         BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
         BunchSetsTable bunchSets = new BunchSetsTable();
         CharacterCompositionsTable characterCompositions = new CharacterCompositionsTable();
+        CharacterTokensTable characterTokens = new CharacterTokensTable();
         ComplementedConceptsTable complementedConcepts = new ComplementedConceptsTable();
         ConceptCompositionsTable conceptCompositions = new ConceptCompositionsTable();
         ConversionsTable conversions = new ConversionsTable();
@@ -703,6 +714,7 @@ public final class LangbookDbSchema {
 
     private final ImmutableList<DbTable> _tablesV6 = _tablesV5
             .append(Tables.characterCompositions)
+            .append(Tables.characterTokens)
             .append(Tables.unicodeCharacters);
 
     private final ImmutableList<DbIndex> _indexes = new ImmutableList.Builder<DbIndex>()

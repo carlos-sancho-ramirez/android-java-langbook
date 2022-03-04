@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.content.Context;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,10 +10,11 @@ import android.widget.TextView;
 
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.CharacterId;
+import sword.langbook3.android.models.CharacterCompositionPart;
+import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.CharacterDetailsModel;
-import sword.langbook3.android.models.CharacterDetailsModel.ForeignComposition;
 
-import static sword.langbook3.android.models.CharacterDetailsModel.Part.INVALID_CHARACTER;
+import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 public final class CharacterDetailsAdapter extends BaseAdapter {
@@ -114,8 +116,13 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
         return _inflater.inflate(layoutId, parent, false);
     }
 
-    private String representChar(char ch) {
-        return (ch == INVALID_CHARACTER)? "?" : "" + ch;
+    static String representChar(char ch, String token) {
+        return (ch != INVALID_CHARACTER)? "" + ch :
+                (token != null)? "{" + token + '}' : "?";
+    }
+
+    static String representChar(CharacterCompositionRepresentation representation) {
+        return representChar(representation.character, representation.token);
     }
 
     @Override
@@ -127,8 +134,15 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
                 convertView = inflate(R.layout.character_details_activity_header, parent);
             }
 
-            String mainText = representChar(_model.character);
-            convertView.<TextView>findViewById(R.id.charBigScale).setText(mainText);
+            String mainText = representChar(_model.representation);
+
+            final TextView textView = convertView.findViewById(R.id.charBigScale);
+            textView.setText(mainText);
+
+            final int textSizeRes = (_model.representation.character != INVALID_CHARACTER)?
+                    R.dimen.characterDetailsCharacterTextSize :
+                    R.dimen.characterDetailsTokenTextSize;
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getResources().getDimension(textSizeRes));
         }
         else if (viewType == ViewTypes.COMPOSITION) {
             if (convertView == null) {
@@ -136,13 +150,23 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
             }
 
             final TextView firstTextView = convertView.findViewById(R.id.first);
-            firstTextView.setText(representChar(_model.first.character));
+            firstTextView.setText(representChar(_model.first.representation));
+
+            final int firstTextSizeRes = (_model.first.representation.character != INVALID_CHARACTER)?
+                    R.dimen.characterDetailsCompositionCharacterTextSize :
+                    R.dimen.characterDetailsCompositionTokenTextSize;
+            firstTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getResources().getDimension(firstTextSizeRes));
 
             final CharacterId firstId = _model.first.id;
             firstTextView.setOnClickListener(v -> CharacterDetailsActivity.open(context, firstId));
 
             final TextView secondTextView = convertView.findViewById(R.id.second);
-            secondTextView.setText(representChar(_model.second.character));
+            secondTextView.setText(representChar(_model.second.representation));
+
+            final int secondTextSizeRes = (_model.second.representation.character != INVALID_CHARACTER)?
+                    R.dimen.characterDetailsCompositionCharacterTextSize :
+                    R.dimen.characterDetailsCompositionTokenTextSize;
+            secondTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getResources().getDimension(secondTextSizeRes));
 
             final CharacterId secondId = _model.second.id;
             secondTextView.setOnClickListener(v -> CharacterDetailsActivity.open(context, secondId));
@@ -174,11 +198,11 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
                 textView.setTextColor(context.getResources().getColor(textColor));
             }
             else {
-                final ForeignComposition<CharacterId> composition = (position > _asSecondHeaderPosition)?
+                final CharacterCompositionPart<CharacterId> composition = (position > _asSecondHeaderPosition)?
                         _model.asSecond.valueAt(position - _asSecondHeaderPosition - 1) :
                         _model.asFirst.valueAt(position - _asFirstHeaderPosition - 1);
 
-                textView.setText(representChar(composition.character));
+                textView.setText(representChar(composition.representation));
                 textView.setTextColor(context.getResources().getColor(R.color.agentStaticTextColor));
             }
         }

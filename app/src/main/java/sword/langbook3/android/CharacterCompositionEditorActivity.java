@@ -5,12 +5,17 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
+import sword.langbook3.android.models.CharacterCompositionPart;
+import sword.langbook3.android.models.CharacterCompositionRepresentation;
 
+import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 public final class CharacterCompositionEditorActivity extends Activity implements View.OnClickListener {
@@ -32,6 +37,13 @@ public final class CharacterCompositionEditorActivity extends Activity implement
     private EditText _secondField;
     private EditText _compositionTypeField;
 
+    private static void setPartText(CharacterCompositionPart<CharacterId> part, TextView textView) {
+        final String text = (part == null)? null :
+                (part.representation.character != INVALID_CHARACTER)? "" + part.representation.character :
+                (part.representation.token != null)? "{" + part.representation.token + '}' : null;
+        textView.setText(text);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,23 +56,30 @@ public final class CharacterCompositionEditorActivity extends Activity implement
             finish();
         }
         else {
+            final String representation = CharacterDetailsAdapter.representChar(_model.representation);
+            setTitle(getString(R.string.characterCompositionEditorActivityTitle, representation));
+
             _firstField = findViewById(R.id.firstField);
             _secondField = findViewById(R.id.secondField);
             _compositionTypeField = findViewById(R.id.compositionTypeField);
             findViewById(R.id.saveButton).setOnClickListener(this);
 
-            if (_model.first != null) {
-                _firstField.setText("" + _model.first.character);
-            }
-
-            if (_model.second != null) {
-                _secondField.setText("" + _model.second.character);
-            }
+            setPartText(_model.first, _firstField);
+            setPartText(_model.second, _secondField);
 
             if (_model.compositionType != UNKNOWN_COMPOSITION_TYPE) {
                 _compositionTypeField.setText("" + _model.compositionType);
             }
         }
+    }
+
+    private static boolean hasInvalidBraces(String text) {
+        final int textLength = text.length();
+        final boolean braceAtStart = text.startsWith("{");
+        final boolean braceAtEnd = text.endsWith("}");
+        final int lastIndexOfStartingBrace = text.lastIndexOf("{");
+        final int firstIndexOfEndingBrace = text.indexOf("}");
+        return lastIndexOfStartingBrace > 0 || firstIndexOfEndingBrace >= 0 && firstIndexOfEndingBrace < textLength - 1 || braceAtStart ^ braceAtEnd;
     }
 
     @Override
@@ -80,16 +99,16 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         else if (compositionTypeText.isEmpty()) {
             errorMessage = getString(R.string.characterCompositionEditorTypeEmptyError);
         }
-        else if (firstText.contains("{")) {
+        else if (hasInvalidBraces(firstText)) {
             errorMessage = getString(R.string.characterCompositionEditorFirstHasBraceError);
         }
-        else if (secondText.contains("{")) {
+        else if (hasInvalidBraces(secondText)) {
             errorMessage = getString(R.string.characterCompositionEditorSecondHasBraceError);
         }
-        else if (firstText.length() > 1) {
+        else if (firstText.length() > 1 && !firstText.startsWith("{")) {
             errorMessage = getString(R.string.characterCompositionEditorFirstMulticharError);
         }
-        else if (secondText.length() > 1) {
+        else if (secondText.length() > 1 && !secondText.startsWith("{")) {
             errorMessage = getString(R.string.characterCompositionEditorSecondMulticharError);
         }
         else {
@@ -109,7 +128,16 @@ public final class CharacterCompositionEditorActivity extends Activity implement
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
         }
         else {
-            DbManager.getInstance().getManager().updateCharacterComposition(_characterId, firstText.charAt(0), secondText.charAt(0), compositionType);
+            final CharacterCompositionRepresentation firstRepresentation = (firstText.length() > 1)?
+                    new CharacterCompositionRepresentation(INVALID_CHARACTER, firstText.substring(1, firstText.length() - 1)) :
+                    new CharacterCompositionRepresentation(firstText.charAt(0), null);
+
+            final CharacterCompositionRepresentation secondRepresentation = (secondText.length() > 1)?
+                    new CharacterCompositionRepresentation(INVALID_CHARACTER, secondText.substring(1, secondText.length() - 1)) :
+                    new CharacterCompositionRepresentation(secondText.charAt(0), null);
+
+            final LangbookDbManager manager = DbManager.getInstance().getManager();
+            manager.updateCharacterComposition(_characterId, firstRepresentation, secondRepresentation, compositionType);
             finish();
         }
     }

@@ -41,8 +41,9 @@ import sword.langbook3.android.models.AcceptationDetailsModel;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
+import sword.langbook3.android.models.CharacterCompositionPart;
+import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.CharacterDetailsModel;
-import sword.langbook3.android.models.CharacterDetailsModel.ForeignComposition;
 import sword.langbook3.android.models.CharacterPickerItem;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
@@ -71,7 +72,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.Tables.alphabets;
-import static sword.langbook3.android.models.CharacterDetailsModel.Part.INVALID_CHARACTER;
+import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId extends CharacterIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> implements LangbookChecker<ConceptId, LanguageId, AlphabetId, CharacterId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
@@ -415,6 +416,16 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return getColumnMax(table, table.getConceptColumnIndex());
     }
 
+    private int getMaxCharacterIdInUnicodes() {
+        LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
+        return getColumnMax(table, table.getIdColumnIndex());
+    }
+
+    private int getMaxCharacterIdInTokens() {
+        LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
+        return getColumnMax(table, table.getIdColumnIndex());
+    }
+
     int getMaxCorrelationId() {
         final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
         return getColumnMax(table, table.getCorrelationIdColumnIndex());
@@ -460,9 +471,19 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return max;
     }
 
+    int getMaxCharacterId() {
+        int maxInUnicodes = getMaxCharacterIdInUnicodes();
+        int maxInTokens = getMaxCharacterIdInTokens();
+        return Math.max(maxInUnicodes, maxInTokens);
+    }
+
     @Override
     public ConceptId getNextAvailableConceptId() {
         return _conceptIdSetter.getKeyFromInt(getMaxConcept() + 1);
+    }
+
+    CharacterId getNextAvailableCharacterId() {
+        return _characterIdSetter.getKeyFromInt(getMaxCharacterId() + 1);
     }
 
     @Override
@@ -3031,6 +3052,16 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return map.filter(set -> set.contains(language) && set.size() == 1).keySet().toImmutable();
     }
 
+    CharacterId findCharacterToken(String token) {
+        final LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
+        final DbQuery query = new DbQuery.Builder(table)
+                .where(table.getTokenColumnIndex(), token)
+                .select(table.getIdColumnIndex());
+
+        final DbValue dbValue = selectOptionalFirstDbValue(query);
+        return (dbValue != null)? _characterIdSetter.getKeyFromDbValue(dbValue) : null;
+    }
+
     SymbolArrayId findSymbolArray(String str) {
         final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
         final DbQuery query = new DbQuery.Builder(table)
@@ -4064,7 +4095,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     /**
      * Finds the unicode char linked to the given identifier.
      * @param characterId Identifier for the character to look up.
-     * @return The linked unicode character if any, or {@link sword.langbook3.android.models.CharacterDetailsModel.Part#INVALID_CHARACTER} if the character has no linked character.
+     * @return The linked unicode character if any, or {@link sword.langbook3.android.models.CharacterCompositionRepresentation#INVALID_CHARACTER} if the character has no linked character.
      */
     private char getUnicode(CharacterId characterId) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
@@ -4074,6 +4105,16 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
         final DbValue dbValue = selectOptionalFirstDbValue(dbQuery);
         return (dbValue != null)? (char) dbValue.toInt() : INVALID_CHARACTER;
+    }
+
+    private String getToken(CharacterId characterId) {
+        final LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
+        final DbQuery dbQuery = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), characterId)
+                .select(table.getTokenColumnIndex());
+
+        final DbValue dbValue = selectOptionalFirstDbValue(dbQuery);
+        return (dbValue != null)? dbValue.toText() : null;
     }
 
     boolean isCharacterComposition(CharacterId characterId) {
@@ -4110,15 +4151,19 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 isCharacterCompositionPart(characterId, table.getSecondCharacterColumnIndex());
     }
 
-    private CharacterDetailsModel.Part<CharacterId> getCharacterCompositionPart(CharacterId partId) {
+    private CharacterCompositionRepresentation getCharacterCompositionRepresentation(CharacterId partId) {
         final char unicode = getUnicode(partId);
-        final boolean isComposition = isCharacterComposition(partId);
-        return new CharacterDetailsModel.Part<>(partId, unicode, isComposition);
+        final String token = (unicode == INVALID_CHARACTER)? getToken(partId) : null;
+        return new CharacterCompositionRepresentation(unicode, token);
+    }
+
+    private CharacterCompositionPart<CharacterId> getCharacterCompositionPart(CharacterId partId) {
+        return new CharacterCompositionPart<>(partId, getCharacterCompositionRepresentation(partId));
     }
 
     @Override
     public CharacterCompositionEditorModel<CharacterId> getCharacterCompositionDetails(CharacterId characterId) {
-        final char character = getUnicode(characterId);
+        final CharacterCompositionRepresentation representation = getCharacterCompositionRepresentation(characterId);
 
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
         final DbQuery dbQuery = new DbQueryBuilder(table)
@@ -4130,15 +4175,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
         final List<DbValue> row = selectOptionalSingleRow(dbQuery);
         final int compositionType;
-        final CharacterCompositionEditorModel.Part<CharacterId> firstPart;
-        final CharacterCompositionEditorModel.Part<CharacterId> secondPart;
+        final CharacterCompositionPart<CharacterId> firstPart;
+        final CharacterCompositionPart<CharacterId> secondPart;
         if (row != null) {
             final CharacterId first = _characterIdSetter.getKeyFromDbValue(row.get(0));
             final CharacterId second = _characterIdSetter.getKeyFromDbValue(row.get(1));
             compositionType = row.get(2).toInt();
-
-            firstPart = new CharacterCompositionEditorModel.Part<>(first, getUnicode(first));
-            secondPart = new CharacterCompositionEditorModel.Part<>(second, getUnicode(second));
+            firstPart = getCharacterCompositionPart(first);
+            secondPart = getCharacterCompositionPart(second);
         }
         else {
             compositionType = UNKNOWN_COMPOSITION_TYPE;
@@ -4146,12 +4190,12 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             secondPart = null;
         }
 
-        return new CharacterCompositionEditorModel<>(character, firstPart, secondPart, compositionType);
+        return new CharacterCompositionEditorModel<>(representation, firstPart, secondPart, compositionType);
     }
 
     @Override
     public CharacterDetailsModel<CharacterId, AcceptationId> getCharacterDetails(CharacterId characterId) {
-        final char character = getUnicode(characterId);
+        final CharacterCompositionRepresentation representation = getCharacterCompositionRepresentation(characterId);
 
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
         final DbQuery dbQuery = new DbQueryBuilder(table)
@@ -4163,8 +4207,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
 
         final List<DbValue> row = selectOptionalSingleRow(dbQuery);
         final int compositionType;
-        final CharacterDetailsModel.Part<CharacterId> firstPart;
-        final CharacterDetailsModel.Part<CharacterId> secondPart;
+        final CharacterCompositionPart<CharacterId> firstPart;
+        final CharacterCompositionPart<CharacterId> secondPart;
         if (row != null) {
             final CharacterId first = _characterIdSetter.getKeyFromDbValue(row.get(0));
             final CharacterId second = _characterIdSetter.getKeyFromDbValue(row.get(1));
@@ -4180,16 +4224,16 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
 
         final ImmutableSet<CharacterId> whereIsFirst = findCharacterCompositionForPart(characterId, Tables.characterCompositions.getFirstCharacterColumnIndex());
-        final ImmutableList<ForeignComposition<CharacterId>> asFirst = whereIsFirst.map(chId ->
-                new ForeignComposition<>(chId, getUnicode(chId)));
+        final ImmutableList<CharacterCompositionPart<CharacterId>> asFirst = whereIsFirst.map(chId ->
+                new CharacterCompositionPart<>(chId, getCharacterCompositionRepresentation(chId)));
 
         final ImmutableSet<CharacterId> whereIsSecond = findCharacterCompositionForPart(characterId, Tables.characterCompositions.getSecondCharacterColumnIndex());
-        final ImmutableList<ForeignComposition<CharacterId>> asSecond = whereIsSecond.map(chId ->
-                new ForeignComposition<>(chId, getUnicode(chId)));
+        final ImmutableList<CharacterCompositionPart<CharacterId>> asSecond = whereIsSecond.map(chId ->
+                new CharacterCompositionPart<>(chId, getCharacterCompositionRepresentation(chId)));
 
         final ImmutableMap<AcceptationId, CharacterDetailsModel.AcceptationInfo> acceptationsWhereIncluded;
-        if (character != INVALID_CHARACTER) {
-            final ImmutableList<SearchResult<AcceptationId, RuleId>> results = findAcceptationFromText("" + character, DbQuery.RestrictionStringTypes.CONTAINS, new ImmutableIntRange(0, 49));
+        if (representation.character != INVALID_CHARACTER) {
+            final ImmutableList<SearchResult<AcceptationId, RuleId>> results = findAcceptationFromText("" + representation.character, DbQuery.RestrictionStringTypes.CONTAINS, new ImmutableIntRange(0, 49));
             final MutableMap<AcceptationId, CharacterDetailsModel.AcceptationInfo> builder = MutableHashMap.empty();
             for (SearchResult<AcceptationId, RuleId> searchResult : results) {
                 builder.put(searchResult.getId(), new CharacterDetailsModel.AcceptationInfo(searchResult.getStr(), searchResult.isDynamic()));
@@ -4201,7 +4245,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             acceptationsWhereIncluded = ImmutableHashMap.empty();
         }
 
-        return new CharacterDetailsModel<>(character, firstPart, secondPart, compositionType, asFirst, asSecond, acceptationsWhereIncluded);
+        return new CharacterDetailsModel<>(representation, firstPart, secondPart, compositionType, asFirst, asSecond, acceptationsWhereIncluded);
     }
 
     private CharacterPickerItem<CharacterId> getCharacterPickerItem(char character) {

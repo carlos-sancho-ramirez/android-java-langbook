@@ -1,5 +1,6 @@
 package sword.langbook3.android.db;
 
+import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -93,12 +94,12 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
      * invalid composition type or composition types that may generate an infinite composition loop.
      *
      * @param characterId Identifier for the character
-     * @param first Character representation for the first part.
-     * @param second Character representation for the second part.
+     * @param first First part. This can be a string with a single character or a token with braces.
+     * @param second Second part. This can be a string with a single character or a token with braces.
      * @param compositionType Composition type
      * @return Whether the create/update action succeeded.
      */
-    boolean updateCharacterComposition(CharacterId characterId, char first, char second, int compositionType);
+    boolean updateCharacterComposition(CharacterId characterId, CharacterCompositionRepresentation first, CharacterCompositionRepresentation second, int compositionType);
 
     /**
      * Removes the character composition linked to the given identifier.

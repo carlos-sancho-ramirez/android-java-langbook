@@ -48,6 +48,7 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
         _model = DbManager.getInstance().getManager().getCharacterDetails(_characterId);
 
         if (_model != null) {
+            setTitle(CharacterDetailsAdapter.representChar(_model.representation));
             _adapter.setModel(_model);
             invalidateOptionsMenu();
         }

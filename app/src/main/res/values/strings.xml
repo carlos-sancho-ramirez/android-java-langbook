@@ -230,4 +230,5 @@
     <string name="characterCompositionEditorSecondMulticharError">Only one character is allowed in Second</string>
     <string name="characterCompositionEditorInvalidTypeError">Invalid type</string>
     <string name="deleteCharacterCompositionConfirmationText">Are you sure that you want to remove the character composition?</string>
+    <string name="characterCompositionEditorActivityTitle">Composition for %s</string>
 </resources>

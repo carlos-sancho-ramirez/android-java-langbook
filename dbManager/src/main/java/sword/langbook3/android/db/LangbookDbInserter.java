@@ -18,13 +18,13 @@ final class LangbookDbInserter {
     private LangbookDbInserter() {
     }
 
-    static <CharacterId> CharacterId insertCharacter(DbInserter db, IntSetter<CharacterId> characterIntSetter, char unicode) {
+    static <CharacterId extends IdPutInterface> void insertCharacter(DbInserter db, CharacterId id, char unicode) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getIdColumnIndex(), id)
                 .put(table.getUnicodeColumnIndex(), unicode)
                 .build();
-        final Integer intResult = db.insert(query);
-        return (intResult != null)? characterIntSetter.getKeyFromInt(intResult) : null;
+        db.insert(query);
     }
 
     static <SymbolArrayId> SymbolArrayId insertSymbolArray(DbInserter db, IntSetter<SymbolArrayId> symbolArrayIdSetter, String str) {
@@ -315,6 +315,20 @@ final class LangbookDbInserter {
                 .build();
 
         db.insert(query);
+    }
+
+    static <CharacterId extends IdPutInterface> boolean insertCharacterToken(DbInserter db, CharacterId id, String token) {
+        if (token.contains("{") || token.contains("}")) {
+            return false;
+        }
+
+        final LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getTokenColumnIndex(), token)
+                .build();
+        db.insert(query);
+        return true;
     }
 
     static <CharacterId extends CharacterIdInterface> void insertCharacterComposition(DbInserter db, CharacterId characterId, CharacterId first, CharacterId second, int compositionType) {

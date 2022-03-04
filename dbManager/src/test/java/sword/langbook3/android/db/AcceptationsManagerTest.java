@@ -9,6 +9,7 @@ import sword.collections.MutableHashMap;
 import sword.collections.TraversableTestUtils;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
+import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
@@ -534,10 +535,14 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         final CharacterId composed = manager.findCharacter('á');
         assertNotNull(composed);
 
-        assertTrue(manager.updateCharacterComposition(composed, '´', 'a', 2));
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
         final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
-        assertEquals('´', model.first.character);
-        assertEquals('a', model.second.character);
+        assertEquals('´', model.first.representation.character);
+        assertNull(model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
         assertEquals(2, model.compositionType);
     }
 }

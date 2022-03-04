@@ -8,13 +8,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="@dimen/compositionPartsPadding"
-        android:gravity="center_horizontal">
+        android:gravity="center">
 
         <TextView
             android:id="@+id/first"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="@dimen/charSmallScaleTextSize"/>
+            android:layout_height="wrap_content"/>
 
         <Space
             android:layout_width="@dimen/compositionPartsSpacing"
@@ -23,8 +22,7 @@
         <TextView
             android:id="@+id/second"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="@dimen/charSmallScaleTextSize"/>
+            android:layout_height="wrap_content"/>
     </LinearLayout>
 
     <TextView

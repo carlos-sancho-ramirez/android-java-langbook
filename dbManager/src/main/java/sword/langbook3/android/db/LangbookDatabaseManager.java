@@ -32,6 +32,7 @@ import sword.langbook3.android.collections.StringUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
+import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -46,6 +47,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertCharacter;
 import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterComposition;
+import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterToken;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
 import static sword.langbook3.android.db.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertRuleSentenceMatch;
@@ -91,6 +93,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansByDynamicAcc
 import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
+import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 
 public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId extends CharacterIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, CharacterId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
 
@@ -353,17 +356,14 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     }
 
     private CharacterId obtainCharacter(char unicode) {
-        CharacterId id = insertCharacter(_db, _characterIdSetter, unicode);
-        if (id != null) {
-            return id;
+        final CharacterId foundId = findCharacter(unicode);
+        if (foundId != null) {
+            return foundId;
         }
 
-        id = findCharacter(unicode);
-        if (id == null) {
-            throw new AssertionError("Unable to insert, and not present");
-        }
-
-        return id;
+        final CharacterId newId = getNextAvailableCharacterId();
+        insertCharacter(_db, newId, unicode);
+        return newId;
     }
 
     private SymbolArrayId obtainSymbolArray(String str) {
@@ -2874,11 +2874,42 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return true;
     }
 
+    private CharacterId obtainCharacterForToken(String token) {
+        final CharacterId foundId = findCharacterToken(token);
+        if (foundId != null) {
+            return foundId;
+        }
+
+        final CharacterId newId = getNextAvailableCharacterId();
+        return insertCharacterToken(_db, newId, token)? newId : null;
+    }
+
+    private CharacterId extractCharacterId(CharacterCompositionRepresentation representation) {
+        if (representation.character != INVALID_CHARACTER) {
+            return obtainCharacter(representation.character);
+        }
+
+        final String token = representation.token;
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+
+        return obtainCharacterForToken(token);
+    }
+
     @Override
-    public final boolean updateCharacterComposition(CharacterId characterId, char first, char second, int compositionType) {
+    public final boolean updateCharacterComposition(CharacterId characterId, CharacterCompositionRepresentation first, CharacterCompositionRepresentation second, int compositionType) {
         // TODO: Validate first, second and compositionType, especially to avoid composition loops
-        final CharacterId firstId = obtainCharacter(first);
-        final CharacterId secondId = obtainCharacter(second);
+        final CharacterId firstId = extractCharacterId(first);
+        if (firstId == null) {
+            return false;
+        }
+
+        final CharacterId secondId = extractCharacterId(second);
+        if (secondId == null) {
+            return false;
+        }
+
         if (isCharacterComposition(characterId)) {
             final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
             final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
