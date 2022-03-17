@@ -4135,6 +4135,18 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return selectExistAtLeastOneRow(dbQuery);
     }
 
+    CharacterId findCharacterComposition(CharacterId first, CharacterId second, int compositionType) {
+        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
+        final DbQuery dbQuery = new DbQueryBuilder(table)
+                .where(table.getFirstCharacterColumnIndex(), first)
+                .where(table.getSecondCharacterColumnIndex(), second)
+                .where(table.getCompositionTypeColumnIndex(), compositionType)
+                .select(table.getIdColumnIndex());
+
+        final DbValue dbValue = selectOptionalFirstDbValue(dbQuery);
+        return (dbValue == null)? null : _characterIdSetter.getKeyFromDbValue(dbValue);
+    }
+
     private ImmutableSet<CharacterId> findCharacterCompositionForPart(CharacterId characterId, int columnToMatch) {
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
         final DbQuery dbQuery = new DbQueryBuilder(table)
@@ -4149,6 +4161,20 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         // TODO: Avoid making 2 database queries whenever the where clause can be x OR y
         return isCharacterCompositionPart(characterId, table.getFirstCharacterColumnIndex()) ||
                 isCharacterCompositionPart(characterId, table.getSecondCharacterColumnIndex());
+    }
+
+    void fillWithCharacterCompositionParts(CharacterId composed, MutableSet<CharacterId> pool) {
+        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), composed)
+                .select(table.getFirstCharacterColumnIndex(), table.getSecondCharacterColumnIndex());
+
+        final List<DbValue> row = selectOptionalSingleRow(query);
+        if (row != null) {
+            for (DbValue dbValue : row) {
+                pool.add(_characterIdSetter.getKeyFromDbValue(dbValue));
+            }
+        }
     }
 
     private CharacterCompositionRepresentation getCharacterCompositionRepresentation(CharacterId partId) {
@@ -4263,5 +4289,11 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     @Override
     public ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items) {
         return StringUtils.stringToCharList(items).map(this::getCharacterPickerItem);
+    }
+
+    CharacterId findCharacterId(CharacterCompositionRepresentation representation) {
+        return !representation.canBeRepresented()? null :
+            (representation.character != INVALID_CHARACTER)? findCharacter(representation.character) :
+            findCharacterToken(representation.token);
     }
 }

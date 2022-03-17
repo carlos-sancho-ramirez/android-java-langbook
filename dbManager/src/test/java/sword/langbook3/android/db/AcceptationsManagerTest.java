@@ -14,6 +14,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -23,6 +24,8 @@ import static sword.collections.SetTestUtils.assertEqualSet;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
 import static sword.collections.TraversableTestUtils.assertContainsOnly;
+import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
+import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 /**
  * Include all test related to all responsibilities of an AcceptationsManager<LanguageId, AlphabetId>.
@@ -544,5 +547,78 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         assertEquals('a', model.second.representation.character);
         assertNull(model.second.representation.token);
         assertEquals(2, model.compositionType);
+    }
+
+    @Test
+    default void testUpdateCharacterCompositionRejectsDuplicates() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final CharacterId sChar = manager.findCharacter('s');
+        assertNotNull(sChar);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
+        assertFalse(manager.updateCharacterComposition(sChar, firstRepresentation, secondRepresentation, 2));
+
+        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        assertEquals('´', model.first.representation.character);
+        assertNull(model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(2, model.compositionType);
+
+        final CharacterCompositionEditorModel<CharacterId> sCharModel = manager.getCharacterCompositionDetails(sChar);
+        assertEquals('s', sCharModel.representation.character);
+        assertNull(sCharModel.first);
+        assertNull(sCharModel.second);
+        assertEquals(UNKNOWN_COMPOSITION_TYPE, sCharModel.compositionType);
+    }
+
+    @Test
+    default void testUpdateCharacterCompositionRejectsLoops() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
+
+        final CharacterId aChar = manager.findCharacter('a');
+        assertNotNull(aChar);
+
+        final CharacterCompositionRepresentation composedRepresentation = new CharacterCompositionRepresentation('á', null);
+
+        final CharacterCompositionRepresentation fakeRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "fake");
+
+        assertFalse(manager.updateCharacterComposition(aChar, composedRepresentation, fakeRepresentation, 1));
+
+        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        assertEquals('´', model.first.representation.character);
+        assertNull(model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(2, model.compositionType);
+
+        final CharacterCompositionEditorModel<CharacterId> aCharModel = manager.getCharacterCompositionDetails(aChar);
+        assertEquals('a', aCharModel.representation.character);
+        assertNull(aCharModel.first);
+        assertNull(aCharModel.second);
+        assertEquals(UNKNOWN_COMPOSITION_TYPE, aCharModel.compositionType);
     }
 }

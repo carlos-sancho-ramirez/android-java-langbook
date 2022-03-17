@@ -28,4 +28,8 @@ public final class CharacterCompositionRepresentation {
         this.character = character;
         this.token = token;
     }
+
+    public boolean canBeRepresented() {
+        return character != INVALID_CHARACTER || token != null && !token.isEmpty();
+    }
 }

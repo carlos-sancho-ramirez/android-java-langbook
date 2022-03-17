@@ -94,6 +94,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
+import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId extends CharacterIdInterface, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, CharacterId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
 
@@ -2874,38 +2875,73 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         return true;
     }
 
-    private CharacterId obtainCharacterForToken(String token) {
-        final CharacterId foundId = findCharacterToken(token);
-        if (foundId != null) {
-            return foundId;
+    private CharacterId secureCharacterIdInsertion(CharacterCompositionRepresentation representation) {
+        final CharacterId newId = getNextAvailableCharacterId();
+        if (representation.character != INVALID_CHARACTER) {
+            insertCharacter(_db, newId, representation.character);
+            return newId;
         }
 
-        final CharacterId newId = getNextAvailableCharacterId();
-        return insertCharacterToken(_db, newId, token)? newId : null;
+        return insertCharacterToken(_db, newId, representation.token)? newId : null;
     }
 
-    private CharacterId extractCharacterId(CharacterCompositionRepresentation representation) {
-        if (representation.character != INVALID_CHARACTER) {
-            return obtainCharacter(representation.character);
+    private boolean willCreateCharacterCompositionLoop(CharacterId characterId, MutableSet<CharacterId> remaining) {
+        final MutableSet<CharacterId> alreadyChecked = MutableHashSet.empty();
+        final MutableSet<CharacterId> result = MutableHashSet.empty();
+        while (!remaining.isEmpty()) {
+            fillWithCharacterCompositionParts(remaining.pickFirst(), result);
+            if (result.contains(characterId)) {
+                return true;
+            }
+
+            for (CharacterId id : result) {
+                if (!alreadyChecked.contains(id)) {
+                    remaining.add(id);
+                }
+            }
+
+            result.clear();
         }
 
-        final String token = representation.token;
-        if (token == null || token.isEmpty()) {
-            return null;
-        }
-
-        return obtainCharacterForToken(token);
+        return false;
     }
 
     @Override
     public final boolean updateCharacterComposition(CharacterId characterId, CharacterCompositionRepresentation first, CharacterCompositionRepresentation second, int compositionType) {
-        // TODO: Validate first, second and compositionType, especially to avoid composition loops
-        final CharacterId firstId = extractCharacterId(first);
+        if (characterId == null || first == null || !first.canBeRepresented() || second == null || !second.canBeRepresented() || compositionType == UNKNOWN_COMPOSITION_TYPE) {
+            return false;
+        }
+
+        final CharacterId foundFirst = findCharacterId(first);
+        final CharacterId foundSecond = findCharacterId(second);
+        if (foundFirst != null && foundSecond != null) {
+            final CharacterId foundComposition = findCharacterComposition(foundFirst, foundSecond, compositionType);
+            if (foundComposition != null) {
+                return foundComposition.equals(characterId);
+            }
+        }
+
+        if (foundFirst != null || foundSecond != null) {
+            final MutableSet<CharacterId> remaining = MutableHashSet.empty();
+            if (foundFirst != null) {
+                remaining.add(foundFirst);
+            }
+
+            if (foundSecond != null) {
+                remaining.add(foundSecond);
+            }
+
+            if (willCreateCharacterCompositionLoop(characterId, remaining)) {
+                return false;
+            }
+        }
+
+        final CharacterId firstId = (foundFirst != null)? foundFirst : secureCharacterIdInsertion(first);
         if (firstId == null) {
             return false;
         }
 
-        final CharacterId secondId = extractCharacterId(second);
+        final CharacterId secondId = (foundSecond != null)? foundSecond : secureCharacterIdInsertion(second);
         if (secondId == null) {
             return false;
         }
