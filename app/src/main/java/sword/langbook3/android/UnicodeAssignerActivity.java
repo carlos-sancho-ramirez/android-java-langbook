@@ -24,6 +24,10 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
         String CONFIRMATION_DIALOG_PRESENT = "cdp";
     }
 
+    interface ResultKeys {
+        String MERGED_CHARACTER = "mc";
+    }
+
     public static void open(Activity activity, int requestCode, CharacterId characterId) {
         final Intent intent = new Intent(activity, UnicodeAssignerActivity.class);
         CharacterIdBundler.writeAsIntentExtra(intent, ArgKeys.CHARACTER, characterId);
@@ -31,6 +35,7 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
     }
 
     private CharacterId _characterId;
+    private CharacterId _mergingChar;
     private boolean _confirmationDialogPresent;
 
     private EditText _fieldView;
@@ -53,12 +58,22 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
             _fieldView = findViewById(R.id.field);
             _fieldView.addTextChangedListener(this);
             _resultInfoView = findViewById(R.id.resultInfo);
+        }
+    }
 
-            if (savedInstanceState != null) {
-                _confirmationDialogPresent = savedInstanceState.getBoolean(SavedKeys.CONFIRMATION_DIALOG_PRESENT);
-                if (_confirmationDialogPresent) {
-                    showAssignConfirmationDialog();
-                }
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        _confirmationDialogPresent = savedInstanceState.getBoolean(SavedKeys.CONFIRMATION_DIALOG_PRESENT);
+        if (_confirmationDialogPresent) {
+            final String text = _fieldView.getText().toString();
+            final CharacterId matchingChar = DbManager.getInstance().getManager().findCharacter(text.charAt(0));
+            if (matchingChar == null) {
+                showAssignConfirmationDialog();
+            }
+            else {
+                showMergeConfirmationDialog();
             }
         }
     }
@@ -107,6 +122,20 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
         }
     }
 
+    private void merge() {
+        if (DbManager.getInstance().getManager().mergeCharacters(_mergingChar, _characterId)) {
+            Toast.makeText(this, R.string.assignUnicodeFeedback, Toast.LENGTH_SHORT).show();
+
+            final Intent data = new Intent();
+            CharacterIdBundler.writeAsIntentExtra(data, ResultKeys.MERGED_CHARACTER, _mergingChar);
+            setResult(RESULT_OK, data);
+            finish();
+        }
+        else {
+            Toast.makeText(this, R.string.mergeCharactersError, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void showAssignConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setMessage(R.string.assignUnicodeConfirmationText)
@@ -115,11 +144,26 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
                 .create().show();
     }
 
+    private void showMergeConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.mergeUnicodeConfirmationText)
+                .setPositiveButton(R.string.mergeUnicodeButtonText, (dialog, which) -> merge())
+                .setOnCancelListener(dialog -> _confirmationDialogPresent = false)
+                .create().show();
+    }
+
     @Override
     public void onClick(View v) {
-        if (_fieldView.getText().toString().length() == 1) {
+        final String text = _fieldView.getText().toString();
+        if (text.length() == 1) {
+            _mergingChar = DbManager.getInstance().getManager().findCharacter(text.charAt(0));
             _confirmationDialogPresent = true;
-            showAssignConfirmationDialog();
+            if (_mergingChar == null) {
+                showAssignConfirmationDialog();
+            }
+            else {
+                showMergeConfirmationDialog();
+            }
         }
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();

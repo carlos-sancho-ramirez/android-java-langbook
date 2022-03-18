@@ -239,7 +239,11 @@
     <string name="unicodeAssignerInfoText">Unicode %s will be assigned</string>
     <string name="unicodeAssignerErrorText">Only one character can be assigned</string>
     <string name="assignUnicodeButtonText">Assign</string>
+    <string name="mergeUnicodeButtonText">Merge</string>
     <string name="assignUnicodeConfirmationText">This operation cannot be undone.\n\nDo you want to continue?</string>
+    <string name="mergeUnicodeConfirmationText">The written unicode is already in use by another character. They will be merged in a single one.\n\nThis operation cannot be undone.\n\nDo you want to continue?</string>
     <string name="assignUnicodeFeedback">Unicode assigned</string>
+    <string name="mergeCharactersFeedback">Characters merged</string>
     <string name="assignUnicodeError">Unable to assign unicode</string>
+    <string name="mergeCharactersError">Unable to merge characters</string>
 </resources>

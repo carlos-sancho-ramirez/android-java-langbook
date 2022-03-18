@@ -100,6 +100,21 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
     boolean assignUnicode(CharacterId characterId, char unicode);
 
     /**
+     * Replaces all characters matching the oldCharacter by the given characterId.
+     *
+     * This operation may fail if both characters have already an unicode assigned, as only one unicode is possible per character.
+     * In case one of the characters has an unicode assigned, any token assigned to the other will be dropped.
+     * In case both characters have a token assigned, the one assigned to the oldCharacter will be dropped.
+     *
+     * This operation may fail as well in case merging this characters will lead to loops in the character compositions.
+     *
+     * @param characterId character identifier that will persist.
+     * @param oldCharacter character identifier that will disappear from the database after this operation has been performed.
+     * @return whether the action has been performed without problems.
+     */
+    boolean mergeCharacters(CharacterId characterId, CharacterId oldCharacter);
+
+    /**
      * Creates a new character composition or replaces any existing one matching the identifier.
      * This method will return false if due to an error the action cannot be completed.
      * Potential errors that can be found are invalid characters on first or second,

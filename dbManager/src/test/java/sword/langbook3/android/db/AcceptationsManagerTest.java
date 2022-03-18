@@ -675,4 +675,198 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         assertNull(model.second.representation.token);
         assertEquals(2, model.compositionType);
     }
+
+    @Test
+    default void testMergeCharacters() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId songConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, songConcept, "canción"));
+
+        final ConceptId eatConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, eatConcept, "comer"));
+
+        final CharacterId oCharId = manager.findCharacter('o');
+        assertNotNull(oCharId);
+
+        final CharacterId oTildeCharId = manager.findCharacter('ó');
+        assertNotNull(oTildeCharId);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oNoTilde");
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, 2));
+
+        final CharacterId secondCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).second.id;
+        assertTrue(manager.mergeCharacters(oCharId, secondCharacterId));
+
+        final CharacterCompositionEditorModel<CharacterId> nullModel = manager.getCharacterCompositionDetails(secondCharacterId);
+        assertNull(nullModel.first);
+        assertNull(nullModel.second);
+        assertEquals(INVALID_CHARACTER, nullModel.compositionType);
+
+        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(oTildeCharId);
+        assertEquals(INVALID_CHARACTER, model.first.representation.character);
+        assertEquals("tilde", model.first.representation.token);
+        assertEquals(oCharId, model.second.id);
+        assertEquals('o', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(2, model.compositionType);
+    }
+
+    @Test
+    default void testMergeCharactersOpposite() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId songConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, songConcept, "canción"));
+
+        final ConceptId eatConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, eatConcept, "comer"));
+
+        final CharacterId oCharId = manager.findCharacter('o');
+        assertNotNull(oCharId);
+
+        final CharacterId oTildeCharId = manager.findCharacter('ó');
+        assertNotNull(oTildeCharId);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oNoTilde");
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, 2));
+
+        final CharacterId secondCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).second.id;
+        assertTrue(manager.mergeCharacters(secondCharacterId, oCharId));
+
+        final CharacterCompositionEditorModel<CharacterId> nullModel = manager.getCharacterCompositionDetails(oCharId);
+        assertNull(nullModel.first);
+        assertNull(nullModel.second);
+        assertEquals(INVALID_CHARACTER, nullModel.compositionType);
+
+        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(oTildeCharId);
+        assertEquals(INVALID_CHARACTER, model.first.representation.character);
+        assertEquals("tilde", model.first.representation.token);
+        assertEquals(secondCharacterId, model.second.id);
+        assertEquals('o', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(2, model.compositionType);
+    }
+
+    @Test
+    default void testMergeCharactersRejectsIfBothCharactersHasUnicode() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId songConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, songConcept, "canción"));
+
+        final CharacterId cCharId = manager.findCharacter('c');
+        assertNotNull(cCharId);
+
+        final CharacterId aCharId = manager.findCharacter('a');
+        assertNotNull(aCharId);
+
+        assertFalse(manager.mergeCharacters(cCharId, aCharId));
+    }
+
+    @Test
+    default void testMergeCharactersBothWithToken() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId songConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, songConcept, "canción"));
+
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId aTildeCharId = manager.findCharacter('á');
+        assertNotNull(aTildeCharId);
+
+        final CharacterId oTildeCharId = manager.findCharacter('ó');
+        assertNotNull(oTildeCharId);
+
+        final CharacterCompositionRepresentation aFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        final CharacterCompositionRepresentation aSecondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, 2));
+
+        final CharacterCompositionRepresentation oFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oTilde");
+        final CharacterCompositionRepresentation oSecondRepresentation = new CharacterCompositionRepresentation('o', null);
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, oFirstRepresentation, oSecondRepresentation, 2));
+
+        final CharacterId aFirstCharacterId = manager.getCharacterCompositionDetails(aTildeCharId).first.id;
+        final CharacterId oFirstCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).first.id;
+        assertTrue(manager.mergeCharacters(aFirstCharacterId, oFirstCharacterId));
+
+        final CharacterCompositionEditorModel<CharacterId> aModel = manager.getCharacterCompositionDetails(aTildeCharId);
+        assertEquals(aFirstCharacterId, aModel.first.id);
+        assertEquals(INVALID_CHARACTER, aModel.first.representation.character);
+        assertEquals("tilde", aModel.first.representation.token);
+        assertEquals('a', aModel.second.representation.character);
+        assertNull(aModel.second.representation.token);
+        assertEquals(2, aModel.compositionType);
+
+        CharacterCompositionEditorModel<CharacterId> oModel = manager.getCharacterCompositionDetails(oTildeCharId);
+        assertEquals(aFirstCharacterId, oModel.first.id);
+        assertEquals(INVALID_CHARACTER, oModel.first.representation.character);
+        assertEquals("tilde", oModel.first.representation.token);
+        assertEquals('o', oModel.second.representation.character);
+        assertNull(oModel.second.representation.token);
+        assertEquals(2, oModel.compositionType);
+
+        assertNull(manager.getToken(oFirstCharacterId));
+    }
+
+    @Test
+    default void testMergeCharactersBothWithTokenOpposite() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId songConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, songConcept, "canción"));
+
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId aTildeCharId = manager.findCharacter('á');
+        assertNotNull(aTildeCharId);
+
+        final CharacterId oTildeCharId = manager.findCharacter('ó');
+        assertNotNull(oTildeCharId);
+
+        final CharacterCompositionRepresentation aFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        final CharacterCompositionRepresentation aSecondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, 2));
+
+        final CharacterCompositionRepresentation oFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oTilde");
+        final CharacterCompositionRepresentation oSecondRepresentation = new CharacterCompositionRepresentation('o', null);
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, oFirstRepresentation, oSecondRepresentation, 2));
+
+        final CharacterId aFirstCharacterId = manager.getCharacterCompositionDetails(aTildeCharId).first.id;
+        final CharacterId oFirstCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).first.id;
+        assertTrue(manager.mergeCharacters(oFirstCharacterId, aFirstCharacterId));
+
+        final CharacterCompositionEditorModel<CharacterId> aModel = manager.getCharacterCompositionDetails(aTildeCharId);
+        assertEquals(oFirstCharacterId, aModel.first.id);
+        assertEquals(INVALID_CHARACTER, aModel.first.representation.character);
+        assertEquals("oTilde", aModel.first.representation.token);
+        assertEquals('a', aModel.second.representation.character);
+        assertNull(aModel.second.representation.token);
+        assertEquals(2, aModel.compositionType);
+
+        CharacterCompositionEditorModel<CharacterId> oModel = manager.getCharacterCompositionDetails(oTildeCharId);
+        assertEquals(oFirstCharacterId, oModel.first.id);
+        assertEquals(INVALID_CHARACTER, oModel.first.representation.character);
+        assertEquals("oTilde", oModel.first.representation.token);
+        assertEquals('o', oModel.second.representation.character);
+        assertNull(oModel.second.representation.token);
+        assertEquals(2, oModel.compositionType);
+
+        assertNull(manager.getToken(aFirstCharacterId));
+    }
 }

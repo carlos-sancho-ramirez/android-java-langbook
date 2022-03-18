@@ -45,7 +45,6 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertUnicode;
 import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterComposition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterToken;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
@@ -57,6 +56,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertSentence;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;
 import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSymbolArray;
+import static sword.langbook3.android.db.LangbookDbInserter.insertUnicode;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
@@ -73,6 +73,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptations
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSetBunch;
+import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterComposition;
 import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterToken;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
@@ -2978,6 +2979,79 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
         insertUnicode(_db, characterId, unicode);
         deleteCharacterToken(_db, characterId);
+        return true;
+    }
+
+    private void updateUnicode(CharacterId characterId, CharacterId oldCharacter) {
+        final LangbookDbSchema.UnicodeCharactersTable table = LangbookDbSchema.Tables.unicodeCharacters;
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                .where(table.getIdColumnIndex(), oldCharacter)
+                .put(table.getIdColumnIndex(), characterId)
+                .build();
+
+        _db.update(query);
+    }
+
+    @Override
+    public final boolean mergeCharacters(CharacterId characterId, CharacterId oldCharacter) {
+        if (equal(characterId, oldCharacter)) {
+            return true;
+        }
+
+        final char aChar = getUnicode(characterId);
+        final char bChar = getUnicode(oldCharacter);
+
+        if (aChar != INVALID_CHARACTER && bChar != INVALID_CHARACTER) {
+            return false;
+        }
+
+        final CharacterCompositionRegister<CharacterId> aComposition = getCharacterComposition(characterId);
+        final CharacterCompositionRegister<CharacterId> bComposition = getCharacterComposition(oldCharacter);
+        if (aComposition != null && bComposition != null && !aComposition.equals(bComposition)) {
+            return false;
+        }
+
+        if (aChar != INVALID_CHARACTER) {
+            deleteCharacterToken(_db, oldCharacter);
+        }
+        else if (bChar != INVALID_CHARACTER) {
+            deleteCharacterToken(_db, characterId);
+            updateUnicode(characterId, oldCharacter);
+        }
+        else {
+            deleteCharacterToken(_db, oldCharacter);
+        }
+
+        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
+        if (bComposition != null) {
+            if (aComposition != null) {
+                deleteCharacterComposition(_db, oldCharacter);
+            }
+            else {
+                final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                        .where(table.getIdColumnIndex(), oldCharacter)
+                        .put(table.getIdColumnIndex(), characterId)
+                        .build();
+
+                _db.update(query);
+            }
+        }
+
+        // TODO: Check that when updating first and second we are not ending up with duplicated character compositions in the table
+        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                .where(table.getFirstCharacterColumnIndex(), oldCharacter)
+                .put(table.getFirstCharacterColumnIndex(), characterId)
+                .build();
+
+        _db.update(query);
+
+        query = new DbUpdateQueryBuilder(table)
+                .where(table.getSecondCharacterColumnIndex(), oldCharacter)
+                .put(table.getSecondCharacterColumnIndex(), characterId)
+                .build();
+
+        _db.update(query);
+
         return true;
     }
 }

@@ -32,6 +32,7 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
     }
 
     private interface SavedKeys {
+        String CHARACTER = ArgKeys.CHARACTER;
         String DELETE_COMPOSITION_CONFIRMATION_DIALOG_PRESENT = "dccdp";
     }
 
@@ -68,7 +69,14 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(_adapter);
         listView.setOnItemClickListener(this);
-        _characterId = CharacterIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CHARACTER);
+
+        if (savedInstanceState != null) {
+            _characterId = CharacterIdBundler.read(savedInstanceState, SavedKeys.CHARACTER);
+        }
+
+        if (_characterId == null) {
+            _characterId = CharacterIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CHARACTER);
+        }
         updateModelAndUi();
 
         if (savedInstanceState != null) {
@@ -153,6 +161,20 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
 
         if (_showingDeleteCompositionDialog) {
             outState.putBoolean(SavedKeys.DELETE_COMPOSITION_CONFIRMATION_DIALOG_PRESENT, true);
+        }
+
+        final CharacterId characterOnIntent = CharacterIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CHARACTER);
+        if (!characterOnIntent.equals(_characterId)) {
+            CharacterIdBundler.write(outState, SavedKeys.CHARACTER, _characterId);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_ASSIGN_UNICODE && resultCode == RESULT_OK && data != null) {
+            _characterId = CharacterIdBundler.readAsIntentExtra(data, UnicodeAssignerActivity.ResultKeys.MERGED_CHARACTER);
+            updateModelAndUi();
         }
     }
 }

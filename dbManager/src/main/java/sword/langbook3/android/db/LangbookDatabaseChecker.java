@@ -4097,7 +4097,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
      * @param characterId Identifier for the character to look up.
      * @return The linked unicode character if any, or {@link sword.langbook3.android.models.CharacterCompositionRepresentation#INVALID_CHARACTER} if the character has no linked character.
      */
-    private char getUnicode(CharacterId characterId) {
+    char getUnicode(CharacterId characterId) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
         final DbQuery dbQuery = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), characterId)
@@ -4175,6 +4175,63 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             for (DbValue dbValue : row) {
                 pool.add(_characterIdSetter.getKeyFromDbValue(dbValue));
             }
+        }
+    }
+
+    static final class CharacterCompositionRegister<CharacterId> {
+        public final CharacterId first;
+        public final CharacterId second;
+        public final int compositionType;
+
+        CharacterCompositionRegister(CharacterId first, CharacterId second, int compositionType) {
+            if (first == null || second == null || compositionType == UNKNOWN_COMPOSITION_TYPE) {
+                throw new IllegalArgumentException();
+            }
+
+            this.first = first;
+            this.second = second;
+            this.compositionType = compositionType;
+        }
+
+        @Override
+        public int hashCode() {
+            return first.hashCode() * 37 + second.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof CharacterCompositionRegister)) {
+                return false;
+            }
+
+            final CharacterCompositionRegister that = (CharacterCompositionRegister) obj;
+            return first.equals(that.first) && second.equals(that.second) && compositionType == that.compositionType;
+        }
+    }
+
+    CharacterCompositionRegister<CharacterId> getCharacterComposition(CharacterId characterId) {
+        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
+        final DbQuery dbQuery = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), characterId)
+                .select(
+                        table.getFirstCharacterColumnIndex(),
+                        table.getSecondCharacterColumnIndex(),
+                        table.getCompositionTypeColumnIndex());
+
+        try (DbResult result = _db.select(dbQuery)) {
+            if (result.hasNext()) {
+                final List<DbValue> row = selectOptionalSingleRow(dbQuery);
+                final CharacterId first = _characterIdSetter.getKeyFromDbValue(row.get(0));
+                final CharacterId second = _characterIdSetter.getKeyFromDbValue(row.get(1));
+                final int compositionType = row.get(2).toInt();
+                return new CharacterCompositionRegister<>(first, second, compositionType);
+            }
+
+            return null;
         }
     }
 
