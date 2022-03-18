@@ -45,7 +45,7 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertCharacter;
+import static sword.langbook3.android.db.LangbookDbInserter.insertUnicode;
 import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterComposition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterToken;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
@@ -73,6 +73,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptations
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSetBunch;
+import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterToken;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
 import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelation;
@@ -363,7 +364,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         }
 
         final CharacterId newId = getNextAvailableCharacterId();
-        insertCharacter(_db, newId, unicode);
+        insertUnicode(_db, newId, unicode);
         return newId;
     }
 
@@ -2878,7 +2879,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     private CharacterId secureCharacterIdInsertion(CharacterCompositionRepresentation representation) {
         final CharacterId newId = getNextAvailableCharacterId();
         if (representation.character != INVALID_CHARACTER) {
-            insertCharacter(_db, newId, representation.character);
+            insertUnicode(_db, newId, representation.character);
             return newId;
         }
 
@@ -2967,5 +2968,16 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     @Override
     public final boolean removeCharacterComposition(CharacterId characterId) {
         return LangbookDeleter.deleteCharacterComposition(_db, characterId);
+    }
+
+    @Override
+    public final boolean assignUnicode(CharacterId characterId, char unicode) {
+        if (findCharacter(unicode) != null) {
+            return false;
+        }
+
+        insertUnicode(_db, characterId, unicode);
+        deleteCharacterToken(_db, characterId);
+        return true;
     }
 }

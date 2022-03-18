@@ -345,4 +345,12 @@ final class LangbookDeleter {
                 .build();
         return db.delete(query);
     }
+
+    static <CharacterId extends CharacterIdInterface> boolean deleteCharacterToken(Database db, CharacterId characterId) {
+        final LangbookDbSchema.CharacterTokensTable table = LangbookDbSchema.Tables.characterTokens;
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getIdColumnIndex(), characterId)
+                .build();
+        return db.delete(query);
+    }
 }

@@ -4107,7 +4107,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return (dbValue != null)? (char) dbValue.toInt() : INVALID_CHARACTER;
     }
 
-    private String getToken(CharacterId characterId) {
+    @Override
+    public final String getToken(CharacterId characterId) {
         final LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
         final DbQuery dbQuery = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), characterId)

@@ -621,4 +621,58 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         assertNull(aCharModel.second);
         assertEquals(UNKNOWN_COMPOSITION_TYPE, aCharModel.compositionType);
     }
+
+    @Test
+    default void testAssignUnicode() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
+
+        final CharacterId firstCharacterId = manager.getCharacterCompositionDetails(composed).first.id;
+        assertTrue(manager.assignUnicode(firstCharacterId, '´'));
+
+        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        assertEquals('´', model.first.representation.character);
+        assertNull(model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(2, model.compositionType);
+    }
+
+    @Test
+    default void testAssignUnicodeRejectsDuplicatedUnicode() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
+
+        final CharacterId firstCharacterId = manager.getCharacterCompositionDetails(composed).first.id;
+        assertFalse(manager.assignUnicode(firstCharacterId, 'm'));
+
+        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        assertEquals(INVALID_CHARACTER, model.first.representation.character);
+        assertEquals("tilde", model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(2, model.compositionType);
+    }
 }

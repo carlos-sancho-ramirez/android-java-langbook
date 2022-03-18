@@ -66,6 +66,7 @@
     <string name="menuItemNewAgentAsSource">as Source</string>
     <string name="menuItemNewAgentAsDiff">as Diff</string>
     <string name="menuItemNewAgentAsTarget">as Target</string>
+    <string name="menuItemAssignUnicode">Assign unicode</string>
     <string name="menuItemAddCharacterComposition">Add composition</string>
     <string name="menuItemEditCharacterComposition">Edit composition</string>
     <string name="menuItemDeleteCharacterComposition">Delete composition</string>
@@ -231,4 +232,14 @@
     <string name="characterCompositionEditorInvalidTypeError">Invalid type</string>
     <string name="deleteCharacterCompositionConfirmationText">Are you sure that you want to remove the character composition?</string>
     <string name="characterCompositionEditorActivityTitle">Composition for %s</string>
+
+    <!-- Unicode assigner -->
+    <string name="unicodeAssignerTitle">Assign unicode</string>
+    <string name="unicodeAssignerTokenInfo">The current assigned token is {%s}.\n\nIt will be replaced by the unicode inserted below</string>
+    <string name="unicodeAssignerInfoText">Unicode %s will be assigned</string>
+    <string name="unicodeAssignerErrorText">Only one character can be assigned</string>
+    <string name="assignUnicodeButtonText">Assign</string>
+    <string name="assignUnicodeConfirmationText">This operation cannot be undone.\n\nDo you want to continue?</string>
+    <string name="assignUnicodeFeedback">Unicode assigned</string>
+    <string name="assignUnicodeError">Unable to assign unicode</string>
 </resources>

@@ -18,7 +18,7 @@ final class LangbookDbInserter {
     private LangbookDbInserter() {
     }
 
-    static <CharacterId extends IdPutInterface> void insertCharacter(DbInserter db, CharacterId id, char unicode) {
+    static <CharacterId extends IdPutInterface> void insertUnicode(DbInserter db, CharacterId id, char unicode) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getIdColumnIndex(), id)

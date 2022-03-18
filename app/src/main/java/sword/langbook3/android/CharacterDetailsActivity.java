@@ -17,11 +17,13 @@ import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
 import sword.langbook3.android.models.CharacterDetailsModel;
 
+import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 public final class CharacterDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
-    private static final int REQUEST_CODE_CHARACTER_COMPOSITION = 1;
+    private static final int REQUEST_CODE_ASSIGN_UNICODE = 1;
+    private static final int REQUEST_CODE_CHARACTER_COMPOSITION = 2;
 
     private CharacterDetailsAdapter _adapter;
 
@@ -82,10 +84,15 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         if (_model != null) {
+            final MenuInflater inflater = new MenuInflater(this);
+            if (_model.representation.character == INVALID_CHARACTER) {
+                inflater.inflate(R.menu.character_details_activity_no_unicode_assigned, menu);
+            }
+
             final int menuRes = (_model.compositionType == UNKNOWN_COMPOSITION_TYPE)?
                     R.menu.character_details_activity_no_composition :
                     R.menu.character_details_activity_with_composition;
-            new MenuInflater(this).inflate(menuRes, menu);
+            inflater.inflate(menuRes, menu);
         }
 
         return true;
@@ -111,7 +118,11 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         final int itemId = item.getItemId();
-        if (itemId == R.id.menuItemAddCharacterComposition || itemId == R.id.menuItemEditCharacterComposition) {
+        if (itemId == R.id.menuItemAssignUnicode) {
+            UnicodeAssignerActivity.open(this, REQUEST_CODE_ASSIGN_UNICODE, _characterId);
+            return true;
+        }
+        else if (itemId == R.id.menuItemAddCharacterComposition || itemId == R.id.menuItemEditCharacterComposition) {
             CharacterCompositionEditorActivity.open(this, REQUEST_CODE_CHARACTER_COMPOSITION, _characterId);
             return true;
         }

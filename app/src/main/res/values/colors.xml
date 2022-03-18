@@ -6,6 +6,7 @@
 
     <color name="agentStaticTextColor">#000000</color>
     <color name="agentDynamicTextColor">#0000CC</color>
+    <color name="errorTextColor">#CC0000</color>
 
     <color name="listViewEntrySelected">#669999FF</color>
     <color name="listViewEntryPressed">#FF9999FF</color>

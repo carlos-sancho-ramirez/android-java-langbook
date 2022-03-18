@@ -41,6 +41,7 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     boolean checkAlphabetCanBeRemoved(AlphabetId alphabet);
     CorrelationDetailsModel<AlphabetId, CharacterId, CorrelationId, AcceptationId> getCorrelationDetails(CorrelationId id, AlphabetId preferredAlphabet);
     CharacterId findCharacter(char ch);
+    String getToken(CharacterId characterId);
     CorrelationId findCorrelation(Correlation<AlphabetId> correlation);
     boolean isAnyLanguagePresent();
     ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(AcceptationId acceptation);

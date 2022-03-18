@@ -88,6 +88,18 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
     boolean replaceConversion(Conversion<AlphabetId> conversion);
 
     /**
+     * Assigns the given unicode to the character id.
+     *
+     * This operation may fail if the given unicode is already assigned to another character.
+     * This operation will remove any token assigned to the character as well.
+     *
+     * @param characterId character identifier
+     * @param unicode unicode to be assigned
+     * @return whether the value has been performed without problems.
+     */
+    boolean assignUnicode(CharacterId characterId, char unicode);
+
+    /**
      * Creates a new character composition or replaces any existing one matching the identifier.
      * This method will return false if due to an error the action cannot be completed.
      * Potential errors that can be found are invalid characters on first or second,
