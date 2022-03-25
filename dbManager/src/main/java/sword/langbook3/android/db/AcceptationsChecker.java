@@ -50,4 +50,5 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     CharacterDetailsModel<CharacterId, AcceptationId> getCharacterDetails(CharacterId characterId);
     ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items);
     CharacterCompositionEditorModel<CharacterId> getCharacterCompositionDetails(CharacterId characterId);
+    ImmutableList<String> suggestCharacterTokens(String filterText);
 }

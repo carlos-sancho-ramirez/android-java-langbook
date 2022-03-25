@@ -14,14 +14,15 @@
             android:layout_height="wrap_content"
             android:text="@string/characterCompositionEditorFirstLabel"/>
 
-        <EditText
+        <AutoCompleteTextView
             android:id="@+id/firstField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:labelFor="@id/firstLabel"
             android:maxLines="1"
             android:singleLine="true"
-            android:inputType="text"/>
+            android:inputType="text"
+            android:completionThreshold="1"/>
 
         <TextView
             android:id="@+id/secondLabel"
@@ -29,14 +30,15 @@
             android:layout_height="wrap_content"
             android:text="@string/characterCompositionEditorSecondLabel"/>
 
-        <EditText
+        <AutoCompleteTextView
             android:id="@+id/secondField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:labelFor="@id/secondLabel"
             android:maxLines="1"
             android:singleLine="true"
-            android:inputType="text"/>
+            android:inputType="text"
+            android:completionThreshold="1"/>
 
         <TextView
             android:id="@+id/compositionTypeLabel"

@@ -1,5 +1,6 @@
 package sword.langbook3.android.db;
 
+import sword.collections.ImmutableIntRange;
 import sword.database.DbQuery;
 import sword.database.DbTable;
 import sword.database.DbView;
@@ -60,6 +61,11 @@ final class DbQueryBuilder {
 
     public DbQueryBuilder orderBy(int... columnIndexes) {
         _builder.orderBy(columnIndexes);
+        return this;
+    }
+
+    public DbQueryBuilder range(ImmutableIntRange range) {
+        _builder.range(range);
         return this;
     }
 

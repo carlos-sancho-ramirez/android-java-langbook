@@ -4354,4 +4354,15 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             (representation.character != INVALID_CHARACTER)? findCharacter(representation.character) :
             findCharacterToken(representation.token);
     }
+
+    @Override
+    public ImmutableList<String> suggestCharacterTokens(String filterText) {
+        final LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getTokenColumnIndex(), new DbQuery.Restriction(
+                        new DbStringValue(filterText), DbQuery.RestrictionStringTypes.STARTS_WITH))
+                .range(new ImmutableIntRange(0, 19))
+                .select(table.getTokenColumnIndex());
+        return _db.select(query).map(row -> row.get(0).toText()).toList().toImmutable();
+    }
 }

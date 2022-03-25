@@ -41,4 +41,5 @@
     <dimen name="characterPickerItemPadding">8dp</dimen>
     <dimen name="characterPickerItemTextSize">24sp</dimen>
     <dimen name="unicodeAssignerMainPadding">12dp</dimen>
+    <dimen name="characterCompositionTokenSuggestionEntryPadding">8dp</dimen>
 </resources>
