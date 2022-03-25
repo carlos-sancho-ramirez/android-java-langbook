@@ -32,6 +32,7 @@ import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.CharacterCompositionTypeIdManager;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
@@ -124,6 +125,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             String definitionText = (complementsText != null)? baseText + " (" + complementsText + ")" : baseText;
             result.add(new AcceptationNavigableItem(_model.baseConceptAcceptationId, definitionText, false));
             _hasDefinition = true;
+        }
+
+        if (_model.characterCompositionDefinitionRegister != null) {
+            result.add(new HeaderItem(getString(R.string.accDetailsSectionCharacterCompositionDefinition)));
+            result.add(new AcceptationDetailsAdapter.CharacterCompositionDefinitionItem(_model.characterCompositionDefinitionRegister));
         }
 
         final String agentTextPrefix = "Agent #";
@@ -381,6 +387,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 _state.setDeleteAcceptationFromBunch(new DisplayableItem<>(it.getId(), it.getText().toString()));
                 showDeleteAcceptationFromBunchConfirmationDialog();
             }
+            return true;
+        }
+        else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.CHARACTER_COMPOSITION_DEFINITION) {
+            // TODO: Display edition confirmation dialog if the composition definition is in use, as it can break things
+            CharacterCompositionDefinitionEditorActivity.open(this, CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(_model.concept));
             return true;
         }
 

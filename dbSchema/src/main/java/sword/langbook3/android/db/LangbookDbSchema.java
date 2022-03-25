@@ -60,6 +60,12 @@ public final class LangbookDbSchema {
      */
     public static final int EMPTY_CORRELATION_ARRAY_ID = 0;
 
+    /**
+     * Amount of non-divisible units of length for both width and height of a character.
+     * All numbers in the {@link CharacterCompositionDefinitionsTable} should be between 0 and this number.
+     */
+    public static final int CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT = 1024;
+
     public static final class AcceptationsTable extends DbTable {
 
         private AcceptationsTable() {
@@ -307,8 +313,96 @@ public final class LangbookDbSchema {
             return 2;
         }
 
+        /**
+         * This must match one of the identifiers in the {@link CharacterCompositionDefinitionsTable}
+         */
         public int getCompositionTypeColumnIndex() {
             return 3;
+        }
+    }
+
+    /**
+     * Defines which area the 2 parts of a character compositions should take in order to compound the new character.
+     */
+    public static final class CharacterCompositionDefinitionsTable extends DbTable {
+        private CharacterCompositionDefinitionsTable() {
+            super("CharacterCompositionDefinitions",
+                    new DbIntColumn("firstX"), new DbIntColumn("firstY"),
+                    new DbIntColumn("firstWidth"), new DbIntColumn("firstHeight"),
+                    new DbIntColumn("secondX"), new DbIntColumn("secondY"),
+                    new DbIntColumn("secondWidth"), new DbIntColumn("secondHeight"));
+        }
+
+        /**
+         * Column where the drawable area for the first part should start.
+         * This value must be between 0 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT} minus 1.
+         */
+        public int getFirstXColumnIndex() {
+            return 1;
+        }
+
+        /**
+         * Row where the drawable area for the first part should start.
+         * This value must be between 0 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT} minus 1.
+         */
+        public int getFirstYColumnIndex() {
+            return 2;
+        }
+
+        /**
+         * Width for the drawable area of the first part.
+         * This value must be between 1 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         * The sum of this value and the value at {@link #getFirstXColumnIndex()}
+         * must not exceed the value at {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         */
+        public int getFirstWidthColumnIndex() {
+            return 3;
+        }
+
+        /**
+         * Height for the drawable area of the first part.
+         * This value must be between 1 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         * The sum of this value and the value at {@link #getFirstYColumnIndex()}
+         * must not exceed the value at {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         */
+        public int getFirstHeightColumnIndex() {
+            return 4;
+        }
+
+        /**
+         * Column where the drawable area for the second part should start.
+         * This value must be between 0 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT} minus 1.
+         */
+        public int getSecondXColumnIndex() {
+            return 5;
+        }
+
+        /**
+         * Row where the drawable area for the second part should start.
+         * This value must be between 0 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT} minus 1.
+         */
+        public int getSecondYColumnIndex() {
+            return 6;
+        }
+
+        /**
+         * Width for the drawable area of the second part.
+         * This value must be between 1 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         * The sum of this value and the value at {@link #getSecondXColumnIndex()}
+         * must not exceed the value at {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         */
+        public int getSecondWidthColumnIndex() {
+            return 7;
+        }
+
+        /**
+         * Height for the drawable area of the second part.
+         * This value must be between 1 and {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         * The sum of this value and the value at {@link #getSecondYColumnIndex()}
+         * must not exceed the value at {@link #CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT}.
+         */
+        public int getSecondHeightColumnIndex() {
+            return 8;
         }
     }
 
@@ -666,6 +760,7 @@ public final class LangbookDbSchema {
         BunchAcceptationsTable bunchAcceptations = new BunchAcceptationsTable();
         BunchSetsTable bunchSets = new BunchSetsTable();
         CharacterCompositionsTable characterCompositions = new CharacterCompositionsTable();
+        CharacterCompositionDefinitionsTable characterCompositionDefinitions = new CharacterCompositionDefinitionsTable();
         CharacterTokensTable characterTokens = new CharacterTokensTable();
         ComplementedConceptsTable complementedConcepts = new ComplementedConceptsTable();
         ConceptCompositionsTable conceptCompositions = new ConceptCompositionsTable();
@@ -713,6 +808,7 @@ public final class LangbookDbSchema {
             .build();
 
     private final ImmutableList<DbTable> _tablesV6 = _tablesV5
+            .append(Tables.characterCompositionDefinitions)
             .append(Tables.characterCompositions)
             .append(Tables.characterTokens)
             .append(Tables.unicodeCharacters);

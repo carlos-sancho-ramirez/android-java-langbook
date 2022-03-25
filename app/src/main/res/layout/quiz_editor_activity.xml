@@ -27,7 +27,7 @@
                 android:id="@+id/addQuestionButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/addFieldButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout
@@ -53,7 +53,7 @@
                 android:id="@+id/addAnswerButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/addFieldButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout

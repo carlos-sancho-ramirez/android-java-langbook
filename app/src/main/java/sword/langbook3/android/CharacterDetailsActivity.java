@@ -13,12 +13,13 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
 import sword.langbook3.android.models.CharacterDetailsModel;
 
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
-import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 public final class CharacterDetailsActivity extends Activity implements AdapterView.OnItemClickListener {
 
@@ -42,13 +43,14 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
         context.startActivity(intent);
     }
 
+    private AlphabetId _preferredAlphabet;
     private CharacterId _characterId;
-    private CharacterDetailsModel<CharacterId, AcceptationId> _model;
+    private CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> _model;
 
     private boolean _showingDeleteCompositionDialog;
 
     private void updateModelAndUi() {
-        _model = DbManager.getInstance().getManager().getCharacterDetails(_characterId);
+        _model = DbManager.getInstance().getManager().getCharacterDetails(_characterId, _preferredAlphabet);
 
         if (_model != null) {
             setTitle(CharacterDetailsAdapter.representChar(_model.representation));
@@ -65,6 +67,7 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
         super.onCreate(savedInstanceState);
         setContentView(R.layout.character_details_activity);
 
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _adapter = new CharacterDetailsAdapter();
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(_adapter);
@@ -97,7 +100,7 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
                 inflater.inflate(R.menu.character_details_activity_no_unicode_assigned, menu);
             }
 
-            final int menuRes = (_model.compositionType == UNKNOWN_COMPOSITION_TYPE)?
+            final int menuRes = (_model.compositionType == null)?
                     R.menu.character_details_activity_no_composition :
                     R.menu.character_details_activity_with_composition;
             inflater.inflate(menuRes, menu);

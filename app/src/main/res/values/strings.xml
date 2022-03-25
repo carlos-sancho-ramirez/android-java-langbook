@@ -22,12 +22,12 @@
 
     <!-- Search activity -->
     <string name="searchFieldHint">Search Here</string>
-    <string name="addWordButton">Add</string>
 
     <!-- Acceptation details activity sections -->
     <string name="accDetailsSectionSummary">Displaying details for acceptation %s</string>
     <string name="accDetailsSectionLanguage">Language</string>
     <string name="accDetailsSectionDefinition">Definition</string>
+    <string name="accDetailsSectionCharacterCompositionDefinition">Character composition definition</string>
     <string name="accDetailsSectionOrigin">Coming from</string>
     <string name="accDetailsSectionAppliedRule">Applied rule</string>
     <string name="accDetailsSectionAppliedAgent">Applied agent</string>
@@ -118,7 +118,6 @@
 
     <string name="quizQuestionsHeader">Question fields</string>
     <string name="quizAnswersHeader">Answer fields</string>
-    <string name="addFieldButton">Add</string>
     <string name="removeFieldButton">Remove</string>
     <string name="startQuizButton">Start quiz</string>
     <string name="noValidQuestions">No valid questions can be presented for the given quiz definition</string>
@@ -165,7 +164,6 @@
     <string name="conversionEditorTargetLabel">To</string>
     <string name="noChangeRequired">Nothing to change</string>
     <string name="checkConversionButtonText">Check</string>
-    <string name="addAlphabetButtonText">Add</string>
 
     <!-- Language adder -->
     <string name="languageCodeLabel">Language code</string>
@@ -183,7 +181,6 @@
     <string name="addLanguageButton">Add language</string>
     <string name="definitionEditorBaseConceptTitle">Base concept</string>
     <string name="definitionEditorChangeButton">Change</string>
-    <string name="addComplementButton">Add</string>
     <string name="definitionEditorComponentsPanelTitle">Complements</string>
     <string name="definitionEditorSaveButton">Save</string>
     <string name="baseConceptMissing">Missing base concept</string>
@@ -207,7 +204,6 @@
     <string name="agentEndAdderHeader">End adder</string>
     <string name="agentRuleHeader">Applying rule</string>
     <string name="agentEditorChangeButton">Change</string>
-    <string name="agentEditorAddButton">Add</string>
     <string name="agentEditorSaveButton">Save</string>
     <string name="agentEditorRuleDefaultText">Select a rule</string>
     <string name="characterCompositionsParserErrorDialogTitle">Error on parsing character compositions file</string>
@@ -246,4 +242,6 @@
     <string name="mergeCharactersFeedback">Characters merged</string>
     <string name="assignUnicodeError">Unable to assign unicode</string>
     <string name="mergeCharactersError">Unable to merge characters</string>
+    <string name="addButtonText">Add</string>
+    <string name="createCharacterCompositionDefinitionError">Unable to create character composition definition for the selected acceptation</string>
 </resources>

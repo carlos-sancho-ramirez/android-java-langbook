@@ -8,24 +8,33 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
-import android.widget.EditText;
 import android.widget.Filter;
 import android.widget.Filterable;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import sword.collections.ImmutableList;
+import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AcceptationIdBundler;
+import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CharacterCompositionTypeId;
+import sword.langbook3.android.db.CharacterCompositionTypeIdBundler;
+import sword.langbook3.android.db.CharacterCompositionTypeIdManager;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
+import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterCompositionPart;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
+import sword.langbook3.android.models.IdentifiableResult;
 
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
-import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 public final class CharacterCompositionEditorActivity extends Activity implements View.OnClickListener {
+
+    private static final int REQUEST_CODE_ADD_COMPOSITION_TYPE = 1;
 
     static final char TOKEN_START_CHARACTER = '{';
     static final char TOKEN_END_CHARACTER = '}';
@@ -36,6 +45,10 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         String CHARACTER = BundleKeys.CHARACTER;
     }
 
+    private interface SavedKeys {
+        String SELECTED_TYPE_ID = "sti";
+    }
+
     public static void open(Activity activity, int requestCode, CharacterId characterId) {
         final Intent intent = new Intent(activity, CharacterCompositionEditorActivity.class);
         CharacterIdBundler.writeAsIntentExtra(intent, ArgKeys.CHARACTER, characterId);
@@ -43,11 +56,14 @@ public final class CharacterCompositionEditorActivity extends Activity implement
     }
 
     private CharacterId _characterId;
-    private CharacterCompositionEditorModel<CharacterId> _model;
+    private CharacterCompositionTypeId _selectedTypeId;
+
+    private AlphabetId _preferredAlphabet;
+    private CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> _model;
 
     private AutoCompleteTextView _firstField;
     private AutoCompleteTextView _secondField;
-    private EditText _compositionTypeField;
+    private Spinner _compositionTypeSpinner;
 
     private static void setPartText(CharacterCompositionPart<CharacterId> part, TextView textView) {
         final String text = (part == null)? null :
@@ -56,12 +72,26 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         textView.setText(text);
     }
 
+    private void updateSpinner() {
+        final ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> compositionTypes = DbManager.getInstance().getManager().getCharacterCompositionTypes(_preferredAlphabet);
+        _compositionTypeSpinner.setAdapter(new CompositionTypesAdapter(compositionTypes));
+        final int index = compositionTypes.indexWhere(result -> result.id.equals(_selectedTypeId));
+
+        if (index >= 0) {
+            _compositionTypeSpinner.setSelection(index);
+        }
+        else {
+            _selectedTypeId = null;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.character_composition_editor_activity);
 
         _characterId = CharacterIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CHARACTER);
+        _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         _model = DbManager.getInstance().getManager().getCharacterCompositionDetails(_characterId);
 
         if (_model == null) {
@@ -89,15 +119,17 @@ public final class CharacterCompositionEditorActivity extends Activity implement
                 _secondField.setSelection(text.length());
             });
 
-            _compositionTypeField = findViewById(R.id.compositionTypeField);
+            _compositionTypeSpinner = findViewById(R.id.compositionTypeSpinner);
+            if (_model.compositionType != null) {
+                _selectedTypeId = _model.compositionType;
+            }
+            updateSpinner();
+
+            findViewById(R.id.addCompositionTypeButton).setOnClickListener(this);
             findViewById(R.id.saveButton).setOnClickListener(this);
 
             setPartText(_model.first, _firstField);
             setPartText(_model.second, _secondField);
-
-            if (_model.compositionType != UNKNOWN_COMPOSITION_TYPE) {
-                _compositionTypeField.setText("" + _model.compositionType);
-            }
         }
     }
 
@@ -110,22 +142,31 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         return lastIndexOfStartingBrace > 0 || firstIndexOfEndingBrace >= 0 && firstIndexOfEndingBrace < textLength - 1 || braceAtStart ^ braceAtEnd;
     }
 
+    private void addCompositionType() {
+        AcceptationPickerActivity.open(this, REQUEST_CODE_ADD_COMPOSITION_TYPE);
+    }
+
     @Override
     public void onClick(View v) {
+        final int viewId = v.getId();
+        if (viewId == R.id.addCompositionTypeButton) {
+            addCompositionType();
+        }
+        else {
+            save();
+        }
+    }
+
+    private void save() {
         final String firstText = _firstField.getText().toString();
         final String secondText = _secondField.getText().toString();
-        final String compositionTypeText = _compositionTypeField.getText().toString();
 
-        int compositionType = UNKNOWN_COMPOSITION_TYPE;
         String errorMessage = null;
         if (firstText.isEmpty()) {
             errorMessage = getString(R.string.characterCompositionEditorFirstEmptyError);
         }
         else if (secondText.isEmpty()) {
             errorMessage = getString(R.string.characterCompositionEditorSecondEmptyError);
-        }
-        else if (compositionTypeText.isEmpty()) {
-            errorMessage = getString(R.string.characterCompositionEditorTypeEmptyError);
         }
         else if (hasInvalidBraces(firstText)) {
             errorMessage = getString(R.string.characterCompositionEditorFirstHasBraceError);
@@ -138,18 +179,6 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         }
         else if (secondText.length() > 1 && !secondText.startsWith("{")) {
             errorMessage = getString(R.string.characterCompositionEditorSecondMulticharError);
-        }
-        else {
-            try {
-                compositionType = Integer.parseInt(compositionTypeText);
-            }
-            catch (NumberFormatException e) {
-                // Nothing to be done
-            }
-
-            if (compositionType == UNKNOWN_COMPOSITION_TYPE) {
-                errorMessage = getString(R.string.characterCompositionEditorInvalidTypeError);
-            }
         }
 
         if (errorMessage != null) {
@@ -165,9 +194,33 @@ public final class CharacterCompositionEditorActivity extends Activity implement
                     new CharacterCompositionRepresentation(secondText.charAt(0), null);
 
             final LangbookDbManager manager = DbManager.getInstance().getManager();
-            manager.updateCharacterComposition(_characterId, firstRepresentation, secondRepresentation, compositionType);
+            manager.updateCharacterComposition(_characterId, firstRepresentation, secondRepresentation, _selectedTypeId);
             finish();
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        final AcceptationId acceptation = (requestCode == REQUEST_CODE_ADD_COMPOSITION_TYPE && data != null)? AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION) : null;
+        if (acceptation != null) {
+            final LangbookDbManager manager = DbManager.getInstance().getManager();
+            final ConceptId concept = manager.conceptFromAcceptation(acceptation);
+            _selectedTypeId = CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(concept);
+            if (manager.createCharacterCompositionDefinitionWithDefaultValues(_selectedTypeId)) {
+                CharacterCompositionDefinitionEditorActivity.open(this, _selectedTypeId);
+                updateSpinner();
+            }
+            else {
+                Toast.makeText(this, R.string.createCharacterCompositionDefinitionError, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        CharacterCompositionTypeIdBundler.write(outState, SavedKeys.SELECTED_TYPE_ID, _selectedTypeId);
     }
 
     private final class TokenSuggestionsAdapter extends BaseAdapter implements Filterable {
@@ -244,6 +297,45 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
             _adapter.setEntries((ImmutableList<String>) results.values);
+        }
+    }
+
+    private static final class CompositionTypesAdapter extends BaseAdapter {
+
+        private final ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> _entries;
+        private LayoutInflater _inflater;
+
+        CompositionTypesAdapter(ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> entries) {
+            _entries = entries;
+        }
+
+        @Override
+        public int getCount() {
+            return _entries.size();
+        }
+
+        @Override
+        public IdentifiableResult<CharacterCompositionTypeId> getItem(int position) {
+            return _entries.valueAt(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View view, ViewGroup parent) {
+            if (view == null) {
+                if (_inflater == null) {
+                    _inflater = LayoutInflater.from(parent.getContext());
+                }
+
+                view = _inflater.inflate(R.layout.character_composition_definition_entry, parent, false);
+            }
+
+            view.<TextView>findViewById(R.id.text).setText(_entries.valueAt(position).text);
+            return view;
         }
     }
 }

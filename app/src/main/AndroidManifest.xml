@@ -106,5 +106,8 @@
         <activity
             android:name=".WelcomeActivity"
             android:label="@string/appName"/>
+
+        <activity
+            android:name=".CharacterCompositionDefinitionEditorActivity"/>
     </application>
 </manifest>

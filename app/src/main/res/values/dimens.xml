@@ -42,4 +42,7 @@
     <dimen name="characterPickerItemTextSize">24sp</dimen>
     <dimen name="unicodeAssignerMainPadding">12dp</dimen>
     <dimen name="characterCompositionTokenSuggestionEntryPadding">8dp</dimen>
+    <dimen name="characterCompositionDefinitionEntryPadding">8dp</dimen>
+    <dimen name="acceptationDetailsCharacterCompositionDefinitionDrawableSide">56dp</dimen>
+    <dimen name="acceptationDetailsCharacterCompositionDefinitionPadding">8dp</dimen>
 </resources>

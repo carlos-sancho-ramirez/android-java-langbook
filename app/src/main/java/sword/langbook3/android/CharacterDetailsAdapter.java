@@ -9,13 +9,13 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.models.CharacterCompositionPart;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.CharacterDetailsModel;
 
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
-import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 public final class CharacterDetailsAdapter extends BaseAdapter {
 
@@ -26,7 +26,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
         int NAVIGABLE = 3;
     }
 
-    private CharacterDetailsModel<CharacterId, AcceptationId> _model;
+    private CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> _model;
     private LayoutInflater _inflater;
 
     private int _asFirstHeaderPosition;
@@ -34,7 +34,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
     private int _acceptationsWhereIncludedHeaderPosition;
     private int _count;
 
-    public void setModel(CharacterDetailsModel<CharacterId, AcceptationId> model) {
+    public void setModel(CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> model) {
         _model = model;
 
         if (model != null) {
@@ -42,7 +42,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
             final int asSecondCount = model.asSecond.size();
             final int acceptationsWhereIncludedCount = model.acceptationsWhereIncluded.size();
 
-            _asFirstHeaderPosition = (model.compositionType != UNKNOWN_COMPOSITION_TYPE)? 2 : 1;
+            _asFirstHeaderPosition = (model.compositionType != null)? 2 : 1;
             _asSecondHeaderPosition = (asFirstCount > 0) ? _asFirstHeaderPosition + asFirstCount + 1 : _asFirstHeaderPosition;
             _acceptationsWhereIncludedHeaderPosition = (asSecondCount > 0) ? _asSecondHeaderPosition + asSecondCount + 1 : _asSecondHeaderPosition;
             _count = (acceptationsWhereIncludedCount > 0) ? _acceptationsWhereIncludedHeaderPosition + acceptationsWhereIncludedCount + 1 : _acceptationsWhereIncludedHeaderPosition;
@@ -171,7 +171,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
             final CharacterId secondId = _model.second.id;
             secondTextView.setOnClickListener(v -> CharacterDetailsActivity.open(context, secondId));
 
-            convertView.<TextView>findViewById(R.id.compositionTypeInfo).setText(context.getString(R.string.characterCompositionType, Integer.toString(_model.compositionType)));
+            convertView.<TextView>findViewById(R.id.compositionTypeInfo).setText(context.getString(R.string.characterCompositionType, _model.compositionTypeName));
         }
         else if (viewType == ViewTypes.SECTION_HEADER) {
             if (convertView == null) {
