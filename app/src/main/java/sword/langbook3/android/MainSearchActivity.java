@@ -13,11 +13,17 @@ import android.widget.EditText;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
+import sword.collections.SortUtils;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
+
+import static sword.langbook3.android.CharacterCompositionEditorActivity.TOKEN_END_CHARACTER;
+import static sword.langbook3.android.CharacterCompositionEditorActivity.TOKEN_START_CHARACTER;
+import static sword.langbook3.android.CharacterCompositionEditorActivity.TOKEN_START_STRING;
 
 public final class MainSearchActivity extends SearchActivity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -114,6 +120,17 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
         }
 
         return new SearchResultAdapter(results, _ruleTexts);
+    }
+
+    @Override
+    ImmutableList<SearchResult<CharacterId, Object>> queryCharacterResults(String query) {
+        if (!SortUtils.isEmpty(query)) {
+            final String dbQuery = (query.charAt(0) == TOKEN_START_CHARACTER)? query.substring(1) : query;
+            return DbManager.getInstance().getManager().searchCharacterTokens(dbQuery, str -> TOKEN_START_STRING + str + TOKEN_END_CHARACTER);
+        }
+        else {
+            return ImmutableList.empty();
+        }
     }
 
     @Override

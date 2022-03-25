@@ -3,6 +3,7 @@ package sword.langbook3.android.models;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AcceptationIdInterface;
 import sword.langbook3.android.db.AgentIdInterface;
+import sword.langbook3.android.db.CharacterIdInterface;
 
 import static sword.collections.SortUtils.equal;
 
@@ -16,7 +17,7 @@ public final class SearchResult<ID, RuleId> {
     private final ImmutableList<RuleId> _appliedRules;
 
     public SearchResult(String str, String mainStr, ID id, boolean isDynamic, String mainAccMainStr, ImmutableList<RuleId> appliedRules) {
-        if (!(id instanceof AcceptationIdInterface) && !(id instanceof AgentIdInterface) || str == null || mainStr == null || appliedRules == null) {
+        if (!(id instanceof AcceptationIdInterface) && !(id instanceof AgentIdInterface) && !(id instanceof CharacterIdInterface) || str == null || mainStr == null || appliedRules == null) {
             throw new IllegalArgumentException();
         }
 

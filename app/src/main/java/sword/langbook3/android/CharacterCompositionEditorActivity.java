@@ -27,9 +27,9 @@ import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPO
 
 public final class CharacterCompositionEditorActivity extends Activity implements View.OnClickListener {
 
-    private static final char TOKEN_START_CHARACTER = '{';
-    private static final char TOKEN_END_CHARACTER = '}';
-    private static final String TOKEN_START_STRING = "" + TOKEN_START_CHARACTER;
+    static final char TOKEN_START_CHARACTER = '{';
+    static final char TOKEN_END_CHARACTER = '}';
+    static final String TOKEN_START_STRING = "" + TOKEN_START_CHARACTER;
     private static final String TOKEN_END_STRING = "" + TOKEN_END_CHARACTER;
 
     private interface ArgKeys {

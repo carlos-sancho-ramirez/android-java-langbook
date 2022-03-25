@@ -4365,4 +4365,19 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 .select(table.getTokenColumnIndex());
         return _db.select(query).map(row -> row.get(0).toText()).toList().toImmutable();
     }
+
+    @Override
+    public ImmutableList<SearchResult<CharacterId, Object>> searchCharacterTokens(String filterText, Function<String, String> textConverter) {
+        final LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getTokenColumnIndex(), new DbQuery.Restriction(
+                        new DbStringValue(filterText), DbQuery.RestrictionStringTypes.CONTAINS))
+                .range(new ImmutableIntRange(0, 199))
+                .select(table.getIdColumnIndex(), table.getTokenColumnIndex());
+        return _db.select(query).map(row -> {
+            final CharacterId id = _characterIdSetter.getKeyFromDbValue(row.get(0));
+            final String text = textConverter.apply(row.get(1).toText());
+            return new SearchResult<>(text, text, id, false);
+        }).toList().toImmutable();
+    }
 }

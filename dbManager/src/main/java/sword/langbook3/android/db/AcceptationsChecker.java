@@ -1,5 +1,6 @@
 package sword.langbook3.android.db;
 
+import sword.collections.Function;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
@@ -11,6 +12,7 @@ import sword.langbook3.android.models.CharacterPickerItem;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DisplayableItem;
+import sword.langbook3.android.models.SearchResult;
 
 public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId> {
     LanguageId findLanguageByCode(String code);
@@ -51,4 +53,5 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items);
     CharacterCompositionEditorModel<CharacterId> getCharacterCompositionDetails(CharacterId characterId);
     ImmutableList<String> suggestCharacterTokens(String filterText);
+    ImmutableList<SearchResult<CharacterId, Object>> searchCharacterTokens(String filterText, Function<String, String> textConverter);
 }

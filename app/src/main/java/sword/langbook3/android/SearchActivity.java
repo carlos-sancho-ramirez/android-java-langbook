@@ -16,6 +16,7 @@ import sword.collections.ImmutableList;
 import sword.database.DbQuery;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
+import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
@@ -134,10 +135,17 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
                 _query.toLowerCase().startsWith(str.toLowerCase()));
     }
 
+    ImmutableList<SearchResult<CharacterId, Object>> queryCharacterResults(String query) {
+        // Characters are not listed for all implementations
+        return ImmutableList.empty();
+    }
+
     abstract ImmutableList<SearchResult<AcceptationId, RuleId>> queryAcceptationResults(String query);
 
     final void queryAllResults() {
-        ImmutableList<SearchResult> results = queryAcceptationResults(_query).map(result -> result);
+        ImmutableList<SearchResult> results = ImmutableList.empty();
+        results = results.appendAll(queryCharacterResults(_query).map(result -> result));
+        results = results.appendAll(queryAcceptationResults(_query).map(result -> result));
         if (includeAgentsAsResult() && _query != null && possibleString(AGENT_QUERY_PREFIX)) {
             results = results.appendAll(agentSearchResults().filter(entry -> possibleString(entry.getStr())).map(result -> result));
         }
@@ -157,7 +165,10 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         final Object itemId = _listAdapter.getItem(position).getId();
-        if (itemId instanceof AcceptationId) {
+        if (itemId instanceof CharacterId) {
+            CharacterDetailsActivity.open(this, (CharacterId) itemId);
+        }
+        else if (itemId instanceof AcceptationId) {
             onAcceptationSelected((AcceptationId) itemId);
         }
         else {
