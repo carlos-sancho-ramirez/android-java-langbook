@@ -7,6 +7,7 @@ import android.os.Bundle;
 
 import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterCompositionTypeIdBundler;
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 
 public final class CharacterCompositionDefinitionEditorActivity extends Activity {
 
@@ -20,9 +21,17 @@ public final class CharacterCompositionDefinitionEditorActivity extends Activity
         context.startActivity(intent);
     }
 
+    private CharacterCompositionTypeId getCharacterCompositionTypeId() {
+        return CharacterCompositionTypeIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ID);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.character_composition_definition_editor_activity);
+
+        final CharacterCompositionDefinitionRegister register = DbManager.getInstance().getManager().getCharacterCompositionDefinition(getCharacterCompositionTypeId());
+        final CharacterCompositionDefinitionEditorView view = findViewById(R.id.editorView);
+        view.setRegister(register);
     }
 }

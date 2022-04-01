@@ -7,6 +7,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 
+import androidx.annotation.NonNull;
 import sword.langbook3.android.models.CharacterCompositionDefinitionArea;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 
@@ -14,8 +15,8 @@ import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_
 
 public final class CharacterCompositionDefinitionDrawable extends Drawable {
 
-    private static final int FIRST_COLOR = 0x99FF0000;
-    private static final int SECOND_COLOR = 0x990000FF;
+    static final int FIRST_COLOR = 0x99FF0000;
+    static final int SECOND_COLOR = 0x990000FF;
 
     private final Rect _rect = new Rect();
     private final Paint _firstPaint;
@@ -49,7 +50,7 @@ public final class CharacterCompositionDefinitionDrawable extends Drawable {
     }
 
     @Override
-    public void draw(Canvas canvas) {
+    public void draw(@NonNull Canvas canvas) {
         final CharacterCompositionDefinitionRegister register = _register;
         if (register != null) {
             drawArea(register.first, canvas, _firstPaint);

@@ -6,6 +6,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Set;
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterDetailsModel;
 import sword.langbook3.android.models.CharacterPickerItem;
@@ -56,4 +57,5 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutableList<String> suggestCharacterTokens(String filterText);
     ImmutableList<SearchResult<CharacterId, Object>> searchCharacterTokens(String filterText, Function<String, String> textConverter);
     ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> getCharacterCompositionTypes(AlphabetId preferredAlphabet);
+    CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id);
 }

@@ -1641,7 +1641,8 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 ruleTexts, involvedAgents, morphologyResults.agentRules, languageStrs.toImmutable(), sampleSentences, characterCompositionDefinitionRegister);
     }
 
-    private CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id) {
+    @Override
+    public final CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id) {
         final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), id)
