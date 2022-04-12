@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <sword.langbook3.android.CharacterCompositionDefinitionEditorView
+        android:id="@+id/editorView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <include
+                android:id="@+id/firstAreaDetails"
+                layout="@layout/character_composition_definition_editor_activity_area"/>
+
+            <include
+                android:id="@+id/secondAreaDetails"
+                layout="@layout/character_composition_definition_editor_activity_area"/>
+
+            <Button
+                android:id="@+id/saveButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/menuItemSave"/>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

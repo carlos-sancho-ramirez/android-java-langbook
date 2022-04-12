@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/characterCompositionDefinitionEditorActivityAreaPadding"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/characterCompositionDefinitionEditorActivityAreaHeaderTextSize"/>
+
+    <include
+        android:id="@+id/areaDetailsX"
+        layout="@layout/character_composition_definition_editor_activity_area_details_entry"/>
+
+    <include
+        android:id="@+id/areaDetailsY"
+        layout="@layout/character_composition_definition_editor_activity_area_details_entry"/>
+
+    <include
+        android:id="@+id/areaDetailsWidth"
+        layout="@layout/character_composition_definition_editor_activity_area_details_entry"/>
+
+    <include
+        android:id="@+id/areaDetailsHeight"
+        layout="@layout/character_composition_definition_editor_activity_area_details_entry"/>
+</LinearLayout>

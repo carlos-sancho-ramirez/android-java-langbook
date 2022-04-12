@@ -208,7 +208,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
             final ConceptId concept = manager.conceptFromAcceptation(acceptation);
             _selectedTypeId = CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(concept);
             if (manager.createCharacterCompositionDefinitionWithDefaultValues(_selectedTypeId)) {
-                // TODO: Jump to the character composition definition editor
+                CharacterCompositionDefinitionEditorActivity.open(this, _selectedTypeId);
                 updateSpinner();
             }
             else {

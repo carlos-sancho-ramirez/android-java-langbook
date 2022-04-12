@@ -32,6 +32,7 @@ import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.CharacterCompositionTypeIdManager;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.LangbookDbManager;
@@ -389,8 +390,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             return true;
         }
         else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.CHARACTER_COMPOSITION_DEFINITION) {
-            // TODO: To be implemented
-            Toast.makeText(this, "To be implemented", Toast.LENGTH_SHORT).show();
+            // TODO: Display edition confirmation dialog if the composition definition is in use, as it can break things
+            CharacterCompositionDefinitionEditorActivity.open(this, CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(_model.concept));
             return true;
         }
 
