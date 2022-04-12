@@ -1661,6 +1661,23 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 new CharacterCompositionDefinitionArea(row.get(4).toInt(), row.get(5).toInt(), row.get(6).toInt(), row.get(7).toInt()));
     }
 
+    CharacterCompositionTypeId findCharacterCompositionDefinition(CharacterCompositionDefinitionRegister register) {
+        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getFirstXColumnIndex(), register.first.x)
+                .where(table.getFirstYColumnIndex(), register.first.y)
+                .where(table.getFirstWidthColumnIndex(), register.first.width)
+                .where(table.getFirstHeightColumnIndex(), register.first.height)
+                .where(table.getSecondXColumnIndex(), register.second.x)
+                .where(table.getSecondYColumnIndex(), register.second.y)
+                .where(table.getSecondWidthColumnIndex(), register.second.width)
+                .where(table.getSecondHeightColumnIndex(), register.second.height)
+                .select(table.getIdColumnIndex());
+
+        final DbValue value = selectOptionalFirstDbValue(query);
+        return (value == null)? null : _characterCompositionTypeIdSetter.getKeyFromDbValue(value);
+    }
+
     boolean isCharacterCompositionDefinitionPresent(CharacterCompositionTypeId id) {
         final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
         final DbQuery query = new DbQueryBuilder(table)

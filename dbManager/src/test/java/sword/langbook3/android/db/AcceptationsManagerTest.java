@@ -560,6 +560,34 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     }
 
     @Test
+    default void testUpdateCharacterCompositionDefinitionRejectsDuplicatedDefinition() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        final CharacterCompositionDefinitionArea first = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
+        final CharacterCompositionDefinitionArea second = new CharacterCompositionDefinitionArea(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
+        final CharacterCompositionDefinitionRegister register = new CharacterCompositionDefinitionRegister(first, second);
+        assertTrue(manager.updateCharacterCompositionDefinition(compositionTypeId, register));
+
+        final ConceptId compositionTypeConcept2 = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept2, "arriba-abajo2"));
+
+        final CharacterCompositionTypeId compositionTypeId2 = conceptAsCharacterCompositionTypeId(compositionTypeConcept2);
+        assertFalse(manager.updateCharacterCompositionDefinition(compositionTypeId2, register));
+    }
+
+    @Test
     default void testUpdateCharacterComposition() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);

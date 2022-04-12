@@ -3067,7 +3067,10 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
 
     @Override
     public final boolean updateCharacterCompositionDefinition(CharacterCompositionTypeId typeId, CharacterCompositionDefinitionRegister register) {
-        // TODO: This method should check that there is no other definition matching this one
+        final CharacterCompositionTypeId foundTypeId = findCharacterCompositionDefinition(register);
+        if (foundTypeId != null) {
+            return foundTypeId.equals(typeId);
+        }
 
         if (isCharacterCompositionDefinitionPresent(typeId)) {
             final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
