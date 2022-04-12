@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
 import android.widget.Filter;
@@ -32,7 +33,7 @@ import sword.langbook3.android.models.IdentifiableResult;
 
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 
-public final class CharacterCompositionEditorActivity extends Activity implements View.OnClickListener {
+public final class CharacterCompositionEditorActivity extends Activity implements View.OnClickListener, AdapterView.OnItemSelectedListener {
 
     private static final int REQUEST_CODE_ADD_COMPOSITION_TYPE = 1;
 
@@ -81,8 +82,19 @@ public final class CharacterCompositionEditorActivity extends Activity implement
             _compositionTypeSpinner.setSelection(index);
         }
         else {
-            _selectedTypeId = null;
+            _selectedTypeId = compositionTypes.valueAt(0).id;
         }
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        final CompositionTypesAdapter adapter = (CompositionTypesAdapter) parent.getAdapter();
+        _selectedTypeId = adapter.getItem(position).id;
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Nothing to be done
     }
 
     @Override
@@ -120,6 +132,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
             });
 
             _compositionTypeSpinner = findViewById(R.id.compositionTypeSpinner);
+            _compositionTypeSpinner.setOnItemSelectedListener(this);
             if (_model.compositionType != null) {
                 _selectedTypeId = _model.compositionType;
             }
