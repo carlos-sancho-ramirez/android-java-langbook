@@ -1661,6 +1661,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                 new CharacterCompositionDefinitionArea(row.get(4).toInt(), row.get(5).toInt(), row.get(6).toInt(), row.get(7).toInt()));
     }
 
+    boolean isCharacterCompositionDefinitionPresent(CharacterCompositionTypeId id) {
+        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
+        final DbQuery query = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), id)
+                .select(table.getIdColumnIndex());
+        return selectExistingRow(query);
+    }
+
     @Override
     public ImmutableList<SearchResult<AcceptationId, RuleId>> getSearchHistory() {
         final LangbookDbSchema.SearchHistoryTable history = Tables.searchHistory;

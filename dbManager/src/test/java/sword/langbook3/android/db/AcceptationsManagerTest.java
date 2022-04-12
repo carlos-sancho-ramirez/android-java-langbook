@@ -8,6 +8,8 @@ import sword.collections.ImmutableSet;
 import sword.collections.MutableHashMap;
 import sword.collections.TraversableTestUtils;
 import sword.database.MemoryDatabase;
+import sword.langbook3.android.models.CharacterCompositionDefinitionArea;
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.Conversion;
@@ -24,6 +26,7 @@ import static sword.collections.SetTestUtils.assertEqualSet;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
 import static sword.collections.TraversableTestUtils.assertContainsOnly;
+import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 
 /**
@@ -108,6 +111,13 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         final AcceptationId newAcceptation = addSimpleAcceptation(manager, alphabet, newConcept, text);
         assertNotNull(newAcceptation);
         return newAcceptation;
+    }
+
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> void insertUpDownCharacterCompositionDefinition(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, CharacterCompositionTypeId typeId) {
+        final CharacterCompositionDefinitionArea first = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
+        final CharacterCompositionDefinitionArea second = new CharacterCompositionDefinitionArea(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
+        final CharacterCompositionDefinitionRegister register = new CharacterCompositionDefinitionRegister(first, second);
+        assertTrue(manager.updateCharacterCompositionDefinition(typeId, register));
     }
 
     @Test
@@ -542,6 +552,8 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
+
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
         assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
@@ -572,6 +584,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
 
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
@@ -593,6 +606,31 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     }
 
     @Test
+    default void testUpdateCharacterCompositionRejectsUnknownCompositionTypes() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final CharacterId sChar = manager.findCharacter('s');
+        assertNotNull(sChar);
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertFalse(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
+    }
+
+    @Test
     default void testUpdateCharacterCompositionRejectsLoops() {
         final MemoryDatabase db = new MemoryDatabase();
         final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
@@ -608,6 +646,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
 
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
@@ -656,6 +695,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
 
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
@@ -691,6 +731,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
         assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId firstCharacterId = manager.getCharacterCompositionDetails(composed).first.id;
@@ -729,6 +770,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
         assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId secondCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).second.id;
@@ -773,6 +815,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
         assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId secondCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).second.id;
@@ -835,6 +878,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
         assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, compositionTypeId));
 
         final CharacterCompositionRepresentation oFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oTilde");
@@ -889,6 +933,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
 
         final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
         assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, compositionTypeId));
 
         final CharacterCompositionRepresentation oFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oTilde");

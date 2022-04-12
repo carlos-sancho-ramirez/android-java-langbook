@@ -137,5 +137,23 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
     boolean removeCharacterComposition(CharacterId characterId);
 
     boolean createCharacterCompositionDefinitionWithDefaultValues(CharacterCompositionTypeId typeId);
+
+    /**
+     * Assigns the given definition to the given identifier.
+     *
+     * As it is not possible to duplicate character composition definitions,
+     * this method will return false in case the existing definition is already
+     * assigned to a different identifier. If that is not the case, this method
+     * will return true, even if the given definition is currently matching the
+     * assigned identifier and no changes are required.
+     *
+     * This method will replace any existing definition assigned to the given
+     * identifier. If the identifier was not in used, a new entry will be
+     * included.
+     *
+     * @param typeId Identifier for the definition
+     * @param register Definition data to be stored.
+     * @return Whether the operation has been completed or not.
+     */
     boolean updateCharacterCompositionDefinition(CharacterCompositionTypeId typeId, CharacterCompositionDefinitionRegister register);
 }

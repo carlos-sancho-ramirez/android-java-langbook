@@ -2924,6 +2924,10 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             }
         }
 
+        if (!isCharacterCompositionDefinitionPresent(compositionType)) {
+            return false;
+        }
+
         if (foundFirst != null || foundSecond != null) {
             final MutableSet<CharacterId> remaining = MutableHashSet.empty();
             if (foundFirst != null) {
@@ -3065,19 +3069,25 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     public final boolean updateCharacterCompositionDefinition(CharacterCompositionTypeId typeId, CharacterCompositionDefinitionRegister register) {
         // TODO: This method should check that there is no other definition matching this one
 
-        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
-        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                .where(table.getIdColumnIndex(), typeId)
-                .put(table.getFirstXColumnIndex(), register.first.x)
-                .put(table.getFirstYColumnIndex(), register.first.y)
-                .put(table.getFirstWidthColumnIndex(), register.first.width)
-                .put(table.getFirstHeightColumnIndex(), register.first.height)
-                .put(table.getSecondXColumnIndex(), register.second.x)
-                .put(table.getSecondYColumnIndex(), register.second.y)
-                .put(table.getSecondWidthColumnIndex(), register.second.width)
-                .put(table.getSecondHeightColumnIndex(), register.second.height)
-                .build();
+        if (isCharacterCompositionDefinitionPresent(typeId)) {
+            final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
+            final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                    .where(table.getIdColumnIndex(), typeId)
+                    .put(table.getFirstXColumnIndex(), register.first.x)
+                    .put(table.getFirstYColumnIndex(), register.first.y)
+                    .put(table.getFirstWidthColumnIndex(), register.first.width)
+                    .put(table.getFirstHeightColumnIndex(), register.first.height)
+                    .put(table.getSecondXColumnIndex(), register.second.x)
+                    .put(table.getSecondYColumnIndex(), register.second.y)
+                    .put(table.getSecondWidthColumnIndex(), register.second.width)
+                    .put(table.getSecondHeightColumnIndex(), register.second.height)
+                    .build();
 
-        return _db.update(query);
+            return _db.update(query);
+        }
+
+        return LangbookDbInserter.insertCharacterCompositionDefinition(_db, _characterCompositionTypeIdSetter, typeId,
+                register.first.x, register.first.y, register.first.width, register.first.height,
+                register.second.x, register.second.y, register.second.width, register.second.height);
     }
 }
