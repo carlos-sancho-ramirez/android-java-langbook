@@ -6,15 +6,17 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Set;
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterDetailsModel;
 import sword.langbook3.android.models.CharacterPickerItem;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DisplayableItem;
+import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.SearchResult;
 
-public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId> {
+public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId> {
     LanguageId findLanguageByCode(String code);
 
     /**
@@ -49,9 +51,11 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(AcceptationId acceptation);
     ImmutableMap<AlphabetId, AlphabetId> findConversions(Set<AlphabetId> alphabets);
     ImmutableMap<String, AcceptationId> readTextAndDynamicAcceptationsMapFromAcceptation(AcceptationId acceptation);
-    CharacterDetailsModel<CharacterId, AcceptationId> getCharacterDetails(CharacterId characterId);
+    CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> getCharacterDetails(CharacterId characterId, AlphabetId preferredAlphabet);
     ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items);
-    CharacterCompositionEditorModel<CharacterId> getCharacterCompositionDetails(CharacterId characterId);
+    CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> getCharacterCompositionDetails(CharacterId characterId);
     ImmutableList<String> suggestCharacterTokens(String filterText);
     ImmutableList<SearchResult<CharacterId, Object>> searchCharacterTokens(String filterText, Function<String, String> textConverter);
+    ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> getCharacterCompositionTypes(AlphabetId preferredAlphabet);
+    CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id);
 }

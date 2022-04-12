@@ -40,6 +40,7 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
     public final ImmutableIntValueMap<AgentId> involvedAgents;
     public final ImmutableMap<AgentId, RuleId> agentRules;
     public final ImmutableMap<SentenceId, String> sampleSentences;
+    public final CharacterCompositionDefinitionRegister characterCompositionDefinitionRegister;
 
     /**
      * Maps languages with the suitable representation text.
@@ -71,7 +72,8 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
             ImmutableIntValueMap<AgentId> involvedAgents,
             ImmutableMap<AgentId, RuleId> agentRules,
             ImmutableMap<LanguageId, String> languageTexts,
-            ImmutableMap<SentenceId, String> sampleSentences
+            ImmutableMap<SentenceId, String> sampleSentences,
+            CharacterCompositionDefinitionRegister characterCompositionDefinitionRegister
     ) {
         if (concept == null || language == null || originalAcceptationId != null && (originalAcceptationText == null ||
                 appliedAgentId == null || appliedRuleId == null || appliedRuleAcceptationId == null) ||
@@ -122,6 +124,7 @@ public final class AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, Co
         this.agentRules = agentRules;
         this.languageTexts = languageTexts;
         this.sampleSentences = sampleSentences;
+        this.characterCompositionDefinitionRegister = characterCompositionDefinitionRegister;
     }
 
     public String getTitle(AlphabetId preferredAlphabet) {

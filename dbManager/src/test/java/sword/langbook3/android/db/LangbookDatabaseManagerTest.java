@@ -2,17 +2,18 @@ package sword.langbook3.android.db;
 
 import sword.database.MemoryDatabase;
 
-final class LangbookDatabaseManagerTest implements LangbookManagerTest<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> {
+final class LangbookDatabaseManagerTest implements LangbookManagerTest<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> {
 
     private final ConceptIdManager _conceptIdManager = new ConceptIdManager();
     private final AlphabetIdManager _alphabetIdManager = new AlphabetIdManager();
+    private final CharacterCompositionTypeIdManager _characterCompositionTypeIdManager = new CharacterCompositionTypeIdManager();
     private final AcceptationIdManager _acceptationIdManager = new AcceptationIdManager();
     private final BunchIdManager _bunchIdManager = new BunchIdManager();
     private final RuleIdManager _ruleIdManager = new RuleIdManager();
 
     @Override
-    public LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> createManager(MemoryDatabase db) {
-        return new LangbookDatabaseManager<>(db, _conceptIdManager, new LanguageIdManager(), _alphabetIdManager, new CharacterIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), _acceptationIdManager, _bunchIdManager, new BunchSetIdManager(), _ruleIdManager, new AgentIdManager(), new QuizIdManager(), new SentenceIdManager());
+    public LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> createManager(MemoryDatabase db) {
+        return new LangbookDatabaseManager<>(db, _conceptIdManager, new LanguageIdManager(), _alphabetIdManager, new CharacterIdManager(), _characterCompositionTypeIdManager, new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), _acceptationIdManager, _bunchIdManager, new BunchSetIdManager(), _ruleIdManager, new AgentIdManager(), new QuizIdManager(), new SentenceIdManager());
     }
 
     @Override
@@ -43,5 +44,10 @@ final class LangbookDatabaseManagerTest implements LangbookManagerTest<ConceptId
     @Override
     public AlphabetIdHolder getNextAvailableAlphabetId(ConceptsChecker<ConceptIdHolder> manager) {
         return _alphabetIdManager.getKeyFromConceptId(manager.getNextAvailableConceptId());
+    }
+
+    @Override
+    public CharacterCompositionTypeIdHolder conceptAsCharacterCompositionTypeId(ConceptIdHolder conceptIdHolder) {
+        return _characterCompositionTypeIdManager.getKeyFromConceptId(conceptIdHolder);
     }
 }

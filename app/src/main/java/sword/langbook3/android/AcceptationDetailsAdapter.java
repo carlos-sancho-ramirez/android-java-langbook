@@ -20,6 +20,9 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
+
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class AcceptationDetailsAdapter extends BaseAdapter {
 
@@ -27,6 +30,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         int UNKNOWN = 0;
         int BUNCH_WHERE_INCLUDED = 1;
         int ACCEPTATION_INCLUDED = 2;
+        int CHARACTER_COMPOSITION_DEFINITION = 3;
     }
 
     static abstract class Item {
@@ -231,6 +235,32 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
+    static final class CharacterCompositionDefinitionItem extends Item {
+
+        private final CharacterCompositionDefinitionRegister _register;
+
+        CharacterCompositionDefinitionItem(CharacterCompositionDefinitionRegister register) {
+            super(ItemTypes.CHARACTER_COMPOSITION_DEFINITION, "");
+            ensureNonNull(register);
+            _register = register;
+        }
+
+        @Override
+        void navigate(Activity activity, int requestCode) {
+            // This item does not navigate
+        }
+
+        @Override
+        boolean isEnabled() {
+            return true;
+        }
+
+        @Override
+        int getLayout() {
+            return R.layout.acceptation_details_character_composition_definition_item;
+        }
+    }
+
     static final class CorrelationArrayItem extends Item {
 
         private final ImmutableList<CorrelationId> _correlationIds;
@@ -393,6 +423,11 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         else if (item instanceof CorrelationArrayItem) {
             final CorrelationArrayItem caItem = (CorrelationArrayItem) item;
             caItem.updateView(_activity, _correlationArrayRequestCode, (LinearLayout) view);
+        }
+        else if (item instanceof CharacterCompositionDefinitionItem) {
+            final CharacterCompositionDefinitionDrawable drawable = new CharacterCompositionDefinitionDrawable();
+            drawable.setRegister(((CharacterCompositionDefinitionItem) item)._register);
+            view.findViewById(R.id.drawableHolder).setBackground(drawable);
         }
         else {
             throw new AssertionError("Unable to handle item");

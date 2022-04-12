@@ -331,7 +331,29 @@ final class LangbookDbInserter {
         return true;
     }
 
-    static <CharacterId extends CharacterIdInterface> void insertCharacterComposition(DbInserter db, CharacterId characterId, CharacterId first, CharacterId second, int compositionType) {
+    static <CharacterCompositionTypeId extends IdPutInterface> boolean insertCharacterCompositionDefinition(DbInserter db, IntSetter<CharacterCompositionTypeId> idSetter, CharacterCompositionTypeId id, int firstX, int firstY, int firstWidth, int firstHeight, int secondX, int secondY, int secondWidth, int secondHeight) {
+        if (id == null) {
+            return false;
+        }
+
+        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
+        final DbInsertQuery query = new DbInsertQueryBuilder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getFirstXColumnIndex(), firstX)
+                .put(table.getFirstYColumnIndex(), firstY)
+                .put(table.getFirstWidthColumnIndex(), firstWidth)
+                .put(table.getFirstHeightColumnIndex(), firstHeight)
+                .put(table.getSecondXColumnIndex(), secondX)
+                .put(table.getSecondYColumnIndex(), secondY)
+                .put(table.getSecondWidthColumnIndex(), secondWidth)
+                .put(table.getSecondHeightColumnIndex(), secondHeight)
+                .build();
+
+        final Integer resultId = db.insert(query);
+        return resultId != null && id.equals(idSetter.getKeyFromInt(resultId));
+    }
+
+    static <CharacterId extends CharacterIdInterface, CharacterCompositionTypeId extends IdPutInterface> void insertCharacterComposition(DbInserter db, CharacterId characterId, CharacterId first, CharacterId second, CharacterCompositionTypeId compositionType) {
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
         final DbInsertQuery query = new DbInsertQueryBuilder(table)
                 .put(table.getIdColumnIndex(), characterId)

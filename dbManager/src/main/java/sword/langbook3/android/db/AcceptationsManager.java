@@ -1,10 +1,11 @@
 package sword.langbook3.android.db;
 
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 
-public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> {
+public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> extends AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> {
 
     /**
      * Add a new language for the given code.
@@ -126,7 +127,7 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
      * @param compositionType Composition type
      * @return Whether the create/update action succeeded.
      */
-    boolean updateCharacterComposition(CharacterId characterId, CharacterCompositionRepresentation first, CharacterCompositionRepresentation second, int compositionType);
+    boolean updateCharacterComposition(CharacterId characterId, CharacterCompositionRepresentation first, CharacterCompositionRepresentation second, CharacterCompositionTypeId compositionType);
 
     /**
      * Removes the character composition linked to the given identifier.
@@ -134,4 +135,7 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
      * @param characterId Identifier for the composition.
      */
     boolean removeCharacterComposition(CharacterId characterId);
+
+    boolean createCharacterCompositionDefinitionWithDefaultValues(CharacterCompositionTypeId typeId);
+    boolean updateCharacterCompositionDefinition(CharacterCompositionTypeId typeId, CharacterCompositionDefinitionRegister register);
 }

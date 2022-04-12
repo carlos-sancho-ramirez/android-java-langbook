@@ -223,7 +223,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.sourceAlphabetPickerDialog)
-                .setPositiveButton(R.string.addFieldButton, (d, which) -> {
+                .setPositiveButton(R.string.addButtonText, (d, which) -> {
                     final boolean defineConversion = _state.isDefineConversionChecked();
                     final AlphabetId sourceAlphabet = _state.getSelectedSourceAlphabet();
                     if (defineConversion) {

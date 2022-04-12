@@ -46,14 +46,24 @@
             android:layout_height="wrap_content"
             android:text="@string/characterCompositionEditorTypeLabel"/>
 
-        <EditText
-            android:id="@+id/compositionTypeField"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:labelFor="@id/compositionTypeLabel"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:inputType="number"/>
+            android:orientation="horizontal">
+
+            <Spinner
+                android:id="@+id/compositionTypeSpinner"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:labelFor="@id/compositionTypeLabel"/>
+
+            <Button
+                android:id="@+id/addCompositionTypeButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/addButtonText"/>
+        </LinearLayout>
 
         <Button
             android:id="@+id/saveButton"

@@ -638,7 +638,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
 
             final BunchId bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
             _state.diffBunches.append(bunch);
-            addBunch(DbManager.getInstance().getManager(), bunch, _diffBunchesContainer, _state.diffBunches);
+            addBunch(manager, bunch, _diffBunchesContainer, _state.diffBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_RULE && resultCode == RESULT_OK) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);

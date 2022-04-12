@@ -126,6 +126,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             _hasDefinition = true;
         }
 
+        if (_model.characterCompositionDefinitionRegister != null) {
+            result.add(new HeaderItem(getString(R.string.accDetailsSectionCharacterCompositionDefinition)));
+            result.add(new AcceptationDetailsAdapter.CharacterCompositionDefinitionItem(_model.characterCompositionDefinitionRegister));
+        }
+
         final String agentTextPrefix = "Agent #";
         if (_model.originalAcceptationId != null) {
             final String text = getString(R.string.accDetailsSectionOrigin) + ": " + _model.originalAcceptationText;
@@ -381,6 +386,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 _state.setDeleteAcceptationFromBunch(new DisplayableItem<>(it.getId(), it.getText().toString()));
                 showDeleteAcceptationFromBunchConfirmationDialog();
             }
+            return true;
+        }
+        else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.CHARACTER_COMPOSITION_DEFINITION) {
+            // TODO: To be implemented
+            Toast.makeText(this, "To be implemented", Toast.LENGTH_SHORT).show();
             return true;
         }
 

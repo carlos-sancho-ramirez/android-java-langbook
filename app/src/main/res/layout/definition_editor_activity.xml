@@ -46,7 +46,7 @@
                 android:id="@+id/complementsAddButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/addComplementButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout

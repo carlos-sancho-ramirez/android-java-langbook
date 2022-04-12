@@ -23,7 +23,7 @@
                 android:id="@+id/addTargetBunchButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/agentEditorAddButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout
@@ -47,7 +47,7 @@
                 android:id="@+id/addSourceBunchButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/agentEditorAddButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout
@@ -71,7 +71,7 @@
                 android:id="@+id/addDiffBunchButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/agentEditorAddButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout
@@ -95,7 +95,7 @@
                 android:id="@+id/addStartMatcherButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/agentEditorAddButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout
@@ -119,7 +119,7 @@
                 android:id="@+id/addStartAdderButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/agentEditorAddButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout
@@ -156,7 +156,7 @@
                 android:id="@+id/addEndMatcherButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/agentEditorAddButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout
@@ -180,7 +180,7 @@
                 android:id="@+id/addEndAdderButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/agentEditorAddButton"/>
+                android:text="@string/addButtonText"/>
         </LinearLayout>
 
         <LinearLayout

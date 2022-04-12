@@ -25,7 +25,6 @@ import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
 import static sword.collections.TraversableTestUtils.assertContainsOnly;
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
-import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPOSITION_TYPE;
 
 /**
  * Include all test related to all responsibilities of an AcceptationsManager<LanguageId, AlphabetId>.
@@ -39,10 +38,11 @@ import static sword.langbook3.android.models.CharacterDetailsModel.UNKNOWN_COMPO
  * <li>Conversions</li>
  * <li>Acceptations</li>
  */
-public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> {
+public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, CorrelationId, CorrelationArrayId, AcceptationId> {
 
-    AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> createManager(MemoryDatabase db);
+    AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> createManager(MemoryDatabase db);
     AlphabetId getNextAvailableAlphabetId(ConceptsChecker<ConceptId> manager);
+    CharacterCompositionTypeId conceptAsCharacterCompositionTypeId(ConceptId conceptId);
 
     ImmutableHashMap<String, String> upperCaseConversion = new ImmutableHashMap.Builder<String, String>()
             .put("a", "A")
@@ -73,7 +73,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
             .put("z", "Z")
             .build();
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addSimpleAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addSimpleAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -85,7 +85,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, AcceptationId acceptationId, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, AcceptationId acceptationId, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -97,13 +97,13 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         return manager.updateAcceptationCorrelationArray(acceptationId, correlationArray);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> ConceptId obtainNewConcept(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> ConceptId obtainNewConcept(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
         final ConceptId newConcept = manager.getNextAvailableConceptId();
         assertNotNull(addSimpleAcceptation(manager, alphabet, newConcept, text));
         return newConcept;
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId obtainNewAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId obtainNewAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
         final ConceptId newConcept = manager.getNextAvailableConceptId();
         final AcceptationId newAcceptation = addSimpleAcceptation(manager, alphabet, newConcept, text);
         assertNotNull(newAcceptation);
@@ -113,7 +113,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddLanguageForFirstLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final ConceptId expectedLanguageConceptId = manager.getNextAvailableConceptId();
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
@@ -126,7 +126,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddLanguageWhenAddingTheSameLanguageTwice() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
         assertNull(manager.addLanguage("es"));
@@ -138,7 +138,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testRemoveLanguageWhenUnique() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageId language = manager.addLanguage("es").language;
         assertTrue(manager.removeLanguage(language));
@@ -148,7 +148,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testRemoveLanguageWhenRemovingFirstAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair1 = manager.addLanguage("es");
         final LanguageCreationResult<LanguageId, AlphabetId> langPair2 = manager.addLanguage("en");
@@ -162,7 +162,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testRemoveLanguageWhenRemovingLastAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair1 = manager.addLanguage("es");
         final LanguageCreationResult<LanguageId, AlphabetId> langPair2 = manager.addLanguage("en");
@@ -176,7 +176,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
         final LanguageId language = langPair.language;
@@ -191,7 +191,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddAlphabetCopyingFromOtherWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("ja");
 
         final LanguageId language = langPair.language;
@@ -215,7 +215,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("ja");
 
@@ -233,7 +233,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddAcceptationWhenAddingAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
@@ -259,7 +259,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddAlphabetAsConversionTargetWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
@@ -287,7 +287,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
@@ -308,7 +308,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testRemoveLanguageButLeaveOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> esLangPair = manager.addLanguage("es");
         final LanguageId esLanguage = esLangPair.language;
@@ -330,7 +330,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddAcceptationForSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId concept = manager.getNextAvailableConceptId();
@@ -342,7 +342,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddAcceptationWhenAddingAJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -370,7 +370,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testAddAcceptationWhenAddingAJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -412,14 +412,14 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testUpdateAcceptationCorrelationArrayForSame() {
         final MemoryDatabase db1 = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager1 = createManager(db1);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager1 = createManager(db1);
 
         final AlphabetId alphabet1 = manager1.addLanguage("es").mainAlphabet;
         final ConceptId concept1 = manager1.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager1, alphabet1, concept1, "cantar");
 
         final MemoryDatabase db2 = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager2 = createManager(db2);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager2 = createManager(db2);
 
         final AlphabetId alphabet2 = manager2.addLanguage("es").mainAlphabet;
         final ConceptId concept2 = manager2.getNextAvailableConceptId();
@@ -433,7 +433,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testReplaceConversionAfterAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId roumajiAlphabet = getNextAvailableAlphabetId(manager);
@@ -475,7 +475,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testReplaceConversionBeforeAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId roumajiAlphabet = getNextAvailableAlphabetId(manager);
@@ -509,7 +509,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testShareConceptRemovesDuplicatedAcceptations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId guyConcept = manager.getNextAvailableConceptId();
@@ -529,7 +529,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testUpdateCharacterComposition() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -538,21 +538,25 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         final CharacterId composed = manager.findCharacter('á');
         assertNotNull(composed);
 
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
-        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
-        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(composed);
         assertEquals('´', model.first.representation.character);
         assertNull(model.first.representation.token);
         assertEquals('a', model.second.representation.character);
         assertNull(model.second.representation.token);
-        assertEquals(2, model.compositionType);
+        assertEquals(compositionTypeId, model.compositionType);
     }
 
     @Test
     default void testUpdateCharacterCompositionRejectsDuplicates() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -564,29 +568,34 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         final CharacterId sChar = manager.findCharacter('s');
         assertNotNull(sChar);
 
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
-        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
-        assertFalse(manager.updateCharacterComposition(sChar, firstRepresentation, secondRepresentation, 2));
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
+        assertFalse(manager.updateCharacterComposition(sChar, firstRepresentation, secondRepresentation, compositionTypeId));
 
-        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(composed);
         assertEquals('´', model.first.representation.character);
         assertNull(model.first.representation.token);
         assertEquals('a', model.second.representation.character);
         assertNull(model.second.representation.token);
-        assertEquals(2, model.compositionType);
+        assertEquals(compositionTypeId, model.compositionType);
 
-        final CharacterCompositionEditorModel<CharacterId> sCharModel = manager.getCharacterCompositionDetails(sChar);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> sCharModel = manager.getCharacterCompositionDetails(sChar);
         assertEquals('s', sCharModel.representation.character);
         assertNull(sCharModel.first);
         assertNull(sCharModel.second);
-        assertEquals(UNKNOWN_COMPOSITION_TYPE, sCharModel.compositionType);
+        assertNull(sCharModel.compositionType);
     }
 
     @Test
     default void testUpdateCharacterCompositionRejectsLoops() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -595,9 +604,14 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         final CharacterId composed = manager.findCharacter('á');
         assertNotNull(composed);
 
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
-        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId aChar = manager.findCharacter('a');
         assertNotNull(aChar);
@@ -606,26 +620,30 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
 
         final CharacterCompositionRepresentation fakeRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "fake");
 
-        assertFalse(manager.updateCharacterComposition(aChar, composedRepresentation, fakeRepresentation, 1));
+        final ConceptId badCompositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, badCompositionTypeConcept, "izquierda-derecha"));
 
-        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        final CharacterCompositionTypeId badCompositionTypeId = conceptAsCharacterCompositionTypeId(badCompositionTypeConcept);
+        assertFalse(manager.updateCharacterComposition(aChar, composedRepresentation, fakeRepresentation, badCompositionTypeId));
+
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(composed);
         assertEquals('´', model.first.representation.character);
         assertNull(model.first.representation.token);
         assertEquals('a', model.second.representation.character);
         assertNull(model.second.representation.token);
-        assertEquals(2, model.compositionType);
+        assertEquals(compositionTypeId, model.compositionType);
 
-        final CharacterCompositionEditorModel<CharacterId> aCharModel = manager.getCharacterCompositionDetails(aChar);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> aCharModel = manager.getCharacterCompositionDetails(aChar);
         assertEquals('a', aCharModel.representation.character);
         assertNull(aCharModel.first);
         assertNull(aCharModel.second);
-        assertEquals(UNKNOWN_COMPOSITION_TYPE, aCharModel.compositionType);
+        assertNull(aCharModel.compositionType);
     }
 
     @Test
     default void testAssignUnicode() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -634,25 +652,30 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
         final CharacterId composed = manager.findCharacter('á');
         assertNotNull(composed);
 
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
-        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId firstCharacterId = manager.getCharacterCompositionDetails(composed).first.id;
         assertTrue(manager.assignUnicode(firstCharacterId, '´'));
 
-        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(composed);
         assertEquals('´', model.first.representation.character);
         assertNull(model.first.representation.token);
         assertEquals('a', model.second.representation.character);
         assertNull(model.second.representation.token);
-        assertEquals(2, model.compositionType);
+        assertEquals(compositionTypeId, model.compositionType);
     }
 
     @Test
     default void testAssignUnicodeRejectsDuplicatedUnicode() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -663,23 +686,28 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
 
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
-        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, 2));
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId firstCharacterId = manager.getCharacterCompositionDetails(composed).first.id;
         assertFalse(manager.assignUnicode(firstCharacterId, 'm'));
 
-        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(composed);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(composed);
         assertEquals(INVALID_CHARACTER, model.first.representation.character);
         assertEquals("tilde", model.first.representation.token);
         assertEquals('a', model.second.representation.character);
         assertNull(model.second.representation.token);
-        assertEquals(2, model.compositionType);
+        assertEquals(compositionTypeId, model.compositionType);
     }
 
     @Test
     default void testMergeCharacters() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -696,29 +724,34 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
 
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oNoTilde");
-        assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, 2));
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId secondCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).second.id;
         assertTrue(manager.mergeCharacters(oCharId, secondCharacterId));
 
-        final CharacterCompositionEditorModel<CharacterId> nullModel = manager.getCharacterCompositionDetails(secondCharacterId);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> nullModel = manager.getCharacterCompositionDetails(secondCharacterId);
         assertNull(nullModel.first);
         assertNull(nullModel.second);
-        assertEquals(INVALID_CHARACTER, nullModel.compositionType);
+        assertNull(nullModel.compositionType);
 
-        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(oTildeCharId);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(oTildeCharId);
         assertEquals(INVALID_CHARACTER, model.first.representation.character);
         assertEquals("tilde", model.first.representation.token);
         assertEquals(oCharId, model.second.id);
         assertEquals('o', model.second.representation.character);
         assertNull(model.second.representation.token);
-        assertEquals(2, model.compositionType);
+        assertEquals(compositionTypeId, model.compositionType);
     }
 
     @Test
     default void testMergeCharactersOpposite() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -735,29 +768,34 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
 
         final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
         final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oNoTilde");
-        assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, 2));
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, firstRepresentation, secondRepresentation, compositionTypeId));
 
         final CharacterId secondCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).second.id;
         assertTrue(manager.mergeCharacters(secondCharacterId, oCharId));
 
-        final CharacterCompositionEditorModel<CharacterId> nullModel = manager.getCharacterCompositionDetails(oCharId);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> nullModel = manager.getCharacterCompositionDetails(oCharId);
         assertNull(nullModel.first);
         assertNull(nullModel.second);
-        assertEquals(INVALID_CHARACTER, nullModel.compositionType);
+        assertNull(nullModel.compositionType);
 
-        final CharacterCompositionEditorModel<CharacterId> model = manager.getCharacterCompositionDetails(oTildeCharId);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(oTildeCharId);
         assertEquals(INVALID_CHARACTER, model.first.representation.character);
         assertEquals("tilde", model.first.representation.token);
         assertEquals(secondCharacterId, model.second.id);
         assertEquals('o', model.second.representation.character);
         assertNull(model.second.representation.token);
-        assertEquals(2, model.compositionType);
+        assertEquals(compositionTypeId, model.compositionType);
     }
 
     @Test
     default void testMergeCharactersRejectsIfBothCharactersHasUnicode() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -775,7 +813,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testMergeCharactersBothWithToken() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -792,31 +830,36 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
 
         final CharacterCompositionRepresentation aFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
         final CharacterCompositionRepresentation aSecondRepresentation = new CharacterCompositionRepresentation('a', null);
-        assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, 2));
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, compositionTypeId));
 
         final CharacterCompositionRepresentation oFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oTilde");
         final CharacterCompositionRepresentation oSecondRepresentation = new CharacterCompositionRepresentation('o', null);
-        assertTrue(manager.updateCharacterComposition(oTildeCharId, oFirstRepresentation, oSecondRepresentation, 2));
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, oFirstRepresentation, oSecondRepresentation, compositionTypeId));
 
         final CharacterId aFirstCharacterId = manager.getCharacterCompositionDetails(aTildeCharId).first.id;
         final CharacterId oFirstCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).first.id;
         assertTrue(manager.mergeCharacters(aFirstCharacterId, oFirstCharacterId));
 
-        final CharacterCompositionEditorModel<CharacterId> aModel = manager.getCharacterCompositionDetails(aTildeCharId);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> aModel = manager.getCharacterCompositionDetails(aTildeCharId);
         assertEquals(aFirstCharacterId, aModel.first.id);
         assertEquals(INVALID_CHARACTER, aModel.first.representation.character);
         assertEquals("tilde", aModel.first.representation.token);
         assertEquals('a', aModel.second.representation.character);
         assertNull(aModel.second.representation.token);
-        assertEquals(2, aModel.compositionType);
+        assertEquals(compositionTypeId, aModel.compositionType);
 
-        CharacterCompositionEditorModel<CharacterId> oModel = manager.getCharacterCompositionDetails(oTildeCharId);
+        CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> oModel = manager.getCharacterCompositionDetails(oTildeCharId);
         assertEquals(aFirstCharacterId, oModel.first.id);
         assertEquals(INVALID_CHARACTER, oModel.first.representation.character);
         assertEquals("tilde", oModel.first.representation.token);
         assertEquals('o', oModel.second.representation.character);
         assertNull(oModel.second.representation.token);
-        assertEquals(2, oModel.compositionType);
+        assertEquals(compositionTypeId, oModel.compositionType);
 
         assertNull(manager.getToken(oFirstCharacterId));
     }
@@ -824,7 +867,7 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
     @Test
     default void testMergeCharactersBothWithTokenOpposite() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -841,31 +884,36 @@ public interface AcceptationsManagerTest<ConceptId, LanguageId extends LanguageI
 
         final CharacterCompositionRepresentation aFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
         final CharacterCompositionRepresentation aSecondRepresentation = new CharacterCompositionRepresentation('a', null);
-        assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, 2));
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        assertTrue(manager.updateCharacterComposition(aTildeCharId, aFirstRepresentation, aSecondRepresentation, compositionTypeId));
 
         final CharacterCompositionRepresentation oFirstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "oTilde");
         final CharacterCompositionRepresentation oSecondRepresentation = new CharacterCompositionRepresentation('o', null);
-        assertTrue(manager.updateCharacterComposition(oTildeCharId, oFirstRepresentation, oSecondRepresentation, 2));
+        assertTrue(manager.updateCharacterComposition(oTildeCharId, oFirstRepresentation, oSecondRepresentation, compositionTypeId));
 
         final CharacterId aFirstCharacterId = manager.getCharacterCompositionDetails(aTildeCharId).first.id;
         final CharacterId oFirstCharacterId = manager.getCharacterCompositionDetails(oTildeCharId).first.id;
         assertTrue(manager.mergeCharacters(oFirstCharacterId, aFirstCharacterId));
 
-        final CharacterCompositionEditorModel<CharacterId> aModel = manager.getCharacterCompositionDetails(aTildeCharId);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> aModel = manager.getCharacterCompositionDetails(aTildeCharId);
         assertEquals(oFirstCharacterId, aModel.first.id);
         assertEquals(INVALID_CHARACTER, aModel.first.representation.character);
         assertEquals("oTilde", aModel.first.representation.token);
         assertEquals('a', aModel.second.representation.character);
         assertNull(aModel.second.representation.token);
-        assertEquals(2, aModel.compositionType);
+        assertEquals(compositionTypeId, aModel.compositionType);
 
-        CharacterCompositionEditorModel<CharacterId> oModel = manager.getCharacterCompositionDetails(oTildeCharId);
+        CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> oModel = manager.getCharacterCompositionDetails(oTildeCharId);
         assertEquals(oFirstCharacterId, oModel.first.id);
         assertEquals(INVALID_CHARACTER, oModel.first.representation.character);
         assertEquals("oTilde", oModel.first.representation.token);
         assertEquals('o', oModel.second.representation.character);
         assertNull(oModel.second.representation.token);
-        assertEquals(2, oModel.compositionType);
+        assertEquals(compositionTypeId, oModel.compositionType);
 
         assertNull(manager.getToken(aFirstCharacterId));
     }

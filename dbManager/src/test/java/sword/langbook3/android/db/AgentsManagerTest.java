@@ -43,17 +43,17 @@ import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAccept
 /**
  * Include all test related to all responsibilities of a AgentsManager.
  *
- * AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> responsibilities include all responsibilities from BunchesManager, and include the following ones:
+ * AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> responsibilities include all responsibilities from BunchesManager, and include the following ones:
  * <li>Bunch sets</li>
  * <li>Rules</li>
  * <li>Ruled concepts</li>
  * <li>Ruled acceptations</li>
  * <li>Agents</li>
  */
-interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface> extends BunchesManagerTest<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> {
+interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface> extends BunchesManagerTest<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> {
 
     @Override
-    AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> createManager(MemoryDatabase db);
+    AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> createManager(MemoryDatabase db);
     ConceptSetter<ConceptId> getConceptIdManager();
     ConceptualizableSetter<ConceptId, AlphabetId> getAlphabetIdManager();
     IntSetter<AcceptationId> getAcceptationIdManager();
@@ -96,7 +96,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         return map.toImmutable();
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> AgentId addSingleAlphabetAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> AgentId addSingleAlphabetAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, RuleId rule) {
         final ImmutableCorrelation<AlphabetId> startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
@@ -114,7 +114,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         return manager.addAgent(targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> boolean updateSingleAlphabetAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AgentId agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> boolean updateSingleAlphabetAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AgentId agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches,
             ImmutableSet<BunchId> diffBunches, AlphabetId alphabet, String startMatcherText, String startAdderText, String endMatcherText,
             String endAdderText, RuleId rule) {
         final ImmutableCorrelation<AlphabetId> startMatcher = (startMatcherText == null)? ImmutableCorrelation.empty() :
@@ -132,27 +132,27 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         return manager.updateAgent(agentId, targetBunches, sourceBunches, diffBunches, startMatcher, startAdder, endMatcher, endAdder, rule);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertOnlyOneMorphology(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId staticAcceptation, AlphabetId preferredAlphabet, String expectedText, RuleId expectedRule) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertOnlyOneMorphology(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId staticAcceptation, AlphabetId preferredAlphabet, String expectedText, RuleId expectedRule) {
         final MorphologyResult<AcceptationId, RuleId> morphology = getSingleValue(manager.readMorphologiesFromAcceptation(staticAcceptation, preferredAlphabet).morphologies);
         assertEquals(expectedText, morphology.text);
         assertContainsOnly(expectedRule, morphology.rules);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertNoRuledAcceptationsPresentForChainedAgents(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, Add3ChainedAgentsResult<AgentId> result) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertNoRuledAcceptationsPresentForChainedAgents(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, Add3ChainedAgentsResult<AgentId> result) {
         assertEmpty(manager.getAgentProcessedMap(result.agent1Id));
         assertEmpty(manager.getAgentProcessedMap(result.agent2Id));
         assertEmpty(manager.getAgentProcessedMap(result.agent3Id));
     }
 
-    default BunchId obtainNewBunch(BunchesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> manager, AlphabetId alphabet, String text) {
+    default BunchId obtainNewBunch(BunchesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId> manager, AlphabetId alphabet, String text) {
         return conceptAsBunchId(obtainNewConcept(manager, alphabet, text));
     }
 
-    default RuleId obtainNewRule(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AlphabetId alphabet, String text) {
+    default RuleId obtainNewRule(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AlphabetId alphabet, String text) {
         return conceptAsRuleId(obtainNewConcept(manager, alphabet, text));
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr, String expectedMainAccMainStr, ImmutableList<RuleId> expectedRules) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr, String expectedMainAccMainStr, ImmutableList<RuleId> expectedRules) {
         final ImmutableList<SearchResult<AcceptationId, RuleId>> list = manager.findAcceptationAndRulesFromText(str, DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 19));
         assertSize(1, list);
 
@@ -165,11 +165,11 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         assertNotEquals(expectedRules.isEmpty(), searchResult.isDynamic());
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> void assertSearchResult(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AcceptationId acceptation, String str, String expectedMainStr) {
         assertSearchResult(manager, acceptation, str, expectedMainStr, expectedMainStr, ImmutableList.empty());
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addTakaiAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addTakaiAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer) {
         final ImmutableCorrelation<AlphabetId> takaCorrelation = correlationComposer.compose("高", "たか");
         final ImmutableCorrelation<AlphabetId> iCorrelation = correlationComposer.compose("い", "い");
 
@@ -195,7 +195,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationHasMixtureOfAlphabetsWhenAddingAJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -223,7 +223,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationHasMixtureOfAlphabetsWhenAddingAJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -263,7 +263,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAcceptationCorrelationArrayIncludesMixtureOfAlphabetsWhenAddingAJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -300,7 +300,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAcceptationCorrelationArrayIncludesMixtureOfAlphabetsWhenAddingAJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -348,7 +348,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentWhenApplyingRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -372,7 +372,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAgentWhenComposingBunch() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
 
@@ -394,7 +394,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAgentWhenCopyingToTwoBunches() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -416,7 +416,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     default void checkAdd2ChainedAgents(boolean reversedAdditionOrder, boolean addExtraMiddleTargetBunch) {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -495,7 +495,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAcceptationInBunchWhenAddingAcceptationInFirstAgentSourceBunchForChainedAgents() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final ConceptId maleStudentConcept = manager.getNextAvailableConceptId();
@@ -523,7 +523,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     }
 
     default void checkAdd2ChainedAgentsFirstWithoutSource(boolean reversedAdditionOrder, boolean acceptationBeforeAgents) {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -591,7 +591,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     default void checkAddAgentWithDiffBunch(boolean addAgentBeforeAcceptations) {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -621,7 +621,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentWhenAddingAcceptationBeforeAgentWithDiffBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -643,7 +643,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchWhenAddingAcceptationAfterAgentWithDiffBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -673,8 +673,8 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         }
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> Add3ChainedAgentsResult<AgentId> add3ChainedAgents(
-            AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager,
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> Add3ChainedAgentsResult<AgentId> add3ChainedAgents(
+            AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager,
             AlphabetId alphabet, ImmutableSet<BunchId> sourceBunchSet, BunchId arVerbBunch, BunchId actionBunch,
             RuleId nominalizationRule, RuleId pluralRule) {
 
@@ -686,7 +686,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
         return new Add3ChainedAgentsResult<>(agent1Id, agent2Id, agent3Id);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> Add3ChainedAgentsResult<AgentId> add3ChainedAgents(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager,
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> Add3ChainedAgentsResult<AgentId> add3ChainedAgents(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager,
             AlphabetId alphabet, BunchId arVerbBunch, BunchId actionBunch,
             RuleId nominalizationRule, RuleId pluralRule) {
 
@@ -706,7 +706,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAgentWhenAdding3ChainedAgents() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId singConcept = manager.getNextAvailableConceptId();
@@ -749,7 +749,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testRemoveAgentRemovesDynamicAcceptations() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId studentAcceptation = obtainNewAcceptation(manager, alphabet, "alumno");
@@ -770,7 +770,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testRemoveAcceptationRemovesDynamicAcceptationsWhenAcceptationFromSourceBunch() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId studentAcceptation = obtainNewAcceptation(manager, alphabet, "alumno");
@@ -802,7 +802,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testRemoveAgentRemovesUnusedBunchSets() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId studentAcceptation = obtainNewAcceptation(manager, alphabet, "alumno");
@@ -832,7 +832,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testRemoveAgentWhenRemovingChainedAgent() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId singConcept = manager.getNextAvailableConceptId();
@@ -862,7 +862,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testRemoveAcceptationWithChainedAgent() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId singConcept = manager.getNextAvailableConceptId();
@@ -891,7 +891,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testRemoveAcceptationFromBunchWithBunchChainedAgent() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId singConcept = manager.getNextAvailableConceptId();
@@ -924,7 +924,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testReadAllMatchingBunchesForSingleMatching() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -948,7 +948,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testReadAllMatchingBunchesForMultipleMatching() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final BunchId verbErBunch = obtainNewBunch(manager, alphabet, "verbo er");
@@ -991,7 +991,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAcceptationCorrelationArrayForAcceptationWithRuleAgent() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId concept = manager.getNextAvailableConceptId();
@@ -1031,7 +1031,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testRemoveAcceptationWhenUnableToRemoveAcceptationsDueToTheyAreUniqueAgentSourceOrTargetBunch() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -1057,7 +1057,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAgentWhenMultipleAgentsTargetingSameBunch() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId verbAcc = obtainNewAcceptation(manager, alphabet, "desconfiar");
@@ -1072,7 +1072,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAgentWhenAddingAcceptationInBunchBefore() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId bedAcc = obtainNewAcceptation(manager, alphabet, "cama");
@@ -1095,7 +1095,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAcceptationInBunchWhenAddingAgentBefore() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId bedAcc = obtainNewAcceptation(manager, alphabet, "cama");
@@ -1118,7 +1118,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenUpdatingAgentTargetForNoChainedAgentWithoutRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1135,7 +1135,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenIncludingExtraTargetForNoChainedAgentWithoutRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1152,7 +1152,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingExtraTargetForNoChainedAgentWithoutRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1169,7 +1169,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenIncludingExtraTargetForNoChainedAgentWithRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final RuleId gerundRule = obtainNewRule(manager, alphabet, "gerund");
@@ -1192,7 +1192,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingExtraTargetForNoChainedAgentWithRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final RuleId gerundRule = obtainNewRule(manager, alphabet, "gerund");
@@ -1215,7 +1215,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenUpdatingAgentTargetForChainedAgentWithoutRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1236,7 +1236,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingAgentTargetFromSecondChainedAgent() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1258,7 +1258,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenIncludingAgentTargetToSecondChainedAgent() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1281,7 +1281,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenIncludingAgentSourceBunches() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1301,7 +1301,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingAgentSourceBunches() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1321,7 +1321,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenChangingAgentSourceBunches() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1343,7 +1343,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenIncludingExtraSourceBunch() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1370,7 +1370,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingOneSourceBunch() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1395,7 +1395,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenIncludingAgentDiffBunchMatchingSource() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1421,7 +1421,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingAgentDiffBunchMatchingSource() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1448,7 +1448,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenIncludingAgentDiffBunchNoMatchingSource() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1473,7 +1473,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingAgentDiffBunchNoMatchingSource() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1498,7 +1498,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenChangingAgentEndMatcherAndAdder() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1514,7 +1514,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenChangingAgentStartMatcherAndAdder() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         obtainNewAcceptation(manager, alphabet, "confiar");
@@ -1530,7 +1530,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenChangingRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1546,7 +1546,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenChangingAdder() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1561,7 +1561,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenChangingAdderAffectingMultipleAcceptations() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1579,7 +1579,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenChangingAdderAndRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1595,7 +1595,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenAddingAdderAndRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1615,7 +1615,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenAddingAdderAndRuleForMultipleTargetBunches() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1638,7 +1638,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingAdderAndRule() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1658,7 +1658,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAgentWhenRemovingAdderAndRuleForMultipleTargetBunches() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1676,7 +1676,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAcceptationCorrelationArrayWhenAcceptationWasMatchingAgentBeforeAndNotAfter() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1691,7 +1691,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAcceptationCorrelationArrayWhenAcceptationIsMatchingAgentAfterButNotBefore() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar (sin instrumentos)");
@@ -1706,7 +1706,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAcceptationCorrelationArrayWhenMatchingChainedAgentBefore() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -1724,7 +1724,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testUpdateAcceptationCorrelationArrayWhenMatchingChainedAgentAfter() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar (sin instrumentos)");
@@ -1741,7 +1741,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
 
     @Test
     default void testAddAcceptationInBunchWhenIncludingMatchingAcceptationInAgentSourceBunchWithJustEndAdderForAcceptationFromOtherLanguage() {
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(new MemoryDatabase());
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
 
@@ -1763,7 +1763,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testShareConceptAvoidsDuplicatedBunchSets() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId guyConcept = manager.getNextAvailableConceptId();
@@ -1792,7 +1792,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testShareConceptReusesBunchSet() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId guyConcept = manager.getNextAvailableConceptId();
@@ -1822,7 +1822,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testShareConceptAvoidsDuplicatedBunchInBunchSet() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId guyConcept = manager.getNextAvailableConceptId();
@@ -1853,7 +1853,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testShareConceptAvoidsDuplicatedRuledConceptsAndAcceptations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId jumpConcept = manager.getNextAvailableConceptId();
@@ -1913,7 +1913,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentWhenUpdatingRuleFromAlreadyUsedRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -1950,7 +1950,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentWhenAgentRuleToAlreadyUsedRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -1992,7 +1992,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentWhenUpdatingRuleBetweenUsedRules() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2044,7 +2044,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testShareConceptWhenLinkingRuleConcepts() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2091,7 +2091,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testShareConceptWhenLinkingRuleToNonRuleConcept() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2134,7 +2134,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentWhenChangingAdderInFirstChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2168,7 +2168,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentWhenChangingAdderInFirstChainedAgentWhenPickedSampleAcceptationForSecondIsOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId jaAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -2205,7 +2205,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testFindAcceptationAndRulesFromTextForStaticAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -2224,7 +2224,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testFindAcceptationAndRulesFromTextForDynamicAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId singAcceptation = obtainNewAcceptation(manager, alphabet, "cantar");
@@ -2252,7 +2252,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testReplaceConversionFromNonMatchingToMatchingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
         final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
@@ -2315,7 +2315,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testReplaceConversionFromMatchingToNonMatchingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
         final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
@@ -2382,7 +2382,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testReplaceConversionFromNonMatchingToMatchingAcceptationInChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
         final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
@@ -2460,7 +2460,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testReplaceConversionFromMatchingToNonMatchingAcceptationInChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
         final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
@@ -2523,7 +2523,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testReplaceConversionFromNonMatchingToMatchingAcceptationInNonRuleChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
         final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
@@ -2571,7 +2571,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testReplaceConversionFromMatchingToNonMatchingAcceptationInNonRuleChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId kana = manager.addLanguage("ja").mainAlphabet;
         final ImmutableMap<String, String> conversionMap = new ImmutableHashMap.Builder<String, String>()
@@ -2636,7 +2636,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationCreatesRuledAcceptationWithMultipleCorrelationForTaberu1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2675,7 +2675,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationCreatesRuledAcceptationWithMultipleCorrelationsForTaberu2() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2717,7 +2717,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationCreatesRuledAcceptationWithMultipleCorrelationsForTaberu3() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2758,7 +2758,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationCreatesRuledAcceptationWithMultipleCorrelationsForSuru1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2794,7 +2794,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationCreatesRuledAcceptationsWithMultipleCorrelationsForSuru2() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2833,7 +2833,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentCreatesRuledAcceptationWithMultipleCorrelationForTaberu1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2875,7 +2875,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentCreatesRuledAcceptationWithMultipleCorrelationsForTaberu2() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2921,7 +2921,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentCreatesRuledAcceptationWithMultipleCorrelationsForTaberu3() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -2966,7 +2966,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentCreatesRuledAcceptationWithMultipleCorrelationsForSuru1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3006,7 +3006,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentCreatesRuledAcceptationsWithMultipleCorrelationsForSuru2() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3049,7 +3049,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchCreatesRuledAcceptationsWithMultipleCorrelationsForTaberu1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3091,7 +3091,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchCreatesRuledAcceptationsWithMultipleCorrelationsForTaberu2() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3137,7 +3137,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchCreatesRuledAcceptationWithMultipleCorrelationsForTaberu3() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3182,7 +3182,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchCreatesRuledAcceptationWithMultipleCorrelationForSuru1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3222,7 +3222,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchCreatedRuledAcceptationWithMultipleCorrelationsForSuru2() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3265,7 +3265,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentCreatesRuledAcceptationWithMultipleCorrelationForTaberu1WhenChangingSourceBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3309,7 +3309,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentCreatesRuledAcceptationWithMultipleCorrelationsForTaberu2WhenChangingSourceBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3357,7 +3357,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentCreatesRuledAcceptationWithMultipleCorrelationsForTaberu3WhenChangingSourceBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3404,7 +3404,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentCreatesRuledAcceptationWithMultipleCorrelationsForSuru1WhenChangingSourceBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3446,7 +3446,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentCreatesRuledAcceptationsWithMultipleCorrelationsForSuru2WhenChangingSourceBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3491,7 +3491,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentIncludesMixtureOfAlphabetsForTaberu3AndSugiru1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3542,7 +3542,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentIncludesMixtureOfAlphabetsForTaberu3AndSugiru3() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3601,7 +3601,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentIncludesMixtureOfAlphabetsOnChangingSourceBunchForTaberu3AndSugiru1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3655,7 +3655,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentIncludesMixtureOfAlphabetsOnChangingSourceBunchForTaberu3AndSugiru3() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3717,7 +3717,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentIncludesMixtureOfAlphabetsOnChangingAdderForTaberu3AndSugiru1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3772,7 +3772,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentIncludesMixtureOfAlphabetsOnChangingAdderForTaberu3AndSugiru3() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3840,7 +3840,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchIncludesMixtureOfAlphabetsForTaberu3AndSugiru1() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3892,7 +3892,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAcceptationInBunchIncludesMixtureOfAlphabetsForTaberu3AndSugiru3() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -3952,7 +3952,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentWhenAddingATargetBunchThatIsAlreadyASourceBunchForAnotherAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -4042,7 +4042,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAlphabetAsConversionTargetWhenRuledAcceptationCannotBeConverted() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -4095,7 +4095,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentRejectsTheNewAgentIfItCreatesAnInfiniteLoopsOfItself() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -4125,7 +4125,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentRejectsItIfItCreatesAnInfiniteLoopsOfItself() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -4156,7 +4156,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testAddAgentRejectsTheNewAgentIfItCreatesAnInfiniteLoopWithAChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -4197,7 +4197,7 @@ interface AgentsManagerTest<ConceptId extends ConceptIdInterface, LanguageId ext
     @Test
     default void testUpdateAgentRejectsTheNewAgentIfItCreatesAnInfiniteLoopWithAChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+        final AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
