@@ -86,6 +86,7 @@ final class LangbookDbSchemaTest {
         expectedTables.add(Tables.bunchAcceptations);
         expectedTables.add(Tables.bunchSets);
         expectedTables.add(Tables.characterCompositions);
+        expectedTables.add(Tables.characterCompositionDefinitions);
         expectedTables.add(Tables.characterTokens);
         expectedTables.add(Tables.complementedConcepts);
         expectedTables.add(Tables.conceptCompositions);
@@ -125,6 +126,7 @@ final class LangbookDbSchemaTest {
     void testUpgradeDatabaseVersionFrom5To6() {
         final MutableSet<DbTable> expectedTables = MutableHashSet.empty();
         expectedTables.add(Tables.characterCompositions);
+        expectedTables.add(Tables.characterCompositionDefinitions);
         expectedTables.add(Tables.characterTokens);
         expectedTables.add(Tables.unicodeCharacters);
 
