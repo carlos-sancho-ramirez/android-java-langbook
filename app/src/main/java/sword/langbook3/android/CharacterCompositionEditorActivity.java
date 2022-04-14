@@ -221,13 +221,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
             final LangbookDbManager manager = DbManager.getInstance().getManager();
             final ConceptId concept = manager.conceptFromAcceptation(acceptation);
             _selectedTypeId = CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(concept);
-            if (manager.createCharacterCompositionDefinitionWithDefaultValues(_selectedTypeId)) {
-                CharacterCompositionDefinitionEditorActivity.open(this, _selectedTypeId);
-                updateSpinner();
-            }
-            else {
-                Toast.makeText(this, R.string.createCharacterCompositionDefinitionError, Toast.LENGTH_LONG).show();
-            }
+            CharacterCompositionDefinitionEditorActivity.open(this, _selectedTypeId);
         }
     }
 

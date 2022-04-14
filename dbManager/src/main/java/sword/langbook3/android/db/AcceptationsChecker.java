@@ -57,5 +57,13 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutableList<String> suggestCharacterTokens(String filterText);
     ImmutableList<SearchResult<CharacterId, Object>> searchCharacterTokens(String filterText, Function<String, String> textConverter);
     ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> getCharacterCompositionTypes(AlphabetId preferredAlphabet);
+
+    /**
+     * Return the character composition definition assigned to the given
+     * identifier, or null if nothing is assigned to it.
+     *
+     * @param id Identifier for the character composition definition to retrieve.
+     * @return The assigned definition, or null if nothing is assigned to the given identifier.
+     */
     CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id);
 }

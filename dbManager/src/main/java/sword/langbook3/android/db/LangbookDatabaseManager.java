@@ -58,7 +58,6 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;
 import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSymbolArray;
 import static sword.langbook3.android.db.LangbookDbInserter.insertUnicode;
-import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
@@ -3058,11 +3057,6 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         _db.update(query);
 
         return true;
-    }
-
-    @Override
-    public final boolean createCharacterCompositionDefinitionWithDefaultValues(CharacterCompositionTypeId typeId) {
-        return LangbookDbInserter.insertCharacterCompositionDefinition(_db, _characterCompositionTypeIdSetter, typeId, 0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, 0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT);
     }
 
     @Override

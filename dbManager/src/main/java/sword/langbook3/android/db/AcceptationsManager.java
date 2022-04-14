@@ -136,8 +136,6 @@ public interface AcceptationsManager<ConceptId, LanguageId, AlphabetId, Characte
      */
     boolean removeCharacterComposition(CharacterId characterId);
 
-    boolean createCharacterCompositionDefinitionWithDefaultValues(CharacterCompositionTypeId typeId);
-
     /**
      * Assigns the given definition to the given identifier.
      *

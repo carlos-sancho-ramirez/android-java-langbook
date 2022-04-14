@@ -247,6 +247,5 @@
     <string name="assignUnicodeError">Unable to assign unicode</string>
     <string name="mergeCharactersError">Unable to merge characters</string>
     <string name="addButtonText">Add</string>
-    <string name="createCharacterCompositionDefinitionError">Unable to create character composition definition for the selected acceptation</string>
     <string name="updateCharacterCompositionDefinitionError">Unable to update definition</string>
 </resources>

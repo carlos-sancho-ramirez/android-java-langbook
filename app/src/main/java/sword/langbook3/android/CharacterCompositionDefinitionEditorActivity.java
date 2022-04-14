@@ -21,6 +21,7 @@ import sword.langbook3.android.models.CharacterCompositionDefinitionAreaInterfac
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 
 import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class CharacterCompositionDefinitionEditorActivity extends Activity {
 
@@ -28,7 +29,8 @@ public final class CharacterCompositionDefinitionEditorActivity extends Activity
         String ID = "id";
     }
 
-    public static void open(Context context, CharacterCompositionTypeId id) {
+    public static void open(@NonNull Context context, @NonNull CharacterCompositionTypeId id) {
+        ensureNonNull(context, id);
         final Intent intent = new Intent(context, CharacterCompositionDefinitionEditorActivity.class);
         CharacterCompositionTypeIdBundler.writeAsIntentExtra(intent, ArgKeys.ID, id);
         context.startActivity(intent);
@@ -126,7 +128,12 @@ public final class CharacterCompositionDefinitionEditorActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.character_composition_definition_editor_activity);
 
-        final CharacterCompositionDefinitionRegister register = DbManager.getInstance().getManager().getCharacterCompositionDefinition(getCharacterCompositionTypeId());
+        CharacterCompositionDefinitionRegister register = DbManager.getInstance().getManager().getCharacterCompositionDefinition(getCharacterCompositionTypeId());
+        if (register == null) {
+            final CharacterCompositionDefinitionArea defaultArea = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT);
+            register = new CharacterCompositionDefinitionRegister(defaultArea, defaultArea);
+        }
+
         _editorView = findViewById(R.id.editorView);
         _editorView.setRegister(register);
 
