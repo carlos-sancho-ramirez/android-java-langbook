@@ -1,7 +1,6 @@
 package sword.langbook3.android.sdb;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Iterator;
 
 import sword.collections.ImmutableIntArraySet;
@@ -46,7 +45,7 @@ public final class DatabaseInflater {
 
     private final DbImporter.Database _db;
     private final ProgressListener _listener;
-    private final StreamedDatabaseReader _dbReader;
+    private final StreamedDatabaseReaderInterface _dbReader;
 
     /**
      * Prepares the reader with the given parameters.
@@ -54,15 +53,13 @@ public final class DatabaseInflater {
      * @param db It is assumed to be a database where all the tables and indexes has been
      *           initialized according to {@link sword.langbook3.android.db.LangbookDbSchema},
      *           but they are empty.
-     * @param is Input stream for the data to be decoded.
-     *           This input stream should not be in the first position of the file, but 20 bytes
-     *           after, skipping the header and hash.
+     * @param dbReader Reader for the file.
      * @param listener Optional callback to display in the UI the current state. This can be null.
      */
-    public DatabaseInflater(DbImporter.Database db, InputStream is, ProgressListener listener) {
+    public DatabaseInflater(DbImporter.Database db, StreamedDatabaseReaderInterface dbReader, ProgressListener listener) {
         _db = db;
         _listener = listener;
-        _dbReader = new StreamedDatabaseReader(db, is, (listener != null)? new Listener(listener, 0.25f) : null);
+        _dbReader = dbReader;
     }
 
     private void setProgress(float progress, String message) {
@@ -994,12 +991,12 @@ public final class DatabaseInflater {
         insertSentences(result.spans, result.accIdMap, result.agentAcceptationPairs, result.agentRules);
     }
 
-    private static final class Listener implements ProgressListener {
+    public static final class Listener implements ProgressListener {
 
         private final ProgressListener _listener;
         private final float _fraction;
 
-        Listener(ProgressListener listener, float fraction) {
+        public Listener(ProgressListener listener, float fraction) {
             if (fraction <= 0.0f || fraction >= 1.0f) {
                 throw new IllegalArgumentException();
             }

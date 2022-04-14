@@ -46,7 +46,6 @@ import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
 import sword.collections.SortFunction;
-import sword.database.DbExporter;
 import sword.database.DbExporter.Database;
 import sword.database.DbQuery;
 import sword.database.DbResult;
@@ -58,12 +57,10 @@ import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
-import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
 import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.characterCompositionCoordinateTable;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 
-public final class StreamedDatabaseWriter {
+public final class StreamedDatabase0Writer {
 
     private final Database _db;
     private final OutputStreamWrapper _obs;
@@ -164,7 +161,7 @@ public final class StreamedDatabaseWriter {
         }
     }
 
-    public StreamedDatabaseWriter(Database db, OutputStream os, ProgressListener listener) {
+    public StreamedDatabase0Writer(Database db, OutputStream os, ProgressListener listener) {
         _db = db;
         _obs = new OutputStreamWrapper(os);
         _listener = listener;
@@ -790,51 +787,6 @@ public final class StreamedDatabaseWriter {
         }
     }
 
-    private void writeCharacterCompositionDefinitions(ImmutableIntPairMap conceptIdMap) throws IOException {
-        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
-        final DbQuery query = new DbQuery.Builder(table).select(
-                table.getIdColumnIndex(),
-                table.getFirstXColumnIndex(),
-                table.getFirstYColumnIndex(),
-                table.getFirstWidthColumnIndex(),
-                table.getFirstHeightColumnIndex(),
-                table.getSecondXColumnIndex(),
-                table.getSecondYColumnIndex(),
-                table.getSecondWidthColumnIndex(),
-                table.getSecondHeightColumnIndex());
-
-        final MutableIntKeyMap<CharacterCompositionDefinitionRegister> definitions = MutableIntKeyMap.empty();
-        try (DbResult result = _db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                definitions.put(conceptIdMap.get(row.get(0).toInt()), new CharacterCompositionDefinitionRegister(
-                        row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt(), row.get(4).toInt(),
-                        row.get(5).toInt(), row.get(6).toInt(), row.get(7).toInt(), row.get(8).toInt()));
-            }
-        }
-
-        final int definitionsCount = definitions.size();
-        // This number should never be more than conceptIdMap.size(), but it will be normally really small.
-        // TODO: Restrict the range of this number to avoid invalid numbers
-        _obs.writeHuffmanSymbol(naturalNumberTable, definitions.size());
-
-        int firstValidFileConceptId = 1;
-        for (int definitionIndex = 0; definitionIndex < definitionsCount; definitionIndex++) {
-            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(firstValidFileConceptId, conceptIdMap.size());
-            final int fileConceptId = definitions.keyAt(definitionIndex);
-            _obs.writeHuffmanSymbol(conceptTable, fileConceptId);
-
-            final CharacterCompositionDefinitionRegister register = definitions.valueAt(definitionIndex);
-            writeCharacterCompositionDefinitionDimension(register.firstX, register.firstWidth);
-            writeCharacterCompositionDefinitionDimension(register.firstY, register.firstHeight);
-            writeCharacterCompositionDefinitionDimension(register.secondX, register.secondWidth);
-            // TODO: As it is not possible to have repeated definitions within the same table. secondHeight should exclude all possibilities where all other parameters match, if any.
-            writeCharacterCompositionDefinitionDimension(register.secondY, register.secondHeight);
-
-            firstValidFileConceptId = fileConceptId + 1;
-        }
-    }
-
     private ImmutableIntKeyMap<ImmutableIntSet> getBunchSets(ImmutableIntPairMap conceptIdMap) {
         final LangbookDbSchema.BunchSetsTable table = LangbookDbSchema.Tables.bunchSets;
         final DbQuery query = new DbQuery.Builder(table).select(
@@ -857,14 +809,14 @@ public final class StreamedDatabaseWriter {
         return bunchSets.toImmutable().filterNot(set -> set.contains(-1));
     }
 
-    private static ImmutableIntSet getConceptsInAcceptations(DbExporter.Database db) {
+    private static ImmutableIntSet getConceptsInAcceptations(Database db) {
         final LangbookDbSchema.AcceptationsTable table = LangbookDbSchema.Tables.acceptations;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getConceptColumnIndex());
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableIntSet getConceptsInRuledConcepts(DbExporter.Database db) {
+    private static ImmutableIntSet getConceptsInRuledConcepts(Database db) {
         final LangbookDbSchema.RuledConceptsTable table = LangbookDbSchema.Tables.ruledConcepts;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getIdColumnIndex(),
@@ -884,7 +836,7 @@ public final class StreamedDatabaseWriter {
         return builder.build();
     }
 
-    private static ImmutableIntSet getConceptsFromAlphabets(DbExporter.Database db) {
+    private static ImmutableIntSet getConceptsFromAlphabets(Database db) {
         final LangbookDbSchema.AlphabetsTable table = LangbookDbSchema.Tables.alphabets;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getIdColumnIndex(),
@@ -902,7 +854,7 @@ public final class StreamedDatabaseWriter {
         return builder.build();
     }
 
-    private static ImmutableIntSet getConceptsInComplementedConcepts(DbExporter.Database db) {
+    private static ImmutableIntSet getConceptsInComplementedConcepts(Database db) {
         final LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getIdColumnIndex(),
@@ -926,14 +878,14 @@ public final class StreamedDatabaseWriter {
         return builder.build();
     }
 
-    private static ImmutableIntSet getConceptsInConceptCompositions(DbExporter.Database db) {
+    private static ImmutableIntSet getConceptsInConceptCompositions(Database db) {
         final LangbookDbSchema.ConceptCompositionsTable table = LangbookDbSchema.Tables.conceptCompositions;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getItemColumnIndex());
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
     }
 
-    private static ImmutableIntSet getUsedConcepts(DbExporter.Database db) {
+    private static ImmutableIntSet getUsedConcepts(Database db) {
         final ImmutableIntSet set = getConceptsInAcceptations(db)
                 .addAll(getConceptsInRuledConcepts(db))
                 .addAll(getConceptsFromAlphabets(db))
@@ -1638,7 +1590,7 @@ public final class StreamedDatabaseWriter {
             }
         }
 
-        final MutableSet<ImmutableIntSet> meaningBuilder = MutableSortedSet.empty(StreamedDatabaseWriter::sentenceSetLessThan);
+        final MutableSet<ImmutableIntSet> meaningBuilder = MutableSortedSet.empty(StreamedDatabase0Writer::sentenceSetLessThan);
         for (ImmutableIntSet set : map.toImmutable().filter(set -> set.size() >= 2)) {
             meaningBuilder.add(set);
         }
@@ -1659,37 +1611,6 @@ public final class StreamedDatabaseWriter {
                 previousMin = set.min();
             }
         }
-    }
-
-    private static final class CharacterCompositionDefinitionRegister {
-        final int firstX;
-        final int firstY;
-        final int firstWidth;
-        final int firstHeight;
-        final int secondX;
-        final int secondY;
-        final int secondWidth;
-        final int secondHeight;
-
-        CharacterCompositionDefinitionRegister(
-                int firstX, int firstY, int firstWidth, int firstHeight,
-                int secondX, int secondY, int secondWidth, int secondHeight) {
-            this.firstX = firstX;
-            this.firstY = firstY;
-            this.firstWidth = firstWidth;
-            this.firstHeight = firstHeight;
-            this.secondX = secondX;
-            this.secondY = secondY;
-            this.secondWidth = secondWidth;
-            this.secondHeight = secondHeight;
-        }
-    }
-
-    private void writeCharacterCompositionDefinitionDimension(int pos, int length) throws IOException {
-        _obs.writeHuffmanSymbol(characterCompositionCoordinateTable, pos);
-
-        final RangedIntegerHuffmanTable sideTable = new RangedIntegerHuffmanTable(1, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - pos);
-        _obs.writeHuffmanSymbol(sideTable, length);
     }
 
     public void write() throws IOException {
@@ -1742,9 +1663,6 @@ public final class StreamedDatabaseWriter {
 
             setProgress(0.6f, "Writing complemented concepts");
             writeComplementedConcepts(conceptIdMap);
-
-            setProgress(0.65f, "Writing character compositions");
-            writeCharacterCompositionDefinitions(conceptIdMap);
 
             setProgress(0.7f, "Writing bunch acceptations");
             writeBunchAcceptations(conceptIdMap, accIdMap);

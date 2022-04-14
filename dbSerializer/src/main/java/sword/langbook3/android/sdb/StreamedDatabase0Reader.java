@@ -39,7 +39,6 @@ import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.database.DbExporter;
-import sword.database.DbImporter;
 import sword.database.DbImporter.Database;
 import sword.database.DbInsertQuery;
 import sword.database.DbInserter;
@@ -59,7 +58,7 @@ import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRA
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
 
-public final class StreamedDatabaseReader implements StreamedDatabaseReaderInterface {
+public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInterface {
 
     static final NaturalNumberHuffmanTable naturalNumberTable = new NaturalNumberHuffmanTable(8);
     static final RangedIntegerHuffmanTable characterCompositionCoordinateTable = new RangedIntegerHuffmanTable(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - 1);
@@ -135,7 +134,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
     }
 
     private static int getMaxConceptInComplementedConcepts(DbExporter.Database db) {
-        LangbookDbSchema.ComplementedConceptsTable table = LangbookDbSchema.Tables.complementedConcepts;
+        LangbookDbSchema.ComplementedConceptsTable table = Tables.complementedConcepts;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex(), table.getBaseColumnIndex(), table.getComplementColumnIndex());
 
@@ -157,7 +156,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
     }
 
     private static int getMaxConceptInConceptCompositions(DbExporter.Database db) {
-        LangbookDbSchema.ConceptCompositionsTable table = LangbookDbSchema.Tables.conceptCompositions;
+        LangbookDbSchema.ConceptCompositionsTable table = Tables.conceptCompositions;
         final DbQuery query = new DbQuery.Builder(table)
                 .select(table.getComposedColumnIndex(), table.getItemColumnIndex());
 
@@ -178,7 +177,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
     }
 
     private static int getMaxConceptInSentences(DbExporter.Database db) {
-        LangbookDbSchema.SentencesTable table = LangbookDbSchema.Tables.sentences;
+        LangbookDbSchema.SentencesTable table = Tables.sentences;
         return getColumnMax(db, table, table.getConceptColumnIndex());
     }
 
@@ -409,7 +408,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         return null;
     }
 
-    private static Integer findCorrelationArray(DbImporter.Database db, IntList array) {
+    private static Integer findCorrelationArray(Database db, IntList array) {
         if (array.isEmpty()) {
             return EMPTY_CORRELATION_ARRAY_ID;
         }
@@ -596,27 +595,6 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         }
     }
 
-    static void insertCharacterCompositionDefinition(DbInserter db, int id,
-            int firstX, int firstY, int firstWidth, int firstHeight,
-            int secondX, int secondY, int secondWidth, int secondHeight) {
-        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
-        final DbInsertQuery query = new DbInsertQuery.Builder(table)
-                .put(table.getIdColumnIndex(), id)
-                .put(table.getFirstXColumnIndex(), firstX)
-                .put(table.getFirstYColumnIndex(), firstY)
-                .put(table.getFirstWidthColumnIndex(), firstWidth)
-                .put(table.getFirstHeightColumnIndex(), firstHeight)
-                .put(table.getSecondXColumnIndex(), secondX)
-                .put(table.getSecondYColumnIndex(), secondY)
-                .put(table.getSecondWidthColumnIndex(), secondWidth)
-                .put(table.getSecondHeightColumnIndex(), secondHeight)
-                .build();
-
-        if (db.insert(query) == null) {
-            throw new AssertionError();
-        }
-    }
-
     private static void insertBunchSet(DbInserter db, int setId, IntSet bunches) {
         if (bunches.isEmpty()) {
             throw new IllegalArgumentException();
@@ -661,7 +639,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         db.insert(query);
     }
 
-    private static int obtainConceptComposition(DbImporter.Database db, ImmutableIntSet concepts) {
+    private static int obtainConceptComposition(Database db, ImmutableIntSet concepts) {
         final Integer compositionConcept = findConceptComposition(db, concepts);
         if (compositionConcept == null) {
             int newCompositionConcept = getMaxConcept(db) + 1;
@@ -679,11 +657,11 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         return compositionConcept;
     }
 
-    private static void addDefinition(DbImporter.Database db, int baseConcept, int concept, ImmutableIntSet complements) {
+    private static void addDefinition(Database db, int baseConcept, int concept, ImmutableIntSet complements) {
         insertComplementedConcept(db, baseConcept, concept, obtainConceptComposition(db, complements));
     }
 
-    static int obtainSymbolArray(DbImporter.Database db, String str) {
+    static int obtainSymbolArray(Database db, String str) {
         Integer id = insertSymbolArray(db, str);
         if (id != null) {
             return id;
@@ -697,7 +675,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         return id;
     }
 
-    static int obtainCorrelation(DbImporter.Database db, IntPairMap correlation, IntSupplier newIdSupplier) {
+    static int obtainCorrelation(Database db, IntPairMap correlation, IntSupplier newIdSupplier) {
         final Integer foundId = findCorrelation(db, correlation);
         if (foundId != null) {
             return foundId;
@@ -708,7 +686,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         return newCorrelationId;
     }
 
-    static int obtainCorrelationArray(DbImporter.Database db, IntList correlations, IntSupplier newIdSupplier) {
+    static int obtainCorrelationArray(Database db, IntList correlations, IntSupplier newIdSupplier) {
         final Integer foundId = findCorrelationArray(db, correlations);
         if (foundId != null) {
             return foundId;
@@ -727,14 +705,14 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
      * Prepares the reader with the given parameters.
      *
      * @param db It is assumed to be a database where all the tables and indexes has been
-     *           initialized according to the {@link sword.langbook3.android.db.LangbookDbSchema},
+     *           initialized according to the {@link LangbookDbSchema},
      *           but they are empty.
      * @param is Input stream for the file to be read.
      *           This input stream should not be in the first position of the file, but 20 bytes
      *           after, skipping the header and hash.
      * @param listener Optional callback to display in the UI the current state. This can be null.
      */
-    public StreamedDatabaseReader(Database db, InputStream is, ProgressListener listener) {
+    public StreamedDatabase0Reader(Database db, InputStream is, ProgressListener listener) {
         _db = db;
         _is = is;
         _listener = listener;
@@ -1078,31 +1056,6 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         }
     }
 
-    private void readCharacterCompositionDefinitions(InputStreamWrapper ibs, ImmutableIntRange validConcepts) throws IOException {
-        final int definitionsCount = ibs.readHuffmanSymbol(naturalNumberTable);
-        int firstValidConcept = validConcepts.min();
-        for (int definitionIndex = 0; definitionIndex < definitionsCount; definitionIndex++) {
-            final RangedIntegerHuffmanTable conceptTable = new RangedIntegerHuffmanTable(firstValidConcept, validConcepts.max());
-            final int definitionId = ibs.readHuffmanSymbol(conceptTable);
-
-            final int firstX = ibs.readHuffmanSymbol(characterCompositionCoordinateTable);
-            final int firstWidth = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(1, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - firstX));
-
-            final int firstY = ibs.readHuffmanSymbol(characterCompositionCoordinateTable);
-            final int firstHeight = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(1, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - firstY));
-
-            final int secondX = ibs.readHuffmanSymbol(characterCompositionCoordinateTable);
-            final int secondWidth = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(1, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - secondX));
-
-            final int secondY = ibs.readHuffmanSymbol(characterCompositionCoordinateTable);
-            final int secondHeight = ibs.readHuffmanSymbol(new RangedIntegerHuffmanTable(1, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - secondY));
-
-            insertCharacterCompositionDefinition(_db, definitionId, firstX, firstY, firstWidth, firstHeight, secondX, secondY, secondWidth, secondHeight);
-
-            firstValidConcept = definitionId + 1;
-        }
-    }
-
     private void readBunchAcceptations(InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final NatDecoder natDecoder = new NatDecoder(ibs);
@@ -1128,8 +1081,8 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
             return ImmutableIntKeyMap.empty();
         }
 
-        final LangbookDbSchema.CorrelationsTable table = LangbookDbSchema.Tables.correlations;
-        final LangbookDbSchema.SymbolArraysTable symbolArrays = LangbookDbSchema.Tables.symbolArrays;
+        final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = Tables.symbolArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .join(symbolArrays, table.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
                 .where(table.getCorrelationIdColumnIndex(), correlationId)
@@ -1151,7 +1104,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
             return ImmutableIntList.empty();
         }
 
-        final LangbookDbSchema.CorrelationArraysTable correlationArrays = LangbookDbSchema.Tables.correlationArrays;
+        final LangbookDbSchema.CorrelationArraysTable correlationArrays = Tables.correlationArrays;
         final DbQuery query = new DbQuery.Builder(correlationArrays)
                 .where(correlationArrays.getArrayIdColumnIndex(), arrayId)
                 .orderBy(correlationArrays.getArrayPositionColumnIndex())
@@ -1176,12 +1129,12 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
             int minSource = validConcepts.min();
             int minDiff = validConcepts.min();
             final SyncCacheIntValueMap<ImmutableIntSet> insertedBunchSets = new SyncCacheIntValueMap<>(new IntResultFunction<ImmutableIntSet>() {
-                private int lastAssignedKey = LangbookDbSchema.Tables.bunchSets.nullReference();
+                private int lastAssignedKey = Tables.bunchSets.nullReference();
 
                 @Override
                 public int apply(ImmutableIntSet bunchSet) {
                     if (bunchSet.isEmpty()) {
-                        return LangbookDbSchema.Tables.bunchSets.nullReference();
+                        return Tables.bunchSets.nullReference();
                     }
                     else {
                         insertBunchSet(_db, ++lastAssignedKey, bunchSet);
@@ -1489,10 +1442,6 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
                 // Import bunchConcepts
                 setProgress(0.6f, "Reading bunch concepts");
                 readComplementedConcepts(ibs, validConcepts);
-
-                // Import bunchConcepts
-                setProgress(0.65f, "Reading character composition definitions");
-                readCharacterCompositionDefinitions(ibs, validConcepts);
 
                 // Import bunchAcceptations
                 setProgress(0.7f, "Reading bunch acceptations");

@@ -10,6 +10,9 @@ import java.io.InputStream;
 import sword.database.DbImporter;
 import sword.langbook3.android.sdb.DatabaseInflater;
 import sword.langbook3.android.sdb.ProgressListener;
+import sword.langbook3.android.sdb.StreamedDatabase0Reader;
+import sword.langbook3.android.sdb.StreamedDatabaseReader;
+import sword.langbook3.android.sdb.StreamedDatabaseReaderInterface;
 
 public final class DatabaseImporter implements DbImporter {
 
@@ -32,8 +35,20 @@ public final class DatabaseImporter implements DbImporter {
                     throw new UnableToImportException();
                 }
 
+                final int version = is.read();
                 final BufferedInputStream bis = new BufferedInputStream(is, 4096);
-                final DatabaseInflater reader = new DatabaseInflater(db, bis, _listener);
+                final StreamedDatabaseReaderInterface dbReader;
+                if (version == 0) {
+                    dbReader = new StreamedDatabase0Reader(db, bis, (_listener != null)? new DatabaseInflater.Listener(_listener, 0.25f) : null);
+                }
+                else if (version == 1) {
+                    dbReader = new StreamedDatabaseReader(db, bis, (_listener != null)? new DatabaseInflater.Listener(_listener, 0.25f) : null);
+                }
+                else {
+                    throw new UnableToImportException();
+                }
+
+                final DatabaseInflater reader = new DatabaseInflater(db, dbReader, _listener);
                 reader.read();
             }
         }

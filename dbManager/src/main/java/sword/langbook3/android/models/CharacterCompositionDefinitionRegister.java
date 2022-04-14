@@ -13,4 +13,23 @@ public final class CharacterCompositionDefinitionRegister {
         this.first = first;
         this.second = second;
     }
+
+    @Override
+    public int hashCode() {
+        return first.hashCode() * 41 + second.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof CharacterCompositionDefinitionRegister)) {
+            return false;
+        }
+
+        final CharacterCompositionDefinitionRegister that = (CharacterCompositionDefinitionRegister) other;
+        return first.equals(that.first) && second.equals(that.second);
+    }
 }

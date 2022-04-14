@@ -42,6 +42,25 @@ public final class CharacterCompositionDefinitionArea implements CharacterCompos
         return height;
     }
 
+    @Override
+    public int hashCode() {
+        return width * height;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof CharacterCompositionDefinitionArea)) {
+            return false;
+        }
+
+        final CharacterCompositionDefinitionArea that = (CharacterCompositionDefinitionArea) other;
+        return x == that.x && y == that.y && width == that.width && height == that.height;
+    }
+
     public static CharacterCompositionDefinitionArea cloneFrom(CharacterCompositionDefinitionAreaInterface area) {
         return new CharacterCompositionDefinitionArea(area.getX(), area.getY(), area.getWidth(), area.getHeight());
     }
