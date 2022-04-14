@@ -11,7 +11,9 @@ import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.collections.SizableTestUtils.assertSize;
 import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
@@ -32,6 +34,34 @@ import static sword.langbook3.android.sdb.AcceptationsSerializer0Test.addSimpleA
 public interface AcceptationsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> extends AcceptationsSerializer0Test<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> {
 
     CharacterCompositionTypeId conceptAsCharacterCompositionTypeId(ConceptId conceptId);
+
+    @Test
+    default void testAddAcceptationAlsoIncludeCharacters() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+
+        final AlphabetId inAlphabet = inManager.addLanguage("es").mainAlphabet;
+        final ConceptId inConcept = inManager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(inManager, inAlphabet, inConcept, "aBc"));
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+
+        final CharacterId aChar = outManager.findCharacter('a');
+        assertNotNull(aChar);
+
+        final CharacterId bChar = outManager.findCharacter('B');
+        assertNotNull(bChar);
+        assertNotEquals(aChar, bChar);
+
+        final CharacterId cChar = outManager.findCharacter('c');
+        assertNotNull(cChar);
+        assertNotEquals(aChar, cChar);
+        assertNotEquals(bChar, cChar);
+
+        assertNull(outManager.findCharacter('b'));
+        assertNull(outManager.findCharacter('d'));
+    }
 
     @Test
     default void testUpdateCharacterCompositionDefinition() {
