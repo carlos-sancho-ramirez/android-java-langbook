@@ -55,6 +55,7 @@ import sword.langbook3.android.models.DerivedAcceptationsReaderResult;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
 import sword.langbook3.android.models.IdTextPairResult;
+import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
 import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.MorphologyReaderResult;
 import sword.langbook3.android.models.MorphologyResult;
@@ -4436,7 +4437,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> getCharacterCompositionTypes(AlphabetId preferredAlphabet) {
+    public ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> getCharacterCompositionTypes(AlphabetId preferredAlphabet) {
         final LangbookDbSchema.CharacterCompositionDefinitionsTable definitions = Tables.characterCompositionDefinitions;
         final LangbookDbSchema.AcceptationsTable acceptations = Tables.acceptations;
         final LangbookDbSchema.StringQueriesTable strings = Tables.stringQueries;
@@ -4466,7 +4467,11 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         }
 
         return definitionsMap.entries()
-                .map(entry -> new IdentifiableResult<>(_characterCompositionTypeIdSetter.getKeyFromInt(entry.key()), entry.value()))
+                .map(entry -> {
+                    final CharacterCompositionTypeId typeId = _characterCompositionTypeIdSetter.getKeyFromInt(entry.key());
+                    final CharacterCompositionDefinitionRegister register = getCharacterCompositionDefinition(typeId);
+                    return new IdentifiableCharacterCompositionResult<>(typeId, entry.value(), register);
+                })
                 .toImmutable();
     }
 }

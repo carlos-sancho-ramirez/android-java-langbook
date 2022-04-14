@@ -26,10 +26,11 @@ import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterCompositionPart;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
-import sword.langbook3.android.models.IdentifiableResult;
+import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
 
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 
@@ -74,7 +75,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
     }
 
     private void updateSpinner() {
-        final ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> compositionTypes = DbManager.getInstance().getManager().getCharacterCompositionTypes(_preferredAlphabet);
+        final ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> compositionTypes = DbManager.getInstance().getManager().getCharacterCompositionTypes(_preferredAlphabet);
         _compositionTypeSpinner.setAdapter(new CompositionTypesAdapter(compositionTypes));
         final int index = compositionTypes.indexWhere(result -> result.id.equals(_selectedTypeId));
 
@@ -315,10 +316,10 @@ public final class CharacterCompositionEditorActivity extends Activity implement
 
     private static final class CompositionTypesAdapter extends BaseAdapter {
 
-        private final ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> _entries;
+        private final ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> _entries;
         private LayoutInflater _inflater;
 
-        CompositionTypesAdapter(ImmutableList<IdentifiableResult<CharacterCompositionTypeId>> entries) {
+        CompositionTypesAdapter(ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> entries) {
             _entries = entries;
         }
 
@@ -328,7 +329,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         }
 
         @Override
-        public IdentifiableResult<CharacterCompositionTypeId> getItem(int position) {
+        public IdentifiableCharacterCompositionResult<CharacterCompositionTypeId> getItem(int position) {
             return _entries.valueAt(position);
         }
 
@@ -347,7 +348,14 @@ public final class CharacterCompositionEditorActivity extends Activity implement
                 view = _inflater.inflate(R.layout.character_composition_definition_entry, parent, false);
             }
 
-            view.<TextView>findViewById(R.id.text).setText(_entries.valueAt(position).text);
+            final IdentifiableCharacterCompositionResult<CharacterCompositionTypeId> entry = _entries.valueAt(position);
+            view.<TextView>findViewById(R.id.text).setText(entry.text);
+
+            final CharacterCompositionDefinitionRegister register = entry.register;
+            final CharacterCompositionDefinitionDrawable drawable = new CharacterCompositionDefinitionDrawable();
+            drawable.setRegister(register);
+            view.findViewById(R.id.drawableHolder).setBackground(drawable);
+
             return view;
         }
     }

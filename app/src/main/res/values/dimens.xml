@@ -47,4 +47,6 @@
     <dimen name="acceptationDetailsCharacterCompositionDefinitionPadding">8dp</dimen>
     <dimen name="characterCompositionDefinitionEditorActivityAreaPadding">4dp</dimen>
     <dimen name="characterCompositionDefinitionEditorActivityAreaHeaderTextSize">16sp</dimen>
+    <dimen name="characterCompositionEditorDefinitionDrawableSide">26dp</dimen>
+    <dimen name="characterCompositionEditorDefinitionDrawableMargin">4dp</dimen>
 </resources>
