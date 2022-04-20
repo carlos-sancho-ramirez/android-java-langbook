@@ -33,7 +33,10 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.ImmutableSortedSet;
 import sword.collections.IntKeyMap;
+import sword.collections.IntKeyMapGetter;
+import sword.collections.IntList;
 import sword.collections.IntPairMap;
+import sword.collections.IntPairMapGetter;
 import sword.collections.IntSet;
 import sword.collections.List;
 import sword.collections.MutableHashSet;
@@ -45,7 +48,9 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
+import sword.collections.Set;
 import sword.collections.SortFunction;
+import sword.collections.UnmappedKeyException;
 import sword.database.DbExporter;
 import sword.database.DbExporter.Database;
 import sword.database.DbQuery;
@@ -64,6 +69,13 @@ import static sword.langbook3.android.sdb.StreamedDatabaseReader.characterCompos
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
 
 public final class StreamedDatabaseWriter {
+
+    private static final int CHARACTER_COMPOSITION_TABLE_GRANULARITY = 64;
+
+    private static int suitableCharacterCompositionFileIdsTableLength(int currentSize, int newSize) {
+        int s = ((newSize + CHARACTER_COMPOSITION_TABLE_GRANULARITY - 1) / CHARACTER_COMPOSITION_TABLE_GRANULARITY) * CHARACTER_COMPOSITION_TABLE_GRANULARITY;
+        return (s > 0)? s : CHARACTER_COMPOSITION_TABLE_GRANULARITY;
+    }
 
     private final Database _db;
     private final OutputStreamWrapper _obs;
@@ -188,14 +200,16 @@ public final class StreamedDatabaseWriter {
     private static final class SymbolArrayWriterResult {
         final ImmutableIntPairMap idMap;
         final ImmutableIntPairMap lengths;
+        final ImmutableSet<Character> characters;
 
-        SymbolArrayWriterResult(ImmutableIntPairMap idMap, ImmutableIntPairMap lengths) {
+        SymbolArrayWriterResult(ImmutableIntPairMap idMap, ImmutableIntPairMap lengths, ImmutableSet<Character> characters) {
             if (!idMap.keySet().equalSet(lengths.keySet())) {
                 throw new IllegalArgumentException();
             }
 
             this.idMap = idMap;
             this.lengths = lengths;
+            this.characters = characters;
         }
     }
 
@@ -230,7 +244,7 @@ public final class StreamedDatabaseWriter {
 
         _obs.writeHuffmanSymbol(naturalNumberTable, length);
         if (length == 0) {
-            return new SymbolArrayWriterResult(ImmutableIntPairMap.empty(), ImmutableIntPairMap.empty());
+            return new SymbolArrayWriterResult(ImmutableIntPairMap.empty(), ImmutableIntPairMap.empty(), ImmutableHashSet.empty());
         }
         else {
             final DefinedHuffmanTable<Character> charHuffmanTable = DefinedHuffmanTable.withFrequencies(charFrequency, (a, b) -> a < b);
@@ -265,7 +279,7 @@ public final class StreamedDatabaseWriter {
                 }
             }
 
-            return new SymbolArrayWriterResult(idMapBuilder.build(), lengthMapBuilder.build());
+            return new SymbolArrayWriterResult(idMapBuilder.build(), lengthMapBuilder.build(), charFrequency.keySet().toImmutable());
         }
     }
 
@@ -790,7 +804,7 @@ public final class StreamedDatabaseWriter {
         }
     }
 
-    private void writeCharacterCompositionDefinitions(ImmutableIntPairMap conceptIdMap) throws IOException {
+    private MutableIntList writeCharacterCompositionDefinitions(ImmutableIntPairMap conceptIdMap) throws IOException {
         final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
         final DbQuery query = new DbQuery.Builder(table).select(
                 table.getIdColumnIndex(),
@@ -803,11 +817,14 @@ public final class StreamedDatabaseWriter {
                 table.getSecondWidthColumnIndex(),
                 table.getSecondHeightColumnIndex());
 
+        final MutableIntList definitionDbIds = MutableIntList.empty();
         final MutableIntKeyMap<CharacterCompositionDefinitionRegister> definitions = MutableIntKeyMap.empty();
         try (DbResult result = _db.select(query)) {
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
-                definitions.put(conceptIdMap.get(row.get(0).toInt()), new CharacterCompositionDefinitionRegister(
+                final int dbId = row.get(0).toInt();
+                definitionDbIds.append(dbId);
+                definitions.put(conceptIdMap.get(dbId), new CharacterCompositionDefinitionRegister(
                         row.get(1).toInt(), row.get(2).toInt(), row.get(3).toInt(), row.get(4).toInt(),
                         row.get(5).toInt(), row.get(6).toInt(), row.get(7).toInt(), row.get(8).toInt()));
             }
@@ -832,6 +849,136 @@ public final class StreamedDatabaseWriter {
             writeCharacterCompositionDefinitionDimension(register.secondY, register.secondHeight);
 
             firstValidFileConceptId = fileConceptId + 1;
+        }
+
+        return definitionDbIds;
+    }
+
+    private static final class CharacterCompositionFileIdsTableEntry {
+        final int first;
+        final int second;
+        final int typeIndex;
+
+        CharacterCompositionFileIdsTableEntry(int first, int second, int typeIndex) {
+            this.first = first;
+            this.second = second;
+            this.typeIndex = typeIndex;
+        }
+    }
+
+    private static final class CharacterCompositionCharConverter implements IntPairMapGetter {
+
+        private final IntKeyMapGetter<Character> _charConverter;
+        private final Set<Character> _characters;
+        private final Set<Character> _extraCharacters;
+
+        CharacterCompositionCharConverter(IntKeyMapGetter<Character> charConverter, Set<Character> characters, Set<Character> extraCharacters) {
+            _charConverter = charConverter;
+            _characters = characters;
+            _extraCharacters = extraCharacters;
+        }
+
+        @Override
+        public int get(int key) throws UnmappedKeyException {
+            final char converted = _charConverter.get(key);
+            int thisCharIndex = _characters.indexOf(converted);
+            if (thisCharIndex < 0) {
+                thisCharIndex = _extraCharacters.indexOf(converted);
+                if (thisCharIndex < 0) {
+                    throw new AssertionError();
+                }
+                thisCharIndex += _characters.size();
+            }
+
+            return thisCharIndex;
+        }
+    }
+
+    private void writeCharacterCompositions(ImmutableSet<Character> characters, IntList definitionDbIds) throws IOException {
+        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
+        final DbQuery query = new DbQuery.Builder(table)
+                .select(
+                        table.getIdColumnIndex(),
+                        table.getFirstCharacterColumnIndex(),
+                        table.getSecondCharacterColumnIndex(),
+                        table.getCompositionTypeColumnIndex());
+
+        final MutableIntKeyMap<Character> rawCharConversion = MutableIntKeyMap.empty();
+        final SyncCacheIntKeyNonNullValueMap<Character> charConverter = new SyncCacheIntKeyNonNullValueMap<>(rawCharConversion, id -> {
+            final LangbookDbSchema.UnicodeCharactersTable t = LangbookDbSchema.Tables.unicodeCharacters;
+            final DbQuery q = new DbQuery.Builder(t)
+                    .where(t.getIdColumnIndex(), id)
+                    .select(t.getUnicodeColumnIndex());
+
+            try (DbResult dbResult = _db.select(q)) {
+                return (char) dbResult.next().get(0).toInt();
+            }
+        });
+
+        final MutableIntKeyMap<CharacterCompositionFileIdsTableEntry> compositions = MutableIntKeyMap.empty(StreamedDatabaseWriter::suitableCharacterCompositionFileIdsTableLength);
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                final int id = row.get(0).toInt();
+                final int first = row.get(1).toInt();
+                final int second = row.get(2).toInt();
+                final int definitionFileId = definitionDbIds.indexOf(row.get(3).toInt());
+                compositions.put(id, new CharacterCompositionFileIdsTableEntry(first, second, definitionFileId));
+            }
+        }
+
+        final int compositionsCount = compositions.size();
+        // TODO: Adjust this table to ensure values goes from 0 to the max number of characters
+        _obs.writeHuffmanSymbol(naturalNumberTable, compositionsCount);
+        if (compositionsCount > 0) {
+            final MutableHashSet<Character> missingCharacters = MutableHashSet.empty();
+            for (int compositionIndex = 0; compositionIndex < compositionsCount; compositionIndex++) {
+                final char idChar = charConverter.get(compositions.keyAt(compositionIndex));
+                if (!characters.contains(idChar)) {
+                    missingCharacters.add(idChar);
+                }
+
+                final char firstChar = charConverter.get(compositions.valueAt(compositionIndex).first);
+                if (!characters.contains(firstChar)) {
+                    missingCharacters.add(firstChar);
+                }
+
+                final char secondChar = charConverter.get(compositions.valueAt(compositionIndex).second);
+                if (!characters.contains(secondChar)) {
+                    missingCharacters.add(secondChar);
+                }
+            }
+
+            // TODO: Adjust this table to ensure values goes from 0 to (compositionCount * 3)
+            _obs.writeHuffmanSymbol(naturalNumberTable, missingCharacters.size());
+            if (!missingCharacters.isEmpty()) {
+                int firstPossibleCharacter = 0;
+                for (char ch : missingCharacters) {
+                    _obs.writeHuffmanSymbol(naturalNumberTable, ch - firstPossibleCharacter);
+                    firstPossibleCharacter = ch + 1;
+                }
+            }
+
+            final int lastValidCharFileId = characters.size() + missingCharacters.size() - 1;
+            final RangedIntegerHuffmanTable charactersTable = new RangedIntegerHuffmanTable(0, lastValidCharFileId);
+            final RangedIntegerHuffmanTable definitionsTable = new RangedIntegerHuffmanTable(0, definitionDbIds.size() - 1);
+            final CharacterCompositionCharConverter converter = new CharacterCompositionCharConverter(charConverter, characters, missingCharacters);
+            int firstValidCharFileId = 0;
+            for (int compositionIndex = 0; compositionIndex < compositionsCount; compositionIndex++) {
+                final int thisChar = compositions.keyAt(compositionIndex);
+                final RangedIntegerHuffmanTable charFileIdTable = new RangedIntegerHuffmanTable(firstValidCharFileId, lastValidCharFileId);
+
+                _obs.writeHuffmanSymbol(charFileIdTable, converter.get(thisChar));
+                firstValidCharFileId = thisChar + 1;
+
+                // We known that it is not possible to create loops, so some possibilities should be excluded.
+                // We also know that it is not possible to duplicate character compositions, so we should exclude that possibilities
+                // TODO: Improve this to avoid impossible data
+                final CharacterCompositionFileIdsTableEntry entry = compositions.valueAt(compositionIndex);
+                _obs.writeHuffmanSymbol(charactersTable, converter.get(entry.first));
+                _obs.writeHuffmanSymbol(charactersTable, converter.get(entry.second));
+                _obs.writeHuffmanSymbol(definitionsTable, entry.typeIndex);
+            }
         }
     }
 
@@ -1743,10 +1890,13 @@ public final class StreamedDatabaseWriter {
             setProgress(0.6f, "Writing complemented concepts");
             writeComplementedConcepts(conceptIdMap);
 
-            setProgress(0.65f, "Writing character compositions");
-            writeCharacterCompositionDefinitions(conceptIdMap);
+            setProgress(0.65f, "Writing character composition definitions");
+            final IntList definitionDbIds = writeCharacterCompositionDefinitions(conceptIdMap);
 
-            setProgress(0.7f, "Writing bunch acceptations");
+            setProgress(0.7f, "Writing character compositions");
+            writeCharacterCompositions(symbolArrayWriterResult.characters, definitionDbIds);
+
+            setProgress(0.75f, "Writing bunch acceptations");
             writeBunchAcceptations(conceptIdMap, accIdMap);
 
             setProgress(0.8f, "Writing agents");

@@ -36,6 +36,7 @@ import sword.collections.MutableHashMap;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
+import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
@@ -622,6 +623,21 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         }
     }
 
+    static void insertCharacterComposition(DbInserter db, int id,
+            int first, int second, int typeId) {
+        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getFirstCharacterColumnIndex(), first)
+                .put(table.getSecondCharacterColumnIndex(), second)
+                .put(table.getCompositionTypeColumnIndex(), typeId)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
     private static void insertBunchSet(DbInserter db, int setId, IntSet bunches) {
         if (bunches.isEmpty()) {
             throw new IllegalArgumentException();
@@ -1085,7 +1101,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         }
     }
 
-    private void readCharacterCompositionDefinitions(InputStreamWrapper ibs, ImmutableIntRange validConcepts) throws IOException {
+    private void readCharacterCompositionDefinitions(InputStreamWrapper ibs, ImmutableIntRange validConcepts, MutableIntList definitionIds) throws IOException {
         final int definitionsCount = ibs.readHuffmanSymbol(naturalNumberTable);
         int firstValidConcept = validConcepts.min();
         for (int definitionIndex = 0; definitionIndex < definitionsCount; definitionIndex++) {
@@ -1107,6 +1123,42 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
             insertCharacterCompositionDefinition(_db, definitionId, firstX, firstY, firstWidth, firstHeight, secondX, secondY, secondWidth, secondHeight);
 
             firstValidConcept = definitionId + 1;
+            definitionIds.append(definitionId);
+        }
+    }
+
+    private void readCharacterCompositions(InputStreamWrapper ibs, Set<Character> characters, IntList definitionDbIds) throws IOException {
+        final int compositionsCount = ibs.readHuffmanSymbol(naturalNumberTable);
+        if (compositionsCount > 0) {
+            final int missingCharactersCount = ibs.readHuffmanSymbol(naturalNumberTable);
+            final MutableSet<Character> missingCharacters = MutableHashSet.empty();
+            if (missingCharactersCount > 0) {
+                int firstValidCharacter = 0;
+                for (int i = 0; i < missingCharactersCount; i++) {
+                    final int intCh = ibs.readHuffmanSymbol(naturalNumberTable) + firstValidCharacter;
+                    missingCharacters.add((char) intCh);
+                    firstValidCharacter = intCh + 1;
+                }
+
+                insertCharacters(missingCharacters, characters.size());
+            }
+
+            final int lastValidCharFileId = characters.size() + missingCharactersCount - 1;
+            final RangedIntegerHuffmanTable charactersTable = new RangedIntegerHuffmanTable(0, lastValidCharFileId);
+            final RangedIntegerHuffmanTable definitionsTable = new RangedIntegerHuffmanTable(0, definitionDbIds.size() - 1);
+
+            int firstValidCharFileId = 0;
+            for (int compositionIndex = 0; compositionIndex < compositionsCount; compositionIndex++) {
+                final RangedIntegerHuffmanTable charFileIdTable = new RangedIntegerHuffmanTable(firstValidCharFileId, lastValidCharFileId);
+                final int id = ibs.readHuffmanSymbol(charFileIdTable) + 1;
+                firstValidCharFileId = id;
+
+                final int first = ibs.readHuffmanSymbol(charactersTable) + 1;
+                final int second = ibs.readHuffmanSymbol(charactersTable) + 1;
+                final int definition = ibs.readHuffmanSymbol(definitionsTable);
+
+                insertCharacterComposition(_db, id, first, second, definitionDbIds.valueAt(definition));
+            }
         }
     }
 
@@ -1451,9 +1503,8 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         return (s > 0)? s : CHARACTER_MAP_GRANULARITY;
     }
 
-    private void insertCharacters(Set<Character> characters) {
+    private void insertCharacters(Set<Character> characters, int lastId) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
-        int lastId = 0;
         for (char ch : characters) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
                     .put(table.getIdColumnIndex(), ++lastId)
@@ -1473,7 +1524,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
             final InputStreamWrapper ibs = new InputStreamWrapper(_is);
             final MutableHashSet<Character> characters = MutableHashSet.empty(StreamedDatabaseReader::suitableCharacterMapLength);
             final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs, characters);
-            insertCharacters(characters);
+            insertCharacters(characters, 0);
             final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;
 
             // Read languages and its alphabets
@@ -1519,12 +1570,15 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
                 setProgress(0.6f, "Reading bunch concepts");
                 readComplementedConcepts(ibs, validConcepts);
 
-                // Import bunchConcepts
                 setProgress(0.65f, "Reading character composition definitions");
-                readCharacterCompositionDefinitions(ibs, validConcepts);
+                final MutableIntList definitionIds = MutableIntList.empty();
+                readCharacterCompositionDefinitions(ibs, validConcepts, definitionIds);
+
+                setProgress(0.7f, "Reading character compositions");
+                readCharacterCompositions(ibs, characters, definitionIds);
 
                 // Import bunchAcceptations
-                setProgress(0.7f, "Reading bunch acceptations");
+                setProgress(0.75f, "Reading bunch acceptations");
                 readBunchAcceptations(ibs, validConcepts, acceptationIdMap);
 
                 // Import agents

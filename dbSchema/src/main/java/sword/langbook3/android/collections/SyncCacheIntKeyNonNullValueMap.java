@@ -1,9 +1,10 @@
 package sword.langbook3.android.collections;
 
 import sword.collections.IntFunction;
+import sword.collections.IntKeyMapGetter;
 import sword.collections.MutableIntKeyMap;
 
-public final class SyncCacheIntKeyNonNullValueMap<T> {
+public final class SyncCacheIntKeyNonNullValueMap<T> implements IntKeyMapGetter<T> {
 
     private final T noFound = null;
     private final IntFunction<? extends T> _supplier;
@@ -19,6 +20,7 @@ public final class SyncCacheIntKeyNonNullValueMap<T> {
         _map = map;
     }
 
+    @Override
     public T get(int key) {
         // This implementation avoid explicitly using _map.keySet() as it is a really slow method. get with default value is used instead.
         // However, this limits that the supplier cannot return the noFound reference as it is reserved.

@@ -8,6 +8,8 @@ import sword.langbook3.android.db.AcceptationsManager;
 import sword.langbook3.android.db.LanguageIdInterface;
 import sword.langbook3.android.models.CharacterCompositionDefinitionArea;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
+import sword.langbook3.android.models.CharacterCompositionEditorModel;
+import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,6 +36,13 @@ import static sword.langbook3.android.sdb.AcceptationsSerializer0Test.addSimpleA
 public interface AcceptationsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> extends AcceptationsSerializer0Test<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> {
 
     CharacterCompositionTypeId conceptAsCharacterCompositionTypeId(ConceptId conceptId);
+
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> void insertUpDownCharacterCompositionDefinition(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, CharacterCompositionTypeId typeId) {
+        final CharacterCompositionDefinitionArea first = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
+        final CharacterCompositionDefinitionArea second = new CharacterCompositionDefinitionArea(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
+        final CharacterCompositionDefinitionRegister register = new CharacterCompositionDefinitionRegister(first, second);
+        assertTrue(manager.updateCharacterCompositionDefinition(typeId, register));
+    }
 
     @Test
     default void testAddAcceptationAlsoIncludeCharacters() {
@@ -85,5 +94,41 @@ public interface AcceptationsSerializerTest<ConceptId, LanguageId extends Langua
         final ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> outCompositionTypes = outManager.getCharacterCompositionTypes(outAlphabet);
         assertSize(1, outCompositionTypes);
         assertEquals(register, outCompositionTypes.valueAt(0).register);
+    }
+
+    @Test
+    default void testUpdateCharacterComposition() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createManager(inDb);
+
+        final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = inManager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(inManager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = inManager.findCharacter('á');
+        assertNotNull(composed);
+
+        final ConceptId compositionTypeConcept = inManager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(inManager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(inManager, compositionTypeId);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(inManager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createManager(outDb);
+
+        final CharacterId outComposed = outManager.findCharacter('á');
+        assertNotNull(outComposed);
+
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = outManager.getCharacterCompositionDetails(outComposed);
+        assertEquals('´', model.first.representation.character);
+        assertNull(model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(compositionTypeId, model.compositionType);
     }
 }
