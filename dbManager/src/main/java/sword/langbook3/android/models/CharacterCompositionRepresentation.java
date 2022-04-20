@@ -1,5 +1,7 @@
 package sword.langbook3.android.models;
 
+import sword.langbook3.android.db.LangbookDbSchema;
+
 public final class CharacterCompositionRepresentation {
 
     /**
@@ -21,7 +23,7 @@ public final class CharacterCompositionRepresentation {
     public final String token;
 
     public CharacterCompositionRepresentation(char character, String token) {
-        if (character != INVALID_CHARACTER && token != null) {
+        if (token != null && (character != INVALID_CHARACTER || !LangbookDbSchema.CharacterTokensTable.isValidToken(token))) {
             throw new IllegalArgumentException();
         }
 

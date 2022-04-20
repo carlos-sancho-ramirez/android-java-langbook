@@ -406,13 +406,46 @@ public final class LangbookDbSchema {
         }
     }
 
+    /**
+     * Holds all token assigned to a given character.
+     *
+     * Token are used as a placeholder when no valid character representation is known.
+     * <p>
+     * None of the identifiers found in this table must be used as identifier for the
+     * {@link UnicodeCharactersTable}. If there is a unicode already assigned to the
+     * character, then token should be discarded.
+     *
+     */
     public static final class CharacterTokensTable extends DbTable {
+
         private CharacterTokensTable() {
             super("CharacterTokens", new DbUniqueTextColumn("token"));
         }
 
+        /**
+         * Token string assigned to the character.
+         * <p>
+         * Text within this column cannot use any set of characters.
+         * Every character composing this text has to return true when calling
+         * {@link #isValidCharacterForToken(char)}
+         */
         public int getTokenColumnIndex() {
             return 1;
+        }
+
+        public static boolean isValidCharacterForToken(char ch) {
+            return ch == ' ' || ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z';
+        }
+
+        public static boolean isValidToken(String text) {
+            final int length = text.length();
+            for (int i = 0; i < length; i++) {
+                if (!isValidCharacterForToken(text.charAt(i))) {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 

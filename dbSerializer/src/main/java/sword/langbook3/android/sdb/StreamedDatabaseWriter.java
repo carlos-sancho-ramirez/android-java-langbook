@@ -50,6 +50,7 @@ import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
 import sword.collections.Set;
 import sword.collections.SortFunction;
+import sword.collections.SortUtils;
 import sword.collections.UnmappedKeyException;
 import sword.database.DbExporter;
 import sword.database.DbExporter.Database;
@@ -868,30 +869,68 @@ public final class StreamedDatabaseWriter {
 
     private static final class CharacterCompositionCharConverter implements IntPairMapGetter {
 
-        private final IntKeyMapGetter<Character> _charConverter;
+        private final IntKeyMapGetter<Object> _charConverter;
         private final Set<Character> _characters;
         private final Set<Character> _extraCharacters;
+        private final Set<String> _tokens;
 
-        CharacterCompositionCharConverter(IntKeyMapGetter<Character> charConverter, Set<Character> characters, Set<Character> extraCharacters) {
+        CharacterCompositionCharConverter(IntKeyMapGetter<Object> charConverter, Set<Character> characters, Set<Character> extraCharacters, Set<String> tokens) {
             _charConverter = charConverter;
             _characters = characters;
             _extraCharacters = extraCharacters;
+            _tokens = tokens;
         }
 
         @Override
         public int get(int key) throws UnmappedKeyException {
-            final char converted = _charConverter.get(key);
-            int thisCharIndex = _characters.indexOf(converted);
-            if (thisCharIndex < 0) {
-                thisCharIndex = _extraCharacters.indexOf(converted);
+            final Object convertedObject = _charConverter.get(key);
+            if (convertedObject instanceof Character) {
+                final char converted = (char) convertedObject;
+                int thisCharIndex = _characters.indexOf(converted);
                 if (thisCharIndex < 0) {
+                    thisCharIndex = _extraCharacters.indexOf(converted);
+                    if (thisCharIndex < 0) {
+                        throw new AssertionError();
+                    }
+                    thisCharIndex += _characters.size();
+                }
+
+                return thisCharIndex;
+            }
+            else {
+                if (!(convertedObject instanceof String)) {
                     throw new AssertionError();
                 }
-                thisCharIndex += _characters.size();
+
+                final int index = _tokens.indexOf((String) convertedObject);
+                if (index < 0) {
+                    throw new AssertionError();
+                }
+
+                return index + _characters.size() + _extraCharacters.size();
+            }
+        }
+    }
+
+    private void findMissingRepresentations(int idInt, IntKeyMapGetter<Object> charConverter, Set<Character> characters, MutableSet<Character> missingCharacters, MutableSet<String> tokens) {
+        final Object representation = charConverter.get(idInt);
+        if (representation instanceof Character) {
+            final char ch = (char) representation;
+            if (!characters.contains(ch)) {
+                missingCharacters.add(ch);
+            }
+        }
+        else {
+            if (!(representation instanceof String)) {
+                throw new AssertionError();
             }
 
-            return thisCharIndex;
+            tokens.add((String) representation);
         }
+    }
+
+    private int tokenChar(char ch) {
+        return (ch == ' ')? 0 : (ch >= 'A' && ch <= 'Z')? ch - 'A' + 1 : ch - 'a' + 27;
     }
 
     private void writeCharacterCompositions(ImmutableSet<Character> characters, IntList definitionDbIds) throws IOException {
@@ -903,15 +942,26 @@ public final class StreamedDatabaseWriter {
                         table.getSecondCharacterColumnIndex(),
                         table.getCompositionTypeColumnIndex());
 
-        final MutableIntKeyMap<Character> rawCharConversion = MutableIntKeyMap.empty();
-        final SyncCacheIntKeyNonNullValueMap<Character> charConverter = new SyncCacheIntKeyNonNullValueMap<>(rawCharConversion, id -> {
+        final MutableIntKeyMap<Object> rawCharConversion = MutableIntKeyMap.empty();
+        final SyncCacheIntKeyNonNullValueMap<Object> charConverter = new SyncCacheIntKeyNonNullValueMap<>(rawCharConversion, id -> {
             final LangbookDbSchema.UnicodeCharactersTable t = LangbookDbSchema.Tables.unicodeCharacters;
             final DbQuery q = new DbQuery.Builder(t)
                     .where(t.getIdColumnIndex(), id)
                     .select(t.getUnicodeColumnIndex());
 
             try (DbResult dbResult = _db.select(q)) {
-                return (char) dbResult.next().get(0).toInt();
+                if (dbResult.hasNext()) {
+                    return (char) dbResult.next().get(0).toInt();
+                }
+            }
+
+            final LangbookDbSchema.CharacterTokensTable t2 = LangbookDbSchema.Tables.characterTokens;
+            final DbQuery q2 = new DbQuery.Builder(t2)
+                    .where(t2.getIdColumnIndex(), id)
+                    .select(t2.getTokenColumnIndex());
+
+            try (DbResult dbResult = _db.select(q2)) {
+                return dbResult.next().get(0).toText();
             }
         });
 
@@ -932,21 +982,11 @@ public final class StreamedDatabaseWriter {
         _obs.writeHuffmanSymbol(naturalNumberTable, compositionsCount);
         if (compositionsCount > 0) {
             final MutableHashSet<Character> missingCharacters = MutableHashSet.empty();
+            final MutableSortedSet<String> tokens = MutableSortedSet.empty(SortUtils::compareCharSequenceByUnicode);
             for (int compositionIndex = 0; compositionIndex < compositionsCount; compositionIndex++) {
-                final char idChar = charConverter.get(compositions.keyAt(compositionIndex));
-                if (!characters.contains(idChar)) {
-                    missingCharacters.add(idChar);
-                }
-
-                final char firstChar = charConverter.get(compositions.valueAt(compositionIndex).first);
-                if (!characters.contains(firstChar)) {
-                    missingCharacters.add(firstChar);
-                }
-
-                final char secondChar = charConverter.get(compositions.valueAt(compositionIndex).second);
-                if (!characters.contains(secondChar)) {
-                    missingCharacters.add(secondChar);
-                }
+                findMissingRepresentations(compositions.keyAt(compositionIndex), charConverter, characters, missingCharacters, tokens);
+                findMissingRepresentations(compositions.valueAt(compositionIndex).first, charConverter, characters, missingCharacters, tokens);
+                findMissingRepresentations(compositions.valueAt(compositionIndex).second, charConverter, characters, missingCharacters, tokens);
             }
 
             // TODO: Adjust this table to ensure values goes from 0 to (compositionCount * 3)
@@ -959,10 +999,49 @@ public final class StreamedDatabaseWriter {
                 }
             }
 
-            final int lastValidCharFileId = characters.size() + missingCharacters.size() - 1;
+            _obs.writeHuffmanSymbol(naturalNumberTable, tokens.size());
+            if (!tokens.isEmpty()) {
+                final RangedIntegerHuffmanTable tokenCharacterTable = new RangedIntegerHuffmanTable(0, 53);
+                String previousToken = null;
+                for (String token : tokens) {
+                    final int tokenLength = token.length();
+                    for (int index = 0; index < tokenLength; index++) {
+                        final char ch = token.charAt(index);
+                        final int chInt = tokenChar(ch);
+                        final RangedIntegerHuffmanTable huffmanTable;
+                        if (previousToken != null && previousToken.length() > index) {
+                            final char prevCh = previousToken.charAt(index);
+                            final int prevChInt = tokenChar(prevCh);
+                            huffmanTable = new RangedIntegerHuffmanTable(prevChInt, 53);
+                            if (chInt != prevChInt) {
+                                previousToken = null;
+                            }
+                        }
+                        else {
+                            huffmanTable = tokenCharacterTable;
+                            previousToken = null;
+                        }
+                        _obs.writeHuffmanSymbol(huffmanTable, chInt);
+                    }
+
+                    final RangedIntegerHuffmanTable huffmanTable;
+                    if (previousToken != null && previousToken.length() > tokenLength) {
+                        final char prevCh = previousToken.charAt(tokenLength);
+                        huffmanTable = new RangedIntegerHuffmanTable(tokenChar(prevCh), 53);
+                    }
+                    else {
+                        huffmanTable = tokenCharacterTable;
+                    }
+                    _obs.writeHuffmanSymbol(huffmanTable, 53);
+
+                    previousToken = token;
+                }
+            }
+
+            final int lastValidCharFileId = characters.size() + missingCharacters.size() + tokens.size() - 1;
             final RangedIntegerHuffmanTable charactersTable = new RangedIntegerHuffmanTable(0, lastValidCharFileId);
             final RangedIntegerHuffmanTable definitionsTable = new RangedIntegerHuffmanTable(0, definitionDbIds.size() - 1);
-            final CharacterCompositionCharConverter converter = new CharacterCompositionCharConverter(charConverter, characters, missingCharacters);
+            final CharacterCompositionCharConverter converter = new CharacterCompositionCharConverter(charConverter, characters, missingCharacters, tokens);
             int firstValidCharFileId = 0;
             for (int compositionIndex = 0; compositionIndex < compositionsCount; compositionIndex++) {
                 final int thisChar = compositions.keyAt(compositionIndex);

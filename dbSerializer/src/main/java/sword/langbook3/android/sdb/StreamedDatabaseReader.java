@@ -41,7 +41,9 @@ import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
+import sword.collections.MutableSortedSet;
 import sword.collections.Set;
+import sword.collections.SortUtils;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
 import sword.database.DbImporter.Database;
@@ -1143,7 +1145,43 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
                 insertCharacters(missingCharacters, characters.size());
             }
 
-            final int lastValidCharFileId = characters.size() + missingCharactersCount - 1;
+            final int tokenCount = ibs.readHuffmanSymbol(naturalNumberTable);
+            final MutableSortedSet<String> tokens = MutableSortedSet.empty(SortUtils::compareCharSequenceByUnicode);
+            if (tokenCount > 0) {
+                final RangedIntegerHuffmanTable tokenCharacterTable = new RangedIntegerHuffmanTable(0, 53);
+                String previousToken = null;
+                String token = "";
+                while (tokens.size() < tokenCount) {
+                    final RangedIntegerHuffmanTable huffmanTable;
+                    if (previousToken != null && token.length() < previousToken.length()) {
+                        final char prevCh = previousToken.charAt(token.length());
+                        final int prevChInt = (prevCh == ' ')? 0 : (prevCh >= 'A' && prevCh <= 'Z')? prevCh - 'A' + 1 : prevCh - 'a' + 27;
+                        huffmanTable = new RangedIntegerHuffmanTable(prevChInt, 53);
+                    }
+                    else {
+                        previousToken = null;
+                        huffmanTable = tokenCharacterTable;
+                    }
+
+                    final int chInt = ibs.readHuffmanSymbol(huffmanTable);
+                    if (chInt == 53) {
+                        tokens.add(token);
+                        previousToken = token;
+                        token = "";
+                    }
+                    else {
+                        final char ch = (chInt == 0) ? ' ' : (chInt <= 26) ? (char) (chInt + 'A' - 1) : (char) (chInt + 'a' - 27);
+                        if (previousToken != null && previousToken.charAt(token.length()) != ch) {
+                            previousToken = null;
+                        }
+                        token += ch;
+                    }
+                }
+
+                insertTokens(tokens, characters.size() + missingCharactersCount);
+            }
+
+            final int lastValidCharFileId = characters.size() + missingCharactersCount + tokenCount - 1;
             final RangedIntegerHuffmanTable charactersTable = new RangedIntegerHuffmanTable(0, lastValidCharFileId);
             final RangedIntegerHuffmanTable definitionsTable = new RangedIntegerHuffmanTable(0, definitionDbIds.size() - 1);
 
@@ -1509,6 +1547,20 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
                     .put(table.getIdColumnIndex(), ++lastId)
                     .put(table.getUnicodeColumnIndex(), (int) ch)
+                    .build();
+
+            if (lastId != _db.insert(query)) {
+                throw new AssertionError();
+            }
+        }
+    }
+
+    private void insertTokens(Set<String> tokens, int lastId) {
+        final LangbookDbSchema.CharacterTokensTable table = Tables.characterTokens;
+        for (String token : tokens) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getIdColumnIndex(), ++lastId)
+                    .put(table.getTokenColumnIndex(), token)
                     .build();
 
             if (lastId != _db.insert(query)) {

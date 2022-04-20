@@ -318,7 +318,7 @@ final class LangbookDbInserter {
     }
 
     static <CharacterId extends IdPutInterface> boolean insertCharacterToken(DbInserter db, CharacterId id, String token) {
-        if (token.contains("{") || token.contains("}")) {
+        if (!LangbookDbSchema.CharacterTokensTable.isValidToken(token)) {
             return false;
         }
 
