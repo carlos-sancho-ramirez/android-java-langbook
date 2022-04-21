@@ -20,6 +20,7 @@ import android.widget.Toast;
 import java.io.File;
 import java.io.IOException;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.sdb.ProgressListener;
@@ -50,15 +51,9 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
         /**
          * If set, the file format is an SQLite database file.
-         * If clear, and {@link #CHAR_COMPOSITION} is also clear, the format is a streamed database file.
+         * If clear, the format is a streamed database file.
          */
         int SQLITE = 2;
-
-        /**
-         * If set, the file format is a character composition map.
-         * If clear, and {@link #SQLITE} is also clear, the format is a streamed database file.
-         */
-        int CHAR_COMPOSITION = 4;
     }
 
     private int _fileFlags;
@@ -74,10 +69,6 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
     private boolean expectsSqliteFileFormat() {
         return (_fileFlags & FileFlags.SQLITE) != 0;
-    }
-
-    private boolean expectsCharacterCompositionFileFormat() {
-        return (_fileFlags & FileFlags.CHAR_COMPOSITION) != 0;
     }
 
     private void pickFile() {
@@ -105,28 +96,6 @@ public final class SettingsActivity extends Activity implements View.OnClickList
 
         dialog.setView(dialogView);
         dialog.show();
-    }
-
-    private void loadCharacterComposition(Uri uri) {
-        if (uri != null) {
-            CharacterCompositionsParserResult parserResult = null;
-            try {
-                parserResult = new CharacterCompositionsFileReader(this, uri).read();
-            }
-            catch (Throwable t) {
-                new AlertDialog.Builder(this)
-                        .setTitle(R.string.characterCompositionsParserErrorDialogTitle)
-                        .setMessage(t.getMessage())
-                        .setCancelable(true)
-                        .setPositiveButton(android.R.string.ok, (dialog, which) -> { })
-                        .create().show();
-            }
-
-            if (parserResult != null) {
-                parserResult.saveInDatabase(DbManager.getInstance().getWritableDatabase());
-                Toast.makeText(this, R.string.importSuccess, Toast.LENGTH_SHORT).show();
-            }
-        }
     }
 
     private void importDatabase(Uri uri) {
@@ -180,7 +149,6 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         findViewById(R.id.exportStreamedDatabaseButton).setOnClickListener(this);
         findViewById(R.id.importSqliteDatabaseButton).setOnClickListener(this);
         findViewById(R.id.exportSqliteDatabaseButton).setOnClickListener(this);
-        findViewById(R.id.importCharacterCompositionsButton).setOnClickListener(this);
 
         _preferredAlphabetSpinner = findViewById(R.id.preferredAlphabetSpinner);
         updatePreferredAlphabetAdapter();
@@ -238,9 +206,6 @@ public final class SettingsActivity extends Activity implements View.OnClickList
         }
         else if (viewId == R.id.exportSqliteDatabaseButton) {
             _fileFlags = FileFlags.SAVE | FileFlags.SQLITE;
-        }
-        else if (viewId == R.id.importCharacterCompositionsButton) {
-            _fileFlags = FileFlags.CHAR_COMPOSITION;
         }
         else {
             shouldPickFile = false;
@@ -350,9 +315,6 @@ public final class SettingsActivity extends Activity implements View.OnClickList
             if (expectsSqliteFileFormat()) {
                 loadSqliteDatabase(uri);
             }
-            else if (expectsCharacterCompositionFileFormat()) {
-                loadCharacterComposition(uri);
-            }
             else {
                 if (StorageUtils.isExternalFileUri(uri) && !hasReadPermission()) {
                     _uri = uri;
@@ -366,7 +328,7 @@ public final class SettingsActivity extends Activity implements View.OnClickList
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CODE_ASK_PERMISSION) {
             if (expectsSaveFile()) {
                 for (int i = 0; i < permissions.length; i++) {
