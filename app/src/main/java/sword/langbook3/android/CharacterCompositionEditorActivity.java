@@ -15,6 +15,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -26,6 +27,7 @@ import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterCompositionPart;
@@ -61,8 +63,6 @@ public final class CharacterCompositionEditorActivity extends Activity implement
     private CharacterCompositionTypeId _selectedTypeId;
 
     private AlphabetId _preferredAlphabet;
-    private CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> _model;
-
     private AutoCompleteTextView _firstField;
     private AutoCompleteTextView _secondField;
     private Spinner _compositionTypeSpinner;
@@ -105,13 +105,13 @@ public final class CharacterCompositionEditorActivity extends Activity implement
 
         _characterId = CharacterIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CHARACTER);
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _model = DbManager.getInstance().getManager().getCharacterCompositionDetails(_characterId);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = DbManager.getInstance().getManager().getCharacterCompositionDetails(_characterId);
 
-        if (_model == null) {
+        if (model == null) {
             finish();
         }
         else {
-            final String representation = CharacterDetailsAdapter.representChar(_model.representation);
+            final String representation = CharacterDetailsAdapter.representChar(model.representation);
             setTitle(getString(R.string.characterCompositionEditorActivityTitle, representation));
 
             final TokenSuggestionsAdapter firstAdapter = new TokenSuggestionsAdapter();
@@ -134,26 +134,25 @@ public final class CharacterCompositionEditorActivity extends Activity implement
 
             _compositionTypeSpinner = findViewById(R.id.compositionTypeSpinner);
             _compositionTypeSpinner.setOnItemSelectedListener(this);
-            if (_model.compositionType != null) {
-                _selectedTypeId = _model.compositionType;
+            if (model.compositionType != null) {
+                _selectedTypeId = model.compositionType;
             }
             updateSpinner();
 
             findViewById(R.id.addCompositionTypeButton).setOnClickListener(this);
             findViewById(R.id.saveButton).setOnClickListener(this);
 
-            setPartText(_model.first, _firstField);
-            setPartText(_model.second, _secondField);
+            setPartText(model.first, _firstField);
+            setPartText(model.second, _secondField);
         }
     }
 
-    private static boolean hasInvalidBraces(String text) {
+    private static boolean isInvalidRepresentation(String text) {
         final int textLength = text.length();
-        final boolean braceAtStart = text.startsWith(TOKEN_START_STRING);
-        final boolean braceAtEnd = text.endsWith(TOKEN_END_STRING);
-        final int lastIndexOfStartingBrace = text.lastIndexOf(TOKEN_START_STRING);
-        final int firstIndexOfEndingBrace = text.indexOf(TOKEN_END_STRING);
-        return lastIndexOfStartingBrace > 0 || firstIndexOfEndingBrace >= 0 && firstIndexOfEndingBrace < textLength - 1 || braceAtStart ^ braceAtEnd;
+        return textLength > 1 && !(
+                text.startsWith(TOKEN_START_STRING) &&
+                text.endsWith(TOKEN_END_STRING) &&
+                LangbookDbSchema.CharacterTokensTable.isValidToken(text.substring(1, textLength - 1)));
     }
 
     private void addCompositionType() {
@@ -182,17 +181,11 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         else if (secondText.isEmpty()) {
             errorMessage = getString(R.string.characterCompositionEditorSecondEmptyError);
         }
-        else if (hasInvalidBraces(firstText)) {
+        else if (isInvalidRepresentation(firstText)) {
             errorMessage = getString(R.string.characterCompositionEditorFirstHasBraceError);
         }
-        else if (hasInvalidBraces(secondText)) {
+        else if (isInvalidRepresentation(secondText)) {
             errorMessage = getString(R.string.characterCompositionEditorSecondHasBraceError);
-        }
-        else if (firstText.length() > 1 && !firstText.startsWith("{")) {
-            errorMessage = getString(R.string.characterCompositionEditorFirstMulticharError);
-        }
-        else if (secondText.length() > 1 && !secondText.startsWith("{")) {
-            errorMessage = getString(R.string.characterCompositionEditorSecondMulticharError);
         }
 
         if (errorMessage != null) {
@@ -226,7 +219,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         CharacterCompositionTypeIdBundler.write(outState, SavedKeys.SELECTED_TYPE_ID, _selectedTypeId);
     }
