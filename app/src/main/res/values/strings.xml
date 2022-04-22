@@ -207,7 +207,7 @@
     <string name="agentEditorRuleDefaultText">Select a rule</string>
 
     <!-- Character compositions -->
-    <string name="characterCompositionType">Composition Type: %s</string>
+    <string name="characterCompositionTypeHeader">Composition Type</string>
     <string name="characterCompositionAsFirstHeader">Composed characters where this is first</string>
     <string name="characterCompositionAsSecondHeader">Composed characters where this is second</string>
     <string name="characterCompositionAcceptationsHeader">Acceptations where included</string>

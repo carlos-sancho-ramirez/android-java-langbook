@@ -425,9 +425,8 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             caItem.updateView(_activity, _correlationArrayRequestCode, (LinearLayout) view);
         }
         else if (item instanceof CharacterCompositionDefinitionItem) {
-            final CharacterCompositionDefinitionDrawable drawable = new CharacterCompositionDefinitionDrawable();
-            drawable.setRegister(((CharacterCompositionDefinitionItem) item)._register);
-            view.findViewById(R.id.drawableHolder).setBackground(drawable);
+            view.findViewById(R.id.drawableHolder).setBackground(
+                    new CharacterCompositionDefinitionDrawable(((CharacterCompositionDefinitionItem) item)._register));
         }
         else {
             throw new AssertionError("Unable to handle item");

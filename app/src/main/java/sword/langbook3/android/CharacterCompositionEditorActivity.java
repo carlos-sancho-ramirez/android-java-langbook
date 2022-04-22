@@ -28,7 +28,6 @@ import sword.langbook3.android.db.CharacterIdBundler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LangbookDbSchema;
-import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterCompositionPart;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
@@ -304,6 +303,12 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         }
     }
 
+    public static void bindCompositionType(@NonNull View view, @NonNull IdentifiableCharacterCompositionResult<?> entry) {
+        view.<TextView>findViewById(R.id.text).setText(entry.text);
+        view.findViewById(R.id.drawableHolder).setBackground(
+                new CharacterCompositionDefinitionDrawable(entry.register));
+    }
+
     private static final class CompositionTypesAdapter extends BaseAdapter {
 
         private final ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> _entries;
@@ -338,14 +343,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
                 view = _inflater.inflate(R.layout.character_composition_definition_entry, parent, false);
             }
 
-            final IdentifiableCharacterCompositionResult<CharacterCompositionTypeId> entry = _entries.valueAt(position);
-            view.<TextView>findViewById(R.id.text).setText(entry.text);
-
-            final CharacterCompositionDefinitionRegister register = entry.register;
-            final CharacterCompositionDefinitionDrawable drawable = new CharacterCompositionDefinitionDrawable();
-            drawable.setRegister(register);
-            view.findViewById(R.id.drawableHolder).setBackground(drawable);
-
+            bindCompositionType(view, _entries.valueAt(position));
             return view;
         }
     }

@@ -4321,7 +4321,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     }
 
     @Override
-    public CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> getCharacterDetails(CharacterId characterId, AlphabetId preferredAlphabet) {
+    public CharacterDetailsModel<CharacterId, AcceptationId> getCharacterDetails(CharacterId characterId, AlphabetId preferredAlphabet) {
         final CharacterCompositionRepresentation representation = getCharacterCompositionRepresentation(characterId);
 
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
@@ -4333,23 +4333,26 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
                         table.getCompositionTypeColumnIndex());
 
         final List<DbValue> row = selectOptionalSingleRow(dbQuery);
-        final CharacterCompositionTypeId compositionType;
-        final String compositionTypeName;
+        final IdentifiableCharacterCompositionResult<AcceptationId> compositionType;
         final CharacterCompositionPart<CharacterId> firstPart;
         final CharacterCompositionPart<CharacterId> secondPart;
         if (row != null) {
             final CharacterId first = _characterIdSetter.getKeyFromDbValue(row.get(0));
             final CharacterId second = _characterIdSetter.getKeyFromDbValue(row.get(1));
-            compositionType = _characterCompositionTypeIdSetter.getKeyFromDbValue(row.get(2));
+            final CharacterCompositionTypeId compositionTypeId = _characterCompositionTypeIdSetter.getKeyFromDbValue(row.get(2));
 
             firstPart = getCharacterCompositionPart(first);
             secondPart = getCharacterCompositionPart(second);
 
-            compositionTypeName = readConceptText(compositionType.getConceptId(), preferredAlphabet);
+            final DisplayableItem<AcceptationId> compositionTypeAcceptation = readConceptAcceptationAndText(compositionTypeId.getConceptId(), preferredAlphabet);
+
+            compositionType = new IdentifiableCharacterCompositionResult<>(
+                    compositionTypeAcceptation.id,
+                    compositionTypeAcceptation.text,
+                    getCharacterCompositionDefinition(compositionTypeId));
         }
         else {
             compositionType = null;
-            compositionTypeName = null;
             firstPart = null;
             secondPart = null;
         }
@@ -4376,7 +4379,7 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
             acceptationsWhereIncluded = ImmutableHashMap.empty();
         }
 
-        return new CharacterDetailsModel<>(representation, firstPart, secondPart, compositionType, compositionTypeName, asFirst, asSecond, acceptationsWhereIncluded);
+        return new CharacterDetailsModel<>(representation, firstPart, secondPart, compositionType, asFirst, asSecond, acceptationsWhereIncluded);
     }
 
     @Override

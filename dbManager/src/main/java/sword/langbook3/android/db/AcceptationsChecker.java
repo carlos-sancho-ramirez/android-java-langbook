@@ -51,7 +51,7 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> readAcceptationTextsAndLanguage(AcceptationId acceptation);
     ImmutableMap<AlphabetId, AlphabetId> findConversions(Set<AlphabetId> alphabets);
     ImmutableMap<String, AcceptationId> readTextAndDynamicAcceptationsMapFromAcceptation(AcceptationId acceptation);
-    CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> getCharacterDetails(CharacterId characterId, AlphabetId preferredAlphabet);
+    CharacterDetailsModel<CharacterId, AcceptationId> getCharacterDetails(CharacterId characterId, AlphabetId preferredAlphabet);
     ImmutableList<IdentifiableResult<CharacterId>> getCharacterPickerItems(String items);
     CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> getCharacterCompositionDetails(CharacterId characterId);
     ImmutableList<String> suggestCharacterTokens(String filterText);

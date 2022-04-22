@@ -24,9 +24,11 @@ public final class CharacterCompositionDefinitionDrawable extends Drawable {
     private final Paint _firstPaint;
     private final Paint _secondPaint;
 
-    private CharacterCompositionDefinitionRegister _register;
+    private final CharacterCompositionDefinitionRegister _register;
 
-    public CharacterCompositionDefinitionDrawable() {
+    public CharacterCompositionDefinitionDrawable(CharacterCompositionDefinitionRegister register) {
+        _register = register;
+
         _firstPaint = new Paint();
         _firstPaint.setColor(FIRST_COLOR);
 
@@ -35,10 +37,6 @@ public final class CharacterCompositionDefinitionDrawable extends Drawable {
 
         _backgroundPaint = new Paint();
         _backgroundPaint.setColor(BACKGROUND_COLOR);
-    }
-
-    public void setRegister(CharacterCompositionDefinitionRegister register) {
-        _register = register;
     }
 
     private void drawArea(CharacterCompositionDefinitionArea area, Canvas canvas, Paint paint) {

@@ -14,7 +14,6 @@ import android.widget.ListView;
 
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
 import sword.langbook3.android.models.CharacterDetailsModel;
@@ -45,7 +44,7 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
 
     private AlphabetId _preferredAlphabet;
     private CharacterId _characterId;
-    private CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> _model;
+    private CharacterDetailsModel<CharacterId, AcceptationId> _model;
 
     private boolean _showingDeleteCompositionDialog;
 

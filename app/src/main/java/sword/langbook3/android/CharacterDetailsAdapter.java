@@ -9,12 +9,12 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.models.CharacterCompositionPart;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.CharacterDetailsModel;
 
+import static sword.langbook3.android.CharacterCompositionEditorActivity.bindCompositionType;
 import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 
 public final class CharacterDetailsAdapter extends BaseAdapter {
@@ -23,10 +23,11 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
         int CHARACTER = 0;
         int COMPOSITION = 1;
         int SECTION_HEADER = 2;
-        int NAVIGABLE = 3;
+        int COMPOSITION_TYPE = 3;
+        int NAVIGABLE = 4;
     }
 
-    private CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> _model;
+    private CharacterDetailsModel<CharacterId, AcceptationId> _model;
     private LayoutInflater _inflater;
 
     private int _asFirstHeaderPosition;
@@ -34,7 +35,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
     private int _acceptationsWhereIncludedHeaderPosition;
     private int _count;
 
-    public void setModel(CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> model) {
+    public void setModel(CharacterDetailsModel<CharacterId, AcceptationId> model) {
         _model = model;
 
         if (model != null) {
@@ -42,7 +43,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
             final int asSecondCount = model.asSecond.size();
             final int acceptationsWhereIncludedCount = model.acceptationsWhereIncluded.size();
 
-            _asFirstHeaderPosition = (model.compositionType != null)? 2 : 1;
+            _asFirstHeaderPosition = (model.compositionType != null)? 4 : 1;
             _asSecondHeaderPosition = (asFirstCount > 0) ? _asFirstHeaderPosition + asFirstCount + 1 : _asFirstHeaderPosition;
             _acceptationsWhereIncludedHeaderPosition = (asSecondCount > 0) ? _asSecondHeaderPosition + asSecondCount + 1 : _asSecondHeaderPosition;
             _count = (acceptationsWhereIncludedCount > 0) ? _acceptationsWhereIncludedHeaderPosition + acceptationsWhereIncludedCount + 1 : _acceptationsWhereIncludedHeaderPosition;
@@ -61,13 +62,15 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
 
     @Override
     public int getViewTypeCount() {
-        return 4;
+        return 5;
     }
 
     @Override
     public int getItemViewType(int position) {
         return (position == 0)? ViewTypes.CHARACTER :
-                (position < _asFirstHeaderPosition)? ViewTypes.COMPOSITION :
+                (position == 1 && _model.compositionType != null)? ViewTypes.COMPOSITION :
+                (position == 2 && _model.compositionType != null)? ViewTypes.SECTION_HEADER :
+                (position == 3 && _model.compositionType != null)? ViewTypes.COMPOSITION_TYPE :
                 (position == _asFirstHeaderPosition || position == _asSecondHeaderPosition || position == _acceptationsWhereIncludedHeaderPosition)? ViewTypes.SECTION_HEADER : ViewTypes.NAVIGABLE;
     }
 
@@ -78,7 +81,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
 
     @Override
     public boolean isEnabled(int position) {
-        return position >= 2 && position != _asFirstHeaderPosition && position != _asSecondHeaderPosition && position != _acceptationsWhereIncludedHeaderPosition;
+        return position >= 2 && (position != 2 || _model.compositionType == null) && position != _asFirstHeaderPosition && position != _asSecondHeaderPosition && position != _acceptationsWhereIncludedHeaderPosition;
     }
 
     @Override
@@ -89,6 +92,9 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
         }
         else if (viewType == ViewTypes.SECTION_HEADER) {
             return null;
+        }
+        else if (viewType == ViewTypes.COMPOSITION_TYPE) {
+            return _model.compositionType.id;
         }
         else {
             if (position > _acceptationsWhereIncludedHeaderPosition) {
@@ -170,15 +176,21 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
 
             final CharacterId secondId = _model.second.id;
             secondTextView.setOnClickListener(v -> CharacterDetailsActivity.open(context, secondId));
+        }
+        else if (viewType == ViewTypes.COMPOSITION_TYPE) {
+            if (convertView == null) {
+                convertView = inflate(R.layout.character_composition_definition_entry, parent);
+            }
 
-            convertView.<TextView>findViewById(R.id.compositionTypeInfo).setText(context.getString(R.string.characterCompositionType, _model.compositionTypeName));
+            bindCompositionType(convertView, _model.compositionType);
         }
         else if (viewType == ViewTypes.SECTION_HEADER) {
             if (convertView == null) {
                 convertView = inflate(R.layout.acceptation_details_header, parent);
             }
 
-            final int strRes = (position == _acceptationsWhereIncludedHeaderPosition)? R.string.characterCompositionAcceptationsHeader :
+            final int strRes = (position == 2 && _model.compositionType != null)? R.string.characterCompositionTypeHeader :
+                    (position == _acceptationsWhereIncludedHeaderPosition)? R.string.characterCompositionAcceptationsHeader :
                     (position == _asSecondHeaderPosition)? R.string.characterCompositionAsSecondHeader :
                     R.string.characterCompositionAsFirstHeader;
 
