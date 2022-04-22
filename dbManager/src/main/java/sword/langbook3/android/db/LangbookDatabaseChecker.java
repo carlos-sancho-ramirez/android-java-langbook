@@ -46,7 +46,6 @@ import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterCompositionPart;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.CharacterDetailsModel;
-import sword.langbook3.android.models.CharacterPickerItem;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.models.CorrelationDetailsModel;
@@ -4208,13 +4207,6 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return _db.select(dbQuery).map(row -> _characterIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
-    private boolean isCharacterCompositionPart(CharacterId characterId) {
-        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
-        // TODO: Avoid making 2 database queries whenever the where clause can be x OR y
-        return isCharacterCompositionPart(characterId, table.getFirstCharacterColumnIndex()) ||
-                isCharacterCompositionPart(characterId, table.getSecondCharacterColumnIndex());
-    }
-
     void fillWithCharacterCompositionParts(CharacterId composed, MutableSet<CharacterId> pool) {
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
         final DbQuery query = new DbQueryBuilder(table)
@@ -4387,21 +4379,10 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return new CharacterDetailsModel<>(representation, firstPart, secondPart, compositionType, compositionTypeName, asFirst, asSecond, acceptationsWhereIncluded);
     }
 
-    private CharacterPickerItem<CharacterId> getCharacterPickerItem(char character) {
-        final CharacterId id = findCharacter(character);
-        boolean isComposition = false;
-        boolean isCompositionPart = false;
-        if (id != null) {
-            isComposition = isCharacterComposition(id);
-            isCompositionPart = isCharacterCompositionPart(id);
-        }
-
-        return new CharacterPickerItem<>(id, "" + character, isComposition, isCompositionPart);
-    }
-
     @Override
-    public ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items) {
-        return StringUtils.stringToCharList(items).map(this::getCharacterPickerItem);
+    public ImmutableList<IdentifiableResult<CharacterId>> getCharacterPickerItems(String items) {
+        return StringUtils.stringToCharList(items).map(character ->
+                new IdentifiableResult<>(findCharacter(character), "" + character));
     }
 
     CharacterId findCharacterId(CharacterCompositionRepresentation representation) {

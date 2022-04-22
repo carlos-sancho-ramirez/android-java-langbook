@@ -8,14 +8,14 @@ import android.widget.TextView;
 
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.CharacterId;
-import sword.langbook3.android.models.CharacterPickerItem;
+import sword.langbook3.android.models.IdentifiableResult;
 
 final class CharacterPickerAdapter extends BaseAdapter {
 
-    private final ImmutableList<CharacterPickerItem<CharacterId>> _items;
+    private final ImmutableList<IdentifiableResult<CharacterId>> _items;
     private LayoutInflater _inflater;
 
-    CharacterPickerAdapter(ImmutableList<CharacterPickerItem<CharacterId>> items) {
+    CharacterPickerAdapter(ImmutableList<IdentifiableResult<CharacterId>> items) {
         if (items == null) {
             throw new IllegalArgumentException();
         }
@@ -29,7 +29,7 @@ final class CharacterPickerAdapter extends BaseAdapter {
     }
 
     @Override
-    public CharacterPickerItem<CharacterId> getItem(int position) {
+    public IdentifiableResult<CharacterId> getItem(int position) {
         return _items.valueAt(position);
     }
 
@@ -47,10 +47,8 @@ final class CharacterPickerAdapter extends BaseAdapter {
             convertView = _inflater.inflate(R.layout.character_picker_item, parent, false);
         }
 
-        final CharacterPickerItem<CharacterId> item = _items.valueAt(position);
+        final IdentifiableResult<CharacterId> item = _items.valueAt(position);
         convertView.<TextView>findViewById(R.id.textView).setText(item.text);
-        convertView.findViewById(R.id.isPartFlagView).setVisibility(item.isCompositionPart? View.VISIBLE : View.INVISIBLE);
-        convertView.findViewById(R.id.isComposedFlagView).setVisibility(item.isComposed? View.VISIBLE : View.INVISIBLE);
         return convertView;
     }
 }

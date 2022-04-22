@@ -9,11 +9,11 @@ import sword.collections.Set;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterDetailsModel;
-import sword.langbook3.android.models.CharacterPickerItem;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.CorrelationDetailsModel;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
+import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.SearchResult;
 
 public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId> {
@@ -52,7 +52,7 @@ public interface AcceptationsChecker<ConceptId, LanguageId, AlphabetId, Characte
     ImmutableMap<AlphabetId, AlphabetId> findConversions(Set<AlphabetId> alphabets);
     ImmutableMap<String, AcceptationId> readTextAndDynamicAcceptationsMapFromAcceptation(AcceptationId acceptation);
     CharacterDetailsModel<CharacterId, CharacterCompositionTypeId, AcceptationId> getCharacterDetails(CharacterId characterId, AlphabetId preferredAlphabet);
-    ImmutableList<CharacterPickerItem<CharacterId>> getCharacterPickerItems(String items);
+    ImmutableList<IdentifiableResult<CharacterId>> getCharacterPickerItems(String items);
     CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> getCharacterCompositionDetails(CharacterId characterId);
     ImmutableList<String> suggestCharacterTokens(String filterText);
     ImmutableList<SearchResult<CharacterId, Object>> searchCharacterTokens(String filterText, Function<String, String> textConverter);

@@ -8,7 +8,7 @@ import android.widget.ListView;
 
 import sword.collections.ImmutableList;
 import sword.langbook3.android.db.CharacterId;
-import sword.langbook3.android.models.CharacterPickerItem;
+import sword.langbook3.android.models.IdentifiableResult;
 
 public final class CharacterPickerActivity extends Activity {
 
@@ -31,7 +31,7 @@ public final class CharacterPickerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.character_picker_activity);
 
-        final ImmutableList<CharacterPickerItem<CharacterId>> items = DbManager.getInstance().getManager().getCharacterPickerItems(getCharacterString());
+        final ImmutableList<IdentifiableResult<CharacterId>> items = DbManager.getInstance().getManager().getCharacterPickerItems(getCharacterString());
         final ListView listView = findViewById(R.id.listView);
         listView.setAdapter(new CharacterPickerAdapter(items));
         listView.setOnItemClickListener((parent, view, position, id) ->
