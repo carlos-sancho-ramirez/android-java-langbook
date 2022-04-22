@@ -46,6 +46,8 @@ import sword.collections.MutableIntList;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableIntValueHashMap;
+import sword.collections.MutableIntValueMap;
+import sword.collections.MutableIntValueSortedMap;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
 import sword.collections.Set;
@@ -332,15 +334,15 @@ public final class StreamedDatabaseWriter {
         }
 
         final LangbookDbSchema.LanguagesTable table = LangbookDbSchema.Tables.languages;
-        final int langCount = getTableLength(table);
+        final int langCount = alphabetMap.size();
         _obs.writeHuffmanSymbol(naturalNumberTable, langCount);
 
         final NaturalNumberHuffmanTable nat2Table = new NaturalNumberHuffmanTable(2);
         query = new DbQuery.Builder(table)
                 .select(table.getIdColumnIndex(), table.getCodeColumnIndex());
 
+        final MutableIntValueMap<String> languages = MutableIntValueSortedMap.empty(SortUtils::compareCharSequenceByUnicode);
         try (DbResult result = _db.select(query)) {
-            final RangedIntegerHuffmanTable codeSymbolTable = new RangedIntegerHuffmanTable('a', 'z');
             while (result.hasNext()) {
                 final List<DbValue> row = result.next();
                 final int langDbId = row.get(0).toInt();
@@ -350,23 +352,32 @@ public final class StreamedDatabaseWriter {
                     throw new AssertionError();
                 }
 
-                for (int i = 0; i < LanguageCodeRules.LENGTH; i++) {
-                    _obs.writeHuffmanSymbol(codeSymbolTable, (int) code.charAt(i));
-                }
-
-                _obs.writeHuffmanSymbol(nat2Table, alphabetMap.get(langDbId).size());
+                languages.put(code, langDbId);
             }
         }
+
+        final int lastValidLangIntCode = 26 * 26 - 1;
+        int firstValidLangIntCode = 0;
 
         final ImmutableIntPairMap.Builder languagesBuilder = new ImmutableIntPairMap.Builder();
         final ImmutableIntPairMap.Builder alphabetsBuilder = new ImmutableIntPairMap.Builder();
         final int languageCount = alphabetMap.size();
         int alphabetIndex = StreamedDatabaseConstants.minValidConcept + languageCount;
-        for (int i = 0; i < languageCount; i++) {
-            languagesBuilder.put(alphabetMap.keyAt(i), StreamedDatabaseConstants.minValidConcept + i);
-            final ImmutableIntSet langAlphabets = alphabetMap.valueAt(i);
-            for (int j = 0; j < langAlphabets.size(); j++) {
-                alphabetsBuilder.put(langAlphabets.valueAt(j), alphabetIndex++);
+
+        int nextAvailableLanguageId = StreamedDatabaseConstants.minValidConcept;
+        for (String langCode : languages.keySet()) {
+            final int langIntCode = (langCode.charAt(0) - 'a') * 26 + langCode.charAt(1) - 'a';
+            final RangedIntegerHuffmanTable huffmanTable = new RangedIntegerHuffmanTable(firstValidLangIntCode, lastValidLangIntCode);
+            _obs.writeHuffmanSymbol(huffmanTable, langIntCode);
+            firstValidLangIntCode = langIntCode + 1;
+
+            final int langDbId = languages.get(langCode);
+            final ImmutableIntSet langAlphabets = alphabetMap.get(langDbId);
+            _obs.writeHuffmanSymbol(nat2Table, langAlphabets.size());
+
+            languagesBuilder.put(langDbId, nextAvailableLanguageId++);
+            for (int i = 0; i < langAlphabets.size(); i++) {
+                alphabetsBuilder.put(langAlphabets.valueAt(i), alphabetIndex++);
             }
         }
 

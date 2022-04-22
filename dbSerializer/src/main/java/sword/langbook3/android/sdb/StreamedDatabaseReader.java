@@ -1491,15 +1491,16 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         final int minValidAlphabet = StreamedDatabaseConstants.minValidConcept + languageCount;
         int nextMinAlphabet = minValidAlphabet;
 
-        final RangedIntegerHuffmanTable languageCodeSymbol = new RangedIntegerHuffmanTable('a', 'z');
+        final int lastValidLangIntCode = 26 * 26 - 1;
+        int firstValidLangIntCode = 0;
         for (int languageIndex = 0; languageIndex < languageCount; languageIndex++) {
-            final char firstChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
-            final char secondChar = (char) ibs.readHuffmanSymbol(languageCodeSymbol).intValue();
+            final HuffmanTable<Integer> huffmanTable = new RangedIntegerHuffmanTable(firstValidLangIntCode, lastValidLangIntCode);
+            final int langIntCode = ibs.readHuffmanSymbol(huffmanTable);
+            final String code = "" + (char) (langIntCode / 26 + 'a') + (char) (langIntCode % 26 + 'a');
+            firstValidLangIntCode = langIntCode + 1;
+
             final int alphabetCount = ibs.readHuffmanSymbol(nat2Table);
-
-            final String code = "" + firstChar + secondChar;
             languages[languageIndex] = new Language(code, nextMinAlphabet, alphabetCount);
-
             nextMinAlphabet += alphabetCount;
         }
 
