@@ -17,7 +17,12 @@
     <string name="matchingBunchesPickerActivityTitle">Include in bunches</string>
     <string name="quizSelectorActivityTitle">Select a quiz</string>
     <string name="quizEditorActivityTitle">Select quiz parameters</string>
+
+    <!-- Correlation details -->
     <string name="correlationDetailsActivityTitle">Correlation %s</string>
+    <string name="correlationDetailsIdEntry">Displaying details for correlation %s</string>
+    <string name="correlationDetailsPartiallySharedHeader">Other correlations sharing %s</string>
+
     <string name="sentenceDetailsActivityTitle">Sample sentence</string>
 
     <!-- Search activity -->

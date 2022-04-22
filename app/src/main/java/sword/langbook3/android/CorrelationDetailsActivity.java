@@ -51,7 +51,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
         final int entryCount = _model.correlation.size();
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
-        result.add(new HeaderItem("Displaying details for correlation " + _correlationId));
+        result.add(new HeaderItem(getString(R.string.correlationDetailsIdEntry, _correlationId)));
         final ImmutableMap<Character, CharacterId> characters = _model.characters;
         for (int i = 0; i < entryCount; i++) {
             final String alphabetText = _model.alphabets.get(_model.correlation.keyAt(i));
@@ -64,7 +64,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
         }
 
         final int acceptationCount = _model.acceptations.size();
-        result.add(new HeaderItem("Acceptations where included"));
+        result.add(new HeaderItem(getString(R.string.characterCompositionAcceptationsHeader)));
         for (int i = 0; i < acceptationCount; i++) {
             result.add(new AcceptationNavigableItem(_model.acceptations.keyAt(i), _model.acceptations.valueAt(i), false));
         }
@@ -74,7 +74,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             final ImmutableSet<CorrelationId> matchingCorrelations = _model.relatedCorrelationsByAlphabet.get(matchingAlphabet);
             final int count = matchingCorrelations.size();
             if (count > 0) {
-                result.add(new HeaderItem("Other correlations sharing " + _model.alphabets.get(matchingAlphabet)));
+                result.add(new HeaderItem(getString(R.string.correlationDetailsPartiallySharedHeader, _model.alphabets.get(matchingAlphabet))));
                 for (CorrelationId corrId : matchingCorrelations) {
                     final ImmutableCorrelation<AlphabetId> corr = _model.relatedCorrelations.get(corrId);
                     result.add(new CorrelationNavigableItem(corrId, composeCorrelationString(corr)));
