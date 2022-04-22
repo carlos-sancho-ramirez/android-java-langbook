@@ -497,9 +497,9 @@ class DbManager extends SQLiteOpenHelper {
         return _context.getDatabasePath(DB_NAME).toString();
     }
 
-    private class ManagerDatabase implements Database {
+    class ManagerDatabase implements Database {
 
-        private int _dbWriteVersion = 1;
+        int _dbWriteVersion = 1;
 
         @Override
         public DbResult select(DbQuery query) {
@@ -546,6 +546,29 @@ class DbManager extends SQLiteOpenHelper {
         @Override
         public void createIndex(DbIndex index) {
             DbManager.createIndex(_db, index);
+        }
+
+        @Override
+        public DbResult select(DbQuery query) {
+            return DbManager.select(_db, query);
+        }
+
+        @Override
+        public Integer insert(DbInsertQuery query) {
+            ++_dbWriteVersion;
+            return DbManager.insert(_db, query);
+        }
+
+        @Override
+        public boolean delete(DbDeleteQuery query) {
+            ++_dbWriteVersion;
+            return DbManager.delete(_db, query);
+        }
+
+        @Override
+        public boolean update(DbUpdateQuery query) {
+            ++_dbWriteVersion;
+            return DbManager.update(_db, query);
         }
     }
 

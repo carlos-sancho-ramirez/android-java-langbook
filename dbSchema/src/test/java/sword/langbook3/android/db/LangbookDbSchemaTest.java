@@ -2,8 +2,20 @@ package sword.langbook3.android.db;
 
 import org.junit.jupiter.api.Test;
 
+import sword.collections.Function;
+import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableIntList;
+import sword.collections.ImmutableIntValueHashMap;
+import sword.collections.ImmutableList;
+import sword.collections.IntResultFunction;
+import sword.collections.IntTransformer;
+import sword.collections.IntValueMap;
+import sword.collections.List;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableSet;
+import sword.collections.Predicate;
+import sword.collections.Set;
+import sword.collections.Transformer;
 import sword.database.DbDeleteQuery;
 import sword.database.DbIndex;
 import sword.database.DbInsertQuery;
@@ -11,6 +23,7 @@ import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbUpdateQuery;
+import sword.database.DbValue;
 import sword.database.MutableSchemaDatabase;
 import sword.langbook3.android.collections.TraversableUtils;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
@@ -21,6 +34,11 @@ final class LangbookDbSchemaTest {
 
         private MutableSet<DbTable> _expectedTablesToCreate = MutableHashSet.empty();
         private MutableSet<DbIndex> _expectedIndexesToCreate = MutableHashSet.empty();
+        private final boolean _expectUnicodeCharactersTableFill;
+
+        Database(boolean expectUnicodeCharactersTableFill) {
+            _expectUnicodeCharactersTableFill = expectUnicodeCharactersTableFill;
+        }
 
         void expectTableCreation(MutableSet<DbTable> expectationsSet) {
             _expectedTablesToCreate = expectationsSet;
@@ -51,7 +69,72 @@ final class LangbookDbSchemaTest {
 
         @Override
         public DbResult select(DbQuery query) {
-            throw new AssertionError("Unexpected method call");
+            if (!_expectUnicodeCharactersTableFill || query.getTableCount() != 1 || query.getView(0) != Tables.symbolArrays) {
+                throw new AssertionError("Unexpected method call");
+            }
+
+            return new DbResult() {
+
+                @Override
+                public boolean hasNext() {
+                    return false;
+                }
+
+                @Override
+                public List<DbValue> next() {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public List<List<DbValue>> toList() {
+                    return ImmutableList.empty();
+                }
+
+                @Override
+                public Set<List<DbValue>> toSet() {
+                    return ImmutableHashSet.empty();
+                }
+
+                @Override
+                public IntTransformer indexes() {
+                    return ImmutableIntList.empty().iterator();
+                }
+
+                @Override
+                public Transformer<List<DbValue>> filter(Predicate<? super List<DbValue>> predicate) {
+                    return this;
+                }
+
+                @Override
+                public Transformer<List<DbValue>> filterNot(Predicate<? super List<DbValue>> predicate) {
+                    return this;
+                }
+
+                @Override
+                public IntTransformer mapToInt(IntResultFunction<? super List<DbValue>> mapFunc) {
+                    return ImmutableIntList.empty().iterator();
+                }
+
+                @Override
+                public <U> Transformer<U> map(Function<? super List<DbValue>, ? extends U> mapFunc) {
+                    return ImmutableList.<U>empty().iterator();
+                }
+
+                @Override
+                public IntValueMap<List<DbValue>> count() {
+                    return ImmutableIntValueHashMap.empty();
+                }
+
+                @Override
+                public void close() {
+                    // Nothing to be done
+                }
+
+                @Override
+                public int getRemainingRows() {
+                    return 0;
+                }
+            };
         }
 
         @Override
@@ -113,7 +196,7 @@ final class LangbookDbSchemaTest {
         expectedIndexes.add(new DbIndex(Tables.correlationArrays, Tables.correlationArrays.getArrayIdColumnIndex()));
         expectedIndexes.add(new DbIndex(Tables.acceptations, Tables.acceptations.getConceptColumnIndex()));
 
-        final Database db = new Database();
+        final Database db = new Database(false);
         db.expectTableCreation(expectedTables);
         db.expectIndexCreation(expectedIndexes);
 
@@ -121,6 +204,8 @@ final class LangbookDbSchemaTest {
         instance.setup(db);
         db.verify();
     }
+
+    // TODO: This test must be improved
 
     @Test
     void testUpgradeDatabaseVersionFrom5To6() {
@@ -130,7 +215,7 @@ final class LangbookDbSchemaTest {
         expectedTables.add(Tables.characterTokens);
         expectedTables.add(Tables.unicodeCharacters);
 
-        final Database db = new Database();
+        final Database db = new Database(true);
         db.expectTableCreation(expectedTables);
 
         final LangbookDbSchema instance = LangbookDbSchema.getInstance();
