@@ -222,10 +222,9 @@
     <string name="characterCompositionEditorSaveButtonText">Save</string>
     <string name="characterCompositionEditorFirstEmptyError">First cannot be empty</string>
     <string name="characterCompositionEditorSecondEmptyError">Second cannot be empty</string>
-    <string name="characterCompositionEditorTypeEmptyError">Type cannot be empty</string>
     <string name="characterCompositionEditorFirstHasBraceError">Invalid character used in First field</string>
     <string name="characterCompositionEditorSecondHasBraceError">Invalid character used in Second field</string>
-    <string name="characterCompositionEditorInvalidTypeError">Invalid type</string>
+    <string name="characterCompositionEditorNoTypeSelectedError">Please, select a type</string>
     <string name="deleteCharacterCompositionConfirmationText">Are you sure that you want to remove the character composition?</string>
     <string name="characterCompositionEditorActivityTitle">Composition for %s</string>
 

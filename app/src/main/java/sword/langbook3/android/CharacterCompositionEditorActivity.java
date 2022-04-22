@@ -187,6 +187,9 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         else if (isInvalidRepresentation(secondText)) {
             errorMessage = getString(R.string.characterCompositionEditorSecondHasBraceError);
         }
+        else if (_selectedTypeId == null) {
+            errorMessage = getString(R.string.characterCompositionEditorNoTypeSelectedError);
+        }
 
         if (errorMessage != null) {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
