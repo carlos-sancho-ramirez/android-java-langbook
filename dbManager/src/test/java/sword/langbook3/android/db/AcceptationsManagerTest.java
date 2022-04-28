@@ -1013,4 +1013,55 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
 
         assertNull(manager.getToken(aFirstCharacterId));
     }
+
+    @Test
+    default void testRemoveAcceptationRejectsWhenAcceptationIsTheOnlyOneWithAConceptUsedAsCharacterCompositionTypeId() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        final AcceptationId definitionAcceptation = addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo");
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
+        assertFalse(manager.removeAcceptation(definitionAcceptation));
+        assertNotNull(manager.getCharacterCompositionDefinition(compositionTypeId));
+    }
+
+    @Test
+    default void testRemoveAcceptationWhenAcceptationIsNotTheOnlyOneWithAConceptUsedAsCharacterCompositionTypeId() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        final AcceptationId definitionAcceptation = addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo");
+
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "up-down"));
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
+        assertTrue(manager.removeAcceptation(definitionAcceptation));
+        assertNull(manager.getCharacterCompositionDefinition(compositionTypeId));
+    }
 }

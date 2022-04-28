@@ -45,6 +45,15 @@ final class LangbookDeleter {
         return db.delete(query);
     }
 
+    static <ConceptId> boolean deleteCharacterCompositionDefinition(Deleter db, CharacterCompositionTypeIdInterface<ConceptId> typeId) {
+        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
+        final DbDeleteQuery query = new DbDeleteQueryBuilder(table)
+                .where(table.getIdColumnIndex(), typeId)
+                .build();
+
+        return db.delete(query);
+    }
+
     static boolean deleteAgent(Deleter db, AgentIdInterface id) {
         final LangbookDbSchema.AgentsTable table = LangbookDbSchema.Tables.agents;
         final DbDeleteQuery query = new DbDeleteQueryBuilder(table)

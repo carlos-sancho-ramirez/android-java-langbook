@@ -75,6 +75,7 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptations
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSetBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterComposition;
+import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterCompositionDefinition;
 import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterToken;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
@@ -1509,6 +1510,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final boolean withoutSynonymsOrTranslations = findAcceptationsByConcept(concept).size() <= 1;
             if (withoutSynonymsOrTranslations) {
                 deleteBunch(_db, _bunchIdSetter.getKeyFromConceptId(concept));
+                deleteCharacterCompositionDefinition(_db, _characterCompositionTypeIdSetter.getKeyFromConceptId(concept));
             }
 
             deleteRuledAcceptation(_db, acceptation);
@@ -2117,7 +2119,8 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     private boolean canAcceptationBeRemoved(AcceptationId acceptation) {
         final ConceptId concept = conceptFromAcceptation(acceptation);
         final boolean withSynonymsOrTranslations = !findAcceptationsByConcept(concept).remove(acceptation).isEmpty();
-        return (withSynonymsOrTranslations || !hasAgentsRequiringAcceptation(concept)) &&
+        return (withSynonymsOrTranslations || (
+                !hasAgentsRequiringAcceptation(concept) && !isConceptUsedAsCharacterCompositionType(concept))) &&
                 !findRuledAcceptationByBaseAcceptation(acceptation).anyMatch(acc -> !canAcceptationBeRemoved(acc));
     }
 
