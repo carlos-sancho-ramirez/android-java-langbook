@@ -17,6 +17,7 @@ import sword.collections.MutableIntSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.SentenceId;
@@ -146,7 +147,13 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
 
         @Override
         void navigate(Activity activity, int requestCode) {
-            CharacterPickerActivity.open(activity, _characterString);
+            if (_characterString.length() == 1) {
+                final CharacterId characterId = DbManager.getInstance().getManager().findCharacter(_characterString.charAt(0));
+                CharacterDetailsActivity.open(activity, characterId);
+            }
+            else {
+                CharacterPickerActivity.open(activity, _characterString);
+            }
         }
 
         @Override
