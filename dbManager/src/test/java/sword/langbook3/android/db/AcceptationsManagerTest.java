@@ -1064,4 +1064,37 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertTrue(manager.removeAcceptation(definitionAcceptation));
         assertNull(manager.getCharacterCompositionDefinition(compositionTypeId));
     }
+
+    @Test
+    default void testShareConceptRejectsWhenBothConceptsAreCharacterCompositionDefinitions() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        final AcceptationId compositionTypeAcceptation = addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo-50-50");
+        assertNotNull(compositionTypeAcceptation);
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
+
+        final ConceptId compositionType2Concept = manager.getNextAvailableConceptId();
+        final AcceptationId compositionType2Acceptation = addSimpleAcceptation(manager, alphabet, compositionType2Concept, "arriba-abajo-25-75");
+
+        final CharacterCompositionTypeId compositionType2Id = conceptAsCharacterCompositionTypeId(compositionType2Concept);
+        final CharacterCompositionDefinitionArea first = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 4);
+        final CharacterCompositionDefinitionArea second = new CharacterCompositionDefinitionArea(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 4, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT * 3 / 4);
+        final CharacterCompositionDefinitionRegister register = new CharacterCompositionDefinitionRegister(first, second);
+        assertTrue(manager.updateCharacterCompositionDefinition(compositionType2Id, register));
+
+        assertFalse(manager.shareConcept(compositionTypeAcceptation, compositionType2Concept));
+        assertEquals(compositionTypeConcept, manager.conceptFromAcceptation(compositionTypeAcceptation));
+        assertEquals(compositionType2Concept, manager.conceptFromAcceptation(compositionType2Acceptation));
+    }
 }

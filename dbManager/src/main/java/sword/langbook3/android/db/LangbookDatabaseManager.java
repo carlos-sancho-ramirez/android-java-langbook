@@ -2365,6 +2365,10 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             throw new AssertionError();
         }
 
+        if (isConceptDefinedAsCharacterCompositionType(oldConcept) && isConceptDefinedAsCharacterCompositionType(linkedConcept)) {
+            return false;
+        }
+
         final BunchId oldConceptAsBunch = _bunchIdSetter.getKeyFromConceptId(oldConcept);
         final BunchId linkedConceptAsBunch = _bunchIdSetter.getKeyFromConceptId(linkedConcept);
         final RuleId oldConceptAsRule = _ruleIdSetter.getKeyFromConceptId(oldConcept);

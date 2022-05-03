@@ -4207,6 +4207,15 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
         return _db.select(dbQuery).map(row -> _characterIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
+    boolean isConceptDefinedAsCharacterCompositionType(ConceptId concept) {
+        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
+        final DbQuery dbQuery = new DbQueryBuilder(table)
+                .where(table.getIdColumnIndex(), concept)
+                .select(table.getIdColumnIndex());
+
+        return selectExistAtLeastOneRow(dbQuery);
+    }
+
     boolean isConceptUsedAsCharacterCompositionType(ConceptId concept) {
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
         final DbQuery dbQuery = new DbQueryBuilder(table)
