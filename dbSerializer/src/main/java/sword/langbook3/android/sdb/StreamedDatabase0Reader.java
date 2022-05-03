@@ -39,6 +39,7 @@ import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.database.DbExporter;
+import sword.database.DbImporter;
 import sword.database.DbImporter.Database;
 import sword.database.DbInsertQuery;
 import sword.database.DbInserter;
@@ -46,14 +47,12 @@ import sword.database.DbQuery;
 import sword.database.DbResult;
 import sword.database.DbTable;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.ImmutableIntPair;
 import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.collections.SyncCacheIntValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
-import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ID;
 import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
@@ -61,38 +60,6 @@ import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
 public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInterface {
 
     static final NaturalNumberHuffmanTable naturalNumberTable = new NaturalNumberHuffmanTable(8);
-    static final RangedIntegerHuffmanTable characterCompositionCoordinateTable = new RangedIntegerHuffmanTable(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - 1);
-
-    private static boolean selectExistingRow(DbExporter.Database db, DbQuery query) {
-        boolean result = false;
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                dbResult.next();
-                result = true;
-            }
-
-            if (dbResult.hasNext()) {
-                throw new AssertionError();
-            }
-        }
-
-        return result;
-    }
-
-    private static Integer selectOptionalFirstIntColumn(DbExporter.Database db, DbQuery query) {
-        Integer result = null;
-        try (DbResult dbResult = db.select(query)) {
-            if (dbResult.hasNext()) {
-                result = dbResult.next().get(0).toInt();
-            }
-
-            if (dbResult.hasNext()) {
-                throw new AssertionError("Only 0 or 1 row was expected");
-            }
-        }
-
-        return result;
-    }
 
     private static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
         final DbQuery query = new DbQuery.Builder(table)
@@ -111,16 +78,6 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
     private static int getMaxAlphabet(DbExporter.Database db) {
         LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
         return getColumnMax(db, table, table.getIdColumnIndex());
-    }
-
-    private static int getMaxCorrelationId(DbExporter.Database db) {
-        final LangbookDbSchema.CorrelationsTable table = Tables.correlations;
-        return getColumnMax(db, table, table.getCorrelationIdColumnIndex());
-    }
-
-    private static int getMaxCorrelationArrayId(DbExporter.Database db) {
-        final LangbookDbSchema.CorrelationArraysTable table = Tables.correlationArrays;
-        return getColumnMax(db, table, table.getArrayIdColumnIndex());
     }
 
     private static int getMaxConceptInAcceptations(DbExporter.Database db) {
@@ -216,7 +173,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return max;
     }
 
-    private static String getSymbolArray(DbExporter.Database db, int id) {
+    static String getSymbolArray(DbExporter.Database db, int id) {
         final LangbookDbSchema.SymbolArraysTable table = Tables.symbolArrays;
         final DbQuery query = new DbQuery.Builder(table)
                 .where(table.getIdColumnIndex(), id)
@@ -229,82 +186,6 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             }
             return str;
         }
-    }
-
-    private static Integer getLanguageFromAlphabet(DbExporter.Database db, int alphabet) {
-        final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
-        final DbQuery query = new DbQuery.Builder(table)
-                .where(table.getIdColumnIndex(), alphabet)
-                .select(table.getLanguageColumnIndex());
-
-        return selectOptionalFirstIntColumn(db, query);
-    }
-
-    static ImmutableIntKeyMap<String> getCorrelationWithText(DbExporter.Database db, int correlationId) {
-        final LangbookDbSchema.CorrelationsTable correlations = Tables.correlations;
-        final LangbookDbSchema.SymbolArraysTable symbolArrays = Tables.symbolArrays;
-
-        final DbQuery query = new DbQuery.Builder(correlations)
-                .join(symbolArrays, correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
-                .where(correlations.getCorrelationIdColumnIndex(), correlationId)
-                .select(correlations.getAlphabetColumnIndex(), correlations.columns().size() + symbolArrays.getStrColumnIndex());
-        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                builder.put(row.get(0).toInt(), row.get(1).toText());
-            }
-        }
-        return builder.build();
-    }
-
-    private static ImmutableIntPairMap getConversionsMap(DbExporter.Database db) {
-        final LangbookDbSchema.ConversionsTable conversions = Tables.conversions;
-
-        final DbQuery query = new DbQuery.Builder(conversions)
-                .groupBy(conversions.getSourceAlphabetColumnIndex(), conversions.getTargetAlphabetColumnIndex())
-                .select(
-                        conversions.getSourceAlphabetColumnIndex(),
-                        conversions.getTargetAlphabetColumnIndex());
-
-        final ImmutableIntPairMap.Builder builder = new ImmutableIntPairMap.Builder();
-        try (DbResult dbResult = db.select(query)) {
-            while (dbResult.hasNext()) {
-                final List<DbValue> row = dbResult.next();
-                builder.put(row.get(1).toInt(), row.get(0).toInt());
-            }
-        }
-
-        return builder.build();
-    }
-
-    private static Conversion getConversion(DbExporter.Database db, ImmutableIntPair pair) {
-        final LangbookDbSchema.ConversionsTable conversions = Tables.conversions;
-        final LangbookDbSchema.SymbolArraysTable symbols = Tables.symbolArrays;
-
-        final int off1Symbols = conversions.columns().size();
-        final int off2Symbols = off1Symbols + symbols.columns().size();
-
-        final DbQuery query = new DbQuery.Builder(conversions)
-                .join(symbols, conversions.getSourceColumnIndex(), symbols.getIdColumnIndex())
-                .join(symbols, conversions.getTargetColumnIndex(), symbols.getIdColumnIndex())
-                .where(conversions.getSourceAlphabetColumnIndex(), pair.left)
-                .where(conversions.getTargetAlphabetColumnIndex(), pair.right)
-                .select(
-                        off1Symbols + symbols.getStrColumnIndex(),
-                        off2Symbols + symbols.getStrColumnIndex());
-
-        final MutableMap<String, String> resultMap = MutableHashMap.empty();
-        try (DbResult result = db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final String sourceText = row.get(0).toText();
-                final String targetText = row.get(1).toText();
-                resultMap.put(sourceText, targetText);
-            }
-        }
-
-        return new Conversion(pair.left, pair.right, resultMap);
     }
 
     private static Integer findConceptComposition(DbExporter.Database db, ImmutableIntSet concepts) {
@@ -450,23 +331,6 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
 
         return null;
-    }
-
-    private static boolean areAllAlphabetsFromSameLanguage(DbExporter.Database db, IntSet alphabets) {
-        final Integer language = getLanguageFromAlphabet(db, alphabets.valueAt(0));
-        if (language == null) {
-            return false;
-        }
-
-        final int size = alphabets.size();
-        for (int i = 1; i < size; i++) {
-            final Integer lang = getLanguageFromAlphabet(db, alphabets.valueAt(i));
-            if (lang == null || language.intValue() != lang.intValue()) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private static void insertAlphabet(DbInserter db, int id, int language) {
@@ -657,7 +521,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return compositionConcept;
     }
 
-    private static void addDefinition(Database db, int baseConcept, int concept, ImmutableIntSet complements) {
+    static void addDefinition(Database db, int baseConcept, int concept, ImmutableIntSet complements) {
         insertComplementedConcept(db, baseConcept, concept, obtainConceptComposition(db, complements));
     }
 
@@ -675,7 +539,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return id;
     }
 
-    static int obtainCorrelation(Database db, IntPairMap correlation, IntSupplier newIdSupplier) {
+    static int obtainCorrelation(DbImporter.Database db, IntPairMap correlation, IntSupplier newIdSupplier) {
         final Integer foundId = findCorrelation(db, correlation);
         if (foundId != null) {
             return foundId;
@@ -686,7 +550,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return newCorrelationId;
     }
 
-    static int obtainCorrelationArray(Database db, IntList correlations, IntSupplier newIdSupplier) {
+    static int obtainCorrelationArray(DbImporter.Database db, IntList correlations, IntSupplier newIdSupplier) {
         final Integer foundId = findCorrelationArray(db, correlations);
         if (foundId != null) {
             return foundId;
@@ -724,7 +588,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static class CharReader implements SupplierWithIOException<Character> {
+    static final class CharReader implements SupplierWithIOException<Character> {
         private final CharHuffmanTable _table = new CharHuffmanTable(8);
         private final InputHuffmanStream _ibs;
 
@@ -738,7 +602,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static class CharHuffmanSymbolDiffReader implements FunctionWithIOException<Character, Character> {
+    static final class CharHuffmanSymbolDiffReader implements FunctionWithIOException<Character, Character> {
 
         private final InputHuffmanStream _ibs;
         private final NaturalNumberHuffmanTable _table;
@@ -755,7 +619,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private class IntReader implements IntSupplierWithIOException {
+    static final class IntReader implements IntSupplierWithIOException {
 
         private final InputHuffmanStream _ibs;
 
@@ -769,7 +633,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static class IntHuffmanSymbolReader implements IntSupplierWithIOException {
+    static final class IntHuffmanSymbolReader implements IntSupplierWithIOException {
 
         private final InputHuffmanStream _ibs;
         private final NaturalNumberHuffmanTable _table;
@@ -785,7 +649,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static class IntHuffmanSymbolDiffReader implements IntToIntFunctionWithIOException {
+    static final class IntHuffmanSymbolDiffReader implements IntToIntFunctionWithIOException {
 
         private final InputHuffmanStream _ibs;
         private final NaturalNumberHuffmanTable _table;
@@ -801,7 +665,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static class IntValueDecoder implements IntSupplierWithIOException {
+    static final class IntValueDecoder implements IntSupplierWithIOException {
 
         private final InputHuffmanStream _ibs;
         private final IntHuffmanTable _table;
@@ -821,7 +685,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static final class Language {
+    static final class Language {
 
         private final String _code;
         private final int _minAlphabet;
@@ -860,7 +724,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static final class SymbolArrayReadResult {
+    static final class SymbolArrayReadResult {
         final int[] idMap;
         final int[] lengths;
 
@@ -1329,7 +1193,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return insertedSentences.toImmutable();
     }
 
-    private static final class AgentReadResult {
+    static final class AgentReadResult {
         final ImmutableIntKeyMap<AgentBunches> agents;
         final ImmutableIntPairMap agentRules;
 

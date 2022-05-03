@@ -33,13 +33,13 @@ import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
+import static sword.langbook3.android.sdb.StreamedDatabase0Reader.getMaxConcept;
+import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainCorrelation;
+import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainCorrelationArray;
+import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainSymbolArray;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.getCorrelationWithText;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.getMaxConcept;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertBunchAcceptation;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainCorrelation;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainCorrelationArray;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.obtainSymbolArray;
 
 public final class DatabaseInflater {
 
