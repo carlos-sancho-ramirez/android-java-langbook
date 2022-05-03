@@ -3,6 +3,7 @@ package sword.langbook3.android.db;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashMap;
+import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableHashMap;
@@ -13,6 +14,7 @@ import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.CharacterCompositionEditorModel;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
 import sword.langbook3.android.models.LanguageCreationResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1096,5 +1098,44 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         assertFalse(manager.shareConcept(compositionTypeAcceptation, compositionType2Concept));
         assertEquals(compositionTypeConcept, manager.conceptFromAcceptation(compositionTypeAcceptation));
         assertEquals(compositionType2Concept, manager.conceptFromAcceptation(compositionType2Acceptation));
+    }
+
+    @Test
+    default void testShareConceptWhenOldConceptIsDefinedAsCharacterCompositionDefinition() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, moreConcept, "más"));
+
+        final CharacterId composed = manager.findCharacter('á');
+        assertNotNull(composed);
+
+        final ConceptId compositionTypeConcept = manager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(manager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(manager, compositionTypeId);
+
+        final ConceptId compositionType2Concept = manager.getNextAvailableConceptId();
+        final AcceptationId compositionType2Acceptation = addSimpleAcceptation(manager, alphabet, compositionType2Concept, "arriba-abajo2");
+
+        final CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation('´', null);
+        final CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(manager.updateCharacterComposition(composed, firstRepresentation, secondRepresentation, compositionTypeId));
+        assertTrue(manager.shareConcept(compositionType2Acceptation, compositionTypeConcept));
+
+        final CharacterCompositionTypeId compositionType2Id = conceptAsCharacterCompositionTypeId(compositionType2Concept);
+        final CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = manager.getCharacterCompositionDetails(composed);
+        assertEquals('´', model.first.representation.character);
+        assertNull(model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(compositionType2Id, model.compositionType);
+
+        final ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> result = manager.getCharacterCompositionTypes(alphabet);
+        assertSize(1, result);
+        assertEquals(compositionType2Id, result.valueAt(0).id);
     }
 }

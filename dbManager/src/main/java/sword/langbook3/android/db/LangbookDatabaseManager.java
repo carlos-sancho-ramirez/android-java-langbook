@@ -2159,6 +2159,26 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         _db.update(query);
     }
 
+    private void updateConceptDefinedAsCharacterCompositionType(ConceptId oldConcept, ConceptId newConcept) {
+        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
+
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                .where(table.getIdColumnIndex(), oldConcept)
+                .put(table.getIdColumnIndex(), newConcept)
+                .build();
+        _db.update(query);
+    }
+
+    private void updateConceptsUsedAsCharacterCompositionsTypes(ConceptId oldConcept, ConceptId newConcept) {
+        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
+
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                .where(table.getCompositionTypeColumnIndex(), oldConcept)
+                .put(table.getCompositionTypeColumnIndex(), newConcept)
+                .build();
+        _db.update(query);
+    }
+
     private MutableMap<AgentId, MutableSet<AcceptationId>> getAcceptationsInBunchGroupedByAgent(BunchId bunch) {
         final LangbookDbSchema.BunchAcceptationsTable table = LangbookDbSchema.Tables.bunchAcceptations;
         DbQuery oldConceptQuery = new DbQueryBuilder(table)
@@ -2365,7 +2385,8 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             throw new AssertionError();
         }
 
-        if (isConceptDefinedAsCharacterCompositionType(oldConcept) && isConceptDefinedAsCharacterCompositionType(linkedConcept)) {
+        final boolean oldConceptDefinedAsCharacterCompositionType = isConceptDefinedAsCharacterCompositionType(oldConcept);
+        if (oldConceptDefinedAsCharacterCompositionType && isConceptDefinedAsCharacterCompositionType(linkedConcept)) {
             return false;
         }
 
@@ -2375,6 +2396,11 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         final RuleId linkedConceptAsRule = _ruleIdSetter.getKeyFromConceptId(linkedConcept);
 
         updateConceptsInComplementedConcepts(oldConcept, linkedConcept);
+        if (oldConceptDefinedAsCharacterCompositionType) {
+            updateConceptDefinedAsCharacterCompositionType(oldConcept, linkedConcept);
+            updateConceptsUsedAsCharacterCompositionsTypes(oldConcept, linkedConcept);
+        }
+
         updateBunchAcceptationConcepts(oldConcept, linkedConcept);
         updateQuestionRules(oldConceptAsRule, linkedConceptAsRule);
         updateQuizBunches(oldConceptAsBunch, linkedConceptAsBunch);
