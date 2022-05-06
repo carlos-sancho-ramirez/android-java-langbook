@@ -72,8 +72,6 @@ import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainSymbolAr
 
 public final class StreamedDatabaseReader implements StreamedDatabaseReaderInterface {
 
-    private static final int CHARACTER_MAP_GRANULARITY = 64;
-
     static final NaturalNumberHuffmanTable naturalNumberTable = new NaturalNumberHuffmanTable(8);
     static final RangedIntegerHuffmanTable characterCompositionCoordinateTable = new RangedIntegerHuffmanTable(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - 1);
 
@@ -913,11 +911,6 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         }
     }
 
-    private static int suitableCharacterMapLength(int currentSize, int newSize) {
-        int s = ((newSize + CHARACTER_MAP_GRANULARITY - 1) / CHARACTER_MAP_GRANULARITY) * CHARACTER_MAP_GRANULARITY;
-        return (s > 0)? s : CHARACTER_MAP_GRANULARITY;
-    }
-
     private void insertCharacters(Set<Character> characters, int lastId) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
         for (char ch : characters) {
@@ -951,7 +944,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         try {
             setProgress(0, "Reading symbol arrays");
             final InputStreamWrapper ibs = new InputStreamWrapper(_is);
-            final MutableHashSet<Character> characters = MutableHashSet.empty(StreamedDatabaseReader::suitableCharacterMapLength);
+            final MutableHashSet<Character> characters = MutableHashSet.empty(StreamedDatabase0Reader::suitableCharacterMapLength);
             final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs, characters);
             insertCharacters(characters, 0);
             final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;

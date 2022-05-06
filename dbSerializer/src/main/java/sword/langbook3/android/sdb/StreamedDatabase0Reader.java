@@ -33,11 +33,14 @@ import sword.collections.IntSet;
 import sword.collections.IntTraverser;
 import sword.collections.List;
 import sword.collections.MutableHashMap;
+import sword.collections.MutableHashSet;
 import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntKeyMap;
 import sword.collections.MutableIntPairMap;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
+import sword.collections.MutableSet;
+import sword.collections.Set;
 import sword.database.DbExporter;
 import sword.database.DbImporter;
 import sword.database.DbImporter.Database;
@@ -59,6 +62,7 @@ import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
 
 public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInterface {
 
+    static final int CHARACTER_MAP_GRANULARITY = 64;
     static final NaturalNumberHuffmanTable naturalNumberTable = new NaturalNumberHuffmanTable(8);
 
     private static int getColumnMax(DbExporter.Database db, DbTable table, int columnIndex) {
@@ -734,7 +738,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private SymbolArrayReadResult readSymbolArrays(InputHuffmanStream ibs) throws IOException {
+    private SymbolArrayReadResult readSymbolArrays(InputHuffmanStream ibs, MutableSet<Character> characters) throws IOException {
         final int symbolArraysLength = ibs.readHuffmanSymbol(naturalNumberTable);
         if (symbolArraysLength == 0) {
             final int[] emptyArray = new int[0];
@@ -756,7 +760,9 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             final int length = ibs.readIntHuffmanSymbol(symbolArraysLengthTable);
             final StringBuilder builder = new StringBuilder();
             for (int pos = 0; pos < length; pos++) {
-                builder.append(ibs.readHuffmanSymbol(charHuffmanTable));
+                final Character ch = ibs.readHuffmanSymbol(charHuffmanTable);
+                builder.append(ch);
+                characters.add(ch);
             }
 
             idMap[index] = obtainSymbolArray(_db, builder.toString());
@@ -1256,12 +1262,33 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
+    static int suitableCharacterMapLength(int currentSize, int newSize) {
+        int s = ((newSize + CHARACTER_MAP_GRANULARITY - 1) / CHARACTER_MAP_GRANULARITY) * CHARACTER_MAP_GRANULARITY;
+        return (s > 0)? s : CHARACTER_MAP_GRANULARITY;
+    }
+
+    private void insertCharacters(Set<Character> characters, int lastId) {
+        final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
+        for (char ch : characters) {
+            final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                    .put(table.getIdColumnIndex(), ++lastId)
+                    .put(table.getUnicodeColumnIndex(), ch)
+                    .build();
+
+            if (lastId != _db.insert(query)) {
+                throw new AssertionError();
+            }
+        }
+    }
+
     @Override
     public Result read() throws IOException {
         try {
             setProgress(0, "Reading symbol arrays");
             final InputStreamWrapper ibs = new InputStreamWrapper(_is);
-            final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs);
+            final MutableHashSet<Character> characters = MutableHashSet.empty(StreamedDatabase0Reader::suitableCharacterMapLength);
+            final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs, characters);
+            insertCharacters(characters, 0);
             final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;
 
             // Read languages and its alphabets
