@@ -1836,6 +1836,71 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
         return _db.select(query).map(row -> _agentIdSetter.getKeyFromDbValue(row.get(0))).toSet().toImmutable();
     }
 
+    private ImmutableList<DynamizableResult<AcceptationId>> findAcceptationsContainingText(String text, int maxNumberOfItems, AlphabetId preferredAlphabet) {
+        final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
+        DbQuery query = new DbQuery.Builder(table)
+                .where(table.getStringColumnIndex(), new DbQuery.Restriction(new DbStringValue(text),
+                        DbQuery.RestrictionStringTypes.CONTAINS))
+                .select(
+                        table.getDynamicAcceptationColumnIndex());
+
+        final ImmutableIntSet acceptations = _db.select(query).mapToInt(row -> row.get(0).toInt()).toSet().toImmutable();
+        final MutableList<DynamizableResult<AcceptationId>> staticAcceptations = MutableList.empty();
+        final MutableList<DynamizableResult<AcceptationId>> dynamicAcceptations = MutableList.empty();
+        int staticAcceptationsEntered = 0;
+        int dynamicAcceptationsEntered = 0;
+        for (int acc : acceptations) {
+            query = new DbQuery.Builder(table)
+                    .where(table.getDynamicAcceptationColumnIndex(), acc)
+                    .select(table.getStringAlphabetColumnIndex(),
+                            table.getStringColumnIndex(),
+                            table.getMainAcceptationColumnIndex());
+
+            String foundText;
+            boolean isDynamic;
+
+            try (DbResult dbResult = _db.select(query)) {
+                List<DbValue> row = dbResult.next();
+                foundText = row.get(1).toText();
+                isDynamic = acc != row.get(2).toInt();
+
+                if (isDynamic && staticAcceptationsEntered + dynamicAcceptationsEntered >= maxNumberOfItems) {
+                    continue;
+                }
+
+                if (preferredAlphabet != null && !preferredAlphabet.sameValue(row.get(0))) {
+                    while (dbResult.hasNext()) {
+                        row = dbResult.next();
+                        if (preferredAlphabet.sameValue(row.get(0))) {
+                            foundText = row.get(1).toText();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            final DynamizableResult<AcceptationId> accResult = new DynamizableResult<>(_acceptationIdSetter.getKeyFromInt(acc), isDynamic, foundText);
+            if (isDynamic) {
+                dynamicAcceptations.append(accResult);
+                dynamicAcceptationsEntered++;
+            }
+            else {
+                staticAcceptations.append(accResult);
+                staticAcceptationsEntered++;
+            }
+
+            if (staticAcceptationsEntered >= maxNumberOfItems) {
+                break;
+            }
+        }
+
+        for (int index = 0; index < Math.min(maxNumberOfItems - staticAcceptationsEntered, dynamicAcceptationsEntered); index++) {
+            staticAcceptations.append(dynamicAcceptations.valueAt(index));
+        }
+
+        return staticAcceptations.toImmutable();
+    }
+
     @Override
     public ImmutableList<SearchResult<AcceptationId, RuleId>> findAcceptationFromText(String queryText, int restrictionStringType, ImmutableIntRange range) {
         final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
@@ -4385,10 +4450,10 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
 
         final ImmutableMap<AcceptationId, CharacterDetailsModel.AcceptationInfo> acceptationsWhereIncluded;
         if (representation.character != INVALID_CHARACTER) {
-            final ImmutableList<SearchResult<AcceptationId, RuleId>> results = findAcceptationFromText("" + representation.character, DbQuery.RestrictionStringTypes.CONTAINS, new ImmutableIntRange(0, 49));
+            final ImmutableList<DynamizableResult<AcceptationId>> results = findAcceptationsContainingText("" + representation.character, 200, preferredAlphabet);
             final MutableMap<AcceptationId, CharacterDetailsModel.AcceptationInfo> builder = MutableHashMap.empty();
-            for (SearchResult<AcceptationId, RuleId> searchResult : results) {
-                builder.put(searchResult.getId(), new CharacterDetailsModel.AcceptationInfo(searchResult.getStr(), searchResult.isDynamic()));
+            for (DynamizableResult<AcceptationId> searchResult : results) {
+                builder.put(searchResult.id, new CharacterDetailsModel.AcceptationInfo(searchResult.text, searchResult.dynamic));
             }
 
             acceptationsWhereIncluded = builder.toImmutable();
