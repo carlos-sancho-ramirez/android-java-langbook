@@ -6,22 +6,24 @@ import sword.collections.Predicate;
 import sword.collections.SortUtils;
 import sword.langbook3.android.db.ImmutableCorrelation;
 
-public final class CorrelationDetailsModel<AlphabetId, CorrelationId, AcceptationId> implements CorrelationDetails<AlphabetId, CorrelationId, AcceptationId> {
+public final class CorrelationDetailsModel2<AlphabetId, CharacterId, CorrelationId, AcceptationId> implements CorrelationDetails2<AlphabetId, CharacterId, CorrelationId, AcceptationId> {
 
     private final ImmutableMap<AlphabetId, String> _alphabets;
     private final ImmutableCorrelation<AlphabetId> _correlation;
     private final ImmutableMap<AcceptationId, String> _acceptations;
     private final ImmutableMap<AlphabetId, ImmutableSet<CorrelationId>> _relatedCorrelationsByAlphabet;
     private final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> _relatedCorrelations;
+    private final ImmutableMap<Character, CharacterId> _characters;
 
-    public CorrelationDetailsModel(
+    public CorrelationDetailsModel2(
             ImmutableMap<AlphabetId, String> alphabets,
             ImmutableCorrelation<AlphabetId> correlation,
             ImmutableMap<AcceptationId, String> acceptations,
             ImmutableMap<AlphabetId, ImmutableSet<CorrelationId>> relatedCorrelationsByAlphabet,
-            ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations) {
+            ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations,
+            ImmutableMap<Character, CharacterId> characters) {
         if (alphabets == null || correlation == null || acceptations == null ||
-                relatedCorrelationsByAlphabet == null || relatedCorrelations == null) {
+                relatedCorrelationsByAlphabet == null || relatedCorrelations == null || characters == null) {
             throw new IllegalArgumentException();
         }
 
@@ -58,6 +60,7 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId, Acceptatio
         _acceptations = acceptations;
         _relatedCorrelationsByAlphabet = relatedCorrelationsByAlphabet;
         _relatedCorrelations = relatedCorrelations;
+        _characters = characters;
     }
 
     @Override
@@ -83,5 +86,10 @@ public final class CorrelationDetailsModel<AlphabetId, CorrelationId, Acceptatio
     @Override
     public ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> getRelatedCorrelations() {
         return _relatedCorrelations;
+    }
+
+    @Override
+    public ImmutableMap<Character, CharacterId> getCharacters() {
+        return _characters;
     }
 }

@@ -28,12 +28,9 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
-import sword.langbook3.android.collections.StringUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.models.AgentRegister;
-import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
-import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.models.QuestionFieldDetails;
@@ -46,8 +43,6 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAllPossibilities;
 import static sword.langbook3.android.db.LangbookDbInserter.insertAlphabet;
 import static sword.langbook3.android.db.LangbookDbInserter.insertBunchAcceptation;
-import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterComposition;
-import static sword.langbook3.android.db.LangbookDbInserter.insertCharacterToken;
 import static sword.langbook3.android.db.LangbookDbInserter.insertConceptCompositionEntry;
 import static sword.langbook3.android.db.LangbookDbInserter.insertQuizDefinition;
 import static sword.langbook3.android.db.LangbookDbInserter.insertRuleSentenceMatch;
@@ -57,7 +52,6 @@ import static sword.langbook3.android.db.LangbookDbInserter.insertSentence;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSpan;
 import static sword.langbook3.android.db.LangbookDbInserter.insertStringQuery;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSymbolArray;
-import static sword.langbook3.android.db.LangbookDbInserter.insertUnicode;
 import static sword.langbook3.android.db.LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID;
 import static sword.langbook3.android.db.LangbookDbSchema.MAX_ALLOWED_SCORE;
 import static sword.langbook3.android.db.LangbookDbSchema.MIN_ALLOWED_SCORE;
@@ -74,9 +68,6 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptations
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchAcceptationsByAgentAndBunch;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSet;
 import static sword.langbook3.android.db.LangbookDeleter.deleteBunchSetBunch;
-import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterComposition;
-import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterCompositionDefinition;
-import static sword.langbook3.android.db.LangbookDeleter.deleteCharacterToken;
 import static sword.langbook3.android.db.LangbookDeleter.deleteComplementedConcept;
 import static sword.langbook3.android.db.LangbookDeleter.deleteConversion;
 import static sword.langbook3.android.db.LangbookDeleter.deleteCorrelation;
@@ -97,12 +88,11 @@ import static sword.langbook3.android.db.LangbookDeleter.deleteSpansByDynamicAcc
 import static sword.langbook3.android.db.LangbookDeleter.deleteSpansBySentenceId;
 import static sword.langbook3.android.db.LangbookDeleter.deleteStringQueriesForDynamicAcceptation;
 import static sword.langbook3.android.db.LangbookDeleter.deleteSymbolArray;
-import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
 
-public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId extends CharacterIdInterface, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
+public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, SymbolArrayId extends SymbolArrayIdInterface, CorrelationId extends CorrelationIdInterface, CorrelationArrayId extends CorrelationArrayIdInterface, AcceptationId extends AcceptationIdInterface, BunchId extends BunchIdInterface<ConceptId>, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId extends QuizIdInterface, SentenceId extends SentenceIdInterface> extends LangbookDatabaseChecker<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> implements LangbookManager<ConceptId, LanguageId, AlphabetId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> {
 
-    public LangbookDatabaseManager(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<CharacterId> characterIdManager, ConceptualizableSetter<ConceptId, CharacterCompositionTypeId> characterCompositionTypeIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter, IntSetter<QuizId> quizIdSetter, IntSetter<SentenceId> sentenceIdSetter) {
-        super(db, conceptIdManager, languageIdManager, alphabetIdManager, characterIdManager, characterCompositionTypeIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, bunchSetIdSetter, ruleIdSetter, agentIdSetter, quizIdSetter, sentenceIdSetter);
+    public LangbookDatabaseManager(Database db, ConceptSetter<ConceptId> conceptIdManager, ConceptualizableSetter<ConceptId, LanguageId> languageIdManager, ConceptualizableSetter<ConceptId, AlphabetId> alphabetIdManager, IntSetter<SymbolArrayId> symbolArrayIdManager, IntSetter<CorrelationId> correlationIdSetter, IntSetter<CorrelationArrayId> correlationArrayIdSetter, IntSetter<AcceptationId> acceptationIdSetter, ConceptualizableSetter<ConceptId, BunchId> bunchIdSetter, BunchSetIntSetter<BunchSetId> bunchSetIdSetter, ConceptualizableSetter<ConceptId, RuleId> ruleIdSetter, IntSetter<AgentId> agentIdSetter, IntSetter<QuizId> quizIdSetter, IntSetter<SentenceId> sentenceIdSetter) {
+        super(db, conceptIdManager, languageIdManager, alphabetIdManager, symbolArrayIdManager, correlationIdSetter, correlationArrayIdSetter, acceptationIdSetter, bunchIdSetter, bunchSetIdSetter, ruleIdSetter, agentIdSetter, quizIdSetter, sentenceIdSetter);
     }
 
     private boolean applyMatchersAddersAndConversions(
@@ -359,22 +349,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 modifiedKnownCorrelationIds.toImmutable());
     }
 
-    private CharacterId obtainCharacter(char unicode) {
-        final CharacterId foundId = findCharacter(unicode);
-        if (foundId != null) {
-            return foundId;
-        }
-
-        final CharacterId newId = getNextAvailableCharacterId();
-        insertUnicode(_db, newId, unicode);
-        return newId;
-    }
-
     private SymbolArrayId obtainSymbolArray(String str) {
-        for (char unicode : StringUtils.stringToCharList(str)) {
-            obtainCharacter(unicode);
-        }
-
         SymbolArrayId id = insertSymbolArray(_db, _symbolArrayIdSetter, str);
         if (id != null) {
             return id;
@@ -1510,7 +1485,6 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             final boolean withoutSynonymsOrTranslations = findAcceptationsByConcept(concept).size() <= 1;
             if (withoutSynonymsOrTranslations) {
                 deleteBunch(_db, _bunchIdSetter.getKeyFromConceptId(concept));
-                deleteCharacterCompositionDefinition(_db, _characterCompositionTypeIdSetter.getKeyFromConceptId(concept));
             }
 
             deleteRuledAcceptation(_db, acceptation);
@@ -2119,8 +2093,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
     private boolean canAcceptationBeRemoved(AcceptationId acceptation) {
         final ConceptId concept = conceptFromAcceptation(acceptation);
         final boolean withSynonymsOrTranslations = !findAcceptationsByConcept(concept).remove(acceptation).isEmpty();
-        return (withSynonymsOrTranslations || (
-                !hasAgentsRequiringAcceptation(concept) && !isConceptUsedAsCharacterCompositionType(concept))) &&
+        return (withSynonymsOrTranslations || !hasAgentsRequiringAcceptation(concept)) &&
                 !findRuledAcceptationByBaseAcceptation(acceptation).anyMatch(acc -> !canAcceptationBeRemoved(acc));
     }
 
@@ -2155,26 +2128,6 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         query = new DbUpdateQueryBuilder(table)
                 .where(table.getComplementColumnIndex(), oldConcept)
                 .put(table.getComplementColumnIndex(), newConcept)
-                .build();
-        _db.update(query);
-    }
-
-    private void updateConceptDefinedAsCharacterCompositionType(ConceptId oldConcept, ConceptId newConcept) {
-        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
-
-        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                .where(table.getIdColumnIndex(), oldConcept)
-                .put(table.getIdColumnIndex(), newConcept)
-                .build();
-        _db.update(query);
-    }
-
-    private void updateConceptsUsedAsCharacterCompositionsTypes(ConceptId oldConcept, ConceptId newConcept) {
-        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
-
-        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                .where(table.getCompositionTypeColumnIndex(), oldConcept)
-                .put(table.getCompositionTypeColumnIndex(), newConcept)
                 .build();
         _db.update(query);
     }
@@ -2385,22 +2338,12 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             throw new AssertionError();
         }
 
-        final boolean oldConceptDefinedAsCharacterCompositionType = isConceptDefinedAsCharacterCompositionType(oldConcept);
-        if (oldConceptDefinedAsCharacterCompositionType && isConceptDefinedAsCharacterCompositionType(linkedConcept)) {
-            return false;
-        }
-
         final BunchId oldConceptAsBunch = _bunchIdSetter.getKeyFromConceptId(oldConcept);
         final BunchId linkedConceptAsBunch = _bunchIdSetter.getKeyFromConceptId(linkedConcept);
         final RuleId oldConceptAsRule = _ruleIdSetter.getKeyFromConceptId(oldConcept);
         final RuleId linkedConceptAsRule = _ruleIdSetter.getKeyFromConceptId(linkedConcept);
 
         updateConceptsInComplementedConcepts(oldConcept, linkedConcept);
-        if (oldConceptDefinedAsCharacterCompositionType) {
-            updateConceptDefinedAsCharacterCompositionType(oldConcept, linkedConcept);
-            updateConceptsUsedAsCharacterCompositionsTypes(oldConcept, linkedConcept);
-        }
-
         updateBunchAcceptationConcepts(oldConcept, linkedConcept);
         updateQuestionRules(oldConceptAsRule, linkedConceptAsRule);
         updateQuizBunches(oldConceptAsBunch, linkedConceptAsBunch);
@@ -2908,216 +2851,5 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         }
 
         return true;
-    }
-
-    private CharacterId secureCharacterIdInsertion(CharacterCompositionRepresentation representation) {
-        final CharacterId newId = getNextAvailableCharacterId();
-        if (representation.character != INVALID_CHARACTER) {
-            insertUnicode(_db, newId, representation.character);
-            return newId;
-        }
-
-        return insertCharacterToken(_db, newId, representation.token)? newId : null;
-    }
-
-    private boolean willCreateCharacterCompositionLoop(CharacterId characterId, MutableSet<CharacterId> remaining) {
-        final MutableSet<CharacterId> alreadyChecked = MutableHashSet.empty();
-        final MutableSet<CharacterId> result = MutableHashSet.empty();
-        while (!remaining.isEmpty()) {
-            fillWithCharacterCompositionParts(remaining.pickFirst(), result);
-            if (result.contains(characterId)) {
-                return true;
-            }
-
-            for (CharacterId id : result) {
-                if (!alreadyChecked.contains(id)) {
-                    remaining.add(id);
-                }
-            }
-
-            result.clear();
-        }
-
-        return false;
-    }
-
-    @Override
-    public final boolean updateCharacterComposition(CharacterId characterId, CharacterCompositionRepresentation first, CharacterCompositionRepresentation second, CharacterCompositionTypeId compositionType) {
-        if (characterId == null || first == null || !first.canBeRepresented() || second == null || !second.canBeRepresented() || compositionType == null) {
-            return false;
-        }
-
-        final CharacterId foundFirst = findCharacterId(first);
-        final CharacterId foundSecond = findCharacterId(second);
-        if (foundFirst != null && foundSecond != null) {
-            final CharacterId foundComposition = findCharacterComposition(foundFirst, foundSecond, compositionType);
-            if (foundComposition != null) {
-                return foundComposition.equals(characterId);
-            }
-        }
-
-        if (!isCharacterCompositionDefinitionPresent(compositionType)) {
-            return false;
-        }
-
-        if (foundFirst != null || foundSecond != null) {
-            final MutableSet<CharacterId> remaining = MutableHashSet.empty();
-            if (foundFirst != null) {
-                remaining.add(foundFirst);
-            }
-
-            if (foundSecond != null) {
-                remaining.add(foundSecond);
-            }
-
-            if (willCreateCharacterCompositionLoop(characterId, remaining)) {
-                return false;
-            }
-        }
-
-        final CharacterId firstId = (foundFirst != null)? foundFirst : secureCharacterIdInsertion(first);
-        if (firstId == null) {
-            return false;
-        }
-
-        final CharacterId secondId = (foundSecond != null)? foundSecond : secureCharacterIdInsertion(second);
-        if (secondId == null) {
-            return false;
-        }
-
-        if (isCharacterComposition(characterId)) {
-            final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
-            final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                    .where(table.getIdColumnIndex(), characterId)
-                    .put(table.getFirstCharacterColumnIndex(), firstId)
-                    .put(table.getSecondCharacterColumnIndex(), secondId)
-                    .put(table.getCompositionTypeColumnIndex(), compositionType)
-                    .build();
-
-            _db.update(query);
-        }
-        else {
-            insertCharacterComposition(_db, characterId, firstId, secondId, compositionType);
-        }
-
-        return true;
-    }
-
-    @Override
-    public final boolean removeCharacterComposition(CharacterId characterId) {
-        return LangbookDeleter.deleteCharacterComposition(_db, characterId);
-    }
-
-    @Override
-    public final boolean assignUnicode(CharacterId characterId, char unicode) {
-        if (findCharacter(unicode) != null) {
-            return false;
-        }
-
-        insertUnicode(_db, characterId, unicode);
-        deleteCharacterToken(_db, characterId);
-        return true;
-    }
-
-    private void updateUnicode(CharacterId characterId, CharacterId oldCharacter) {
-        final LangbookDbSchema.UnicodeCharactersTable table = LangbookDbSchema.Tables.unicodeCharacters;
-        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                .where(table.getIdColumnIndex(), oldCharacter)
-                .put(table.getIdColumnIndex(), characterId)
-                .build();
-
-        _db.update(query);
-    }
-
-    @Override
-    public final boolean mergeCharacters(CharacterId characterId, CharacterId oldCharacter) {
-        if (equal(characterId, oldCharacter)) {
-            return true;
-        }
-
-        final char aChar = getUnicode(characterId);
-        final char bChar = getUnicode(oldCharacter);
-
-        if (aChar != INVALID_CHARACTER && bChar != INVALID_CHARACTER) {
-            return false;
-        }
-
-        final CharacterCompositionRegister<CharacterId, CharacterCompositionTypeId> aComposition = getCharacterComposition(characterId);
-        final CharacterCompositionRegister<CharacterId, CharacterCompositionTypeId> bComposition = getCharacterComposition(oldCharacter);
-        if (aComposition != null && bComposition != null && !aComposition.equals(bComposition)) {
-            return false;
-        }
-
-        if (aChar != INVALID_CHARACTER) {
-            deleteCharacterToken(_db, oldCharacter);
-        }
-        else if (bChar != INVALID_CHARACTER) {
-            deleteCharacterToken(_db, characterId);
-            updateUnicode(characterId, oldCharacter);
-        }
-        else {
-            deleteCharacterToken(_db, oldCharacter);
-        }
-
-        final LangbookDbSchema.CharacterCompositionsTable table = LangbookDbSchema.Tables.characterCompositions;
-        if (bComposition != null) {
-            if (aComposition != null) {
-                deleteCharacterComposition(_db, oldCharacter);
-            }
-            else {
-                final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                        .where(table.getIdColumnIndex(), oldCharacter)
-                        .put(table.getIdColumnIndex(), characterId)
-                        .build();
-
-                _db.update(query);
-            }
-        }
-
-        // TODO: Check that when updating first and second we are not ending up with duplicated character compositions in the table
-        DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                .where(table.getFirstCharacterColumnIndex(), oldCharacter)
-                .put(table.getFirstCharacterColumnIndex(), characterId)
-                .build();
-
-        _db.update(query);
-
-        query = new DbUpdateQueryBuilder(table)
-                .where(table.getSecondCharacterColumnIndex(), oldCharacter)
-                .put(table.getSecondCharacterColumnIndex(), characterId)
-                .build();
-
-        _db.update(query);
-
-        return true;
-    }
-
-    @Override
-    public final boolean updateCharacterCompositionDefinition(CharacterCompositionTypeId typeId, CharacterCompositionDefinitionRegister register) {
-        final CharacterCompositionTypeId foundTypeId = findCharacterCompositionDefinition(register);
-        if (foundTypeId != null) {
-            return foundTypeId.equals(typeId);
-        }
-
-        if (isCharacterCompositionDefinitionPresent(typeId)) {
-            final LangbookDbSchema.CharacterCompositionDefinitionsTable table = LangbookDbSchema.Tables.characterCompositionDefinitions;
-            final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
-                    .where(table.getIdColumnIndex(), typeId)
-                    .put(table.getFirstXColumnIndex(), register.first.x)
-                    .put(table.getFirstYColumnIndex(), register.first.y)
-                    .put(table.getFirstWidthColumnIndex(), register.first.width)
-                    .put(table.getFirstHeightColumnIndex(), register.first.height)
-                    .put(table.getSecondXColumnIndex(), register.second.x)
-                    .put(table.getSecondYColumnIndex(), register.second.y)
-                    .put(table.getSecondWidthColumnIndex(), register.second.width)
-                    .put(table.getSecondHeightColumnIndex(), register.second.height)
-                    .build();
-
-            return _db.update(query);
-        }
-
-        return LangbookDbInserter.insertCharacterCompositionDefinition(_db, _characterCompositionTypeIdSetter, typeId,
-                register.first.x, register.first.y, register.first.width, register.first.height,
-                register.second.x, register.second.y, register.second.width, register.second.height);
     }
 }

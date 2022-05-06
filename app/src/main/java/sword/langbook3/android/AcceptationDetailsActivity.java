@@ -35,15 +35,18 @@ import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.CharacterCompositionTypeIdManager;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.CorrelationId;
+import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.db.SentenceIdBundler;
-import sword.langbook3.android.models.AcceptationDetailsModel;
-import sword.langbook3.android.models.AcceptationDetailsModel.InvolvedAgentResultFlags;
+import sword.langbook3.android.models.AcceptationDetails.InvolvedAgentResultFlags;
+import sword.langbook3.android.models.AcceptationDetails2;
+import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 import sword.langbook3.android.models.DisplayableItem;
 import sword.langbook3.android.models.DynamizableResult;
+import sword.langbook3.android.models.IdTextPairResult;
 import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.SynonymTranslationResult;
 
@@ -74,7 +77,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
     private AlphabetId _preferredAlphabet;
     private AcceptationId _acceptation;
-    private AcceptationDetailsModel<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId, SentenceId> _model;
+    private AcceptationDetails2<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId, SentenceId> _model;
     private int _dbWriteVersion;
     private boolean _confirmOnly;
 
@@ -106,46 +109,54 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
 
-        final ImmutableSet<AlphabetId> commonAlphabets = _model.correlationIds
-                .map(id -> _model.correlations.get(id).keySet())
+        final ImmutableList<CorrelationId> correlationIds = _model.getCorrelationIds();
+        final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations = _model.getCorrelations();
+        final ImmutableSet<AlphabetId> commonAlphabets = correlationIds
+                .map(id -> correlations.get(id).keySet())
                 .reduce((set1, set2) -> set1.filter(set2::contains), ImmutableHashSet.empty());
         if (commonAlphabets.size() > 1) {
             final AlphabetId mainAlphabet = commonAlphabets.valueAt(0);
             final AlphabetId pronunciationAlphabet = commonAlphabets.valueAt(1);
-            result.add(new CorrelationArrayItem(_model.correlationIds, _model.correlations, mainAlphabet, pronunciationAlphabet, !_confirmOnly));
+            result.add(new CorrelationArrayItem(correlationIds, correlations, mainAlphabet, pronunciationAlphabet, !_confirmOnly));
         }
 
+        final IdTextPairResult<LanguageId> language = _model.getLanguage();
         result.add(new HeaderItem(getString(R.string.accDetailsSectionSummary, _acceptation)));
-        result.add(new NonNavigableItem(getString(R.string.accDetailsSectionLanguage) + ": " + _model.language.text));
+        result.add(new NonNavigableItem(getString(R.string.accDetailsSectionLanguage) + ": " + language.text));
 
-        _hasDefinition = _model.baseConceptAcceptationId != null;
+        final AcceptationId baseConceptAcceptationId = _model.getBaseConceptAcceptationId();
+        _hasDefinition = baseConceptAcceptationId != null;
         if (_hasDefinition) {
-            String baseText = getString(R.string.accDetailsSectionDefinition) + ": " + _model.baseConceptText;
-            String complementsText = _model.definitionComplementTexts.reduce((a, b) -> a + ", " + b, null);
+            String baseText = getString(R.string.accDetailsSectionDefinition) + ": " + _model.getBaseConceptText();
+            String complementsText = _model.getDefinitionComplementTexts().reduce((a, b) -> a + ", " + b, null);
             String definitionText = (complementsText != null)? baseText + " (" + complementsText + ")" : baseText;
-            result.add(new AcceptationNavigableItem(_model.baseConceptAcceptationId, definitionText, false));
+            result.add(new AcceptationNavigableItem(baseConceptAcceptationId, definitionText, false));
             _hasDefinition = true;
         }
 
-        if (_model.characterCompositionDefinitionRegister != null) {
+        final CharacterCompositionDefinitionRegister characterCompositionDefinitionRegister = _model.getCharacterCompositionDefinitionRegister();
+        if (characterCompositionDefinitionRegister != null) {
             result.add(new HeaderItem(getString(R.string.accDetailsSectionCharacterCompositionDefinition)));
-            result.add(new AcceptationDetailsAdapter.CharacterCompositionDefinitionItem(_model.characterCompositionDefinitionRegister));
+            result.add(new AcceptationDetailsAdapter.CharacterCompositionDefinitionItem(characterCompositionDefinitionRegister));
         }
 
         final String agentTextPrefix = "Agent #";
-        if (_model.originalAcceptationId != null) {
-            final String text = getString(R.string.accDetailsSectionOrigin) + ": " + _model.originalAcceptationText;
-            result.add(new AcceptationNavigableItem(_model.originalAcceptationId, text, false));
+        final AcceptationId originalAcceptationId = _model.getOriginalAcceptationId();
+        final ImmutableMap<RuleId, String> ruleTexts = _model.getRuleTexts();
+        if (originalAcceptationId != null) {
+            final String text = getString(R.string.accDetailsSectionOrigin) + ": " + _model.getOriginalAcceptationText();
+            result.add(new AcceptationNavigableItem(originalAcceptationId, text, false));
 
-            final String ruleText = getString(R.string.accDetailsSectionAppliedRule) + ": " + _model.ruleTexts.get(_model.appliedRuleId);
-            result.add(new AcceptationNavigableItem(_model.appliedRuleAcceptationId, ruleText, false));
+            final String ruleText = getString(R.string.accDetailsSectionAppliedRule) + ": " + ruleTexts.get(_model.getAppliedRuleId());
+            result.add(new AcceptationNavigableItem(_model.getAppliedRuleAcceptationId(), ruleText, false));
 
-            final String agentText = getString(R.string.accDetailsSectionAppliedAgent) + ": " + agentTextPrefix + _model.appliedAgentId;
-            result.add(new AgentNavigableItem(_model.appliedAgentId, agentText));
+            final AgentId appliedAgentId = _model.getAppliedAgentId();
+            final String agentText = getString(R.string.accDetailsSectionAppliedAgent) + ": " + agentTextPrefix + appliedAgentId;
+            result.add(new AgentNavigableItem(appliedAgentId, agentText));
         }
 
         boolean subTypeFound = false;
-        for (ImmutableMap.Entry<AcceptationId, String> subtype : _model.subtypes.entries()) {
+        for (ImmutableMap.Entry<AcceptationId, String> subtype : _model.getSubtypes().entries()) {
             if (!subTypeFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionSubtypes)));
                 subTypeFound = true;
@@ -154,9 +165,10 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AcceptationNavigableItem(subtype.key(), subtype.value(), false));
         }
 
+        final ImmutableMap<AcceptationId, SynonymTranslationResult<LanguageId>> synonymsAndTranslations = _model.getSynonymsAndTranslations();
         boolean synonymFound = false;
-        for (Map.Entry<AcceptationId, SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
-            if (_model.language.id.equals(entry.value().language)) {
+        for (Map.Entry<AcceptationId, SynonymTranslationResult<LanguageId>> entry : synonymsAndTranslations.entries()) {
+            if (language.id.equals(entry.value().language)) {
                 if (!synonymFound) {
                     result.add(new HeaderItem(getString(R.string.accDetailsSectionSynonyms)));
                     synonymFound = true;
@@ -167,22 +179,23 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean translationFound = false;
-        for (Map.Entry<AcceptationId, SynonymTranslationResult<LanguageId>> entry : _model.synonymsAndTranslations.entries()) {
-            final LanguageId language = entry.value().language;
-            if (!_model.language.id.equals(language)) {
+        for (Map.Entry<AcceptationId, SynonymTranslationResult<LanguageId>> entry : synonymsAndTranslations.entries()) {
+            final LanguageId entryLanguage = entry.value().language;
+            if (!language.id.equals(entryLanguage)) {
                 if (!translationFound) {
                     result.add(new HeaderItem(getString(R.string.accDetailsSectionTranslations)));
                     translationFound = true;
                 }
 
-                final String langStr = _model.languageTexts.get(language, null);
+                final String langStr = _model.getLanguageTexts().get(entryLanguage, null);
                 result.add(new AcceptationNavigableItem(entry.key(), "" + langStr + " -> " + entry.value().text, entry.value().dynamic));
             }
         }
 
-        final ImmutableSet<AlphabetId> alphabets = _model.texts.keySet();
+        final ImmutableSet<AlphabetId> alphabets = _model.getTexts().keySet();
+        final ImmutableMap<AcceptationId, ImmutableSet<AlphabetId>> acceptationsSharingTexts = _model.getAcceptationsSharingTexts();
         boolean acceptationSharingCorrelationArrayFound = false;
-        final ImmutableSet<AcceptationId> accsSharingCorrelationArray = _model.acceptationsSharingTexts.filter(alphabets::equalSet).keySet();
+        final ImmutableSet<AcceptationId> accsSharingCorrelationArray = acceptationsSharingTexts.filter(alphabets::equalSet).keySet();
         for (AcceptationId acc : accsSharingCorrelationArray) {
             if (!acceptationSharingCorrelationArrayFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsSharingCorrelationArray)));
@@ -193,18 +206,18 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean acceptationSharingTextsFound = false;
-        for (AcceptationId acc : _model.acceptationsSharingTexts.keySet().filterNot(accsSharingCorrelationArray::contains)) {
+        for (AcceptationId acc : acceptationsSharingTexts.keySet().filterNot(accsSharingCorrelationArray::contains)) {
             if (!acceptationSharingTextsFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsSharingTexts)));
                 acceptationSharingTextsFound = true;
             }
 
-            final String text = _model.acceptationsSharingTextsDisplayableTexts.get(acc);
+            final String text = _model.getAcceptationsSharingTextsDisplayableTexts().get(acc);
             result.add(new AcceptationNavigableItem(acc, text, false));
         }
 
         boolean parentBunchFound = false;
-        for (DynamizableResult<AcceptationId> r : _model.bunchesWhereAcceptationIsIncluded) {
+        for (DynamizableResult<AcceptationId> r : _model.getBunchesWhereAcceptationIsIncluded()) {
             if (!parentBunchFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionBunchesWhereIncluded)));
                 parentBunchFound = true;
@@ -215,7 +228,8 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean morphologyFound = false;
-        final ImmutableMap<AcceptationId, IdentifiableResult<AgentId>> derivedAcceptations = _model.derivedAcceptations;
+        final ImmutableMap<AcceptationId, IdentifiableResult<AgentId>> derivedAcceptations = _model.getDerivedAcceptations();
+        final ImmutableMap<AgentId, RuleId> agentRules = _model.getAgentRules();
         final int derivedAcceptationsCount = derivedAcceptations.size();
         for (int i = 0; i < derivedAcceptationsCount; i++) {
             final AcceptationId accId = derivedAcceptations.keyAt(i);
@@ -225,13 +239,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 morphologyFound = true;
             }
 
-            final String ruleText = _model.ruleTexts.get(_model.agentRules.get(r.id));
+            final String ruleText = ruleTexts.get(agentRules.get(r.id));
             result.add(new AcceptationNavigableItem(accId, ruleText + " -> " + r.text, true));
         }
 
         _shouldShowBunchChildrenQuizMenuOption = false;
         boolean bunchChildFound = false;
-        for (DynamizableResult<AcceptationId> r : _model.bunchChildren) {
+        for (DynamizableResult<AcceptationId> r : _model.getBunchChildren()) {
             if (!bunchChildFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionAcceptationsInThisBunch)));
                 bunchChildFound = true;
@@ -241,11 +255,12 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AcceptationNavigableItem(AcceptationDetailsAdapter.ItemTypes.ACCEPTATION_INCLUDED, r.id, r.text, r.dynamic));
         }
 
+        final ImmutableMap<SentenceId, String> sampleSentences = _model.getSampleSentences();
         boolean sentenceFound = false;
-        final int sampleSentenceCount = _model.sampleSentences.size();
+        final int sampleSentenceCount = sampleSentences.size();
         for (int i = 0; i < sampleSentenceCount; i++) {
-            final SentenceId sentenceId = _model.sampleSentences.keyAt(i);
-            final String sentence = _model.sampleSentences.valueAt(i);
+            final SentenceId sentenceId = sampleSentences.keyAt(i);
+            final String sentence = sampleSentences.valueAt(i);
 
             if (!sentenceFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionSampleSentences)));
@@ -256,7 +271,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
 
         boolean agentFound = false;
-        for (IntValueMap.Entry<AgentId> entry : _model.involvedAgents.entries()) {
+        for (IntValueMap.Entry<AgentId> entry : _model.getInvolvedAgents().entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;
@@ -275,13 +290,13 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             result.add(new AgentNavigableItem(entry.key(), s.toString()));
         }
 
-        for (Map.Entry<AgentId, RuleId> entry : _model.agentRules.entries()) {
+        for (Map.Entry<AgentId, RuleId> entry : agentRules.entries()) {
             if (!agentFound) {
                 result.add(new HeaderItem(getString(R.string.accDetailsSectionInvolvedAgents)));
                 agentFound = true;
             }
 
-            final String text = "Agent #" + entry.key() + " (" + _model.ruleTexts.get(entry.value()) + ')';
+            final String text = "Agent #" + entry.key() + " (" + ruleTexts.get(entry.value()) + ')';
             result.add(new AgentNavigableItem(entry.key(), text));
         }
 
@@ -391,7 +406,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
         else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.CHARACTER_COMPOSITION_DEFINITION) {
             // TODO: Display edition confirmation dialog if the composition definition is in use, as it can break things
-            CharacterCompositionDefinitionEditorActivity.open(this, CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(_model.concept));
+            CharacterCompositionDefinitionEditorActivity.open(this, CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(_model.getConcept()));
             return true;
         }
 
@@ -433,7 +448,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menuItemBunchChildrenQuiz:
-                QuizSelectorActivity.open(this, conceptAsBunchId(_model.concept));
+                QuizSelectorActivity.open(this, conceptAsBunchId(_model.getConcept()));
                 return true;
 
             case R.id.menuItemEdit:
@@ -441,7 +456,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemLinkConcept:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _model.concept);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _model.getConcept());
                 return true;
 
             case R.id.menuItemIncludeAcceptation:
@@ -478,15 +493,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemNewAgentAsSource:
-                AgentEditorActivity.openWithSource(this, conceptAsBunchId(_model.concept));
+                AgentEditorActivity.openWithSource(this, conceptAsBunchId(_model.getConcept()));
                 return true;
 
             case R.id.menuItemNewAgentAsDiff:
-                AgentEditorActivity.openWithDiff(this, conceptAsBunchId(_model.concept));
+                AgentEditorActivity.openWithDiff(this, conceptAsBunchId(_model.getConcept()));
                 return true;
 
             case R.id.menuItemNewAgentAsTarget:
-                AgentEditorActivity.openWithTarget(this, conceptAsBunchId(_model.concept));
+                AgentEditorActivity.openWithTarget(this, conceptAsBunchId(_model.getConcept()));
                 return true;
         }
 
@@ -537,7 +552,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case IntrinsicStates.DELETE_DEFINITION:
                 _state.clearDeletingDefinition();
-                if (!manager.removeDefinition(_model.concept)) {
+                if (!manager.removeDefinition(_model.getConcept())) {
                     throw new AssertionError();
                 }
 
@@ -549,11 +564,11 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
 
             case IntrinsicStates.LINKING_CONCEPT:
                 if (_state.getDialogCheckedOption() == 0) {
-                    final boolean ok = manager.shareConcept(_state.getLinkedAcceptation(), _model.concept);
+                    final boolean ok = manager.shareConcept(_state.getLinkedAcceptation(), _model.getConcept());
                     showFeedback(ok? "Concept shared" : "Unable to shared concept");
                 }
                 else {
-                    manager.duplicateAcceptationWithThisConcept(_state.getLinkedAcceptation(), _model.concept);
+                    manager.duplicateAcceptationWithThisConcept(_state.getLinkedAcceptation(), _model.getConcept());
                     showFeedback("Acceptation linked");
                 }
                 _state.clearLinkedAcceptation();
@@ -580,7 +595,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 final String accToDeleteText = itemToDelete.text;
                 _state.clearDeleteTarget();
 
-                if (!manager.removeAcceptationFromBunch(conceptAsBunchId(_model.concept), accIdToDelete)) {
+                if (!manager.removeAcceptationFromBunch(conceptAsBunchId(_model.getConcept()), accIdToDelete)) {
                     throw new AssertionError();
                 }
 
@@ -627,7 +642,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
                 final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-                final int message = manager.addAcceptationInBunch(conceptAsBunchId(_model.concept), pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
+                final int message = manager.addAcceptationInBunch(conceptAsBunchId(_model.getConcept()), pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
@@ -638,7 +653,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
             }
             else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {
                 final DefinitionEditorActivity.State values = data.getParcelableExtra(DefinitionEditorActivity.ResultKeys.VALUES);
-                manager.addDefinition(values.baseConcept, _model.concept, values.complements);
+                manager.addDefinition(values.baseConcept, _model.getConcept(), values.complements);
                 showFeedback(getString(R.string.includeSupertypeOk));
                 if (updateModelAndUi()) {
                     invalidateOptionsMenu();

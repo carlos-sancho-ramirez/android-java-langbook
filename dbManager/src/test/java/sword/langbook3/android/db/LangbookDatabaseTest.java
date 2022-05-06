@@ -10,7 +10,7 @@ import sword.langbook3.android.models.SearchResult;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
+import static sword.langbook3.android.db.AcceptationsManager2Test.addSimpleAcceptation;
 import static sword.langbook3.android.db.LangbookDbInserter.insertSearchHistoryEntry;
 
 /**
@@ -24,7 +24,7 @@ final class LangbookDatabaseTest {
     @Test
     void testSearchHistory() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookDatabaseManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> manager = new LangbookDatabaseManager<>(db, new ConceptIdManager(), new LanguageIdManager(), new AlphabetIdManager(), new CharacterIdManager(), new CharacterCompositionTypeIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), new AcceptationIdManager(), new BunchIdManager(), new BunchSetIdManager(), new RuleIdManager(), new AgentIdManager(), new QuizIdManager(), new SentenceIdManager());
+        final LangbookDatabaseManager2<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> manager = new LangbookDatabaseManager2<>(db, new ConceptIdManager(), new LanguageIdManager(), new AlphabetIdManager(), new CharacterIdManager(), new CharacterCompositionTypeIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), new AcceptationIdManager(), new BunchIdManager(), new BunchSetIdManager(), new RuleIdManager(), new AgentIdManager(), new QuizIdManager(), new SentenceIdManager());
 
         final AlphabetIdHolder alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptIdHolder concept = manager.getNextAvailableConceptId();

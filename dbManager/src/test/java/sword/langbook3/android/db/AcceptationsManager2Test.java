@@ -43,9 +43,9 @@ import static sword.langbook3.android.models.CharacterCompositionRepresentation.
  * <li>Conversions</li>
  * <li>Acceptations</li>
  */
-public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, CorrelationId, CorrelationArrayId, AcceptationId> {
+public interface AcceptationsManager2Test<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, CorrelationId, CorrelationArrayId, AcceptationId> {
 
-    AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> createManager(MemoryDatabase db);
+    AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> createManager(MemoryDatabase db);
     AlphabetId getNextAvailableAlphabetId(ConceptsChecker<ConceptId> manager);
     CharacterCompositionTypeId conceptAsCharacterCompositionTypeId(ConceptId conceptId);
 
@@ -78,7 +78,8 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
             .put("z", "Z")
             .build();
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addSimpleAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId addSimpleAcceptation(
+            AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, ConceptId concept, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -90,7 +91,8 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         return manager.addAcceptation(concept, correlationArray);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> boolean updateAcceptationSimpleCorrelationArray(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, AcceptationId acceptationId, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> boolean updateAcceptationSimpleCorrelationArray(
+            AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, AcceptationId acceptationId, String text) {
         final ImmutableCorrelation<AlphabetId> correlation = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(alphabet, text)
                 .build();
@@ -102,20 +104,23 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
         return manager.updateAcceptationCorrelationArray(acceptationId, correlationArray);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> ConceptId obtainNewConcept(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> ConceptId obtainNewConcept(
+            AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
         final ConceptId newConcept = manager.getNextAvailableConceptId();
         assertNotNull(addSimpleAcceptation(manager, alphabet, newConcept, text));
         return newConcept;
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId obtainNewAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> AcceptationId obtainNewAcceptation(
+            AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId alphabet, String text) {
         final ConceptId newConcept = manager.getNextAvailableConceptId();
         final AcceptationId newAcceptation = addSimpleAcceptation(manager, alphabet, newConcept, text);
         assertNotNull(newAcceptation);
         return newAcceptation;
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> void insertUpDownCharacterCompositionDefinition(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, CharacterCompositionTypeId typeId) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> void insertUpDownCharacterCompositionDefinition(
+            AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, CharacterCompositionTypeId typeId) {
         final CharacterCompositionDefinitionArea first = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
         final CharacterCompositionDefinitionArea second = new CharacterCompositionDefinitionArea(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
         final CharacterCompositionDefinitionRegister register = new CharacterCompositionDefinitionRegister(first, second);
@@ -125,7 +130,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddLanguageForFirstLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final ConceptId expectedLanguageConceptId = manager.getNextAvailableConceptId();
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
@@ -138,7 +143,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddLanguageWhenAddingTheSameLanguageTwice() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
         assertNull(manager.addLanguage("es"));
@@ -150,7 +155,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveLanguageWhenUnique() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageId language = manager.addLanguage("es").language;
         assertTrue(manager.removeLanguage(language));
@@ -160,7 +165,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveLanguageWhenRemovingFirstAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair1 = manager.addLanguage("es");
         final LanguageCreationResult<LanguageId, AlphabetId> langPair2 = manager.addLanguage("en");
@@ -174,7 +179,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveLanguageWhenRemovingLastAddedLanguage() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair1 = manager.addLanguage("es");
         final LanguageCreationResult<LanguageId, AlphabetId> langPair2 = manager.addLanguage("en");
@@ -188,7 +193,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddAlphabetCopyingFromOtherWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
         final LanguageId language = langPair.language;
@@ -203,7 +208,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddAlphabetCopyingFromOtherWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("ja");
 
         final LanguageId language = langPair.language;
@@ -227,7 +232,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveLanguageAfterAddingAlphabetCopyingFromOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("ja");
 
@@ -245,7 +250,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddAcceptationWhenAddingAlphabetAsConversionTargetWithoutCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
@@ -271,7 +276,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddAlphabetAsConversionTargetWithCorrelations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
@@ -299,7 +304,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveLanguageAfterAddingAlphabetAsConversionTarget() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage("es");
 
@@ -320,7 +325,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveLanguageButLeaveOther() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final LanguageCreationResult<LanguageId, AlphabetId> esLangPair = manager.addLanguage("es");
         final LanguageId esLanguage = esLangPair.language;
@@ -342,7 +347,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddAcceptationForSpanishAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId concept = manager.getNextAvailableConceptId();
@@ -354,7 +359,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddAcceptationWhenAddingAJapaneseAcceptationWithoutConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -382,7 +387,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAddAcceptationWhenAddingAJapaneseAcceptationWithConversion() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId kana = getNextAvailableAlphabetId(manager);
@@ -424,14 +429,14 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testUpdateAcceptationCorrelationArrayForSame() {
         final MemoryDatabase db1 = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager1 = createManager(db1);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager1 = createManager(db1);
 
         final AlphabetId alphabet1 = manager1.addLanguage("es").mainAlphabet;
         final ConceptId concept1 = manager1.getNextAvailableConceptId();
         final AcceptationId acceptationId = addSimpleAcceptation(manager1, alphabet1, concept1, "cantar");
 
         final MemoryDatabase db2 = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager2 = createManager(db2);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager2 = createManager(db2);
 
         final AlphabetId alphabet2 = manager2.addLanguage("es").mainAlphabet;
         final ConceptId concept2 = manager2.getNextAvailableConceptId();
@@ -445,7 +450,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testReplaceConversionAfterAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId roumajiAlphabet = getNextAvailableAlphabetId(manager);
@@ -487,7 +492,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testReplaceConversionBeforeAddingAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId kanaAlphabet = manager.addLanguage("ja").mainAlphabet;
         final AlphabetId roumajiAlphabet = getNextAvailableAlphabetId(manager);
@@ -521,7 +526,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testShareConceptRemovesDuplicatedAcceptations() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId guyConcept = manager.getNextAvailableConceptId();
@@ -541,7 +546,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testUpdateCharacterCompositionDefinitionIsIdempotent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -564,7 +569,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testUpdateCharacterCompositionDefinitionRejectsDuplicatedDefinition() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -592,7 +597,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testUpdateCharacterComposition() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -621,7 +626,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testUpdateCharacterCompositionRejectsDuplicates() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -661,7 +666,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testUpdateCharacterCompositionRejectsUnknownCompositionTypes() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -686,7 +691,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testUpdateCharacterCompositionRejectsLoops() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -735,7 +740,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAssignUnicode() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -768,7 +773,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testAssignUnicodeRejectsDuplicatedUnicode() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -801,7 +806,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testMergeCharacters() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -846,7 +851,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testMergeCharactersOpposite() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -891,7 +896,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testMergeCharactersRejectsIfBothCharactersHasUnicode() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -909,7 +914,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testMergeCharactersBothWithToken() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -964,7 +969,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testMergeCharactersBothWithTokenOpposite() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId songConcept = manager.getNextAvailableConceptId();
@@ -1019,7 +1024,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveAcceptationRejectsWhenAcceptationIsTheOnlyOneWithAConceptUsedAsCharacterCompositionTypeId() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -1044,7 +1049,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testRemoveAcceptationWhenAcceptationIsNotTheOnlyOneWithAConceptUsedAsCharacterCompositionTypeId() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -1070,7 +1075,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testShareConceptRejectsWhenBothConceptsAreCharacterCompositionDefinitions() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();
@@ -1103,7 +1108,7 @@ public interface AcceptationsManagerTest<ConceptId extends ConceptIdInterface, L
     @Test
     default void testShareConceptWhenOldConceptIsDefinedAsCharacterCompositionDefinition() {
         final MemoryDatabase db = new MemoryDatabase();
-        final AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final ConceptId moreConcept = manager.getNextAvailableConceptId();

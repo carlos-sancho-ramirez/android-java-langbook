@@ -5,8 +5,9 @@ import java.io.IOException;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.ConceptsChecker;
 import sword.langbook3.android.db.IntSetter;
-import sword.langbook3.android.db.LangbookDatabaseManager;
-import sword.langbook3.android.db.LangbookManager;
+import sword.langbook3.android.db.LangbookChecker2;
+import sword.langbook3.android.db.LangbookDatabaseManager2;
+import sword.langbook3.android.db.LangbookManager2;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,8 +20,13 @@ final class StreamedDatabase1Test implements RuledSentencesSerializerTest<Concep
     private final CharacterCompositionTypeIdManager characterCompositionTypeIdManager = new CharacterCompositionTypeIdManager();
 
     @Override
-    public LangbookManager<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> createManager(MemoryDatabase db) {
-        return new LangbookDatabaseManager<>(db, new ConceptIdManager(), new LanguageIdManager(), alphabetIdManager, new CharacterIdManager(), new CharacterCompositionTypeIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager, bunchIdManager, new BunchSetIdManager(), ruleIdManager, new AgentIdManager(), new QuizIdManager(), new SentenceIdManager());
+    public LangbookManager2<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> createInManager(MemoryDatabase db) {
+        return new LangbookDatabaseManager2<>(db, new ConceptIdManager(), new LanguageIdManager(), alphabetIdManager, new CharacterIdManager(), new CharacterCompositionTypeIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager, bunchIdManager, new BunchSetIdManager(), ruleIdManager, new AgentIdManager(), new QuizIdManager(), new SentenceIdManager());
+    }
+
+    @Override
+    public LangbookChecker2<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, QuizIdHolder, SentenceIdHolder> createOutChecker(MemoryDatabase db) {
+        return new LangbookDatabaseManager2<>(db, new ConceptIdManager(), new LanguageIdManager(), alphabetIdManager, new CharacterIdManager(), new CharacterCompositionTypeIdManager(), new SymbolArrayIdManager(), new CorrelationIdManager(), new CorrelationArrayIdManager(), acceptationIdManager, bunchIdManager, new BunchSetIdManager(), ruleIdManager, new AgentIdManager(), new QuizIdManager(), new SentenceIdManager());
     }
 
     @Override

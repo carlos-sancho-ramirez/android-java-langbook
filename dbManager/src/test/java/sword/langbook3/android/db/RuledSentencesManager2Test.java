@@ -20,15 +20,16 @@ import static sword.collections.MapTestUtils.assertSinglePair;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SizableTestUtils.assertSize;
 import static sword.collections.TraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.db.AgentsManagerTest.composeSingleElementArray;
-import static sword.langbook3.android.db.AgentsManagerTest.setOf;
+import static sword.langbook3.android.db.AgentsManager2Test.composeSingleElementArray;
+import static sword.langbook3.android.db.AgentsManager2Test.setOf;
 
-interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> extends AgentsManagerTest<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId>, SentencesManagerTest<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> {
+interface RuledSentencesManager2Test<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> extends AgentsManager2Test<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId>, SentencesManager2Test<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, SentenceId> {
 
     @Override
-    RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> createManager(MemoryDatabase db);
+    RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> createManager(MemoryDatabase db);
 
-    static <ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> AcceptationId addTaberuAcceptation(RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer) {
+    static <ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> AcceptationId addTaberuAcceptation(
+            RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer) {
         final ImmutableCorrelation<AlphabetId> taCorrelation = correlationComposer.compose("食", "た");
         final ImmutableCorrelation<AlphabetId> beCorrelation = correlationComposer.compose("べ", "べ");
         final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
@@ -43,7 +44,8 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
         return manager.addAcceptation(eatConcept, eatCorrelationArray);
     }
 
-    static <ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> AgentId addDesireAgent(RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer, BunchId sourceBunch, RuleId desireRule) {
+    static <ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, SentenceId extends SentenceIdInterface> AgentId addDesireAgent(
+            RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager, DoubleAlphabetCorrelationComposer<AlphabetId> correlationComposer, BunchId sourceBunch, RuleId desireRule) {
         final ImmutableCorrelation<AlphabetId> ruCorrelation = correlationComposer.compose("る", "る");
         final ImmutableCorrelation<AlphabetId> taiCorrelation = correlationComposer.compose("たい", "たい");
         final ImmutableCorrelationArray<AlphabetId> taiCorrelationArray = composeSingleElementArray(taiCorrelation);
@@ -85,7 +87,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testAddSentenceContainingOneRuledAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -117,7 +119,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testAddSentenceContainingTwoRuledAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -151,7 +153,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveSentenceContainingOneRuledAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -183,7 +185,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateSentenceAddingRuledAcceptationSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -217,7 +219,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateSentenceAddingTwoRuledAcceptationSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -253,7 +255,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateSentenceRemovingRuledAcceptationSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -285,7 +287,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateSentenceRemovingOneRuledAcceptationSpanButLeavingOtherSharingRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -323,7 +325,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveAgentWhenThereIsOneSentenceContainingOneRuledAcceptationFromThatAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -357,7 +359,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveAgentWhenThereIsTwoSentencesContainingTwoDifferentRuledAcceptationsForTheSameRuleButDifferentAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -422,7 +424,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveAgentWhenThereIsOneSentenceContainingTwoRuledAcceptationFromTwoDifferentAgentsApplyingTheSameRule() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -481,7 +483,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveAgentWhenThereIsOneSentenceContainingOneRuledAcceptationFromAChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -539,7 +541,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveAgentWhenThereIsTwoSentencesAndOneIsContainingOneRuledAcceptationFromAChainedAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -618,7 +620,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveAcceptationWhenAnAgentIsTransformingItAndTheResultIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -652,7 +654,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testRemoveAcceptationFromBunchWhenAnAgentIsTransformingAcceptationsOfThatBunchAndTheResultIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -686,7 +688,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateAcceptationCorrelationArrayWhenAnAgentIsTransformingItAndTheResultIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -725,7 +727,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateAgentRuleWhenThereIsOneSentenceContainingOneRuledAcceptationFromThatAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -769,7 +771,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateAgentRemovingSourceBunchContainingAnAcceptationWhenThereIsOneSentenceContainingItsRuledAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -811,7 +813,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateAgentChangingSourceBunchContainingAnAcceptationForAnEmptyOneWhenThereIsOneSentenceContainingTheRuledAcceptation() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -853,7 +855,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateAgentChangingRuleForTheFirstAgentInAChainWhereTheFinalResultingAcceptationIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;
@@ -907,7 +909,7 @@ interface RuledSentencesManagerTest<ConceptId extends ConceptIdInterface, Langua
     @Test
     default void testUpdateAgentChangingRuleForTheFirstAgentInAChainWhereTheFinalResultingAcceptationIsIncludedInASentenceSpanAndTheRuleIsStillUsedByAnotherAgent() {
         final MemoryDatabase db = new MemoryDatabase();
-        final RuledSentencesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
+        final RuledSentencesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> manager = createManager(db);
 
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;
         final AlphabetId kanji = manager.addLanguage("ja").mainAlphabet;

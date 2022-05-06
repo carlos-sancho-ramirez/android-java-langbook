@@ -20,12 +20,12 @@ import static sword.collections.SetTestUtils.assertEqualSet;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.SortUtils.equal;
 import static sword.collections.TraversableTestUtils.assertContainsOnly;
-import static sword.langbook3.android.db.AcceptationsManagerTest.addSimpleAcceptation;
-import static sword.langbook3.android.db.AcceptationsManagerTest.updateAcceptationSimpleCorrelationArray;
-import static sword.langbook3.android.db.AcceptationsManagerTest.obtainNewAcceptation;
-import static sword.langbook3.android.db.AgentsManagerTest.composeSingleElementArray;
-import static sword.langbook3.android.db.AgentsManagerTest.setOf;
-import static sword.langbook3.android.db.BunchesManagerTest.addSpanishSingAcceptation;
+import static sword.langbook3.android.db.AcceptationsManager2Test.addSimpleAcceptation;
+import static sword.langbook3.android.db.AcceptationsManager2Test.updateAcceptationSimpleCorrelationArray;
+import static sword.langbook3.android.db.AcceptationsManager2Test.obtainNewAcceptation;
+import static sword.langbook3.android.db.AgentsManager2Test.composeSingleElementArray;
+import static sword.langbook3.android.db.AgentsManager2Test.setOf;
+import static sword.langbook3.android.db.BunchesManager2Test.addSpanishSingAcceptation;
 import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
 
 /**
@@ -35,10 +35,10 @@ import static sword.langbook3.android.db.LangbookDbSchema.NO_SCORE;
  * <li>Quizzes</li>
  * <li>Knowledge</li>
  */
-interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, QuizId> extends AgentsManagerTest<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> {
+interface QuizzesManager2Test<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId extends AgentIdInterface, QuizId> extends AgentsManager2Test<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> {
 
     @Override
-    QuizzesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> createManager(MemoryDatabase db);
+    QuizzesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> createManager(MemoryDatabase db);
 
     static <K> void assertSinglePair(K expectedKey, int expectedValue, IntValueMap<K> map) {
         SizableTestUtils.assertSize(1, map);
@@ -54,7 +54,8 @@ interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
 
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> void addJapaneseSingAcceptation(AcceptationsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId kanjiAlphabet, AlphabetId kanaAlphabet, ConceptId concept) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> void addJapaneseSingAcceptation(
+            AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, AlphabetId kanjiAlphabet, AlphabetId kanaAlphabet, ConceptId concept) {
         final ImmutableCorrelation<AlphabetId> correlation1 = new ImmutableCorrelation.Builder<AlphabetId>()
                 .put(kanjiAlphabet, "歌")
                 .put(kanaAlphabet, "うた")
@@ -73,13 +74,15 @@ interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
         manager.addAcceptation(concept, correlationArray);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> AgentId addAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> AgentId addAgent(
+            AgentsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
         final ImmutableCorrelation<AlphabetId> empty = ImmutableCorrelation.empty();
         final ImmutableCorrelationArray<AlphabetId> emptyArray = ImmutableCorrelationArray.empty();
         return manager.addAgent(targetBunches, sourceBunches, ImmutableHashSet.empty(), empty, emptyArray, empty, emptyArray, null);
     }
 
-    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> boolean updateAgent(AgentsManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AgentId agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId extends BunchSetIdInterface, RuleId, AgentId> boolean updateAgent(
+            AgentsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager, AgentId agentId, ImmutableSet<BunchId> targetBunches, ImmutableSet<BunchId> sourceBunches) {
         final ImmutableCorrelation<AlphabetId> empty = ImmutableCorrelation.empty();
         final ImmutableCorrelationArray<AlphabetId> emptyArray = ImmutableCorrelationArray.empty();
         return manager.updateAgent(agentId, targetBunches, sourceBunches, ImmutableHashSet.empty(), empty, emptyArray, empty, emptyArray, null);
@@ -88,7 +91,7 @@ interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testAddAcceptationInBunchAndQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
+        final QuizzesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -116,7 +119,7 @@ interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testAddQuizAndAcceptationInBunch() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
+        final QuizzesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId kanjiAlphabet = manager.addLanguage("ja").mainAlphabet;
@@ -146,7 +149,7 @@ interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testUpdateAcceptationCorrelationArray() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
+        final QuizzesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId upperCaseAlphabet = getNextAvailableAlphabetId(manager);
@@ -186,7 +189,7 @@ interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testUpdateAcceptationCorrelationArrayFromMatching() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
+        final QuizzesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
 
         final AlphabetId alphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId upperCaseAlphabet = getNextAvailableAlphabetId(manager);
@@ -226,7 +229,7 @@ interface QuizzesManagerTest<ConceptId extends ConceptIdInterface, LanguageId ex
     @Test
     default void testIncludeExtraTargetBunchInAgentFillingBunchForQuiz() {
         final MemoryDatabase db = new MemoryDatabase();
-        final QuizzesManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
+        final QuizzesManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AlphabetId enAlphabet = manager.addLanguage("en").mainAlphabet;

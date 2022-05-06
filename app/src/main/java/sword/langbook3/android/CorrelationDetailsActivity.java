@@ -20,7 +20,7 @@ import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.CorrelationIdBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.models.CorrelationDetailsModel;
+import sword.langbook3.android.models.CorrelationDetails2;
 
 import static sword.langbook3.android.collections.StringUtils.stringToCharList;
 
@@ -39,7 +39,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     }
 
     private CorrelationId _correlationId;
-    private CorrelationDetailsModel<AlphabetId, CharacterId, CorrelationId, AcceptationId> _model;
+    private CorrelationDetails2<AlphabetId, CharacterId, CorrelationId, AcceptationId> _model;
     private AcceptationDetailsAdapter _listAdapter;
 
     private boolean _justLoaded;
@@ -49,13 +49,16 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
     }
 
     private ImmutableList<AcceptationDetailsAdapter.Item> getAdapterItems() {
-        final int entryCount = _model.correlation.size();
+        final ImmutableCorrelation<AlphabetId> correlation = _model.getCorrelation();
+        final int entryCount = correlation.size();
+
         final ImmutableList.Builder<AcceptationDetailsAdapter.Item> result = new ImmutableList.Builder<>();
         result.add(new HeaderItem(getString(R.string.correlationDetailsIdEntry, _correlationId)));
-        final ImmutableMap<Character, CharacterId> characters = _model.characters;
+        final ImmutableMap<Character, CharacterId> characters = _model.getCharacters();
+        final ImmutableMap<AlphabetId, String> alphabets = _model.getAlphabets();
         for (int i = 0; i < entryCount; i++) {
-            final String alphabetText = _model.alphabets.get(_model.correlation.keyAt(i));
-            final String text = _model.correlation.valueAt(i);
+            final String alphabetText = alphabets.get(correlation.keyAt(i));
+            final String text = correlation.valueAt(i);
             final String itemText = alphabetText + " -> " + text;
             final Character charMatching = stringToCharList(text).findFirst(characters::containsKey, null);
             final AcceptationDetailsAdapter.Item item = (charMatching == null)? new NonNavigableItem(itemText) :
@@ -63,20 +66,23 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
             result.add(item);
         }
 
-        final int acceptationCount = _model.acceptations.size();
+        final ImmutableMap<AcceptationId, String> acceptations = _model.getAcceptations();
+        final int acceptationCount = acceptations.size();
         result.add(new HeaderItem(getString(R.string.characterCompositionAcceptationsHeader)));
         for (int i = 0; i < acceptationCount; i++) {
-            result.add(new AcceptationNavigableItem(_model.acceptations.keyAt(i), _model.acceptations.valueAt(i), false));
+            result.add(new AcceptationNavigableItem(acceptations.keyAt(i), acceptations.valueAt(i), false));
         }
 
+        final ImmutableMap<AlphabetId, ImmutableSet<CorrelationId>> relatedCorrelationsByAlphabet = _model.getRelatedCorrelationsByAlphabet();
+        final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> relatedCorrelations = _model.getRelatedCorrelations();
         for (int i = 0; i < entryCount; i++) {
-            final AlphabetId matchingAlphabet = _model.correlation.keyAt(i);
-            final ImmutableSet<CorrelationId> matchingCorrelations = _model.relatedCorrelationsByAlphabet.get(matchingAlphabet);
+            final AlphabetId matchingAlphabet = correlation.keyAt(i);
+            final ImmutableSet<CorrelationId> matchingCorrelations = relatedCorrelationsByAlphabet.get(matchingAlphabet);
             final int count = matchingCorrelations.size();
             if (count > 0) {
-                result.add(new HeaderItem(getString(R.string.correlationDetailsPartiallySharedHeader, _model.alphabets.get(matchingAlphabet))));
+                result.add(new HeaderItem(getString(R.string.correlationDetailsPartiallySharedHeader, alphabets.get(matchingAlphabet))));
                 for (CorrelationId corrId : matchingCorrelations) {
-                    final ImmutableCorrelation<AlphabetId> corr = _model.relatedCorrelations.get(corrId);
+                    final ImmutableCorrelation<AlphabetId> corr = relatedCorrelations.get(corrId);
                     result.add(new CorrelationNavigableItem(corrId, composeCorrelationString(corr)));
                 }
             }
@@ -91,7 +97,7 @@ public final class CorrelationDetailsActivity extends Activity implements Adapte
 
         if (_model != null) {
             _justLoaded = true;
-            setTitle(getString(R.string.correlationDetailsActivityTitle, composeCorrelationString(_model.correlation)));
+            setTitle(getString(R.string.correlationDetailsActivityTitle, composeCorrelationString(_model.getCorrelation())));
             _listAdapter = new AcceptationDetailsAdapter(this, REQUEST_CODE_CLICK_NAVIGATION, getAdapterItems());
             final ListView listView = findViewById(R.id.listView);
             listView.setAdapter(_listAdapter);

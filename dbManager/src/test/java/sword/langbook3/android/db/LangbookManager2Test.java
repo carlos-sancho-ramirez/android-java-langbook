@@ -13,21 +13,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static sword.collections.MapTestUtils.assertSinglePair;
 import static sword.collections.SizableTestUtils.assertEmpty;
 import static sword.collections.TraversableTestUtils.getSingleValue;
-import static sword.langbook3.android.db.AcceptationsManagerTest.obtainNewAcceptation;
-import static sword.langbook3.android.db.AgentsManagerTest.addSingleAlphabetAgent;
-import static sword.langbook3.android.db.AgentsManagerTest.composeSingleElementArray;
-import static sword.langbook3.android.db.AgentsManagerTest.setOf;
+import static sword.langbook3.android.db.AcceptationsManager2Test.obtainNewAcceptation;
+import static sword.langbook3.android.db.AgentsManager2Test.addSingleAlphabetAgent;
+import static sword.langbook3.android.db.AgentsManager2Test.composeSingleElementArray;
+import static sword.langbook3.android.db.AgentsManager2Test.setOf;
 import static sword.langbook3.android.db.SentencesManagerTestUtils.newSpan;
 
-interface LangbookManagerTest<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId, SentenceId extends SentenceIdInterface> extends QuizzesManagerTest<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId>, DefinitionsManagerTest<ConceptId>, RuledSentencesManagerTest<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> {
+interface LangbookManager2Test<ConceptId extends ConceptIdInterface, LanguageId extends LanguageIdInterface<ConceptId>, AlphabetId extends AlphabetIdInterface<ConceptId>, CharacterId, CharacterCompositionTypeId extends CharacterCompositionTypeIdInterface<ConceptId>, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId extends AcceptationIdInterface, BunchId, BunchSetId extends BunchSetIdInterface, RuleId extends RuleIdInterface<ConceptId>, AgentId extends AgentIdInterface, QuizId, SentenceId extends SentenceIdInterface> extends QuizzesManager2Test<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId>, DefinitionsManagerTest<ConceptId>, RuledSentencesManager2Test<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, SentenceId> {
 
     @Override
-    LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> createManager(MemoryDatabase db);
+    LangbookManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> createManager(MemoryDatabase db);
 
     @Test
     default void testAddDynamicAcceptationInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
+        final LangbookManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
         final AcceptationId carAcc = obtainNewAcceptation(manager, esAlphabet, "coche");
@@ -58,7 +58,7 @@ interface LangbookManagerTest<ConceptId extends ConceptIdInterface, LanguageId e
     @Test
     default void testRemoveDynamicAcceptationFromBunchUsedAsSourceForAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
+        final LangbookManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -95,7 +95,7 @@ interface LangbookManagerTest<ConceptId extends ConceptIdInterface, LanguageId e
     @Test
     default void testRemoveAgentWhoseOutputIsIncludedInASentenceSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
+        final LangbookManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
@@ -131,7 +131,7 @@ interface LangbookManagerTest<ConceptId extends ConceptIdInterface, LanguageId e
     @Test
     default void testRemoveHeadChainedAgentWhereRuledAcceptationOfTheTailChainedAgentIsUsedAsSpan() {
         final MemoryDatabase db = new MemoryDatabase();
-        final LangbookManager<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
+        final LangbookManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, SymbolArrayId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId, QuizId, SentenceId> manager = createManager(db);
 
         final AlphabetId esAlphabet = manager.addLanguage("es").mainAlphabet;
 
