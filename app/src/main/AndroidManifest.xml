@@ -31,8 +31,8 @@
         <activity android:name=".CharacterCompositionEditorActivity"/>
         <activity android:name=".CharacterDetailsActivity"/>
         <activity
-            android:name=".UnicodeAssignerActivity"
-            android:label="@string/unicodeAssignerTitle"/>
+            android:name=".CharacterRepresentationUpdaterActivity"
+            android:label="@string/representationUpdaterTitle"/>
 
         <activity android:name=".CorrelationDetailsActivity"/>
         <activity android:name=".QuestionActivity"/>

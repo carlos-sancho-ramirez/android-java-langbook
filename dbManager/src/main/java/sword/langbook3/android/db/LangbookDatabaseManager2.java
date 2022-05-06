@@ -3019,6 +3019,29 @@ public class LangbookDatabaseManager2<ConceptId extends ConceptIdInterface, Lang
         return true;
     }
 
+    @Override
+    public final boolean updateToken(CharacterId characterId, String token) {
+        if (!LangbookDbSchema.CharacterTokensTable.isValidToken(token)) {
+            return false;
+        }
+
+        if (findCharacterToken(token) != null) {
+            return false;
+        }
+
+        if (getToken(characterId) == null) {
+            return false;
+        }
+
+        final LangbookDbSchema.CharacterTokensTable table = LangbookDbSchema.Tables.characterTokens;
+        final DbUpdateQuery query = new DbUpdateQueryBuilder(table)
+                .where(table.getIdColumnIndex(), characterId)
+                .put(table.getTokenColumnIndex(), token)
+                .build();
+
+        return _db.update(query);
+    }
+
     private void updateUnicode(CharacterId characterId, CharacterId oldCharacter) {
         final LangbookDbSchema.UnicodeCharactersTable table = LangbookDbSchema.Tables.unicodeCharacters;
         final DbUpdateQuery query = new DbUpdateQueryBuilder(table)

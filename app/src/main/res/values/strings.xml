@@ -71,7 +71,7 @@
     <string name="menuItemNewAgentAsSource">as Source</string>
     <string name="menuItemNewAgentAsDiff">as Diff</string>
     <string name="menuItemNewAgentAsTarget">as Target</string>
-    <string name="menuItemAssignUnicode">Assign unicode</string>
+    <string name="menuItemUpdateRepresentation">Update representation</string>
     <string name="menuItemAddCharacterComposition">Add composition</string>
     <string name="menuItemEditCharacterComposition">Edit composition</string>
     <string name="menuItemDeleteCharacterComposition">Delete composition</string>
@@ -233,18 +233,23 @@
     <string name="deleteCharacterCompositionConfirmationText">Are you sure that you want to remove the character composition?</string>
     <string name="characterCompositionEditorActivityTitle">Composition for %s</string>
 
-    <!-- Unicode assigner -->
-    <string name="unicodeAssignerTitle">Assign unicode</string>
-    <string name="unicodeAssignerTokenInfo">The current assigned token is {%s}.\n\nIt will be replaced by the unicode inserted below</string>
-    <string name="unicodeAssignerInfoText">Unicode %s will be assigned</string>
-    <string name="unicodeAssignerErrorText">Only one character can be assigned</string>
+    <!-- Character representation updater -->
+    <string name="representationUpdaterTitle">Update representation</string>
+    <string name="representationUpdaterTokenInfo">The current assigned token is {%s}.\n\nIt will be replaced by the unicode or token inserted below</string>
+    <string name="representationUpdaterInfoText">Unicode %s will be assigned</string>
+    <string name="representationUpdaterTokenInfoText">Token will be updated to %s</string>
+    <string name="representationUpdaterErrorText">Invalid character or token.\nOnly one character can be assigned.\nIf a token is meant to be introduced, ensure that the text is between curly brackets, and it only contains characters from A to Z or spaces.</string>
+    <string name="representationUpdaterEmptyError">Field cannot be empty</string>
+    <string name="updateButtonText">Update</string>
     <string name="assignUnicodeButtonText">Assign</string>
     <string name="mergeUnicodeButtonText">Merge</string>
     <string name="assignUnicodeConfirmationText">This operation cannot be undone.\n\nDo you want to continue?</string>
     <string name="mergeUnicodeConfirmationText">The written unicode is already in use by another character. They will be merged in a single one.\n\nThis operation cannot be undone.\n\nDo you want to continue?</string>
     <string name="assignUnicodeFeedback">Unicode assigned</string>
+    <string name="updateTokenFeedback">Token updated</string>
     <string name="mergeCharactersFeedback">Characters merged</string>
     <string name="assignUnicodeError">Unable to assign unicode</string>
+    <string name="updateTokenError">Unable to update token</string>
     <string name="mergeCharactersError">Unable to merge characters</string>
     <string name="addButtonText">Add</string>
     <string name="updateCharacterCompositionDefinitionError">Unable to update definition</string>

@@ -128,8 +128,8 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         final int itemId = item.getItemId();
-        if (itemId == R.id.menuItemAssignUnicode) {
-            UnicodeAssignerActivity.open(this, REQUEST_CODE_ASSIGN_UNICODE, _characterId);
+        if (itemId == R.id.menuItemUpdateRepresentation) {
+            CharacterRepresentationUpdaterActivity.open(this, REQUEST_CODE_ASSIGN_UNICODE, _characterId);
             return true;
         }
         else if (itemId == R.id.menuItemAddCharacterComposition || itemId == R.id.menuItemEditCharacterComposition) {
@@ -175,7 +175,7 @@ public final class CharacterDetailsActivity extends Activity implements AdapterV
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE_ASSIGN_UNICODE && resultCode == RESULT_OK && data != null) {
-            _characterId = CharacterIdBundler.readAsIntentExtra(data, UnicodeAssignerActivity.ResultKeys.MERGED_CHARACTER);
+            _characterId = CharacterIdBundler.readAsIntentExtra(data, CharacterRepresentationUpdaterActivity.ResultKeys.MERGED_CHARACTER);
             updateModelAndUi();
         }
     }

@@ -18,6 +18,17 @@ public interface AcceptationsManager2<ConceptId, LanguageId, AlphabetId, Charact
     boolean assignUnicode(CharacterId characterId, char unicode);
 
     /**
+     * Updates the current assigned token.
+     *
+     * This operation may fail if the character identifier is not already present in {@link sword.langbook3.android.db.LangbookDbSchema.CharacterTokensTable}.
+     *
+     * @param characterId character identifier
+     * @param token new token text that will replace the previous assigned one.
+     * @return whether the database has been updated.
+     */
+    boolean updateToken(CharacterId characterId, String token);
+
+    /**
      * Replaces all characters matching the oldCharacter by the given characterId.
      *
      * This operation may fail if both characters have already an unicode assigned, as only one unicode is possible per character.

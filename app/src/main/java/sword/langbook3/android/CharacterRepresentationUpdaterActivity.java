@@ -11,10 +11,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CharacterIdBundler;
 
-public final class UnicodeAssignerActivity extends Activity implements View.OnClickListener, TextWatcher {
+import static sword.langbook3.android.CharacterCompositionEditorActivity.isInvalidRepresentation;
+
+public final class CharacterRepresentationUpdaterActivity extends Activity implements View.OnClickListener, TextWatcher {
 
     private interface ArgKeys {
         String CHARACTER = BundleKeys.CHARACTER;
@@ -29,7 +32,7 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
     }
 
     public static void open(Activity activity, int requestCode, CharacterId characterId) {
-        final Intent intent = new Intent(activity, UnicodeAssignerActivity.class);
+        final Intent intent = new Intent(activity, CharacterRepresentationUpdaterActivity.class);
         CharacterIdBundler.writeAsIntentExtra(intent, ArgKeys.CHARACTER, characterId);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -54,7 +57,7 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
             finish();
         }
         else {
-            this.<TextView>findViewById(R.id.tokenInfo).setText(getString(R.string.unicodeAssignerTokenInfo, token));
+            this.<TextView>findViewById(R.id.tokenInfo).setText(getString(R.string.representationUpdaterTokenInfo, token));
             _fieldView = findViewById(R.id.field);
             _fieldView.addTextChangedListener(this);
             _resultInfoView = findViewById(R.id.resultInfo);
@@ -62,7 +65,7 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
     }
 
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
         _confirmationDialogPresent = savedInstanceState.getBoolean(SavedKeys.CONFIRMATION_DIALOG_PRESENT);
@@ -100,11 +103,14 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
         else if (newText.length() == 1) {
             final char newChar = newText.charAt(0);
             final String unicodeText = Integer.toString(newChar) + " (0x" + Integer.toHexString(newChar) + ")";
-            resultText = getString(R.string.unicodeAssignerInfoText, unicodeText);
+            resultText = getString(R.string.representationUpdaterInfoText, unicodeText);
+        }
+        else if (isInvalidRepresentation(newText)) {
+            resultText = getString(R.string.representationUpdaterErrorText);
+            textColorRes = R.color.errorTextColor;
         }
         else {
-            resultText = getString(R.string.unicodeAssignerErrorText);
-            textColorRes = R.color.errorTextColor;
+            resultText = getString(R.string.representationUpdaterTokenInfoText, newText);
         }
 
         _resultInfoView.setText(resultText);
@@ -155,7 +161,10 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
     @Override
     public void onClick(View v) {
         final String text = _fieldView.getText().toString();
-        if (text.length() == 1) {
+        if (text.isEmpty()) {
+            Toast.makeText(this, R.string.representationUpdaterEmptyError, Toast.LENGTH_SHORT).show();
+        }
+        else if (text.length() == 1) {
             _mergingChar = DbManager.getInstance().getManager().findCharacter(text.charAt(0));
             _confirmationDialogPresent = true;
             if (_mergingChar == null) {
@@ -165,13 +174,23 @@ public final class UnicodeAssignerActivity extends Activity implements View.OnCl
                 showMergeConfirmationDialog();
             }
         }
-        else {
+        else if (isInvalidRepresentation(text)) {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();
+        }
+        else {
+            if (DbManager.getInstance().getManager().updateToken(_characterId, text.substring(1, text.length() - 1))) {
+                Toast.makeText(this, R.string.updateTokenFeedback, Toast.LENGTH_SHORT).show();
+                setResult(RESULT_OK);
+                finish();
+            }
+            else {
+                Toast.makeText(this, R.string.updateTokenError, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         if (_confirmationDialogPresent) {
             outState.putBoolean(SavedKeys.CONFIRMATION_DIALOG_PRESENT, true);

@@ -146,7 +146,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         }
     }
 
-    private static boolean isInvalidRepresentation(String text) {
+    static boolean isInvalidRepresentation(String text) {
         final int textLength = text.length();
         return textLength > 1 && !(
                 text.startsWith(TOKEN_START_STRING) &&
