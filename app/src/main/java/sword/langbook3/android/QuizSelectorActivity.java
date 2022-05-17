@@ -51,10 +51,6 @@ public final class QuizSelectorActivity extends Activity implements ListView.OnI
         context.startActivity(intent);
     }
 
-    public static void open(Context context) {
-        context.startActivity(new Intent(context, QuizSelectorActivity.class));
-    }
-
     private QuizSelectorActivityState _state;
 
     private AlphabetId _preferredAlphabet;
