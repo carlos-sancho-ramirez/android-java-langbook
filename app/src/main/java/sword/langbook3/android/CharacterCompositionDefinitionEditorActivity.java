@@ -14,8 +14,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import sword.collections.Procedure;
 import sword.langbook3.android.collections.Supplier;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterCompositionTypeIdBundler;
+import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.models.CharacterCompositionDefinitionArea;
 import sword.langbook3.android.models.CharacterCompositionDefinitionAreaInterface;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
@@ -135,7 +137,13 @@ public final class CharacterCompositionDefinitionEditorActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.character_composition_definition_editor_activity);
 
-        CharacterCompositionDefinitionRegister register = DbManager.getInstance().getManager().getCharacterCompositionDefinition(getCharacterCompositionTypeId());
+        final CharacterCompositionTypeId typeId = getCharacterCompositionTypeId();
+        final LangbookDbChecker checker = DbManager.getInstance().getManager();
+        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
+        final String text = checker.readConceptText(typeId.getConceptId(), preferredAlphabet);
+        setTitle(text);
+
+        CharacterCompositionDefinitionRegister register = checker.getCharacterCompositionDefinition(typeId);
         if (register == null) {
             final CharacterCompositionDefinitionArea defaultArea = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT);
             register = new CharacterCompositionDefinitionRegister(defaultArea, defaultArea);
