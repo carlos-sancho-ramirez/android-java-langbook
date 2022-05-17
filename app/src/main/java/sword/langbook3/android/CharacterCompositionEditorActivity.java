@@ -38,6 +38,7 @@ import static sword.langbook3.android.models.CharacterCompositionRepresentation.
 public final class CharacterCompositionEditorActivity extends Activity implements View.OnClickListener, AdapterView.OnItemSelectedListener {
 
     private static final int REQUEST_CODE_ADD_COMPOSITION_TYPE = 1;
+    private static final int REQUEST_CODE_EDIT_COMPOSITION_TYPE = 2;
 
     static final char TOKEN_START_CHARACTER = '{';
     static final char TOKEN_END_CHARACTER = '}';
@@ -73,8 +74,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         textView.setText(text);
     }
 
-    private void updateSpinner() {
-        final ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> compositionTypes = DbManager.getInstance().getManager().getCharacterCompositionTypes(_preferredAlphabet);
+    private void updateSpinner(@NonNull ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> compositionTypes) {
         _compositionTypeSpinner.setAdapter(new CompositionTypesAdapter(compositionTypes));
         final int index = compositionTypes.indexWhere(result -> result.id.equals(_selectedTypeId));
 
@@ -84,6 +84,10 @@ public final class CharacterCompositionEditorActivity extends Activity implement
         else {
             _selectedTypeId = compositionTypes.isEmpty()? null : compositionTypes.valueAt(0).id;
         }
+    }
+
+    private void updateSpinner() {
+        updateSpinner(DbManager.getInstance().getManager().getCharacterCompositionTypes(_preferredAlphabet));
     }
 
     @Override
@@ -133,10 +137,20 @@ public final class CharacterCompositionEditorActivity extends Activity implement
 
             _compositionTypeSpinner = findViewById(R.id.compositionTypeSpinner);
             _compositionTypeSpinner.setOnItemSelectedListener(this);
+
+            final ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> compositionTypes = DbManager.getInstance().getManager().getCharacterCompositionTypes(_preferredAlphabet);
+
             if (model.compositionType != null) {
                 _selectedTypeId = model.compositionType;
             }
-            updateSpinner();
+
+            if (savedInstanceState != null) {
+                final CharacterCompositionTypeId savedTypeId = CharacterCompositionTypeIdBundler.read(savedInstanceState, SavedKeys.SELECTED_TYPE_ID);
+                if (compositionTypes.anyMatch(result -> result.id.equals(savedTypeId))) {
+                    _selectedTypeId = savedTypeId;
+                }
+            }
+            updateSpinner(compositionTypes);
 
             findViewById(R.id.addCompositionTypeButton).setOnClickListener(this);
             findViewById(R.id.saveButton).setOnClickListener(this);
@@ -211,12 +225,17 @@ public final class CharacterCompositionEditorActivity extends Activity implement
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        final AcceptationId acceptation = (requestCode == REQUEST_CODE_ADD_COMPOSITION_TYPE && data != null)? AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION) : null;
-        if (acceptation != null) {
-            final LangbookDbManager manager = DbManager.getInstance().getManager();
-            final ConceptId concept = manager.conceptFromAcceptation(acceptation);
-            _selectedTypeId = CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(concept);
-            CharacterCompositionDefinitionEditorActivity.open(this, _selectedTypeId);
+        if (requestCode == REQUEST_CODE_ADD_COMPOSITION_TYPE && data != null) {
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
+            if (acceptation != null) {
+                final LangbookDbManager manager = DbManager.getInstance().getManager();
+                final ConceptId concept = manager.conceptFromAcceptation(acceptation);
+                _selectedTypeId = CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(concept);
+                CharacterCompositionDefinitionEditorActivity.open(this, REQUEST_CODE_EDIT_COMPOSITION_TYPE, _selectedTypeId);
+            }
+        }
+        else if (requestCode == REQUEST_CODE_EDIT_COMPOSITION_TYPE) {
+            updateSpinner();
         }
     }
 

@@ -36,6 +36,13 @@ public final class CharacterCompositionDefinitionEditorActivity extends Activity
         context.startActivity(intent);
     }
 
+    public static void open(@NonNull Activity activity, int requestCode, @NonNull CharacterCompositionTypeId id) {
+        ensureNonNull(activity, id);
+        final Intent intent = new Intent(activity, CharacterCompositionDefinitionEditorActivity.class);
+        CharacterCompositionTypeIdBundler.writeAsIntentExtra(intent, ArgKeys.ID, id);
+        activity.startActivityForResult(intent, requestCode);
+    }
+
     private CharacterCompositionDefinitionEditorView _editorView;
 
     private CharacterCompositionTypeId getCharacterCompositionTypeId() {
