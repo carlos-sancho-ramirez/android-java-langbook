@@ -26,6 +26,7 @@ import sword.collections.MutableIntValueMap;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
+import sword.collections.MutableSortedSet;
 import sword.collections.Set;
 import sword.collections.SortUtils;
 import sword.database.Database;
@@ -36,6 +37,7 @@ import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.collections.StringUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.collections.TransformableUtils;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.AcceptationDetailsModel2;
 import sword.langbook3.android.models.AgentDetails;
@@ -4483,9 +4485,17 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getTokenColumnIndex(), new DbQuery.Restriction(
                         new DbStringValue(filterText), DbQuery.RestrictionStringTypes.STARTS_WITH))
-                .range(new ImmutableIntRange(0, 19))
                 .select(table.getTokenColumnIndex());
-        return _db.select(query).map(row -> row.get(0).toText()).toList().toImmutable();
+
+        final MutableSortedSet<String> sortedSet = MutableSortedSet.empty(SortUtils::compareCharSequenceByUnicode);
+        try (DbResult dbResult = _db.select(query)) {
+            while (dbResult.hasNext()) {
+                final List<DbValue> row = dbResult.next();
+                sortedSet.add(row.get(0).toText());
+            }
+        }
+
+        return TransformableUtils.takeToImmutableList(sortedSet, 20);
     }
 
     @Override
