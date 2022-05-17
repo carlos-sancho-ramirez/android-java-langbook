@@ -216,6 +216,7 @@
     <string name="characterCompositionAsFirstHeader">Composed characters where this is first</string>
     <string name="characterCompositionAsSecondHeader">Composed characters where this is second</string>
     <string name="characterCompositionAcceptationsHeader">Acceptations where included</string>
+    <string name="characterDetailsUnicodeNumberEntry">Unicode number: %s</string>
     <string name="characterPickerActivityTitle">Select a character</string>
     <string name="characterCompositionEditorFirstLabel">First</string>
     <string name="characterCompositionEditorSecondLabel">Second</string>

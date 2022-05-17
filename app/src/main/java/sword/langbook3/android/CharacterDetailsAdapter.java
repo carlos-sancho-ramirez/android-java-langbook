@@ -22,9 +22,10 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
     private interface ViewTypes {
         int CHARACTER = 0;
         int COMPOSITION = 1;
-        int SECTION_HEADER = 2;
-        int COMPOSITION_TYPE = 3;
-        int NAVIGABLE = 4;
+        int UNICODE_NUMBER = 2;
+        int SECTION_HEADER = 3;
+        int COMPOSITION_TYPE = 4;
+        int NAVIGABLE = 5;
     }
 
     private CharacterDetailsModel<CharacterId, AcceptationId> _model;
@@ -39,11 +40,16 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
         _model = model;
 
         if (model != null) {
+            final boolean isUnicodeNumberPresent = model.representation.character != INVALID_CHARACTER;
             final int asFirstCount = model.asFirst.size();
             final int asSecondCount = model.asSecond.size();
             final int acceptationsWhereIncludedCount = model.acceptationsWhereIncluded.size();
 
             _asFirstHeaderPosition = (model.compositionType != null)? 4 : 1;
+            if (isUnicodeNumberPresent) {
+                _asFirstHeaderPosition++;
+            }
+
             _asSecondHeaderPosition = (asFirstCount > 0) ? _asFirstHeaderPosition + asFirstCount + 1 : _asFirstHeaderPosition;
             _acceptationsWhereIncludedHeaderPosition = (asSecondCount > 0) ? _asSecondHeaderPosition + asSecondCount + 1 : _asSecondHeaderPosition;
             _count = (acceptationsWhereIncludedCount > 0) ? _acceptationsWhereIncludedHeaderPosition + acceptationsWhereIncludedCount + 1 : _acceptationsWhereIncludedHeaderPosition;
@@ -62,15 +68,17 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
 
     @Override
     public int getViewTypeCount() {
-        return 5;
+        return 6;
     }
 
     @Override
     public int getItemViewType(int position) {
+        final boolean isUnicodeNumberPresent = _model.representation.character != INVALID_CHARACTER;
         return (position == 0)? ViewTypes.CHARACTER :
                 (position == 1 && _model.compositionType != null)? ViewTypes.COMPOSITION :
-                (position == 2 && _model.compositionType != null)? ViewTypes.SECTION_HEADER :
-                (position == 3 && _model.compositionType != null)? ViewTypes.COMPOSITION_TYPE :
+                (isUnicodeNumberPresent && (position == 1 || position == 2 && _model.compositionType != null))? ViewTypes.UNICODE_NUMBER :
+                (_model.compositionType != null && (position == 2 || position == 3 && isUnicodeNumberPresent))? ViewTypes.SECTION_HEADER :
+                (_model.compositionType != null && (position == 3 || position == 4 && isUnicodeNumberPresent))? ViewTypes.COMPOSITION_TYPE :
                 (position == _asFirstHeaderPosition || position == _asSecondHeaderPosition || position == _acceptationsWhereIncludedHeaderPosition)? ViewTypes.SECTION_HEADER : ViewTypes.NAVIGABLE;
     }
 
@@ -81,13 +89,16 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
 
     @Override
     public boolean isEnabled(int position) {
-        return position >= 2 && (position != 2 || _model.compositionType == null) && position != _asFirstHeaderPosition && position != _asSecondHeaderPosition && position != _acceptationsWhereIncludedHeaderPosition;
+        final boolean isUnicodeNumberPresent = _model.representation.character != INVALID_CHARACTER;
+        return (!isUnicodeNumberPresent && (position > 2 || position >= 2 && _model.compositionType == null) ||
+                (isUnicodeNumberPresent && (position > 3 || position >= 3 && _model.compositionType == null))) &&
+                position != _asFirstHeaderPosition && position != _asSecondHeaderPosition && position != _acceptationsWhereIncludedHeaderPosition;
     }
 
     @Override
     public Object getItem(int position) {
         final int viewType = getItemViewType(position);
-        if (viewType == ViewTypes.CHARACTER || viewType == ViewTypes.COMPOSITION) {
+        if (viewType == ViewTypes.CHARACTER || viewType == ViewTypes.COMPOSITION || viewType == ViewTypes.UNICODE_NUMBER) {
             return _model;
         }
         else if (viewType == ViewTypes.SECTION_HEADER) {
@@ -183,6 +194,14 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
             }
 
             bindCompositionType(convertView, _model.compositionType);
+        }
+        else if (viewType == ViewTypes.UNICODE_NUMBER) {
+            if (convertView == null) {
+                convertView = inflate(R.layout.acceptation_details_header, parent);
+            }
+
+            final int unicodeNumber = _model.representation.character;
+            convertView.<TextView>findViewById(R.id.itemTextView).setText(context.getString(R.string.characterDetailsUnicodeNumberEntry, Integer.toString(unicodeNumber) + " (0x" + Integer.toHexString(unicodeNumber) + ")"));
         }
         else if (viewType == ViewTypes.SECTION_HEADER) {
             if (convertView == null) {
