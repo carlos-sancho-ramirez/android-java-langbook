@@ -3981,38 +3981,6 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
         return selectExistingRow(query);
     }
 
-    ImmutablePair<ImmutableCorrelation<AlphabetId>, AcceptationId> readAcceptationTextsAndMain(AcceptationId acceptation) {
-        final LangbookDbSchema.StringQueriesTable table = Tables.stringQueries;
-        final DbQuery query = new DbQueryBuilder(table)
-                .where(table.getDynamicAcceptationColumnIndex(), acceptation)
-                .select(
-                        table.getStringAlphabetColumnIndex(),
-                        table.getStringColumnIndex(),
-                        table.getMainAcceptationColumnIndex());
-        final ImmutableCorrelation.Builder<AlphabetId> builder = new ImmutableCorrelation.Builder<>();
-        boolean mainAccSet = false;
-        AcceptationId mainAcc = null;
-        try (DbResult result = _db.select(query)) {
-            while (result.hasNext()) {
-                final List<DbValue> row = result.next();
-                final AlphabetId alphabet = _alphabetIdSetter.getKeyFromDbValue(row.get(0));
-                final String text = row.get(1).toText();
-
-                if (!mainAccSet) {
-                    mainAcc = _acceptationIdSetter.getKeyFromDbValue(row.get(2));
-                    mainAccSet = true;
-                }
-                else if (!mainAcc.sameValue(row.get(2))) {
-                    throw new AssertionError();
-                }
-
-                builder.put(alphabet, text);
-            }
-        }
-
-        return new ImmutablePair<>(builder.build(), mainAcc);
-    }
-
     AlphabetId readMainAlphabetFromAlphabet(AlphabetId alphabet) {
         final LangbookDbSchema.AlphabetsTable alpTable = alphabets;
         final LangbookDbSchema.LanguagesTable langTable = Tables.languages;
@@ -4239,15 +4207,6 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
         final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
         final DbQuery dbQuery = new DbQueryBuilder(table)
                 .where(table.getIdColumnIndex(), characterId)
-                .select(table.getIdColumnIndex());
-
-        return selectExistAtLeastOneRow(dbQuery);
-    }
-
-    private boolean isCharacterCompositionPart(CharacterId characterId, int columnToMatch) {
-        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
-        final DbQuery dbQuery = new DbQueryBuilder(table)
-                .where(columnToMatch, characterId)
                 .select(table.getIdColumnIndex());
 
         return selectExistAtLeastOneRow(dbQuery);

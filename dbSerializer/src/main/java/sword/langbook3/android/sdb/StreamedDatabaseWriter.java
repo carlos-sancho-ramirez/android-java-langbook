@@ -58,7 +58,6 @@ import sword.database.DbExporter;
 import sword.database.DbExporter.Database;
 import sword.database.DbQuery;
 import sword.database.DbResult;
-import sword.database.DbTable;
 import sword.database.DbValue;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.collections.ImmutableIntPair;
@@ -183,21 +182,6 @@ public final class StreamedDatabaseWriter {
         _db = db;
         _obs = new OutputStreamWrapper(os);
         _listener = listener;
-    }
-
-    private int getTableLength(DbTable table) {
-        final DbQuery query = new DbQuery.Builder(table)
-                .select(table.getIdColumnIndex());
-
-        int count = 0;
-        try (DbResult result = _db.select(query)) {
-            while (result.hasNext()) {
-                ++count;
-                result.next();
-            }
-        }
-
-        return count;
     }
 
     private static final class SymbolArrayWriterResult {
@@ -1644,11 +1628,6 @@ public final class StreamedDatabaseWriter {
 
             AgentAcceptationPair that = (AgentAcceptationPair) other;
             return agentWithRuleIndex == that.agentWithRuleIndex && acceptation == that.acceptation;
-        }
-
-        static boolean lessThan(AgentAcceptationPair a, AgentAcceptationPair b) {
-            return b != null && (a == null || a.agentWithRuleIndex < b.agentWithRuleIndex ||
-                    a.agentWithRuleIndex == b.agentWithRuleIndex && a.acceptation < b.acceptation);
         }
     }
 
