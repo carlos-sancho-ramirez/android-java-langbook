@@ -337,7 +337,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return null;
     }
 
-    private static void insertAlphabet(DbInserter db, int id, int language) {
+    static void insertAlphabet(DbInserter db, int id, int language) {
         final LangbookDbSchema.AlphabetsTable table = Tables.alphabets;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
@@ -349,7 +349,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static void insertLanguage(DbInserter db, int id, String code, int mainAlphabet) {
+    static void insertLanguage(DbInserter db, int id, String code, int mainAlphabet) {
         final LangbookDbSchema.LanguagesTable table = Tables.languages;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getIdColumnIndex(), id)
@@ -398,7 +398,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static void insertCorrelation(DbInserter db, int correlationId, IntPairMap correlation) {
+    static void insertCorrelation(DbInserter db, int correlationId, IntPairMap correlation) {
         final int mapLength = correlation.size();
         if (mapLength == 0) {
             throw new IllegalArgumentException();
@@ -430,7 +430,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private static void insertConversion(DbInserter db, int sourceAlphabet, int targetAlphabet, int source, int target) {
+    static void insertConversion(DbInserter db, int sourceAlphabet, int targetAlphabet, int source, int target) {
         final LangbookDbSchema.ConversionsTable table = Tables.conversions;
         final DbInsertQuery query = new DbInsertQuery.Builder(table)
                 .put(table.getSourceAlphabetColumnIndex(), sourceAlphabet)
@@ -738,7 +738,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         }
     }
 
-    private SymbolArrayReadResult readSymbolArrays(InputHuffmanStream ibs, MutableSet<Character> characters) throws IOException {
+    static SymbolArrayReadResult readSymbolArrays(Database db, InputHuffmanStream ibs, MutableSet<Character> characters) throws IOException {
         final int symbolArraysLength = ibs.readHuffmanSymbol(naturalNumberTable);
         if (symbolArraysLength == 0) {
             final int[] emptyArray = new int[0];
@@ -765,14 +765,14 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                 characters.add(ch);
             }
 
-            idMap[index] = obtainSymbolArray(_db, builder.toString());
+            idMap[index] = obtainSymbolArray(db, builder.toString());
             lengths[index] = length;
         }
 
         return new SymbolArrayReadResult(idMap, lengths);
     }
 
-    private Conversion[] readConversions(InputHuffmanStream ibs, ImmutableIntRange validAlphabets, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
+    static Conversion[] readConversions(Database db, InputHuffmanStream ibs, ImmutableIntRange validAlphabets, int minSymbolArrayIndex, int maxSymbolArrayIndex, int[] symbolArraysIdMap) throws IOException {
         final int conversionsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final Conversion[] conversions = new Conversion[conversionsLength];
         final RangedIntegerHuffmanTable symbolArrayTable = new RangedIntegerHuffmanTable(minSymbolArrayIndex, maxSymbolArrayIndex);
@@ -799,9 +799,9 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             for (int j = 0; j < pairCount; j++) {
                 final int source = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
                 final int target = symbolArraysIdMap[ibs.readHuffmanSymbol(symbolArrayTable)];
-                insertConversion(_db, sourceAlphabet, targetAlphabet, source, target);
+                insertConversion(db, sourceAlphabet, targetAlphabet, source, target);
 
-                conversionMap.put(getSymbolArray(_db, source), getSymbolArray(_db, target));
+                conversionMap.put(getSymbolArray(db, source), getSymbolArray(db, target));
             }
 
             conversions[i] = new Conversion(sourceAlphabet, targetAlphabet, conversionMap);
@@ -810,7 +810,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return conversions;
     }
 
-    private int[] readCorrelations(InputStreamWrapper ibs, ImmutableIntRange validAlphabets, int[] symbolArraysIdMap) throws IOException {
+    static int[] readCorrelations(Database db, InputStreamWrapper ibs, ImmutableIntRange validAlphabets, int[] symbolArraysIdMap) throws IOException {
         final int correlationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final int[] result = new int[correlationsLength];
         if (correlationsLength > 0) {
@@ -833,7 +833,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                 }
                 else {
                     correlationId = i + 1;
-                    insertCorrelation(_db, correlationId, corr);
+                    insertCorrelation(db, correlationId, corr);
                 }
                 result[i] = correlationId;
             }
@@ -842,7 +842,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return result;
     }
 
-    private int[] readCorrelationArrays(InputHuffmanStream ibs, int[] correlationIdMap) throws IOException {
+    static int[] readCorrelationArrays(Database db, InputHuffmanStream ibs, int[] correlationIdMap) throws IOException {
         final int arraysLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final int[] result = new int[arraysLength];
         if (arraysLength > 0) {
@@ -864,7 +864,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                     }
 
                     arrayId = i + 1;
-                    insertCorrelationArray(_db, arrayId, builder.build());
+                    insertCorrelationArray(db, arrayId, builder.build());
                 }
                 result[i] = arrayId;
             }
@@ -873,7 +873,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return result;
     }
 
-    private int[] readAcceptations(InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationArrayIdMap) throws IOException {
+    static int[] readAcceptations(Database db, InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationArrayIdMap) throws IOException {
         final int acceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
 
         final int[] acceptationsIdMap = new int[acceptationsLength];
@@ -887,7 +887,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                 final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, corrArraySetLengthTable, range);
                 for (int corrArray : ibs.readIntSet(decoder, decoder, decoder)) {
                     // TODO: Separate acceptations and correlations in 2 tables to avoid overlapping if there is more than one correlation array
-                    acceptationsIdMap[i] = insertAcceptation(_db, concept, correlationArrayIdMap[corrArray]);
+                    acceptationsIdMap[i] = insertAcceptation(db, concept, correlationArrayIdMap[corrArray]);
                 }
             }
         }
@@ -895,7 +895,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return acceptationsIdMap;
     }
 
-    private void readComplementedConcepts(InputStreamWrapper ibs, ImmutableIntRange validConcepts) throws IOException {
+    static void readComplementedConcepts(Database db, InputStreamWrapper ibs, ImmutableIntRange validConcepts) throws IOException {
         final int bunchConceptsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final NatDecoder natDecoder = new NatDecoder(ibs);
         final IntHuffmanTable bunchConceptsLengthTable = (bunchConceptsLength > 0)?
@@ -921,12 +921,12 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             });
 
             for (IntKeyMap.Entry<ImmutableIntSet> entry : map.entries()) {
-                addDefinition(_db, base, entry.key(), entry.value());
+                addDefinition(db, base, entry.key(), entry.value());
             }
         }
     }
 
-    private void readBunchAcceptations(InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
+    static void readBunchAcceptations(Database db, InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] acceptationsIdMap) throws IOException {
         final int bunchAcceptationsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final NatDecoder natDecoder = new NatDecoder(ibs);
         final IntHuffmanTable bunchAcceptationsLengthTable = (bunchAcceptationsLength > 0)?
@@ -941,12 +941,12 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             final ImmutableIntRange range = new ImmutableIntRange(0, acceptationsIdMap.length - 1);
             final RangedIntSetDecoder decoder = new RangedIntSetDecoder(ibs, bunchAcceptationsLengthTable, range);
             for (int acceptation : ibs.readIntSet(decoder, decoder, decoder)) {
-                insertBunchAcceptation(_db, bunch, acceptationsIdMap[acceptation], 0);
+                insertBunchAcceptation(db, bunch, acceptationsIdMap[acceptation], 0);
             }
         }
     }
 
-    private ImmutableIntKeyMap<String> getCorrelation(int correlationId) {
+    private static ImmutableIntKeyMap<String> getCorrelation(Database db, int correlationId) {
         if (correlationId == LangbookDbSchema.EMPTY_CORRELATION_ID) {
             return ImmutableIntKeyMap.empty();
         }
@@ -959,7 +959,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                 .select(table.getAlphabetColumnIndex(), table.columns().size() + symbolArrays.getStrColumnIndex());
 
         final MutableIntKeyMap<String> result = MutableIntKeyMap.empty();
-        try (DbResult dbResult = _db.select(query)) {
+        try (DbResult dbResult = db.select(query)) {
             while (dbResult.hasNext()) {
                 final List<DbValue> row = dbResult.next();
                 result.put(row.get(0).toInt(), row.get(1).toText());
@@ -969,7 +969,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return result.toImmutable();
     }
 
-    private ImmutableIntList getCorrelationArray(int arrayId) {
+    private static ImmutableIntList getCorrelationArray(Database db, int arrayId) {
         if (arrayId == LangbookDbSchema.EMPTY_CORRELATION_ARRAY_ID) {
             return ImmutableIntList.empty();
         }
@@ -980,11 +980,10 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                 .orderBy(correlationArrays.getArrayPositionColumnIndex())
                 .select(correlationArrays.getCorrelationColumnIndex());
 
-        return _db.select(query).mapToInt(row -> row.get(0).toInt()).toList().toImmutable();
+        return db.select(query).mapToInt(row -> row.get(0).toInt()).toList().toImmutable();
     }
 
-    private AgentReadResult readAgents(
-            InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap, int[] correlationArrayIdMap) throws IOException {
+    static AgentReadResult readAgents(Database db, ProgressListener progressListener, InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap, int[] correlationArrayIdMap) throws IOException {
 
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
@@ -1007,7 +1006,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                         return Tables.bunchSets.nullReference();
                     }
                     else {
-                        insertBunchSet(_db, ++lastAssignedKey, bunchSet);
+                        insertBunchSet(db, ++lastAssignedKey, bunchSet);
                         return lastAssignedKey;
                     }
                 }
@@ -1017,13 +1016,18 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             final RangedIntegerHuffmanTable correlationTable = new RangedIntegerHuffmanTable(0, correlationIdMap.length - 1);
             final RangedIntegerHuffmanTable correlationArrayTable = new RangedIntegerHuffmanTable(0, correlationArrayIdMap.length - 1);
 
-            final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> correlationSyncCache = new SyncCacheIntKeyNonNullValueMap<>(this::getCorrelation);
-            final SyncCacheIntKeyNonNullValueMap<ImmutableIntList> correlationArraysSyncCache = new SyncCacheIntKeyNonNullValueMap<>(this::getCorrelationArray);
+            final SyncCacheIntKeyNonNullValueMap<ImmutableIntKeyMap<String>> correlationSyncCache = new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelation(db, id));
+            final SyncCacheIntKeyNonNullValueMap<ImmutableIntList> correlationArraysSyncCache = new SyncCacheIntKeyNonNullValueMap<>(id -> getCorrelationArray(db, id));
 
             ImmutableIntSet lastTargets = ImmutableIntArraySet.empty();
             ImmutableIntSet lastSources = ImmutableIntArraySet.empty();
             for (int i = 0; i < agentsLength; i++) {
-                setProgress((0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f, "Reading agent " + (i + 1) + "/" + agentsLength);
+                if (progressListener != null) {
+                    final float progress = (0.99f - 0.8f) * i / ((float) agentsLength) + 0.8f;
+                    final String message = "Reading agent " + (i + 1) + "/" + agentsLength;
+                    progressListener.setProgress(progress, message);
+                }
+
                 final ImmutableIntRange targetRange = new ImmutableIntRange(minTarget, validConcepts.max());
                 final RangedIntSetDecoder targetDecoder = new RangedIntSetDecoder(ibs, bunchSetLengthTable, targetRange);
                 final ImmutableIntSet targetBunches = ibs.readIntSet(targetDecoder, targetDecoder, targetDecoder).toImmutable();
@@ -1080,7 +1084,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                 final int diffBunchSetId = insertedBunchSets.get(diffBunches);
 
                 final AgentRegister register = new AgentRegister(targetBunchSetId, sourceBunchSetId, diffBunchSetId, startMatcherId, startAdderArrayId, endMatcherId, endAdderArrayId, rule);
-                final int agentId = insertAgent(_db, register);
+                final int agentId = insertAgent(db, register);
 
                 builder.put(agentId, new AgentBunches(targetBunches, sourceBunches, diffBunches));
 
@@ -1093,7 +1097,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return new AgentReadResult(builder.build(), agentRules.toImmutable());
     }
 
-    private AgentAcceptationPair[] readRelevantRuledAcceptations(InputHuffmanStream ibs, int[] accIdMap, ImmutableIntSet agentsWithRule) throws IOException {
+    static AgentAcceptationPair[] readRelevantRuledAcceptations(InputHuffmanStream ibs, int[] accIdMap, ImmutableIntSet agentsWithRule) throws IOException {
         final int pairsCount = ibs.readHuffmanSymbol(naturalNumberTable);
         final AgentAcceptationPair[] pairs = new AgentAcceptationPair[pairsCount];
         if (pairsCount > 0) {
@@ -1113,7 +1117,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return pairs;
     }
 
-    private SentenceSpan[] readSentenceSpans(InputHuffmanStream ibs, int extendedAccCount, int[] symbolArrayIdMap, int[] symbolArrayLengths) throws IOException {
+    static SentenceSpan[] readSentenceSpans(InputHuffmanStream ibs, int extendedAccCount, int[] symbolArrayIdMap, int[] symbolArrayLengths) throws IOException {
         final int maxSymbolArray = symbolArrayLengths.length - 1;
         final int spanCount = ibs.readHuffmanSymbol(naturalNumberTable);
         final SentenceSpan[] spans = new SentenceSpan[spanCount];
@@ -1155,7 +1159,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return spans;
     }
 
-    private ImmutableIntSet readSentenceMeanings(InputStreamWrapper ibs, int[] symbolArrayIdMap, SentenceSpan[] spans) throws IOException {
+    static ImmutableIntSet readSentenceMeanings(Database db, InputStreamWrapper ibs, int[] symbolArrayIdMap, SentenceSpan[] spans) throws IOException {
         final MutableIntSet insertedSentences = MutableIntArraySet.empty();
         final int meaningCount = ibs.readHuffmanSymbol(naturalNumberTable);
         if (meaningCount > 0) {
@@ -1167,7 +1171,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             final IntDecoder intDecoder = new IntDecoder(ibs);
             DefinedIntHuffmanTable lengthTable = ibs.readIntHuffmanTable(intDecoder, intDecoder);
 
-            final int baseConcept = getMaxConcept(_db) + 1;
+            final int baseConcept = getMaxConcept(db) + 1;
             int previousMin = 0;
             for (int meaningIndex = 0; meaningIndex < meaningCount; meaningIndex++) {
                 final ImmutableIntRange range = new ImmutableIntRange(previousMin, symbolArrayIdMap.length - 1);
@@ -1188,7 +1192,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                         sentenceIds.put(symbolArray, sentenceId);
                     }
 
-                    insertSentenceWithId(_db, sentenceId, concept, symbolArray);
+                    insertSentenceWithId(db, sentenceId, concept, symbolArray);
                     if (!insertedSentences.add(sentenceId)) {
                         throw new AssertionError();
                     }
@@ -1250,15 +1254,15 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return (languageCount == 0)? null : new ImmutableIntRange(minValidAlphabet, maxValidAlphabet);
     }
 
-    private void insertMissingSentences(SentenceSpan[] spans, ImmutableIntSet insertedSentences) {
+    static void insertMissingSentences(Database db, SentenceSpan[] spans, ImmutableIntSet insertedSentences) {
         final MutableIntPairMap map = MutableIntPairMap.empty();
         for (SentenceSpan span : spans) {
             map.put(span.sentenceId, span.symbolArray);
         }
 
-        int concept = getMaxConcept(_db);
+        int concept = getMaxConcept(db);
         for (int sentenceId : map.keySet().filterNot(insertedSentences::contains)) {
-            insertSentenceWithId(_db, sentenceId, ++concept, map.get(sentenceId));
+            insertSentenceWithId(db, sentenceId, ++concept, map.get(sentenceId));
         }
     }
 
@@ -1267,7 +1271,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return (s > 0)? s : CHARACTER_MAP_GRANULARITY;
     }
 
-    private void insertCharacters(Set<Character> characters, int lastId) {
+    static void insertCharacters(Database db, Set<Character> characters, int lastId) {
         final LangbookDbSchema.UnicodeCharactersTable table = Tables.unicodeCharacters;
         for (char ch : characters) {
             final DbInsertQuery query = new DbInsertQuery.Builder(table)
@@ -1275,7 +1279,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                     .put(table.getUnicodeColumnIndex(), ch)
                     .build();
 
-            if (lastId != _db.insert(query)) {
+            if (lastId != db.insert(query)) {
                 throw new AssertionError();
             }
         }
@@ -1287,8 +1291,8 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             setProgress(0, "Reading symbol arrays");
             final InputStreamWrapper ibs = new InputStreamWrapper(_is);
             final MutableHashSet<Character> characters = MutableHashSet.empty(StreamedDatabase0Reader::suitableCharacterMapLength);
-            final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(ibs, characters);
-            insertCharacters(characters, 0);
+            final SymbolArrayReadResult symbolArraysReadResult = readSymbolArrays(_db, ibs, characters);
+            insertCharacters(_db, characters, 0);
             final int[] symbolArraysIdMap = symbolArraysReadResult.idMap;
 
             // Read languages and its alphabets
@@ -1309,7 +1313,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
 
                 // Read conversions
                 setProgress(0.1f, "Reading conversions");
-                final Conversion[] conversions = readConversions(ibs, validAlphabets, 0,
+                final Conversion[] conversions = readConversions(_db, ibs, validAlphabets, 0,
                         maxSymbolArrayIndex, symbolArraysIdMap);
 
                 // Export the amount of words and concepts in order to range integers
@@ -1319,28 +1323,28 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
 
                 // Import correlations
                 setProgress(0.15f, "Reading correlations");
-                int[] correlationIdMap = readCorrelations(ibs, validAlphabets, symbolArraysIdMap);
+                int[] correlationIdMap = readCorrelations(_db, ibs, validAlphabets, symbolArraysIdMap);
 
                 // Import correlation arrays
                 setProgress(0.30f, "Reading correlation arrays");
-                int[] correlationArrayIdMap = readCorrelationArrays(ibs, correlationIdMap);
+                int[] correlationArrayIdMap = readCorrelationArrays(_db, ibs, correlationIdMap);
 
                 // Import acceptations
                 setProgress(0.5f, "Reading acceptations");
                 final ImmutableIntRange validConcepts = new ImmutableIntRange(minValidConcept, maxConcept);
-                int[] acceptationIdMap = readAcceptations(ibs, validConcepts, correlationArrayIdMap);
+                int[] acceptationIdMap = readAcceptations(_db, ibs, validConcepts, correlationArrayIdMap);
 
                 // Import bunchConcepts
                 setProgress(0.6f, "Reading bunch concepts");
-                readComplementedConcepts(ibs, validConcepts);
+                readComplementedConcepts(_db, ibs, validConcepts);
 
                 // Import bunchAcceptations
                 setProgress(0.7f, "Reading bunch acceptations");
-                readBunchAcceptations(ibs, validConcepts, acceptationIdMap);
+                readBunchAcceptations(_db, ibs, validConcepts, acceptationIdMap);
 
                 // Import agents
                 setProgress(0.8f, "Reading agents");
-                final AgentReadResult agentReadResult = readAgents(ibs, validConcepts, correlationIdMap, correlationArrayIdMap);
+                final AgentReadResult agentReadResult = readAgents(_db, _listener, ibs, validConcepts, correlationIdMap, correlationArrayIdMap);
 
                 // Import relevant dynamic acceptations
                 setProgress(0.9f, "Reading referenced dynamic acceptations");
@@ -1354,9 +1358,9 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                         symbolArraysReadResult.lengths);
 
                 setProgress(0.98f, "Writing sentence meanings");
-                final ImmutableIntSet insertedSentences = readSentenceMeanings(ibs, symbolArraysIdMap, spans);
+                final ImmutableIntSet insertedSentences = readSentenceMeanings(_db, ibs, symbolArraysIdMap, spans);
 
-                insertMissingSentences(spans, insertedSentences);
+                insertMissingSentences(_db, spans, insertedSentences);
                 return new Result(conversions, agentReadResult.agents, agentReadResult.agentRules, acceptationIdMap, agentAcceptationPairs, spans, correlationIdMap.length, correlationArrayIdMap.length);
             }
         }

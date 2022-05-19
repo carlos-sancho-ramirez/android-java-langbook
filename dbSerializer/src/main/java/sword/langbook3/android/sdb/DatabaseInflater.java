@@ -34,12 +34,12 @@ import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.getMaxConcept;
+import static sword.langbook3.android.sdb.StreamedDatabase0Reader.insertAcceptation;
+import static sword.langbook3.android.sdb.StreamedDatabase0Reader.insertBunchAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainCorrelation;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainCorrelationArray;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainSymbolArray;
 import static sword.langbook3.android.sdb.StreamedDatabaseReader.getCorrelationWithText;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertAcceptation;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.insertBunchAcceptation;
 
 public final class DatabaseInflater {
 
