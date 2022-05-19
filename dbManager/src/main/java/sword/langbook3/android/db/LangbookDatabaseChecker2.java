@@ -4549,6 +4549,7 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
                     final CharacterCompositionDefinitionRegister register = getCharacterCompositionDefinition(typeId);
                     return new IdentifiableCharacterCompositionResult<>(typeId, entry.value(), register);
                 })
+                .sort((a, b) -> SortUtils.compareCharSequenceByUnicode(a.text, b.text))
                 .toImmutable();
     }
 }
