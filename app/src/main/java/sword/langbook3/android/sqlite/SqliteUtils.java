@@ -12,14 +12,9 @@ public final class SqliteUtils {
         if (column.isPrimaryKey()) {
             return "INTEGER PRIMARY KEY AUTOINCREMENT";
         }
-        else if (column.isUnique()) {
-            return "TEXT UNIQUE ON CONFLICT IGNORE";
-        }
-        else if (column.isText()) {
-            return "TEXT";
-        }
         else {
-            return "INTEGER";
+            final String typeName = column.isText()? "TEXT" : "INTEGER";
+            return column.isUnique()? typeName + " UNIQUE ON CONFLICT IGNORE" : typeName;
         }
     }
 
