@@ -1037,18 +1037,25 @@ public final class StreamedDatabaseWriter {
             final RangedIntegerHuffmanTable charactersTable = new RangedIntegerHuffmanTable(0, lastValidCharFileId);
             final RangedIntegerHuffmanTable definitionsTable = new RangedIntegerHuffmanTable(0, definitionDbIds.size() - 1);
             final CharacterCompositionCharConverter converter = new CharacterCompositionCharConverter(charConverter, characters, missingCharacters, tokens);
+
+            final MutableIntPairMap compositionOrder = MutableIntPairMap.empty((currentSize, newSize) -> compositionsCount);
+            for (int compositionIndex = 0; compositionIndex < compositionsCount; compositionIndex++) {
+                compositionOrder.put(converter.get(compositions.keyAt(compositionIndex)), compositionIndex);
+            }
+
             int firstValidCharFileId = 0;
             for (int compositionIndex = 0; compositionIndex < compositionsCount; compositionIndex++) {
-                final int thisChar = compositions.keyAt(compositionIndex);
+                final int compositionPosition = compositionOrder.valueAt(compositionIndex);
                 final RangedIntegerHuffmanTable charFileIdTable = new RangedIntegerHuffmanTable(firstValidCharFileId, lastValidCharFileId);
 
-                _obs.writeHuffmanSymbol(charFileIdTable, converter.get(thisChar));
-                firstValidCharFileId = thisChar + 1;
+                final int charFileId = compositionOrder.keyAt(compositionIndex);
+                _obs.writeHuffmanSymbol(charFileIdTable, charFileId);
+                firstValidCharFileId = charFileId + 1;
 
                 // We known that it is not possible to create loops, so some possibilities should be excluded.
                 // We also know that it is not possible to duplicate character compositions, so we should exclude that possibilities
                 // TODO: Improve this to avoid impossible data
-                final CharacterCompositionFileIdsTableEntry entry = compositions.valueAt(compositionIndex);
+                final CharacterCompositionFileIdsTableEntry entry = compositions.valueAt(compositionPosition);
                 _obs.writeHuffmanSymbol(charactersTable, converter.get(entry.first));
                 _obs.writeHuffmanSymbol(charactersTable, converter.get(entry.second));
                 _obs.writeHuffmanSymbol(definitionsTable, entry.typeIndex);

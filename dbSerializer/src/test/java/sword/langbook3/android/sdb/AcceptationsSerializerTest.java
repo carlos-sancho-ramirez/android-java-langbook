@@ -14,6 +14,7 @@ import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,6 +45,14 @@ public interface AcceptationsSerializerTest<ConceptId, LanguageId extends Langua
             AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, CharacterCompositionTypeId typeId) {
         final CharacterCompositionDefinitionArea first = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
         final CharacterCompositionDefinitionArea second = new CharacterCompositionDefinitionArea(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2);
+        final CharacterCompositionDefinitionRegister register = new CharacterCompositionDefinitionRegister(first, second);
+        assertTrue(manager.updateCharacterCompositionDefinition(typeId, register));
+    }
+
+    static <ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> void insertLeftRightCharacterCompositionDefinition(
+            AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> manager, CharacterCompositionTypeId typeId) {
+        final CharacterCompositionDefinitionArea first = new CharacterCompositionDefinitionArea(0, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT);
+        final CharacterCompositionDefinitionArea second = new CharacterCompositionDefinitionArea(CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, 0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT / 2, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT);
         final CharacterCompositionDefinitionRegister register = new CharacterCompositionDefinitionRegister(first, second);
         assertTrue(manager.updateCharacterCompositionDefinition(typeId, register));
     }
@@ -178,5 +187,81 @@ public interface AcceptationsSerializerTest<ConceptId, LanguageId extends Langua
         assertEquals(INVALID_CHARACTER, model.second.representation.character);
         assertEquals("tildeBottom", model.second.representation.token);
         assertEquals(compositionTypeId, model.compositionType);
+    }
+
+    @Test
+    default void testUpdateCharacterCompositionMultipleTimesEnsuringTokenBeforeNewCharacters() {
+        final MemoryDatabase inDb = new MemoryDatabase();
+        final AcceptationsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> inManager = createInManager(inDb);
+
+        final AlphabetId alphabet = inManager.addLanguage("es").mainAlphabet;
+        final ConceptId moreConcept = inManager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(inManager, alphabet, moreConcept, "más"));
+
+        final CharacterId aComposed = inManager.findCharacter('á');
+        assertNotNull(aComposed);
+
+        final ConceptId compositionTypeConcept = inManager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(inManager, alphabet, compositionTypeConcept, "arriba-abajo"));
+
+        final CharacterCompositionTypeId compositionTypeId = conceptAsCharacterCompositionTypeId(compositionTypeConcept);
+        insertUpDownCharacterCompositionDefinition(inManager, compositionTypeId);
+
+        CharacterCompositionRepresentation firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        CharacterCompositionRepresentation secondRepresentation = new CharacterCompositionRepresentation('a', null);
+        assertTrue(inManager.updateCharacterComposition(aComposed, firstRepresentation, secondRepresentation, compositionTypeId));
+
+        final ConceptId compositionType2Concept = inManager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(inManager, alphabet, compositionType2Concept, "izquierda-derecha"));
+
+        final CharacterCompositionTypeId compositionType2Id = conceptAsCharacterCompositionTypeId(compositionType2Concept);
+        insertLeftRightCharacterCompositionDefinition(inManager, compositionType2Id);
+
+        final CharacterId tildeId = inManager.getCharacterCompositionDetails(aComposed).first.id;
+        firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tildeFirst");
+        secondRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tildeSecond");
+        assertTrue(inManager.updateCharacterComposition(tildeId, firstRepresentation, secondRepresentation, compositionType2Id));
+
+        final ConceptId songConcept = inManager.getNextAvailableConceptId();
+        assertNotNull(addSimpleAcceptation(inManager, alphabet, songConcept, "canción"));
+
+        final CharacterId oComposed = inManager.findCharacter('ó');
+        assertNotNull(oComposed);
+
+        firstRepresentation = new CharacterCompositionRepresentation(INVALID_CHARACTER, "tilde");
+        secondRepresentation = new CharacterCompositionRepresentation('o', null);
+        assertTrue(inManager.updateCharacterComposition(oComposed, firstRepresentation, secondRepresentation, compositionTypeId));
+
+        final MemoryDatabase outDb = cloneBySerializing(inDb);
+        final AcceptationsChecker2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> outManager = createOutChecker(outDb);
+
+        final CharacterId outAComposed = outManager.findCharacter('á');
+        assertNotNull(outAComposed);
+
+        final CharacterId outOComposed = outManager.findCharacter('ó');
+        assertNotNull(outOComposed);
+
+        CharacterCompositionEditorModel<CharacterId, CharacterCompositionTypeId> model = outManager.getCharacterCompositionDetails(outAComposed);
+        final CharacterId outTildeId = model.first.id;
+        final CharacterCompositionTypeId outUpDownTypeId = model.compositionType;
+        assertEquals(INVALID_CHARACTER, model.first.representation.character);
+        assertEquals("tilde", model.first.representation.token);
+        assertEquals('a', model.second.representation.character);
+        assertNull(model.second.representation.token);
+
+        model = outManager.getCharacterCompositionDetails(outTildeId);
+        assertEquals(INVALID_CHARACTER, model.first.representation.character);
+        assertEquals("tildeFirst", model.first.representation.token);
+        assertEquals(INVALID_CHARACTER, model.second.representation.character);
+        assertEquals("tildeSecond", model.second.representation.token);
+        assertNotEquals(outUpDownTypeId, model.compositionType);
+
+        model = outManager.getCharacterCompositionDetails(outOComposed);
+        assertEquals(INVALID_CHARACTER, model.first.representation.character);
+        assertEquals("tilde", model.first.representation.token);
+        assertEquals('o', model.second.representation.character);
+        assertNull(model.second.representation.token);
+        assertEquals(outTildeId, model.first.id);
+        assertEquals(outUpDownTypeId, model.compositionType);
     }
 }
