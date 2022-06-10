@@ -247,7 +247,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             finish();
         }
         else if (existingAcceptation == null) {
-            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, getTexts());
+            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, new MatchingBunchesPickerController(getTexts()));
         }
         else {
             DbManager.getInstance().getManager().updateAcceptationCorrelationArray(existingAcceptation, _options.valueAt(_selection));

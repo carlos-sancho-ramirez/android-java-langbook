@@ -10,6 +10,7 @@ public interface BundleKeys {
     String CONCEPT = "concept";
     String CONCEPT_USED = "conceptUsed";
     String CONFIRM_ONLY = "cO";
+    String CONTROLLER = "ctrl";
     String CHARACTER = "chId";
     String CHARACTER_STRING = "chStr";
     String CORRELATION = "coId";
