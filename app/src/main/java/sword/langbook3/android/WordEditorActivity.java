@@ -70,10 +70,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         setContentView(R.layout.word_editor_activity);
 
         _controller = getIntent().getParcelableExtra(MatchingBunchesPickerActivity.ArgKeys.CONTROLLER);
-        final String givenTitle = _controller.getTitle();
-        if (givenTitle != null) {
-            setTitle(givenTitle);
-        }
+        _controller.setTitle(this);
 
         _formPanel = findViewById(R.id.formPanel);
         findViewById(R.id.nextButton).setOnClickListener(this);
@@ -220,7 +217,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     }
 
     public interface Controller extends Parcelable {
-        String getTitle();
+        void setTitle(@NonNull Activity activity);
         void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions);
         @NonNull
         UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts);

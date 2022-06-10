@@ -135,8 +135,10 @@ public final class WordEditorController implements WordEditorActivity.Controller
     }
 
     @Override
-    public String getTitle() {
-        return _title;
+    public void setTitle(@NonNull Activity activity) {
+        if (_title != null) {
+            activity.setTitle(_title);
+        }
     }
 
     private LanguageId getLanguage() {

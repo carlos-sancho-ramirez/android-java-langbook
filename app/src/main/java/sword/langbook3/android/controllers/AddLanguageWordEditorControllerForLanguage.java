@@ -18,6 +18,7 @@ import sword.collections.MutableHashMap;
 import sword.collections.MutableMap;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LanguageCodeRules;
+import sword.langbook3.android.R;
 import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdParceler;
@@ -41,13 +42,11 @@ public final class AddLanguageWordEditorControllerForLanguage implements WordEdi
 
     @NonNull
     private final ImmutableList<AlphabetId> _alphabets;
-    private final String _title;
 
     public AddLanguageWordEditorControllerForLanguage(
             @NonNull String code,
             @NonNull LanguageId language,
-            @NonNull ImmutableList<AlphabetId> alphabets,
-            String title) {
+            @NonNull ImmutableList<AlphabetId> alphabets) {
         ensureValidArguments(code.matches(LanguageCodeRules.REGEX));
         ensureNonNull(language);
         ensureValidArguments(!alphabets.isEmpty() && alphabets.toSet().size() == alphabets.size() && !alphabets.map(AlphabetId::getConceptId).contains(language.getConceptId()));
@@ -55,7 +54,6 @@ public final class AddLanguageWordEditorControllerForLanguage implements WordEdi
         _languageCode = code;
         _language = language;
         _alphabets = alphabets;
-        _title = title;
     }
 
     private ImmutableCorrelation<AlphabetId> getArgumentCorrelation() {
@@ -68,8 +66,8 @@ public final class AddLanguageWordEditorControllerForLanguage implements WordEdi
     }
 
     @Override
-    public String getTitle() {
-        return _title;
+    public void setTitle(@NonNull Activity activity) {
+        activity.setTitle(R.string.newLanguageNameActivityTitle);
     }
 
     private LanguageId getLanguage() {
@@ -176,7 +174,6 @@ public final class AddLanguageWordEditorControllerForLanguage implements WordEdi
         for (AlphabetId alphabet : _alphabets) {
             AlphabetIdParceler.write(dest, alphabet);
         }
-        dest.writeString(_title);
     }
 
     public static final Creator<AddLanguageWordEditorControllerForLanguage> CREATOR = new Creator<AddLanguageWordEditorControllerForLanguage>() {
@@ -190,9 +187,8 @@ public final class AddLanguageWordEditorControllerForLanguage implements WordEdi
             for (int i = 0; i < alphabetCount; i++) {
                 alphabetsBuilder.append(AlphabetIdParceler.read(source));
             }
-            final String title = source.readString();
 
-            return new AddLanguageWordEditorControllerForLanguage(languageCode, language, alphabetsBuilder.build(), title);
+            return new AddLanguageWordEditorControllerForLanguage(languageCode, language, alphabetsBuilder.build());
         }
 
         @Override

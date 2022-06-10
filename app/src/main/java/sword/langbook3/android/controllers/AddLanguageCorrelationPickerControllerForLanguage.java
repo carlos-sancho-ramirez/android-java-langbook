@@ -102,8 +102,7 @@ public final class AddLanguageCorrelationPickerControllerForLanguage implements 
     }
 
     private void complete(@NonNull Activity activity, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        final String title = activity.getString(R.string.newMainAlphabetNameActivityTitle);
-        final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, selectedOption, ImmutableList.empty(), title);
+        final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, selectedOption, ImmutableList.empty(), R.string.newMainAlphabetNameActivityTitle);
         WordEditorActivity.open(activity, requestCode, controller);
     }
 

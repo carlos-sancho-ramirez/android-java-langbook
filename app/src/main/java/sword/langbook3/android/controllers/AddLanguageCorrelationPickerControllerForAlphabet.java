@@ -157,8 +157,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
             activity.finish();
         }
         else {
-            final String title = activity.getString(R.string.newAuxAlphabetNameActivityTitle);
-            final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, _languageCorrelationArray, alphabetCorrelationArrays, title);
+            final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, _languageCorrelationArray, alphabetCorrelationArrays, R.string.newAuxAlphabetNameActivityTitle);
             WordEditorActivity.open(activity, requestCode, controller);
         }
     }

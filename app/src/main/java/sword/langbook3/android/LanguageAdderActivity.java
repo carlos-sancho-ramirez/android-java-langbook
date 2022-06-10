@@ -78,8 +78,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
             final ImmutableSet<ConceptId> concepts = checker.getNextAvailableConceptIds(alphabetCount + 1);
             final LanguageId languageId = LanguageIdManager.conceptAsLanguageId(TraversableUtils.first(concepts));
             final ImmutableList<AlphabetId> alphabets = TransformableUtils.skip(concepts, 1).map(AlphabetIdManager::conceptAsAlphabetId);
-            final String title = getString(R.string.newLanguageNameActivityTitle);
-            final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForLanguage(code, languageId, alphabets, title);
+            final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForLanguage(code, languageId, alphabets);
             WordEditorActivity.open(this, REQUEST_CODE_NEXT_STEP, controller);
         }
         else {

@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
@@ -52,7 +53,8 @@ public final class AddLanguageWordEditorControllerForAlphabet implements WordEdi
     @NonNull
     private final ImmutableList<ImmutableCorrelationArray<AlphabetId>> _alphabetCorrelationArrays;
 
-    private final String _title;
+    @StringRes
+    private final int _title;
     private final ImmutableCorrelation<AlphabetId> _correlation;
 
     public AddLanguageWordEditorControllerForAlphabet(
@@ -61,7 +63,7 @@ public final class AddLanguageWordEditorControllerForAlphabet implements WordEdi
             @NonNull ImmutableList<AlphabetId> alphabets,
             @NonNull ImmutableCorrelationArray<AlphabetId> languageCorrelationArray,
             @NonNull ImmutableList<ImmutableCorrelationArray<AlphabetId>> alphabetCorrelationArrays,
-            String title) {
+            @StringRes int title) {
         ensureValidArguments(code.matches(LanguageCodeRules.REGEX));
         ensureNonNull(language);
         ensureValidArguments(!alphabets.isEmpty() && alphabets.toSet().size() == alphabets.size() && !alphabets.map(AlphabetId::getConceptId).contains(language.getConceptId()));
@@ -83,8 +85,8 @@ public final class AddLanguageWordEditorControllerForAlphabet implements WordEdi
     }
 
     @Override
-    public String getTitle() {
-        return _title;
+    public void setTitle(@NonNull Activity activity) {
+        activity.setTitle(_title);
     }
 
     @Override
@@ -190,7 +192,7 @@ public final class AddLanguageWordEditorControllerForAlphabet implements WordEdi
         for (ImmutableCorrelationArray<AlphabetId> correlationArray : _alphabetCorrelationArrays) {
             CorrelationArrayParceler.write(dest, correlationArray);
         }
-        dest.writeString(_title);
+        dest.writeInt(_title);
     }
 
     public static final Creator<AddLanguageWordEditorControllerForAlphabet> CREATOR = new Creator<AddLanguageWordEditorControllerForAlphabet>() {
@@ -213,7 +215,7 @@ public final class AddLanguageWordEditorControllerForAlphabet implements WordEdi
                 alphabetCorrelationArrays.append(CorrelationArrayParceler.read(source));
             }
 
-            final String title = source.readString();
+            final int title = source.readInt();
             return new AddLanguageWordEditorControllerForAlphabet(languageCode, language, alphabets.toImmutable(), languageCorrelationArray, alphabetCorrelationArrays.toImmutable(), title);
         }
 

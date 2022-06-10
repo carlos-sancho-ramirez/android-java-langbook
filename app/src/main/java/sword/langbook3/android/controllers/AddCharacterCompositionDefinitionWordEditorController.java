@@ -113,8 +113,8 @@ public final class AddCharacterCompositionDefinitionWordEditorController impleme
     }
 
     @Override
-    public String getTitle() {
-        return null;
+    public void setTitle(@NonNull Activity activity) {
+        // Nothing to be done
     }
 
     @Override
