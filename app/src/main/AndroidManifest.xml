@@ -23,6 +23,7 @@
         <activity android:name=".AboutActivity"/>
         <activity android:name=".AgentEditorActivity"/>
         <activity android:name=".AcceptationDetailsActivity"/>
+        <activity android:name=".AcceptationConfirmationActivity"/>
         <activity android:name=".AgentDetailsActivity"/>
         <activity
             android:name=".CharacterPickerActivity"

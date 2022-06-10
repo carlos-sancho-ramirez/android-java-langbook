@@ -6,6 +6,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.AcceptationDetailsActivity;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.LanguagePickerActivity;
@@ -29,7 +30,7 @@ public final class AcceptationPickerController implements AcceptationPickerActiv
 
     @Override
     public void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation) {
-        AcceptationDetailsActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_VIEW_DETAILS, acceptation, true);
+        AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_VIEW_DETAILS, acceptation);
     }
 
     @Override

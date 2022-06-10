@@ -17,6 +17,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.ConceptId;
@@ -68,9 +69,9 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
         }
 
         @Override
-        public void onClick(View widget) {
+        public void onClick(@NonNull View widget) {
             AcceptationDetailsActivity.open(SentenceDetailsActivity.this,
-                    REQUEST_CODE_OPEN_ACCEPTATION, acceptation, false);
+                    REQUEST_CODE_OPEN_ACCEPTATION, acceptation);
         }
     }
 

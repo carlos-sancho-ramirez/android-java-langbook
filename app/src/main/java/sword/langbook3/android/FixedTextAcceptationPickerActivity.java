@@ -75,7 +75,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     @Override
     void onAcceptationSelected(AcceptationId acceptation) {
         _confirmDynamicAcceptation = acceptation;
-        AcceptationDetailsActivity.open(this, REQUEST_CODE_VIEW_DETAILS, acceptation, true);
+        AcceptationConfirmationActivity.open(this, REQUEST_CODE_VIEW_DETAILS, acceptation);
     }
 
     @Override
