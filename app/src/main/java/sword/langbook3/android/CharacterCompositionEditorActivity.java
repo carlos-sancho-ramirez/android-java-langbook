@@ -18,6 +18,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.controllers.AcceptationPickerController;
+import sword.langbook3.android.controllers.CharacterCompositionDefinitionEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -232,7 +233,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
                 final ConceptId concept = manager.conceptFromAcceptation(acceptation);
                 _selectedTypeId = CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(concept);
-                CharacterCompositionDefinitionEditorActivity.open(this, REQUEST_CODE_EDIT_COMPOSITION_TYPE, _selectedTypeId);
+                CharacterCompositionDefinitionEditorActivity.open(this, REQUEST_CODE_EDIT_COMPOSITION_TYPE, new CharacterCompositionDefinitionEditorController(_selectedTypeId));
             }
         }
         else if (requestCode == REQUEST_CODE_EDIT_COMPOSITION_TYPE) {

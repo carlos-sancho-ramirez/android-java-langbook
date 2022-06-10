@@ -28,6 +28,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.controllers.AcceptationPickerController;
+import sword.langbook3.android.controllers.CharacterCompositionDefinitionEditorController;
 import sword.langbook3.android.controllers.WordEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -408,7 +409,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         }
         else if (item.getItemType() == AcceptationDetailsAdapter.ItemTypes.CHARACTER_COMPOSITION_DEFINITION) {
             // TODO: Display edition confirmation dialog if the composition definition is in use, as it can break things
-            CharacterCompositionDefinitionEditorActivity.open(this, CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(_model.getConcept()));
+            CharacterCompositionDefinitionEditorActivity.open(this, new CharacterCompositionDefinitionEditorController(CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(_model.getConcept())));
             return true;
         }
 
