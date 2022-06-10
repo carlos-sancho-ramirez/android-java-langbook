@@ -33,6 +33,7 @@ import sword.langbook3.android.db.ConceptIdParceler;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.Conversion;
@@ -138,14 +139,33 @@ public final class WordEditorController implements WordEditorActivity.Controller
         return _title;
     }
 
-    @Override
-    public LanguageId getLanguage() {
+    private LanguageId getLanguage() {
         if (_existingAcceptation != null) {
             final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = DbManager.getInstance().getManager().readAcceptationTextsAndLanguage(_existingAcceptation);
             return result.right;
         }
         else {
             return _language;
+        }
+    }
+
+    @Override
+    public void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions) {
+        final LangbookDbManager manager = DbManager.getInstance().getManager();
+        final LanguageId language = getLanguage();
+        final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
+        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
+
+        final int alphabetCount = alphabets.size();
+        for (int targetFieldIndex = 0; targetFieldIndex < alphabetCount; targetFieldIndex++) {
+            final AlphabetId targetAlphabet = alphabets.valueAt(targetFieldIndex);
+            final AlphabetId sourceAlphabet = conversionMap.get(targetAlphabet, null);
+            final ImmutablePair<AlphabetId, AlphabetId> alphabetPair = new ImmutablePair<>(sourceAlphabet, targetAlphabet);
+            final int sourceFieldIndex = (sourceAlphabet != null)? alphabets.indexOf(sourceAlphabet) : -1;
+            if (sourceFieldIndex >= 0) {
+                final String sourceText = texts[sourceFieldIndex];
+                texts[targetFieldIndex] = (sourceText != null)? conversions.get(alphabetPair).convert(sourceText) : null;
+            }
         }
     }
 

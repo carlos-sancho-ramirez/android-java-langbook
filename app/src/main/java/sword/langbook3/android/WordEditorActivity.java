@@ -20,14 +20,11 @@ import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
-import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.MapGetter;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookDbManager;
-import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.collections.SortUtils.equal;
@@ -94,27 +91,8 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
         if (requestCode == REQUEST_CODE_CHECK_CONVERSION) {
             _conversions.clear();
-            updateConvertedTexts();
+            _controller.updateConvertedTexts(_texts, _conversions);
             updateFields();
-        }
-    }
-
-    private void updateConvertedTexts() {
-        final LangbookDbManager manager = DbManager.getInstance().getManager();
-        final LanguageId language = _controller.getLanguage();
-        final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
-        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
-
-        final int alphabetCount = alphabets.size();
-        for (int targetFieldIndex = 0; targetFieldIndex < alphabetCount; targetFieldIndex++) {
-            final AlphabetId targetAlphabet = alphabets.valueAt(targetFieldIndex);
-            final AlphabetId sourceAlphabet = conversionMap.get(targetAlphabet, null);
-            final ImmutablePair<AlphabetId, AlphabetId> alphabetPair = new ImmutablePair<>(sourceAlphabet, targetAlphabet);
-            final int sourceFieldIndex = (sourceAlphabet != null)? alphabets.indexOf(sourceAlphabet) : -1;
-            if (sourceFieldIndex >= 0) {
-                final String sourceText = _texts[sourceFieldIndex];
-                _texts[targetFieldIndex] = (sourceText != null)? _conversions.get(alphabetPair).convert(sourceText) : null;
-            }
         }
     }
 
@@ -243,7 +221,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     public interface Controller extends Parcelable {
         String getTitle();
-        LanguageId getLanguage();
+        void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions);
         @NonNull
         UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts);
         void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts);
