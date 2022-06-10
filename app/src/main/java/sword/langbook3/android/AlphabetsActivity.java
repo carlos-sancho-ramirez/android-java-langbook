@@ -20,6 +20,7 @@ import android.widget.Toast;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -285,7 +286,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     private void addAlphabet() {
-        AcceptationPickerActivity.open(this, REQUEST_CODE_NEW_ALPHABET);
+        AcceptationPickerActivity.open(this, REQUEST_CODE_NEW_ALPHABET, new AcceptationPickerController(null));
     }
 
     private void addAlphabetCopyingFromSource(AlphabetId alphabet, AlphabetId sourceAlphabet) {

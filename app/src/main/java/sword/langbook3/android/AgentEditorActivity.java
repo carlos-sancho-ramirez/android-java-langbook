@@ -27,6 +27,7 @@ import sword.collections.List;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
+import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.controllers.LanguagePickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -510,15 +511,15 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.addTargetBunchButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH, new AcceptationPickerController(null));
                 break;
 
             case R.id.addSourceBunchButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_SOURCE_BUNCH);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_SOURCE_BUNCH, new AcceptationPickerController(null));
                 break;
 
             case R.id.addDiffBunchButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_DIFF_BUNCH);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_DIFF_BUNCH, new AcceptationPickerController(null));
                 break;
 
             case R.id.addStartMatcherButton:
@@ -542,7 +543,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.ruleChangeButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_RULE);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_RULE, new AcceptationPickerController(null));
                 break;
 
             case R.id.startAdderRemoveButton:

@@ -17,6 +17,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableList;
+import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -169,7 +170,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
     }
 
     private void addCompositionType() {
-        AcceptationPickerActivity.open(this, REQUEST_CODE_ADD_COMPOSITION_TYPE);
+        AcceptationPickerActivity.open(this, REQUEST_CODE_ADD_COMPOSITION_TYPE, new AcceptationPickerController(null));
     }
 
     @Override

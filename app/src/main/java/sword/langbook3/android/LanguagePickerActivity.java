@@ -20,7 +20,7 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
         String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
-    interface ResultKeys {
+    public interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CORRELATION_ARRAY = BundleKeys.CORRELATION_ARRAY;
     }

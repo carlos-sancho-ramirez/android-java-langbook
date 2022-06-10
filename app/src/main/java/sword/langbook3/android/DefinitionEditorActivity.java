@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -82,11 +83,11 @@ public final class DefinitionEditorActivity extends Activity implements View.OnC
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.baseConceptChangeButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BASE);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BASE, new AcceptationPickerController(null));
                 return;
 
             case R.id.complementsAddButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_COMPLEMENT);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_COMPLEMENT, new AcceptationPickerController(null));
                 return;
 
             case R.id.saveButton:

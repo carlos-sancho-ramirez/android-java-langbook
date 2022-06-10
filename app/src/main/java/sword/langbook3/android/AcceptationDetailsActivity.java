@@ -27,6 +27,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationArrayItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
+import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.controllers.WordEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -72,7 +73,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
         String STATE = "cSt";
     }
 
-    interface ResultKeys {
+    public interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
@@ -457,15 +458,15 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemLinkConcept:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, _model.getConcept());
+                AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, new AcceptationPickerController(_model.getConcept()));
                 return true;
 
             case R.id.menuItemIncludeAcceptation:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION, new AcceptationPickerController(null));
                 return true;
 
             case R.id.menuItemIncludeInBunch:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BUNCH);
+                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BUNCH, new AcceptationPickerController(null));
                 return true;
 
             case R.id.menuItemDeleteAcceptation:
