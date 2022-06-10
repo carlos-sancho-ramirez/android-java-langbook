@@ -17,7 +17,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableList;
-import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterCompositionTypeIdBundler;
@@ -164,15 +163,11 @@ public final class CharacterCompositionEditorActivity extends Activity implement
                 LangbookDbSchema.CharacterTokensTable.isValidToken(text.substring(1, textLength - 1)));
     }
 
-    private void addCompositionType() {
-        AcceptationPickerActivity.open(this, REQUEST_CODE_ADD_COMPOSITION_TYPE, new AddCharacterCompositionDefinitionAcceptationPickerController());
-    }
-
     @Override
     public void onClick(View v) {
         final int viewId = v.getId();
         if (viewId == R.id.addCompositionTypeButton) {
-            addCompositionType();
+            Intentions.addCharacterCompositionDefinition(this, REQUEST_CODE_ADD_COMPOSITION_TYPE);
         }
         else {
             save();

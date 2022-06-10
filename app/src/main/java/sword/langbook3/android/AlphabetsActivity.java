@@ -21,7 +21,6 @@ import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.controllers.AcceptationPickerController;
-import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -123,7 +122,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menuItemAdd) {
-            LanguageAdderActivity.open(this, REQUEST_CODE_NEW_LANGUAGE, new AddLanguageLanguageAdderController());
+            Intentions.addLanguage(this, REQUEST_CODE_NEW_LANGUAGE);
             return true;
         }
 

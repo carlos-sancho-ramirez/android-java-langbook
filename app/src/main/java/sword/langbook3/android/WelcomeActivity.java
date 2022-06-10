@@ -5,8 +5,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
-import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
-
 public final class WelcomeActivity extends Activity implements View.OnClickListener {
 
     private static final int REQUEST_CODE_ADD_LANGUAGE = 1;
@@ -26,7 +24,7 @@ public final class WelcomeActivity extends Activity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        LanguageAdderActivity.open(this, REQUEST_CODE_ADD_LANGUAGE, new AddLanguageLanguageAdderController());
+        Intentions.addLanguage(this, REQUEST_CODE_ADD_LANGUAGE);
     }
 
     @Override
