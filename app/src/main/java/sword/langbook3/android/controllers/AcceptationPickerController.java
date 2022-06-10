@@ -29,14 +29,14 @@ public final class AcceptationPickerController implements AcceptationPickerActiv
 
     @Override
     public void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation) {
-        AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_VIEW_DETAILS, new AcceptationConfirmationController(acceptation));
+        AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
     }
 
     @Override
     public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
         if (resultCode == Activity.RESULT_OK) {
             final Intent intent = new Intent();
-            if (requestCode == AcceptationPickerActivity.REQUEST_CODE_VIEW_DETAILS) {
+            if (requestCode == AcceptationPickerActivity.REQUEST_CODE_CONFIRM) {
                 AcceptationIdBundler.writeAsIntentExtra(intent, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, AcceptationIdBundler.readAsIntentExtra(data, AcceptationConfirmationActivity.ResultKeys.ACCEPTATION));
                 AcceptationIdBundler.writeAsIntentExtra(intent, AcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION, confirmDynamicAcceptation);
             }

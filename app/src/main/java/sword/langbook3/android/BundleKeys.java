@@ -12,6 +12,7 @@ public interface BundleKeys {
     String CONFIRM_ONLY = "cO";
     String CONTROLLER = "ctrl";
     String CHARACTER = "chId";
+    String CHARACTER_COMPOSITION_TYPE_ID = "ccti";
     String CHARACTER_STRING = "chStr";
     String CORRELATION = "coId";
     String CORRELATION_ARRAY = "coArray";

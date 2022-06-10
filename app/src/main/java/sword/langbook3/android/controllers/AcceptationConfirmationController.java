@@ -32,6 +32,11 @@ public final class AcceptationConfirmationController implements AcceptationConfi
     }
 
     @Override
+    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
+        // This controller did not open any activity
+    }
+
+    @Override
     public int describeContents() {
         return 0;
     }

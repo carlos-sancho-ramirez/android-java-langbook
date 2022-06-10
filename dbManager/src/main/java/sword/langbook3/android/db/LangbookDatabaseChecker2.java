@@ -1663,7 +1663,8 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
                 new CharacterCompositionDefinitionArea(row.get(4).toInt(), row.get(5).toInt(), row.get(6).toInt(), row.get(7).toInt()));
     }
 
-    CharacterCompositionTypeId findCharacterCompositionDefinition(CharacterCompositionDefinitionRegister register) {
+    @Override
+    public CharacterCompositionTypeId findCharacterCompositionDefinition(CharacterCompositionDefinitionRegister register) {
         final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getFirstXColumnIndex(), register.first.x)

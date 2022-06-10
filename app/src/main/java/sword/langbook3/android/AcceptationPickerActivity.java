@@ -15,7 +15,7 @@ import sword.langbook3.android.models.SearchResult;
 
 public final class AcceptationPickerActivity extends SearchActivity {
 
-    public static final int REQUEST_CODE_VIEW_DETAILS = 1;
+    public static final int REQUEST_CODE_CONFIRM = 1;
 
     interface ArgKeys {
         String CONTROLLER = BundleKeys.CONTROLLER;
@@ -26,6 +26,7 @@ public final class AcceptationPickerActivity extends SearchActivity {
     }
 
     public interface ResultKeys {
+        String CHARACTER_COMPOSITION_TYPE_ID = BundleKeys.CHARACTER_COMPOSITION_TYPE_ID;
         String CONCEPT_USED = BundleKeys.CONCEPT_USED;
         String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;

@@ -1,6 +1,7 @@
 package sword.langbook3.android.controllers;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
@@ -47,6 +48,11 @@ public final class NonValidAlphabetsMatchingBunchesPickerController implements M
     public void complete(@NonNull Activity activity, @NonNull Set<BunchId> selectedBunches) {
         activity.setResult(RESULT_OK);
         activity.finish();
+    }
+
+    @Override
+    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
+        // This controller does not start any activity
     }
 
     @Override

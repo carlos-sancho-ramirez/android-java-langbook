@@ -28,6 +28,10 @@ public final class CharacterCompositionDefinitionEditorActivity extends Activity
         String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
+    public interface ResultKeys {
+        String CHARACTER_COMPOSITION_TYPE_ID = BundleKeys.CHARACTER_COMPOSITION_TYPE_ID;
+    }
+
     public static void open(@NonNull Context context, @NonNull Controller controller) {
         ensureNonNull(context, controller);
         final Intent intent = new Intent(context, CharacterCompositionDefinitionEditorActivity.class);

@@ -15,12 +15,15 @@ import sword.langbook3.android.db.BunchId;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 
+    public static final int REQUEST_CODE_NEXT_STEP = 1;
+
     interface ArgKeys {
         String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
     public interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
+        String CHARACTER_COMPOSITION_TYPE_ID = BundleKeys.CHARACTER_COMPOSITION_TYPE_ID;
     }
 
     private Controller _controller;
@@ -49,8 +52,15 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         _controller.complete(this, _adapter.getCheckedBunches());
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        _controller.onActivityResult(this, resultCode, resultCode, data);
+    }
+
     public interface Controller extends Parcelable {
         void loadBunches(@NonNull Activity activity, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure);
         void complete(@NonNull Activity activity, @NonNull Set<BunchId> selectedBunches);
+        void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

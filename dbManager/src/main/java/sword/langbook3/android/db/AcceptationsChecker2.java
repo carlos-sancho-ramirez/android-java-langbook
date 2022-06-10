@@ -31,4 +31,5 @@ public interface AcceptationsChecker2<ConceptId, LanguageId, AlphabetId, Charact
      * @return The assigned definition, or null if nothing is assigned to the given identifier.
      */
     CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id);
+    CharacterCompositionTypeId findCharacterCompositionDefinition(CharacterCompositionDefinitionRegister register);
 }

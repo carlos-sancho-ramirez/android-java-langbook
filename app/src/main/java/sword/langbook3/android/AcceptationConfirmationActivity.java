@@ -12,6 +12,8 @@ import androidx.annotation.NonNull;
 
 public final class AcceptationConfirmationActivity extends AbstractAcceptationDetailsActivity {
 
+    public static final int REQUEST_CODE_NEXT_STEP = 1;
+
     interface ArgKeys {
         String CONTROLLER = BundleKeys.CONTROLLER;
     }
@@ -62,5 +64,6 @@ public final class AcceptationConfirmationActivity extends AbstractAcceptationDe
 
     public interface Controller extends Parcelable {
         void confirm(@NonNull Activity activity);
+        void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

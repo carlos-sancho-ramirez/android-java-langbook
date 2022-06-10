@@ -21,7 +21,7 @@ import sword.langbook3.android.db.ImmutableCorrelationArray;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
-    public static final int REQUEST_CODE_PICK_BUNCHES = 1;
+    public static final int REQUEST_CODE_NEXT_STEP = 1;
 
     interface ArgKeys {
         String CONTROLLER = BundleKeys.CONTROLLER;

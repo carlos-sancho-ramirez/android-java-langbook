@@ -94,7 +94,7 @@ public final class CorrelationPickerController implements CorrelationPickerActiv
             final boolean allValidAlphabets = DbManager.getInstance().getManager().allValidAlphabets(_texts);
             final MatchingBunchesPickerActivity.Controller controller = allValidAlphabets? new MatchingBunchesPickerController(_concept, _texts, selectedOption) :
                     new NonValidAlphabetsMatchingBunchesPickerController(_texts);
-            MatchingBunchesPickerActivity.open(activity, CorrelationPickerActivity.REQUEST_CODE_PICK_BUNCHES, controller);
+            MatchingBunchesPickerActivity.open(activity, CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, controller);
         }
         else {
             DbManager.getInstance().getManager().updateAcceptationCorrelationArray(_existingAcceptation, selectedOption);
@@ -105,7 +105,7 @@ public final class CorrelationPickerController implements CorrelationPickerActiv
 
     @Override
     public void onActivityResult(@NonNull Activity activity, @NonNull ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options,  int selection, int requestCode, int resultCode, Intent data) {
-        if (requestCode == CorrelationPickerActivity.REQUEST_CODE_PICK_BUNCHES) {
+        if (requestCode == CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP) {
             if (resultCode == RESULT_OK) {
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
                 final boolean allValidAlphabets = manager.allValidAlphabets(_texts);

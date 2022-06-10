@@ -254,4 +254,6 @@
     <string name="mergeCharactersError">Unable to merge characters</string>
     <string name="addButtonText">Add</string>
     <string name="updateCharacterCompositionDefinitionError">Unable to update definition</string>
+    <string name="createCharacterCompositionDefinitionError">Unable to create definition</string>
+    <string name="characterCompositionDefinitionAlreadyExistsError">Unable to create definition. It already exists</string>
 </resources>
