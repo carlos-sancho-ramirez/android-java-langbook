@@ -8,6 +8,7 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.database.DbQuery;
+import sword.langbook3.android.controllers.AcceptationConfirmationController;
 import sword.langbook3.android.controllers.LanguagePickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -75,7 +76,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     @Override
     void onAcceptationSelected(AcceptationId acceptation) {
         _confirmDynamicAcceptation = acceptation;
-        AcceptationConfirmationActivity.open(this, REQUEST_CODE_VIEW_DETAILS, acceptation);
+        AcceptationConfirmationActivity.open(this, REQUEST_CODE_VIEW_DETAILS, new AcceptationConfirmationController(acceptation));
     }
 
     @Override
@@ -85,7 +86,7 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
             final AcceptationId staticAcc;
             final AcceptationId dynamicAcc;
             if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                staticAcc = AcceptationIdBundler.readAsIntentExtra(data, AcceptationDetailsActivity.ResultKeys.ACCEPTATION);
+                staticAcc = AcceptationIdBundler.readAsIntentExtra(data, AcceptationConfirmationActivity.ResultKeys.ACCEPTATION);
                 dynamicAcc = _confirmDynamicAcceptation;
             }
             else {

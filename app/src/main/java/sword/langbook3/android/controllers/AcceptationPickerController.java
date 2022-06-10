@@ -7,7 +7,6 @@ import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationConfirmationActivity;
-import sword.langbook3.android.AcceptationDetailsActivity;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.LanguagePickerActivity;
 import sword.langbook3.android.db.AcceptationId;
@@ -30,7 +29,7 @@ public final class AcceptationPickerController implements AcceptationPickerActiv
 
     @Override
     public void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation) {
-        AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_VIEW_DETAILS, acceptation);
+        AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_VIEW_DETAILS, new AcceptationConfirmationController(acceptation));
     }
 
     @Override
@@ -38,7 +37,7 @@ public final class AcceptationPickerController implements AcceptationPickerActiv
         if (resultCode == Activity.RESULT_OK) {
             final Intent intent = new Intent();
             if (requestCode == AcceptationPickerActivity.REQUEST_CODE_VIEW_DETAILS) {
-                AcceptationIdBundler.writeAsIntentExtra(intent, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, AcceptationIdBundler.readAsIntentExtra(data, AcceptationDetailsActivity.ResultKeys.ACCEPTATION));
+                AcceptationIdBundler.writeAsIntentExtra(intent, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION, AcceptationIdBundler.readAsIntentExtra(data, AcceptationConfirmationActivity.ResultKeys.ACCEPTATION));
                 AcceptationIdBundler.writeAsIntentExtra(intent, AcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION, confirmDynamicAcceptation);
             }
             else {

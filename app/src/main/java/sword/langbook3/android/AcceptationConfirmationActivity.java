@@ -3,20 +3,30 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
-import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
+import androidx.annotation.NonNull;
 
 public final class AcceptationConfirmationActivity extends AbstractAcceptationDetailsActivity {
 
-    public static void open(Activity activity, int requestCode, AcceptationId acceptation) {
+    interface ArgKeys {
+        String CONTROLLER = BundleKeys.CONTROLLER;
+    }
+
+    public interface ResultKeys {
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
+    }
+
+    public static void open(Activity activity, int requestCode, @NonNull Controller controller) {
         Intent intent = new Intent(activity, AcceptationConfirmationActivity.class);
-        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
         activity.startActivityForResult(intent, requestCode);
     }
+
+    private Controller _controller;
 
     @Override
     boolean canNavigate() {
@@ -26,6 +36,7 @@ public final class AcceptationConfirmationActivity extends AbstractAcceptationDe
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
         updateModelAndUi();
     }
 
@@ -42,13 +53,14 @@ public final class AcceptationConfirmationActivity extends AbstractAcceptationDe
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menuItemConfirm) {
-            final Intent intent = new Intent();
-            AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.ACCEPTATION, _acceptation);
-            setResult(Activity.RESULT_OK, intent);
-            finish();
+            _controller.confirm(this);
             return true;
         }
 
         return false;
+    }
+
+    public interface Controller extends Parcelable {
+        void confirm(@NonNull Activity activity);
     }
 }

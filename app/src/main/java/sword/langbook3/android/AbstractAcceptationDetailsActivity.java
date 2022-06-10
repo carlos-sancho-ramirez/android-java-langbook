@@ -48,10 +48,6 @@ public abstract class AbstractAcceptationDetailsActivity extends Activity {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
-    public interface ResultKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
-    }
-
     private AlphabetId _preferredAlphabet;
     AcceptationId _acceptation;
     AcceptationDetails2<ConceptId, LanguageId, AlphabetId, CorrelationId, AcceptationId, RuleId, AgentId, SentenceId> _model;

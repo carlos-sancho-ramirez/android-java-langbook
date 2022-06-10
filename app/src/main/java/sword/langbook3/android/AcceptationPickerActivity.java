@@ -18,7 +18,6 @@ public final class AcceptationPickerActivity extends SearchActivity {
     public static final int REQUEST_CODE_VIEW_DETAILS = 1;
 
     interface ArgKeys {
-        String CONCEPT = BundleKeys.CONCEPT;
         String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
@@ -64,21 +63,7 @@ public final class AcceptationPickerActivity extends SearchActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            final Intent intent = new Intent();
-            if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.STATIC_ACCEPTATION, AcceptationIdBundler.readAsIntentExtra(data, AcceptationDetailsActivity.ResultKeys.ACCEPTATION));
-                AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.DYNAMIC_ACCEPTATION, _confirmDynamicAcceptation);
-            }
-            else {
-                // When a new acceptation has been created
-                AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.STATIC_ACCEPTATION, AcceptationIdBundler.readAsIntentExtra(data, LanguagePickerActivity.ResultKeys.ACCEPTATION));
-                intent.putExtra(ResultKeys.CONCEPT_USED, true);
-            }
-
-            setResult(RESULT_OK, intent);
-            finish();
-        }
+        _controller.onActivityResult(this, requestCode, resultCode, data, _confirmDynamicAcceptation);
     }
 
     @Override
