@@ -17,7 +17,6 @@ import sword.collections.MapGetter;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableList;
 import sword.collections.MutableMap;
-import sword.langbook3.android.CorrelationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.WordEditorActivity;
@@ -161,8 +160,8 @@ public final class AddLanguageWordEditorControllerForAlphabet implements WordEdi
 
     @Override
     public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts) {
-        final CorrelationPickerActivity.Controller controller = new AddLanguageCorrelationPickerControllerForAlphabet(_languageCode, _language, _alphabets, _languageCorrelationArray, _alphabetCorrelationArrays, texts);
-        CorrelationPickerActivity.open(activity, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER, controller);
+        final AddLanguageCorrelationPickerControllerForAlphabet controller = new AddLanguageCorrelationPickerControllerForAlphabet(_languageCode, _language, _alphabets, _languageCorrelationArray, _alphabetCorrelationArrays, texts);
+        controller.fire(activity, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER);
     }
 
     @Override
