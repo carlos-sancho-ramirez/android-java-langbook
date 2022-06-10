@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -13,6 +14,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
@@ -28,12 +30,11 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.langbook3.android.collections.SyncCacheMap;
-import sword.langbook3.android.controllers.CorrelationPickerController;
+import sword.langbook3.android.controllers.WordEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ConceptId;
-import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.ImmutableCorrelation;
@@ -47,23 +48,24 @@ import static sword.collections.SortUtils.equal;
 
 public final class WordEditorActivity extends Activity implements View.OnClickListener {
 
-    private static final int REQUEST_CODE_CORRELATION_PICKER = 1;
+    public static final int REQUEST_CODE_CORRELATION_PICKER = 1;
     private static final int REQUEST_CODE_CHECK_CONVERSION = 2;
 
-    interface ArgKeys {
+    public interface ArgKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
-        String CONCEPT = BundleKeys.CONCEPT;
         String CORRELATION_MAP = BundleKeys.CORRELATION_MAP;
         String LANGUAGE = BundleKeys.LANGUAGE;
         String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
         String TITLE = BundleKeys.TITLE;
         String EVALUATE_CONVERSIONS = BundleKeys.EVALUATE_CONVERSIONS;
+        String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
     private interface SavedKeys {
         String TEXTS = "texts";
     }
 
+    private Controller _controller;
     private LinearLayout _formPanel;
     private ImmutableIntKeyMap<FieldConversion> _fieldConversions;
     private String[] _texts;
@@ -79,32 +81,32 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     public static void open(Activity activity, int requestCode, LanguageId language) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
         LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
+        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(null, null, false));
         activity.startActivityForResult(intent, requestCode);
     }
 
     public static void open(Activity activity, int requestCode, LanguageId language, String searchQuery, ConceptId concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
         intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
         intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
+        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(concept, null, true));
         activity.startActivityForResult(intent, requestCode);
     }
 
     public static void open(Activity activity, int requestCode, LanguageId language, ConceptId concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
         intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
-        activity.startActivityForResult(intent, requestCode);
+        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(concept, null, true));activity.startActivityForResult(intent, requestCode);
     }
 
     public static void open(Activity activity, int requestCode, String title, Correlation<AlphabetId> correlation, ConceptId concept) {
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         intent.putExtra(ArgKeys.TITLE, title);
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, correlation);
         intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
+        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(concept, null, true));
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -112,6 +114,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         final Intent intent = new Intent(context, WordEditorActivity.class);
         AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         intent.putExtra(ArgKeys.EVALUATE_CONVERSIONS, true);
+        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(null, acceptation, true));
         context.startActivity(intent);
     }
 
@@ -135,6 +138,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.word_editor_activity);
 
+        _controller = getIntent().getParcelableExtra(MatchingBunchesPickerActivity.ArgKeys.CONTROLLER);
         final String givenTitle = getIntent().getStringExtra(ArgKeys.TITLE);
         if (givenTitle != null) {
             setTitle(givenTitle);
@@ -154,11 +158,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_CORRELATION_PICKER && resultCode == RESULT_OK) {
-            setResult(RESULT_OK, data);
-            finish();
-        }
-        else if (requestCode == REQUEST_CODE_CHECK_CONVERSION) {
+        _controller.onActivityResult(this, requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_CHECK_CONVERSION) {
             _conversions.clear();
             updateConvertedTexts();
             updateFields();
@@ -394,18 +396,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 
-            final ImmutableCorrelation<AlphabetId> texts = builder.build();
-            final CorrelationPickerActivity.Controller controller;
-            if (!mustEvaluateConversions()) {
-                controller = new CorrelationPickerController(null, null, texts, false);
-            }
-            else if (_existingAcceptation == null) {
-                controller = new CorrelationPickerController(null, ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT), texts, true);
-            }
-            else {
-                controller = new CorrelationPickerController(_existingAcceptation, null, texts, true);
-            }
-            CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, controller);
+            _controller.complete(this, builder.build());
         }
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();
@@ -449,5 +440,10 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         public void afterTextChanged(Editable s) {
             updateText(fieldIndex, s.toString());
         }
+    }
+
+    public interface Controller extends Parcelable {
+        void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts);
+        void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }
