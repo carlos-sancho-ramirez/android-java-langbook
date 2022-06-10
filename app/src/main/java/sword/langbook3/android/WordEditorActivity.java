@@ -69,7 +69,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.word_editor_activity);
 
-        _controller = getIntent().getParcelableExtra(MatchingBunchesPickerActivity.ArgKeys.CONTROLLER);
+        _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
         _controller.setTitle(this);
 
         _formPanel = findViewById(R.id.formPanel);

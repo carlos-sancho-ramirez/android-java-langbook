@@ -211,7 +211,7 @@ public final class AddLanguageWordEditorControllerForAlphabet implements WordEdi
             final ImmutableCorrelationArray<AlphabetId> languageCorrelationArray = CorrelationArrayParceler.read(source);
             final int completedAlphabets = source.readInt();
             final MutableList<ImmutableCorrelationArray<AlphabetId>> alphabetCorrelationArrays = MutableList.empty(new MinimumSizeArrayLengthFunction(completedAlphabets));
-            for (int i = 0; i < alphabetCount; i++) {
+            for (int i = 0; i < completedAlphabets; i++) {
                 alphabetCorrelationArrays.append(CorrelationArrayParceler.read(source));
             }
 
