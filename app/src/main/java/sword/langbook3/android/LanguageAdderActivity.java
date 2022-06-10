@@ -3,31 +3,32 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import sword.collections.ImmutableList;
-import sword.collections.ImmutableSet;
-import sword.langbook3.android.collections.TransformableUtils;
-import sword.langbook3.android.collections.TraversableUtils;
-import sword.langbook3.android.controllers.AddLanguageWordEditorControllerForLanguage;
-import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.AlphabetIdManager;
-import sword.langbook3.android.db.ConceptId;
+import androidx.annotation.NonNull;
 import sword.langbook3.android.db.LangbookDbChecker;
-import sword.langbook3.android.db.LanguageId;
-import sword.langbook3.android.db.LanguageIdManager;
+
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class LanguageAdderActivity extends Activity implements View.OnClickListener {
 
-    private static final int REQUEST_CODE_NEXT_STEP = 1;
+    public static final int REQUEST_CODE_NEXT_STEP = 1;
 
-    public static void open(Activity activity, int requestCode) {
+    public interface ArgKeys {
+        String CONTROLLER = BundleKeys.CONTROLLER;
+    }
+
+    public static void open(@NonNull Activity activity, int requestCode, @NonNull Controller controller) {
+        ensureNonNull(activity, controller);
         final Intent intent = new Intent(activity, LanguageAdderActivity.class);
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
         activity.startActivityForResult(intent, requestCode);
     }
 
+    private Controller _controller;
     private EditText _codeField;
     private EditText _alphabetCountField;
 
@@ -36,6 +37,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         super.onCreate(savedInstanceState);
         setContentView(R.layout.language_adder_activity);
 
+        _controller = getIntent().getParcelableExtra(MatchingBunchesPickerActivity.ArgKeys.CONTROLLER);
         _codeField = findViewById(R.id.languageCodeValue);
         _alphabetCountField = findViewById(R.id.languageAlphabetCountValue);
         findViewById(R.id.nextButton).setOnClickListener(this);
@@ -43,10 +45,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_NEXT_STEP && resultCode == RESULT_OK) {
-            setResult(RESULT_OK);
-            finish();
-        }
+        _controller.onActivityResult(this, requestCode, resultCode, data);
     }
 
     @Override
@@ -75,14 +74,15 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         }
 
         if (errorMessage == null) {
-            final ImmutableSet<ConceptId> concepts = checker.getNextAvailableConceptIds(alphabetCount + 1);
-            final LanguageId languageId = LanguageIdManager.conceptAsLanguageId(TraversableUtils.first(concepts));
-            final ImmutableList<AlphabetId> alphabets = TransformableUtils.skip(concepts, 1).map(AlphabetIdManager::conceptAsAlphabetId);
-            final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForLanguage(code, languageId, alphabets);
-            WordEditorActivity.open(this, REQUEST_CODE_NEXT_STEP, controller);
+            _controller.complete(this, code, alphabetCount);
         }
         else {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public interface Controller extends Parcelable {
+        void complete(@NonNull Activity activity, String languageCode, int alphabetCount);
+        void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }
