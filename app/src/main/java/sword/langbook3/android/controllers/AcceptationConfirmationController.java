@@ -23,6 +23,12 @@ public final class AcceptationConfirmationController implements AcceptationConfi
         _acceptation = acceptation;
     }
 
+    @NonNull
+    @Override
+    public AcceptationId getAcceptation() {
+        return _acceptation;
+    }
+
     @Override
     public void confirm(@NonNull Activity activity) {
         final Intent intent = new Intent();

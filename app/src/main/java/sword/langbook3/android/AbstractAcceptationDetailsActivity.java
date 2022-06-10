@@ -18,7 +18,6 @@ import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
 import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ConceptId;
@@ -279,12 +278,7 @@ public abstract class AbstractAcceptationDetailsActivity extends Activity {
         setContentView(R.layout.list_activity);
 
         _preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        _acceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
         _listView = findViewById(R.id.listView);
-
-        if (!getIntent().hasExtra(ArgKeys.ACCEPTATION)) {
-            throw new IllegalArgumentException("acceptation not provided");
-        }
     }
 
     void showFeedback(String message) {

@@ -103,6 +103,11 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        _acceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
+        if (_acceptation == null) {
+            throw new IllegalArgumentException("acceptation not provided");
+        }
+
         if (savedInstanceState != null) {
             _state = savedInstanceState.getParcelable(SavedKeys.STATE);
         }

@@ -9,6 +9,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
+import sword.langbook3.android.db.AcceptationId;
 
 public final class AcceptationConfirmationActivity extends AbstractAcceptationDetailsActivity {
 
@@ -39,6 +40,7 @@ public final class AcceptationConfirmationActivity extends AbstractAcceptationDe
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
+        _acceptation = _controller.getAcceptation();
         updateModelAndUi();
     }
 
@@ -63,6 +65,8 @@ public final class AcceptationConfirmationActivity extends AbstractAcceptationDe
     }
 
     public interface Controller extends Parcelable {
+        @NonNull
+        AcceptationId getAcceptation();
         void confirm(@NonNull Activity activity);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }

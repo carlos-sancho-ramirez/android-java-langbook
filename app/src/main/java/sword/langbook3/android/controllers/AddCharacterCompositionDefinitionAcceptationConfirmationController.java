@@ -27,6 +27,12 @@ public final class AddCharacterCompositionDefinitionAcceptationConfirmationContr
         _acceptation = acceptation;
     }
 
+    @NonNull
+    @Override
+    public AcceptationId getAcceptation() {
+        return _acceptation;
+    }
+
     @Override
     public void confirm(@NonNull Activity activity) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
