@@ -6,16 +6,22 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import sword.collections.ImmutableHashMap;
+import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.CorrelationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
+import sword.langbook3.android.collections.Procedure2;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AlphabetIdComparator;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdParceler;
+import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
@@ -40,6 +46,40 @@ public final class CorrelationPickerController implements CorrelationPickerActiv
         _concept = concept;
         _texts = texts;
         _mustSaveAcceptation = mustSaveAcceptation;
+    }
+
+    private ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> findExistingCorrelations(
+            @NonNull ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options) {
+        final ImmutableSet.Builder<ImmutableCorrelation<AlphabetId>> correlationsBuilder = new ImmutableHashSet.Builder<>();
+        for (ImmutableCorrelationArray<AlphabetId> option : options) {
+            for (ImmutableCorrelation<AlphabetId> correlation : option) {
+                correlationsBuilder.add(correlation);
+            }
+        }
+        final ImmutableSet<ImmutableCorrelation<AlphabetId>> correlations = correlationsBuilder.build();
+
+        final ImmutableMap.Builder<ImmutableCorrelation<AlphabetId>, CorrelationId> builder = new ImmutableHashMap.Builder<>();
+        for (ImmutableCorrelation<AlphabetId> correlation : correlations) {
+            final CorrelationId id = DbManager.getInstance().getManager().findCorrelation(correlation);
+            if (id != null) {
+                builder.put(correlation, id);
+            }
+        }
+
+        return builder.build();
+    }
+
+    @Override
+    public void load(@NonNull Activity activity, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
+        final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
+        final ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> knownCorrelations = findExistingCorrelations(options);
+
+        if (firstTime && options.size() == 1) {
+            complete(activity, options.valueAt(0));
+        }
+        else {
+            procedure.apply(options, knownCorrelations);
+        }
     }
 
     @Override

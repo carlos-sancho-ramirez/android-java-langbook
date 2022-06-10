@@ -28,6 +28,7 @@ import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.langbook3.android.collections.SyncCacheMap;
+import sword.langbook3.android.controllers.CorrelationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -393,17 +394,18 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 
+            final ImmutableCorrelation<AlphabetId> texts = builder.build();
+            final CorrelationPickerActivity.Controller controller;
             if (!mustEvaluateConversions()) {
-                CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, builder.build());
+                controller = new CorrelationPickerController(null, null, texts, false);
             }
             else if (_existingAcceptation == null) {
-                CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
-                        ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT), builder.build());
+                controller = new CorrelationPickerController(null, ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT), texts, true);
             }
             else {
-                CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER,
-                        builder.build(), _existingAcceptation);
+                controller = new CorrelationPickerController(_existingAcceptation, null, texts, true);
             }
+            CorrelationPickerActivity.open(this, REQUEST_CODE_CORRELATION_PICKER, controller);
         }
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();
