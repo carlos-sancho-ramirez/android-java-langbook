@@ -27,6 +27,7 @@ import sword.collections.List;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
+import sword.langbook3.android.controllers.LanguagePickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AgentId;
@@ -527,7 +528,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.addStartAdderButton:
-                LanguagePickerActivity.open(this, REQUEST_CODE_DEFINE_START_ADDER);
+                LanguagePickerActivity.open(this, REQUEST_CODE_DEFINE_START_ADDER, new LanguagePickerController(null, null));
                 break;
 
             case R.id.addEndMatcherButton:
@@ -537,7 +538,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.addEndAdderButton:
-                LanguagePickerActivity.open(this, REQUEST_CODE_DEFINE_END_ADDER);
+                LanguagePickerActivity.open(this, REQUEST_CODE_DEFINE_END_ADDER, new LanguagePickerController(null, null));
                 break;
 
             case R.id.ruleChangeButton:

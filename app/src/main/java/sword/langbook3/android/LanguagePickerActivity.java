@@ -3,23 +3,21 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import sword.langbook3.android.controllers.WordEditorController;
+import androidx.annotation.NonNull;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.ConceptId;
-import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.LanguageId;
 
 public final class LanguagePickerActivity extends Activity implements ListView.OnItemClickListener {
 
-    private static final int REQUEST_CODE_NEW_WORD = 1;
+    public static final int REQUEST_CODE_NEW_WORD = 1;
 
     interface ArgKeys {
-        String CONCEPT = BundleKeys.CONCEPT;
-        String SEARCH_QUERY = BundleKeys.SEARCH_QUERY;
+        String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
     interface ResultKeys {
@@ -27,34 +25,20 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
         String CORRELATION_ARRAY = BundleKeys.CORRELATION_ARRAY;
     }
 
-    /**
-     * Open a wizard to define a correlation array.
-     *
-     * This will open first the list of language to pick one of them, then will jump to the {@link WordEditorActivity} to fill the texts, and finally will jump to the {@link CorrelationPickerActivity}.
-     */
-    public static void open(Activity activity, int requestCode) {
+    public static void open(@NonNull Activity activity, int requestCode, @NonNull Controller controller) {
         final Intent intent = new Intent(activity, LanguagePickerActivity.class);
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, String searchQuery) {
-        final Intent intent = new Intent(activity, LanguagePickerActivity.class);
-        intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
-        activity.startActivityForResult(intent, requestCode);
-    }
-
-    public static void open(Activity activity, int requestCode, String searchQuery, ConceptId concept) {
-        final Intent intent = new Intent(activity, LanguagePickerActivity.class);
-        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
-        intent.putExtra(ArgKeys.SEARCH_QUERY, searchQuery);
-        activity.startActivityForResult(intent, requestCode);
-    }
+    private Controller _controller;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.language_picker_activity);
 
+        _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
         final ListView listView = findViewById(R.id.listView);
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         listView.setAdapter(new LanguagePickerAdapter(DbManager.getInstance().getManager().readAllLanguages(preferredAlphabet)));
@@ -63,24 +47,17 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        final ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
-        final String searchQuery = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
         final LanguageId languageId = ((LanguagePickerAdapter) parent.getAdapter()).getItem(position);
-        final WordEditorActivity.Controller controller;
-        if (searchQuery != null) {
-            controller = new WordEditorController(null, concept, null, null, languageId, searchQuery, true);
-        }
-        else {
-            controller = new WordEditorController(null, null, null, null, languageId, null, false);
-        }
-        WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, controller);
+        _controller.complete(this, languageId);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_NEW_WORD && resultCode == RESULT_OK) {
-            setResult(RESULT_OK, data);
-            finish();
-        }
+        _controller.onActivityResult(this, requestCode, resultCode, data);
+    }
+
+    public interface Controller extends Parcelable {
+        void complete(@NonNull Activity activity, @NonNull LanguageId language);
+        void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

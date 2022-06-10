@@ -14,6 +14,7 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.SortUtils;
+import sword.langbook3.android.controllers.LanguagePickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -84,7 +85,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     void openLanguagePicker(String query) {
-        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, query);
+        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, new LanguagePickerController(null, query));
     }
 
     @Override
