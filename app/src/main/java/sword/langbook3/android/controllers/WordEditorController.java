@@ -138,6 +138,17 @@ public final class WordEditorController implements WordEditorActivity.Controller
         return _title;
     }
 
+    @Override
+    public LanguageId getLanguage() {
+        if (_existingAcceptation != null) {
+            final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = DbManager.getInstance().getManager().readAcceptationTextsAndLanguage(_existingAcceptation);
+            return result.right;
+        }
+        else {
+            return _language;
+        }
+    }
+
     @NonNull
     @Override
     public UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts) {

@@ -24,17 +24,10 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntKeyMap;
 import sword.collections.MapGetter;
 import sword.langbook3.android.collections.SyncCacheMap;
-import sword.langbook3.android.controllers.WordEditorController;
-import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.ConceptId;
-import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
-import sword.langbook3.android.db.LanguageIdBundler;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.collections.SortUtils.equal;
@@ -46,8 +39,6 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private static final int REQUEST_CODE_CHECK_CONVERSION = 2;
 
     public interface ArgKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
-        String LANGUAGE = BundleKeys.LANGUAGE;
         String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
@@ -60,44 +51,19 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private ImmutableIntKeyMap<Controller.FieldConversion> _fieldConversions;
     private String[] _texts;
     private ImmutableIntKeyMap<AlphabetId> _fieldIndexAlphabetRelationMap;
-    private AcceptationId _existingAcceptation;
     private final SyncCacheMap<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> _conversions =
             new SyncCacheMap<>(DbManager.getInstance().getManager()::getConversion);
 
-    /**
-     * Open a wizard to fulfill the plain texts for an specific language, and select an specific correlation array.
-     * Using this method will not take into account the conversions. This method is intended to define agent adders.
-     */
-    public static void open(Activity activity, int requestCode, LanguageId language) {
+    public static void open(@NonNull Activity activity, int requestCode, @NonNull Controller controller) {
+        ensureNonNull(controller);
         final Intent intent = new Intent(activity, WordEditorActivity.class);
-        LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
-        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(null, null, null, null, language, null, false));
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
         activity.startActivityForResult(intent, requestCode);
     }
 
-    public static void open(Activity activity, int requestCode, LanguageId language, String searchQuery, ConceptId concept) {
-        final Intent intent = new Intent(activity, WordEditorActivity.class);
-        LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
-        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(null, concept, null, null, null, searchQuery, true));
-        activity.startActivityForResult(intent, requestCode);
-    }
-
-    public static void open(Activity activity, int requestCode, LanguageId language, ConceptId concept) {
-        final Intent intent = new Intent(activity, WordEditorActivity.class);
-        LanguageIdBundler.writeAsIntentExtra(intent, ArgKeys.LANGUAGE, language);
-        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(null, concept, null, null, language, null, true));activity.startActivityForResult(intent, requestCode);
-    }
-
-    public static void open(Activity activity, int requestCode, String title, Correlation<AlphabetId> correlation, ConceptId concept) {
-        final Intent intent = new Intent(activity, WordEditorActivity.class);
-        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(title, concept, null, correlation.toImmutable(), null, null, true));
-        activity.startActivityForResult(intent, requestCode);
-    }
-
-    public static void open(Context context, AcceptationId acceptation) {
+    public static void open(@NonNull Context context, Controller controller) {
         final Intent intent = new Intent(context, WordEditorActivity.class);
-        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
-        intent.putExtra(ArgKeys.CONTROLLER, new WordEditorController(null, null, acceptation, null, null, null, true));
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
         context.startActivity(intent);
     }
 
@@ -114,8 +80,6 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
         _formPanel = findViewById(R.id.formPanel);
         findViewById(R.id.nextButton).setOnClickListener(this);
-
-        _existingAcceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
 
         if (savedInstanceState != null) {
             _texts = savedInstanceState.getStringArray(SavedKeys.TEXTS);
@@ -135,19 +99,9 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         }
     }
 
-    private LanguageId getLanguage(LangbookDbChecker checker) {
-        if (_existingAcceptation != null) {
-            final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
-            return result.right;
-        }
-        else {
-            return LanguageIdBundler.readAsIntentExtra(getIntent(), ArgKeys.LANGUAGE);
-        }
-    }
-
     private void updateConvertedTexts() {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
-        final LanguageId language = getLanguage(manager);
+        final LanguageId language = _controller.getLanguage();
         final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
 
@@ -289,6 +243,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
 
     public interface Controller extends Parcelable {
         String getTitle();
+        LanguageId getLanguage();
         @NonNull
         UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts);
         void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts);

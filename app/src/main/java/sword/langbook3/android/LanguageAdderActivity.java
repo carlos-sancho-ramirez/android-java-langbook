@@ -7,6 +7,9 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.StringRes;
+import sword.langbook3.android.controllers.WordEditorController;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LanguageId;
@@ -57,8 +60,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
                         .getParcelableExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY);
                 _state.setLanguageCorrelationArray(parcelableArray.get());
                 final String title = getString(R.string.newMainAlphabetNameActivityTitle);
-                WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getEmptyCorrelation(),
-                        _state.getCurrentConcept());
+                WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, new WordEditorController(title, _state.getCurrentConcept(), null, _state.getEmptyCorrelation(), null, null, true));
             }
             else {
                 _state.reset();
@@ -72,8 +74,7 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
 
                 if (_state.missingAlphabetCorrelationArray()) {
                     final String title = getString(R.string.newAuxAlphabetNameActivityTitle);
-                    WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, title, _state.getEmptyCorrelation(),
-                            _state.getCurrentConcept());
+                    WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, new WordEditorController(title, _state.getCurrentConcept(), null, _state.getEmptyCorrelation(), null, null, true));
                 }
                 else {
                     _state.storeIntoDatabase(DbManager.getInstance().getManager());
@@ -84,17 +85,19 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
                 }
             }
             else {
+                final @StringRes int titleResId;
+                final ImmutableCorrelation<AlphabetId> correlation;
                 if (_state.hasAtLeastOneAlphabetCorrelationArray()) {
-                    final ImmutableCorrelation correlation = _state.popLastAlphabetCorrelationArray().concatenateTexts();
-                    final int titleResId = _state.hasAtLeastOneAlphabetCorrelationArray()?
+                    titleResId = _state.hasAtLeastOneAlphabetCorrelationArray()?
                             R.string.newMainAlphabetNameActivityTitle : R.string.newAuxAlphabetNameActivityTitle;
-                    WordEditorActivity.open(this, REQUEST_CODE_NAME_ALPHABET, getString(titleResId), correlation, _state.getCurrentConcept());
+                    correlation = _state.popLastAlphabetCorrelationArray().concatenateTexts();
                 }
                 else {
-                    final ImmutableCorrelation correlation = _state.popLanguageCorrelationArray().concatenateTexts();
-                    final String title = getString(R.string.newLanguageNameActivityTitle);
-                    WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, correlation, _state.getCurrentConcept());
+                    titleResId = R.string.newLanguageNameActivityTitle;
+                    correlation = _state.popLanguageCorrelationArray().concatenateTexts();
                 }
+                final WordEditorActivity.Controller controller = new WordEditorController(getString(titleResId), _state.getCurrentConcept(), null, correlation, null, null, true);
+                WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, controller);
             }
         }
     }
@@ -129,7 +132,8 @@ public final class LanguageAdderActivity extends Activity implements View.OnClic
         if (errorMessage == null) {
             _state.setBasicDetails(code, languageId, alphabetCount);
             final String title = getString(R.string.newLanguageNameActivityTitle);
-            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, title, _state.getEmptyCorrelation(), languageId.getConceptId());
+            final WordEditorActivity.Controller controller = new WordEditorController(title, languageId.getConceptId(), null, _state.getEmptyCorrelation(), null, null, true);
+            WordEditorActivity.open(this, REQUEST_CODE_NAME_LANGUAGE, controller);
         }
         else {
             Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();

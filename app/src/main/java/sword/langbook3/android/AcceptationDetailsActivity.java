@@ -27,6 +27,7 @@ import sword.langbook3.android.AcceptationDetailsAdapter.CorrelationArrayItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.HeaderItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.NonNavigableItem;
 import sword.langbook3.android.AcceptationDetailsAdapter.SentenceNavigableItem;
+import sword.langbook3.android.controllers.WordEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AgentId;
@@ -452,7 +453,7 @@ public final class AcceptationDetailsActivity extends Activity implements Adapte
                 return true;
 
             case R.id.menuItemEdit:
-                WordEditorActivity.open(this, _acceptation);
+                WordEditorActivity.open(this, new WordEditorController(null, null, _acceptation, null, null, null, true));
                 return true;
 
             case R.id.menuItemLinkConcept:

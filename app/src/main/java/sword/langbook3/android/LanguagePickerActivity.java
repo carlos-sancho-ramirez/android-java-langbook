@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import sword.langbook3.android.controllers.WordEditorController;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdBundler;
@@ -65,12 +66,14 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
         final ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
         final String searchQuery = getIntent().getStringExtra(ArgKeys.SEARCH_QUERY);
         final LanguageId languageId = ((LanguagePickerAdapter) parent.getAdapter()).getItem(position);
+        final WordEditorActivity.Controller controller;
         if (searchQuery != null) {
-            WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, languageId, searchQuery, concept);
+            controller = new WordEditorController(null, concept, null, null, languageId, searchQuery, true);
         }
         else {
-            WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, languageId);
+            controller = new WordEditorController(null, null, null, null, languageId, null, false);
         }
+        WordEditorActivity.open(this, REQUEST_CODE_NEW_WORD, controller);
     }
 
     @Override
