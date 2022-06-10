@@ -13,13 +13,10 @@ import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntResultFunction;
-import sword.collections.MutableList;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdComparator;
-import sword.langbook3.android.db.BunchId;
-import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdBundler;
 import sword.langbook3.android.db.Correlation;
@@ -192,41 +189,23 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
     }
 
-    private AcceptationId addAcceptation(LangbookDbManager manager) {
-        ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
-        if (concept == null) {
-            concept = manager.getNextAvailableConceptId();
-        }
-
-        return manager.addAcceptation(concept, _options.valueAt(_selection));
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_PICK_BUNCHES) {
-            if (resultCode == RESULT_OK && data != null) {
-                final MutableList<BunchId> bunchList = BunchIdBundler.readListAsIntentExtra(data, MatchingBunchesPickerActivity.ResultKeys.BUNCH_SET);
+            if (resultCode == RESULT_OK) {
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
-                if (manager.allValidAlphabets(getTexts())) {
-                    final AcceptationId accId = addAcceptation(manager);
-                    for (BunchId bunch : bunchList) {
-                        manager.addAcceptationInBunch(bunch, accId);
-                    }
-                    Toast.makeText(this, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
-
-                    final Intent intent = new Intent();
-                    AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.ACCEPTATION, accId);
-                    setResult(RESULT_OK, intent);
-                    finish();
-                }
-                else {
+                final boolean allValidAlphabets = manager.allValidAlphabets(getTexts());
+                final Intent intent = new Intent();
+                if (!allValidAlphabets) {
                     final ImmutableCorrelationArray<AlphabetId> array = _options.valueAt(_selection);
-
-                    final Intent intent = new Intent();
                     intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));
-                    setResult(RESULT_OK, intent);
-                    finish();
                 }
+                else if (data != null) {
+                    final AcceptationId accId = AcceptationIdBundler.readAsIntentExtra(data, MatchingBunchesPickerActivity.ResultKeys.ACCEPTATION);
+                    AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.ACCEPTATION, accId);
+                }
+                setResult(RESULT_OK, intent);
+                finish();
             }
             else if (_options.size() == 1) {
                 finish();
@@ -247,7 +226,13 @@ public final class CorrelationPickerActivity extends Activity implements View.On
             finish();
         }
         else if (existingAcceptation == null) {
-            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, new MatchingBunchesPickerController(getTexts()));
+            final ImmutableCorrelation<AlphabetId> texts = getTexts();
+            final boolean allValidAlphabets = DbManager.getInstance().getManager().allValidAlphabets(texts);
+            final ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
+            final ImmutableCorrelationArray<AlphabetId> correlationArray = _options.valueAt(_selection);
+            final MatchingBunchesPickerActivity.Controller controller = allValidAlphabets? new MatchingBunchesPickerController(concept, texts, correlationArray) :
+                    new NonValidAlphabetsMatchingBunchesPickerController(texts);
+            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, controller);
         }
         else {
             DbManager.getInstance().getManager().updateAcceptationCorrelationArray(existingAcceptation, _options.valueAt(_selection));

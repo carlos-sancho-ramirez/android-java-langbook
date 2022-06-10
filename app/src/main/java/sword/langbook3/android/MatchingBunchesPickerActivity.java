@@ -8,13 +8,10 @@ import android.view.View;
 import android.widget.ListView;
 
 import androidx.annotation.NonNull;
-import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
+import sword.collections.Procedure;
 import sword.collections.Set;
-import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
-import sword.langbook3.android.db.BunchIdBundler;
-import sword.langbook3.android.db.ImmutableCorrelation;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 
@@ -23,7 +20,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
     }
 
     interface ResultKeys {
-        String BUNCH_SET = BundleKeys.BUNCH_SET;
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 
     private Controller _controller;
@@ -41,22 +38,10 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         setContentView(R.layout.matching_bunches_picker_activity);
 
         _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
-        final ListView listView = findViewById(R.id.listView);
-        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(_controller.getTexts(), preferredAlphabet);
-
-        if (bunches.isEmpty()) {
-            final Intent intent = new Intent();
-            BunchIdBundler.writeListAsIntentExtra(intent, ResultKeys.BUNCH_SET, ImmutableList.empty());
-            setResult(RESULT_OK, intent);
-            finish();
-        }
-        else {
+        _controller.loadBunches(this, bunches -> {
             _adapter = new MatchingBunchesPickerAdapter(bunches);
-            listView.setAdapter(_adapter);
-
-            findViewById(R.id.nextButton).setOnClickListener(this);
-        }
+            this.<ListView>findViewById(R.id.listView).setAdapter(_adapter);
+        });
     }
 
     @Override
@@ -65,8 +50,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
     }
 
     public interface Controller extends Parcelable {
-        @NonNull
-        ImmutableCorrelation<AlphabetId> getTexts();
+        void loadBunches(@NonNull Activity activity, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure);
         void complete(@NonNull Activity activity, @NonNull Set<BunchId> selectedBunches);
     }
 }
