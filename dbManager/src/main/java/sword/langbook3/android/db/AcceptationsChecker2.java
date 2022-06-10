@@ -32,4 +32,5 @@ public interface AcceptationsChecker2<ConceptId, LanguageId, AlphabetId, Charact
      */
     CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id);
     CharacterCompositionTypeId findCharacterCompositionDefinition(CharacterCompositionDefinitionRegister register);
+    boolean isConceptDefinedAsCharacterCompositionType(ConceptId concept);
 }
