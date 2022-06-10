@@ -35,6 +35,7 @@ import sword.database.DbResult;
 import sword.database.DbStringValue;
 import sword.database.DbTable;
 import sword.database.DbValue;
+import sword.langbook3.android.collections.MinimumSizeArrayLengthFunction;
 import sword.langbook3.android.collections.StringUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.collections.TransformableUtils;
@@ -485,6 +486,16 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
     @Override
     public ConceptId getNextAvailableConceptId() {
         return _conceptIdSetter.getKeyFromInt(getMaxConcept() + 1);
+    }
+
+    @Override
+    public ImmutableSet<ConceptId> getNextAvailableConceptIds(int amount) {
+        final int maxConcept = getMaxConcept();
+        final MutableSet<ConceptId> result = MutableHashSet.empty(new MinimumSizeArrayLengthFunction(amount));
+        for (int i = 1; i <= amount; i++) {
+            result.add(_conceptIdSetter.getKeyFromInt(maxConcept + i));
+        }
+        return result.toImmutable();
     }
 
     CharacterId getNextAvailableCharacterId() {

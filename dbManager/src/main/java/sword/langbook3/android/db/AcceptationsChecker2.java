@@ -10,7 +10,7 @@ import sword.langbook3.android.models.IdentifiableCharacterCompositionResult;
 import sword.langbook3.android.models.IdentifiableResult;
 import sword.langbook3.android.models.SearchResult;
 
-public interface AcceptationsChecker2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker<ConceptId>, AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> {
+public interface AcceptationsChecker2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId> extends ConceptsChecker2<ConceptId>, AcceptationsChecker<ConceptId, LanguageId, AlphabetId, CorrelationId, CorrelationArrayId, AcceptationId> {
     @Override
     CorrelationDetails2<AlphabetId, CharacterId, CorrelationId, AcceptationId> getCorrelationDetails(CorrelationId id, AlphabetId preferredAlphabet);
 

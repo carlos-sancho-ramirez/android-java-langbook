@@ -1,9 +1,32 @@
 package sword.langbook3.android.collections;
 
 import sword.collections.EmptyCollectionException;
+import sword.collections.Predicate;
 import sword.collections.Traversable;
 
 public final class TraversableUtils {
+
+    /**
+     * Returns true if the given predicate returns true for all the items
+     * in this collection.
+     * <p>
+     * This is equivalent but more efficient than calling
+     * {@link Traversable#anyMatch(Predicate)} negating both the predicate and the result:
+     * <code>
+     * <br>allMatch(v -&gt; condition(v)) == !anyMatch(v -&gt; !condition(v));
+     * </code>
+     *
+     * @param predicate Predicate to be evaluated.
+     */
+    public static <T> boolean allMatch(Traversable<T> traversable, Predicate<? super T> predicate) {
+        for (T item : traversable) {
+            if (!predicate.apply(item)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /**
      * Retrieves the first element in the collection.
