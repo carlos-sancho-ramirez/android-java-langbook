@@ -120,7 +120,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
         procedure.apply(options, knownCorrelations);
     }
 
-    private void storeIntoDatabase() {
+    private void storeIntoDatabase(@NonNull ImmutableList<ImmutableCorrelationArray<AlphabetId>> alphabetCorrelationArrays) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         final LanguageCreationResult<LanguageId, AlphabetId> langPair = manager.addLanguage(_languageCode);
         final LanguageId language = langPair.language;
@@ -128,7 +128,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
         final int alphabetCount = _alphabets.size();
 
         final ImmutableList.Builder<AlphabetId> alphabetsBuilder = new ImmutableList.Builder<>();
-        for (int i = 1; i < alphabetCount; i++) {
+        for (int i = 0; i < alphabetCount; i++) {
             final AlphabetId alphabet = AlphabetIdManager.conceptAsAlphabetId(manager.getNextAvailableConceptId());
             if (!manager.addAlphabetCopyingFromOther(alphabet, mainAlphabet)) {
                 throw new AssertionError();
@@ -142,7 +142,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
         }
 
         for (int i = 0; i < alphabetCount; i++) {
-            if (manager.addAcceptation(alphabets.valueAt(i).getConceptId(), _alphabetCorrelationArrays.valueAt(i)) == null) {
+            if (manager.addAcceptation(alphabets.valueAt(i).getConceptId(), alphabetCorrelationArrays.valueAt(i)) == null) {
                 throw new AssertionError();
             }
         }
@@ -151,7 +151,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
     private void complete(@NonNull Activity activity, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
         final ImmutableList<ImmutableCorrelationArray<AlphabetId>> alphabetCorrelationArrays = _alphabetCorrelationArrays.append(selectedOption);
         if (alphabetCorrelationArrays.size() == _alphabets.size()) {
-            storeIntoDatabase();
+            storeIntoDatabase(alphabetCorrelationArrays);
             Toast.makeText(activity, R.string.addLanguageFeedback, Toast.LENGTH_SHORT).show();
             activity.setResult(RESULT_OK);
             activity.finish();
