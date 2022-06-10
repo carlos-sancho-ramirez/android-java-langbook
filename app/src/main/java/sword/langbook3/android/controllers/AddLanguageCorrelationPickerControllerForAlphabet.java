@@ -68,9 +68,9 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
         ensureValidArguments(languageCode.matches(LanguageCodeRules.REGEX));
         ensureNonNull(language);
         ensureValidArguments(!alphabets.isEmpty() && alphabets.toSet().size() == alphabets.size() && !alphabets.map(AlphabetId::getConceptId).contains(language.getConceptId()));
-        ensureValidArguments(alphabetTexts.size() == alphabets.size() && TraversableUtils.allMatch(alphabets, alphabetTexts::containsKey));
         ensureNonNull(languageCorrelationArray, alphabetCorrelationArrays);
         ensureValidArguments(alphabetCorrelationArrays.size() < alphabets.size());
+        ensureValidArguments(alphabetTexts.size() == alphabets.size() && TraversableUtils.allMatch(alphabets, alphabetTexts::containsKey));
 
         _languageCode = languageCode;
         _language = language;
@@ -212,7 +212,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
             final ImmutableCorrelationArray<AlphabetId> languageCorrelationArray = CorrelationArrayParceler.read(source);
             final int completedAlphabets = source.readInt();
             final MutableList<ImmutableCorrelationArray<AlphabetId>> alphabetCorrelationArrays = MutableList.empty(new MinimumSizeArrayLengthFunction(completedAlphabets));
-            for (int i = 0; i < alphabetCount; i++) {
+            for (int i = 0; i < completedAlphabets; i++) {
                 alphabetCorrelationArrays.append(CorrelationArrayParceler.read(source));
             }
 
