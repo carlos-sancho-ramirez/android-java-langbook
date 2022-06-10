@@ -3,16 +3,19 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableIntList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntResultFunction;
+import sword.langbook3.android.controllers.CorrelationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -24,29 +27,28 @@ import sword.langbook3.android.db.CorrelationBundler;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
-import sword.langbook3.android.db.LangbookDbManager;
-import sword.langbook3.android.db.ParcelableCorrelationArray;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
-    private static final int REQUEST_CODE_PICK_BUNCHES = 1;
+    public static final int REQUEST_CODE_PICK_BUNCHES = 1;
 
     interface ArgKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CONCEPT = BundleKeys.CONCEPT;
+        String CONTROLLER = BundleKeys.CONTROLLER;
         String CORRELATION_MAP = BundleKeys.CORRELATION_MAP;
-        String SAVE_ACCEPTATION = BundleKeys.SAVE_ACCEPTATION;
     }
 
     private interface SavedKeys {
         String SELECTION = "sel";
     }
 
-    interface ResultKeys {
+    public interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
         String CORRELATION_ARRAY = BundleKeys.CORRELATION_ARRAY;
     }
 
+    private Controller _controller;
     private int _selection = ListView.INVALID_POSITION;
 
     private ListView _listView;
@@ -65,6 +67,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      */
     public static void open(Activity activity, int requestCode, Correlation<AlphabetId> texts) {
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
+        intent.putExtra(ArgKeys.CONTROLLER, new CorrelationPickerController(null, null, texts.toImmutable(), false));
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
         activity.startActivityForResult(intent, requestCode);
     }
@@ -85,12 +88,12 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      */
     public static void open(Activity activity, int requestCode, ConceptId concept, Correlation<AlphabetId> texts) {
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
+        intent.putExtra(ArgKeys.CONTROLLER, new CorrelationPickerController(null, concept, texts.toImmutable(), true));
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
         if (concept != null) {
             ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
         }
 
-        intent.putExtra(ArgKeys.SAVE_ACCEPTATION, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -105,9 +108,9 @@ public final class CorrelationPickerActivity extends Activity implements View.On
      */
     public static void open(Activity activity, int requestCode, Correlation<AlphabetId> texts, AcceptationId acceptation) {
         final Intent intent = new Intent(activity, CorrelationPickerActivity.class);
+        intent.putExtra(ArgKeys.CONTROLLER, new CorrelationPickerController(acceptation, null, texts.toImmutable(), true));
         AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
         CorrelationBundler.writeAsIntentExtra(intent, ArgKeys.CORRELATION_MAP, texts);
-        intent.putExtra(ArgKeys.SAVE_ACCEPTATION, true);
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -163,6 +166,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.correlation_picker_activity);
 
+        _controller = getIntent().getParcelableExtra(MatchingBunchesPickerActivity.ArgKeys.CONTROLLER);
         final ImmutableCorrelation<AlphabetId> texts = getTexts();
         _options = texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
         _knownCorrelations = findExistingCorrelations();
@@ -174,7 +178,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
         if (savedInstanceState == null && _options.size() == 1) {
             _selection = 0;
-            completeCorrelationPickingTask();
+            _controller.complete(this, _options.valueAt(0));
         }
         else {
             _listView = findViewById(R.id.listView);
@@ -191,61 +195,14 @@ public final class CorrelationPickerActivity extends Activity implements View.On
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_PICK_BUNCHES) {
-            if (resultCode == RESULT_OK) {
-                final LangbookDbManager manager = DbManager.getInstance().getManager();
-                final boolean allValidAlphabets = manager.allValidAlphabets(getTexts());
-                final Intent intent = new Intent();
-                if (!allValidAlphabets) {
-                    final ImmutableCorrelationArray<AlphabetId> array = _options.valueAt(_selection);
-                    intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(array));
-                }
-                else if (data != null) {
-                    final AcceptationId accId = AcceptationIdBundler.readAsIntentExtra(data, MatchingBunchesPickerActivity.ResultKeys.ACCEPTATION);
-                    AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.ACCEPTATION, accId);
-                }
-                setResult(RESULT_OK, intent);
-                finish();
-            }
-            else if (_options.size() == 1) {
-                finish();
-            }
-        }
-    }
-
-    private boolean mustSaveAcceptation() {
-        return getIntent().getBooleanExtra(ArgKeys.SAVE_ACCEPTATION, false);
-    }
-
-    private void completeCorrelationPickingTask() {
-        final AcceptationId existingAcceptation = AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
-        if (!mustSaveAcceptation()) {
-            final Intent intent = new Intent();
-            intent.putExtra(ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(_options.valueAt(_selection)));
-            setResult(RESULT_OK, intent);
-            finish();
-        }
-        else if (existingAcceptation == null) {
-            final ImmutableCorrelation<AlphabetId> texts = getTexts();
-            final boolean allValidAlphabets = DbManager.getInstance().getManager().allValidAlphabets(texts);
-            final ConceptId concept = ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
-            final ImmutableCorrelationArray<AlphabetId> correlationArray = _options.valueAt(_selection);
-            final MatchingBunchesPickerActivity.Controller controller = allValidAlphabets? new MatchingBunchesPickerController(concept, texts, correlationArray) :
-                    new NonValidAlphabetsMatchingBunchesPickerController(texts);
-            MatchingBunchesPickerActivity.open(this, REQUEST_CODE_PICK_BUNCHES, controller);
-        }
-        else {
-            DbManager.getInstance().getManager().updateAcceptationCorrelationArray(existingAcceptation, _options.valueAt(_selection));
-            setResult(RESULT_OK);
-            finish();
-        }
+        _controller.onActivityResult(this, _options, _selection, requestCode, resultCode, data);
     }
 
     @Override
     public void onClick(View view) {
         _selection = _listView.getCheckedItemPosition();
         if (_selection != ListView.INVALID_POSITION) {
-            completeCorrelationPickingTask();
+            _controller.complete(this, _options.valueAt(_selection));
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();
@@ -253,9 +210,14 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(@NonNull Bundle outState) {
         if (_selection >= 0) {
             outState.putInt(SavedKeys.SELECTION, _selection);
         }
+    }
+
+    public interface Controller extends Parcelable {
+        void complete(@NonNull Activity activity, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption);
+        void onActivityResult(@NonNull Activity activity, @NonNull ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options, int selection, int requestCode, int resultCode, Intent data);
     }
 }

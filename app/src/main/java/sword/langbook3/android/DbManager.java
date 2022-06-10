@@ -38,7 +38,7 @@ import sword.langbook3.android.sqlite.SQLiteDbQuery;
 
 import static sword.langbook3.android.sqlite.SqliteUtils.sqlType;
 
-class DbManager extends SQLiteOpenHelper {
+public final class DbManager extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "Langbook";
 
@@ -54,7 +54,7 @@ class DbManager extends SQLiteOpenHelper {
     private ManagerDatabase _managerDatabase;
     private LangbookDbManager _langbookManager;
 
-    static DbManager getInstance() {
+    public static DbManager getInstance() {
         return _instance;
     }
 

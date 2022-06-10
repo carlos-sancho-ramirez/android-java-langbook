@@ -19,7 +19,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
-    interface ResultKeys {
+    public interface ResultKeys {
         String ACCEPTATION = BundleKeys.ACCEPTATION;
     }
 

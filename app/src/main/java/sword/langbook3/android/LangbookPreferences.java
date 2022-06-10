@@ -5,11 +5,10 @@ import android.content.SharedPreferences;
 
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdBundler;
-import sword.langbook3.android.db.AlphabetIdManager;
 
 import static android.content.Context.MODE_PRIVATE;
 
-class LangbookPreferences {
+public final class LangbookPreferences {
     private static final String file = "langbook";
     private static final String preferredAlphabet = "preferredAlphabet";
 
@@ -20,7 +19,7 @@ class LangbookPreferences {
         instance = new LangbookPreferences(context);
     }
 
-    static LangbookPreferences getInstance() {
+    public static LangbookPreferences getInstance() {
         if (instance == null) {
             throw new AssertionError("instance not present");
         }

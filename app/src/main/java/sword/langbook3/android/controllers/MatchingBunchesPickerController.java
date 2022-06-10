@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.controllers;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -11,6 +11,10 @@ import sword.collections.ImmutableMap;
 import sword.collections.MutableList;
 import sword.collections.Procedure;
 import sword.collections.Set;
+import sword.langbook3.android.DbManager;
+import sword.langbook3.android.LangbookPreferences;
+import sword.langbook3.android.MatchingBunchesPickerActivity;
+import sword.langbook3.android.R;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
