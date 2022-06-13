@@ -44,6 +44,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         _controller.loadBunches(this, bunches -> {
             _adapter = new MatchingBunchesPickerAdapter(bunches);
             this.<ListView>findViewById(R.id.listView).setAdapter(_adapter);
+            findViewById(R.id.nextButton).setOnClickListener(this);
         });
     }
 
