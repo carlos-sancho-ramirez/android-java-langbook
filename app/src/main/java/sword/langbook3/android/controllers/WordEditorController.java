@@ -30,6 +30,7 @@ import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdParceler;
+import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
@@ -298,7 +299,8 @@ public final class WordEditorController implements WordEditorActivity.Controller
             final String title = source.readString();
             final ConceptId concept = ConceptIdParceler.read(source);
             final AcceptationId existingAcceptation = AcceptationIdParceler.read(source);
-            final ImmutableCorrelation<AlphabetId> correlation = CorrelationParceler.read(source).toImmutable();
+            final Correlation<AlphabetId> rawCorrelation = CorrelationParceler.read(source);
+            final ImmutableCorrelation<AlphabetId> correlation = (rawCorrelation != null)? rawCorrelation.toImmutable() : null;
             final LanguageId language = LanguageIdParceler.read(source);
             final String searchQuery = source.readString();
             final boolean mustEvaluateConversions = source.readInt() != 0;
