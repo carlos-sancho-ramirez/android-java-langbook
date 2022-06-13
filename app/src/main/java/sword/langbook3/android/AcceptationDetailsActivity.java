@@ -15,7 +15,6 @@ import android.widget.AdapterView;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.controllers.CharacterCompositionDefinitionEditorController;
-import sword.langbook3.android.controllers.WordEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.BunchId;
@@ -181,7 +180,7 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             return true;
         }
         else if (itemId == R.id.menuItemEdit) {
-            WordEditorActivity.open(this, new WordEditorController(null, null, _acceptation, null, null, null, true));
+            Intentions.editAcceptation(this, _acceptation);
             return true;
         }
         else if (itemId == R.id.menuItemLinkConcept) {
