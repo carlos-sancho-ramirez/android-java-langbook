@@ -3,6 +3,7 @@ package sword.langbook3.android;
 import android.app.Activity;
 
 import androidx.annotation.NonNull;
+import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
 import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
 import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
@@ -16,6 +17,10 @@ public final class Intentions {
 
     public static void addLanguage(@NonNull Activity activity, int requestCode) {
         LanguageAdderActivity.open(activity, requestCode, new AddLanguageLanguageAdderController());
+    }
+
+    public static void addAcceptation(@NonNull Activity activity, int requestCode, String query) {
+        new AddAcceptationLanguagePickerController(query).fire(activity, requestCode);
     }
 
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {

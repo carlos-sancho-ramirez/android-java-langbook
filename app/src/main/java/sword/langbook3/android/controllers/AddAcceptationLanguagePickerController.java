@@ -13,15 +13,15 @@ import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LanguageId;
 
-public final class AddCharacterCompositionDefinitionLanguagePickerController implements LanguagePickerActivity.Controller {
+public final class AddAcceptationLanguagePickerController implements LanguagePickerActivity.Controller {
 
     private final String _searchQuery;
 
-    public AddCharacterCompositionDefinitionLanguagePickerController(String searchQuery) {
+    public AddAcceptationLanguagePickerController(String searchQuery) {
         _searchQuery = searchQuery;
     }
 
-    void fire(@NonNull Activity activity, int requestCode) {
+    public void fire(@NonNull Activity activity, int requestCode) {
         // TODO: This can be optimized, as we are only interested in checking if there is just one language or not.
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableMap<LanguageId, String> languages = DbManager.getInstance().getManager().readAllLanguages(preferredAlphabet);
@@ -45,7 +45,7 @@ public final class AddCharacterCompositionDefinitionLanguagePickerController imp
     }
 
     private void complete(@NonNull Activity activity, int requestCode, @NonNull LanguageId language) {
-        final WordEditorActivity.Controller controller = new AddCharacterCompositionDefinitionWordEditorController(language, _searchQuery);
+        final WordEditorActivity.Controller controller = new WordEditorController(null, null, null, null, language, _searchQuery, true);
         WordEditorActivity.open(activity, requestCode, controller);
     }
 
@@ -62,17 +62,17 @@ public final class AddCharacterCompositionDefinitionLanguagePickerController imp
         }
     }
 
-    public static final Creator<AddCharacterCompositionDefinitionLanguagePickerController> CREATOR = new Creator<AddCharacterCompositionDefinitionLanguagePickerController>() {
+    public static final Creator<AddAcceptationLanguagePickerController> CREATOR = new Creator<AddAcceptationLanguagePickerController>() {
 
         @Override
-        public AddCharacterCompositionDefinitionLanguagePickerController createFromParcel(Parcel source) {
+        public AddAcceptationLanguagePickerController createFromParcel(Parcel source) {
             final String searchQuery = source.readString();
-            return new AddCharacterCompositionDefinitionLanguagePickerController(searchQuery);
+            return new AddAcceptationLanguagePickerController(searchQuery);
         }
 
         @Override
-        public AddCharacterCompositionDefinitionLanguagePickerController[] newArray(int size) {
-            return new AddCharacterCompositionDefinitionLanguagePickerController[size];
+        public AddAcceptationLanguagePickerController[] newArray(int size) {
+            return new AddAcceptationLanguagePickerController[size];
         }
     };
 }
