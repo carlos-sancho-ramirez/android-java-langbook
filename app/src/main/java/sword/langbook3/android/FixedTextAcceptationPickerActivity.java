@@ -3,44 +3,38 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.database.DbQuery;
-import sword.langbook3.android.controllers.AcceptationConfirmationController;
-import sword.langbook3.android.controllers.LanguagePickerController;
 import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
 public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
-    private static final int REQUEST_CODE_VIEW_DETAILS = 1;
-
-    interface ResultKeys {
-        String STATIC_ACCEPTATION = BundleKeys.ACCEPTATION;
-        String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
+    interface ArgKeys {
+        String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
-    public static void open(Activity activity, int requestCode, String text) {
+    public static void open(@NonNull Activity activity, int requestCode, @NonNull Controller controller) {
         final Intent intent = new Intent(activity, FixedTextAcceptationPickerActivity.class);
-        intent.putExtra(ArgKeys.TEXT, text);
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
         activity.startActivityForResult(intent, requestCode);
     }
 
+    private Controller _controller;
     private ImmutableMap<RuleId, String> _ruleTexts;
-    private AcceptationId _confirmDynamicAcceptation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
+        _query = _controller.getText();
         super.onCreate(savedInstanceState);
-
-        if (savedInstanceState != null) {
-            _confirmDynamicAcceptation = AcceptationIdBundler.read(savedInstanceState, AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION);
-        }
     }
 
     @Override
@@ -70,40 +64,24 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
     @Override
     void openLanguagePicker(String query) {
-        LanguagePickerActivity.open(this, REQUEST_CODE_NEW_ACCEPTATION, new LanguagePickerController(null, query));
+        _controller.createAcceptation(this);
     }
 
     @Override
     void onAcceptationSelected(AcceptationId acceptation) {
-        _confirmDynamicAcceptation = acceptation;
-        AcceptationConfirmationActivity.open(this, REQUEST_CODE_VIEW_DETAILS, new AcceptationConfirmationController(acceptation));
+        _controller.selectAcceptation(this, acceptation);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            final Intent intent = new Intent();
-            final AcceptationId staticAcc;
-            final AcceptationId dynamicAcc;
-            if (requestCode == REQUEST_CODE_VIEW_DETAILS) {
-                staticAcc = AcceptationIdBundler.readAsIntentExtra(data, AcceptationConfirmationActivity.ResultKeys.ACCEPTATION);
-                dynamicAcc = _confirmDynamicAcceptation;
-            }
-            else {
-                staticAcc = AcceptationIdBundler.readAsIntentExtra(data, LanguagePickerActivity.ResultKeys.ACCEPTATION);
-                dynamicAcc = staticAcc;
-            }
-
-            AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.STATIC_ACCEPTATION, staticAcc);
-            AcceptationIdBundler.writeAsIntentExtra(intent, ResultKeys.DYNAMIC_ACCEPTATION, dynamicAcc);
-            setResult(RESULT_OK, intent);
-            finish();
-        }
+        _controller.onActivityResult(this, requestCode, resultCode, data);
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        AcceptationIdBundler.write(outState, AcceptationPickerActivity.SavedKeys.CONFIRM_DYNAMIC_ACCEPTATION, _confirmDynamicAcceptation);
+    public interface Controller extends Parcelable {
+        @NonNull
+        String getText();
+        void createAcceptation(@NonNull Activity activity);
+        void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation);
+        void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

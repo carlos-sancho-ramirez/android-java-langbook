@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
 import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
 import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
+import sword.langbook3.android.controllers.AddSentenceSpanFixedTextAcceptationPickerController;
 import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
 import sword.langbook3.android.db.AcceptationId;
@@ -23,6 +24,27 @@ public final class Intentions {
 
     public static void addAcceptation(@NonNull Activity activity, int requestCode, String query) {
         new AddAcceptationLanguagePickerController(query).fire(activity, requestCode);
+    }
+
+    /**
+     * Allow the user to select an existing acceptation matching the given text, or create a new acceptation with the given text.
+     *
+     * This intention is really similar to {@link #addAcceptation(Activity, int, String)}.
+     * But it differs in the fact that the given text is not modifiable by the user,
+     * and must be present in at least one of the alphabets of the acceptation.
+     *
+     * This method will modify the database state only if the user decides to create a new acceptation.
+     * In any case, in case of success, {@link Activity#onActivityResult(int, int, Intent)}
+     * method will be called for the given activity, and the selected or new
+     * created acceptation identifier will be available in the data coming on
+     * that method with the bundle key {@value BundleKeys#ACCEPTATION}.
+     *
+     * @param activity Current activity in foreground.
+     * @param requestCode Request code
+     */
+    public static void addSentenceSpan(@NonNull Activity activity, int requestCode, String text) {
+        new AddSentenceSpanFixedTextAcceptationPickerController(text)
+                .fire(activity, requestCode);
     }
 
     /**

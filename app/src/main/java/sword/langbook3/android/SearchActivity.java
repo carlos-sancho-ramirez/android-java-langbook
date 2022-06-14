@@ -31,11 +31,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
 
     private ListView _listView;
     private SearchResultAdapter _listAdapter;
-    private String _query;
-
-    interface ArgKeys {
-        String TEXT = BundleKeys.TEXT;
-    }
+    String _query;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +42,6 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
         _listView.setOnItemClickListener(this);
 
         findViewById(R.id.addWordButton).setOnClickListener(this);
-        _query = getIntent().getStringExtra(ArgKeys.TEXT);
-
         prepareSearchField(findViewById(R.id.searchField));
     }
 

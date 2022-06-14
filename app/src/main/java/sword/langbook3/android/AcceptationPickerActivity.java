@@ -28,6 +28,7 @@ public final class AcceptationPickerActivity extends SearchActivity {
     public interface ResultKeys {
         String CHARACTER_COMPOSITION_TYPE_ID = BundleKeys.CHARACTER_COMPOSITION_TYPE_ID;
         String CONCEPT_USED = BundleKeys.CONCEPT_USED;
+        String ACCEPTATION = BundleKeys.ACCEPTATION;
         String DYNAMIC_ACCEPTATION = BundleKeys.DYNAMIC_ACCEPTATION;
         String STATIC_ACCEPTATION = BundleKeys.STATIC_ACCEPTATION;
     }

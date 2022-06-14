@@ -13,6 +13,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
@@ -34,6 +35,8 @@ import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.db.SentenceIdBundler;
 import sword.langbook3.android.models.SentenceSpan;
+
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
@@ -292,17 +295,16 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final ImmutableIntRange range = new ImmutableIntRange(start, end - 1);
         final String query = _sentenceText.getText().toString().substring(start, end);
         _state.setSelection(range);
-        FixedTextAcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION, query);
+        Intentions.addSentenceSpan(this, REQUEST_CODE_PICK_ACCEPTATION, query);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_PICK_ACCEPTATION && resultCode == RESULT_OK && data != null) {
-            final AcceptationId dynamicAcc = AcceptationIdBundler.readAsIntentExtra(data, FixedTextAcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION);
-            if (dynamicAcc != null) {
-                _state.getSpans().put(new SentenceSpan<>(_state.getSelection(), dynamicAcc), 1);
-                _sentenceText.setText(getRichText());
-            }
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
+            ensureNonNull(acceptation);
+            _state.getSpans().put(new SentenceSpan<>(_state.getSelection(), acceptation), 1);
+            _sentenceText.setText(getRichText());
         }
     }
 
@@ -313,7 +315,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(SavedKeys.STATE, _state);
     }
