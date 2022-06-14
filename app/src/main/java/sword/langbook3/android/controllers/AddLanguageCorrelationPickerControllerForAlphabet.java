@@ -128,7 +128,9 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
         final int alphabetCount = _alphabets.size();
 
         final ImmutableList.Builder<AlphabetId> alphabetsBuilder = new ImmutableList.Builder<>();
-        for (int i = 0; i < alphabetCount; i++) {
+        alphabetsBuilder.append(mainAlphabet);
+
+        for (int i = 1; i < alphabetCount; i++) {
             final AlphabetId alphabet = AlphabetIdManager.conceptAsAlphabetId(manager.getNextAvailableConceptId());
             if (!manager.addAlphabetCopyingFromOther(alphabet, mainAlphabet)) {
                 throw new AssertionError();
