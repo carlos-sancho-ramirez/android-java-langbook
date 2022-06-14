@@ -45,7 +45,7 @@ public final class AddAcceptationLanguagePickerController implements LanguagePic
     }
 
     private void complete(@NonNull Activity activity, int requestCode, @NonNull LanguageId language) {
-        final WordEditorActivity.Controller controller = new WordEditorController(null, null, null, null, language, _searchQuery, true);
+        final WordEditorActivity.Controller controller = new AddAcceptationWordEditorController(language, _searchQuery);
         WordEditorActivity.open(activity, requestCode, controller);
     }
 
