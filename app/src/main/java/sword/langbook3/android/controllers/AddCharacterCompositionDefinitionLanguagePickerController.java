@@ -13,7 +13,7 @@ import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LanguageId;
 
-public final class AddCharacterCompositionDefinitionLanguagePickerController implements LanguagePickerActivity.Controller {
+public final class AddCharacterCompositionDefinitionLanguagePickerController implements LanguagePickerActivity.Controller, Fireable {
 
     private final String _searchQuery;
 
@@ -21,7 +21,8 @@ public final class AddCharacterCompositionDefinitionLanguagePickerController imp
         _searchQuery = searchQuery;
     }
 
-    void fire(@NonNull Activity activity, int requestCode) {
+    @Override
+    public void fire(@NonNull Activity activity, int requestCode) {
         // TODO: This can be optimized, as we are only interested in checking if there is just one language or not.
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableMap<LanguageId, String> languages = DbManager.getInstance().getManager().readAllLanguages(preferredAlphabet);

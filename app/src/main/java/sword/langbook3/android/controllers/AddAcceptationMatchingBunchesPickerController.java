@@ -28,7 +28,7 @@ import sword.langbook3.android.db.LangbookDbManager;
 import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddAcceptationMatchingBunchesPickerController implements MatchingBunchesPickerActivity.Controller {
+public final class AddAcceptationMatchingBunchesPickerController implements MatchingBunchesPickerActivity.Controller, Fireable {
 
     @NonNull
     private final ImmutableCorrelation<AlphabetId> _correlation;
@@ -44,7 +44,8 @@ public final class AddAcceptationMatchingBunchesPickerController implements Matc
         _correlationArray = correlationArray;
     }
 
-    void fire(@NonNull Activity activity, int requestCode) {
+    @Override
+    public void fire(@NonNull Activity activity, int requestCode) {
         // TODO: This can be optimised as no texts are required
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(_correlation, preferredAlphabet);

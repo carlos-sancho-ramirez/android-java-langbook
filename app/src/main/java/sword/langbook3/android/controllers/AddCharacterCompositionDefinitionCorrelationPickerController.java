@@ -21,7 +21,7 @@ import sword.langbook3.android.db.ImmutableCorrelationArray;
 
 import static android.app.Activity.RESULT_OK;
 
-public final class AddCharacterCompositionDefinitionCorrelationPickerController implements CorrelationPickerActivity.Controller {
+public final class AddCharacterCompositionDefinitionCorrelationPickerController implements CorrelationPickerActivity.Controller, Fireable {
 
     @NonNull
     private final ImmutableCorrelation<AlphabetId> _texts;
@@ -31,7 +31,8 @@ public final class AddCharacterCompositionDefinitionCorrelationPickerController 
         _texts = texts;
     }
 
-    void fire(@NonNull Activity activity, int requestCode) {
+    @Override
+    public void fire(@NonNull Activity activity, int requestCode) {
         // TODO: This can be optimised as we only need to know if the size of options is 1 or not
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
 

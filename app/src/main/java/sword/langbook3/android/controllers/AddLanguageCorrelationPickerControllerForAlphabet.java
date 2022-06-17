@@ -38,7 +38,7 @@ import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
 
-public final class AddLanguageCorrelationPickerControllerForAlphabet implements CorrelationPickerActivity.Controller {
+public final class AddLanguageCorrelationPickerControllerForAlphabet implements CorrelationPickerActivity.Controller, Fireable {
 
     @NonNull
     private final String _languageCode;
@@ -80,7 +80,8 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet implements 
         _alphabetTexts = alphabetTexts;
     }
 
-    void fire(@NonNull Activity activity, int requestCode) {
+    @Override
+    public void fire(@NonNull Activity activity, int requestCode) {
         // TODO: This can be optimised as we only need to know if the size of options is 1 or not
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _alphabetTexts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
 

@@ -36,7 +36,7 @@ import static android.app.Activity.RESULT_OK;
 import static sword.collections.SortUtils.equal;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddSentenceSpanWordEditorController implements WordEditorActivity.Controller {
+public final class AddSentenceSpanWordEditorController implements WordEditorActivity.Controller, Fireable {
 
     @NonNull
     private final LanguageId _language;
@@ -52,7 +52,8 @@ public final class AddSentenceSpanWordEditorController implements WordEditorActi
         _text = text;
     }
 
-    void fire(@NonNull Activity activity, int requestCode) {
+    @Override
+    public void fire(@NonNull Activity activity, int requestCode) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(_language);
 

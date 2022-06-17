@@ -23,7 +23,7 @@ import sword.langbook3.android.db.ParcelableCorrelationArray;
 import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class DefineCorrelationArrayCorrelationPickerController implements CorrelationPickerActivity.Controller {
+public final class DefineCorrelationArrayCorrelationPickerController implements CorrelationPickerActivity.Controller, Fireable {
 
     @NonNull
     private final ImmutableCorrelation<AlphabetId> _texts;
@@ -33,7 +33,8 @@ public final class DefineCorrelationArrayCorrelationPickerController implements 
         _texts = texts;
     }
 
-    void fire(@NonNull Activity activity, int requestCode) {
+    @Override
+    public void fire(@NonNull Activity activity, int requestCode) {
         // TODO: This can be optimised as we only need to know if the size of options is 1 or not
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
 

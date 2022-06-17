@@ -18,7 +18,7 @@ import sword.langbook3.android.models.SearchResult;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddSentenceSpanFixedTextAcceptationPickerController implements FixedTextAcceptationPickerActivity.Controller {
+public final class AddSentenceSpanFixedTextAcceptationPickerController implements FixedTextAcceptationPickerActivity.Controller, Fireable {
 
     @NonNull
     private final String _text;
@@ -28,6 +28,7 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
         _text = text;
     }
 
+    @Override
     public void fire(@NonNull Activity activity, int requestCode) {
         // This can be optimised, as we are only interested in checking if
         // there is at least 1 acceptation matching exactly the text. We do not
