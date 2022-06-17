@@ -11,6 +11,7 @@ public interface BundleKeys {
     String CONCEPT_USED = "conceptUsed";
     String CONFIRM_ONLY = "cO";
     String CONTROLLER = "ctrl";
+    String CONVERSION = "cnv";
     String CHARACTER = "chId";
     String CHARACTER_COMPOSITION_TYPE_ID = "ccti";
     String CHARACTER_STRING = "chStr";

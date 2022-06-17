@@ -26,6 +26,11 @@ abstract class AbstractPresenter implements Presenter {
     }
 
     @Override
+    public void setTitle(String title) {
+        _activity.setTitle(title);
+    }
+
+    @Override
     public void displayFeedback(int message) {
         Toast.makeText(_activity, message, Toast.LENGTH_SHORT).show();
     }
@@ -33,6 +38,12 @@ abstract class AbstractPresenter implements Presenter {
     @Override
     public void displayFeedback(int message, String param) {
         final String text = _activity.getString(message, param);
+        Toast.makeText(_activity, text, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void displayFeedback(int message, String param1, String param2) {
+        final String text = _activity.getString(message, param1, param2);
         Toast.makeText(_activity, text, Toast.LENGTH_SHORT).show();
     }
 

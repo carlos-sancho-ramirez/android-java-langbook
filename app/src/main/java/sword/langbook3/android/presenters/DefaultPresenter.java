@@ -9,7 +9,9 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
+import sword.langbook3.android.models.Conversion;
 
 public final class DefaultPresenter extends AbstractPresenter {
 
@@ -27,6 +29,14 @@ public final class DefaultPresenter extends AbstractPresenter {
     public void finish(@NonNull AcceptationId acceptation) {
         final Intent intent = new Intent();
         AcceptationIdBundler.writeAsIntentExtra(intent, BundleKeys.ACCEPTATION, acceptation);
+        _activity.setResult(Activity.RESULT_OK, intent);
+        _activity.finish();
+    }
+
+    @Override
+    public void finish(@NonNull Conversion<AlphabetId> conversion) {
+        final Intent intent = new Intent();
+        intent.putExtra(BundleKeys.CONVERSION, new ParcelableConversion(conversion));
         _activity.setResult(Activity.RESULT_OK, intent);
         _activity.finish();
     }

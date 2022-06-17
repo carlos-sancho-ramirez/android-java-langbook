@@ -13,14 +13,18 @@ import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.models.Conversion;
 
 public interface Presenter {
     void finish();
     void finish(@NonNull AcceptationId acceptation);
+    void finish(@NonNull Conversion<AlphabetId> conversion);
     void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray);
 
+    void setTitle(String title);
     void displayFeedback(@StringRes int message);
     void displayFeedback(@StringRes int message, String param);
+    void displayFeedback(@StringRes int message, String param1, String param2);
 
     void openAcceptationConfirmation(int requestCode, @NonNull AcceptationConfirmationActivity.Controller controller);
     void openCharacterCompositionDefinitionEditor(int requestCode, @NonNull CharacterCompositionDefinitionEditorActivity.Controller controller);
