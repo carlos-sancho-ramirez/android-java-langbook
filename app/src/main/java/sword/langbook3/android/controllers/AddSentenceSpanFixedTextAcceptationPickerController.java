@@ -8,13 +8,13 @@ import androidx.annotation.NonNull;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
-import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.FixedTextAcceptationPickerActivity;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
+import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
@@ -29,7 +29,7 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
     }
 
     @Override
-    public void fire(@NonNull Activity activity, int requestCode) {
+    public void fire(@NonNull Presenter presenter, int requestCode) {
         // This can be optimised, as we are only interested in checking if
         // there is at least 1 acceptation matching exactly the text. We do not
         // need rules nor the actual acceptations
@@ -37,10 +37,10 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
         final ImmutableList<SearchResult<AcceptationId, RuleId>> results = DbManager.getInstance().getManager().findAcceptationAndRulesFromText(_text, DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 0));
 
         if (results.isEmpty()) {
-            createAcceptation(activity, requestCode);
+            createAcceptation(presenter, requestCode);
         }
         else {
-            FixedTextAcceptationPickerActivity.open(activity, requestCode, this);
+            presenter.openFixedTextAcceptationPicker(requestCode, this);
         }
     }
 
@@ -50,19 +50,19 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
         return _text;
     }
 
-    private void createAcceptation(@NonNull Activity activity, int requestCode) {
+    private void createAcceptation(@NonNull Presenter presenter, int requestCode) {
         new AddSentenceSpanLanguagePickerController(_text)
-                .fire(activity, requestCode);
+                .fire(presenter, requestCode);
     }
 
     @Override
-    public void createAcceptation(@NonNull Activity activity) {
-        createAcceptation(activity, FixedTextAcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+    public void createAcceptation(@NonNull Presenter presenter) {
+        createAcceptation(presenter, FixedTextAcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
-    public void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation) {
-        AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
+    public void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation) {
+        presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
     }
 
     @Override

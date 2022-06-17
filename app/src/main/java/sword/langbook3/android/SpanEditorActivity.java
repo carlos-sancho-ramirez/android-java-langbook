@@ -295,7 +295,14 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final ImmutableIntRange range = new ImmutableIntRange(start, end - 1);
         final String query = _sentenceText.getText().toString().substring(start, end);
         _state.setSelection(range);
-        Intentions.addSentenceSpan(this, REQUEST_CODE_PICK_ACCEPTATION, query);
+
+        final AcceptationId immediateResult = Intentions.addSentenceSpan(this, REQUEST_CODE_PICK_ACCEPTATION, query);
+        if (immediateResult != null) {
+            final MutableIntValueMap<SentenceSpan<AcceptationId>> spans = _state.getSpans();
+            spans.put(new SentenceSpan<>(range, immediateResult), 1);
+            _sentenceText.setText(getRichText());
+            _listView.setAdapter(new SpanEditorAdapter(getText(), spans, map -> _sentenceText.setText(getRichText())));
+        }
     }
 
     @Override

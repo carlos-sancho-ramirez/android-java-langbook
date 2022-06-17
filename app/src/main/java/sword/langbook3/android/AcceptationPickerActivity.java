@@ -12,6 +12,8 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
+import sword.langbook3.android.presenters.Presenter;
+import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class AcceptationPickerActivity extends SearchActivity {
 
@@ -54,13 +56,13 @@ public final class AcceptationPickerActivity extends SearchActivity {
 
     @Override
     void openLanguagePicker(String query) {
-        _controller.createAcceptation(this, query);
+        _controller.createAcceptation(new DefaultPresenter(this), query);
     }
 
     @Override
     void onAcceptationSelected(AcceptationId acceptation) {
         _confirmDynamicAcceptation = acceptation;
-        _controller.selectAcceptation(this, acceptation);
+        _controller.selectAcceptation(new DefaultPresenter(this), acceptation);
     }
 
     @Override
@@ -80,8 +82,8 @@ public final class AcceptationPickerActivity extends SearchActivity {
     }
 
     public interface Controller extends Parcelable {
-        void createAcceptation(@NonNull Activity activity, String queryText);
-        void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation);
+        void createAcceptation(@NonNull Presenter presenter, String queryText);
+        void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation);
     }
 }

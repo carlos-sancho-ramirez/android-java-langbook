@@ -18,6 +18,7 @@ import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -32,15 +33,15 @@ public final class AddCharacterCompositionDefinitionCorrelationPickerController 
     }
 
     @Override
-    public void fire(@NonNull Activity activity, int requestCode) {
+    public void fire(@NonNull Presenter presenter, int requestCode) {
         // TODO: This can be optimised as we only need to know if the size of options is 1 or not
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
 
         if (options.size() == 1) {
-            complete(activity, requestCode, options.valueAt(0));
+            complete(presenter, requestCode, options.valueAt(0));
         }
         else {
-            CorrelationPickerActivity.open(activity, requestCode, this);
+            presenter.openCorrelationPicker(requestCode, this);
         }
     }
 
@@ -66,21 +67,21 @@ public final class AddCharacterCompositionDefinitionCorrelationPickerController 
     }
 
     @Override
-    public void load(@NonNull Activity activity, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
+    public void load(@NonNull Presenter presenter, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
         final ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> knownCorrelations = findExistingCorrelations(options);
 
         procedure.apply(options, knownCorrelations);
     }
 
-    private void complete(@NonNull Activity activity, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
+    private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
         new AddCharacterCompositionDefinitionMatchingBunchesPickerController(_texts, selectedOption)
-                .fire(activity, requestCode);
+                .fire(presenter, requestCode);
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        complete(activity, CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, selectedOption);
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
+        complete(presenter, CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, selectedOption);
     }
 
     @Override

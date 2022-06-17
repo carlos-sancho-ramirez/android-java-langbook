@@ -26,6 +26,8 @@ import sword.langbook3.android.collections.SyncCacheMap;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.presenters.Presenter;
+import sword.langbook3.android.presenters.DefaultPresenter;
 
 import static sword.collections.SortUtils.equal;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
@@ -170,7 +172,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
                 builder.put(entry.value(), _texts[entry.key()]);
             }
 
-            _controller.complete(this, builder.build());
+            _controller.complete(new DefaultPresenter(this), builder.build());
         }
         else {
             Toast.makeText(this, R.string.wordEditorWrongTextError, Toast.LENGTH_SHORT).show();
@@ -221,7 +223,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions);
         @NonNull
         UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts);
-        void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts);
+        void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
 
         final class FieldConversion {

@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableMap;
@@ -16,7 +15,6 @@ import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
 import sword.langbook3.android.R;
 import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ConceptId;
@@ -26,8 +24,8 @@ import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.presenters.Presenter;
 
-import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class MatchingBunchesPickerController implements MatchingBunchesPickerActivity.Controller {
@@ -55,24 +53,20 @@ public final class MatchingBunchesPickerController implements MatchingBunchesPic
         return manager.addAcceptation(concept, _correlationArray);
     }
 
-    private void finishActivityReturningAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
-        Toast.makeText(activity, R.string.newAcceptationFeedback, Toast.LENGTH_SHORT).show();
-
-        final Intent intent = new Intent();
-        AcceptationIdBundler.writeAsIntentExtra(intent, MatchingBunchesPickerActivity.ResultKeys.ACCEPTATION, acceptation);
-        activity.setResult(RESULT_OK, intent);
-        activity.finish();
+    private void finishActivityReturningAcceptation(@NonNull Presenter presenter, AcceptationId acceptation) {
+        presenter.displayFeedback(R.string.newAcceptationFeedback);
+        presenter.finish(acceptation);
     }
 
     @Override
-    public void loadBunches(@NonNull Activity activity, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure) {
+    public void loadBunches(@NonNull Presenter presenter, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure) {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(_correlation, preferredAlphabet);
 
         if (bunches.isEmpty()) {
             final LangbookDbManager manager = DbManager.getInstance().getManager();
             final AcceptationId accId = addAcceptation(manager);
-            finishActivityReturningAcceptation(activity, accId);
+            finishActivityReturningAcceptation(presenter, accId);
         }
         else {
             procedure.apply(bunches);
@@ -80,14 +74,14 @@ public final class MatchingBunchesPickerController implements MatchingBunchesPic
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull Set<BunchId> selectedBunches) {
+    public void complete(@NonNull Presenter presenter, @NonNull Set<BunchId> selectedBunches) {
         final MutableList<BunchId> bunchList = selectedBunches.toList().mutate();
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         final AcceptationId accId = addAcceptation(manager);
         for (BunchId bunch : bunchList) {
             manager.addAcceptationInBunch(bunch, accId);
         }
-        finishActivityReturningAcceptation(activity, accId);
+        finishActivityReturningAcceptation(presenter, accId);
     }
 
     @Override

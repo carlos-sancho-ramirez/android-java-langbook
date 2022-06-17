@@ -27,6 +27,7 @@ import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
+import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -70,12 +71,12 @@ public final class CorrelationPickerController implements CorrelationPickerActiv
     }
 
     @Override
-    public void load(@NonNull Activity activity, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
+    public void load(@NonNull Presenter presenter, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
         final ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> knownCorrelations = findExistingCorrelations(options);
 
         if (firstTime && options.size() == 1) {
-            complete(activity, options.valueAt(0));
+            complete(presenter, options.valueAt(0));
         }
         else {
             procedure.apply(options, knownCorrelations);
@@ -83,23 +84,19 @@ public final class CorrelationPickerController implements CorrelationPickerActiv
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
         if (!_mustSaveAcceptation) {
-            final Intent intent = new Intent();
-            intent.putExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(selectedOption));
-            activity.setResult(RESULT_OK, intent);
-            activity.finish();
+            presenter.finish(selectedOption);
         }
         else if (_existingAcceptation == null) {
             final boolean allValidAlphabets = DbManager.getInstance().getManager().allValidAlphabets(_texts);
             final MatchingBunchesPickerActivity.Controller controller = allValidAlphabets? new MatchingBunchesPickerController(_concept, _texts, selectedOption) :
                     new NonValidAlphabetsMatchingBunchesPickerController(_texts);
-            MatchingBunchesPickerActivity.open(activity, CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, controller);
+            presenter.openMatchingBunchesPicker(CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, controller);
         }
         else {
             DbManager.getInstance().getManager().updateAcceptationCorrelationArray(_existingAcceptation, selectedOption);
-            activity.setResult(RESULT_OK);
-            activity.finish();
+            presenter.finish();
         }
     }
 

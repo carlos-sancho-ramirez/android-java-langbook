@@ -11,6 +11,7 @@ import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdParceler;
 import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.presenters.Presenter;
 
 public final class LanguagePickerController implements LanguagePickerActivity.Controller {
 
@@ -34,7 +35,7 @@ public final class LanguagePickerController implements LanguagePickerActivity.Co
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull LanguageId language) {
+    public void complete(@NonNull Presenter presenter, @NonNull LanguageId language) {
         final WordEditorActivity.Controller controller;
         if (_searchQuery != null) {
             controller = new WordEditorController(null, _concept, null, null, language, _searchQuery, true);
@@ -42,7 +43,7 @@ public final class LanguagePickerController implements LanguagePickerActivity.Co
         else {
             controller = new WordEditorController(null, null, null, null, language, null, false);
         }
-        WordEditorActivity.open(activity, LanguagePickerActivity.REQUEST_CODE_NEW_WORD, controller);
+        presenter.openWordEditor(LanguagePickerActivity.REQUEST_CODE_NEW_WORD, controller);
     }
 
     @Override

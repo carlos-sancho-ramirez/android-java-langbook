@@ -13,6 +13,7 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdParceler;
+import sword.langbook3.android.presenters.Presenter;
 
 public final class AcceptationPickerController implements AcceptationPickerActivity.Controller {
 
@@ -23,13 +24,13 @@ public final class AcceptationPickerController implements AcceptationPickerActiv
     }
 
     @Override
-    public void createAcceptation(@NonNull Activity activity, String query) {
-        LanguagePickerActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION, new LanguagePickerController(_concept, query));
+    public void createAcceptation(@NonNull Presenter presenter, String query) {
+        presenter.openLanguagePicker(AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION, new LanguagePickerController(_concept, query));
     }
 
     @Override
-    public void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation) {
-        AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
+    public void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation) {
+        presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
     }
 
     @Override

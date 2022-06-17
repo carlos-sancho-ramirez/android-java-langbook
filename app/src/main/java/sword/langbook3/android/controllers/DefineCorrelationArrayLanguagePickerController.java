@@ -12,19 +12,21 @@ import sword.langbook3.android.LanguagePickerActivity;
 import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.presenters.Presenter;
 
-public final class DefineCorrelationArrayLanguagePickerController implements LanguagePickerActivity.Controller {
+public final class DefineCorrelationArrayLanguagePickerController implements LanguagePickerActivity.Controller, Fireable {
 
-    public void fire(@NonNull Activity activity, int requestCode) {
+    @Override
+    public void fire(@NonNull Presenter presenter, int requestCode) {
         // TODO: This can be optimized, as we are only interested in checking if there is just one language or not.
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableMap<LanguageId, String> languages = DbManager.getInstance().getManager().readAllLanguages(preferredAlphabet);
 
         if (languages.size() == 1) {
-            complete(activity, requestCode, languages.keyAt(0));
+            complete(presenter, requestCode, languages.keyAt(0));
         }
         else {
-            LanguagePickerActivity.open(activity, requestCode, this);
+            presenter.openLanguagePicker(requestCode, this);
         }
     }
 
@@ -38,14 +40,14 @@ public final class DefineCorrelationArrayLanguagePickerController implements Lan
         // Nothing to be done
     }
 
-    private void complete(@NonNull Activity activity, int requestCode, @NonNull LanguageId language) {
+    private void complete(@NonNull Presenter presenter, int requestCode, @NonNull LanguageId language) {
         final WordEditorActivity.Controller controller = new DefineCorrelationArrayWordEditorController(language);
-        WordEditorActivity.open(activity, requestCode, controller);
+        presenter.openWordEditor(requestCode, controller);
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull LanguageId language) {
-        complete(activity, LanguagePickerActivity.REQUEST_CODE_NEW_WORD, language);
+    public void complete(@NonNull Presenter presenter, @NonNull LanguageId language) {
+        complete(presenter, LanguagePickerActivity.REQUEST_CODE_NEW_WORD, language);
     }
 
     @Override

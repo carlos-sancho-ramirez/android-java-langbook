@@ -3,6 +3,7 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 
+import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
 import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
@@ -11,6 +12,8 @@ import sword.langbook3.android.controllers.AddSentenceSpanFixedTextAcceptationPi
 import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.presenters.AddSentenceSpanIntentionFirstPresenter;
+import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class Intentions {
 
@@ -23,28 +26,40 @@ public final class Intentions {
     }
 
     public static void addAcceptation(@NonNull Activity activity, int requestCode, String query) {
-        new AddAcceptationLanguagePickerController(query).fire(activity, requestCode);
+        new AddAcceptationLanguagePickerController(query).fire(new DefaultPresenter(activity), requestCode);
     }
 
     /**
-     * Allow the user to select an existing acceptation matching the given text, or create a new acceptation with the given text.
+     * Allow the user to select an existing acceptation matching the given text,
+     * or create a new acceptation with the given text.
      *
      * This intention is really similar to {@link #addAcceptation(Activity, int, String)}.
      * But it differs in the fact that the given text is not modifiable by the user,
-     * and must be present in at least one of the alphabets of the acceptation.
+     * and must be present in, at least, one of the alphabets of the acceptation.
      *
      * This method will modify the database state only if the user decides to create a new acceptation.
-     * In any case, in case of success, {@link Activity#onActivityResult(int, int, Intent)}
+     * In case of success, {@link Activity#onActivityResult(int, int, Intent)}
      * method will be called for the given activity, and the selected or new
      * created acceptation identifier will be available in the data coming on
      * that method with the bundle key {@value BundleKeys#ACCEPTATION}.
      *
+     * If no input is required by the user at all, it may happen that this
+     * method will not open any new screen. In that case, the result of this
+     * intention will be returned on this method. Developers using this method
+     * should check if the returned value is different from null. If so, the
+     * intention is finished and no call to {@link Activity#onActivityResult(int, int, Intent)}
+     * should be expected.
+     *
      * @param activity Current activity in foreground.
      * @param requestCode Request code
+     * @return A new created acceptation matching the given text, or null if user input is required.
      */
-    public static void addSentenceSpan(@NonNull Activity activity, int requestCode, String text) {
+    @CheckResult
+    public static AcceptationId addSentenceSpan(@NonNull Activity activity, int requestCode, String text) {
+        final AddSentenceSpanIntentionFirstPresenter presenter = new AddSentenceSpanIntentionFirstPresenter(activity);
         new AddSentenceSpanFixedTextAcceptationPickerController(text)
-                .fire(activity, requestCode);
+                .fire(presenter, requestCode);
+        return presenter.immediateResult;
     }
 
     /**
@@ -60,7 +75,7 @@ public final class Intentions {
      */
     public static void defineCorrelationArray(@NonNull Activity activity, int requestCode) {
         new DefineCorrelationArrayLanguagePickerController()
-                .fire(activity, requestCode);
+                .fire(new DefaultPresenter(activity), requestCode);
     }
 
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {

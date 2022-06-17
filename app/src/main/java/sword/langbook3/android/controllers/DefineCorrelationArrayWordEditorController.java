@@ -24,6 +24,7 @@ import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
@@ -113,9 +114,9 @@ public final class DefineCorrelationArrayWordEditorController implements WordEdi
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts) {
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts) {
         new DefineCorrelationArrayCorrelationPickerController(texts)
-                .fire(activity, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER);
+                .fire(presenter, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER);
     }
 
     @Override

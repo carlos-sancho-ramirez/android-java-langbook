@@ -26,6 +26,7 @@ import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
+import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
@@ -62,15 +63,15 @@ public final class AddLanguageCorrelationPickerControllerForLanguage implements 
     }
 
     @Override
-    public void fire(@NonNull Activity activity, int requestCode) {
+    public void fire(@NonNull Presenter presenter, int requestCode) {
         // TODO: This can be optimised as we only need to know if the size of options is 1 or not
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _languageTexts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
 
         if (options.size() == 1) {
-            complete(activity, requestCode, options.valueAt(0));
+            complete(presenter, requestCode, options.valueAt(0));
         }
         else {
-            CorrelationPickerActivity.open(activity, requestCode, this);
+            presenter.openCorrelationPicker(requestCode, this);
         }
     }
 
@@ -96,20 +97,20 @@ public final class AddLanguageCorrelationPickerControllerForLanguage implements 
     }
 
     @Override
-    public void load(@NonNull Activity activity, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
+    public void load(@NonNull Presenter presenter, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _languageTexts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
         final ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> knownCorrelations = findExistingCorrelations(options);
         procedure.apply(options, knownCorrelations);
     }
 
-    private void complete(@NonNull Activity activity, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
+    private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
         final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, selectedOption, ImmutableList.empty(), R.string.newMainAlphabetNameActivityTitle);
-        WordEditorActivity.open(activity, requestCode, controller);
+        presenter.openWordEditor(requestCode, controller);
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        complete(activity, CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, selectedOption);
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
+        complete(presenter, CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, selectedOption);
     }
 
     @Override

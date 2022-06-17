@@ -3,7 +3,6 @@ package sword.langbook3.android.controllers;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableIntKeyMap;
@@ -31,6 +30,7 @@ import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 import static sword.collections.SortUtils.equal;
@@ -53,16 +53,16 @@ public final class AddSentenceSpanWordEditorController implements WordEditorActi
     }
 
     @Override
-    public void fire(@NonNull Activity activity, int requestCode) {
+    public void fire(@NonNull Presenter presenter, int requestCode) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(_language);
 
         if (alphabets.size() == 1) {
             final ImmutableCorrelation<AlphabetId> correlation = ImmutableCorrelation.<AlphabetId>empty().put(alphabets.valueAt(0), _text);
-            complete(activity, requestCode, correlation);
+            complete(presenter, requestCode, correlation);
         }
         else {
-            WordEditorActivity.open(activity, requestCode, this);
+            presenter.openWordEditor(requestCode, this);
         }
     }
 
@@ -201,19 +201,18 @@ public final class AddSentenceSpanWordEditorController implements WordEditorActi
         return new UpdateFieldsResult(fieldNames, newTexts, builder.build(), fieldConversionsMap, fieldIndexAlphabetRelationMap, autoSelectText);
     }
 
-    private void complete(@NonNull Activity activity, int requestCode, @NonNull ImmutableCorrelation<AlphabetId> texts) {
+    private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelation<AlphabetId> texts) {
         new AddAcceptationCorrelationPickerController(texts)
-                    .fire(activity, requestCode);
+                    .fire(presenter, requestCode);
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts) {
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts) {
         if (texts.contains(_text)) {
-            complete(activity, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER, texts);
+            complete(presenter, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER, texts);
         }
         else {
-            final String message = activity.getString(R.string.expectedTextNotPresentError, _text);
-            Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
+            presenter.displayFeedback(R.string.expectedTextNotPresentError, _text);
         }
     }
 

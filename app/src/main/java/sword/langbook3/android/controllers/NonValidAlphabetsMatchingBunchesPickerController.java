@@ -15,8 +15,8 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
+import sword.langbook3.android.presenters.Presenter;
 
-import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 // TODO: Check if this controller is really needed
@@ -31,13 +31,12 @@ public final class NonValidAlphabetsMatchingBunchesPickerController implements M
     }
 
     @Override
-    public void loadBunches(@NonNull Activity activity, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure) {
+    public void loadBunches(@NonNull Presenter presenter, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure) {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(_correlation, preferredAlphabet);
 
         if (bunches.isEmpty()) {
-            activity.setResult(RESULT_OK);
-            activity.finish();
+            presenter.finish();
         }
         else {
             procedure.apply(bunches);
@@ -45,9 +44,8 @@ public final class NonValidAlphabetsMatchingBunchesPickerController implements M
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull Set<BunchId> selectedBunches) {
-        activity.setResult(RESULT_OK);
-        activity.finish();
+    public void complete(@NonNull Presenter presenter, @NonNull Set<BunchId> selectedBunches) {
+        presenter.finish();
     }
 
     @Override

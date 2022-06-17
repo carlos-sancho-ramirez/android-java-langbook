@@ -3,34 +3,33 @@ package sword.langbook3.android.controllers;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.presenters.Presenter;
 
 public final class AddCharacterCompositionDefinitionAcceptationPickerController implements AcceptationPickerActivity.Controller {
 
     @Override
-    public void createAcceptation(@NonNull Activity activity, String query) {
+    public void createAcceptation(@NonNull Presenter presenter, String query) {
         new AddCharacterCompositionDefinitionLanguagePickerController(query)
-                .fire(activity, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+                .fire(presenter, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
-    public void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation) {
+    public void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         final ConceptId concept = manager.conceptFromAcceptation(acceptation);
         if (manager.isConceptDefinedAsCharacterCompositionType(concept)) {
-            Toast.makeText(activity, R.string.conceptAlreadyUsedAsCharacterCompositionDefinitionError, Toast.LENGTH_SHORT).show();
+            presenter.displayFeedback(R.string.conceptAlreadyUsedAsCharacterCompositionDefinitionError);
         }
         else {
-            AcceptationConfirmationActivity.open(activity, AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AddCharacterCompositionDefinitionAcceptationConfirmationController(acceptation));
+            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AddCharacterCompositionDefinitionAcceptationConfirmationController(acceptation));
         }
     }
 

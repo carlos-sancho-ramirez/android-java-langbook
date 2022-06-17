@@ -27,6 +27,7 @@ import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
@@ -148,9 +149,9 @@ public final class AddLanguageWordEditorControllerForLanguage implements WordEdi
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts) {
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts) {
         final AddLanguageCorrelationPickerControllerForLanguage controller = new AddLanguageCorrelationPickerControllerForLanguage(_languageCode, _language, _alphabets, texts);
-        controller.fire(activity, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER);
+        controller.fire(presenter, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER);
     }
 
     @Override

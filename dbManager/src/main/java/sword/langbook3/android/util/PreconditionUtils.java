@@ -40,6 +40,22 @@ public final class PreconditionUtils {
         }
     }
 
+    /**
+     * Ensure that all references provided as parameters are null.
+     * <p>
+     * If all references are null, nothing will happen.
+     * If any of the references is different from null, an IllegalArgumentException will be thrown.
+     *
+     * @param references References to be checked.
+     */
+    public static void ensureNull(Object... references) {
+        for (Object ref : references) {
+            if (ref != null) {
+                throw new IllegalArgumentException();
+            }
+        }
+    }
+
     private PreconditionUtils() {
     }
 }

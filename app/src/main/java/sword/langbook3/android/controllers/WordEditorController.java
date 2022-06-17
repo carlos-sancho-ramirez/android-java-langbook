@@ -38,6 +38,7 @@ import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.Conversion;
+import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 import static sword.collections.SortUtils.equal;
@@ -254,7 +255,7 @@ public final class WordEditorController implements WordEditorActivity.Controller
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelation<AlphabetId> texts) {
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts) {
         final CorrelationPickerActivity.Controller controller;
         if (!_mustEvaluateConversions) {
             controller = new CorrelationPickerController(null, null, texts, false);
@@ -265,7 +266,7 @@ public final class WordEditorController implements WordEditorActivity.Controller
         else {
             controller = new CorrelationPickerController(_existingAcceptation, null, texts, true);
         }
-        CorrelationPickerActivity.open(activity, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER, controller);
+        presenter.openCorrelationPicker(WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER, controller);
     }
 
     @Override

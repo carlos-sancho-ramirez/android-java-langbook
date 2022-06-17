@@ -14,6 +14,8 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
+import sword.langbook3.android.presenters.Presenter;
+import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
@@ -64,12 +66,12 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
 
     @Override
     void openLanguagePicker(String query) {
-        _controller.createAcceptation(this);
+        _controller.createAcceptation(new DefaultPresenter(this));
     }
 
     @Override
     void onAcceptationSelected(AcceptationId acceptation) {
-        _controller.selectAcceptation(this, acceptation);
+        _controller.selectAcceptation(new DefaultPresenter(this), acceptation);
     }
 
     @Override
@@ -80,8 +82,8 @@ public final class FixedTextAcceptationPickerActivity extends SearchActivity {
     public interface Controller extends Parcelable {
         @NonNull
         String getText();
-        void createAcceptation(@NonNull Activity activity);
-        void selectAcceptation(@NonNull Activity activity, @NonNull AcceptationId acceptation);
+        void createAcceptation(@NonNull Presenter presenter);
+        void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

@@ -12,6 +12,8 @@ import sword.collections.ImmutableMap;
 import sword.collections.Procedure;
 import sword.collections.Set;
 import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.presenters.Presenter;
+import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class MatchingBunchesPickerActivity extends Activity implements View.OnClickListener {
 
@@ -26,6 +28,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         String CHARACTER_COMPOSITION_TYPE_ID = BundleKeys.CHARACTER_COMPOSITION_TYPE_ID;
     }
 
+    private final Presenter _presenter = new DefaultPresenter(this);
     private Controller _controller;
     private MatchingBunchesPickerAdapter _adapter;
 
@@ -41,7 +44,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
         setContentView(R.layout.matching_bunches_picker_activity);
 
         _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
-        _controller.loadBunches(this, bunches -> {
+        _controller.loadBunches(_presenter, bunches -> {
             _adapter = new MatchingBunchesPickerAdapter(bunches);
             this.<ListView>findViewById(R.id.listView).setAdapter(_adapter);
             findViewById(R.id.nextButton).setOnClickListener(this);
@@ -50,7 +53,7 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
 
     @Override
     public void onClick(View v) {
-        _controller.complete(this, _adapter.getCheckedBunches());
+        _controller.complete(_presenter, _adapter.getCheckedBunches());
     }
 
     @Override
@@ -60,8 +63,8 @@ public final class MatchingBunchesPickerActivity extends Activity implements Vie
     }
 
     public interface Controller extends Parcelable {
-        void loadBunches(@NonNull Activity activity, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure);
-        void complete(@NonNull Activity activity, @NonNull Set<BunchId> selectedBunches);
+        void loadBunches(@NonNull Presenter presenter, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure);
+        void complete(@NonNull Presenter presenter, @NonNull Set<BunchId> selectedBunches);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

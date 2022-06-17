@@ -11,6 +11,8 @@ import android.widget.ListView;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.presenters.Presenter;
+import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class LanguagePickerActivity extends Activity implements ListView.OnItemClickListener {
 
@@ -49,7 +51,7 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         final LanguageId languageId = ((LanguagePickerAdapter) parent.getAdapter()).getItem(position);
-        _controller.complete(this, languageId);
+        _controller.complete(new DefaultPresenter(this), languageId);
     }
 
     @Override
@@ -58,7 +60,7 @@ public final class LanguagePickerActivity extends Activity implements ListView.O
     }
 
     public interface Controller extends Parcelable {
-        void complete(@NonNull Activity activity, @NonNull LanguageId language);
+        void complete(@NonNull Presenter presenter, @NonNull LanguageId language);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

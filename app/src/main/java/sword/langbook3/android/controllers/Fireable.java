@@ -1,9 +1,8 @@
 package sword.langbook3.android.controllers;
 
-import android.app.Activity;
-
 import androidx.annotation.NonNull;
+import sword.langbook3.android.presenters.Presenter;
 
 public interface Fireable {
-    void fire(@NonNull Activity activity, int requestCode);
+    void fire(@NonNull Presenter presenter, int requestCode);
 }

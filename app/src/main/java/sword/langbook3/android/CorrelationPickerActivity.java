@@ -18,6 +18,8 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.presenters.Presenter;
+import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class CorrelationPickerActivity extends Activity implements View.OnClickListener {
 
@@ -81,7 +83,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
 
         _controller = getIntent().getParcelableExtra(MatchingBunchesPickerActivity.ArgKeys.CONTROLLER);
-        _controller.load(this, savedInstanceState == null, (options, knownCorrelations) -> {
+        _controller.load(new DefaultPresenter(this), savedInstanceState == null, (options, knownCorrelations) -> {
             _options = options;
             _knownCorrelations = knownCorrelations;
 
@@ -107,7 +109,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     public void onClick(View view) {
         _selection = _listView.getCheckedItemPosition();
         if (_selection != ListView.INVALID_POSITION) {
-            _controller.complete(this, _options.valueAt(_selection));
+            _controller.complete(new DefaultPresenter(this), _options.valueAt(_selection));
         }
         else {
             Toast.makeText(this, "Please select an option", Toast.LENGTH_SHORT).show();
@@ -122,8 +124,8 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     public interface Controller extends Parcelable {
-        void load(@NonNull Activity activity, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure);
-        void complete(@NonNull Activity activity, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption);
+        void load(@NonNull Presenter presenter, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure);
+        void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption);
         void onActivityResult(@NonNull Activity activity, @NonNull ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options, int selection, int requestCode, int resultCode, Intent data);
     }
 }

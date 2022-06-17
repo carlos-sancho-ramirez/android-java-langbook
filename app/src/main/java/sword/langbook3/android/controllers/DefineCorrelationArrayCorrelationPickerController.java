@@ -18,9 +18,8 @@ import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
-import sword.langbook3.android.db.ParcelableCorrelationArray;
+import sword.langbook3.android.presenters.Presenter;
 
-import static android.app.Activity.RESULT_OK;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class DefineCorrelationArrayCorrelationPickerController implements CorrelationPickerActivity.Controller, Fireable {
@@ -34,15 +33,15 @@ public final class DefineCorrelationArrayCorrelationPickerController implements 
     }
 
     @Override
-    public void fire(@NonNull Activity activity, int requestCode) {
+    public void fire(@NonNull Presenter presenter, int requestCode) {
         // TODO: This can be optimised as we only need to know if the size of options is 1 or not
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
 
         if (options.size() == 1) {
-            complete(activity, options.valueAt(0));
+            complete(presenter, options.valueAt(0));
         }
         else {
-            CorrelationPickerActivity.open(activity, requestCode, this);
+            presenter.openCorrelationPicker(requestCode, this);
         }
     }
 
@@ -68,18 +67,15 @@ public final class DefineCorrelationArrayCorrelationPickerController implements 
     }
 
     @Override
-    public void load(@NonNull Activity activity, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
+    public void load(@NonNull Presenter presenter, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure) {
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
         final ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId> knownCorrelations = findExistingCorrelations(options);
         procedure.apply(options, knownCorrelations);
     }
 
     @Override
-    public void complete(@NonNull Activity activity, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        final Intent intent = new Intent();
-        intent.putExtra(CorrelationPickerActivity.ResultKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(selectedOption));
-        activity.setResult(RESULT_OK, intent);
-        activity.finish();
+    public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
+        presenter.finish(selectedOption);
     }
 
     @Override
