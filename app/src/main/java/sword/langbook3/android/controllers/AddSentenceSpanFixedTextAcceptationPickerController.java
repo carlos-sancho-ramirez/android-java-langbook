@@ -5,10 +5,16 @@ import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableList;
+import sword.database.DbQuery;
 import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.AcceptationPickerActivity;
+import sword.langbook3.android.DbManager;
 import sword.langbook3.android.FixedTextAcceptationPickerActivity;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.RuleId;
+import sword.langbook3.android.models.SearchResult;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
@@ -23,11 +29,18 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
     }
 
     public void fire(@NonNull Activity activity, int requestCode) {
-        // We should check if there is any acceptation matching the text,
-        // if not, we should skip this step, as the only thing that the
-        // user can do is clicking "Add".
-        // TODO: Add the missing logic
-        FixedTextAcceptationPickerActivity.open(activity, requestCode, this);
+        // This can be optimised, as we are only interested in checking if
+        // there is at least 1 acceptation matching exactly the text. We do not
+        // need rules nor the actual acceptations
+        // TODO: Optimise this database query
+        final ImmutableList<SearchResult<AcceptationId, RuleId>> results = DbManager.getInstance().getManager().findAcceptationAndRulesFromText(_text, DbQuery.RestrictionStringTypes.EXACT, new ImmutableIntRange(0, 0));
+
+        if (results.isEmpty()) {
+            createAcceptation(activity, requestCode);
+        }
+        else {
+            FixedTextAcceptationPickerActivity.open(activity, requestCode, this);
+        }
     }
 
     @NonNull
@@ -36,10 +49,14 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
         return _text;
     }
 
+    private void createAcceptation(@NonNull Activity activity, int requestCode) {
+        new AddSentenceSpanLanguagePickerController(_text)
+                .fire(activity, requestCode);
+    }
+
     @Override
     public void createAcceptation(@NonNull Activity activity) {
-        new AddSentenceSpanLanguagePickerController(_text)
-                .fire(activity, FixedTextAcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+        createAcceptation(activity, FixedTextAcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
