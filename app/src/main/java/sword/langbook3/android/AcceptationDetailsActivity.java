@@ -85,19 +85,6 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
                 .create().show();
     }
 
-    private void showLinkModeSelectorDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.linkDialogTitle)
-                .setPositiveButton(R.string.linkDialogButton, this)
-                .setSingleChoiceItems(R.array.linkDialogOptions, 0, this::onLinkDialogChoiceChecked)
-                .setOnCancelListener(dialog -> _state.clearLinkedAcceptation())
-                .create().show();
-    }
-
-    private void onLinkDialogChoiceChecked(DialogInterface dialog, int which) {
-        _state.setDialogCheckedOption(which);
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,10 +121,6 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
 
                 case AcceptationDetailsActivityState.IntrinsicStates.DELETING_ACCEPTATION_FROM_BUNCH:
                     showDeleteAcceptationFromBunchConfirmationDialog();
-                    break;
-
-                case AcceptationDetailsActivityState.IntrinsicStates.LINKING_CONCEPT:
-                    showLinkModeSelectorDialog();
                     break;
             }
         }
@@ -184,7 +167,7 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             return true;
         }
         else if (itemId == R.id.menuItemLinkConcept) {
-            AcceptationPickerActivity.open(this, REQUEST_CODE_LINKED_ACCEPTATION, new AcceptationPickerController(_model.getConcept()));
+            Intentions.linkAcceptation(this, REQUEST_CODE_LINKED_ACCEPTATION, _acceptation);
             return true;
         }
         else if (itemId == R.id.menuItemIncludeAcceptation) {
@@ -234,12 +217,7 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
         if (resultCode == RESULT_OK) {
             final LangbookDbManager manager = DbManager.getInstance().getManager();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
-                final boolean usedConcept = data
-                        .getBooleanExtra(AcceptationPickerActivity.ResultKeys.CONCEPT_USED, false);
-                if (!usedConcept) {
-                    _state.setLinkedAcceptation(AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.DYNAMIC_ACCEPTATION));
-                    showLinkModeSelectorDialog();
-                }
+                updateModelAndUi();
             }
             else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
                 final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
@@ -338,19 +316,6 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
                     invalidateOptionsMenu();
                 }
                 showFeedback(getString(R.string.deleteDefinitionFeedback));
-                break;
-
-            case AcceptationDetailsActivityState.IntrinsicStates.LINKING_CONCEPT:
-                if (_state.getDialogCheckedOption() == 0) {
-                    final boolean ok = manager.shareConcept(_state.getLinkedAcceptation(), _model.getConcept());
-                    showFeedback(ok? "Concept shared" : "Unable to shared concept");
-                }
-                else {
-                    manager.duplicateAcceptationWithThisConcept(_state.getLinkedAcceptation(), _model.getConcept());
-                    showFeedback("Acceptation linked");
-                }
-                _state.clearLinkedAcceptation();
-                updateModelAndUi();
                 break;
 
             case AcceptationDetailsActivityState.IntrinsicStates.DELETING_FROM_BUNCH:

@@ -72,6 +72,10 @@
             android:label="@string/languagePickerActivityTitle"/>
 
         <activity
+            android:name=".LinkageMechanismSelectorActivity"
+            android:label="@string/linkageMechanismSelectorActivityTitle"/>
+
+        <activity
             android:name=".WordEditorActivity"
             android:label="@string/wordEditorActivityTitle"/>
 

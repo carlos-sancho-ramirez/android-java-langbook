@@ -7,6 +7,7 @@ import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.CorrelationPickerActivity;
 import sword.langbook3.android.FixedTextAcceptationPickerActivity;
 import sword.langbook3.android.LanguagePickerActivity;
+import sword.langbook3.android.LinkageMechanismSelectorActivity;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
 import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AcceptationId;
@@ -26,6 +27,7 @@ public interface Presenter {
     void openCorrelationPicker(int requestCode, @NonNull CorrelationPickerActivity.Controller controller);
     void openFixedTextAcceptationPicker(int requestCode, @NonNull FixedTextAcceptationPickerActivity.Controller controller);
     void openLanguagePicker(int requestCode, @NonNull LanguagePickerActivity.Controller controller);
+    void openLinkageMechanismSelector(int requestCode, @NonNull LinkageMechanismSelectorActivity.Controller controller);
     void openMatchingBunchesPicker(int requestCode, @NonNull MatchingBunchesPickerActivity.Controller controller);
     void openWordEditor(int requestCode, @NonNull WordEditorActivity.Controller controller);
 }

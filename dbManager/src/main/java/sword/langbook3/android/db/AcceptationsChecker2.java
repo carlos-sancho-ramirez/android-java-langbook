@@ -22,6 +22,7 @@ public interface AcceptationsChecker2<ConceptId, LanguageId, AlphabetId, Charact
     ImmutableList<String> suggestCharacterTokens(String filterText);
     ImmutableList<SearchResult<CharacterId, Object>> searchCharacterTokens(String filterText, Function<String, String> textConverter);
     ImmutableList<IdentifiableCharacterCompositionResult<CharacterCompositionTypeId>> getCharacterCompositionTypes(AlphabetId preferredAlphabet);
+    String getAcceptationDisplayableText(AcceptationIdInterface acceptation, AlphabetId preferredAlphabet);
 
     /**
      * Return the character composition definition assigned to the given

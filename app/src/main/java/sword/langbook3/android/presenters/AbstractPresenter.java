@@ -9,6 +9,7 @@ import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.CorrelationPickerActivity;
 import sword.langbook3.android.FixedTextAcceptationPickerActivity;
 import sword.langbook3.android.LanguagePickerActivity;
+import sword.langbook3.android.LinkageMechanismSelectorActivity;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
 import sword.langbook3.android.WordEditorActivity;
 
@@ -58,6 +59,11 @@ abstract class AbstractPresenter implements Presenter {
     @Override
     public void openLanguagePicker(int requestCode, @NonNull LanguagePickerActivity.Controller controller) {
         LanguagePickerActivity.open(_activity, requestCode, controller);
+    }
+
+    @Override
+    public void openLinkageMechanismSelector(int requestCode, @NonNull LinkageMechanismSelectorActivity.Controller controller) {
+        LinkageMechanismSelectorActivity.open(_activity, requestCode, controller);
     }
 
     @Override

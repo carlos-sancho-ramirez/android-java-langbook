@@ -10,6 +10,8 @@ import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.presenters.DefaultPresenter;
+import sword.langbook3.android.presenters.Presenter;
 
 public final class AcceptationConfirmationActivity extends AbstractAcceptationDetailsActivity {
 
@@ -57,17 +59,23 @@ public final class AcceptationConfirmationActivity extends AbstractAcceptationDe
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menuItemConfirm) {
-            _controller.confirm(this);
+            _controller.confirm(new DefaultPresenter(this));
             return true;
         }
 
         return false;
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        _controller.onActivityResult(this, requestCode, resultCode, data);
+    }
+
     public interface Controller extends Parcelable {
         @NonNull
         AcceptationId getAcceptation();
-        void confirm(@NonNull Activity activity);
+        void confirm(@NonNull Presenter presenter);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
     }
 }

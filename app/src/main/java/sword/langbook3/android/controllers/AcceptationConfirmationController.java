@@ -8,8 +8,8 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AcceptationIdParceler;
+import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
@@ -30,11 +30,8 @@ public final class AcceptationConfirmationController implements AcceptationConfi
     }
 
     @Override
-    public void confirm(@NonNull Activity activity) {
-        final Intent intent = new Intent();
-        AcceptationIdBundler.writeAsIntentExtra(intent, AcceptationConfirmationActivity.ResultKeys.ACCEPTATION, _acceptation);
-        activity.setResult(Activity.RESULT_OK, intent);
-        activity.finish();
+    public void confirm(@NonNull Presenter presenter) {
+        presenter.finish(_acceptation);
     }
 
     @Override

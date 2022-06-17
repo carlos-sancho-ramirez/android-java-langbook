@@ -11,6 +11,7 @@ import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
 import sword.langbook3.android.controllers.AddSentenceSpanFixedTextAcceptationPickerController;
 import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
+import sword.langbook3.android.controllers.LinkAcceptationAcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.presenters.AddSentenceSpanIntentionFirstPresenter;
 import sword.langbook3.android.presenters.DefaultPresenter;
@@ -80,6 +81,19 @@ public final class Intentions {
 
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
         WordEditorActivity.open(activity, new EditAcceptationWordEditorController(acceptation));
+    }
+
+    /**
+     * Allow the user to select an existing acceptation whose concept will be
+     * merged with the one in the given source acceptation, or creating a new
+     * acceptation with the given source acceptation concept.
+     *
+     * @param activity Current activity in foreground.
+     * @param requestCode identifier to be used when opening the new activity.
+     * @param sourceAcceptation Acceptation whose concept has to be shared.
+     */
+    public static void linkAcceptation(@NonNull Activity activity, int requestCode, @NonNull AcceptationId sourceAcceptation) {
+        AcceptationPickerActivity.open(activity, requestCode, new LinkAcceptationAcceptationPickerController(sourceAcceptation));
     }
 
     private Intentions() {

@@ -17,14 +17,9 @@ public final class AcceptationDetailsActivityState implements Parcelable {
         int DELETE_DEFINITION = 2;
         int DELETING_ACCEPTATION_FROM_BUNCH = 3;
         int DELETING_FROM_BUNCH = 4;
-        int LINKING_CONCEPT = 5;
     }
 
     private int _intrinsicState = IntrinsicStates.NORMAL;
-
-    // Only relevant for IntrinsicState LINKING_CONCEPT
-    private AcceptationId _linkedAcceptation;
-    private int _linkDialogCheckedOption;
 
     // Relevant for IntrinsicStates DELETING_ACCEPTATION_FROM_BUNCH
     private DisplayableItem<AcceptationId> _deleteTargetAcceptation;
@@ -38,11 +33,6 @@ public final class AcceptationDetailsActivityState implements Parcelable {
     private AcceptationDetailsActivityState(Parcel in) {
         _intrinsicState = in.readInt();
         switch (_intrinsicState) {
-            case IntrinsicStates.LINKING_CONCEPT:
-                _linkedAcceptation = AcceptationIdParceler.read(in);
-                _linkDialogCheckedOption = in.readInt();
-                break;
-
             case IntrinsicStates.DELETING_FROM_BUNCH:
                 final BunchId bunchId = BunchIdParceler.read(in);
                 final String bunchText = in.readString();
@@ -61,11 +51,6 @@ public final class AcceptationDetailsActivityState implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(_intrinsicState);
         switch (_intrinsicState) {
-            case IntrinsicStates.LINKING_CONCEPT:
-                AcceptationIdParceler.write(dest, _linkedAcceptation);
-                dest.writeInt(_linkDialogCheckedOption);
-                break;
-
             case IntrinsicStates.DELETING_FROM_BUNCH:
                 BunchIdParceler.write(dest, _deleteTargetBunch.id);
                 dest.writeString(_deleteTargetBunch.text);
@@ -110,37 +95,6 @@ public final class AcceptationDetailsActivityState implements Parcelable {
 
     void clearDeletingDefinition() {
         assertState(IntrinsicStates.DELETE_DEFINITION);
-        _intrinsicState = IntrinsicStates.NORMAL;
-    }
-
-    void setLinkedAcceptation(AcceptationId acceptation) {
-        if (acceptation == null) {
-            throw new IllegalArgumentException();
-        }
-
-        assertState(IntrinsicStates.NORMAL);
-        _linkedAcceptation = acceptation;
-        _linkDialogCheckedOption = 0;
-        _intrinsicState = IntrinsicStates.LINKING_CONCEPT;
-    }
-
-    void setDialogCheckedOption(int option) {
-        assertState(IntrinsicStates.LINKING_CONCEPT);
-        _linkDialogCheckedOption = option;
-    }
-
-    AcceptationId getLinkedAcceptation() {
-        assertState(IntrinsicStates.LINKING_CONCEPT);
-        return _linkedAcceptation;
-    }
-
-    int getDialogCheckedOption() {
-        assertState(IntrinsicStates.LINKING_CONCEPT);
-        return _linkDialogCheckedOption;
-    }
-
-    void clearLinkedAcceptation() {
-        assertState(IntrinsicStates.LINKING_CONCEPT);
         _intrinsicState = IntrinsicStates.NORMAL;
     }
 

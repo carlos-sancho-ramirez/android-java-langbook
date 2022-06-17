@@ -49,4 +49,6 @@
     <dimen name="characterCompositionDefinitionEditorActivityAreaHeaderTextSize">16sp</dimen>
     <dimen name="characterCompositionEditorDefinitionDrawableSide">26dp</dimen>
     <dimen name="characterCompositionEditorDefinitionDrawableMargin">4dp</dimen>
+    <dimen name="linkageMechanismInfoPadding">16dp</dimen>
+    <dimen name="linkageMechanismRadioGroupPadding">16dp</dimen>
 </resources>

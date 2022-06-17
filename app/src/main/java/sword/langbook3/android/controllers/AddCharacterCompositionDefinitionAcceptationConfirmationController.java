@@ -6,7 +6,6 @@ import android.os.Parcel;
 
 import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationConfirmationActivity;
-import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
@@ -14,6 +13,7 @@ import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterCompositionTypeIdManager;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
@@ -34,11 +34,11 @@ public final class AddCharacterCompositionDefinitionAcceptationConfirmationContr
     }
 
     @Override
-    public void confirm(@NonNull Activity activity) {
+    public void confirm(@NonNull Presenter presenter) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         final ConceptId concept = manager.conceptFromAcceptation(_acceptation);
         final CharacterCompositionTypeId typeId = CharacterCompositionTypeIdManager.conceptAsCharacterCompositionTypeId(concept);
-        CharacterCompositionDefinitionEditorActivity.open(activity, AcceptationConfirmationActivity.REQUEST_CODE_NEXT_STEP, new AddCharacterCompositionDefinitionWithSelectedAcceptationCharacterCompositionDefinitionEditorController(typeId));
+        presenter.openCharacterCompositionDefinitionEditor(AcceptationConfirmationActivity.REQUEST_CODE_NEXT_STEP, new AddCharacterCompositionDefinitionWithSelectedAcceptationCharacterCompositionDefinitionEditorController(typeId));
     }
 
     @Override

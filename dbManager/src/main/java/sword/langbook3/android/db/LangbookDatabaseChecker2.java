@@ -1168,7 +1168,8 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
         return result.map(alphabetSets::get).toImmutable();
     }
 
-    private String getAcceptationDisplayableText(AcceptationIdInterface acceptation, AlphabetId preferredAlphabet) {
+    @Override
+    public String getAcceptationDisplayableText(AcceptationIdInterface acceptation, AlphabetId preferredAlphabet) {
         final LangbookDbSchema.StringQueriesTable strings = Tables.stringQueries;
         final DbQuery query = new DbQueryBuilder(strings)
                 .where(strings.getDynamicAcceptationColumnIndex(), acceptation)

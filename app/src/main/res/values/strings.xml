@@ -8,6 +8,7 @@
 
     <!-- Activity titles -->
     <string name="languagePickerActivityTitle">Select a language</string>
+    <string name="linkageMechanismSelectorActivityTitle">Select an option</string>
     <string name="wordEditorActivityTitle">Fill representations</string>
     <string name="sentenceEditorActivityTitle">Type your sentence</string>
     <string name="spanEditorActivityTitle">Add spans</string>
@@ -96,14 +97,8 @@
 
     <string name="sentenceEditorNextButton">Next</string>
 
-    <string name="linkDialogTitle">Choose a link option</string>
-    <string name="linkDialogShareConceptOption">Share concept</string>
-    <string name="linkDialogDuplicateAcceptationOption">Duplicate acceptation</string>
-    <string name="linkDialogButton">Link</string>
-    <array name="linkDialogOptions">
-        <item>@string/linkDialogShareConceptOption</item>
-        <item>@string/linkDialogDuplicateAcceptationOption</item>
-    </array>
+    <string name="shareConceptLinkOption">Share concept</string>
+    <string name="duplicateAcceptationLinkOption">Duplicate acceptation</string>
 
     <string name="settingsHeaderPreferredAlphabet">Preferred alphabet</string>
     <string name="settingsHeaderSqliteDatabase">SQLite database management</string>
@@ -163,6 +158,9 @@
     <string name="removeAlphabetFeedback">Alphabet removed</string>
     <string name="removeLanguageFeedback">Language removed</string>
     <string name="removeLanguageKo">Unable to remove</string>
+    <string name="conceptSharedFeedback">Concept shared</string>
+    <string name="conceptSharedKo">Unable to share concept</string>
+    <string name="acceptationLinkedFeedback">Acceptation linked</string>
 
     <string name="conversionEditorSourceLabel">From</string>
     <string name="conversionEditorTargetLabel">To</string>
@@ -258,4 +256,7 @@
     <string name="characterCompositionDefinitionAlreadyExistsError">Unable to create definition. It already exists</string>
     <string name="conceptAlreadyUsedAsCharacterCompositionDefinitionError">Already used as definition</string>
     <string name="expectedTextNotPresentError">At least one field must match %s</string>
+    <string name="noOptionSelectedError">Select an option</string>
+    <string name="shareConceptOptionDescription"><![CDATA[This option will replace the concept in <i>%2$s</i> for the concept in <i>%1$s</i>, making them synonyms or translations. This means that all the current synonyms and translations for both words will become synonyms or translations of each other.<br/><br/>This operation is dangerous and cannot be reverted, be careful to not share concepts if they really does have a different meaning.]]></string>
+    <string name="duplicateAcceptationOptionDescription"><![CDATA[This option will create a new acceptation for word <i>%2$s</i>. The new acceptation will be a synonym or translation for <i>%1$s</i>. The original copy of <i>%2$s</i> will not be modified.]]></string>
 </resources>
