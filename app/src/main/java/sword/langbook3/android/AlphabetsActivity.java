@@ -21,6 +21,7 @@ import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.controllers.AcceptationPickerController;
+import sword.langbook3.android.controllers.ConversionEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -229,7 +230,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
                     final AlphabetId sourceAlphabet = _state.getSelectedSourceAlphabet();
                     if (defineConversion) {
                         final AlphabetId alphabet = _state.startDefiningConversion();
-                        ConversionEditorActivity.open(this, REQUEST_CODE_NEW_CONVERSION, sourceAlphabet, alphabet);
+                        ConversionEditorActivity.open(this, REQUEST_CODE_NEW_CONVERSION, new ConversionEditorController(sourceAlphabet, alphabet));
                     }
                     else {
                         final AlphabetId alphabet = _state.cancelSourceAlphabetPicking();

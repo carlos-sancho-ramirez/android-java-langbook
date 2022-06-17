@@ -94,7 +94,7 @@ public final class ConversionDetailsActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menuItemEdit) {
-            ConversionEditorActivity.open(this, REQUEST_CODE_EDITION, getSourceAlphabet(), getTargetAlphabet());
+            Intentions.editConversion(this, REQUEST_CODE_EDITION, getSourceAlphabet(), getTargetAlphabet());
             return true;
         }
 

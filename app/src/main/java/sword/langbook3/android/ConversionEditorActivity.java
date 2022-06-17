@@ -19,9 +19,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import sword.collections.Map;
 import sword.collections.Procedure;
-import sword.langbook3.android.controllers.ConversionEditorController;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.presenters.DefaultPresenter;
 import sword.langbook3.android.presenters.Presenter;
@@ -54,27 +52,6 @@ public final class ConversionEditorActivity extends Activity implements ListView
     private Conversion<AlphabetId> _conversion;
     private ConversionEditorActivityState _state;
     private ConversionEditorAdapter _adapter;
-
-    /**
-     * Allow editing an existing conversion or include a new one.
-     *
-     * The conversion will be inserted into the database before finishing this activity,
-     * except if the user cancel the process by clicking back, or the target alphabet
-     * provided is not defined in the database as alphabet.
-     *
-     * In the latter case, the result will be sent back through the {@link android.os.Bundle} using a
-     * {@link ParcelableConversion} with key {@link ResultKeys#CONVERSION}.
-     *
-     * @param activity Activity used to open this new activity, and where it will return when finished.
-     * @param requestCode Identifier for this call.
-     * @param sourceAlphabet Source alphabet for this conversion. This alphabet must be registered as alphabet in the database.
-     * @param targetAlphabet Target alphabet for this conversion. This alphabet may or not be registered as alphabet.
-     *                       If so, the conversion will be stored into the database before finishing the activity.
-     *                       If not, the conversion will be sent back through the bundle.
-     */
-    public static void open(Activity activity, int requestCode, AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
-        open(activity, requestCode, new ConversionEditorController(sourceAlphabet, targetAlphabet));
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

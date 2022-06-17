@@ -11,8 +11,10 @@ import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
 import sword.langbook3.android.controllers.AddSentenceSpanFixedTextAcceptationPickerController;
 import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
+import sword.langbook3.android.controllers.EditConversionConversionEditorController;
 import sword.langbook3.android.controllers.LinkAcceptationAcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.presenters.AddSentenceSpanIntentionFirstPresenter;
 import sword.langbook3.android.presenters.DefaultPresenter;
 
@@ -81,6 +83,10 @@ public final class Intentions {
 
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
         WordEditorActivity.open(activity, new EditAcceptationWordEditorController(acceptation));
+    }
+
+    public static void editConversion(@NonNull Activity activity, int requestCode, @NonNull AlphabetId sourceAlphabet, @NonNull AlphabetId targetAlphabet) {
+        ConversionEditorActivity.open(activity, requestCode, new EditConversionConversionEditorController(sourceAlphabet, targetAlphabet));
     }
 
     /**
