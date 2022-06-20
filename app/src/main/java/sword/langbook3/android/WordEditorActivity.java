@@ -80,8 +80,6 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         if (savedInstanceState != null) {
             _texts = savedInstanceState.getStringArray(SavedKeys.TEXTS);
         }
-
-        updateFields();
     }
 
     @Override
@@ -91,6 +89,19 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         if (requestCode == REQUEST_CODE_CHECK_CONVERSION) {
             _conversions.clear();
             _controller.updateConvertedTexts(_texts, _conversions);
+            updateFields();
+        }
+    }
+
+    private boolean areFieldsDisplayed() {
+        return _fieldConversions != null;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (!isFinishing() && !areFieldsDisplayed()) {
             updateFields();
         }
     }

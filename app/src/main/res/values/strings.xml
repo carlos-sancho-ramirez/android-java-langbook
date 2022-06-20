@@ -162,6 +162,7 @@
     <string name="conceptSharedKo">Unable to share concept</string>
     <string name="acceptationLinkedFeedback">Acceptation linked</string>
 
+    <string name="conversionEditorTitle">%s \u2192 %s</string>
     <string name="conversionEditorSourceLabel">From</string>
     <string name="conversionEditorTargetLabel">To</string>
     <string name="noChangeRequired">Nothing to change</string>
@@ -177,8 +178,7 @@
     <string name="languageAdderActivityTitle">New language details</string>
     <string name="languageAdderLanguageCodeInUse">Language code already in use</string>
     <string name="addLanguageFeedback">Language added</string>
-    <string name="sourceAlphabetPickerDialog">Select the source</string>
-    <string name="sourceAlphabetSpinnerLabel">Select a source</string>
+    <string name="sourceAlphabetPickerActivityTitle">Select a source alphabet</string>
     <string name="sourceAlphabetDefineConversionText">Define conversion</string>
     <string name="addLanguageButton">Add language</string>
     <string name="definitionEditorBaseConceptTitle">Base concept</string>
@@ -264,4 +264,5 @@
     <string name="unableToConvertOneWord">Failing to convert word %s</string>
     <string name="unableToConvertTwoWords">Failing to convert words %s and %s</string>
     <string name="unableToConvertSeveralWords">Failing to convert word %s and other %s words</string>
+    <string name="alreadyUsedAsAlphabet">Already used as alphabet</string>
 </resources>

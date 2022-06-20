@@ -6,6 +6,7 @@ import android.content.Intent;
 import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
+import sword.langbook3.android.controllers.AddAlphabetAcceptationPickerController;
 import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
 import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
 import sword.langbook3.android.controllers.AddSentenceSpanFixedTextAcceptationPickerController;
@@ -15,6 +16,7 @@ import sword.langbook3.android.controllers.EditConversionConversionEditorControl
 import sword.langbook3.android.controllers.LinkAcceptationAcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.presenters.AddSentenceSpanIntentionFirstPresenter;
 import sword.langbook3.android.presenters.DefaultPresenter;
 
@@ -30,6 +32,29 @@ public final class Intentions {
 
     public static void addAcceptation(@NonNull Activity activity, int requestCode, String query) {
         new AddAcceptationLanguagePickerController(query).fire(new DefaultPresenter(activity), requestCode);
+    }
+
+    /**
+     * Creates a new Alphabet for the given language.
+     *
+     * The user will be asked to select an existing acceptation or create a new
+     * acceptation providing. Afterwards, it will be asked to select an
+     * alphabet, from the ones already existing in the given language, to be
+     * used as source and a method to create the alphabet, which can be either
+     * copy or creating a conversion.
+     *
+     * If a copy is requested, the flow will finish at that point, and a new
+     * alphabet will be created. However, if the conversion method is requested,
+     * the user will be requested to create the new conversion between both
+     * languages. Only when the user would finish the conversion definition,
+     * the alphabet will be created.
+     *
+     * @param activity Activity currently in foreground
+     * @param requestCode Request code in order to update the view on finish.
+     * @param language The language that the new alphabet will be linked to.
+     */
+    public static void addAlphabet(@NonNull Activity activity, int requestCode, @NonNull LanguageId language) {
+        AcceptationPickerActivity.open(activity, requestCode, new AddAlphabetAcceptationPickerController(language));
     }
 
     /**

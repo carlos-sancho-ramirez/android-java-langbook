@@ -48,4 +48,14 @@ public final class DefaultPresenter extends AbstractPresenter {
         _activity.setResult(Activity.RESULT_OK, intent);
         _activity.finish();
     }
+
+    @Override
+    public void setTitle(String title) {
+        _activity.setTitle(title);
+    }
+
+    @Override
+    public void setTitle(int title, String param1, String param2) {
+        _activity.setTitle(_activity.getString(title, param1, param2));
+    }
 }

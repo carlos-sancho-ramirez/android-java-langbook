@@ -6,39 +6,26 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.controllers.AcceptationPickerController;
-import sword.langbook3.android.controllers.ConversionEditorController;
-import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
-import sword.langbook3.android.db.ParcelableConversion;
-import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.db.AlphabetIdManager.conceptAsAlphabetId;
-
-public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener, AdapterView.OnItemSelectedListener, CompoundButton.OnCheckedChangeListener {
+public final class AlphabetsActivity extends Activity implements DialogInterface.OnClickListener, ListView.OnItemLongClickListener {
 
     private static final int REQUEST_CODE_NEW_ALPHABET = 1;
     private static final int REQUEST_CODE_NEW_LANGUAGE = 2;
-    private static final int REQUEST_CODE_NEW_CONVERSION = 3;
 
     private interface SavedKeys {
         String STATE = "st";
@@ -54,8 +41,6 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
     private AlphabetsAdapter _adapter;
     private ImmutableMap<AlphabetId, AlphabetId> _conversions;
-
-    private ImmutableMap<AlphabetId, String> _sourceAlphabetTexts;
 
     private void updateUi() {
         final ListView listView = findViewById(R.id.listView);
@@ -106,10 +91,6 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
 
         if (_state.shouldShowAlphabetOptionsDialog()) {
             showAlphabetOptionsDialog();
-        }
-
-        if (_state.shouldShowSourceAlphabetPickerDialog()) {
-            showSourceAlphabetPickerDialog();
         }
     }
 
@@ -181,8 +162,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         new AlertDialog.Builder(this)
                 .setItems(items, (dialog, which) -> {
                     if (which == 0) {
-                        _state.pickAcceptationForAlphabet();
-                        addAlphabet();
+                        Intentions.addAlphabet(this, REQUEST_CODE_NEW_ALPHABET, _state.startAddAlphabetIntention());
                     }
                     else if (which == 1) {
                         _state.showLanguageRemovalConfirmation();
@@ -216,50 +196,6 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
                 .create().show();
     }
 
-    private void showSourceAlphabetPickerDialog() {
-        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final LangbookDbChecker checker = DbManager.getInstance().getManager();
-
-        _sourceAlphabetTexts = checker.readAlphabetsForLanguage(_state.getNewAlphabetLanguage(), preferredAlphabet);
-        final AlphabetAdapter adapter = new AlphabetAdapter(_sourceAlphabetTexts);
-
-        final AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.sourceAlphabetPickerDialog)
-                .setPositiveButton(R.string.addButtonText, (d, which) -> {
-                    final boolean defineConversion = _state.isDefineConversionChecked();
-                    final AlphabetId sourceAlphabet = _state.getSelectedSourceAlphabet();
-                    if (defineConversion) {
-                        final AlphabetId alphabet = _state.startDefiningConversion();
-                        ConversionEditorActivity.open(this, REQUEST_CODE_NEW_CONVERSION, new ConversionEditorController(sourceAlphabet, alphabet));
-                    }
-                    else {
-                        final AlphabetId alphabet = _state.cancelSourceAlphabetPicking();
-                        addAlphabetCopyingFromSource(alphabet, sourceAlphabet);
-                    }
-                })
-                .setOnCancelListener(d -> _state.cancelSourceAlphabetPicking())
-                .create();
-
-        final LayoutInflater inflater = LayoutInflater.from(dialog.getContext());
-        final View view = inflater.inflate(R.layout.source_alphabet_picker_dialog, null);
-        final Spinner sourceAlphabetSpinner = view.findViewById(R.id.sourceAlphabetSpinner);
-        sourceAlphabetSpinner.setAdapter(adapter);
-        final int position = _sourceAlphabetTexts.keySet().indexOf(_state.getSelectedSourceAlphabet());
-        if (position >= 0) {
-            sourceAlphabetSpinner.setSelection(position);
-        }
-        sourceAlphabetSpinner.setOnItemSelectedListener(this);
-
-        final CheckBox defineConversionCheckBox = view.findViewById(R.id.defineConversionCheckBox);
-        if (_state.isDefineConversionChecked()) {
-            defineConversionCheckBox.setChecked(true);
-        }
-        defineConversionCheckBox.setOnCheckedChangeListener(this);
-
-        dialog.setView(view);
-        dialog.show();
-    }
-
     @Override
     public void onClick(DialogInterface dialog, int which) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
@@ -286,55 +222,10 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
         }
     }
 
-    private void addAlphabet() {
-        AcceptationPickerActivity.open(this, REQUEST_CODE_NEW_ALPHABET, new AcceptationPickerController(null));
-    }
-
-    private void addAlphabetCopyingFromSource(AlphabetId alphabet, AlphabetId sourceAlphabet) {
-        final LangbookDbManager manager = DbManager.getInstance().getManager();
-        final boolean ok = manager.addAlphabetCopyingFromOther(alphabet, sourceAlphabet);
-        final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-
-        if (ok) {
-            updateUi();
-        }
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_NEW_ALPHABET) {
-            final AcceptationId acceptation = (data != null)? AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION) : null;
-            if (resultCode == RESULT_OK && acceptation != null) {
-                final ConceptId alphabetConcept = DbManager.getInstance().getManager().conceptFromAcceptation(acceptation);
-                final AlphabetId alphabet = conceptAsAlphabetId(alphabetConcept);
-                _state.showSourceAlphabetPickingState(alphabet);
-                showSourceAlphabetPickerDialog();
-            }
-            else {
-                _state.cancelAcceptationForAlphabetPicking();
-            }
-        }
-        else if (requestCode == REQUEST_CODE_NEW_LANGUAGE && !_uiJustUpdated) {
+        if (resultCode == RESULT_OK && !_uiJustUpdated && (requestCode == REQUEST_CODE_NEW_ALPHABET || requestCode == REQUEST_CODE_NEW_LANGUAGE)) {
             updateUi();
-        }
-        else if (requestCode == REQUEST_CODE_NEW_CONVERSION) {
-            final ParcelableConversion parcelable = (data != null)? data.getParcelableExtra(ConversionEditorActivity.ResultKeys.CONVERSION) : null;
-            final Conversion<AlphabetId> conversion = (parcelable != null)? parcelable.get() : null;
-            if (resultCode == RESULT_OK && conversion != null) {
-                final boolean ok = DbManager.getInstance().getManager().addAlphabetAsConversionTarget(conversion);
-                final int message = ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo;
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-                _state.completeDefiningConversion();
-
-                if (ok) {
-                    updateUi();
-                }
-            }
-            else {
-                _state.cancelDefiningConversion();
-                showSourceAlphabetPickerDialog();
-            }
         }
     }
 
@@ -345,22 +236,7 @@ public final class AlphabetsActivity extends Activity implements DialogInterface
     }
 
     @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        _state.setSelectedSourceAlphabet(_sourceAlphabetTexts.keyAt(position));
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-        // Nothing to be done
-    }
-
-    @Override
-    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        _state.setDefinedConversionChecked(isChecked);
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(SavedKeys.STATE, _state);
     }

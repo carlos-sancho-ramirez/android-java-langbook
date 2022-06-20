@@ -6,11 +6,13 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
+import sword.langbook3.android.ConversionEditorActivity;
 import sword.langbook3.android.CorrelationPickerActivity;
 import sword.langbook3.android.FixedTextAcceptationPickerActivity;
 import sword.langbook3.android.LanguagePickerActivity;
 import sword.langbook3.android.LinkageMechanismSelectorActivity;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
+import sword.langbook3.android.SourceAlphabetPickerActivity;
 import sword.langbook3.android.WordEditorActivity;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
@@ -23,11 +25,6 @@ abstract class AbstractPresenter implements Presenter {
     public AbstractPresenter(@NonNull Activity activity) {
         ensureNonNull(activity);
         _activity = activity;
-    }
-
-    @Override
-    public void setTitle(String title) {
-        _activity.setTitle(title);
     }
 
     @Override
@@ -58,6 +55,11 @@ abstract class AbstractPresenter implements Presenter {
     }
 
     @Override
+    public void openConversionEditor(int requestCode, @NonNull ConversionEditorActivity.Controller controller) {
+        ConversionEditorActivity.open(_activity, requestCode, controller);
+    }
+
+    @Override
     public void openCorrelationPicker(int requestCode, @NonNull CorrelationPickerActivity.Controller controller) {
         CorrelationPickerActivity.open(_activity, requestCode, controller);
     }
@@ -75,6 +77,11 @@ abstract class AbstractPresenter implements Presenter {
     @Override
     public void openLinkageMechanismSelector(int requestCode, @NonNull LinkageMechanismSelectorActivity.Controller controller) {
         LinkageMechanismSelectorActivity.open(_activity, requestCode, controller);
+    }
+
+    @Override
+    public void openSourceAlphabetPicker(int requestCode, @NonNull SourceAlphabetPickerActivity.Controller controller) {
+        SourceAlphabetPickerActivity.open(_activity, requestCode, controller);
     }
 
     @Override

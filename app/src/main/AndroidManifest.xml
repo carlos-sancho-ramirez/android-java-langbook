@@ -84,6 +84,10 @@
             android:label="@string/sentenceEditorActivityTitle"/>
 
         <activity
+            android:name=".SourceAlphabetPickerActivity"
+            android:label="@string/sourceAlphabetPickerActivityTitle"/>
+
+        <activity
             android:name=".SpanEditorActivity"
             android:label="@string/spanEditorActivityTitle"/>
 

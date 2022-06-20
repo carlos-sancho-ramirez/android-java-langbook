@@ -1,10 +1,8 @@
 package sword.langbook3.android.controllers;
 
 import android.os.Parcel;
-import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.Procedure;
@@ -23,16 +21,17 @@ import sword.langbook3.android.presenters.Presenter;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
 
-public final class ConversionEditorController implements ConversionEditorActivity.Controller {
+public final class AddAlphabetConversionEditorControllerForSelectedAcceptation implements ConversionEditorActivity.Controller {
 
     @NonNull
     private final AlphabetId _sourceAlphabet;
+
+    @NonNull
     private final AlphabetId _targetAlphabet;
 
-    public ConversionEditorController(@NonNull AlphabetId sourceAlphabet, AlphabetId targetAlphabet) {
+    public AddAlphabetConversionEditorControllerForSelectedAcceptation(@NonNull AlphabetId sourceAlphabet, @NonNull AlphabetId targetAlphabet) {
         ensureNonNull(sourceAlphabet);
         ensureValidArguments(!sourceAlphabet.equals(targetAlphabet));
-        ensureValidArguments(targetAlphabet == null || DbManager.getInstance().getManager().getLanguageFromAlphabet(sourceAlphabet).equals(DbManager.getInstance().getManager().getLanguageFromAlphabet(targetAlphabet)));
 
         _sourceAlphabet = sourceAlphabet;
         _targetAlphabet = targetAlphabet;
@@ -66,29 +65,21 @@ public final class ConversionEditorController implements ConversionEditorActivit
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
 
         final String sourceText = checker.readConceptText(_sourceAlphabet.getConceptId(), preferredAlphabet);
-        final String targetText = (_targetAlphabet != null)? checker.readConceptText(_targetAlphabet.getConceptId(), preferredAlphabet) : "?";
-        presenter.setTitle(sourceText + " -> " + targetText);
+        final String targetText = checker.readConceptText(_targetAlphabet.getConceptId(), preferredAlphabet);
+        presenter.setTitle(R.string.conversionEditorTitle, sourceText, targetText);
 
-        final Conversion<AlphabetId> conversion = (_targetAlphabet != null)? checker.getConversion(new ImmutablePair<>(_sourceAlphabet, _targetAlphabet)) :
-                new Conversion<>(_sourceAlphabet, null, ImmutableHashMap.empty());
-        procedure.apply(conversion);
+        procedure.apply(checker.getConversion(new ImmutablePair<>(_sourceAlphabet, _targetAlphabet)));
     }
 
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull Conversion<AlphabetId> conversion) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         if (checkConflicts(presenter, manager, conversion)) {
-            if (manager.isAlphabetPresent(_targetAlphabet)) {
-                if (manager.replaceConversion(conversion)) {
-                    presenter.displayFeedback(R.string.updateConversionFeedback);
-                    presenter.finish();
-                }
-                else {
-                    throw new AssertionError("Unexpected");
-                }
-            }
-            else {
-                presenter.finish(conversion);
+            final boolean ok = DbManager.getInstance().getManager().addAlphabetAsConversionTarget(conversion);
+            presenter.displayFeedback(ok? R.string.includeAlphabetFeedback : R.string.includeAlphabetKo);
+
+            if (ok) {
+                presenter.finish();
             }
         }
     }
@@ -104,18 +95,18 @@ public final class ConversionEditorController implements ConversionEditorActivit
         AlphabetIdParceler.write(dest, _targetAlphabet);
     }
 
-    public static final Parcelable.Creator<ConversionEditorController> CREATOR = new Parcelable.Creator<ConversionEditorController>() {
+    public static final Creator<AddAlphabetConversionEditorControllerForSelectedAcceptation> CREATOR = new Creator<AddAlphabetConversionEditorControllerForSelectedAcceptation>() {
 
         @Override
-        public ConversionEditorController createFromParcel(Parcel source) {
+        public AddAlphabetConversionEditorControllerForSelectedAcceptation createFromParcel(Parcel source) {
             final AlphabetId sourceAlphabet = AlphabetIdParceler.read(source);
             final AlphabetId targetAlphabet = AlphabetIdParceler.read(source);
-            return new ConversionEditorController(sourceAlphabet, targetAlphabet);
+            return new AddAlphabetConversionEditorControllerForSelectedAcceptation(sourceAlphabet, targetAlphabet);
         }
 
         @Override
-        public ConversionEditorController[] newArray(int size) {
-            return new ConversionEditorController[size];
+        public AddAlphabetConversionEditorControllerForSelectedAcceptation[] newArray(int size) {
+            return new AddAlphabetConversionEditorControllerForSelectedAcceptation[size];
         }
     };
 }

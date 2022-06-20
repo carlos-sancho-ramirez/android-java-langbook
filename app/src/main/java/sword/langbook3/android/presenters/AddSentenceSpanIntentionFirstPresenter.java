@@ -40,4 +40,14 @@ public final class AddSentenceSpanIntentionFirstPresenter extends AbstractPresen
     public void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray) {
         throw new UnsupportedOperationException("Unexpected");
     }
+
+    @Override
+    public void setTitle(String title) {
+        throw new UnsupportedOperationException("Unexpected");
+    }
+
+    @Override
+    public void setTitle(int title, String param1, String param2) {
+        throw new UnsupportedOperationException("Unexpected");
+    }
 }
