@@ -13,7 +13,7 @@
     <string name="sentenceEditorActivityTitle">Type your sentence</string>
     <string name="spanEditorActivityTitle">Add spans</string>
     <string name="correlationPickerActivityTitle">Select its correlation</string>
-    <string name="definitionEditorActivityTitle">Define this acceptation</string>
+    <string name="definitionEditorActivityTitle">Definition for %s</string>
     <string name="acceptationPickerActivityTitle">Select an acceptation</string>
     <string name="matchingBunchesPickerActivityTitle">Include in bunches</string>
     <string name="quizSelectorActivityTitle">Select a quiz</string>
@@ -265,4 +265,7 @@
     <string name="unableToConvertTwoWords">Failing to convert words %s and %s</string>
     <string name="unableToConvertSeveralWords">Failing to convert word %s and other %s words</string>
     <string name="alreadyUsedAsAlphabet">Already used as alphabet</string>
+    <string name="alreadyUsedAsDefiningConcept">This matches the concept under definition</string>
+    <string name="alreadyUsedAsDefinitionComplement">Already used as definition concept</string>
+    <string name="complementsContainsBaseError">Base concept is contained in complements as well</string>
 </resources>

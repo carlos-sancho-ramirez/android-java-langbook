@@ -184,7 +184,7 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             return true;
         }
         else if (itemId == R.id.menuItemIncludeDefinition) {
-            DefinitionEditorActivity.open(this, REQUEST_CODE_PICK_DEFINITION);
+            Intentions.addDefinition(this, REQUEST_CODE_PICK_DEFINITION, _acceptation);
             return true;
         }
         else if (itemId == R.id.menuItemDeleteDefinition) {
@@ -231,9 +231,6 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
                 showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {
-                final DefinitionEditorActivity.State values = data.getParcelableExtra(DefinitionEditorActivity.ResultKeys.VALUES);
-                manager.addDefinition(values.baseConcept, _model.getConcept(), values.complements);
-                showFeedback(getString(R.string.includeSupertypeOk));
                 if (updateModelAndUi()) {
                     invalidateOptionsMenu();
                 }

@@ -4,11 +4,14 @@ import android.app.Activity;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
+import sword.collections.ImmutableSet;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.db.ParcelableBunchIdSet;
 import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
 import sword.langbook3.android.models.Conversion;
@@ -45,6 +48,15 @@ public final class DefaultPresenter extends AbstractPresenter {
     public void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray) {
         final Intent intent = new Intent();
         intent.putExtra(BundleKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(correlationArray));
+        _activity.setResult(Activity.RESULT_OK, intent);
+        _activity.finish();
+    }
+
+    @Override
+    public void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray, @NonNull ImmutableSet<BunchId> bunchSet) {
+        final Intent intent = new Intent();
+        intent.putExtra(BundleKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(correlationArray));
+        intent.putExtra(BundleKeys.BUNCH_SET, new ParcelableBunchIdSet(bunchSet));
         _activity.setResult(Activity.RESULT_OK, intent);
         _activity.finish();
     }

@@ -5,6 +5,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationConfirmationActivity;
+import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.ConversionEditorActivity;
 import sword.langbook3.android.CorrelationPickerActivity;
@@ -47,6 +48,11 @@ abstract class AbstractPresenter implements Presenter {
     @Override
     public void openAcceptationConfirmation(int requestCode, @NonNull AcceptationConfirmationActivity.Controller controller) {
         AcceptationConfirmationActivity.open(_activity, requestCode, controller);
+    }
+
+    @Override
+    public void openAcceptationPicker(int requestCode, @NonNull AcceptationPickerActivity.Controller controller) {
+        AcceptationPickerActivity.open(_activity, requestCode, controller);
     }
 
     @Override

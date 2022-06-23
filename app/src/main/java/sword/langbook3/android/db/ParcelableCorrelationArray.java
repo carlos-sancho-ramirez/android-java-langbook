@@ -3,18 +3,21 @@ package sword.langbook3.android.db;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 public final class ParcelableCorrelationArray implements Parcelable {
 
+    @NonNull
     private final ImmutableCorrelationArray<AlphabetId> _array;
 
-    public ParcelableCorrelationArray(ImmutableCorrelationArray<AlphabetId> array) {
-        if (array == null) {
-            throw new IllegalArgumentException();
-        }
-
+    public ParcelableCorrelationArray(@NonNull ImmutableCorrelationArray<AlphabetId> array) {
+        ensureNonNull(array);
         _array = array;
     }
 
+    @NonNull
     public ImmutableCorrelationArray<AlphabetId> get() {
         return _array;
     }

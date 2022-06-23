@@ -59,9 +59,7 @@
             android:name=".CorrelationPickerActivity"
             android:label="@string/correlationPickerActivityTitle"/>
 
-        <activity
-            android:name=".DefinitionEditorActivity"
-            android:label="@string/definitionEditorActivityTitle"/>
+        <activity android:name=".DefinitionEditorActivity"/>
 
         <activity
             android:name=".MatchingBunchesPickerActivity"
