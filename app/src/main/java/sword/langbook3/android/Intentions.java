@@ -7,6 +7,10 @@ import android.content.Intent;
 import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
+import sword.langbook3.android.controllers.AddAgentAgentEditorController;
+import sword.langbook3.android.controllers.AddAgentAgentEditorControllerWithDiff;
+import sword.langbook3.android.controllers.AddAgentAgentEditorControllerWithSource;
+import sword.langbook3.android.controllers.AddAgentAgentEditorControllerWithTarget;
 import sword.langbook3.android.controllers.AddAlphabetAcceptationPickerController;
 import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
 import sword.langbook3.android.controllers.AddDefinitionDefinitionEditorController;
@@ -19,6 +23,7 @@ import sword.langbook3.android.controllers.LinkAcceptationAcceptationPickerContr
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.presenters.AddSentenceSpanIntentionFirstPresenter;
 import sword.langbook3.android.presenters.DefaultPresenter;
@@ -35,6 +40,54 @@ public final class Intentions {
 
     public static void addAcceptation(@NonNull Activity activity, int requestCode, String query) {
         new AddAcceptationLanguagePickerController(query).fire(new DefaultPresenter(activity), requestCode);
+    }
+
+    /**
+     * Allow the user to add a new agent into the database.
+     *
+     * @param context Context to be used to start the activity.
+     */
+    public static void addAgent(@NonNull Context context) {
+        AgentEditorActivity.open(context, new AddAgentAgentEditorController());
+    }
+
+    /**
+     * Allow the user to add a new agent into the database.
+     *
+     * This intention will provide a initial value for the target bunch of the new created agent.
+     * This will not prevent the user to change the target bunch if required.
+     *
+     * @param context Context to be used to start the activity.
+     * @param target Bunch to be used as target bunch in the new created agent.
+     */
+    public static void addAgentWithTarget(@NonNull Context context, @NonNull BunchId target) {
+        AgentEditorActivity.open(context, new AddAgentAgentEditorControllerWithTarget(target));
+    }
+
+    /**
+     * Allow the user to add a new agent into the database.
+     *
+     * This intention will provide a initial value for the source bunch of the new created agent.
+     * This will not prevent the user to change the source bunch if required.
+     *
+     * @param context Context to be used to start the activity.
+     * @param source Bunch to be used as source bunch in the new created agent.
+     */
+    public static void addAgentWithSource(@NonNull Context context, @NonNull BunchId source) {
+        AgentEditorActivity.open(context, new AddAgentAgentEditorControllerWithSource(source));
+    }
+
+    /**
+     * Allow the user to add a new agent into the database.
+     *
+     * This intention will provide a initial value for the diff bunch of the new created agent.
+     * This will not prevent the user to change the diff bunch if required.
+     *
+     * @param context Context to be used to start the activity.
+     * @param diff Bunch to be used as diff bunch in the new created agent.
+     */
+    public static void addAgentWithDiff(@NonNull Context context, @NonNull BunchId diff) {
+        AgentEditorActivity.open(context, new AddAgentAgentEditorControllerWithDiff(diff));
     }
 
     /**
