@@ -533,7 +533,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.addStartAdderButton:
-                Intentions.defineCorrelationArray(this, REQUEST_CODE_DEFINE_START_ADDER);
+                IntermediateIntentions.defineCorrelationArray(_presenter, REQUEST_CODE_DEFINE_START_ADDER);
                 break;
 
             case R.id.addEndMatcherButton:
@@ -543,7 +543,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.addEndAdderButton:
-                Intentions.defineCorrelationArray(this, REQUEST_CODE_DEFINE_END_ADDER);
+                IntermediateIntentions.defineCorrelationArray(_presenter, REQUEST_CODE_DEFINE_END_ADDER);
                 break;
 
             case R.id.ruleChangeButton:

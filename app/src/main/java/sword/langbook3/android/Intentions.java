@@ -95,22 +95,6 @@ public final class Intentions {
         return presenter.immediateResult;
     }
 
-    /**
-     * Allow the user to define a correlation array.
-     *
-     * This method will not modify the database state.
-     * The resulting array can be collected by implementing the {@link Activity#onActivityResult(int, int, Intent)}.
-     * If the requestCode matches the given one and the result code is {@link Activity#RESULT_OK},
-     * then the data should not be null and include at least the bundle key {@value BundleKeys#CORRELATION_ARRAY}.
-     *
-     * @param activity Current activity in foreground.
-     * @param requestCode Request code
-     */
-    public static void defineCorrelationArray(@NonNull Activity activity, int requestCode) {
-        new DefineCorrelationArrayLanguagePickerController()
-                .fire(new DefaultPresenter(activity), requestCode);
-    }
-
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
         WordEditorActivity.open(activity, new EditAcceptationWordEditorController(acceptation));
     }

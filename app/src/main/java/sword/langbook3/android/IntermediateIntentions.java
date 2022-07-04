@@ -5,6 +5,7 @@ import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
 import sword.langbook3.android.controllers.PickBunchAcceptationPickerController;
 import sword.langbook3.android.controllers.PickDefinitionBaseAcceptationPickerController;
 import sword.langbook3.android.controllers.PickDefinitionComplementAcceptationPickerController;
@@ -18,6 +19,21 @@ import sword.langbook3.android.presenters.Presenter;
  * All selected or new defined content, will be returned in the {@link Activity#onActivityResult(int, int, Intent)}
  */
 public final class IntermediateIntentions {
+
+    /**
+     * Allow the user to define a correlation array.
+     *
+     * The resulting array can be collected by implementing the {@link Activity#onActivityResult(int, int, Intent)}.
+     * If the requestCode matches the given one and the result code is {@link Activity#RESULT_OK},
+     * then the data should not be null and include at least the bundle key {@value BundleKeys#CORRELATION_ARRAY}.
+     *
+     * @param presenter Presenter to be used
+     * @param requestCode Request code
+     */
+    public static void defineCorrelationArray(@NonNull Presenter presenter, int requestCode) {
+        new DefineCorrelationArrayLanguagePickerController()
+                .fire(presenter, requestCode);
+    }
 
     /**
      * Intermediate intention that allow the user to select an acceptation that will be used as a bunch, or defining a new one.
