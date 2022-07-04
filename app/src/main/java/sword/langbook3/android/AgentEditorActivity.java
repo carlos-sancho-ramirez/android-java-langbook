@@ -28,7 +28,6 @@ import sword.collections.List;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableList;
 import sword.collections.MutableSet;
-import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AgentId;
@@ -547,7 +546,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
                 break;
 
             case R.id.ruleChangeButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_RULE, new AcceptationPickerController(null));
+                IntermediateIntentions.pickRule(_presenter, REQUEST_CODE_PICK_RULE);
                 break;
 
             case R.id.startAdderRemoveButton:
@@ -601,7 +600,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
     }
 
-    private void saveBunchIntoTheDatabase(@NonNull Intent data, @NonNull LangbookDbManager manager, @NonNull ConceptId concept) {
+    private void saveAcceptationIntoTheDatabase(@NonNull Intent data, @NonNull LangbookDbManager manager, @NonNull ConceptId concept) {
         final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(BundleKeys.CORRELATION_ARRAY);
         final ParcelableBunchIdSet bunchIdSet = data.getParcelableExtra(BundleKeys.BUNCH_SET);
         final AcceptationId newAcceptation = manager.addAcceptation(concept, parcelableCorrelationArray.get());
@@ -636,7 +635,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             else {
                 // TODO: This should not be saved until the user finish the agent edition
                 final ConceptId concept = manager.getNextAvailableConceptId();
-                saveBunchIntoTheDatabase(data, manager, concept);
+                saveAcceptationIntoTheDatabase(data, manager, concept);
                 bunch = conceptAsBunchId(concept);
             }
 
@@ -652,7 +651,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             else {
                 // TODO: This should not be saved until the user finish the agent edition
                 final ConceptId concept = manager.getNextAvailableConceptId();
-                saveBunchIntoTheDatabase(data, manager, concept);
+                saveAcceptationIntoTheDatabase(data, manager, concept);
                 bunch = conceptAsBunchId(concept);
             }
 
@@ -668,7 +667,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             else {
                 // TODO: This should not be saved until the user finish the agent edition
                 final ConceptId concept = manager.getNextAvailableConceptId();
-                saveBunchIntoTheDatabase(data, manager, concept);
+                saveAcceptationIntoTheDatabase(data, manager, concept);
                 bunch = conceptAsBunchId(concept);
             }
 
@@ -676,12 +675,17 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             addBunch(manager, bunch, _diffBunchesContainer, _state.diffBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_RULE && resultCode == RESULT_OK) {
-            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-            if (acceptation == null) {
-                throw new AssertionError();
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
+            final ConceptId concept;
+            if (acceptation != null) {
+                concept = manager.conceptFromAcceptation(acceptation);
+            }
+            else {
+                // TODO: This should not be saved until the user finish the agent edition
+                concept = manager.getNextAvailableConceptId();
+                saveAcceptationIntoTheDatabase(data, manager, concept);
             }
 
-            final ConceptId concept = manager.conceptFromAcceptation(acceptation);
             _state.rule = RuleIdManager.conceptAsRuleId(concept);
 
             final String text = manager.readConceptText(concept, _preferredAlphabet);

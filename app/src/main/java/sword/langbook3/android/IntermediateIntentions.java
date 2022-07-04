@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
 import sword.langbook3.android.controllers.PickBunchAcceptationPickerController;
+import sword.langbook3.android.controllers.PickConceptAcceptationPickerController;
 import sword.langbook3.android.controllers.PickDefinitionBaseAcceptationPickerController;
 import sword.langbook3.android.controllers.PickDefinitionComplementAcceptationPickerController;
 import sword.langbook3.android.db.ConceptId;
@@ -54,6 +55,27 @@ public final class IntermediateIntentions {
      */
     public static void pickBunch(@NonNull Presenter presenter, int requestCode) {
         presenter.openAcceptationPicker(requestCode, new PickBunchAcceptationPickerController());
+    }
+
+    /**
+     * Intermediate intention that allow the user to select an acceptation that will be used as a rule, or defining a new one.
+     *
+     * The type of the returned value will change regarding the user selected an
+     * existing acceptation or defined a new one.
+     *
+     * If the user selected an existing acceptation, the result will be an
+     * acceptation identifier and it will come assigned to the bundle key
+     * {@link BundleKeys#ACCEPTATION}.
+     *
+     * If the user defined a new acceptation, all the following results will be returned.
+     * <li>The correlation array, under the {@link BundleKeys#CORRELATION_ARRAY} bundle key</li>
+     * <li>Any matching bunch, under the {@link BundleKeys#BUNCH_SET} bundle key</li>
+     *
+     * @param presenter Presenter to be used
+     * @param requestCode Request code to identify the result in the {@link Activity#onActivityResult(int, int, Intent)}
+     */
+    public static void pickRule(@NonNull Presenter presenter, int requestCode) {
+        presenter.openAcceptationPicker(requestCode, new PickConceptAcceptationPickerController());
     }
 
     /**
