@@ -6,6 +6,7 @@ import android.content.Intent;
 
 import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
+import sword.langbook3.android.controllers.AddAcceptationInBunchAcceptationPickerController;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
 import sword.langbook3.android.controllers.AddAgentAgentEditorController;
 import sword.langbook3.android.controllers.AddAgentAgentEditorControllerWithDiff;
@@ -40,6 +41,10 @@ public final class Intentions {
 
     public static void addAcceptation(@NonNull Activity activity, int requestCode, String query) {
         new AddAcceptationLanguagePickerController(query).fire(new DefaultPresenter(activity), requestCode);
+    }
+
+    public static void addAcceptationInBunch(@NonNull Activity activity, int requestCode, BunchId bunch) {
+        AcceptationPickerActivity.open(activity, requestCode, new AddAcceptationInBunchAcceptationPickerController(bunch));
     }
 
     /**

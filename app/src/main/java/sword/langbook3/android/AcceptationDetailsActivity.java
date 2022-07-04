@@ -171,7 +171,7 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             return true;
         }
         else if (itemId == R.id.menuItemIncludeAcceptation) {
-            AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_ACCEPTATION, new AcceptationPickerController(null));
+            Intentions.addAcceptationInBunch(this, REQUEST_CODE_PICK_ACCEPTATION, conceptAsBunchId(_model.getConcept()));
             return true;
         }
         else if (itemId == R.id.menuItemIncludeInBunch) {
@@ -218,11 +218,6 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             final LangbookDbManager manager = DbManager.getInstance().getManager();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 updateModelAndUi();
-            }
-            else if (requestCode == REQUEST_CODE_PICK_ACCEPTATION) {
-                final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-                final int message = manager.addAcceptationInBunch(conceptAsBunchId(_model.getConcept()), pickedAcceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
-                showFeedback(getString(message));
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
                 final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);

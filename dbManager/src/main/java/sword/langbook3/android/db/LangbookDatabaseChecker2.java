@@ -3329,7 +3329,8 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
         return result;
     }
 
-    boolean isAcceptationStaticallyInBunch(BunchId bunch, AcceptationIdInterface acceptation) {
+    @Override
+    public boolean isAcceptationStaticallyInBunch(BunchId bunch, AcceptationIdInterface acceptation) {
         final LangbookDbSchema.BunchAcceptationsTable table = Tables.bunchAcceptations;
         final DbQuery query = new DbQueryBuilder(table)
                 .where(table.getBunchColumnIndex(), bunch)
