@@ -79,6 +79,11 @@ public final class ImmutableCorrelationArray<AlphabetId> implements Traversable<
         return array;
     }
 
+    public String getDisplayableText(AlphabetId preferredAlphabet) {
+        final ImmutableCorrelation<AlphabetId> correlation = concatenateTexts();
+        return correlation.containsKey(preferredAlphabet)? correlation.get(preferredAlphabet) : correlation.valueAt(0);
+    }
+
     @Override
     public int hashCode() {
         return array.hashCode();

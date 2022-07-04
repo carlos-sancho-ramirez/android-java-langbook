@@ -10,7 +10,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.db.AcceptationId;
@@ -19,12 +18,10 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdSetParceler;
 import sword.langbook3.android.db.CorrelationArrayParceler;
-import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.presenters.DefaultPresenter;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
 
 public final class DefinitionEditorActivity extends Activity {
@@ -72,15 +69,14 @@ public final class DefinitionEditorActivity extends Activity {
             final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
             return DbManager.getInstance().getManager().getAcceptationDisplayableText((AcceptationId) item, preferredAlphabet);
         }
-        else if (item instanceof Controller.AcceptationDefinition) {
-            final ImmutableCorrelation<AlphabetId> correlation = ((Controller.AcceptationDefinition) item).correlationArray.concatenateTexts();
-
+        else if (item instanceof AcceptationDefinition) {
             final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-            return correlation.containsKey(preferredAlphabet)? correlation.get(preferredAlphabet) : correlation.valueAt(0);
+            return ((AcceptationDefinition) item).correlationArray.getDisplayableText(preferredAlphabet);
         }
 
         return null;
     }
+
     private void updateUi() {
         final TextView baseConceptTextView = findViewById(R.id.baseConceptText);
         baseConceptTextView.setText(getStateItemText(_state.getBase()));
@@ -150,13 +146,13 @@ public final class DefinitionEditorActivity extends Activity {
 
         @Override
         public void setBase(@NonNull Object item) {
-            ensureValidArguments(item instanceof AcceptationId || item instanceof Controller.AcceptationDefinition);
+            ensureValidArguments(item instanceof AcceptationId || item instanceof AcceptationDefinition);
             _base = item;
         }
 
         @Override
         public void addComplement(@NonNull Object item) {
-            ensureValidArguments(item instanceof AcceptationId || item instanceof Controller.AcceptationDefinition);
+            ensureValidArguments(item instanceof AcceptationId || item instanceof AcceptationDefinition);
             _complements = _complements.add(item);
         }
 
@@ -166,8 +162,8 @@ public final class DefinitionEditorActivity extends Activity {
         }
 
         private void writeItemToParcel(Parcel dest, Object item) {
-            if (item instanceof Controller.AcceptationDefinition) {
-                final Controller.AcceptationDefinition definition = (Controller.AcceptationDefinition) item;
+            if (item instanceof AcceptationDefinition) {
+                final AcceptationDefinition definition = (AcceptationDefinition) item;
                 CorrelationArrayParceler.write(dest, definition.correlationArray);
                 BunchIdSetParceler.write(dest, definition.bunchSet);
             }
@@ -182,7 +178,7 @@ public final class DefinitionEditorActivity extends Activity {
             dest.writeInt(complementCount);
 
             int typeBitCount = 1;
-            int typeFlags = (_base instanceof Controller.AcceptationDefinition)? 1 : 0;
+            int typeFlags = (_base instanceof AcceptationDefinition)? 1 : 0;
 
             int first = -1;
             for (Object complement : _complements) {
@@ -200,7 +196,7 @@ public final class DefinitionEditorActivity extends Activity {
                     typeFlags = 0;
                 }
 
-                if (complement instanceof Controller.AcceptationDefinition) {
+                if (complement instanceof AcceptationDefinition) {
                     typeFlags |= 1 << typeBitCount;
                 }
                 typeBitCount++;
@@ -218,7 +214,7 @@ public final class DefinitionEditorActivity extends Activity {
                 if (isDefinition) {
                     final ImmutableCorrelationArray<AlphabetId> correlationArray = CorrelationArrayParceler.read(in);
                     final ImmutableSet<BunchId> bunchSet = BunchIdSetParceler.read(in);
-                    return new Controller.AcceptationDefinition(correlationArray, bunchSet);
+                    return new AcceptationDefinition(correlationArray, bunchSet);
                 }
                 else {
                     return AcceptationIdParceler.read(in);
@@ -263,37 +259,6 @@ public final class DefinitionEditorActivity extends Activity {
         void pickComplement(@NonNull Presenter presenter, @NonNull State state);
         void complete(@NonNull Presenter presenter, @NonNull State state);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state);
-
-        final class AcceptationDefinition {
-            public final ImmutableCorrelationArray<AlphabetId> correlationArray;
-            public final ImmutableSet<BunchId> bunchSet;
-
-            public AcceptationDefinition(
-                    @NonNull ImmutableCorrelationArray<AlphabetId> correlationArray,
-                    @NonNull ImmutableSet<BunchId> bunchSet) {
-                ensureNonNull(correlationArray, bunchSet);
-                this.correlationArray = correlationArray;
-                this.bunchSet = bunchSet;
-            }
-
-            @Override
-            public int hashCode() {
-                return correlationArray.hashCode();
-            }
-
-            @Override
-            public boolean equals(@Nullable Object obj) {
-                if (!(obj instanceof AcceptationDefinition)) {
-                    return false;
-                }
-                else if (obj == this) {
-                    return true;
-                }
-
-                final AcceptationDefinition that = (AcceptationDefinition) obj;
-                return correlationArray.equals(that.correlationArray) && bunchSet.equalSet(that.bunchSet);
-            }
-        }
 
         interface State {
             Object getBase();

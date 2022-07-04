@@ -209,6 +209,16 @@
     <string name="agentEditorSaveButton">Save</string>
     <string name="agentEditorRuleDefaultText">Select a rule</string>
 
+    <!-- Agent editor -->
+    <string name="sourceAndDiffBunchError">Unable to include a source bunch used as well as diff bunch</string>
+    <string name="targetBunchUsedAsSourceBunchError">Unable to include a target bunch used as source bunch</string>
+    <string name="targetBunchUsedAsDiffBunchError">Unable to include a target bunch used as diff bunch</string>
+    <string name="duplicateInStartMatcherError">Unable to duplicate alphabets for start matcher</string>
+    <string name="duplicateInEndMatcherError">Unable to duplicate alphabets for end matcher</string>
+    <string name="emptyMatcherEntryError">Matcher entries cannot be empty</string>
+    <string name="sourcesAndMatchersEmptyError">Source bunches and matchers cannot be both empty</string>
+    <string name="requiredRuleError">Rule is required when matcher and adder do not match</string>
+
     <!-- Character compositions -->
     <string name="characterCompositionTypeHeader">Composition Type</string>
     <string name="characterCompositionAsFirstHeader">Composed characters where this is first</string>

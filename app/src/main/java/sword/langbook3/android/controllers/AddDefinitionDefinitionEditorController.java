@@ -7,6 +7,7 @@ import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.AcceptationDefinition;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.DefinitionEditorActivity;
