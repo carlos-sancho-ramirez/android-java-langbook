@@ -15,7 +15,6 @@ import android.widget.Toast;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableList;
 import sword.langbook3.android.collections.SyncCacheMap;
-import sword.langbook3.android.controllers.AgentEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AgentIdBundler;
@@ -176,7 +175,7 @@ public final class AgentDetailsActivity extends Activity implements AdapterView.
     public boolean onOptionsItemSelected(MenuItem item) {
         final int itemId = item.getItemId();
         if (itemId == R.id.menuItemEdit) {
-            AgentEditorActivity.open(this, new AgentEditorController(_agentId, null, null, null));
+            Intentions.editAgent(this, _agentId);
             return true;
         }
         else if (itemId == R.id.menuItemDeleteAgent) {

@@ -14,7 +14,7 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.SortUtils;
-import sword.langbook3.android.controllers.AgentEditorController;
+import sword.langbook3.android.controllers.AddAgentAgentEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -63,7 +63,7 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
                 return true;
 
             case R.id.menuItemNewAgent:
-                AgentEditorActivity.open(this, new AgentEditorController(null, null, null, null));
+                AgentEditorActivity.open(this, new AddAgentAgentEditorController(null, null, null));
                 return true;
 
             case R.id.menuItemSettings:

@@ -1,6 +1,7 @@
 package sword.langbook3.android;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 
 import androidx.annotation.CheckResult;
@@ -11,11 +12,12 @@ import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcce
 import sword.langbook3.android.controllers.AddDefinitionDefinitionEditorController;
 import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
 import sword.langbook3.android.controllers.AddSentenceSpanFixedTextAcceptationPickerController;
-import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
+import sword.langbook3.android.controllers.EditAgentAgentEditorController;
 import sword.langbook3.android.controllers.EditConversionConversionEditorController;
 import sword.langbook3.android.controllers.LinkAcceptationAcceptationPickerController;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.presenters.AddSentenceSpanIntentionFirstPresenter;
@@ -97,6 +99,10 @@ public final class Intentions {
 
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
         WordEditorActivity.open(activity, new EditAcceptationWordEditorController(acceptation));
+    }
+
+    public static void editAgent(@NonNull Context context, @NonNull AgentId agent) {
+        AgentEditorActivity.open(context, new EditAgentAgentEditorController(agent));
     }
 
     public static void editConversion(@NonNull Activity activity, int requestCode, @NonNull AlphabetId sourceAlphabet, @NonNull AlphabetId targetAlphabet) {
