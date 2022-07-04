@@ -32,22 +32,17 @@ import sword.langbook3.android.collections.ListUtils;
 import sword.langbook3.android.collections.MinimumSizeArrayLengthFunction;
 import sword.langbook3.android.collections.Supplier;
 import sword.langbook3.android.collections.TraversableUtils;
-import sword.langbook3.android.controllers.AgentEditorController;
-import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdParceler;
 import sword.langbook3.android.db.BunchId;
-import sword.langbook3.android.db.BunchIdBundler;
 import sword.langbook3.android.db.BunchIdParceler;
 import sword.langbook3.android.db.BunchIdSetParceler;
 import sword.langbook3.android.db.Correlation;
 import sword.langbook3.android.db.CorrelationArrayParceler;
-import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.db.RuleIdParceler;
-import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.presenters.DefaultPresenter;
 import sword.langbook3.android.presenters.Presenter;
 
@@ -65,45 +60,16 @@ public final class AgentEditorActivity extends Activity {
 
     private interface ArgKeys {
         String CONTROLLER = BundleKeys.CONTROLLER;
-        String TARGET_BUNCH = BundleKeys.TARGET_BUNCH;
-        String SOURCE_BUNCH = BundleKeys.SOURCE_BUNCH;
-        String DIFF_BUNCH = BundleKeys.DIFF_BUNCH;
     }
 
     private interface SavedKeys {
         String STATE = "st";
     }
 
-    public static void open(Context context) {
+    public static void open(@NonNull Context context, @NonNull Controller controller) {
+        ensureNonNull(context, controller);
         final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.CONTROLLER, new AgentEditorController(null));
-        context.startActivity(intent);
-    }
-
-    public static void openWithTarget(Context context, BunchId targetBunch) {
-        final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.CONTROLLER, new AgentEditorController(null));
-        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.TARGET_BUNCH, targetBunch);
-        context.startActivity(intent);
-    }
-
-    public static void openWithSource(Context context, BunchId sourceBunch) {
-        final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.CONTROLLER, new AgentEditorController(null));
-        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.SOURCE_BUNCH, sourceBunch);
-        context.startActivity(intent);
-    }
-
-    public static void openWithDiff(Context context, BunchId diffBunch) {
-        final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.CONTROLLER, new AgentEditorController(null));
-        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.DIFF_BUNCH, diffBunch);
-        context.startActivity(intent);
-    }
-
-    public static void open(Context context, AgentId agentId) {
-        final Intent intent = new Intent(context, AgentEditorActivity.class);
-        intent.putExtra(ArgKeys.CONTROLLER, new AgentEditorController(agentId));
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
         context.startActivity(intent);
     }
 
@@ -345,7 +311,8 @@ public final class AgentEditorActivity extends Activity {
             _diffBunches = bunches;
         }
 
-        void setStartMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher) {
+        @Override
+        public void setStartMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher) {
             ensureNonNull(matcher);
             _startMatcher = matcher;
         }
@@ -356,7 +323,8 @@ public final class AgentEditorActivity extends Activity {
             _startAdder = adder;
         }
 
-        void setEndMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher) {
+        @Override
+        public void setEndMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher) {
             ensureNonNull(matcher);
             _endMatcher = matcher;
         }
@@ -389,18 +357,6 @@ public final class AgentEditorActivity extends Activity {
     private LinearLayout _startAdderEntry;
     private LinearLayout _endMatchersContainer;
     private LinearLayout _endAdderEntry;
-
-    private BunchId getSourceBunch() {
-        return BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SOURCE_BUNCH);
-    }
-
-    private BunchId getDiffBunch() {
-        return BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.DIFF_BUNCH);
-    }
-
-    private BunchId getTargetBunch() {
-        return BunchIdBundler.readAsIntentExtra(getIntent(), ArgKeys.TARGET_BUNCH);
-    }
 
     private void updateBunchSet(
             @NonNull LangbookDbChecker checker,
@@ -497,31 +453,7 @@ public final class AgentEditorActivity extends Activity {
         }
         else {
             _state = new State();
-
-            final AgentId agentId = _controller.getAgentId();
-            final BunchId sourceBunch = getSourceBunch();
-            final BunchId diffBunch = getDiffBunch();
-            final BunchId targetBunch = getTargetBunch();
-            if (agentId != null) {
-                final AgentDetails<AlphabetId, CorrelationId, BunchId, RuleId> agentDetails = checker.getAgentDetails(agentId);
-                _state.setTargetBunches((ImmutableSet<Object>) ((ImmutableSet) agentDetails.targetBunches));
-                _state.setSourceBunches((ImmutableSet<Object>) ((ImmutableSet) agentDetails.sourceBunches));
-                _state.setDiffBunches((ImmutableSet<Object>) ((ImmutableSet) agentDetails.diffBunches));
-                _state.setStartMatcher(agentDetails.startMatcher.toCorrelationEntryList().toImmutable());
-                _state.setStartAdder(agentDetails.startAdder);
-                _state.setEndMatcher(agentDetails.endMatcher.toCorrelationEntryList().toImmutable());
-                _state.setEndAdder(agentDetails.endAdder);
-                _state.setRule(agentDetails.rule);
-            }
-            else if (targetBunch != null) {
-                _state.setTargetBunches(ImmutableHashSet.empty().add(targetBunch));
-            }
-            else if (sourceBunch != null) {
-                _state.setSourceBunches(ImmutableHashSet.empty().add(sourceBunch));
-            }
-            else if (diffBunch != null) {
-                _state.setDiffBunches(ImmutableHashSet.empty().add(diffBunch));
-            }
+            _controller.setup(_state);
         }
 
         findViewById(R.id.addTargetBunchButton).setOnClickListener(v -> _controller.pickTargetBunch(_presenter));
@@ -784,10 +716,20 @@ public final class AgentEditorActivity extends Activity {
             }
 
             @Override
+            public void setStartMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher) {
+                _state.setStartMatcher(matcher);
+            }
+
+            @Override
             public void setStartAdder(@NonNull ImmutableCorrelationArray<AlphabetId> adder) {
                 _state.setStartAdder(adder);
                 bindAdder(_startAdderEntry, adder);
                 enableFlagAndRuleFields();
+            }
+
+            @Override
+            public void setEndMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher) {
+                _state.setEndMatcher(matcher);
             }
 
             @Override
@@ -870,7 +812,7 @@ public final class AgentEditorActivity extends Activity {
     }
 
     public interface Controller extends Parcelable {
-        AgentId getAgentId();
+        void setup(@NonNull MutableState state);
         void pickTargetBunch(@NonNull Presenter presenter);
         void pickSourceBunch(@NonNull Presenter presenter);
         void pickDiffBunch(@NonNull Presenter presenter);
@@ -910,7 +852,9 @@ public final class AgentEditorActivity extends Activity {
             void setSourceBunches(@NonNull ImmutableSet<Object> bunches);
             void setDiffBunches(@NonNull ImmutableSet<Object> bunches);
 
+            void setStartMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher);
             void setStartAdder(@NonNull ImmutableCorrelationArray<AlphabetId> adder);
+            void setEndMatcher(@NonNull ImmutableList<Correlation.Entry<AlphabetId>> matcher);
             void setEndAdder(@NonNull ImmutableCorrelationArray<AlphabetId> adder);
 
             void setRule(Object rule);

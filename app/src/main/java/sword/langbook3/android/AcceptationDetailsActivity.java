@@ -14,6 +14,7 @@ import android.widget.AdapterView;
 
 import androidx.annotation.NonNull;
 import sword.langbook3.android.controllers.AcceptationPickerController;
+import sword.langbook3.android.controllers.AgentEditorController;
 import sword.langbook3.android.controllers.CharacterCompositionDefinitionEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -197,15 +198,15 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             return true;
         }
         else if (itemId == R.id.menuItemNewAgentAsSource) {
-            AgentEditorActivity.openWithSource(this, conceptAsBunchId(_model.getConcept()));
+            AgentEditorActivity.open(this, new AgentEditorController(null, null, conceptAsBunchId(_model.getConcept()), null));
             return true;
         }
         else if (itemId == R.id.menuItemNewAgentAsDiff) {
-            AgentEditorActivity.openWithDiff(this, conceptAsBunchId(_model.getConcept()));
+            AgentEditorActivity.open(this, new AgentEditorController(null, null, null, conceptAsBunchId(_model.getConcept())));
             return true;
         }
         else if (itemId == R.id.menuItemNewAgentAsTarget) {
-            AgentEditorActivity.openWithTarget(this, conceptAsBunchId(_model.getConcept()));
+            AgentEditorActivity.open(this, new AgentEditorController(null, conceptAsBunchId(_model.getConcept()), null, null));
             return true;
         }
 

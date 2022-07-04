@@ -7,6 +7,7 @@ import android.os.Parcelable;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableHashSet;
@@ -24,15 +25,19 @@ import sword.langbook3.android.db.AgentIdParceler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdManager;
+import sword.langbook3.android.db.BunchIdParceler;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.Correlation;
+import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.ParcelableBunchIdSet;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.db.RuleIdManager;
+import sword.langbook3.android.models.AgentDetails;
 import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
@@ -41,9 +46,15 @@ import static sword.langbook3.android.db.RuleIdManager.conceptAsRuleId;
 public final class AgentEditorController implements AgentEditorActivity.Controller {
 
     private final AgentId _agentId;
+    private final BunchId _initialTargetBunch;
+    private final BunchId _initialSourceBunch;
+    private final BunchId _initialDiffBunch;
 
-    public AgentEditorController(AgentId agentId) {
+    public AgentEditorController(AgentId agentId, BunchId initialTargetBunch, BunchId initialSourceBunch, BunchId initialDiffBunch) {
         _agentId = agentId;
+        _initialTargetBunch = initialTargetBunch;
+        _initialSourceBunch = initialSourceBunch;
+        _initialDiffBunch = initialDiffBunch;
     }
 
     private boolean checkState(@NonNull Presenter presenter, @NonNull State state) {
@@ -160,8 +171,28 @@ public final class AgentEditorController implements AgentEditorActivity.Controll
     }
 
     @Override
-    public AgentId getAgentId() {
-        return _agentId;
+    public void setup(@NonNull MutableState state) {
+        if (_agentId != null) {
+            final LangbookDbChecker checker = DbManager.getInstance().getManager();
+            final AgentDetails<AlphabetId, CorrelationId, BunchId, RuleId> details = checker.getAgentDetails(_agentId);
+            state.setTargetBunches((ImmutableSet<Object>) ((ImmutableSet) details.targetBunches));
+            state.setSourceBunches((ImmutableSet<Object>) ((ImmutableSet) details.sourceBunches));
+            state.setDiffBunches((ImmutableSet<Object>) ((ImmutableSet) details.diffBunches));
+            state.setStartMatcher(details.startMatcher.toCorrelationEntryList().toImmutable());
+            state.setStartAdder(details.startAdder);
+            state.setEndMatcher(details.endMatcher.toCorrelationEntryList().toImmutable());
+            state.setEndAdder(details.endAdder);
+            state.setRule(details.rule);
+        }
+        else if (_initialTargetBunch != null) {
+            state.setTargetBunches(ImmutableHashSet.empty().add(_initialTargetBunch));
+        }
+        else if (_initialSourceBunch != null) {
+            state.setSourceBunches(ImmutableHashSet.empty().add(_initialSourceBunch));
+        }
+        else if (_initialDiffBunch != null) {
+            state.setDiffBunches(ImmutableHashSet.empty().add(_initialDiffBunch));
+        }
     }
 
     @Override
@@ -288,6 +319,9 @@ public final class AgentEditorController implements AgentEditorActivity.Controll
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         AgentIdParceler.write(dest, _agentId);
+        BunchIdParceler.write(dest, _initialTargetBunch);
+        BunchIdParceler.write(dest, _initialSourceBunch);
+        BunchIdParceler.write(dest, _initialDiffBunch);
     }
 
     public static final Parcelable.Creator<AgentEditorController> CREATOR = new Parcelable.Creator<AgentEditorController>() {
@@ -295,7 +329,10 @@ public final class AgentEditorController implements AgentEditorActivity.Controll
         @Override
         public AgentEditorController createFromParcel(Parcel source) {
             final AgentId agentId = AgentIdParceler.read(source);
-            return new AgentEditorController(agentId);
+            final BunchId initialTargetBunch = BunchIdParceler.read(source);
+            final BunchId initialSourceBunch = BunchIdParceler.read(source);
+            final BunchId initialDiffBunch = BunchIdParceler.read(source);
+            return new AgentEditorController(agentId, initialTargetBunch, initialSourceBunch, initialDiffBunch);
         }
 
         @Override
