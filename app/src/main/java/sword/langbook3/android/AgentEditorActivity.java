@@ -20,6 +20,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
@@ -45,11 +46,14 @@ import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.db.ParcelableBunchIdSet;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.db.RuleIdManager;
 import sword.langbook3.android.db.RuleIdParceler;
 import sword.langbook3.android.models.AgentDetails;
+import sword.langbook3.android.presenters.DefaultPresenter;
+import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
 
@@ -182,6 +186,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         };
     }
 
+    private final Presenter _presenter = new DefaultPresenter(this);
     private State _state;
 
     private AlphabetId _preferredAlphabet;
@@ -510,15 +515,15 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.addTargetBunchButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_TARGET_BUNCH, new AcceptationPickerController(null));
+                IntermediateIntentions.pickBunch(_presenter, REQUEST_CODE_PICK_TARGET_BUNCH);
                 break;
 
             case R.id.addSourceBunchButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_SOURCE_BUNCH, new AcceptationPickerController(null));
+                IntermediateIntentions.pickBunch(_presenter, REQUEST_CODE_PICK_SOURCE_BUNCH);
                 break;
 
             case R.id.addDiffBunchButton:
-                AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_DIFF_BUNCH, new AcceptationPickerController(null));
+                IntermediateIntentions.pickBunch(_presenter, REQUEST_CODE_PICK_DIFF_BUNCH);
                 break;
 
             case R.id.addStartMatcherButton:
@@ -596,6 +601,17 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
         }
     }
 
+    private void saveBunchIntoTheDatabase(@NonNull Intent data, @NonNull LangbookDbManager manager, @NonNull ConceptId concept) {
+        final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(BundleKeys.CORRELATION_ARRAY);
+        final ParcelableBunchIdSet bunchIdSet = data.getParcelableExtra(BundleKeys.BUNCH_SET);
+        final AcceptationId newAcceptation = manager.addAcceptation(concept, parcelableCorrelationArray.get());
+        if (bunchIdSet != null) {
+            for (BunchId assignedBunch : bunchIdSet.get()) {
+                manager.addAcceptationInBunch(assignedBunch, newAcceptation);
+            }
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
@@ -612,32 +628,50 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
             enableFlagAndRuleFields();
         }
         else if (requestCode == REQUEST_CODE_PICK_TARGET_BUNCH && resultCode == RESULT_OK) {
-            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-            if (acceptation == null) {
-                throw new AssertionError();
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
+            final BunchId bunch;
+            if (acceptation != null) {
+                bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
+            }
+            else {
+                // TODO: This should not be saved until the user finish the agent edition
+                final ConceptId concept = manager.getNextAvailableConceptId();
+                saveBunchIntoTheDatabase(data, manager, concept);
+                bunch = conceptAsBunchId(concept);
             }
 
-            final BunchId bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
             _state.targetBunches.append(bunch);
             addBunch(DbManager.getInstance().getManager(), bunch, _targetBunchesContainer, _state.targetBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_SOURCE_BUNCH && resultCode == RESULT_OK) {
-            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-            if (acceptation == null) {
-                throw new AssertionError();
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
+            final BunchId bunch;
+            if (acceptation != null) {
+                bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
+            }
+            else {
+                // TODO: This should not be saved until the user finish the agent edition
+                final ConceptId concept = manager.getNextAvailableConceptId();
+                saveBunchIntoTheDatabase(data, manager, concept);
+                bunch = conceptAsBunchId(concept);
             }
 
-            final BunchId concept = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
-            _state.sourceBunches.append(concept);
-            addBunch(DbManager.getInstance().getManager(), concept, _sourceBunchesContainer, _state.sourceBunches);
+            _state.sourceBunches.append(bunch);
+            addBunch(DbManager.getInstance().getManager(), bunch, _sourceBunchesContainer, _state.sourceBunches);
         }
         else if (requestCode == REQUEST_CODE_PICK_DIFF_BUNCH && resultCode == RESULT_OK) {
-            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-            if (acceptation == null) {
-                throw new AssertionError();
+            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
+            final BunchId bunch;
+            if (acceptation != null) {
+                bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
+            }
+            else {
+                // TODO: This should not be saved until the user finish the agent edition
+                final ConceptId concept = manager.getNextAvailableConceptId();
+                saveBunchIntoTheDatabase(data, manager, concept);
+                bunch = conceptAsBunchId(concept);
             }
 
-            final BunchId bunch = conceptAsBunchId(manager.conceptFromAcceptation(acceptation));
             _state.diffBunches.append(bunch);
             addBunch(manager, bunch, _diffBunchesContainer, _state.diffBunches);
         }
@@ -657,7 +691,7 @@ public final class AgentEditorActivity extends Activity implements View.OnClickL
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(SavedKeys.STATE, _state);
     }

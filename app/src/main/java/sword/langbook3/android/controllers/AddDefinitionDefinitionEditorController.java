@@ -10,7 +10,7 @@ import sword.collections.ImmutableSet;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.DefinitionEditorActivity;
-import sword.langbook3.android.Intentions;
+import sword.langbook3.android.IntermediateIntentions;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.R;
 import sword.langbook3.android.db.AcceptationId;
@@ -48,7 +48,7 @@ public final class AddDefinitionDefinitionEditorController implements Definition
     @Override
     public void pickBaseConcept(@NonNull Presenter presenter) {
         final ConceptId definingConcept = DbManager.getInstance().getManager().conceptFromAcceptation(_acceptation);
-        Intentions.pickDefinitionBase(presenter, DefinitionEditorActivity.REQUEST_CODE_PICK_BASE, definingConcept);
+        IntermediateIntentions.pickDefinitionBase(presenter, DefinitionEditorActivity.REQUEST_CODE_PICK_BASE, definingConcept);
     }
 
     private static ImmutableSet<ConceptId> getComplementConcepts(@NonNull State state) {
@@ -64,7 +64,7 @@ public final class AddDefinitionDefinitionEditorController implements Definition
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ConceptId definingConcept = checker.conceptFromAcceptation(_acceptation);
         final ImmutableSet<ConceptId> complementConcepts = getComplementConcepts(state);
-        Intentions.pickDefinitionComplement(presenter, DefinitionEditorActivity.REQUEST_CODE_PICK_COMPLEMENT, definingConcept, complementConcepts);
+        IntermediateIntentions.pickDefinitionComplement(presenter, DefinitionEditorActivity.REQUEST_CODE_PICK_COMPLEMENT, definingConcept, complementConcepts);
     }
 
     @Override
