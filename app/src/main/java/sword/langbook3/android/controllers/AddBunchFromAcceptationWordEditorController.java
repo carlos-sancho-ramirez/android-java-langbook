@@ -6,7 +6,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
-import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
@@ -21,17 +20,12 @@ import sword.collections.MutableIntArraySet;
 import sword.collections.MutableIntSet;
 import sword.collections.MutableMap;
 import sword.collections.MutableSet;
-import sword.langbook3.android.CorrelationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
-import sword.langbook3.android.db.ConceptId;
-import sword.langbook3.android.db.ConceptIdParceler;
-import sword.langbook3.android.db.Correlation;
-import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
@@ -42,36 +36,25 @@ import sword.langbook3.android.presenters.Presenter;
 
 import static android.app.Activity.RESULT_OK;
 import static sword.collections.SortUtils.equal;
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class WordEditorController implements WordEditorActivity.Controller {
+public final class AddBunchFromAcceptationWordEditorController implements WordEditorActivity.Controller {
 
-    private final String _title;
-    private final ConceptId _concept;
-    private final AcceptationId _existingAcceptation;
-    private final ImmutableCorrelation<AlphabetId> _correlation;
+    @NonNull
+    private final AcceptationId _acceptationToBeIncluded;
+
+    @NonNull
     private final LanguageId _language;
     private final String _searchQuery;
-    private final boolean _mustEvaluateConversions;
 
-    public WordEditorController(
-            String title,
-            ConceptId concept,
-            AcceptationId existingAcceptation,
-            ImmutableCorrelation<AlphabetId> correlation,
-            LanguageId language,
-            String searchQuery,
-            boolean mustEvaluateConversions) {
-        _title = title;
-        _concept = concept;
-        _existingAcceptation = existingAcceptation;
-        _correlation = correlation;
+    public AddBunchFromAcceptationWordEditorController(
+            @NonNull AcceptationId acceptationToBeIncluded,
+            @NonNull LanguageId language,
+            String searchQuery) {
+        ensureNonNull(acceptationToBeIncluded, language);
+        _acceptationToBeIncluded = acceptationToBeIncluded;
         _language = language;
         _searchQuery = searchQuery;
-        _mustEvaluateConversions = mustEvaluateConversions;
-    }
-
-    private ImmutableCorrelation<AlphabetId> getArgumentCorrelation() {
-        return (_correlation != null)? _correlation : ImmutableCorrelation.empty();
     }
 
     private ImmutableIntSet findFieldsWhereStringQueryIsValid(
@@ -138,26 +121,13 @@ public final class WordEditorController implements WordEditorActivity.Controller
 
     @Override
     public void setTitle(@NonNull Activity activity) {
-        if (_title != null) {
-            activity.setTitle(_title);
-        }
-    }
-
-    private LanguageId getLanguage() {
-        if (_existingAcceptation != null) {
-            final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = DbManager.getInstance().getManager().readAcceptationTextsAndLanguage(_existingAcceptation);
-            return result.right;
-        }
-        else {
-            return _language;
-        }
+        // Nothing to be done
     }
 
     @Override
     public void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
-        final LanguageId language = getLanguage();
-        final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
+        final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(_language);
         final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
 
         final int alphabetCount = alphabets.size();
@@ -177,35 +147,10 @@ public final class WordEditorController implements WordEditorActivity.Controller
     @Override
     public UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
-        final ImmutableCorrelation<AlphabetId> existingTexts;
-        final LanguageId language;
-        if (_existingAcceptation != null) {
-            final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_existingAcceptation);
-            existingTexts = result.left;
-            language = result.right;
-        }
-        else {
-            existingTexts = getArgumentCorrelation();
-            language = _language;
-        }
 
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableMap<AlphabetId, String> fieldNames;
-        final ImmutableMap<AlphabetId, AlphabetId> fieldConversionsMap;
-        if (language == null) {
-            fieldNames = getArgumentCorrelation().keySet().assign(alphabet -> "");
-            fieldConversionsMap = ImmutableHashMap.empty();
-        }
-        else if (_mustEvaluateConversions) {
-            fieldNames = checker.readAlphabetsForLanguage(language, preferredAlphabet);
-            fieldConversionsMap = checker.findConversions(fieldNames.keySet());
-        }
-        else {
-            final ImmutableMap<AlphabetId, String> alphabetNames = checker.readAlphabetsForLanguage(language, preferredAlphabet);
-            final ImmutableMap<AlphabetId, AlphabetId> conversionMap = checker.findConversions(alphabetNames.keySet());
-            fieldNames = alphabetNames.filterByKeyNot(conversionMap::containsKey);
-            fieldConversionsMap = ImmutableHashMap.empty();
-        }
+        final ImmutableMap<AlphabetId, String> fieldNames = checker.readAlphabetsForLanguage(_language, preferredAlphabet);
+        final ImmutableMap<AlphabetId, AlphabetId> fieldConversionsMap = checker.findConversions(fieldNames.keySet());
 
         final ImmutableIntKeyMap.Builder<FieldConversion> builder = new ImmutableIntKeyMap.Builder<>();
         final ImmutableIntKeyMap.Builder<AlphabetId> indexAlphabetBuilder = new ImmutableIntKeyMap.Builder<>();
@@ -237,10 +182,7 @@ public final class WordEditorController implements WordEditorActivity.Controller
             final ImmutableIntSet queryTextIsValid = findFieldsWhereStringQueryIsValid(conversions, queryText, fieldConversionsMap, fieldIndexAlphabetRelationMap, queryConvertedTexts);
 
             for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
-                final String existingText = existingTexts.get(fieldNames.keyAt(fieldIndex), null);
-                final String proposedText;
-                proposedText = (existingText != null)? existingText :
-                        queryTextIsValid.contains(fieldIndex)? queryText :
+                final String proposedText = queryTextIsValid.contains(fieldIndex)? queryText :
                                 queryConvertedTexts.get(fieldNames.keyAt(fieldIndex), null);
                 newTextsBuilder.append(proposedText);
                 autoSelectText |= proposedText != null;
@@ -256,17 +198,8 @@ public final class WordEditorController implements WordEditorActivity.Controller
 
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts) {
-        final CorrelationPickerActivity.Controller controller;
-        if (!_mustEvaluateConversions) {
-            controller = new CorrelationPickerController(null, null, texts, false);
-        }
-        else if (_existingAcceptation == null) {
-            controller = new CorrelationPickerController(null, _concept, texts, true);
-        }
-        else {
-            controller = new CorrelationPickerController(_existingAcceptation, null, texts, true);
-        }
-        presenter.openCorrelationPicker(WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER, controller);
+        new AddBunchFromAcceptationCorrelationPickerController(_acceptationToBeIncluded, texts)
+                .fire(presenter, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER);
     }
 
     @Override
@@ -284,33 +217,24 @@ public final class WordEditorController implements WordEditorActivity.Controller
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(_title);
-        ConceptIdParceler.write(dest, _concept);
-        AcceptationIdParceler.write(dest, _existingAcceptation);
-        CorrelationParceler.write(dest, _correlation);
+        AcceptationIdParceler.write(dest, _acceptationToBeIncluded);
         LanguageIdParceler.write(dest, _language);
         dest.writeString(_searchQuery);
-        dest.writeInt(_mustEvaluateConversions? 1 : 0);
     }
 
-    public static final Parcelable.Creator<WordEditorController> CREATOR = new Parcelable.Creator<WordEditorController>() {
+    public static final Parcelable.Creator<AddBunchFromAcceptationWordEditorController> CREATOR = new Parcelable.Creator<AddBunchFromAcceptationWordEditorController>() {
 
         @Override
-        public WordEditorController createFromParcel(Parcel source) {
-            final String title = source.readString();
-            final ConceptId concept = ConceptIdParceler.read(source);
-            final AcceptationId existingAcceptation = AcceptationIdParceler.read(source);
-            final Correlation<AlphabetId> rawCorrelation = CorrelationParceler.read(source);
-            final ImmutableCorrelation<AlphabetId> correlation = (rawCorrelation != null)? rawCorrelation.toImmutable() : null;
+        public AddBunchFromAcceptationWordEditorController createFromParcel(Parcel source) {
+            final AcceptationId acceptationToBeIncluded = AcceptationIdParceler.read(source);
             final LanguageId language = LanguageIdParceler.read(source);
             final String searchQuery = source.readString();
-            final boolean mustEvaluateConversions = source.readInt() != 0;
-            return new WordEditorController(title, concept, existingAcceptation, correlation, language, searchQuery, mustEvaluateConversions);
+            return new AddBunchFromAcceptationWordEditorController(acceptationToBeIncluded, language, searchQuery);
         }
 
         @Override
-        public WordEditorController[] newArray(int size) {
-            return new WordEditorController[size];
+        public AddBunchFromAcceptationWordEditorController[] newArray(int size) {
+            return new AddBunchFromAcceptationWordEditorController[size];
         }
     };
 }

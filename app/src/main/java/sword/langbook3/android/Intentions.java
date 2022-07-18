@@ -6,6 +6,7 @@ import android.content.Intent;
 
 import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
+import sword.langbook3.android.controllers.AddBunchFromAcceptationAcceptationPickerController;
 import sword.langbook3.android.controllers.AddAcceptationInBunchAcceptationPickerController;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
 import sword.langbook3.android.controllers.AddAgentAgentEditorController;
@@ -116,6 +117,16 @@ public final class Intentions {
      */
     public static void addAlphabet(@NonNull Activity activity, int requestCode, @NonNull LanguageId language) {
         AcceptationPickerActivity.open(activity, requestCode, new AddAlphabetAcceptationPickerController(language));
+    }
+
+    /**
+     * Allow the user to select an acceptation that will be used as a bunch, and the given acceptation will be included inside.
+     * @param activity Activity to be used to open the intention.
+     * @param requestCode Request code to be used when opening this intention.
+     * @param acceptation Acceptation that will be included in the selected bunch.
+     */
+    public static void addBunchFromAcceptation(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {
+        AcceptationPickerActivity.open(activity, requestCode, new AddBunchFromAcceptationAcceptationPickerController(acceptation));
     }
 
     public static void addDefinition(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {

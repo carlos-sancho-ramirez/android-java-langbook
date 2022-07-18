@@ -13,7 +13,6 @@ import android.view.View;
 import android.widget.AdapterView;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.controllers.AcceptationPickerController;
 import sword.langbook3.android.controllers.CharacterCompositionDefinitionEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -175,7 +174,7 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             return true;
         }
         else if (itemId == R.id.menuItemIncludeInBunch) {
-            AcceptationPickerActivity.open(this, REQUEST_CODE_PICK_BUNCH, new AcceptationPickerController(null));
+            Intentions.addBunchFromAcceptation(this, REQUEST_CODE_PICK_BUNCH, _acceptation);
             return true;
         }
         else if (itemId == R.id.menuItemDeleteAcceptation) {
@@ -215,15 +214,11 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            final LangbookDbManager manager = DbManager.getInstance().getManager();
             if (requestCode == REQUEST_CODE_LINKED_ACCEPTATION) {
                 updateModelAndUi();
             }
             else if (requestCode == REQUEST_CODE_PICK_BUNCH) {
-                final AcceptationId pickedAcceptation = AcceptationIdBundler.readAsIntentExtra(data, AcceptationPickerActivity.ResultKeys.STATIC_ACCEPTATION);
-                final BunchId pickedBunch = (pickedAcceptation != null)? conceptAsBunchId(manager.conceptFromAcceptation(pickedAcceptation)) : null;
-                final int message = manager.addAcceptationInBunch(pickedBunch, _acceptation)? R.string.includeInBunchOk : R.string.includeInBunchKo;
-                showFeedback(getString(message));
+                updateModelAndUi();
             }
             else if (requestCode == REQUEST_CODE_PICK_DEFINITION) {
                 if (updateModelAndUi()) {
