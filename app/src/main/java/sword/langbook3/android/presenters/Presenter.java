@@ -18,6 +18,7 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.models.Conversion;
 
 public interface Presenter {
@@ -26,6 +27,7 @@ public interface Presenter {
     void finish(@NonNull Conversion<AlphabetId> conversion);
     void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray);
     void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray, @NonNull ImmutableSet<BunchId> bunchSet);
+    void finish(@NonNull SentenceId sentence);
 
     void setTitle(String title);
     void setTitle(@StringRes int title, String param1, String param2);
@@ -45,4 +47,6 @@ public interface Presenter {
     void openSourceAlphabetPicker(int requestCode, @NonNull SourceAlphabetPickerActivity.Controller controller);
     void openMatchingBunchesPicker(int requestCode, @NonNull MatchingBunchesPickerActivity.Controller controller);
     void openWordEditor(int requestCode, @NonNull WordEditorActivity.Controller controller);
+
+    AcceptationId fireFixedTextAcceptationPicker(int requestCode, @NonNull String text);
 }

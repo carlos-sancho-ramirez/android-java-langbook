@@ -3,6 +3,8 @@ package sword.langbook3.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
@@ -11,42 +13,29 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableIntRange;
-import sword.collections.ImmutableList;
-import sword.collections.ImmutableMap;
-import sword.collections.ImmutableSet;
-import sword.collections.Map;
-import sword.collections.MutableHashSet;
-import sword.collections.MutableIntList;
+import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
-import sword.collections.Traverser;
+import sword.collections.MutableIntValueSortedMap;
+import sword.langbook3.android.controllers.SpanEditorController;
 import sword.langbook3.android.db.AcceptationId;
-import sword.langbook3.android.db.AcceptationIdBundler;
-import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.ConceptId;
-import sword.langbook3.android.db.ConceptIdBundler;
-import sword.langbook3.android.db.CorrelationId;
-import sword.langbook3.android.db.ImmutableCorrelation;
-import sword.langbook3.android.db.LangbookDbChecker;
-import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.SentenceId;
-import sword.langbook3.android.db.SentenceIdBundler;
 import sword.langbook3.android.models.SentenceSpan;
+import sword.langbook3.android.presenters.DefaultPresenter;
+import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class SpanEditorActivity extends Activity implements ActionMode.Callback {
 
-    private static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
+    public static final int REQUEST_CODE_PICK_ACCEPTATION = 1;
 
     private interface ArgKeys {
-        String ACCEPTATION = BundleKeys.ACCEPTATION;
-        String CONCEPT = BundleKeys.CONCEPT;
-        String SENTENCE_ID = BundleKeys.SENTENCE_ID;
-        String TEXT = BundleKeys.TEXT;
+        String CONTROLLER = BundleKeys.CONTROLLER;
     }
 
     private interface SavedKeys {
@@ -60,35 +49,31 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     private TextView _sentenceText;
     private ListView _listView;
 
-    private SpanEditorActivityState _state;
+    private final Presenter _presenter = new DefaultPresenter(this);
+    private Controller _controller;
+    private State _state;
+
+    public static void open(@NonNull Activity activity, int requestCode, @NonNull Controller controller) {
+        ensureNonNull(controller);
+        final Intent intent = new Intent(activity, SpanEditorActivity.class);
+        intent.putExtra(ArgKeys.CONTROLLER, controller);
+        activity.startActivityForResult(intent, requestCode);
+    }
 
     static void openWithConcept(Activity activity, int requestCode, String text, ConceptId concept) {
-        final Intent intent = new Intent(activity, SpanEditorActivity.class);
-        intent.putExtra(ArgKeys.TEXT, text);
-        ConceptIdBundler.writeAsIntentExtra(intent, ArgKeys.CONCEPT, concept);
-        activity.startActivityForResult(intent, requestCode);
+        open(activity, requestCode, new SpanEditorController(text, null, concept, null));
     }
 
     static void openWithAcceptation(Activity activity, int requestCode, String text, AcceptationId acceptation) {
-        final Intent intent = new Intent(activity, SpanEditorActivity.class);
-        intent.putExtra(ArgKeys.TEXT, text);
-        AcceptationIdBundler.writeAsIntentExtra(intent, ArgKeys.ACCEPTATION, acceptation);
-        activity.startActivityForResult(intent, requestCode);
+        open(activity, requestCode, new SpanEditorController(text, acceptation, null, null));
     }
 
     static void openWithSentenceId(Activity activity, int requestCode, String text, SentenceId sentenceId) {
-        final Intent intent = new Intent(activity, SpanEditorActivity.class);
-        intent.putExtra(ArgKeys.TEXT, text);
-        SentenceIdBundler.writeAsIntentExtra(intent, ArgKeys.SENTENCE_ID, sentenceId);
-        activity.startActivityForResult(intent, requestCode);
-    }
-
-    private String getText() {
-        return getIntent().getStringExtra(ArgKeys.TEXT);
+        open(activity, requestCode, new SpanEditorController(text, null, null, sentenceId));
     }
 
     private SpannableString getRichText() {
-        final SpannableString string = new SpannableString(getText());
+        final SpannableString string = new SpannableString(_controller.getText());
         final int highlightColor = getResources().getColor(R.color.agentDynamicTextColor);
 
         final MutableIntValueMap<SentenceSpan<AcceptationId>> spans = _state.getSpans();
@@ -103,97 +88,15 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         return string;
     }
 
-    private SentenceId getSentenceId() {
-        return SentenceIdBundler.readAsIntentExtra(getIntent(), ArgKeys.SENTENCE_ID);
-    }
-
-    private AcceptationId getAcceptationId() {
-        return AcceptationIdBundler.readAsIntentExtra(getIntent(), ArgKeys.ACCEPTATION);
-    }
-
-    private ConceptId getConcept() {
-        return ConceptIdBundler.readAsIntentExtra(getIntent(), ArgKeys.CONCEPT);
-    }
-
-    // We should prevent having sentences without neither spans nor other sentence sharing the same meaning,
-    // as it will be not possible to reference them within the app.
-    private boolean shouldAllowNoSpans() {
-        return getSentenceId() != null || getConcept() != null;
-    }
-
-    private void insertInitialSpans(SentenceId sentenceId) {
-        final LangbookDbChecker checker = DbManager.getInstance().getManager();
-        final String sentence = getText();
-        final ImmutableSet<SentenceSpan<AcceptationId>> spans = checker.getSentenceSpans(sentenceId);
-        final MutableIntValueMap<SentenceSpan<AcceptationId>> builder = _state.getSpans();
-        for (SentenceSpan<AcceptationId> span : spans) {
-            final ImmutableList<CorrelationId> correlationIds = checker.getAcceptationCorrelationArray(span.acceptation);
-            final Traverser<CorrelationId> traverser = correlationIds.iterator();
-
-            final ImmutableCorrelation<AlphabetId> firstCorrelation = checker.getCorrelationWithText(traverser.next());
-            final MutableHashSet<ImmutableIntRange> matchingRanges = MutableHashSet.empty();
-            for (String correlationText : firstCorrelation.toSet()) {
-                final MutableIntList matchingIndexes = MutableIntList.empty();
-                int index = 0;
-                while (index >= 0) {
-                    index = sentence.indexOf(correlationText, index);
-                    if (index >= 0) {
-                        matchingIndexes.append(index);
-                        index++;
-                    }
-                }
-                matchingRanges.addAll(matchingIndexes.map(start -> new ImmutableIntRange(start, start + correlationText.length() - 1)));
-            }
-
-            while (traverser.hasNext() && !matchingRanges.isEmpty()) {
-                final ImmutableSet<String> correlationTexts = checker.getCorrelationWithText(traverser.next()).toSet();
-                for (ImmutableIntRange range : matchingRanges.donate()) {
-                    for (String correlationText : correlationTexts) {
-                        if (sentence.substring(range.max() + 1).startsWith(correlationText)) {
-                            matchingRanges.add(new ImmutableIntRange(range.min(), range.max() + correlationText.length()));
-                        }
-                    }
-                }
-            }
-
-            if (matchingRanges.size() == 1) {
-                final ImmutableIntRange range = matchingRanges.valueAt(0);
-                final SentenceSpan<AcceptationId> newSpan = range.equals(span.range)? span : new SentenceSpan<>(range, span.acceptation);
-                builder.put(newSpan, 1);
-            }
-        }
-    }
-
-    private void insertSuggestedSpans(AcceptationId acceptation) {
-        final LangbookDbChecker checker = DbManager.getInstance().getManager();
-        final ImmutableMap<String, AcceptationId> map = checker.readTextAndDynamicAcceptationsMapFromAcceptation(acceptation);
-        final String text = getText();
-        for (Map.Entry<String, AcceptationId> entry : map.entries()) {
-            final int index = text.indexOf(entry.key());
-            if (index >= 0) {
-                final ImmutableIntRange range = new ImmutableIntRange(index, index + entry.key().length() - 1);
-                _state.getSpans().put(new SentenceSpan<>(range, entry.value()), 1);
-                return;
-            }
-        }
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.span_editor_activity);
 
+        _controller = getIntent().getParcelableExtra(ArgKeys.CONTROLLER);
         if (savedInstanceState == null) {
-            _state = new SpanEditorActivityState();
-
-            final SentenceId sentenceId = getSentenceId();
-            final AcceptationId acceptation = getAcceptationId();
-            if (sentenceId != null) {
-                insertInitialSpans(sentenceId);
-            }
-            else if (acceptation != null) {
-                insertSuggestedSpans(acceptation);
-            }
+            _state = new State();
+            _controller.setup(_state);
         }
         else {
             _state = savedInstanceState.getParcelable(SavedKeys.STATE);
@@ -244,47 +147,11 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menuItemConfirm) {
-            evaluateSpans();
+            _controller.complete(_presenter, _state);
             return true;
         }
         else {
             return super.onOptionsItemSelected(item);
-        }
-    }
-
-    private void evaluateSpans() {
-        final ImmutableSet<SentenceSpan<AcceptationId>> spans = _state.getSpans().filter(v -> v != 0).keySet().toImmutable();
-
-        if (spans.isEmpty() && !shouldAllowNoSpans()) {
-            Toast.makeText(this, R.string.spanEditorNoSpanPresentError, Toast.LENGTH_SHORT).show();
-        }
-        else {
-            final String newText = getText();
-            final LangbookDbManager manager = DbManager.getInstance().getManager();
-            final SentenceId sentenceId = getSentenceId();
-            if (sentenceId == null) {
-                ConceptId concept = getConcept();
-                if (concept == null) {
-                    concept = manager.getNextAvailableConceptId();
-                }
-
-                final SentenceId newSentenceId = manager.addSentence(concept, newText, spans);
-                Toast.makeText(this, R.string.includeSentenceFeedback, Toast.LENGTH_SHORT).show();
-
-                final Intent intent = new Intent();
-                SentenceIdBundler.writeAsIntentExtra(intent, ResultKeys.SENTENCE_ID, newSentenceId);
-                setResult(RESULT_OK, intent);
-            }
-            else {
-                if (!manager.updateSentenceTextAndSpans(sentenceId, newText, spans)) {
-                    throw new AssertionError();
-                }
-
-                Toast.makeText(this, R.string.updateSentenceFeedback, Toast.LENGTH_SHORT).show();
-                setResult(RESULT_OK);
-            }
-
-            finish();
         }
     }
 
@@ -294,36 +161,171 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
         final ImmutableIntRange range = new ImmutableIntRange(start, end - 1);
         final String query = _sentenceText.getText().toString().substring(start, end);
-        _state.setSelection(range);
 
-        final AcceptationId immediateResult = Intentions.addSentenceSpan(this, REQUEST_CODE_PICK_ACCEPTATION, query);
-        if (immediateResult != null) {
-            final MutableIntValueMap<SentenceSpan<AcceptationId>> spans = _state.getSpans();
-            spans.put(new SentenceSpan<>(range, immediateResult), 1);
-            _sentenceText.setText(getRichText());
-            _listView.setAdapter(new SpanEditorAdapter(getText(), spans, map -> _sentenceText.setText(getRichText())));
-        }
+        final Controller.MutableState innerState = new Controller.MutableState() {
+
+            @Override
+            public IntValueMap<SentenceSpan<AcceptationId>> getSpans() {
+                return _state.getSpans();
+            }
+
+            @Override
+            public void putSpan(SentenceSpan<AcceptationId> key) {
+                _state.putSpan(key);
+                _sentenceText.setText(getRichText());
+                setAdapter();
+            }
+
+            @Override
+            public void setSelection(ImmutableIntRange range) {
+                _state.setSelection(range);
+            }
+
+            @Override
+            public ImmutableIntRange getSelection() {
+                return _state.getSelection();
+            }
+        };
+
+        _state.setSelection(range);
+        _controller.pickAcceptation(_presenter, innerState, query);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_PICK_ACCEPTATION && resultCode == RESULT_OK && data != null) {
-            final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
-            ensureNonNull(acceptation);
-            _state.getSpans().put(new SentenceSpan<>(_state.getSelection(), acceptation), 1);
-            _sentenceText.setText(getRichText());
-        }
+        super.onActivityResult(requestCode, resultCode, data);
+        _controller.onActivityResult(this, requestCode, resultCode, data, _state);
+    }
+
+    private void setAdapter() {
+        _listView.setAdapter(new SpanEditorAdapter(_controller.getText(), _state.getSpans(), map -> _sentenceText.setText(getRichText())));
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        _listView.setAdapter(new SpanEditorAdapter(getText(), _state.getSpans(), map -> _sentenceText.setText(getRichText())));
+        setAdapter();
     }
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(SavedKeys.STATE, _state);
+    }
+
+    public static final class State implements Controller.MutableState, Parcelable {
+        private final MutableIntValueMap<SentenceSpan<AcceptationId>> _spans = MutableIntValueSortedMap.empty((a, b) -> a.range.min() < b.range.min());
+        private ImmutableIntRange _selection;
+
+        @Override
+        public ImmutableIntRange getSelection() {
+            return _selection;
+        }
+
+        @Override
+        public void putSpan(SentenceSpan<AcceptationId> key) {
+            _spans.put(key, 1);
+        }
+
+        @Override
+        public void setSelection(ImmutableIntRange range) {
+            if (range != null && range.min() < 0) {
+                throw new IllegalArgumentException();
+            }
+
+            _selection = range;
+        }
+
+        @Override
+        public MutableIntValueMap<SentenceSpan<AcceptationId>> getSpans() {
+            return _spans;
+        }
+
+        public static final Creator<State> CREATOR = new Creator<State>() {
+            @Override
+            public State createFromParcel(Parcel in) {
+                final State state = new State();
+                final int start = in.readInt();
+                if (start >= 0) {
+                    final int end = in.readInt();
+                    state.setSelection(new ImmutableIntRange(start, end));
+                }
+
+                sentenceSpanSetFromParcel(state.getSpans(), in);
+                return state;
+            }
+
+            @Override
+            public State[] newArray(int size) {
+                return new State[size];
+            }
+        };
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            if (_selection != null) {
+                dest.writeInt(_selection.min());
+                dest.writeInt(_selection.max());
+            }
+            else {
+                dest.writeInt(-1);
+            }
+
+            writeSentenceSpanSetToParcel(dest);
+        }
+
+        public static void writeSpanToParcel(@NonNull SentenceSpan<AcceptationId> span, @NonNull Parcel dest) {
+            dest.writeInt(span.range.min());
+            dest.writeInt(span.range.max());
+            AcceptationIdParceler.write(dest, span.acceptation);
+        }
+
+        @NonNull
+        public static SentenceSpan<AcceptationId> spanFromParcel(@NonNull Parcel in) {
+            final int start = in.readInt();
+            final int end = in.readInt();
+            final AcceptationId acc = AcceptationIdParceler.read(in);
+            return new SentenceSpan<>(new ImmutableIntRange(start, end), acc);
+        }
+
+        private static void sentenceSpanSetFromParcel(MutableIntValueMap<SentenceSpan<AcceptationId>> builder, Parcel in) {
+            final int size = in.readInt();
+            for (int i = 0; i < size; i++) {
+                builder.put(spanFromParcel(in), in.readInt());
+            }
+        }
+
+        private void writeSentenceSpanSetToParcel(@NonNull Parcel dest) {
+            final int size = _spans.size();
+            dest.writeInt(size);
+            for (int i = 0; i < size; i++) {
+                writeSpanToParcel(_spans.keyAt(i), dest);
+                dest.writeInt(_spans.valueAt(i));
+            }
+        }
+    }
+
+    public interface Controller extends Parcelable {
+        @NonNull
+        String getText();
+        void setup(@NonNull MutableState state);
+        void pickAcceptation(@NonNull Presenter presenter, @NonNull MutableState state, @NonNull String query);
+        void complete(@NonNull Presenter presenter, @NonNull State state);
+        void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state);
+
+        interface State {
+            ImmutableIntRange getSelection();
+            IntValueMap<SentenceSpan<AcceptationId>> getSpans();
+        }
+
+        interface MutableState extends State {
+            void putSpan(SentenceSpan<AcceptationId> key);
+            void setSelection(ImmutableIntRange range);
+        }
     }
 }

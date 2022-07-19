@@ -10,11 +10,13 @@ import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.ConversionEditorActivity;
 import sword.langbook3.android.CorrelationPickerActivity;
 import sword.langbook3.android.FixedTextAcceptationPickerActivity;
+import sword.langbook3.android.Intentions;
 import sword.langbook3.android.LanguagePickerActivity;
 import sword.langbook3.android.LinkageMechanismSelectorActivity;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
 import sword.langbook3.android.SourceAlphabetPickerActivity;
 import sword.langbook3.android.WordEditorActivity;
+import sword.langbook3.android.db.AcceptationId;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
@@ -98,5 +100,10 @@ abstract class AbstractPresenter implements Presenter {
     @Override
     public void openMatchingBunchesPicker(int requestCode, @NonNull MatchingBunchesPickerActivity.Controller controller) {
         MatchingBunchesPickerActivity.open(_activity, requestCode, controller);
+    }
+
+    @Override
+    public AcceptationId fireFixedTextAcceptationPicker(int requestCode, @NonNull String text) {
+        return Intentions.addSentenceSpan(_activity, requestCode, text);
     }
 }

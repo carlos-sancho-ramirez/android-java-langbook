@@ -8,6 +8,7 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
@@ -45,6 +46,11 @@ public final class AddSentenceSpanIntentionFirstPresenter extends AbstractPresen
 
     @Override
     public void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray, @NonNull ImmutableSet<BunchId> bunchSet) {
+        throw new UnsupportedOperationException("Unexpected");
+    }
+
+    @Override
+    public void finish(@NonNull SentenceId sentence) {
         throw new UnsupportedOperationException("Unexpected");
     }
 

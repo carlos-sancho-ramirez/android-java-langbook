@@ -14,6 +14,8 @@ import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.ParcelableBunchIdSet;
 import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
+import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.db.SentenceIdBundler;
 import sword.langbook3.android.models.Conversion;
 
 public final class DefaultPresenter extends AbstractPresenter {
@@ -57,6 +59,14 @@ public final class DefaultPresenter extends AbstractPresenter {
         final Intent intent = new Intent();
         intent.putExtra(BundleKeys.CORRELATION_ARRAY, new ParcelableCorrelationArray(correlationArray));
         intent.putExtra(BundleKeys.BUNCH_SET, new ParcelableBunchIdSet(bunchSet));
+        _activity.setResult(Activity.RESULT_OK, intent);
+        _activity.finish();
+    }
+
+    @Override
+    public void finish(@NonNull SentenceId sentence) {
+        final Intent intent = new Intent();
+        SentenceIdBundler.writeAsIntentExtra(intent, BundleKeys.SENTENCE_ID, sentence);
         _activity.setResult(Activity.RESULT_OK, intent);
         _activity.finish();
     }
