@@ -19,11 +19,14 @@ import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
 import sword.langbook3.android.controllers.EditAgentAgentEditorController;
 import sword.langbook3.android.controllers.EditConversionConversionEditorController;
 import sword.langbook3.android.controllers.LinkAcceptationAcceptationPickerController;
+import sword.langbook3.android.controllers.SentenceEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class Intentions {
@@ -129,6 +132,31 @@ public final class Intentions {
         DefinitionEditorActivity.open(activity, requestCode, new AddDefinitionDefinitionEditorController(acceptation));
     }
 
+    /**
+     * Allow the user to create a new sentence.
+     *
+     * As sentences are always created from the acceptation details, it is
+     * expected that the user will create a sentence including that acceptation.
+     *
+     * @param activity Activity to be used to open the intention.
+     * @param requestCode Request code to be used when opening this intention.
+     * @param acceptation Acceptation expected to be found in the new sentence.
+     */
+    public static void addSentence(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {
+        SentenceEditorActivity.open(activity, requestCode, new SentenceEditorController(acceptation, null, null));
+    }
+
+    /**
+     * Allow the user to create a new sentence which will be a synonym or a translation of an existing one.
+     *
+     * @param activity Activity to be used to start the new activity.
+     * @param requestCode request code.
+     * @param concept Concept for the existing sentence.
+     */
+    public static void addSynonymSentence(@NonNull Activity activity, int requestCode, @NonNull ConceptId concept) {
+        SentenceEditorActivity.open(activity, requestCode, new SentenceEditorController(null, concept, null));
+    }
+
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
         WordEditorActivity.open(activity, new EditAcceptationWordEditorController(acceptation));
     }
@@ -139,6 +167,17 @@ public final class Intentions {
 
     public static void editConversion(@NonNull Activity activity, int requestCode, @NonNull AlphabetId sourceAlphabet, @NonNull AlphabetId targetAlphabet) {
         ConversionEditorActivity.open(activity, requestCode, new EditConversionConversionEditorController(sourceAlphabet, targetAlphabet));
+    }
+
+    /**
+     * Allow the user to edit an existing sentence.
+     *
+     * @param activity Activity to be used to open the new intention.
+     * @param requestCode Request code to be used when opening the new intention.
+     * @param sentence Identifier for the sentence to be edited.
+     */
+    public static void editSentence(@NonNull Activity activity, int requestCode, @NonNull SentenceId sentence) {
+        SentenceEditorActivity.open(activity, requestCode, new SentenceEditorController(null, null, sentence));
     }
 
     /**

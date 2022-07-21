@@ -192,7 +192,7 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
             return true;
         }
         else if (itemId == R.id.menuItemNewSentence) {
-            SentenceEditorActivity.openWithAcceptation(this, REQUEST_CODE_CREATE_SENTENCE, _acceptation);
+            Intentions.addSentence(this, REQUEST_CODE_CREATE_SENTENCE, _acceptation);
             return true;
         }
         else if (itemId == R.id.menuItemNewAgentAsSource) {

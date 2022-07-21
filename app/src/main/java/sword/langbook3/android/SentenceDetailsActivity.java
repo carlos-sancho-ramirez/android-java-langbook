@@ -138,19 +138,22 @@ public final class SentenceDetailsActivity extends Activity implements DialogInt
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemEdit:
-                SentenceEditorActivity.openWithSentenceId(this, REQUEST_CODE_EDIT, getSentenceId());
-                return true;
-            case R.id.menuItemDelete:
-                _displayingDeleteDialog = true;
-                showDeleteConfirmationDialog();
-                return true;
-            case R.id.menuItemLinkSentence:
-                SentenceEditorActivity.openWithConcept(this, REQUEST_CODE_NEW, _model.concept);
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
+        final int itemId = item.getItemId();
+        if (itemId == R.id.menuItemEdit) {
+            Intentions.editSentence(this, REQUEST_CODE_EDIT, getSentenceId());
+            return true;
+        }
+        else if (itemId == R.id.menuItemDelete) {
+            _displayingDeleteDialog = true;
+            showDeleteConfirmationDialog();
+            return true;
+        }
+        else if (itemId == R.id.menuItemLinkSentence) {
+            Intentions.addSynonymSentence(this, REQUEST_CODE_NEW, _model.concept);
+            return true;
+        }
+        else {
+            return super.onOptionsItemSelected(item);
         }
     }
 

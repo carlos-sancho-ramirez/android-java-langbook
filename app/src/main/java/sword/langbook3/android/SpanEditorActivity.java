@@ -20,16 +20,13 @@ import sword.collections.ImmutableSet;
 import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
 import sword.collections.MutableIntValueSortedMap;
-import sword.langbook3.android.controllers.SpanEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdSetParceler;
-import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.CorrelationArrayParceler;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
-import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.presenters.DefaultPresenter;
 import sword.langbook3.android.presenters.Presenter;
@@ -64,18 +61,6 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final Intent intent = new Intent(activity, SpanEditorActivity.class);
         intent.putExtra(ArgKeys.CONTROLLER, controller);
         activity.startActivityForResult(intent, requestCode);
-    }
-
-    static void openWithConcept(Activity activity, int requestCode, String text, ConceptId concept) {
-        open(activity, requestCode, new SpanEditorController(text, null, concept, null));
-    }
-
-    static void openWithAcceptation(Activity activity, int requestCode, String text, AcceptationId acceptation) {
-        open(activity, requestCode, new SpanEditorController(text, acceptation, null, null));
-    }
-
-    static void openWithSentenceId(Activity activity, int requestCode, String text, SentenceId sentenceId) {
-        open(activity, requestCode, new SpanEditorController(text, null, null, sentenceId));
     }
 
     private SpannableString getRichText() {

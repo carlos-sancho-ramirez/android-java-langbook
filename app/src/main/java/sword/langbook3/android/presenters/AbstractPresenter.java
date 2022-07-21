@@ -16,6 +16,7 @@ import sword.langbook3.android.LanguagePickerActivity;
 import sword.langbook3.android.LinkageMechanismSelectorActivity;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
 import sword.langbook3.android.SourceAlphabetPickerActivity;
+import sword.langbook3.android.SpanEditorActivity;
 import sword.langbook3.android.WordEditorActivity;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
@@ -90,6 +91,11 @@ abstract class AbstractPresenter implements Presenter {
     @Override
     public void openSourceAlphabetPicker(int requestCode, @NonNull SourceAlphabetPickerActivity.Controller controller) {
         SourceAlphabetPickerActivity.open(_activity, requestCode, controller);
+    }
+
+    @Override
+    public void openSpanEditor(int requestCode, @NonNull SpanEditorActivity.Controller controller) {
+        SpanEditorActivity.open(_activity, requestCode, controller);
     }
 
     @Override
