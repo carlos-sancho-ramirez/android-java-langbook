@@ -146,6 +146,30 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
     }
 
+    private final class InnerState implements Controller.MutableState {
+        @Override
+        public IntValueMap<SentenceSpan<Object>> getSpans() {
+            return _state.getSpans();
+        }
+
+        @Override
+        public void putSpan(SentenceSpan<Object> key) {
+            _state.putSpan(key);
+            _sentenceText.setText(getRichText());
+            setAdapter();
+        }
+
+        @Override
+        public void setSelection(ImmutableIntRange range) {
+            _state.setSelection(range);
+        }
+
+        @Override
+        public ImmutableIntRange getSelection() {
+            return _state.getSelection();
+        }
+    }
+
     private void addSpan() {
         final int start = _sentenceText.getSelectionStart();
         final int end = _sentenceText.getSelectionEnd();
@@ -153,39 +177,14 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final ImmutableIntRange range = new ImmutableIntRange(start, end - 1);
         final String query = _sentenceText.getText().toString().substring(start, end);
 
-        final Controller.MutableState innerState = new Controller.MutableState() {
-
-            @Override
-            public IntValueMap<SentenceSpan<Object>> getSpans() {
-                return _state.getSpans();
-            }
-
-            @Override
-            public void putSpan(SentenceSpan<Object> key) {
-                _state.putSpan(key);
-                _sentenceText.setText(getRichText());
-                setAdapter();
-            }
-
-            @Override
-            public void setSelection(ImmutableIntRange range) {
-                _state.setSelection(range);
-            }
-
-            @Override
-            public ImmutableIntRange getSelection() {
-                return _state.getSelection();
-            }
-        };
-
         _state.setSelection(range);
-        _controller.pickAcceptation(_presenter, innerState, query);
+        _controller.pickAcceptation(_presenter, new InnerState(), query);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        _controller.onActivityResult(this, requestCode, resultCode, data, _state);
+        _controller.onActivityResult(this, requestCode, resultCode, data, new InnerState());
     }
 
     private void setAdapter() {
