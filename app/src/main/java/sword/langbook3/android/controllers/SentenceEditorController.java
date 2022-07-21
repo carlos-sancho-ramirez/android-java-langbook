@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import sword.collections.Procedure;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.SentenceEditorActivity;
+import sword.langbook3.android.SpanEditorActivity;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.ConceptId;
@@ -43,9 +44,9 @@ public final class SentenceEditorController implements SentenceEditorActivity.Co
 
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull String text) {
-        final SpanEditorController controller = (_acceptation != null)? new SpanEditorController(text, _acceptation, null, null) :
-                (_sentence == null)? new SpanEditorController(text, null, _concept, null) :
-                        new SpanEditorController(text, null, null, _sentence);
+        final SpanEditorActivity.Controller controller = (_acceptation != null)? new AddSentenceSpanEditorController(text, _acceptation) :
+                (_sentence == null)? new AddSynonymSentenceSpanEditorController(text, _concept) :
+                        new EditSentenceSpanEditorController(text, _sentence);
         presenter.openSpanEditor(SentenceEditorActivity.REQUEST_CODE_ADD_SPAN, controller);
     }
 
