@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.AcceptationConfirmationActivity;
+import sword.langbook3.android.AcceptationDefinition;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.ConversionEditorActivity;
@@ -48,5 +49,5 @@ public interface Presenter {
     void openMatchingBunchesPicker(int requestCode, @NonNull MatchingBunchesPickerActivity.Controller controller);
     void openWordEditor(int requestCode, @NonNull WordEditorActivity.Controller controller);
 
-    AcceptationId fireFixedTextAcceptationPicker(int requestCode, @NonNull String text);
+    AcceptationDefinition fireFixedTextAcceptationPicker(int requestCode, @NonNull String text);
 }

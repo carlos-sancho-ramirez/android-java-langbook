@@ -14,6 +14,7 @@ import sword.collections.Map;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntList;
 import sword.collections.Traverser;
+import sword.langbook3.android.AcceptationDefinition;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
@@ -22,12 +23,15 @@ import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdParceler;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.db.ParcelableBunchIdSet;
+import sword.langbook3.android.db.ParcelableCorrelationArray;
 import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.db.SentenceIdParceler;
 import sword.langbook3.android.models.SentenceSpan;
@@ -96,7 +100,8 @@ public final class SpanEditorController implements SpanEditorActivity.Controller
 
             if (matchingRanges.size() == 1) {
                 final ImmutableIntRange range = matchingRanges.valueAt(0);
-                final SentenceSpan<AcceptationId> newSpan = range.equals(span.range)? span : new SentenceSpan<>(range, span.acceptation);
+                final SentenceSpan<Object> newSpan = range.equals(span.range)? ((SentenceSpan<Object>) ((SentenceSpan) span)) :
+                        new SentenceSpan<>(range, span.acceptation);
                 state.putSpan(newSpan);
             }
         }
@@ -131,27 +136,41 @@ public final class SpanEditorController implements SpanEditorActivity.Controller
         }
     }
 
-    private void setPickedAcceptation(@NonNull MutableState state, @NonNull AcceptationId acceptation) {
-        state.putSpan(new SentenceSpan<>(state.getSelection(), acceptation));
+    private void setPickedAcceptation(@NonNull MutableState state, @NonNull Object item) {
+        state.putSpan(new SentenceSpan<>(state.getSelection(), item));
     }
 
     @Override
     public void pickAcceptation(@NonNull Presenter presenter, @NonNull MutableState state, @NonNull String query) {
-        final AcceptationId immediateResult = presenter.fireFixedTextAcceptationPicker(SpanEditorActivity.REQUEST_CODE_PICK_ACCEPTATION, query);
+        final Object immediateResult = presenter.fireFixedTextAcceptationPicker(SpanEditorActivity.REQUEST_CODE_PICK_ACCEPTATION, query);
         if (immediateResult != null) {
             setPickedAcceptation(state, immediateResult);
         }
     }
 
+    private AcceptationId storeAcceptationDefinition(@NonNull AcceptationDefinition definition) {
+        final LangbookDbManager manager = DbManager.getInstance().getManager();
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        final AcceptationId acceptation = manager.addAcceptation(concept, definition.correlationArray);
+        for (BunchId bunch : definition.bunchSet) {
+            manager.addAcceptationInBunch(bunch, acceptation);
+        }
+        return acceptation;
+    }
+
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull State state) {
-        final ImmutableSet<SentenceSpan<AcceptationId>> spans = state.getSpans().filter(v -> v != 0).keySet().toImmutable();
+        final ImmutableSet<SentenceSpan<Object>> rawSpans = state.getSpans().filter(v -> v != 0).keySet().toImmutable();
 
-        if (spans.isEmpty() && !shouldAllowNoSpans()) {
+        if (rawSpans.isEmpty() && !shouldAllowNoSpans()) {
             presenter.displayFeedback(R.string.spanEditorNoSpanPresentError);
         }
         else {
             final LangbookDbManager manager = DbManager.getInstance().getManager();
+            final ImmutableSet<SentenceSpan<AcceptationId>> spans = rawSpans.map(span ->
+                    (span.acceptation instanceof AcceptationId)? (SentenceSpan<AcceptationId>) ((SentenceSpan) span) :
+                            new SentenceSpan<>(span.range, storeAcceptationDefinition((AcceptationDefinition) span.acceptation))).toSet();
+
             if (_sentence == null) {
                 ConceptId concept = _concept;
                 if (concept == null) {
@@ -177,8 +196,17 @@ public final class SpanEditorController implements SpanEditorActivity.Controller
     public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state) {
         if (requestCode == SpanEditorActivity.REQUEST_CODE_PICK_ACCEPTATION && resultCode == Activity.RESULT_OK && data != null) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
-            ensureNonNull(acceptation);
-            setPickedAcceptation(state, acceptation);
+            final Object item;
+            if (acceptation != null) {
+                item = acceptation;
+            }
+            else {
+                final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(BundleKeys.CORRELATION_ARRAY);
+                final ParcelableBunchIdSet bunchIdSet = data.getParcelableExtra(BundleKeys.BUNCH_SET);
+                item = new AcceptationDefinition(parcelableCorrelationArray.get(), bunchIdSet.get());
+            }
+
+            setPickedAcceptation(state, item);
         }
     }
 

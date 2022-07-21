@@ -16,13 +16,19 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableIntRange;
+import sword.collections.ImmutableSet;
 import sword.collections.IntValueMap;
 import sword.collections.MutableIntValueMap;
 import sword.collections.MutableIntValueSortedMap;
 import sword.langbook3.android.controllers.SpanEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
+import sword.langbook3.android.db.AlphabetId;
+import sword.langbook3.android.db.BunchId;
+import sword.langbook3.android.db.BunchIdSetParceler;
 import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.db.CorrelationArrayParceler;
+import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.presenters.DefaultPresenter;
@@ -76,11 +82,11 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final SpannableString string = new SpannableString(_controller.getText());
         final int highlightColor = getResources().getColor(R.color.agentDynamicTextColor);
 
-        final MutableIntValueMap<SentenceSpan<AcceptationId>> spans = _state.getSpans();
+        final MutableIntValueMap<SentenceSpan<Object>> spans = _state.getSpans();
         final int spanCount = _state.getSpans().size();
         for (int spanIndex = 0; spanIndex < spanCount; spanIndex++) {
             if (spans.valueAt(spanIndex) != 0) {
-                final SentenceSpan<AcceptationId> span = spans.keyAt(spanIndex);
+                final SentenceSpan<Object> span = spans.keyAt(spanIndex);
                 string.setSpan(new ForegroundColorSpan(highlightColor), span.range.min(), span.range.max() + 1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
             }
         }
@@ -165,12 +171,12 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         final Controller.MutableState innerState = new Controller.MutableState() {
 
             @Override
-            public IntValueMap<SentenceSpan<AcceptationId>> getSpans() {
+            public IntValueMap<SentenceSpan<Object>> getSpans() {
                 return _state.getSpans();
             }
 
             @Override
-            public void putSpan(SentenceSpan<AcceptationId> key) {
+            public void putSpan(SentenceSpan<Object> key) {
                 _state.putSpan(key);
                 _sentenceText.setText(getRichText());
                 setAdapter();
@@ -214,7 +220,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
     }
 
     public static final class State implements Controller.MutableState, Parcelable {
-        private final MutableIntValueMap<SentenceSpan<AcceptationId>> _spans = MutableIntValueSortedMap.empty((a, b) -> a.range.min() < b.range.min());
+        private final MutableIntValueMap<SentenceSpan<Object>> _spans = MutableIntValueSortedMap.empty((a, b) -> a.range.min() < b.range.min());
         private ImmutableIntRange _selection;
 
         @Override
@@ -223,7 +229,7 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
 
         @Override
-        public void putSpan(SentenceSpan<AcceptationId> key) {
+        public void putSpan(SentenceSpan<Object> key) {
             _spans.put(key, 1);
         }
 
@@ -237,33 +243,64 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
         }
 
         @Override
-        public MutableIntValueMap<SentenceSpan<AcceptationId>> getSpans() {
+        public MutableIntValueMap<SentenceSpan<Object>> getSpans() {
             return _spans;
         }
-
-        public static final Creator<State> CREATOR = new Creator<State>() {
-            @Override
-            public State createFromParcel(Parcel in) {
-                final State state = new State();
-                final int start = in.readInt();
-                if (start >= 0) {
-                    final int end = in.readInt();
-                    state.setSelection(new ImmutableIntRange(start, end));
-                }
-
-                sentenceSpanSetFromParcel(state.getSpans(), in);
-                return state;
-            }
-
-            @Override
-            public State[] newArray(int size) {
-                return new State[size];
-            }
-        };
 
         @Override
         public int describeContents() {
             return 0;
+        }
+
+        private static void writeSpanToParcel(@NonNull SentenceSpan<Object> span, @NonNull Parcel dest) {
+            dest.writeInt(span.range.min());
+            dest.writeInt(span.range.max());
+            if (span.acceptation instanceof AcceptationDefinition) {
+                final AcceptationDefinition definition = (AcceptationDefinition) span.acceptation;
+                CorrelationArrayParceler.write(dest, definition.correlationArray);
+                BunchIdSetParceler.write(dest, definition.bunchSet);
+            }
+            else {
+                AcceptationIdParceler.write(dest, (AcceptationId) span.acceptation);
+            }
+        }
+
+        private void writeSpanSetToParcel(@NonNull Parcel dest) {
+            final int size = _spans.size();
+            dest.writeInt(size);
+
+            int bitCount = 0;
+            int flags = 0;
+            int first = 0;
+            for (IntValueMap.Entry<SentenceSpan<Object>> entry : _spans.entries()) {
+                if (bitCount == 32) {
+                    dest.writeInt(flags);
+
+                    final int oldFirst = first;
+                    first += 16;
+                    for (int index = oldFirst; index < first; index++) {
+                        writeSpanToParcel(_spans.keyAt(index), dest);
+                    }
+
+                    bitCount = 0;
+                    flags = 0;
+                }
+
+                if (entry.key().acceptation instanceof AcceptationDefinition) {
+                    flags |= 1 << bitCount;
+                }
+                bitCount++;
+
+                if (entry.value() != 0) {
+                    flags |= 1 << bitCount;
+                }
+                bitCount++;
+            }
+            dest.writeInt(flags);
+
+            for (int index = first; index < first + bitCount / 2; index++) {
+                writeSpanToParcel(_spans.keyAt(index), dest);
+            }
         }
 
         @Override
@@ -276,38 +313,62 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
                 dest.writeInt(-1);
             }
 
-            writeSentenceSpanSetToParcel(dest);
-        }
-
-        public static void writeSpanToParcel(@NonNull SentenceSpan<AcceptationId> span, @NonNull Parcel dest) {
-            dest.writeInt(span.range.min());
-            dest.writeInt(span.range.max());
-            AcceptationIdParceler.write(dest, span.acceptation);
+            writeSpanSetToParcel(dest);
         }
 
         @NonNull
-        public static SentenceSpan<AcceptationId> spanFromParcel(@NonNull Parcel in) {
+        private static SentenceSpan<Object> spanFromParcel(@NonNull Parcel in, boolean isDefinition) {
             final int start = in.readInt();
             final int end = in.readInt();
-            final AcceptationId acc = AcceptationIdParceler.read(in);
-            return new SentenceSpan<>(new ImmutableIntRange(start, end), acc);
+            final Object item;
+            if (isDefinition) {
+                final ImmutableCorrelationArray<AlphabetId> correlationArray = CorrelationArrayParceler.read(in);
+                final ImmutableSet<BunchId> bunchSet = BunchIdSetParceler.read(in);
+                item = new AcceptationDefinition(correlationArray, bunchSet);
+            }
+            else {
+                item = AcceptationIdParceler.read(in);
+            }
+            return new SentenceSpan<>(new ImmutableIntRange(start, end), item);
         }
 
-        private static void sentenceSpanSetFromParcel(MutableIntValueMap<SentenceSpan<AcceptationId>> builder, Parcel in) {
+        private void spanSetFromParcel(@NonNull Parcel in) {
             final int size = in.readInt();
-            for (int i = 0; i < size; i++) {
-                builder.put(spanFromParcel(in), in.readInt());
+
+            int flags = 0;
+            for (int index = 0; index < size; index++) {
+                if ((index & 0xF) == 0) {
+                    flags = in.readInt();
+                }
+
+                final boolean isDefinition = (flags & 1) != 0;
+                final int value = ((flags & 2) != 0)? 1 : 0;
+                flags >>>= 2;
+
+                final SentenceSpan<Object> span = spanFromParcel(in, isDefinition);
+                _spans.put(span, value);
             }
         }
 
-        private void writeSentenceSpanSetToParcel(@NonNull Parcel dest) {
-            final int size = _spans.size();
-            dest.writeInt(size);
-            for (int i = 0; i < size; i++) {
-                writeSpanToParcel(_spans.keyAt(i), dest);
-                dest.writeInt(_spans.valueAt(i));
+        public static final Creator<State> CREATOR = new Creator<State>() {
+            @Override
+            public State createFromParcel(Parcel in) {
+                final State state = new State();
+                final int start = in.readInt();
+                if (start >= 0) {
+                    final int end = in.readInt();
+                    state.setSelection(new ImmutableIntRange(start, end));
+                }
+
+                state.spanSetFromParcel(in);
+                return state;
             }
-        }
+
+            @Override
+            public State[] newArray(int size) {
+                return new State[size];
+            }
+        };
     }
 
     public interface Controller extends Parcelable {
@@ -320,11 +381,11 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
 
         interface State {
             ImmutableIntRange getSelection();
-            IntValueMap<SentenceSpan<AcceptationId>> getSpans();
+            IntValueMap<SentenceSpan<Object>> getSpans();
         }
 
         interface MutableState extends State {
-            void putSpan(SentenceSpan<AcceptationId> key);
+            void putSpan(SentenceSpan<Object> key);
             void setSelection(ImmutableIntRange range);
         }
     }

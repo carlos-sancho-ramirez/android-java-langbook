@@ -18,12 +18,12 @@ import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddSentenceSpanFixedTextAcceptationPickerController implements FixedTextAcceptationPickerActivity.Controller, Fireable {
+public final class PickSentenceSpanFixedTextAcceptationPickerController implements FixedTextAcceptationPickerActivity.Controller, Fireable {
 
     @NonNull
     private final String _text;
 
-    public AddSentenceSpanFixedTextAcceptationPickerController(@NonNull String text) {
+    public PickSentenceSpanFixedTextAcceptationPickerController(@NonNull String text) {
         ensureNonNull(text);
         _text = text;
     }
@@ -51,7 +51,7 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
     }
 
     private void createAcceptation(@NonNull Presenter presenter, int requestCode) {
-        new AddSentenceSpanLanguagePickerController(_text)
+        new PickSentenceSpanLanguagePickerController(_text)
                 .fire(presenter, requestCode);
     }
 
@@ -83,17 +83,17 @@ public final class AddSentenceSpanFixedTextAcceptationPickerController implement
         dest.writeString(_text);
     }
 
-    public static final Creator<AddSentenceSpanFixedTextAcceptationPickerController> CREATOR = new Creator<AddSentenceSpanFixedTextAcceptationPickerController>() {
+    public static final Creator<PickSentenceSpanFixedTextAcceptationPickerController> CREATOR = new Creator<PickSentenceSpanFixedTextAcceptationPickerController>() {
 
         @Override
-        public AddSentenceSpanFixedTextAcceptationPickerController createFromParcel(Parcel source) {
+        public PickSentenceSpanFixedTextAcceptationPickerController createFromParcel(Parcel source) {
             final String text = source.readString();
-            return new AddSentenceSpanFixedTextAcceptationPickerController(text);
+            return new PickSentenceSpanFixedTextAcceptationPickerController(text);
         }
 
         @Override
-        public AddSentenceSpanFixedTextAcceptationPickerController[] newArray(int size) {
-            return new AddSentenceSpanFixedTextAcceptationPickerController[size];
+        public PickSentenceSpanFixedTextAcceptationPickerController[] newArray(int size) {
+            return new PickSentenceSpanFixedTextAcceptationPickerController[size];
         }
     };
 }

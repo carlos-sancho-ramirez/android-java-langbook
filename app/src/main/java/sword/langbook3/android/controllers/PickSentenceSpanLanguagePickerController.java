@@ -15,12 +15,12 @@ import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddSentenceSpanLanguagePickerController implements LanguagePickerActivity.Controller, Fireable {
+public final class PickSentenceSpanLanguagePickerController implements LanguagePickerActivity.Controller, Fireable {
 
     @NonNull
     private final String _text;
 
-    public AddSentenceSpanLanguagePickerController(@NonNull String text) {
+    public PickSentenceSpanLanguagePickerController(@NonNull String text) {
         ensureNonNull(text);
         _text = text;
     }
@@ -50,7 +50,7 @@ public final class AddSentenceSpanLanguagePickerController implements LanguagePi
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull LanguageId language) {
-        new AddSentenceSpanWordEditorController(language, _text)
+        new PickSentenceSpanWordEditorController(language, _text)
                 .fire(presenter, requestCode);
     }
 
@@ -67,17 +67,17 @@ public final class AddSentenceSpanLanguagePickerController implements LanguagePi
         }
     }
 
-    public static final Creator<AddSentenceSpanLanguagePickerController> CREATOR = new Creator<AddSentenceSpanLanguagePickerController>() {
+    public static final Creator<PickSentenceSpanLanguagePickerController> CREATOR = new Creator<PickSentenceSpanLanguagePickerController>() {
 
         @Override
-        public AddSentenceSpanLanguagePickerController createFromParcel(Parcel source) {
+        public PickSentenceSpanLanguagePickerController createFromParcel(Parcel source) {
             final String text = source.readString();
-            return new AddSentenceSpanLanguagePickerController(text);
+            return new PickSentenceSpanLanguagePickerController(text);
         }
 
         @Override
-        public AddSentenceSpanLanguagePickerController[] newArray(int size) {
-            return new AddSentenceSpanLanguagePickerController[size];
+        public PickSentenceSpanLanguagePickerController[] newArray(int size) {
+            return new PickSentenceSpanLanguagePickerController[size];
         }
     };
 }

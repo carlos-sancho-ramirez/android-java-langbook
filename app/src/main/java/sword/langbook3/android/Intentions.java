@@ -2,11 +2,8 @@ package sword.langbook3.android;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 
-import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
-import sword.langbook3.android.controllers.AddBunchFromAcceptationAcceptationPickerController;
 import sword.langbook3.android.controllers.AddAcceptationInBunchAcceptationPickerController;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
 import sword.langbook3.android.controllers.AddAgentAgentEditorController;
@@ -14,10 +11,10 @@ import sword.langbook3.android.controllers.AddAgentAgentEditorControllerWithDiff
 import sword.langbook3.android.controllers.AddAgentAgentEditorControllerWithSource;
 import sword.langbook3.android.controllers.AddAgentAgentEditorControllerWithTarget;
 import sword.langbook3.android.controllers.AddAlphabetAcceptationPickerController;
+import sword.langbook3.android.controllers.AddBunchFromAcceptationAcceptationPickerController;
 import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
 import sword.langbook3.android.controllers.AddDefinitionDefinitionEditorController;
 import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
-import sword.langbook3.android.controllers.AddSentenceSpanFixedTextAcceptationPickerController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
 import sword.langbook3.android.controllers.EditAgentAgentEditorController;
 import sword.langbook3.android.controllers.EditConversionConversionEditorController;
@@ -27,7 +24,6 @@ import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.LanguageId;
-import sword.langbook3.android.presenters.AddSentenceSpanIntentionFirstPresenter;
 import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class Intentions {
@@ -131,39 +127,6 @@ public final class Intentions {
 
     public static void addDefinition(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {
         DefinitionEditorActivity.open(activity, requestCode, new AddDefinitionDefinitionEditorController(acceptation));
-    }
-
-    /**
-     * Allow the user to select an existing acceptation matching the given text,
-     * or create a new acceptation with the given text.
-     *
-     * This intention is really similar to {@link #addAcceptation(Activity, int, String)}.
-     * But it differs in the fact that the given text is not modifiable by the user,
-     * and must be present in, at least, one of the alphabets of the acceptation.
-     *
-     * This method will modify the database state only if the user decides to create a new acceptation.
-     * In case of success, {@link Activity#onActivityResult(int, int, Intent)}
-     * method will be called for the given activity, and the selected or new
-     * created acceptation identifier will be available in the data coming on
-     * that method with the bundle key {@value BundleKeys#ACCEPTATION}.
-     *
-     * If no input is required by the user at all, it may happen that this
-     * method will not open any new screen. In that case, the result of this
-     * intention will be returned on this method. Developers using this method
-     * should check if the returned value is different from null. If so, the
-     * intention is finished and no call to {@link Activity#onActivityResult(int, int, Intent)}
-     * should be expected.
-     *
-     * @param activity Current activity in foreground.
-     * @param requestCode Request code
-     * @return A new created acceptation matching the given text, or null if user input is required.
-     */
-    @CheckResult
-    public static AcceptationId addSentenceSpan(@NonNull Activity activity, int requestCode, String text) {
-        final AddSentenceSpanIntentionFirstPresenter presenter = new AddSentenceSpanIntentionFirstPresenter(activity);
-        new AddSentenceSpanFixedTextAcceptationPickerController(text)
-                .fire(presenter, requestCode);
-        return presenter.immediateResult;
     }
 
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {

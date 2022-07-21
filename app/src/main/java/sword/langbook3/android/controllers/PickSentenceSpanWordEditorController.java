@@ -36,7 +36,7 @@ import static android.app.Activity.RESULT_OK;
 import static sword.collections.SortUtils.equal;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddSentenceSpanWordEditorController implements WordEditorActivity.Controller, Fireable {
+public final class PickSentenceSpanWordEditorController implements WordEditorActivity.Controller, Fireable {
 
     @NonNull
     private final LanguageId _language;
@@ -44,7 +44,7 @@ public final class AddSentenceSpanWordEditorController implements WordEditorActi
     @NonNull
     private final String _text;
 
-    public AddSentenceSpanWordEditorController(
+    public PickSentenceSpanWordEditorController(
             @NonNull LanguageId language,
             @NonNull String text) {
         ensureNonNull(language, text);
@@ -202,7 +202,7 @@ public final class AddSentenceSpanWordEditorController implements WordEditorActi
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelation<AlphabetId> texts) {
-        new AddAcceptationCorrelationPickerController(texts)
+        new PickSentenceSpanCorrelationPickerController(texts)
                     .fire(presenter, requestCode);
     }
 
@@ -235,18 +235,18 @@ public final class AddSentenceSpanWordEditorController implements WordEditorActi
         dest.writeString(_text);
     }
 
-    public static final Creator<AddSentenceSpanWordEditorController> CREATOR = new Creator<AddSentenceSpanWordEditorController>() {
+    public static final Creator<PickSentenceSpanWordEditorController> CREATOR = new Creator<PickSentenceSpanWordEditorController>() {
 
         @Override
-        public AddSentenceSpanWordEditorController createFromParcel(Parcel source) {
+        public PickSentenceSpanWordEditorController createFromParcel(Parcel source) {
             final LanguageId language = LanguageIdParceler.read(source);
             final String text = source.readString();
-            return new AddSentenceSpanWordEditorController(language, text);
+            return new PickSentenceSpanWordEditorController(language, text);
         }
 
         @Override
-        public AddSentenceSpanWordEditorController[] newArray(int size) {
-            return new AddSentenceSpanWordEditorController[size];
+        public PickSentenceSpanWordEditorController[] newArray(int size) {
+            return new PickSentenceSpanWordEditorController[size];
         }
     };
 }

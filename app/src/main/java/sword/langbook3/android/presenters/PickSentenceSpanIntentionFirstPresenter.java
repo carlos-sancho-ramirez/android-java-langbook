@@ -4,6 +4,7 @@ import android.app.Activity;
 
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
+import sword.langbook3.android.AcceptationDefinition;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
@@ -11,14 +12,13 @@ import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.models.Conversion;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 import static sword.langbook3.android.util.PreconditionUtils.ensureNull;
 
-public final class AddSentenceSpanIntentionFirstPresenter extends AbstractPresenter {
+public final class PickSentenceSpanIntentionFirstPresenter extends AbstractPresenter {
 
-    public AcceptationId immediateResult;
+    public AcceptationDefinition immediateResult;
 
-    public AddSentenceSpanIntentionFirstPresenter(@NonNull Activity activity) {
+    public PickSentenceSpanIntentionFirstPresenter(@NonNull Activity activity) {
         super(activity);
     }
 
@@ -29,9 +29,7 @@ public final class AddSentenceSpanIntentionFirstPresenter extends AbstractPresen
 
     @Override
     public void finish(@NonNull AcceptationId acceptation) {
-        ensureNonNull(acceptation);
-        ensureNull(immediateResult);
-        immediateResult = acceptation;
+        throw new UnsupportedOperationException("Unexpected");
     }
 
     @Override
@@ -46,7 +44,8 @@ public final class AddSentenceSpanIntentionFirstPresenter extends AbstractPresen
 
     @Override
     public void finish(@NonNull ImmutableCorrelationArray<AlphabetId> correlationArray, @NonNull ImmutableSet<BunchId> bunchSet) {
-        throw new UnsupportedOperationException("Unexpected");
+        ensureNull(immediateResult);
+        immediateResult = new AcceptationDefinition(correlationArray, bunchSet);
     }
 
     @Override
