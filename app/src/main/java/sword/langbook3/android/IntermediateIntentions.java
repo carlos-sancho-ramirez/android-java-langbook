@@ -7,7 +7,6 @@ import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.controllers.DefineCorrelationArrayLanguagePickerController;
-import sword.langbook3.android.controllers.PickBunchAcceptationPickerController;
 import sword.langbook3.android.controllers.PickConceptAcceptationPickerController;
 import sword.langbook3.android.controllers.PickDefinitionBaseAcceptationPickerController;
 import sword.langbook3.android.controllers.PickDefinitionComplementAcceptationPickerController;
@@ -57,7 +56,7 @@ public final class IntermediateIntentions {
      * @param requestCode Request code to identify the result in the {@link Activity#onActivityResult(int, int, Intent)}
      */
     public static void pickBunch(@NonNull Presenter presenter, int requestCode) {
-        presenter.openAcceptationPicker(requestCode, new PickBunchAcceptationPickerController());
+        presenter.openAcceptationPicker(requestCode, new PickConceptAcceptationPickerController());
     }
 
     /**
