@@ -253,37 +253,39 @@ public final class SpanEditorActivity extends Activity implements ActionMode.Cal
             final int size = _spans.size();
             dest.writeInt(size);
 
-            int bitCount = 0;
-            int flags = 0;
-            int first = 0;
-            for (IntValueMap.Entry<SentenceSpan<Object>> entry : _spans.entries()) {
-                if (bitCount == 32) {
-                    dest.writeInt(flags);
+            if (size > 0) {
+                int bitCount = 0;
+                int flags = 0;
+                int first = 0;
+                for (IntValueMap.Entry<SentenceSpan<Object>> entry : _spans.entries()) {
+                    if (bitCount == 32) {
+                        dest.writeInt(flags);
 
-                    final int oldFirst = first;
-                    first += 16;
-                    for (int index = oldFirst; index < first; index++) {
-                        writeSpanToParcel(_spans.keyAt(index), dest);
+                        final int oldFirst = first;
+                        first += 16;
+                        for (int index = oldFirst; index < first; index++) {
+                            writeSpanToParcel(_spans.keyAt(index), dest);
+                        }
+
+                        bitCount = 0;
+                        flags = 0;
                     }
 
-                    bitCount = 0;
-                    flags = 0;
-                }
+                    if (entry.key().acceptation instanceof AcceptationDefinition) {
+                        flags |= 1 << bitCount;
+                    }
+                    bitCount++;
 
-                if (entry.key().acceptation instanceof AcceptationDefinition) {
-                    flags |= 1 << bitCount;
+                    if (entry.value() != 0) {
+                        flags |= 1 << bitCount;
+                    }
+                    bitCount++;
                 }
-                bitCount++;
+                dest.writeInt(flags);
 
-                if (entry.value() != 0) {
-                    flags |= 1 << bitCount;
+                for (int index = first; index < first + bitCount / 2; index++) {
+                    writeSpanToParcel(_spans.keyAt(index), dest);
                 }
-                bitCount++;
-            }
-            dest.writeInt(flags);
-
-            for (int index = first; index < first + bitCount / 2; index++) {
-                writeSpanToParcel(_spans.keyAt(index), dest);
             }
         }
 
