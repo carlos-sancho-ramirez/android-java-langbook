@@ -19,7 +19,7 @@ public final class PickBunchAcceptationPickerController implements AcceptationPi
 
     @Override
     public void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation) {
-        presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new PickConceptAcceptationConfirmationController(acceptation));
+        presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
     }
 
     @Override

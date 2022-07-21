@@ -36,7 +36,7 @@ public final class PickDefinitionBaseAcceptationPickerController implements Acce
             presenter.displayFeedback(R.string.alreadyUsedAsDefiningConcept);
         }
         else {
-            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new PickConceptAcceptationConfirmationController(acceptation));
+            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
         }
     }
 

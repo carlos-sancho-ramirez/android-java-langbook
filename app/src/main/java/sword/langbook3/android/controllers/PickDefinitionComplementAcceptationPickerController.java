@@ -53,7 +53,7 @@ public final class PickDefinitionComplementAcceptationPickerController implement
             presenter.displayFeedback(R.string.alreadyUsedAsDefinitionComplement);
         }
         else {
-            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new PickConceptAcceptationConfirmationController(acceptation));
+            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
         }
     }
 
