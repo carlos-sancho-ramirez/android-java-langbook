@@ -84,7 +84,7 @@ public final class AddBunchFromAcceptationCorrelationPickerController implements
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        new AddBunchFromAcceptationMatchingBunchesPickerController(_acceptationToBeIncluded, _texts, selectedOption)
+        new AddBunchFromAcceptationMatchingBunchesPickerController(_acceptationToBeIncluded, selectedOption)
                 .fire(presenter, requestCode);
     }
 

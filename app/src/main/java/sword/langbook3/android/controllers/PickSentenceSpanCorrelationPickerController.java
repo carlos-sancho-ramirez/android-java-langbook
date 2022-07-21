@@ -75,7 +75,7 @@ public final class PickSentenceSpanCorrelationPickerController implements Correl
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        new PickSentenceSpanMatchingBunchesPickerController(_texts, selectedOption)
+        new PickSentenceSpanMatchingBunchesPickerController(selectedOption)
                 .fire(presenter, requestCode);
     }
 

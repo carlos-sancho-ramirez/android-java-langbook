@@ -75,7 +75,7 @@ public final class AddAcceptationCorrelationPickerController implements Correlat
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        new AddAcceptationMatchingBunchesPickerController(_texts, selectedOption)
+        new AddAcceptationMatchingBunchesPickerController(selectedOption)
                 .fire(presenter, requestCode);
     }
 

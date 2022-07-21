@@ -86,7 +86,7 @@ public final class AddAlphabetCorrelationPickerController implements Correlation
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        new AddAlphabetMatchingBunchesPickerController(_alphabetLanguage, _texts, selectedOption)
+        new AddAlphabetMatchingBunchesPickerController(_alphabetLanguage, selectedOption)
                 .fire(presenter, requestCode);
     }
 

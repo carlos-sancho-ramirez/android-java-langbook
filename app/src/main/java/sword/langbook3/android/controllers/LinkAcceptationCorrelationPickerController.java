@@ -81,7 +81,7 @@ public final class LinkAcceptationCorrelationPickerController implements Correla
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        new LinkAcceptationMatchingBunchesPickerController(_concept, _texts, selectedOption)
+        new LinkAcceptationMatchingBunchesPickerController(_concept, selectedOption)
                 .fire(presenter, requestCode);
     }
 

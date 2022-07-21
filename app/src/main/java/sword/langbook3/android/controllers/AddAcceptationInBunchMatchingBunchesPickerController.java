@@ -11,7 +11,6 @@ import sword.collections.Procedure;
 import sword.collections.Set;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
-import sword.langbook3.android.MatchingBunchesPickerActivity;
 import sword.langbook3.android.R;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
@@ -25,20 +24,17 @@ import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddAcceptationInBunchMatchingBunchesPickerController implements MatchingBunchesPickerActivity.Controller, Fireable {
+public final class AddAcceptationInBunchMatchingBunchesPickerController extends AbstractMatchingBunchesPickerController {
 
     @NonNull
     private final BunchId _bunch;
 
-    @NonNull
-    private final ImmutableCorrelationArray<AlphabetId> _correlationArray;
-
     public AddAcceptationInBunchMatchingBunchesPickerController(
             @NonNull BunchId bunch,
             @NonNull ImmutableCorrelationArray<AlphabetId> correlationArray) {
-        ensureNonNull(bunch, correlationArray);
+        super(correlationArray);
+        ensureNonNull(bunch);
         _bunch = bunch;
-        _correlationArray = correlationArray;
     }
 
     @Override
@@ -53,7 +49,7 @@ public final class AddAcceptationInBunchMatchingBunchesPickerController implemen
         }
 
         if (bunches.isEmpty()) {
-            complete(presenter, bunches.keySet());
+            complete(presenter, requestCode, bunches.keySet());
         }
         else {
             presenter.openMatchingBunchesPicker(requestCode, this);
@@ -79,7 +75,7 @@ public final class AddAcceptationInBunchMatchingBunchesPickerController implemen
     }
 
     @Override
-    public void complete(@NonNull Presenter presenter, @NonNull Set<BunchId> selectedBunches) {
+    void complete(@NonNull Presenter presenter, int requestCode, @NonNull Set<BunchId> selectedBunches) {
         final MutableList<BunchId> bunchList = selectedBunches.toList().mutate();
         bunchList.append(_bunch);
 

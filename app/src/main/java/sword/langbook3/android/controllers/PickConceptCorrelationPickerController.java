@@ -81,7 +81,7 @@ public final class PickConceptCorrelationPickerController implements Correlation
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        new PickConceptMatchingBunchesPickerController(_texts, selectedOption)
+        new PickConceptMatchingBunchesPickerController(selectedOption)
                 .fire(presenter, requestCode);
     }
 

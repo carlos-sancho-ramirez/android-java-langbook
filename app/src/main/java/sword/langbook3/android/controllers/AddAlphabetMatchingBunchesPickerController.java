@@ -5,74 +5,31 @@ import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.collections.ImmutableMap;
-import sword.collections.Procedure;
 import sword.collections.Set;
-import sword.langbook3.android.DbManager;
-import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.MatchingBunchesPickerActivity;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.CorrelationArrayParceler;
-import sword.langbook3.android.db.CorrelationParceler;
-import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
-
-public final class AddAlphabetMatchingBunchesPickerController implements MatchingBunchesPickerActivity.Controller, Fireable {
+public final class AddAlphabetMatchingBunchesPickerController extends AbstractMatchingBunchesPickerController {
 
     @NonNull
     private final LanguageId _alphabetLanguage;
 
-    @NonNull
-    private final ImmutableCorrelation<AlphabetId> _correlation;
-
-    @NonNull
-    private final ImmutableCorrelationArray<AlphabetId> _correlationArray;
-
     public AddAlphabetMatchingBunchesPickerController(
             @NonNull LanguageId alphabetLanguage,
-            @NonNull ImmutableCorrelation<AlphabetId> correlation,
             @NonNull ImmutableCorrelationArray<AlphabetId> correlationArray) {
-        ensureNonNull(alphabetLanguage, correlation, correlationArray);
-        ensureValidArguments(!correlationArray.isEmpty());
+        super(correlationArray);
         _alphabetLanguage = alphabetLanguage;
-        _correlation = correlation;
-        _correlationArray = correlationArray;
     }
 
     @Override
-    public void fire(@NonNull Presenter presenter, int requestCode) {
-        // TODO: This can be optimised as no texts are required
-        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(_correlation, preferredAlphabet);
-
-        if (bunches.isEmpty()) {
-            complete(presenter, requestCode, bunches.keySet());
-        }
-        else {
-            presenter.openMatchingBunchesPicker(requestCode, this);
-        }
-    }
-
-    @Override
-    public void loadBunches(@NonNull Presenter presenter, @NonNull Procedure<ImmutableMap<BunchId, String>> procedure) {
-        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(_correlation, preferredAlphabet);
-        procedure.apply(bunches);
-    }
-
-    private void complete(@NonNull Presenter presenter, int requestCode, @NonNull Set<BunchId> selectedBunches) {
+    void complete(@NonNull Presenter presenter, int requestCode, @NonNull Set<BunchId> selectedBunches) {
         presenter.openSourceAlphabetPicker(requestCode, new AddAlphabetSourceAlphabetPickerControllerForNewAcceptation(_alphabetLanguage, _correlationArray, selectedBunches));
-    }
-
-    public void complete(@NonNull Presenter presenter, @NonNull Set<BunchId> selectedBunches) {
-        complete(presenter, MatchingBunchesPickerActivity.REQUEST_CODE_NEXT_STEP, selectedBunches);
     }
 
     @Override
@@ -84,14 +41,8 @@ public final class AddAlphabetMatchingBunchesPickerController implements Matchin
     }
 
     @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
     public void writeToParcel(Parcel dest, int flags) {
         LanguageIdParceler.write(dest, _alphabetLanguage);
-        CorrelationParceler.write(dest, _correlation);
         CorrelationArrayParceler.write(dest, _correlationArray);
     }
 
@@ -100,9 +51,8 @@ public final class AddAlphabetMatchingBunchesPickerController implements Matchin
         @Override
         public AddAlphabetMatchingBunchesPickerController createFromParcel(Parcel source) {
             final LanguageId alphabetLanguage = LanguageIdParceler.read(source);
-            final ImmutableCorrelation<AlphabetId> correlation = CorrelationParceler.read(source).toImmutable();
             final ImmutableCorrelationArray<AlphabetId> correlationArray = CorrelationArrayParceler.read(source);
-            return new AddAlphabetMatchingBunchesPickerController(alphabetLanguage, correlation, correlationArray);
+            return new AddAlphabetMatchingBunchesPickerController(alphabetLanguage, correlationArray);
         }
 
         @Override
