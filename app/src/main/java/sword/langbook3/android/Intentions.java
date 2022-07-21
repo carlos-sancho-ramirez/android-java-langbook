@@ -15,11 +15,13 @@ import sword.langbook3.android.controllers.AddBunchFromAcceptationAcceptationPic
 import sword.langbook3.android.controllers.AddCharacterCompositionDefinitionAcceptationPickerController;
 import sword.langbook3.android.controllers.AddDefinitionDefinitionEditorController;
 import sword.langbook3.android.controllers.AddLanguageLanguageAdderController;
+import sword.langbook3.android.controllers.AddSentenceSentenceEditorController;
+import sword.langbook3.android.controllers.AddSynonymSentenceSentenceEditorController;
 import sword.langbook3.android.controllers.EditAcceptationWordEditorController;
 import sword.langbook3.android.controllers.EditAgentAgentEditorController;
 import sword.langbook3.android.controllers.EditConversionConversionEditorController;
+import sword.langbook3.android.controllers.EditSentenceSentenceEditorController;
 import sword.langbook3.android.controllers.LinkAcceptationAcceptationPickerController;
-import sword.langbook3.android.controllers.SentenceEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.AlphabetId;
@@ -143,7 +145,7 @@ public final class Intentions {
      * @param acceptation Acceptation expected to be found in the new sentence.
      */
     public static void addSentence(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {
-        SentenceEditorActivity.open(activity, requestCode, new SentenceEditorController(acceptation, null, null));
+        SentenceEditorActivity.open(activity, requestCode, new AddSentenceSentenceEditorController(acceptation));
     }
 
     /**
@@ -154,7 +156,7 @@ public final class Intentions {
      * @param concept Concept for the existing sentence.
      */
     public static void addSynonymSentence(@NonNull Activity activity, int requestCode, @NonNull ConceptId concept) {
-        SentenceEditorActivity.open(activity, requestCode, new SentenceEditorController(null, concept, null));
+        SentenceEditorActivity.open(activity, requestCode, new AddSynonymSentenceSentenceEditorController(concept));
     }
 
     public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
@@ -177,7 +179,7 @@ public final class Intentions {
      * @param sentence Identifier for the sentence to be edited.
      */
     public static void editSentence(@NonNull Activity activity, int requestCode, @NonNull SentenceId sentence) {
-        SentenceEditorActivity.open(activity, requestCode, new SentenceEditorController(null, null, sentence));
+        SentenceEditorActivity.open(activity, requestCode, new EditSentenceSentenceEditorController(sentence));
     }
 
     /**
