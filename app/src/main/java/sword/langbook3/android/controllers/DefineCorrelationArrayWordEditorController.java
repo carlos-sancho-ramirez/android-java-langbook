@@ -10,7 +10,6 @@ import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
-import sword.collections.ImmutableSet;
 import sword.collections.MapGetter;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableMap;
@@ -20,7 +19,6 @@ import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
-import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.Conversion;
@@ -45,26 +43,12 @@ public final class DefineCorrelationArrayWordEditorController implements WordEdi
 
     @Override
     public void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions) {
-        final LangbookDbManager manager = DbManager.getInstance().getManager();
-        final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(_language);
-        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
-
-        final int alphabetCount = alphabets.size();
-        for (int targetFieldIndex = 0; targetFieldIndex < alphabetCount; targetFieldIndex++) {
-            final AlphabetId targetAlphabet = alphabets.valueAt(targetFieldIndex);
-            final AlphabetId sourceAlphabet = conversionMap.get(targetAlphabet, null);
-            final ImmutablePair<AlphabetId, AlphabetId> alphabetPair = new ImmutablePair<>(sourceAlphabet, targetAlphabet);
-            final int sourceFieldIndex = (sourceAlphabet != null)? alphabets.indexOf(sourceAlphabet) : -1;
-            if (sourceFieldIndex >= 0) {
-                final String sourceText = texts[sourceFieldIndex];
-                texts[targetFieldIndex] = (sourceText != null)? conversions.get(alphabetPair).convert(sourceText) : null;
-            }
-        }
+        WordEditorControllerUtils.updateConvertedTexts(_language, texts, conversions);
     }
 
     @NonNull
     @Override
-    public UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts) {
+    public UpdateFieldsResult updateFields(@NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
 

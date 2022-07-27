@@ -118,7 +118,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
     private void updateFields() {
         _formPanel.removeAllViews();
         final ImmutableList<String> givenTexts = (_texts != null)? ImmutableList.from(_texts) : null;
-        final Controller.UpdateFieldsResult result = _controller.updateFields(this, _conversions, givenTexts);
+        final Controller.UpdateFieldsResult result = _controller.updateFields(_conversions, givenTexts);
         if (result.texts != givenTexts) {
             final int count = result.texts.size();
             _texts = new String[count];
@@ -233,7 +233,7 @@ public final class WordEditorActivity extends Activity implements View.OnClickLi
         void setTitle(@NonNull Activity activity);
         void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions);
         @NonNull
-        UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts);
+        UpdateFieldsResult updateFields(@NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts);
         void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts);
         void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data);
 

@@ -5,13 +5,10 @@ import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.collections.ImmutableIntArraySet;
 import sword.collections.ImmutableIntKeyMap;
-import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutablePair;
-import sword.collections.ImmutableSet;
 import sword.collections.MapGetter;
 import sword.collections.MutableHashMap;
 import sword.collections.MutableMap;
@@ -23,7 +20,6 @@ import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
-import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.presenters.Presenter;
@@ -52,27 +48,12 @@ public final class EditAcceptationWordEditorController implements WordEditorActi
 
     @Override
     public void updateConvertedTexts(@NonNull String[] texts, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions) {
-        final LangbookDbManager manager = DbManager.getInstance().getManager();
-        final LanguageId language = getLanguage();
-        final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(language);
-        final ImmutableMap<AlphabetId, AlphabetId> conversionMap = manager.findConversions(alphabets);
-
-        final int alphabetCount = alphabets.size();
-        for (int targetFieldIndex = 0; targetFieldIndex < alphabetCount; targetFieldIndex++) {
-            final AlphabetId targetAlphabet = alphabets.valueAt(targetFieldIndex);
-            final AlphabetId sourceAlphabet = conversionMap.get(targetAlphabet, null);
-            final ImmutablePair<AlphabetId, AlphabetId> alphabetPair = new ImmutablePair<>(sourceAlphabet, targetAlphabet);
-            final int sourceFieldIndex = (sourceAlphabet != null)? alphabets.indexOf(sourceAlphabet) : -1;
-            if (sourceFieldIndex >= 0) {
-                final String sourceText = texts[sourceFieldIndex];
-                texts[targetFieldIndex] = (sourceText != null)? conversions.get(alphabetPair).convert(sourceText) : null;
-            }
-        }
+        WordEditorControllerUtils.updateConvertedTexts(getLanguage(), texts, conversions);
     }
 
     @NonNull
     @Override
-    public UpdateFieldsResult updateFields(@NonNull Activity activity, @NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts) {
+    public UpdateFieldsResult updateFields(@NonNull MapGetter<ImmutablePair<AlphabetId, AlphabetId>, Conversion<AlphabetId>> conversions, ImmutableList<String> texts) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ImmutablePair<ImmutableCorrelation<AlphabetId>, LanguageId> result = checker.readAcceptationTextsAndLanguage(_acceptation);
         final ImmutableCorrelation<AlphabetId> existingTexts = result.left;
@@ -107,14 +88,11 @@ public final class EditAcceptationWordEditorController implements WordEditorActi
         final ImmutableList<String> newTexts;
         if (texts == null) {
             final ImmutableList.Builder<String> newTextsBuilder = new ImmutableList.Builder<>((currentSize, newSize) -> fieldCount);
-            final ImmutableIntSet queryTextIsValid = ImmutableIntArraySet.empty();
 
             for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
                 final String existingText = existingTexts.get(fieldNames.keyAt(fieldIndex), null);
-                final String proposedText;
-                proposedText = (existingText != null)? existingText :
-                        queryTextIsValid.contains(fieldIndex)? null :
-                                queryConvertedTexts.get(fieldNames.keyAt(fieldIndex), null);
+                final String proposedText = (existingText != null)? existingText :
+                        queryConvertedTexts.get(fieldNames.keyAt(fieldIndex), null);
                 newTextsBuilder.append(proposedText);
                 autoSelectText |= proposedText != null;
             }
