@@ -202,7 +202,7 @@ public final class PickSentenceSpanWordEditorController implements WordEditorAct
     }
 
     private void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelation<AlphabetId> texts) {
-        new PickSentenceSpanCorrelationPickerController(texts)
+        new PickConceptCorrelationPickerController(texts)
                     .fire(presenter, requestCode);
     }
 
