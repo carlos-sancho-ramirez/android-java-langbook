@@ -9,6 +9,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
@@ -30,11 +31,15 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
     private ImmutableMap<RuleId, String> _ruleTexts;
     private int _dbWriteVersion;
 
+    private boolean isAnyLanguagePresent() {
+        return DbManager.getInstance().getManager().isAnyLanguagePresent();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (savedInstanceState == null && !DbManager.getInstance().getManager().isAnyLanguagePresent()) {
+        if (savedInstanceState == null && !isAnyLanguagePresent()) {
             WelcomeActivity.open(this, REQUEST_CODE_WELCOME);
         }
     }
@@ -52,26 +57,36 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menuItemCheckAlphabets:
-                AlphabetsActivity.open(this);
-                return true;
-
-            case R.id.menuItemQuiz:
+        final int itemId = item.getItemId();
+        if (itemId == R.id.menuItemCheckAlphabets) {
+            AlphabetsActivity.open(this);
+            return true;
+        }
+        else if (itemId == R.id.menuItemQuiz) {
+            if (isAnyLanguagePresent()) {
                 QuizSelectorActivity.open(this, null);
-                return true;
-
-            case R.id.menuItemNewAgent:
+            }
+            else {
+                Toast.makeText(this, R.string.anyLanguageRequired, Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        }
+        else if (itemId == R.id.menuItemNewAgent) {
+            if (isAnyLanguagePresent()) {
                 Intentions.addAgent(this);
-                return true;
-
-            case R.id.menuItemSettings:
-                SettingsActivity.open(this, REQUEST_CODE_OPEN_SETTINGS);
-                return true;
-
-            case R.id.menuItemAbout:
-                AboutActivity.open(this);
-                return true;
+            }
+            else {
+                Toast.makeText(this, R.string.anyLanguageRequired, Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        }
+        else if (itemId == R.id.menuItemSettings) {
+            SettingsActivity.open(this, REQUEST_CODE_OPEN_SETTINGS);
+            return true;
+        }
+        else if (itemId == R.id.menuItemAbout) {
+            AboutActivity.open(this);
+            return true;
         }
 
         return false;
@@ -84,7 +99,12 @@ public final class MainSearchActivity extends SearchActivity implements TextWatc
 
     @Override
     void openLanguagePicker(String query) {
-        Intentions.addAcceptation(this, REQUEST_CODE_NEW_ACCEPTATION, query);
+        if (isAnyLanguagePresent()) {
+            Intentions.addAcceptation(this, REQUEST_CODE_NEW_ACCEPTATION, query);
+        }
+        else {
+            Toast.makeText(this, R.string.anyLanguageRequired, Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

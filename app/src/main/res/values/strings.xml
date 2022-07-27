@@ -28,6 +28,7 @@
 
     <!-- Search activity -->
     <string name="searchFieldHint">Search Here</string>
+    <string name="anyLanguageRequired">Add a language first</string>
 
     <!-- Acceptation details activity sections -->
     <string name="accDetailsSectionSummary">Displaying details for acceptation %s</string>
