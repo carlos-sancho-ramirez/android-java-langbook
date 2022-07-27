@@ -83,7 +83,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
         }
 
         _controller = getIntent().getParcelableExtra(MatchingBunchesPickerActivity.ArgKeys.CONTROLLER);
-        _controller.load(new DefaultPresenter(this), savedInstanceState == null, (options, knownCorrelations) -> {
+        _controller.load(new DefaultPresenter(this), (options, knownCorrelations) -> {
             _options = options;
             _knownCorrelations = knownCorrelations;
 
@@ -124,7 +124,7 @@ public final class CorrelationPickerActivity extends Activity implements View.On
     }
 
     public interface Controller extends Parcelable {
-        void load(@NonNull Presenter presenter, boolean firstTime, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure);
+        void load(@NonNull Presenter presenter, @NonNull Procedure2<ImmutableSet<ImmutableCorrelationArray<AlphabetId>>, ImmutableMap<ImmutableCorrelation<AlphabetId>, CorrelationId>> procedure);
         void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption);
         void onActivityResult(@NonNull Activity activity, @NonNull ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options, int selection, int requestCode, int resultCode, Intent data);
     }
