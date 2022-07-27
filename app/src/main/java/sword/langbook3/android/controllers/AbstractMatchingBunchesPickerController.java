@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
+import sword.collections.ImmutableHashSet;
 import sword.collections.ImmutableMap;
 import sword.collections.Procedure;
 import sword.collections.Set;
@@ -30,15 +31,11 @@ abstract class AbstractMatchingBunchesPickerController implements MatchingBunche
 
     @Override
     public void fire(@NonNull Presenter presenter, int requestCode) {
-        // TODO: This can be optimised as no texts are required
-        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableMap<BunchId, String> bunches = DbManager.getInstance().getManager().readAllMatchingBunches(_correlationArray.concatenateTexts(), preferredAlphabet);
-
-        if (bunches.isEmpty()) {
-            complete(presenter, requestCode, bunches.keySet());
+        if (DbManager.getInstance().getManager().hasMatchingBunches(_correlationArray.concatenateTexts())) {
+            presenter.openMatchingBunchesPicker(requestCode, this);
         }
         else {
-            presenter.openMatchingBunchesPicker(requestCode, this);
+            complete(presenter, requestCode, ImmutableHashSet.empty());
         }
     }
 

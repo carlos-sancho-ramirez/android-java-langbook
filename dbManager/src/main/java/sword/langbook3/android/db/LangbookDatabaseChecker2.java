@@ -766,6 +766,44 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
     }
 
     @Override
+    public boolean hasMatchingBunches(ImmutableCorrelation<AlphabetId> texts) {
+        final LangbookDbSchema.AgentsTable agents = Tables.agents;
+        final DbQuery query = new DbQuery.Builder(agents)
+                .where(agents.getDiffBunchSetColumnIndex(), 0)
+                .select(agents.getSourceBunchSetColumnIndex(),
+                        agents.getStartMatcherColumnIndex(),
+                        agents.getEndMatcherColumnIndex());
+
+        final SyncCacheMap<CorrelationId, ImmutableCorrelation<AlphabetId>> cachedCorrelations =
+                new SyncCacheMap<>(this::getCorrelationWithText);
+        final MutableSet<BunchSetId> validBunchSets = MutableHashSet.empty();
+
+        try (DbResult result = _db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                BunchSetId bunchSet = _bunchSetIdSetter.getKeyFromDbValue(row.get(0));
+                CorrelationId startMatcherId = _correlationIdSetter.getKeyFromDbValue(row.get(1));
+                CorrelationId endMatcherId = _correlationIdSetter.getKeyFromDbValue(row.get(2));
+
+                final ImmutableCorrelation<AlphabetId> startMatcher = cachedCorrelations.get(startMatcherId);
+                final ImmutableCorrelation<AlphabetId> endMatcher = cachedCorrelations.get(endMatcherId);
+                if (checkMatching(startMatcher, endMatcher, texts) && validBunchSets.add(bunchSet) && !bunchSet.isDeclaredEmpty()) {
+                    final LangbookDbSchema.BunchSetsTable table = Tables.bunchSets;
+                    final DbQuery bunchQuery = new DbQueryBuilder(table)
+                            .where(table.getSetIdColumnIndex(), bunchSet)
+                            .select(table.getBunchColumnIndex());
+
+                    if (_db.select(bunchQuery).hasNext()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    @Override
     public DefinitionDetails<ConceptId> getDefinition(ConceptId concept) {
         final LangbookDbSchema.ComplementedConceptsTable complementedConcepts = Tables.complementedConcepts;
         final LangbookDbSchema.ConceptCompositionsTable compositions = Tables.conceptCompositions;
