@@ -12,11 +12,6 @@ public final class BunchId extends ConceptualId implements BunchIdInterface<Conc
     }
 
     @Override
-    public boolean isNoBunchForQuiz() {
-        return key == 0;
-    }
-
-    @Override
     public int hashCode() {
         return key;
     }

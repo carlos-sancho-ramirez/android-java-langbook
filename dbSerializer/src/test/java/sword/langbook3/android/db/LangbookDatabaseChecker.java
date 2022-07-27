@@ -3936,14 +3936,14 @@ abstract class LangbookDatabaseChecker<ConceptId extends ConceptIdInterface, Lan
     private ImmutableSet<AcceptationId> readAllPossibleAcceptationForField(BunchId bunch, QuestionFieldDetails<AlphabetId, RuleId> field) {
         switch (field.getType()) {
             case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_ACC:
-                return bunch.isNoBunchForQuiz()? readAllAcceptations(field.alphabet) : readAllAcceptationsInBunch(field.alphabet, bunch);
+                return (bunch == null)? readAllAcceptations(field.alphabet) : readAllAcceptationsInBunch(field.alphabet, bunch);
 
             case LangbookDbSchema.QuestionFieldFlags.TYPE_SAME_CONCEPT:
-                return bunch.isNoBunchForQuiz()? readAllPossibleSynonymOrTranslationAcceptations(field.alphabet) :
+                return (bunch == null)? readAllPossibleSynonymOrTranslationAcceptations(field.alphabet) :
                         readAllPossibleSynonymOrTranslationAcceptationsInBunch(field.alphabet, bunch);
 
             case LangbookDbSchema.QuestionFieldFlags.TYPE_APPLY_RULE:
-                return bunch.isNoBunchForQuiz()? readAllRulableAcceptations(field.alphabet, field.rule) :
+                return (bunch == null)? readAllRulableAcceptations(field.alphabet, field.rule) :
                         readAllRulableAcceptationsInBunch(field.alphabet, field.rule, bunch);
 
             default:

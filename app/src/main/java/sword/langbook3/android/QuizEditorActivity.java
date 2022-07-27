@@ -37,7 +37,9 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
 
     public static void open(Activity activity, int requestCode, BunchId bunch) {
         Intent intent = new Intent(activity, QuizEditorActivity.class);
-        BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.BUNCH, bunch);
+        if (bunch != null) {
+            BunchIdBundler.writeAsIntentExtra(intent, ArgKeys.BUNCH, bunch);
+        }
         activity.startActivityForResult(intent, requestCode);
     }
 
@@ -232,7 +234,7 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
         final DbManager manager = DbManager.getInstance();
         final LangbookDbChecker checker = manager.getManager();
 
-        if (!_bunch.isNoBunchForQuiz()) {
+        if (_bunch != null) {
             final String bunchText = checker.readConceptText(_bunch.getConceptId(), _preferredAlphabet);
             final TextView bunchField = findViewById(R.id.bunch);
             bunchField.setText(bunchText);
@@ -286,18 +288,15 @@ public final class QuizEditorActivity extends Activity implements View.OnClickLi
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.startButton:
-                startQuiz();
-                break;
-
-            case R.id.addQuestionButton:
-                addField(_questionFields, R.id.questionList);
-                break;
-
-            case R.id.addAnswerButton:
-                addField(_answerFields, R.id.answerList);
-                break;
+        final int id = view.getId();
+        if (id == R.id.startButton) {
+            startQuiz();
+        }
+        else if (id == R.id.addQuestionButton) {
+            addField(_questionFields, R.id.questionList);
+        }
+        else if (id == R.id.addAnswerButton) {
+            addField(_answerFields, R.id.answerList);
         }
     }
 }

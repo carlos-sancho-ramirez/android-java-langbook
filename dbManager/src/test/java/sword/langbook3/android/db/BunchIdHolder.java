@@ -4,8 +4,6 @@ import sword.database.DbIdentifiableQueryBuilder;
 import sword.database.DbSettableQueryBuilder;
 import sword.database.DbValue;
 
-import static sword.langbook3.android.db.LangbookDbSchema.NO_BUNCH;
-
 final class BunchIdHolder implements BunchIdInterface<ConceptIdHolder> {
 
     final int key;
@@ -49,11 +47,6 @@ final class BunchIdHolder implements BunchIdInterface<ConceptIdHolder> {
     @Override
     public ConceptIdHolder getConceptId() {
         return new ConceptIdHolder(key);
-    }
-
-    @Override
-    public boolean isNoBunchForQuiz() {
-        return key == NO_BUNCH;
     }
 
     @Override
