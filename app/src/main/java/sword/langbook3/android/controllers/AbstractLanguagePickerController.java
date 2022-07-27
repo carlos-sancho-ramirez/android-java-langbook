@@ -4,11 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
-import sword.collections.ImmutableMap;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.LanguagePickerActivity;
-import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.presenters.Presenter;
 
@@ -16,15 +13,12 @@ abstract class AbstractLanguagePickerController implements LanguagePickerActivit
 
     @Override
     public void fire(@NonNull Presenter presenter, int requestCode) {
-        // TODO: This can be optimized, as we are only interested in checking if there is just one language or not.
-        final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
-        final ImmutableMap<LanguageId, String> languages = DbManager.getInstance().getManager().readAllLanguages(preferredAlphabet);
-
-        if (languages.size() == 1) {
-            complete(presenter, requestCode, languages.keyAt(0));
+        final LanguageId uniqueLanguage = DbManager.getInstance().getManager().getUniqueLanguage();
+        if (uniqueLanguage == null) {
+            presenter.openLanguagePicker(requestCode, this);
         }
         else {
-            presenter.openLanguagePicker(requestCode, this);
+            complete(presenter, requestCode, uniqueLanguage);
         }
     }
 

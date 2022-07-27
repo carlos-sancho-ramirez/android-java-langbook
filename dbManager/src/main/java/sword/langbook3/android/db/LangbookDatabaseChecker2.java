@@ -2468,6 +2468,22 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
     }
 
     @Override
+    public LanguageId getUniqueLanguage() {
+        final LangbookDbSchema.LanguagesTable languages = Tables.languages;
+        final DbQuery query = new DbQuery.Builder(languages)
+                .select(languages.getIdColumnIndex());
+
+        try (DbResult r = _db.select(query)) {
+            if (!r.hasNext()) {
+                return null;
+            }
+
+            final LanguageId lang = _languageIdSetter.getKeyFromDbValue(r.next().get(0));
+            return r.hasNext()? null : lang;
+        }
+    }
+
+    @Override
     public ImmutableCorrelation<AlphabetId> getCorrelationWithText(CorrelationId correlationId) {
         final LangbookDbSchema.CorrelationsTable correlations = Tables.correlations;
         final LangbookDbSchema.SymbolArraysTable symbolArrays = Tables.symbolArrays;

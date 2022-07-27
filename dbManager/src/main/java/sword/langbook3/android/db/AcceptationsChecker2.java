@@ -34,4 +34,12 @@ public interface AcceptationsChecker2<ConceptId, LanguageId, AlphabetId, Charact
     CharacterCompositionDefinitionRegister getCharacterCompositionDefinition(CharacterCompositionTypeId id);
     CharacterCompositionTypeId findCharacterCompositionDefinition(CharacterCompositionDefinitionRegister register);
     boolean isConceptDefinedAsCharacterCompositionType(ConceptId concept);
+
+    /**
+     * Return the language defined in the database if any.
+     * If none if defined or there is more than one, this method will return null.
+     *
+     * @return The only language defined in the database or null otherwise.
+     */
+    LanguageId getUniqueLanguage();
 }
