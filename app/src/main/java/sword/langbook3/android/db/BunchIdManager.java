@@ -6,7 +6,7 @@ public final class BunchIdManager implements ConceptualizableSetter<ConceptId, B
 
     @Override
     public BunchId getKeyFromInt(int key) {
-        return new BunchId(key);
+        return (key != 0)? new BunchId(key) : null;
     }
 
     @Override
