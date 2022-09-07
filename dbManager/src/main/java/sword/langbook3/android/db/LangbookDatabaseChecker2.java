@@ -38,7 +38,6 @@ import sword.database.DbValue;
 import sword.langbook3.android.collections.MinimumSizeArrayLengthFunction;
 import sword.langbook3.android.collections.StringUtils;
 import sword.langbook3.android.collections.SyncCacheMap;
-import sword.langbook3.android.collections.TransformableUtils;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.models.AcceptationDetailsModel2;
 import sword.langbook3.android.models.AgentDetails;
@@ -4523,7 +4522,7 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
             }
         }
 
-        return TransformableUtils.takeToImmutableList(sortedSet, 20);
+        return sortedSet.take(20).toList().toImmutable();
     }
 
     @Override

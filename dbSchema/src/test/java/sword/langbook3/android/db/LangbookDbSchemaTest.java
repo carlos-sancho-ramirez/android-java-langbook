@@ -25,7 +25,6 @@ import sword.database.DbTable;
 import sword.database.DbUpdateQuery;
 import sword.database.DbValue;
 import sword.database.MutableSchemaDatabase;
-import sword.langbook3.android.collections.TraversableUtils;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 
 final class LangbookDbSchemaTest {
@@ -149,11 +148,11 @@ final class LangbookDbSchemaTest {
 
         void verify() {
             if (!_expectedTablesToCreate.isEmpty()) {
-                throw new AssertionError("Expectation mismatch: createTable not called for table " + TraversableUtils.first(_expectedTablesToCreate) + ((_expectedTablesToCreate.size() > 1)? " among others" : ""));
+                throw new AssertionError("Expectation mismatch: createTable not called for table " + _expectedTablesToCreate.first() + ((_expectedTablesToCreate.size() > 1)? " among others" : ""));
             }
 
             if (!_expectedIndexesToCreate.isEmpty()) {
-                final DbIndex index = TraversableUtils.first(_expectedIndexesToCreate);
+                final DbIndex index = _expectedIndexesToCreate.first();
                 final DbTable table = index.table;
                 throw new AssertionError("Expectation mismatch: createIndex not called for index on table " + table.name() + " and column " + table.columns().get(index.column).name() + ((_expectedTablesToCreate.size() > 1)? " among others" : ""));
             }

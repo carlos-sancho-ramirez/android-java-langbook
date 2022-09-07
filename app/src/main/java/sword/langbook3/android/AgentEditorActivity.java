@@ -27,11 +27,8 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.IntProcedure;
 import sword.collections.MutableList;
-import sword.langbook3.android.collections.ImmutableListUtils;
-import sword.langbook3.android.collections.ListUtils;
 import sword.langbook3.android.collections.MinimumSizeArrayLengthFunction;
 import sword.langbook3.android.collections.Supplier;
-import sword.langbook3.android.collections.TraversableUtils;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdParceler;
 import sword.langbook3.android.db.BunchId;
@@ -100,8 +97,9 @@ public final class AgentEditorActivity extends Activity {
             dest.writeInt(_sourceBunches.size());
             dest.writeInt(_diffBunches.size());
 
-            final ImmutableList<Object> bunches = ImmutableListUtils.appendAll(
-                    ImmutableListUtils.appendAll(_targetBunches.toList().toImmutable(), _sourceBunches), _diffBunches);
+            final ImmutableList<Object> bunches = _targetBunches.toList().toImmutable()
+                    .appendAll(_sourceBunches)
+                    .appendAll(_diffBunches);
 
             int typeBitCount = 0;
             int typeFlags = 0;
@@ -193,15 +191,15 @@ public final class AgentEditorActivity extends Activity {
                 }
 
                 if (targetBunchCount > 0) {
-                    state._targetBunches = ListUtils.slice(bunches, new ImmutableIntRange(0, targetBunchCount - 1)).toSet().toImmutable();
+                    state._targetBunches = bunches.take(targetBunchCount).toSet().toImmutable();
                 }
 
                 if (sourceBunchCount > 0) {
-                    state._sourceBunches = ListUtils.slice(bunches, new ImmutableIntRange(targetBunchCount, sourceBunchCount + targetBunchCount - 1)).toSet().toImmutable();
+                    state._sourceBunches = bunches.slice(new ImmutableIntRange(targetBunchCount, sourceBunchCount + targetBunchCount - 1)).toSet().toImmutable();
                 }
 
                 if (diffBunchCount > 0) {
-                    state._diffBunches = ListUtils.slice(bunches, new ImmutableIntRange(sourceBunchCount + targetBunchCount, totalBunchCount - 1)).toSet().toImmutable();
+                    state._diffBunches = bunches.takeLast(diffBunchCount).toSet().toImmutable();
                 }
 
                 final int startMatcherSize = in.readInt();
@@ -293,21 +291,21 @@ public final class AgentEditorActivity extends Activity {
         @Override
         public void setTargetBunches(@NonNull ImmutableSet<Object> bunches) {
             ensureNonNull(bunches);
-            ensureValidArguments(TraversableUtils.allMatch(bunches, bunch -> bunch instanceof BunchId || bunch instanceof AcceptationDefinition));
+            ensureValidArguments(bunches.allMatch(bunch -> bunch instanceof BunchId || bunch instanceof AcceptationDefinition));
             _targetBunches = bunches;
         }
 
         @Override
         public void setSourceBunches(@NonNull ImmutableSet<Object> bunches) {
             ensureNonNull(bunches);
-            ensureValidArguments(TraversableUtils.allMatch(bunches, bunch -> bunch instanceof BunchId || bunch instanceof AcceptationDefinition));
+            ensureValidArguments(bunches.allMatch(bunch -> bunch instanceof BunchId || bunch instanceof AcceptationDefinition));
             _sourceBunches = bunches;
         }
 
         @Override
         public void setDiffBunches(@NonNull ImmutableSet<Object> bunches) {
             ensureNonNull(bunches);
-            ensureValidArguments(TraversableUtils.allMatch(bunches, bunch -> bunch instanceof BunchId || bunch instanceof AcceptationDefinition));
+            ensureValidArguments(bunches.allMatch(bunch -> bunch instanceof BunchId || bunch instanceof AcceptationDefinition));
             _diffBunches = bunches;
         }
 

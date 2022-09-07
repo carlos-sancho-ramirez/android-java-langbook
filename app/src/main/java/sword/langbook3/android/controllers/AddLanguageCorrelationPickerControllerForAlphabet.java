@@ -10,7 +10,6 @@ import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.R;
 import sword.langbook3.android.WordEditorActivity;
 import sword.langbook3.android.collections.MinimumSizeArrayLengthFunction;
-import sword.langbook3.android.collections.TraversableUtils;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.AlphabetIdParceler;
@@ -57,7 +56,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet extends Abs
         ensureValidArguments(!alphabets.isEmpty() && alphabets.toSet().size() == alphabets.size() && !alphabets.map(AlphabetId::getConceptId).contains(language.getConceptId()));
         ensureNonNull(languageCorrelationArray, alphabetCorrelationArrays);
         ensureValidArguments(alphabetCorrelationArrays.size() < alphabets.size());
-        ensureValidArguments(alphabetTexts.size() == alphabets.size() && TraversableUtils.allMatch(alphabets, alphabetTexts::containsKey));
+        ensureValidArguments(alphabetTexts.size() == alphabets.size() && alphabets.allMatch(alphabetTexts::containsKey));
 
         _languageCode = languageCode;
         _language = language;

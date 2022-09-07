@@ -11,8 +11,6 @@ import sword.collections.ImmutableSet;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LanguageAdderActivity;
 import sword.langbook3.android.WordEditorActivity;
-import sword.langbook3.android.collections.TransformableUtils;
-import sword.langbook3.android.collections.TraversableUtils;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.ConceptId;
@@ -28,8 +26,8 @@ public final class AddLanguageLanguageAdderController implements LanguageAdderAc
     public void complete(@NonNull Activity activity, String languageCode, int alphabetCount) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ImmutableSet<ConceptId> concepts = checker.getNextAvailableConceptIds(alphabetCount + 1);
-        final LanguageId languageId = LanguageIdManager.conceptAsLanguageId(TraversableUtils.first(concepts));
-        final ImmutableList<AlphabetId> alphabets = TransformableUtils.skip(concepts, 1).map(AlphabetIdManager::conceptAsAlphabetId);
+        final LanguageId languageId = LanguageIdManager.conceptAsLanguageId(concepts.first());
+        final ImmutableList<AlphabetId> alphabets = concepts.skip(1).map(AlphabetIdManager::conceptAsAlphabetId);
         final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForLanguage(languageCode, languageId, alphabets);
         WordEditorActivity.open(activity, LanguageAdderActivity.REQUEST_CODE_NEXT_STEP, controller);
     }

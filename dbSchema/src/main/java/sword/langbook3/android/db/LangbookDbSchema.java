@@ -15,7 +15,6 @@ import sword.database.DbTextColumn;
 import sword.database.DbUniqueIntColumn;
 import sword.database.DbUniqueTextColumn;
 import sword.database.MutableSchemaDatabase;
-import sword.langbook3.android.collections.TraversableUtils;
 
 import static sword.langbook3.android.collections.StringUtils.stringToCharList;
 
@@ -1013,7 +1012,7 @@ public final class LangbookDbSchema {
     }
 
     public void setup(MutableSchemaDatabase db) {
-        TraversableUtils.last(_schemaVersions).setup(db);
+        _schemaVersions.last().setup(db);
     }
 
     public void upgradeDatabaseVersion(MutableSchemaDatabase db, int oldVersion, int newVersion) {
