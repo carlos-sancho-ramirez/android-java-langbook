@@ -222,9 +222,9 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             }
 
             final int length = entry.value().length();
-            while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.valueAt(0).get(alphabet).length()) {
+            while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.first().get(alphabet).length()) {
                 final int currentSize = modifiedCorrelationArray.size();
-                final MutableCorrelation<AlphabetId> newFirstCorrelation = modifiedCorrelationArray.valueAt(0).mutate();
+                final MutableCorrelation<AlphabetId> newFirstCorrelation = modifiedCorrelationArray.first().mutate();
                 final ImmutableCorrelation<AlphabetId> secondCorrelation = modifiedCorrelationArray.valueAt(1);
                 for (AlphabetId alp : correlationAlphabets) {
                     newFirstCorrelation.put(alp, newFirstCorrelation.get(alp) + secondCorrelation.get(alp));
@@ -241,13 +241,13 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 modifiedCorrelationArray = builder.build();
             }
 
-            final ImmutableCorrelation<AlphabetId> oldCorrelation = modifiedCorrelationArray.valueAt(0);
+            final ImmutableCorrelation<AlphabetId> oldCorrelation = modifiedCorrelationArray.first();
             final ImmutableCorrelation<AlphabetId> newCorrelation = oldCorrelation.put(alphabet, oldCorrelation.get(alphabet).substring(length));
             modifiedCorrelationArray = modifiedCorrelationArray.skip(1).prepend(newCorrelation);
             modifiedKnownCorrelationIds.put(0, null);
         }
 
-        final ImmutableCorrelation<AlphabetId> firstCorrelation = modifiedCorrelationArray.valueAt(0);
+        final ImmutableCorrelation<AlphabetId> firstCorrelation = modifiedCorrelationArray.first();
         if (firstCorrelation.anyMatch(String::isEmpty)) {
             if (!firstCorrelation.anyMatch(text -> !text.isEmpty())) {
                 modifiedCorrelationArray = modifiedCorrelationArray.removeAt(0);
@@ -1502,7 +1502,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         boolean targetChanged = false;
         final boolean ruleApplied = agentDetails.modifyCorrelations();
         if (!ruleApplied) {
-            final ImmutableSet<AcceptationId> acceptationAlreadyInTarget = getAcceptationsInBunchByBunchAndAgent(agentDetails.targetBunches.valueAt(0), agentId)
+            final ImmutableSet<AcceptationId> acceptationAlreadyInTarget = getAcceptationsInBunchByBunchAndAgent(agentDetails.targetBunches.first(), agentId)
                     .filter(addedAcceptations::contains);
 
             for (AcceptationId acc : addedAcceptations) {
@@ -1696,7 +1696,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         if (!linkedBunches.isEmpty()) {
             if (linkedBunches.anyMatch(bunch -> {
                 final ImmutableSet<LanguageId> languages = findIncludedAcceptationLanguages(bunch);
-                return languages.size() > 1 || languages.size() == 1 && !languages.valueAt(0).equals(language);
+                return languages.size() > 1 || languages.size() == 1 && !languages.first().equals(language);
             })) {
                 return false;
             }
@@ -1953,7 +1953,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
         }
         else {
             final ImmutableList<ImmutableCorrelation<AlphabetId>> newList = remainingCorrelations.skip(1);
-            for (String text : remainingCorrelations.valueAt(0)) {
+            for (String text : remainingCorrelations.first()) {
                 insertPossibleCombinations(mainAcceptation, dynAcceptation, mainStr, inserted, accumulatedText + text, newList);
             }
         }

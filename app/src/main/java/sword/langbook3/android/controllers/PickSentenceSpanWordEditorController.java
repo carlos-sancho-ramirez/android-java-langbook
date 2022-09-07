@@ -45,7 +45,7 @@ public final class PickSentenceSpanWordEditorController implements WordEditorAct
         final ImmutableSet<AlphabetId> alphabets = manager.findAlphabetsByLanguage(_language);
 
         if (alphabets.size() == 1) {
-            final ImmutableCorrelation<AlphabetId> correlation = ImmutableCorrelation.<AlphabetId>empty().put(alphabets.valueAt(0), _text);
+            final ImmutableCorrelation<AlphabetId> correlation = ImmutableCorrelation.<AlphabetId>empty().put(alphabets.first(), _text);
             complete(presenter, requestCode, correlation);
         }
         else {

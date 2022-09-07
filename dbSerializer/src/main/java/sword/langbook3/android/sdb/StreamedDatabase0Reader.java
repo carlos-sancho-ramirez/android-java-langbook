@@ -198,13 +198,13 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
             return 0;
         }
         else if (conceptCount == 1) {
-            return concepts.valueAt(0);
+            return concepts.first();
         }
 
         final LangbookDbSchema.ConceptCompositionsTable table = Tables.conceptCompositions;
         final DbQuery query = new DbQuery.Builder(table)
                 .join(table, table.getComposedColumnIndex(), table.getComposedColumnIndex())
-                .where(table.getItemColumnIndex(), concepts.valueAt(0))
+                .where(table.getItemColumnIndex(), concepts.first())
                 .select(table.getComposedColumnIndex(), table.columns().size() + table.getItemColumnIndex());
 
         final MutableIntKeyMap<ImmutableIntSet> possibleSets = MutableIntKeyMap.empty();

@@ -438,7 +438,7 @@ public final class DatabaseInflater {
         }
         else {
             final ImmutableList<? extends IntKeyMap<String>> newList = remainingCorrelations.skip(1);
-            for (String text : remainingCorrelations.valueAt(0)) {
+            for (String text : remainingCorrelations.first()) {
                 insertPossibleCombinations(mainAcceptation, dynAcceptation, mainStr, inserted, accumulatedText + text, newList);
             }
         }
@@ -552,9 +552,9 @@ public final class DatabaseInflater {
                 }
 
                 final int length = entry.value().length();
-                while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.valueAt(0).get(alphabet).length()) {
+                while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.first().get(alphabet).length()) {
                     final int currentSize = modifiedCorrelationArray.size();
-                    final MutableIntKeyMap<String> newFirstCorrelation = modifiedCorrelationArray.valueAt(0).mutate();
+                    final MutableIntKeyMap<String> newFirstCorrelation = modifiedCorrelationArray.first().mutate();
                     final ImmutableIntKeyMap<String> secondCorrelation = modifiedCorrelationArray.valueAt(1);
                     for (int alp : correlationAlphabets) {
                         newFirstCorrelation.put(alp, newFirstCorrelation.get(alp) + secondCorrelation.get(alp));
@@ -571,13 +571,13 @@ public final class DatabaseInflater {
                     modifiedCorrelationArray = builder.build();
                 }
 
-                final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(0);
+                final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.first();
                 final ImmutableIntKeyMap<String> newCorrelation = oldCorrelation.put(alphabet, oldCorrelation.get(alphabet).substring(length));
                 modifiedCorrelationArray = modifiedCorrelationArray.skip(1).prepend(newCorrelation);
                 modifiedKnownCorrelationIds.put(0, 0);
             }
 
-            final ImmutableIntKeyMap<String> firstCorrelation = modifiedCorrelationArray.valueAt(0);
+            final ImmutableIntKeyMap<String> firstCorrelation = modifiedCorrelationArray.first();
             if (firstCorrelation.anyMatch(String::isEmpty)) {
                 if (!firstCorrelation.anyMatch(text -> !text.isEmpty())) {
                     modifiedCorrelationArray = modifiedCorrelationArray.removeAt(0);

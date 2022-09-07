@@ -84,7 +84,7 @@ final class WordEditorControllerUtils {
                     for (AlphabetId targetAlphabet : sourceTextAlphabets) {
                         queryConvertedTexts.put(targetAlphabet, queryText);
                     }
-                    queryConvertedTexts.put(alphabet, sourceTexts.valueAt(0));
+                    queryConvertedTexts.put(alphabet, sourceTexts.first());
                 }
             }
         }

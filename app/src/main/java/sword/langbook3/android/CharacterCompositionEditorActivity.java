@@ -77,7 +77,7 @@ public final class CharacterCompositionEditorActivity extends Activity implement
             _compositionTypeSpinner.setSelection(index);
         }
         else {
-            _selectedTypeId = compositionTypes.isEmpty()? null : compositionTypes.valueAt(0).id;
+            _selectedTypeId = compositionTypes.isEmpty()? null : compositionTypes.first().id;
         }
     }
 

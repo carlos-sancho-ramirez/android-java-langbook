@@ -74,7 +74,7 @@ public final class AddAlphabetConversionEditorControllerForNewAcceptation implem
             return true;
         }
         else {
-            final String firstWord = wordsInConflict.valueAt(0);
+            final String firstWord = wordsInConflict.first();
             if (wordsInConflict.size() == 1) {
                 presenter.displayFeedback(R.string.unableToConvertOneWord, firstWord);
             }

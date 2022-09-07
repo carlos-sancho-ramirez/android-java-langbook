@@ -38,7 +38,7 @@ abstract class AbstractCorrelationPickerController implements CorrelationPickerA
         final ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options = _texts.checkPossibleCorrelationArrays(new AlphabetIdComparator());
 
         if (options.size() == 1) {
-            complete(presenter, requestCode, options.valueAt(0));
+            complete(presenter, requestCode, options.first());
         }
         else {
             presenter.openCorrelationPicker(requestCode, this);

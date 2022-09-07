@@ -69,7 +69,7 @@ public abstract class AbstractAcceptationDetailsActivity extends Activity {
                 .map(id -> correlations.get(id).keySet())
                 .reduce((set1, set2) -> set1.filter(set2::contains), ImmutableHashSet.empty());
         if (commonAlphabets.size() > 1) {
-            final AlphabetId mainAlphabet = commonAlphabets.valueAt(0);
+            final AlphabetId mainAlphabet = commonAlphabets.first();
             final AlphabetId pronunciationAlphabet = commonAlphabets.valueAt(1);
             result.add(new CorrelationArrayItem(correlationIds, correlations, mainAlphabet, pronunciationAlphabet, canNavigate()));
         }

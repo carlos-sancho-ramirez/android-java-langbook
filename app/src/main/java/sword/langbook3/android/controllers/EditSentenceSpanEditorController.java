@@ -72,7 +72,7 @@ public final class EditSentenceSpanEditorController extends AbstractSpanEditorCo
             }
 
             if (matchingRanges.size() == 1) {
-                final ImmutableIntRange range = matchingRanges.valueAt(0);
+                final ImmutableIntRange range = matchingRanges.first();
                 final SentenceSpan<Object> newSpan = range.equals(span.range)? ((SentenceSpan<Object>) ((SentenceSpan) span)) :
                         new SentenceSpan<>(range, span.acceptation);
                 state.putSpan(newSpan);

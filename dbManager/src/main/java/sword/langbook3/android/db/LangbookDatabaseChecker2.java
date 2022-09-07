@@ -3413,7 +3413,7 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
 
         final DbQuery query = new DbQueryBuilder(table)
                 .join(table, table.getSetIdColumnIndex(), table.getSetIdColumnIndex())
-                .where(table.getBunchColumnIndex(), bunches.valueAt(0))
+                .where(table.getBunchColumnIndex(), bunches.first())
                 .orderBy(table.getSetIdColumnIndex())
                 .select(table.getSetIdColumnIndex(), table.columns().size() + table.getBunchColumnIndex());
 
@@ -3964,13 +3964,13 @@ abstract class LangbookDatabaseChecker2<ConceptId extends ConceptIdInterface, La
             return null;
         }
         else if (conceptCount == 1) {
-            return concepts.valueAt(0);
+            return concepts.first();
         }
 
         final LangbookDbSchema.ConceptCompositionsTable table = Tables.conceptCompositions;
         final DbQuery query = new DbQueryBuilder(table)
                 .join(table, table.getComposedColumnIndex(), table.getComposedColumnIndex())
-                .where(table.getItemColumnIndex(), concepts.valueAt(0))
+                .where(table.getItemColumnIndex(), concepts.first())
                 .select(table.getComposedColumnIndex(), table.columns().size() + table.getItemColumnIndex());
 
         final MutableMap<ConceptId, ImmutableSet<ConceptId>> possibleSets = MutableHashMap.empty();
