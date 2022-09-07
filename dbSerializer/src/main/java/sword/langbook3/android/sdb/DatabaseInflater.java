@@ -595,10 +595,10 @@ public final class DatabaseInflater {
                 }
 
                 final int length = entry.value().length();
-                while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1).get(alphabet).length()) {
+                while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.last().get(alphabet).length()) {
                     final int currentSize = modifiedCorrelationArray.size();
                     final MutableIntKeyMap<String> newLastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 2).mutate();
-                    final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 1);
+                    final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.last();
                     for (int alp : correlationAlphabets) {
                         newLastCorrelation.put(alp, newLastCorrelation.get(alp) + lastCorrelation.get(alp));
                     }
@@ -614,7 +614,7 @@ public final class DatabaseInflater {
                     modifiedKnownCorrelationIds.put(currentSize - 2, 0);
                 }
 
-                final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
+                final ImmutableIntKeyMap<String> oldCorrelation = modifiedCorrelationArray.last();
                 final String oldText = oldCorrelation.get(alphabet);
                 final int substringLimit = oldText.length() - length;
                 if (substringLimit < 0) {
@@ -626,9 +626,9 @@ public final class DatabaseInflater {
                 modifiedKnownCorrelationIds.put(modifiedKnownCorrelationIds.size() - 1, 0);
             }
 
-            final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
+            final ImmutableIntKeyMap<String> lastCorrelation = modifiedCorrelationArray.last();
             if (lastCorrelation.anyMatch(String::isEmpty)) {
-                if (!lastCorrelation.anyMatch(text -> !text.isEmpty())) {
+                if (lastCorrelation.allMatch(String::isEmpty)) {
                     modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1);
                     modifiedKnownCorrelationIds.removeAt(modifiedKnownCorrelationIds.size() - 1);
                 }

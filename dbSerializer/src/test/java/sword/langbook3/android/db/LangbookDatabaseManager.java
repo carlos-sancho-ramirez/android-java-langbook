@@ -265,10 +265,10 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             }
 
             final int length = entry.value().length();
-            while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1).get(alphabet).length()) {
+            while (modifiedCorrelationArray.size() > 1 && length > modifiedCorrelationArray.last().get(alphabet).length()) {
                 final int currentSize = modifiedCorrelationArray.size();
                 final MutableCorrelation<AlphabetId> newLastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 2).mutate();
-                final ImmutableCorrelation<AlphabetId> lastCorrelation = modifiedCorrelationArray.valueAt(currentSize - 1);
+                final ImmutableCorrelation<AlphabetId> lastCorrelation = modifiedCorrelationArray.last();
                 for (AlphabetId alp : correlationAlphabets) {
                     newLastCorrelation.put(alp, newLastCorrelation.get(alp) + lastCorrelation.get(alp));
                 }
@@ -284,7 +284,7 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
                 modifiedKnownCorrelationIds.put(currentSize - 2, null);
             }
 
-            final ImmutableCorrelation<AlphabetId> oldCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
+            final ImmutableCorrelation<AlphabetId> oldCorrelation = modifiedCorrelationArray.last();
             final String oldText = oldCorrelation.get(alphabet);
             final int substringLimit = oldText.length() - length;
             if (substringLimit < 0) {
@@ -296,9 +296,9 @@ public class LangbookDatabaseManager<ConceptId extends ConceptIdInterface, Langu
             modifiedKnownCorrelationIds.put(modifiedKnownCorrelationIds.size() - 1, null);
         }
 
-        final ImmutableCorrelation<AlphabetId> lastCorrelation = modifiedCorrelationArray.valueAt(modifiedCorrelationArray.size() - 1);
+        final ImmutableCorrelation<AlphabetId> lastCorrelation = modifiedCorrelationArray.last();
         if (lastCorrelation.anyMatch(String::isEmpty)) {
-            if (!lastCorrelation.anyMatch(text -> !text.isEmpty())) {
+            if (lastCorrelation.allMatch(String::isEmpty)) {
                 modifiedCorrelationArray = modifiedCorrelationArray.skipLast(1);
                 modifiedKnownCorrelationIds.removeAt(modifiedKnownCorrelationIds.size() - 1);
             }
