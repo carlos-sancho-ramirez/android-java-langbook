@@ -329,7 +329,10 @@ public final class AcceptationDetailsActivity extends AbstractAcceptationDetails
                     throw new AssertionError();
                 }
 
-                updateModelAndUi();
+                if (updateModelAndUi()) {
+                    invalidateOptionsMenu();
+                }
+
                 showFeedback(getString(R.string.deleteAcceptationFromBunchFeedback, accToDeleteText));
                 break;
 
