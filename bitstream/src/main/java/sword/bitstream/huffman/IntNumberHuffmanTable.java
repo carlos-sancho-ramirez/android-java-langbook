@@ -79,7 +79,7 @@ public final class IntNumberHuffmanTable implements IntHuffmanTable {
     }
 
     private boolean isValidLevel(int level) {
-        return level > 0 && ((level % _bitAlign) == 0);
+        return level > 0 && (level % _bitAlign) == 0;
     }
 
     private int getSymbolsAtLevel(int level) {
