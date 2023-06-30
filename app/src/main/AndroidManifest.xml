@@ -3,6 +3,17 @@
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
+            <data android:mimeType="*/*"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_DOCUMENT"/>
+            <data android:mimeType="*/*"/>
+        </intent>
+    </queries>
+
     <application
         android:name=".LangbookApplication"
         android:allowBackup="true"
