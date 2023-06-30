@@ -2073,8 +2073,8 @@ public class LangbookDatabaseManager2<ConceptId extends ConceptIdInterface, Lang
     private boolean canAcceptationBeRemoved(AcceptationId acceptation) {
         final ConceptId concept = conceptFromAcceptation(acceptation);
         final boolean withSynonymsOrTranslations = !findAcceptationsByConcept(concept).remove(acceptation).isEmpty();
-        return (withSynonymsOrTranslations || (
-                !hasAgentsRequiringAcceptation(concept) && !isConceptUsedAsCharacterCompositionType(concept))) &&
+        return (withSynonymsOrTranslations ||
+                !hasAgentsRequiringAcceptation(concept) && !isConceptUsedAsCharacterCompositionType(concept)) &&
                 !findRuledAcceptationByBaseAcceptation(acceptation).anyMatch(acc -> !canAcceptationBeRemoved(acc));
     }
 
