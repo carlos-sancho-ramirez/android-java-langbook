@@ -2101,6 +2101,40 @@ interface AgentsManager2Test<ConceptId extends ConceptIdInterface, LanguageId ex
     }
 
     @Test
+    default void testUpdateAgentWhenWasApplyingRuleWithSameMatchersAndAdders() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("de").mainAlphabet;
+
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        final AcceptationId acceptation = addSimpleAcceptation(manager, alphabet, concept, "machen");
+
+        final BunchId verbBunch = obtainNewBunch(manager, alphabet, "Verb");
+        assertTrue(manager.addAcceptationInBunch(verbBunch, acceptation));
+
+        final RuleId firstPersonOfSingularRule = obtainNewRule(manager, alphabet, "erste Person des Singulars");
+        final AgentId agentId = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "en", "en", firstPersonOfSingularRule);
+        final ConceptId ruledConcept = manager.findRuledConcept(firstPersonOfSingularRule, concept);
+        final AcceptationId ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, acceptation);
+        final ImmutableList<CorrelationId> correlationIds = manager.getAcceptationCorrelationArray(ruledAcceptation);
+        assertSize(2, correlationIds);
+
+        updateSingleAlphabetAgent(manager, agentId, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "en", "e", firstPersonOfSingularRule);
+        assertEquals(ruledConcept, manager.findRuledConcept(firstPersonOfSingularRule, concept));
+        assertEquals(ruledAcceptation, manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, acceptation));
+        final ImmutableList<CorrelationId> newCorrelationIds = manager.getAcceptationCorrelationArray(ruledAcceptation);
+        assertSize(2, newCorrelationIds);
+        assertEquals(correlationIds.valueAt(0), newCorrelationIds.valueAt(0));
+
+        assertEquals(ruledConcept, manager.conceptFromAcceptation(ruledAcceptation));
+
+        assertSinglePair(alphabet, "mache", manager.getAcceptationTexts(ruledAcceptation));
+        assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(ruledAcceptation));
+        assertEquals("mache", manager.readAcceptationMainText(ruledAcceptation));
+    }
+
+    @Test
     default void testShareConceptWhenLinkingRuleConcepts() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
