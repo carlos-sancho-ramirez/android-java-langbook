@@ -648,6 +648,32 @@ interface AgentsManager2Test<ConceptId extends ConceptIdInterface, LanguageId ex
     }
 
     @Test
+    default void testAddAgentWhenApplyingRuleWithSameMatchersAndAdders() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("de").mainAlphabet;
+
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        final AcceptationId acceptation = addSimpleAcceptation(manager, alphabet, concept, "machen");
+
+        final BunchId verbBunch = obtainNewBunch(manager, alphabet, "Verb");
+        assertTrue(manager.addAcceptationInBunch(verbBunch, acceptation));
+
+        final RuleId firstPersonOfPluralRule = obtainNewRule(manager, alphabet, "erste Person Plural");
+        final AgentId agentId = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "en", "en", firstPersonOfPluralRule);
+        assertNotNull(agentId);
+
+        final ConceptId ruledConcept = manager.findRuledConcept(firstPersonOfPluralRule, concept);
+        final AcceptationId ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, acceptation);
+        assertEquals(ruledConcept, manager.conceptFromAcceptation(ruledAcceptation));
+
+        assertSinglePair(alphabet, "machen", manager.getAcceptationTexts(ruledAcceptation));
+        assertEquals(acceptation, manager.getStaticAcceptationFromDynamic(ruledAcceptation));
+        assertEquals("machen", manager.readAcceptationMainText(ruledAcceptation));
+    }
+
+    @Test
     default void testAddAcceptationInBunchWhenAddingAcceptationAfterAgentWithDiffBunch() {
         final MemoryDatabase db = new MemoryDatabase();
         final AgentsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
@@ -928,6 +954,31 @@ interface AgentsManager2Test<ConceptId extends ConceptIdInterface, LanguageId ex
         assertEmpty(manager.getAcceptationsInBunch(verbBunch));
         assertEmpty(manager.getAcceptationsInBunch(arVerbBunch));
         assertEmpty(manager.getAcceptationsInBunch(actionBunch));
+    }
+
+    @Test
+    default void testRemoveAgentRemovesDynamicAcceptationsWhenApplyingRuleWithSameMatchersAndAdders() {
+        final MemoryDatabase db = new MemoryDatabase();
+        final AgentsManager2<ConceptId, LanguageId, AlphabetId, CharacterId, CharacterCompositionTypeId, CorrelationId, CorrelationArrayId, AcceptationId, BunchId, BunchSetId, RuleId, AgentId> manager = createManager(db);
+
+        final AlphabetId alphabet = manager.addLanguage("de").mainAlphabet;
+
+        final ConceptId concept = manager.getNextAvailableConceptId();
+        final AcceptationId acceptation = addSimpleAcceptation(manager, alphabet, concept, "machen");
+
+        final BunchId verbBunch = obtainNewBunch(manager, alphabet, "Verb");
+        assertTrue(manager.addAcceptationInBunch(verbBunch, acceptation));
+
+        final RuleId firstPersonOfPluralRule = obtainNewRule(manager, alphabet, "erste Person Plural");
+        final AgentId agentId = addSingleAlphabetAgent(manager, setOf(), setOf(verbBunch), setOf(), alphabet, null, null, "en", "en", firstPersonOfPluralRule);
+        assertNotNull(agentId);
+
+        final AcceptationId ruledAcceptation = manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, acceptation);
+
+        manager.removeAgent(agentId);
+        assertNull(manager.findRuledAcceptationByAgentAndBaseAcceptation(agentId, acceptation));
+        assertEmpty(manager.getAcceptationTexts(ruledAcceptation));
+        assertNull(manager.conceptFromAcceptation(ruledAcceptation));
     }
 
     @Test

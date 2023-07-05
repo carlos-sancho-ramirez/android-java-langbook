@@ -981,9 +981,9 @@ public class LangbookDatabaseManager2<ConceptId extends ConceptIdInterface, Lang
         final ImmutableList<CorrelationId> endAdderCorrelationIds = endAdder.map(cachedCorrelationIds::get);
         final CorrelationArrayId endAdderArrayId = obtainCorrelationArray(endAdderCorrelationIds);
 
-        final boolean ruleExpected = !startMatcher.equalCorrelation(startAdder.concatenateTexts()) || !endMatcher.equalCorrelation(endAdder.concatenateTexts());
+        final boolean ruleMustBePresent = !startMatcher.equalCorrelation(startAdder.concatenateTexts()) || !endMatcher.equalCorrelation(endAdder.concatenateTexts());
         final boolean rulePresent = rule != null;
-        if (ruleExpected != rulePresent) {
+        if (ruleMustBePresent && !rulePresent) {
             return null;
         }
 

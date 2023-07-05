@@ -55,10 +55,9 @@ public final class AgentDetails<AlphabetId, CorrelationId, BunchId, RuleId> {
         }
 
         if (startMatcher.equalCorrelation(startAdder.concatenateTexts()) && endMatcher.equalCorrelation(endAdder.concatenateTexts())) {
-            if (targetBunches.isEmpty()) {
+            if (rule == null && targetBunches.isEmpty()) {
                 throw new IllegalArgumentException();
             }
-            rule = null;
         }
         else if (rule == null) {
             throw new IllegalArgumentException();
