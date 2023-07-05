@@ -33,6 +33,7 @@ import sword.langbook3.android.collections.SyncCacheIntKeyNonNullValueMap;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.models.AgentRegister;
 
+import static sword.langbook3.android.db.LangbookDbSchema.NO_RULE;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.getMaxConcept;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.insertAcceptation;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.insertBunchAcceptation;
@@ -471,7 +472,6 @@ public final class DatabaseInflater {
         final ImmutableList<ImmutableIntKeyMap<String>> _endAdder;
         final ImmutableIntList _endAdderCorrelationIds;
         final int _rule;
-        final boolean _modifyWords;
         final IntKeyMap<? extends Traversable<Conversion>> _conversions;
         final IntSupplier _correlationIdSupplier;
         final IntSupplier _correlationArrayIdSupplier;
@@ -482,7 +482,7 @@ public final class DatabaseInflater {
         AgentApplier(int agentId, AgentRegister register, ImmutableIntSet targetBunches,
                 ImmutableIntKeyMap<String> startMatcher, ImmutableList<ImmutableIntKeyMap<String>> startAdder, ImmutableIntList startAdderCorrelationIds,
                 ImmutableIntKeyMap<String> endMatcher, ImmutableList<ImmutableIntKeyMap<String>> endAdder, ImmutableIntList endAdderCorrelationIds,
-                int rule, boolean modifyWords, IntKeyMap<? extends Traversable<Conversion>> conversions, IntSupplier correlationIdSupplier, IntSupplier correlationArrayIdSupplier) {
+                int rule, IntKeyMap<? extends Traversable<Conversion>> conversions, IntSupplier correlationIdSupplier, IntSupplier correlationArrayIdSupplier) {
             if (startAdder.size() != startAdderCorrelationIds.size()) {
                 throw new IllegalArgumentException();
             }
@@ -504,7 +504,6 @@ public final class DatabaseInflater {
             _endAdderCorrelationIds = endAdderCorrelationIds;
 
             _rule = rule;
-            _modifyWords = modifyWords;
             _conversions = conversions;
             _correlationIdSupplier = correlationIdSupplier;
             _correlationArrayIdSupplier = correlationArrayIdSupplier;
@@ -700,7 +699,7 @@ public final class DatabaseInflater {
             if (matching) {
                 int targetAccId = accId;
 
-                if (_modifyWords) {
+                if (_rule != NO_RULE) {
                     final ImmutablePair<ImmutableList<ImmutableIntKeyMap<String>>, ImmutableIntList> correlationArrayResult = getAcceptationCorrelationArrayWithText(accId);
                     final ApplyResult processResult = applyMatchersAddersAndConversions(correlationArrayResult.left, correlationArrayResult.right);
 
@@ -781,8 +780,6 @@ public final class DatabaseInflater {
         final ImmutableList<ImmutableIntKeyMap<String>> endAdderArray = endAdderPair.left;
         final ImmutableIntList endAdderCorrelationIds = endAdderPair.right;
 
-        final boolean modifyWords = !startMatcher.equals(concatenateTexts(startAdderArray)) || !endMatcher.equals(concatenateTexts(endAdderArray));
-
         final int bunchAccsOffset = bunchSets.columns().size();
         final int stringsOffset = bunchAccsOffset + bunchAccs.columns().size();
         final int acceptationsOffset = stringsOffset + strings.columns().size();
@@ -838,7 +835,7 @@ public final class DatabaseInflater {
                             acceptationsOffset + acceptations.getConceptColumnIndex());
         }
 
-        final AgentApplier agentApplier = new AgentApplier(agentId, register, targetBunches, startMatcher, startAdderArray, startAdderCorrelationIds, endMatcher, endAdderArray, endAdderCorrelationIds, register.rule, modifyWords, conversions, correlationIdSupplier, correlationArrayIdSupplier);
+        final AgentApplier agentApplier = new AgentApplier(agentId, register, targetBunches, startMatcher, startAdderArray, startAdderCorrelationIds, endMatcher, endAdderArray, endAdderCorrelationIds, register.rule, conversions, correlationIdSupplier, correlationArrayIdSupplier);
         try (DbResult result = _db.select(query)) {
             if (result.hasNext()) {
                 List<DbValue> row = result.next();

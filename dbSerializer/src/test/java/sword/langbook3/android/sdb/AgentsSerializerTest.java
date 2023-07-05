@@ -3,6 +3,7 @@ package sword.langbook3.android.sdb;
 import org.junit.jupiter.api.Test;
 
 import sword.collections.ImmutableHashSet;
+import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.database.MemoryDatabase;
 import sword.langbook3.android.db.AgentsChecker2;
@@ -36,6 +37,9 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
 
         final AlphabetId alphabet = inManager.addLanguage("de").mainAlphabet;
 
+        final ConceptId doConcept = inManager.getNextAvailableConceptId();
+        AgentsSerializer0Test.addSimpleAcceptation(inManager, alphabet, doConcept, "machen");
+
         final ConceptId firstPersonOfPlural = inManager.getNextAvailableConceptId();
         AgentsSerializer0Test.addSimpleAcceptation(inManager, alphabet, firstPersonOfPlural, "erste Person Plural");
 
@@ -62,6 +66,18 @@ interface AgentsSerializerTest<ConceptId, LanguageId extends LanguageIdInterface
 
         final RuleId outFirstPersonOfPluralRule = conceptAsRuleId(outFirstPersonOfPluralConcept);
         assertEquals(outFirstPersonOfPluralRule, outAgentDetails.rule);
-        assertEmpty(outManager.findRuledConceptsByRule(outFirstPersonOfPluralRule));
+        final ImmutableMap<ConceptId, ConceptId> outRuledConcepts = outManager.findRuledConceptsByRule(outFirstPersonOfPluralRule);
+        assertSize(1, outRuledConcepts);
+
+        final ImmutableSet<AcceptationId> machenAcceptations = AcceptationsSerializer0Test.findAcceptationsMatchingText(outDb, getAcceptationIdManager(), "machen");
+        assertSize(2, machenAcceptations);
+
+        if (outManager.conceptFromAcceptation(machenAcceptations.valueAt(0)).equals(outRuledConcepts.keyAt(0))) {
+            assertEquals(outManager.conceptFromAcceptation(machenAcceptations.valueAt(1)), outRuledConcepts.valueAt(0));
+        }
+        else {
+            assertEquals(outManager.conceptFromAcceptation(machenAcceptations.valueAt(1)), outRuledConcepts.keyAt(0));
+            assertEquals(outManager.conceptFromAcceptation(machenAcceptations.valueAt(0)), outRuledConcepts.valueAt(0));
+        }
     }
 }
