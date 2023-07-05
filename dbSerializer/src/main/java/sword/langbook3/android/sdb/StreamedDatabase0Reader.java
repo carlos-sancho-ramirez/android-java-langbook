@@ -983,8 +983,19 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
         return db.select(query).mapToInt(row -> row.get(0).toInt()).toList().toImmutable();
     }
 
-    static AgentReadResult readAgents(Database db, ProgressListener progressListener, InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap, int[] correlationArrayIdMap) throws IOException {
+    interface RulePresentChecker {
+        boolean hasRuleEvenTextIsSame(ImmutableIntSet targetBunches, InputStreamWrapper ibs) throws IOException;
+    }
 
+    static final class DefaultRulePresentChecker implements RulePresentChecker {
+
+        @Override
+        public boolean hasRuleEvenTextIsSame(ImmutableIntSet targetBunches, InputStreamWrapper ibs) {
+            return false;
+        }
+    }
+
+    static AgentReadResult readAgents(Database db, ProgressListener progressListener, InputStreamWrapper ibs, ImmutableIntRange validConcepts, int[] correlationIdMap, int[] correlationArrayIdMap, RulePresentChecker rulePresentChecker) throws IOException {
         final int agentsLength = ibs.readHuffmanSymbol(naturalNumberTable);
         final ImmutableIntKeyMap.Builder<AgentBunches> builder = new ImmutableIntKeyMap.Builder<>();
         final MutableIntPairMap agentRules = MutableIntPairMap.empty();
@@ -1074,8 +1085,8 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
                 final ImmutableIntKeyMap<String> endMatcher = correlationSyncCache.get(endMatcherId);
                 final ImmutableIntKeyMap<String> plainEndAdder = concatenateTexts(correlationArraysSyncCache.get(endAdderArrayId).map(correlationSyncCache::get));
 
-                final boolean hasRule = !startMatcher.equalMap(plainStartAdder) || !endMatcher.equalMap(plainEndAdder);
-                final int rule = hasRule?
+                final boolean ruleMustBePresent = !startMatcher.equalMap(plainStartAdder) || !endMatcher.equalMap(plainEndAdder);
+                final int rule = (ruleMustBePresent || rulePresentChecker.hasRuleEvenTextIsSame(targetBunches, ibs))?
                         ibs.readHuffmanSymbol(conceptTable) :
                         StreamedDatabaseConstants.nullRuleId;
 
@@ -1088,7 +1099,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
 
                 builder.put(agentId, new AgentBunches(targetBunches, sourceBunches, diffBunches));
 
-                if (hasRule) {
+                if (ruleMustBePresent) {
                     agentRules.put(agentId, rule);
                 }
             }
@@ -1344,7 +1355,7 @@ public final class StreamedDatabase0Reader implements StreamedDatabaseReaderInte
 
                 // Import agents
                 setProgress(0.8f, "Reading agents");
-                final AgentReadResult agentReadResult = readAgents(_db, _listener, ibs, validConcepts, correlationIdMap, correlationArrayIdMap);
+                final AgentReadResult agentReadResult = readAgents(_db, _listener, ibs, validConcepts, correlationIdMap, correlationArrayIdMap, new DefaultRulePresentChecker());
 
                 // Import relevant dynamic acceptations
                 setProgress(0.9f, "Reading referenced dynamic acceptations");

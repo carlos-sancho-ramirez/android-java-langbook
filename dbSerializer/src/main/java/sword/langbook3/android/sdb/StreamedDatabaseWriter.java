@@ -67,8 +67,8 @@ import sword.langbook3.android.sdb.models.AgentRegister;
 
 import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
 import static sword.langbook3.android.sdb.DatabaseInflater.concatenateTexts;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.characterCompositionCoordinateTable;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.naturalNumberTable;
+import static sword.langbook3.android.sdb.StreamedDatabase1Reader.characterCompositionCoordinateTable;
+import static sword.langbook3.android.sdb.StreamedDatabase1Reader.naturalNumberTable;
 
 public final class StreamedDatabaseWriter {
 
@@ -1355,8 +1355,12 @@ public final class StreamedDatabaseWriter {
                 final ImmutableIntKeyMap<String> plainStartAdder = concatenateTexts(correlationArraysSyncCache.get(agent.startAdderId).map(correlationSyncCache::get));
                 final ImmutableIntKeyMap<String> endMatcher = correlationSyncCache.get(agent.endMatcherId);
                 final ImmutableIntKeyMap<String> plainEndAdder = concatenateTexts(correlationArraysSyncCache.get(agent.endAdderId).map(correlationSyncCache::get));
-                final boolean hasRule = !startMatcher.equalMap(plainStartAdder) || !endMatcher.equalMap(plainEndAdder);
-                if (hasRule) {
+                final boolean ruleMustBePresent = !startMatcher.equalMap(plainStartAdder) || !endMatcher.equalMap(plainEndAdder);
+                if (!ruleMustBePresent && !targetBunches.isEmpty()) {
+                    _obs.writeBoolean(agent.rule != LangbookDbSchema.NO_RULE);
+                }
+
+                if (ruleMustBePresent || targetBunches.isEmpty() || agent.rule != LangbookDbSchema.NO_RULE) {
                     final int rule = conceptIdMap.get(agent.rule);
                     _obs.writeHuffmanSymbol(conceptTable, rule);
                     agentsWithRule.append(agentIds.get(agent));

@@ -12,14 +12,20 @@ import sword.collections.ImmutableIntPairMap;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableIntSet;
 import sword.collections.IntList;
+import sword.collections.List;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableIntList;
 import sword.collections.MutableSet;
 import sword.collections.MutableSortedSet;
 import sword.collections.Set;
 import sword.collections.SortUtils;
+import sword.database.DbExporter;
 import sword.database.DbImporter.Database;
 import sword.database.DbInsertQuery;
+import sword.database.DbInserter;
+import sword.database.DbQuery;
+import sword.database.DbResult;
+import sword.database.DbValue;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.db.LangbookDbSchema.Tables;
 import sword.langbook3.android.sdb.StreamedDatabase0Reader.AgentReadResult;
@@ -42,12 +48,65 @@ import static sword.langbook3.android.sdb.StreamedDatabase0Reader.readRelevantRu
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.readSentenceMeanings;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.readSentenceSpans;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.readSymbolArrays;
-import static sword.langbook3.android.sdb.StreamedDatabase1Reader.characterCompositionCoordinateTable;
-import static sword.langbook3.android.sdb.StreamedDatabase1Reader.insertCharacterComposition;
-import static sword.langbook3.android.sdb.StreamedDatabase1Reader.insertCharacterCompositionDefinition;
-import static sword.langbook3.android.sdb.StreamedDatabase1Reader.naturalNumberTable;
 
-public final class StreamedDatabaseReader implements StreamedDatabaseReaderInterface {
+public final class StreamedDatabase1Reader implements StreamedDatabaseReaderInterface {
+
+    static final NaturalNumberHuffmanTable naturalNumberTable = new NaturalNumberHuffmanTable(8);
+    static final RangedIntegerHuffmanTable characterCompositionCoordinateTable = new RangedIntegerHuffmanTable(0, CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT - 1);
+
+    static ImmutableIntKeyMap<String> getCorrelationWithText(DbExporter.Database db, int correlationId) {
+        final LangbookDbSchema.CorrelationsTable correlations = Tables.correlations;
+        final LangbookDbSchema.SymbolArraysTable symbolArrays = Tables.symbolArrays;
+
+        final DbQuery query = new DbQuery.Builder(correlations)
+                .join(symbolArrays, correlations.getSymbolArrayColumnIndex(), symbolArrays.getIdColumnIndex())
+                .where(correlations.getCorrelationIdColumnIndex(), correlationId)
+                .select(correlations.getAlphabetColumnIndex(), correlations.columns().size() + symbolArrays.getStrColumnIndex());
+        final ImmutableIntKeyMap.Builder<String> builder = new ImmutableIntKeyMap.Builder<>();
+        try (DbResult result = db.select(query)) {
+            while (result.hasNext()) {
+                final List<DbValue> row = result.next();
+                builder.put(row.get(0).toInt(), row.get(1).toText());
+            }
+        }
+        return builder.build();
+    }
+
+    static void insertCharacterCompositionDefinition(DbInserter db, int id,
+            int firstX, int firstY, int firstWidth, int firstHeight,
+            int secondX, int secondY, int secondWidth, int secondHeight) {
+        final LangbookDbSchema.CharacterCompositionDefinitionsTable table = Tables.characterCompositionDefinitions;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getFirstXColumnIndex(), firstX)
+                .put(table.getFirstYColumnIndex(), firstY)
+                .put(table.getFirstWidthColumnIndex(), firstWidth)
+                .put(table.getFirstHeightColumnIndex(), firstHeight)
+                .put(table.getSecondXColumnIndex(), secondX)
+                .put(table.getSecondYColumnIndex(), secondY)
+                .put(table.getSecondWidthColumnIndex(), secondWidth)
+                .put(table.getSecondHeightColumnIndex(), secondHeight)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
+
+    static void insertCharacterComposition(DbInserter db, int id,
+            int first, int second, int typeId) {
+        final LangbookDbSchema.CharacterCompositionsTable table = Tables.characterCompositions;
+        final DbInsertQuery query = new DbInsertQuery.Builder(table)
+                .put(table.getIdColumnIndex(), id)
+                .put(table.getFirstCharacterColumnIndex(), first)
+                .put(table.getSecondCharacterColumnIndex(), second)
+                .put(table.getCompositionTypeColumnIndex(), typeId)
+                .build();
+
+        if (db.insert(query) == null) {
+            throw new AssertionError();
+        }
+    }
 
     private final Database _db;
     private final InputStream _is;
@@ -57,14 +116,14 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
      * Prepares the reader with the given parameters.
      *
      * @param db It is assumed to be a database where all the tables and indexes has been
-     *           initialized according to the {@link sword.langbook3.android.db.LangbookDbSchema},
+     *           initialized according to the {@link LangbookDbSchema},
      *           but they are empty.
      * @param is Input stream for the file to be read.
      *           This input stream should not be in the first position of the file, but 20 bytes
      *           after, skipping the header and hash.
      * @param listener Optional callback to display in the UI the current state. This can be null.
      */
-    public StreamedDatabaseReader(Database db, InputStream is, ProgressListener listener) {
+    public StreamedDatabase1Reader(Database db, InputStream is, ProgressListener listener) {
         _db = db;
         _is = is;
         _listener = listener;
@@ -229,14 +288,6 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
         }
     }
 
-    private static final class RulePresentChecker implements StreamedDatabase0Reader.RulePresentChecker {
-
-        @Override
-        public boolean hasRuleEvenTextIsSame(ImmutableIntSet targetBunches, InputStreamWrapper ibs) throws IOException {
-            return targetBunches.isEmpty() || ibs.readBoolean();
-        }
-    }
-
     @Override
     public Result read() throws IOException {
         try {
@@ -303,7 +354,7 @@ public final class StreamedDatabaseReader implements StreamedDatabaseReaderInter
 
                 // Import agents
                 setProgress(0.8f, "Reading agents");
-                final AgentReadResult agentReadResult = readAgents(_db, _listener, ibs, validConcepts, correlationIdMap, correlationArrayIdMap, new RulePresentChecker());
+                final AgentReadResult agentReadResult = readAgents(_db, _listener, ibs, validConcepts, correlationIdMap, correlationArrayIdMap, new StreamedDatabase0Reader.DefaultRulePresentChecker());
 
                 // Import relevant dynamic acceptations
                 setProgress(0.9f, "Reading referenced dynamic acceptations");

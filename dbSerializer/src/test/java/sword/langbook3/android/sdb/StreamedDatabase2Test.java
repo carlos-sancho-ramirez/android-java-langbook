@@ -11,7 +11,7 @@ import sword.langbook3.android.db.LangbookManager2;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-final class StreamedDatabase1Test implements RuledSentencesSerializer1Test<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, SentenceIdHolder> {
+final class StreamedDatabase2Test implements RuledSentencesSerializerTest<ConceptIdHolder, LanguageIdHolder, AlphabetIdHolder, CharacterIdHolder, CharacterCompositionTypeIdHolder, SymbolArrayIdHolder, CorrelationIdHolder, CorrelationArrayIdHolder, AcceptationIdHolder, BunchIdHolder, BunchSetIdHolder, RuleIdHolder, AgentIdHolder, SentenceIdHolder> {
 
     private final AlphabetIdManager alphabetIdManager = new AlphabetIdManager();
     private final AcceptationIdManager acceptationIdManager = new AcceptationIdManager();
@@ -33,12 +33,12 @@ final class StreamedDatabase1Test implements RuledSentencesSerializer1Test<Conce
     public MemoryDatabase cloneBySerializing(MemoryDatabase inDb) {
         final TestStream outStream = new TestStream();
         try {
-            new StreamedDatabase1Writer(inDb, outStream, null).write();
+            new StreamedDatabaseWriter(inDb, outStream, null).write();
             outStream.close();
             final AssertStream inStream = outStream.toInputStream();
 
             final MemoryDatabase newDb = new MemoryDatabase();
-            final StreamedDatabaseReaderInterface dbReader = new StreamedDatabase1Reader(newDb, inStream, null);
+            final StreamedDatabaseReaderInterface dbReader = new StreamedDatabaseReader(newDb, inStream, null);
             new DatabaseInflater(newDb, dbReader, null).read();
             assertTrue(inStream.allBytesRead());
             return newDb;

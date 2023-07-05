@@ -39,7 +39,7 @@ import static sword.langbook3.android.sdb.StreamedDatabase0Reader.insertBunchAcc
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainCorrelation;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainCorrelationArray;
 import static sword.langbook3.android.sdb.StreamedDatabase0Reader.obtainSymbolArray;
-import static sword.langbook3.android.sdb.StreamedDatabaseReader.getCorrelationWithText;
+import static sword.langbook3.android.sdb.StreamedDatabase1Reader.getCorrelationWithText;
 
 public final class DatabaseInflater {
 

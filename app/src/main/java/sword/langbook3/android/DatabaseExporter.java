@@ -35,7 +35,7 @@ public final class DatabaseExporter implements DbExporter {
                     os.write('S');
                     os.write('D');
                     os.write('B');
-                    os.write(1);
+                    os.write(2);
 
                     final BufferedOutputStream bos = new BufferedOutputStream(os, 4096);
                     MessageDigest md = MessageDigest.getInstance("MD5");

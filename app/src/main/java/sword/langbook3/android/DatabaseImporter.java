@@ -11,6 +11,7 @@ import sword.database.DbImporter;
 import sword.langbook3.android.sdb.DatabaseInflater;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sdb.StreamedDatabase0Reader;
+import sword.langbook3.android.sdb.StreamedDatabase1Reader;
 import sword.langbook3.android.sdb.StreamedDatabaseReader;
 import sword.langbook3.android.sdb.StreamedDatabaseReaderInterface;
 
@@ -42,6 +43,9 @@ public final class DatabaseImporter implements DbImporter {
                     dbReader = new StreamedDatabase0Reader(db, bis, (_listener != null)? new DatabaseInflater.Listener(_listener, 0.25f) : null);
                 }
                 else if (version == 1) {
+                    dbReader = new StreamedDatabase1Reader(db, bis, (_listener != null)? new DatabaseInflater.Listener(_listener, 0.25f) : null);
+                }
+                else if (version == 2) {
                     dbReader = new StreamedDatabaseReader(db, bis, (_listener != null)? new DatabaseInflater.Listener(_listener, 0.25f) : null);
                 }
                 else {
