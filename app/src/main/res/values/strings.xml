@@ -219,6 +219,7 @@
     <string name="emptyMatcherEntryError">Matcher entries cannot be empty</string>
     <string name="sourcesAndMatchersEmptyError">Source bunches and matchers cannot be both empty</string>
     <string name="requiredRuleError">Rule is required when matcher and adder do not match</string>
+    <string name="requiredTargetOrRuleError">Rule or at least one target bunch is required when matchers and adders match</string>
 
     <!-- Character compositions -->
     <string name="characterCompositionTypeHeader">Composition Type</string>

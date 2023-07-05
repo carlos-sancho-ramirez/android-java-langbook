@@ -23,7 +23,8 @@ abstract class AddAgentAbstractAgentEditorController extends AbstractAgentEditor
             final ImmutableCorrelation<AlphabetId> endMatcher = buildCorrelation(state.getEndMatcher());
             final ImmutableCorrelationArray<AlphabetId> endAdder = state.getEndAdder();
 
-            final RuleId rule = (startMatcher.equals(startAdder.concatenateTexts()) && endMatcher.equals(endAdder.concatenateTexts()))? null : ensureRuleIsStored(state.getRule());
+            final Object rawRule = state.getRule();
+            final RuleId rule = (rawRule != null)? ensureRuleIsStored(rawRule) : null;
 
             final LangbookDbManager manager = DbManager.getInstance().getManager();
             final ImmutableSet<BunchId> targetBunches = state.getTargetBunches().map(this::ensureBunchIsStored).toSet();

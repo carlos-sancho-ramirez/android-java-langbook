@@ -99,9 +99,14 @@ abstract class AbstractAgentEditorController implements AgentEditorActivity.Cont
             return false;
         }
 
-        final boolean ruleRequired = !startMatcher.equals(state.getStartAdder().concatenateTexts()) || !endMatcher.equals(state.getEndAdder().concatenateTexts());
-        if (ruleRequired && state.getRule() == null) {
+        final boolean textModified = !startMatcher.equals(state.getStartAdder().concatenateTexts()) || !endMatcher.equals(state.getEndAdder().concatenateTexts());
+        if (textModified && state.getRule() == null) {
             presenter.displayFeedback(R.string.requiredRuleError);
+            return false;
+        }
+
+        if (!textModified && targets.isEmpty() && state.getRule() == null) {
+            presenter.displayFeedback(R.string.requiredTargetOrRuleError);
             return false;
         }
 
