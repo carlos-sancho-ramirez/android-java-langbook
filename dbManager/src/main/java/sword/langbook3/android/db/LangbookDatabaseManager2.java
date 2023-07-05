@@ -981,9 +981,9 @@ public class LangbookDatabaseManager2<ConceptId extends ConceptIdInterface, Lang
         final ImmutableList<CorrelationId> endAdderCorrelationIds = endAdder.map(cachedCorrelationIds::get);
         final CorrelationArrayId endAdderArrayId = obtainCorrelationArray(endAdderCorrelationIds);
 
-        final boolean ruleMustBePresent = !startMatcher.equalCorrelation(startAdder.concatenateTexts()) || !endMatcher.equalCorrelation(endAdder.concatenateTexts());
+        final boolean textChanged = !startMatcher.equalCorrelation(startAdder.concatenateTexts()) || !endMatcher.equalCorrelation(endAdder.concatenateTexts());
         final boolean rulePresent = rule != null;
-        if (ruleMustBePresent && !rulePresent) {
+        if (!rulePresent && (textChanged || targetBunches.isEmpty())) {
             return null;
         }
 
@@ -1220,9 +1220,9 @@ public class LangbookDatabaseManager2<ConceptId extends ConceptIdInterface, Lang
             somethingChanged = true;
         }
 
-        final boolean ruleExpected = !startMatcher.equalCorrelation(startAdder.concatenateTexts()) || !endMatcher.equalCorrelation(endAdder.concatenateTexts());
+        final boolean textChanges = !startMatcher.equalCorrelation(startAdder.concatenateTexts()) || !endMatcher.equalCorrelation(endAdder.concatenateTexts());
         final boolean rulePresent = rule != null;
-        if (ruleExpected != rulePresent) {
+        if (!rulePresent && (textChanges || targetBunches.isEmpty())) {
             return false;
         }
 
