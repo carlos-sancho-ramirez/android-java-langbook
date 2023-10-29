@@ -1,5 +1,4 @@
 apply plugin: 'java'
-apply plugin: 'maven-publish'
 apply plugin: 'checkstyle'
 
 group = 'sword'
@@ -37,18 +36,6 @@ task sourceJar(type: Jar) {
 task packageJavadoc(type: Jar) {
     from javadoc
     archiveClassifier = 'javadoc'
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifactId 'langbook-database-manager'
-            from components.java
-
-            artifact sourceJar
-            artifact packageJavadoc
-        }
-    }
 }
 
 javadoc {
