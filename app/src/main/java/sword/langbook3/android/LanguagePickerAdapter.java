@@ -9,12 +9,12 @@ import android.widget.TextView;
 import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.LanguageId;
 
-final class LanguagePickerAdapter extends BaseAdapter {
+public final class LanguagePickerAdapter extends BaseAdapter {
 
     private final ImmutableMap<LanguageId, String> _entries;
     private LayoutInflater _inflater;
 
-    LanguagePickerAdapter(ImmutableMap<LanguageId, String> entries) {
+    public LanguagePickerAdapter(ImmutableMap<LanguageId, String> entries) {
         _entries = entries;
     }
 

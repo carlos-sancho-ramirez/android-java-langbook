@@ -9,13 +9,13 @@ import android.widget.TextView;
 import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.SentenceId;
 
-final class SentenceDetailsAdapter extends BaseAdapter {
+public final class SentenceDetailsAdapter extends BaseAdapter {
 
     private final ImmutableMap<SentenceId, String> sentences;
 
     private LayoutInflater inflater;
 
-    SentenceDetailsAdapter(ImmutableMap<SentenceId, String> sentences) {
+    public SentenceDetailsAdapter(ImmutableMap<SentenceId, String> sentences) {
         this.sentences = sentences;
     }
 

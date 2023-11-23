@@ -1,14 +1,18 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
+
 import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
+
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
-import sword.langbook3.android.LinkageMechanismSelectorActivity;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.LinkageMechanismSelectorActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
@@ -16,10 +20,7 @@ import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
-
-public final class LinkAcceptationLinkageMechanismSelectorController implements LinkageMechanismSelectorActivity.Controller {
+public final class LinkAcceptationLinkageMechanismSelectorController implements LinkageMechanismSelectorActivityDelegate.Controller {
 
     @NonNull
     private final AcceptationId _sourceAcceptation;

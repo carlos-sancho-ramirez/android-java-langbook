@@ -1,19 +1,20 @@
 package sword.langbook3.android.controllers;
 
-import android.app.Activity;
+import static android.app.Activity.RESULT_OK;
+
 import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.CorrelationPickerActivity;
+import sword.langbook3.android.activities.delegates.CorrelationPickerActivityDelegate;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
-
-import static android.app.Activity.RESULT_OK;
 
 public final class AddAcceptationCorrelationPickerController extends AbstractCorrelationPickerController {
 
@@ -29,12 +30,12 @@ public final class AddAcceptationCorrelationPickerController extends AbstractCor
 
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        complete(presenter, CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP, selectedOption);
+        complete(presenter, CorrelationPickerActivityDelegate.REQUEST_CODE_NEXT_STEP, selectedOption);
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, @NonNull ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options, int selection, int requestCode, int resultCode, Intent data) {
-        if (requestCode == CorrelationPickerActivity.REQUEST_CODE_NEXT_STEP && resultCode == RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, @NonNull ImmutableSet<ImmutableCorrelationArray<AlphabetId>> options, int selection, int requestCode, int resultCode, Intent data) {
+        if (requestCode == CorrelationPickerActivityDelegate.REQUEST_CODE_NEXT_STEP && resultCode == RESULT_OK) {
             activity.setResult(RESULT_OK, data);
             activity.finish();
         }

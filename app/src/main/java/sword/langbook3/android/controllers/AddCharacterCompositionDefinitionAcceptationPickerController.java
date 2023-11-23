@@ -8,17 +8,19 @@ import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
-public final class AddCharacterCompositionDefinitionAcceptationPickerController implements AcceptationPickerActivity.Controller {
+public final class AddCharacterCompositionDefinitionAcceptationPickerController implements AcceptationPickerActivityDelegate.Controller {
 
     @Override
     public void createAcceptation(@NonNull Presenter presenter, String query) {
         new AddCharacterCompositionDefinitionLanguagePickerController(query)
-                .fire(presenter, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+                .fire(presenter, AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
@@ -29,13 +31,13 @@ public final class AddCharacterCompositionDefinitionAcceptationPickerController 
             presenter.displayFeedback(R.string.conceptAlreadyUsedAsCharacterCompositionDefinitionError);
         }
         else {
-            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AddCharacterCompositionDefinitionAcceptationConfirmationController(acceptation));
+            presenter.openAcceptationConfirmation(AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM, new AddCharacterCompositionDefinitionAcceptationConfirmationController(acceptation));
         }
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
-        if ((requestCode == AcceptationPickerActivity.REQUEST_CODE_CONFIRM || requestCode == AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION) && resultCode == Activity.RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
+        if ((requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM || requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION) && resultCode == Activity.RESULT_OK) {
             activity.setResult(Activity.RESULT_OK, data);
             activity.finish();
         }

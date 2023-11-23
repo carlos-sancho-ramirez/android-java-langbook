@@ -8,14 +8,16 @@ import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdParceler;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddAcceptationInBunchAcceptationPickerController implements AcceptationPickerActivity.Controller {
+public final class AddAcceptationInBunchAcceptationPickerController implements AcceptationPickerActivityDelegate.Controller {
 
     @NonNull
     private final BunchId _bunch;
@@ -28,7 +30,7 @@ public final class AddAcceptationInBunchAcceptationPickerController implements A
     @Override
     public void createAcceptation(@NonNull Presenter presenter, String query) {
         new AddAcceptationInBunchLanguagePickerController(_bunch, query)
-                .fire(presenter, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+                .fire(presenter, AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
@@ -37,12 +39,12 @@ public final class AddAcceptationInBunchAcceptationPickerController implements A
             presenter.displayFeedback(R.string.acceptationAlreadyIncludedInBunch);
         }
         else {
-            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AddAcceptationInBunchAcceptationConfirmationController(_bunch, acceptation));
+            presenter.openAcceptationConfirmation(AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM, new AddAcceptationInBunchAcceptationConfirmationController(_bunch, acceptation));
         }
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
         if (resultCode == Activity.RESULT_OK) {
             activity.setResult(Activity.RESULT_OK, data);
             activity.finish();

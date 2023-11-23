@@ -12,13 +12,13 @@ import sword.collections.ImmutableSet;
 import sword.collections.MutableIntArraySet;
 import sword.langbook3.android.db.BunchId;
 
-final class MatchingBunchesPickerAdapter extends BaseAdapter {
+public final class MatchingBunchesPickerAdapter extends BaseAdapter {
 
     private final ImmutableMap<BunchId, String> _entries;
     private final MutableIntArraySet _checked = MutableIntArraySet.empty();
     private LayoutInflater _inflater;
 
-    MatchingBunchesPickerAdapter(ImmutableMap<BunchId, String> entries) {
+    public MatchingBunchesPickerAdapter(ImmutableMap<BunchId, String> entries) {
         _entries = entries;
     }
 

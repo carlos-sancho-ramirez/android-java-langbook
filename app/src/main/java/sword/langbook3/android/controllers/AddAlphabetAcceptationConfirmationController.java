@@ -7,17 +7,19 @@ import android.os.Parcel;
 import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.DbManager;
+import sword.langbook3.android.activities.delegates.AcceptationConfirmationActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddAlphabetAcceptationConfirmationController implements AcceptationConfirmationActivity.Controller {
+public final class AddAlphabetAcceptationConfirmationController implements AcceptationConfirmationActivityDelegate.Controller {
 
     @NonNull
     private final LanguageId _language;
@@ -40,12 +42,12 @@ public final class AddAlphabetAcceptationConfirmationController implements Accep
     @Override
     public void confirm(@NonNull Presenter presenter) {
         final AlphabetId targetAlphabet = AlphabetIdManager.conceptAsAlphabetId(DbManager.getInstance().getManager().conceptFromAcceptation(_acceptation));
-        presenter.openSourceAlphabetPicker(AcceptationConfirmationActivity.REQUEST_CODE_NEXT_STEP, new AddAlphabetSourceAlphabetPickerControllerForSelectedAcceptation(_language, targetAlphabet));
+        presenter.openSourceAlphabetPicker(AcceptationConfirmationActivityDelegate.REQUEST_CODE_NEXT_STEP, new AddAlphabetSourceAlphabetPickerControllerForSelectedAcceptation(_language, targetAlphabet));
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode == AcceptationConfirmationActivity.REQUEST_CODE_NEXT_STEP && resultCode == Activity.RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode == AcceptationConfirmationActivityDelegate.REQUEST_CODE_NEXT_STEP && resultCode == Activity.RESULT_OK) {
             activity.setResult(Activity.RESULT_OK);
             activity.finish();
         }

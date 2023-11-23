@@ -1,22 +1,23 @@
 package sword.langbook3.android.controllers;
 
-import android.app.Activity;
+import static android.app.Activity.RESULT_OK;
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.Set;
-import sword.langbook3.android.MatchingBunchesPickerActivity;
+import sword.langbook3.android.activities.delegates.MatchingBunchesPickerActivityDelegate;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.CorrelationArrayParceler;
 import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
-
-import static android.app.Activity.RESULT_OK;
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class AddCharacterCompositionDefinitionMatchingBunchesPickerController extends AbstractMatchingBunchesPickerController {
 
@@ -37,8 +38,8 @@ public final class AddCharacterCompositionDefinitionMatchingBunchesPickerControl
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode == MatchingBunchesPickerActivity.REQUEST_CODE_NEXT_STEP && resultCode == RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode == MatchingBunchesPickerActivityDelegate.REQUEST_CODE_NEXT_STEP && resultCode == RESULT_OK) {
             activity.setResult(RESULT_OK, data);
             activity.finish();
         }

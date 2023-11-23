@@ -8,17 +8,18 @@ import androidx.annotation.NonNull;
 import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
-import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.FixedTextAcceptationPickerActivity;
+import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.FixedTextAcceptationPickerActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.RuleId;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.models.SearchResult;
 import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class PickSentenceSpanFixedTextAcceptationPickerController implements FixedTextAcceptationPickerActivity.Controller, Fireable {
+public final class PickSentenceSpanFixedTextAcceptationPickerController implements FixedTextAcceptationPickerActivityDelegate.Controller, Fireable {
 
     @NonNull
     private final String _text;
@@ -57,17 +58,17 @@ public final class PickSentenceSpanFixedTextAcceptationPickerController implemen
 
     @Override
     public void createAcceptation(@NonNull Presenter presenter) {
-        createAcceptation(presenter, FixedTextAcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+        createAcceptation(presenter, FixedTextAcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
     public void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation) {
-        presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
+        presenter.openAcceptationConfirmation(AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION || requestCode == AcceptationPickerActivity.REQUEST_CODE_CONFIRM)) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION || requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM)) {
             activity.setResult(Activity.RESULT_OK, data);
             activity.finish();
         }

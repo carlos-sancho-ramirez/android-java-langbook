@@ -2,20 +2,21 @@ package sword.langbook3.android.presenters;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
+
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.AcceptationConfirmationActivity;
 import sword.langbook3.android.AcceptationDefinition;
-import sword.langbook3.android.AcceptationPickerActivity;
-import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
-import sword.langbook3.android.ConversionEditorActivity;
-import sword.langbook3.android.CorrelationPickerActivity;
-import sword.langbook3.android.FixedTextAcceptationPickerActivity;
-import sword.langbook3.android.LanguagePickerActivity;
-import sword.langbook3.android.LinkageMechanismSelectorActivity;
-import sword.langbook3.android.MatchingBunchesPickerActivity;
-import sword.langbook3.android.SourceAlphabetPickerActivity;
-import sword.langbook3.android.SpanEditorActivity;
-import sword.langbook3.android.WordEditorActivity;
+import sword.langbook3.android.activities.delegates.AcceptationConfirmationActivityDelegate;
+import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.CharacterCompositionDefinitionEditorActivityDelegate;
+import sword.langbook3.android.activities.delegates.ConversionEditorActivityDelegate;
+import sword.langbook3.android.activities.delegates.CorrelationPickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.FixedTextAcceptationPickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.LanguagePickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.LinkageMechanismSelectorActivityDelegate;
+import sword.langbook3.android.activities.delegates.MatchingBunchesPickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.SourceAlphabetPickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.SpanEditorActivityDelegate;
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
@@ -38,18 +39,18 @@ public interface Presenter {
     void displayFeedback(@StringRes int message, String param);
     void displayFeedback(@StringRes int message, String param1, String param2);
 
-    void openAcceptationConfirmation(int requestCode, @NonNull AcceptationConfirmationActivity.Controller controller);
-    void openAcceptationPicker(int requestCode, @NonNull AcceptationPickerActivity.Controller controller);
-    void openCharacterCompositionDefinitionEditor(int requestCode, @NonNull CharacterCompositionDefinitionEditorActivity.Controller controller);
-    void openConversionEditor(int requestCode, @NonNull ConversionEditorActivity.Controller controller);
-    void openCorrelationPicker(int requestCode, @NonNull CorrelationPickerActivity.Controller controller);
-    void openFixedTextAcceptationPicker(int requestCode, @NonNull FixedTextAcceptationPickerActivity.Controller controller);
-    void openLanguagePicker(int requestCode, @NonNull LanguagePickerActivity.Controller controller);
-    void openLinkageMechanismSelector(int requestCode, @NonNull LinkageMechanismSelectorActivity.Controller controller);
-    void openSourceAlphabetPicker(int requestCode, @NonNull SourceAlphabetPickerActivity.Controller controller);
-    void openSpanEditor(int requestCode, @NonNull SpanEditorActivity.Controller controller);
-    void openMatchingBunchesPicker(int requestCode, @NonNull MatchingBunchesPickerActivity.Controller controller);
-    void openWordEditor(int requestCode, @NonNull WordEditorActivity.Controller controller);
+    void openAcceptationConfirmation(int requestCode, @NonNull AcceptationConfirmationActivityDelegate.Controller controller);
+    void openAcceptationPicker(int requestCode, @NonNull AcceptationPickerActivityDelegate.Controller controller);
+    void openCharacterCompositionDefinitionEditor(int requestCode, @NonNull CharacterCompositionDefinitionEditorActivityDelegate.Controller controller);
+    void openConversionEditor(int requestCode, @NonNull ConversionEditorActivityDelegate.Controller controller);
+    void openCorrelationPicker(int requestCode, @NonNull CorrelationPickerActivityDelegate.Controller controller);
+    void openFixedTextAcceptationPicker(int requestCode, @NonNull FixedTextAcceptationPickerActivityDelegate.Controller controller);
+    void openLanguagePicker(int requestCode, @NonNull LanguagePickerActivityDelegate.Controller controller);
+    void openLinkageMechanismSelector(int requestCode, @NonNull LinkageMechanismSelectorActivityDelegate.Controller controller);
+    void openSourceAlphabetPicker(int requestCode, @NonNull SourceAlphabetPickerActivityDelegate.Controller controller);
+    void openSpanEditor(int requestCode, @NonNull SpanEditorActivityDelegate.Controller controller);
+    void openMatchingBunchesPicker(int requestCode, @NonNull MatchingBunchesPickerActivityDelegate.Controller controller);
+    void openWordEditor(int requestCode, @NonNull WordEditorActivityDelegate.Controller controller);
 
     AcceptationDefinition fireFixedTextAcceptationPicker(int requestCode, @NonNull String text);
 }

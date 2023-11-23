@@ -4,12 +4,14 @@ import android.app.Activity;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
+
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.LanguagePickerActivity;
+import sword.langbook3.android.activities.delegates.LanguagePickerActivityDelegate;
 import sword.langbook3.android.db.LanguageId;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
-abstract class AbstractLanguagePickerController implements LanguagePickerActivity.Controller, Fireable {
+abstract class AbstractLanguagePickerController implements LanguagePickerActivityDelegate.Controller, Fireable {
 
     @Override
     public void fire(@NonNull Presenter presenter, int requestCode) {
@@ -31,12 +33,12 @@ abstract class AbstractLanguagePickerController implements LanguagePickerActivit
 
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull LanguageId language) {
-        complete(presenter, LanguagePickerActivity.REQUEST_CODE_NEW_WORD, language);
+        complete(presenter, LanguagePickerActivityDelegate.REQUEST_CODE_NEW_WORD, language);
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode == LanguagePickerActivity.REQUEST_CODE_NEW_WORD && resultCode == Activity.RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode == LanguagePickerActivityDelegate.REQUEST_CODE_NEW_WORD && resultCode == Activity.RESULT_OK) {
             activity.setResult(Activity.RESULT_OK, data);
             activity.finish();
         }

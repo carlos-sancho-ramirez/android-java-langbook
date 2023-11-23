@@ -9,11 +9,11 @@ import android.widget.TextView;
 import sword.langbook3.android.db.QuizId;
 import sword.langbook3.android.models.Progress;
 
-final class QuizSelectorAdapter extends BaseAdapter {
+public final class QuizSelectorAdapter extends BaseAdapter {
 
     private final Item[] _items;
 
-    QuizSelectorAdapter(Item[] items) {
+    public QuizSelectorAdapter(Item[] items) {
         if (items == null) {
             throw new IllegalArgumentException();
         }
@@ -57,20 +57,20 @@ final class QuizSelectorAdapter extends BaseAdapter {
         return convertView;
     }
 
-    static class Item {
+    public static class Item {
         private final QuizId _quizId;
         private final String _questionText;
         private final String _answerText;
         private final Progress _progress;
 
-        Item(QuizId quizId, String questionText, String answerText, Progress progress) {
+        public Item(QuizId quizId, String questionText, String answerText, Progress progress) {
             _quizId = quizId;
             _questionText = questionText;
             _answerText = answerText;
             _progress = progress;
         }
 
-        QuizId getQuizId() {
+        public QuizId getQuizId() {
             return _quizId;
         }
     }

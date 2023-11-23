@@ -10,12 +10,12 @@ import sword.collections.ImmutablePair;
 import sword.collections.Map;
 import sword.langbook3.android.models.Conversion;
 
-final class ConversionDetailsAdapter extends BaseAdapter {
+public final class ConversionDetailsAdapter extends BaseAdapter {
 
     private final Conversion _conversion;
     private LayoutInflater _inflater;
 
-    ConversionDetailsAdapter(Conversion conversion) {
+    public ConversionDetailsAdapter(Conversion conversion) {
         _conversion = conversion;
     }
 

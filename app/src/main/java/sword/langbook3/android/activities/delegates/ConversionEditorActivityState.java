@@ -1,4 +1,6 @@
-package sword.langbook3.android;
+package sword.langbook3.android.activities.delegates;
+
+import static sword.collections.SortUtils.equal;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -20,8 +22,6 @@ import sword.collections.Set;
 import sword.collections.SortUtils;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.Conversion;
-
-import static sword.collections.SortUtils.equal;
 
 public final class ConversionEditorActivityState implements Parcelable {
 

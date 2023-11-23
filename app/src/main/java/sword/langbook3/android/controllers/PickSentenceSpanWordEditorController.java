@@ -1,29 +1,30 @@
 package sword.langbook3.android.controllers;
 
-import android.app.Activity;
+import static android.app.Activity.RESULT_OK;
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableList;
 import sword.collections.ImmutablePair;
 import sword.collections.ImmutableSet;
 import sword.collections.MapGetter;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
-import sword.langbook3.android.WordEditorActivity;
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.presenters.Presenter;
 
-import static android.app.Activity.RESULT_OK;
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-
-public final class PickSentenceSpanWordEditorController implements WordEditorActivity.Controller, Fireable {
+public final class PickSentenceSpanWordEditorController implements WordEditorActivityDelegate.Controller, Fireable {
 
     @NonNull
     private final LanguageId _language;
@@ -54,7 +55,7 @@ public final class PickSentenceSpanWordEditorController implements WordEditorAct
     }
 
     @Override
-    public void setTitle(@NonNull Activity activity) {
+    public void setTitle(@NonNull ActivityInterface activity) {
         // Nothing to be done
     }
 
@@ -77,7 +78,7 @@ public final class PickSentenceSpanWordEditorController implements WordEditorAct
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull ImmutableCorrelation<AlphabetId> texts) {
         if (texts.contains(_text)) {
-            complete(presenter, WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER, texts);
+            complete(presenter, WordEditorActivityDelegate.REQUEST_CODE_CORRELATION_PICKER, texts);
         }
         else {
             presenter.displayFeedback(R.string.expectedTextNotPresentError, _text);
@@ -85,8 +86,8 @@ public final class PickSentenceSpanWordEditorController implements WordEditorAct
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode == WordEditorActivity.REQUEST_CODE_CORRELATION_PICKER && resultCode == RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode == WordEditorActivityDelegate.REQUEST_CODE_CORRELATION_PICKER && resultCode == RESULT_OK) {
             activity.setResult(RESULT_OK, data);
             activity.finish();
         }

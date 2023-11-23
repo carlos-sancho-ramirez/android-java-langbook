@@ -14,13 +14,13 @@ import sword.collections.Map;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.LanguageId;
 
-final class AlphabetsAdapter extends BaseAdapter {
+public final class AlphabetsAdapter extends BaseAdapter {
     private final ImmutableMap<Object, String> _concepts;
     private final ImmutableList<Object> _conceptList;
 
     private LayoutInflater _inflater;
 
-    AlphabetsAdapter(
+    public AlphabetsAdapter(
             ImmutableMap<LanguageId, ImmutableSet<AlphabetId>> map,
             ImmutableMap<LanguageId, String> languages,
             ImmutableMap<AlphabetId, String> alphabets) {

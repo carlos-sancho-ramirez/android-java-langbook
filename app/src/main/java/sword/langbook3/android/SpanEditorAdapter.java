@@ -11,14 +11,14 @@ import sword.collections.MutableIntValueMap;
 import sword.collections.Procedure;
 import sword.langbook3.android.models.SentenceSpan;
 
-final class SpanEditorAdapter extends BaseAdapter {
+public final class SpanEditorAdapter extends BaseAdapter {
 
     private final String sentenceText;
     private final MutableIntValueMap<SentenceSpan<Object>> spans;
     private final Procedure<IntValueMap<SentenceSpan<Object>>> observer;
     private LayoutInflater inflater;
 
-    SpanEditorAdapter(String sentenceText, MutableIntValueMap<SentenceSpan<Object>> spans, Procedure<IntValueMap<SentenceSpan<Object>>> observer) {
+    public SpanEditorAdapter(String sentenceText, MutableIntValueMap<SentenceSpan<Object>> spans, Procedure<IntValueMap<SentenceSpan<Object>>> observer) {
         this.sentenceText = sentenceText;
         this.spans = spans;
         this.observer = observer;

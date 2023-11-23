@@ -13,7 +13,7 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 
-final class CorrelationPickerAdapter extends BaseAdapter {
+public final class CorrelationPickerAdapter extends BaseAdapter {
 
     public static String toPlainText(ImmutableCorrelationArray<AlphabetId> correlationArray, Traversable<ImmutableCorrelation<AlphabetId>> knownCorrelations) {
         final Function<ImmutableCorrelation<AlphabetId>, String> mapFunc = correlation -> {
@@ -29,7 +29,7 @@ final class CorrelationPickerAdapter extends BaseAdapter {
 
     private LayoutInflater _inflater;
 
-    CorrelationPickerAdapter(ImmutableSet<ImmutableCorrelationArray<AlphabetId>> entries, ImmutableSet<ImmutableCorrelation<AlphabetId>> knownCorrelations) {
+    public CorrelationPickerAdapter(ImmutableSet<ImmutableCorrelationArray<AlphabetId>> entries, ImmutableSet<ImmutableCorrelation<AlphabetId>> knownCorrelations) {
         _entries = entries;
         _knownCorrelations = knownCorrelations;
     }

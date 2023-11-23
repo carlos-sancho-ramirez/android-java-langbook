@@ -10,11 +10,11 @@ import sword.collections.ImmutableSet;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableSet;
 import sword.langbook3.android.AcceptationDefinition;
-import sword.langbook3.android.AgentEditorActivity;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.IntermediateIntentions;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.AgentEditorActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -28,12 +28,13 @@ import sword.langbook3.android.db.ParcelableBunchIdSet;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.db.RuleIdManager;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.db.BunchIdManager.conceptAsBunchId;
 import static sword.langbook3.android.db.RuleIdManager.conceptAsRuleId;
 
-abstract class AbstractAgentEditorController implements AgentEditorActivity.Controller {
+abstract class AbstractAgentEditorController implements AgentEditorActivityDelegate.Controller {
 
     boolean checkState(@NonNull Presenter presenter, @NonNull State state) {
         final ImmutableSet<Object> targets = state.getTargetBunches();
@@ -155,46 +156,46 @@ abstract class AbstractAgentEditorController implements AgentEditorActivity.Cont
 
     @Override
     public void pickTargetBunch(@NonNull Presenter presenter) {
-        IntermediateIntentions.pickBunch(presenter, AgentEditorActivity.REQUEST_CODE_PICK_TARGET_BUNCH);
+        IntermediateIntentions.pickBunch(presenter, AgentEditorActivityDelegate.REQUEST_CODE_PICK_TARGET_BUNCH);
     }
 
     @Override
     public void pickSourceBunch(@NonNull Presenter presenter) {
-        IntermediateIntentions.pickBunch(presenter, AgentEditorActivity.REQUEST_CODE_PICK_SOURCE_BUNCH);
+        IntermediateIntentions.pickBunch(presenter, AgentEditorActivityDelegate.REQUEST_CODE_PICK_SOURCE_BUNCH);
     }
 
     @Override
     public void pickDiffBunch(@NonNull Presenter presenter) {
-        IntermediateIntentions.pickBunch(presenter, AgentEditorActivity.REQUEST_CODE_PICK_DIFF_BUNCH);
+        IntermediateIntentions.pickBunch(presenter, AgentEditorActivityDelegate.REQUEST_CODE_PICK_DIFF_BUNCH);
     }
 
     @Override
     public void defineStartAdder(@NonNull Presenter presenter) {
-        IntermediateIntentions.defineCorrelationArray(presenter, AgentEditorActivity.REQUEST_CODE_DEFINE_START_ADDER);
+        IntermediateIntentions.defineCorrelationArray(presenter, AgentEditorActivityDelegate.REQUEST_CODE_DEFINE_START_ADDER);
     }
 
     @Override
     public void defineEndAdder(@NonNull Presenter presenter) {
-        IntermediateIntentions.defineCorrelationArray(presenter, AgentEditorActivity.REQUEST_CODE_DEFINE_END_ADDER);
+        IntermediateIntentions.defineCorrelationArray(presenter, AgentEditorActivityDelegate.REQUEST_CODE_DEFINE_END_ADDER);
     }
 
     @Override
     public void pickRule(@NonNull Presenter presenter) {
-        IntermediateIntentions.pickRule(presenter, AgentEditorActivity.REQUEST_CODE_PICK_RULE);
+        IntermediateIntentions.pickRule(presenter, AgentEditorActivityDelegate.REQUEST_CODE_PICK_RULE);
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state) {
         if (resultCode == Activity.RESULT_OK) {
-            if (requestCode == AgentEditorActivity.REQUEST_CODE_DEFINE_START_ADDER) {
+            if (requestCode == AgentEditorActivityDelegate.REQUEST_CODE_DEFINE_START_ADDER) {
                 final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(BundleKeys.CORRELATION_ARRAY);
                 state.setStartAdder(parcelableCorrelationArray.get());
             }
-            else if (requestCode == AgentEditorActivity.REQUEST_CODE_DEFINE_END_ADDER) {
+            else if (requestCode == AgentEditorActivityDelegate.REQUEST_CODE_DEFINE_END_ADDER) {
                 final ParcelableCorrelationArray parcelableCorrelationArray = data.getParcelableExtra(BundleKeys.CORRELATION_ARRAY);
                 state.setEndAdder(parcelableCorrelationArray.get());
             }
-            else if (requestCode == AgentEditorActivity.REQUEST_CODE_PICK_TARGET_BUNCH || requestCode == AgentEditorActivity.REQUEST_CODE_PICK_SOURCE_BUNCH || requestCode == AgentEditorActivity.REQUEST_CODE_PICK_DIFF_BUNCH) {
+            else if (requestCode == AgentEditorActivityDelegate.REQUEST_CODE_PICK_TARGET_BUNCH || requestCode == AgentEditorActivityDelegate.REQUEST_CODE_PICK_SOURCE_BUNCH || requestCode == AgentEditorActivityDelegate.REQUEST_CODE_PICK_DIFF_BUNCH) {
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
                 final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
                 final Object item;
@@ -207,17 +208,17 @@ abstract class AbstractAgentEditorController implements AgentEditorActivity.Cont
                     item = new AcceptationDefinition(parcelableCorrelationArray.get(), bunchIdSet.get());
                 }
 
-                if (requestCode == AgentEditorActivity.REQUEST_CODE_PICK_TARGET_BUNCH) {
+                if (requestCode == AgentEditorActivityDelegate.REQUEST_CODE_PICK_TARGET_BUNCH) {
                     state.setTargetBunches(state.getTargetBunches().add(item));
                 }
-                else if (requestCode == AgentEditorActivity.REQUEST_CODE_PICK_SOURCE_BUNCH) {
+                else if (requestCode == AgentEditorActivityDelegate.REQUEST_CODE_PICK_SOURCE_BUNCH) {
                     state.setSourceBunches(state.getSourceBunches().add(item));
                 }
                 else {
                     state.setDiffBunches(state.getDiffBunches().add(item));
                 }
             }
-            else if (requestCode == AgentEditorActivity.REQUEST_CODE_PICK_RULE) {
+            else if (requestCode == AgentEditorActivityDelegate.REQUEST_CODE_PICK_RULE) {
                 final LangbookDbManager manager = DbManager.getInstance().getManager();
                 final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
                 final Object item;

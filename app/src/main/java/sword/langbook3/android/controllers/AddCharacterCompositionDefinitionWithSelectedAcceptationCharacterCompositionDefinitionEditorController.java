@@ -1,26 +1,28 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.app.Activity;
 import android.os.Parcel;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
+
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.CharacterCompositionDefinitionEditorActivityDelegate;
 import sword.langbook3.android.collections.Procedure2;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.CharacterCompositionTypeId;
 import sword.langbook3.android.db.CharacterCompositionTypeIdParceler;
 import sword.langbook3.android.db.LangbookDbChecker;
+import sword.langbook3.android.interf.ActivityExtensions;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.models.CharacterCompositionDefinitionArea;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 
-import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-
-public final class AddCharacterCompositionDefinitionWithSelectedAcceptationCharacterCompositionDefinitionEditorController implements CharacterCompositionDefinitionEditorActivity.Controller {
+public final class AddCharacterCompositionDefinitionWithSelectedAcceptationCharacterCompositionDefinitionEditorController implements CharacterCompositionDefinitionEditorActivityDelegate.Controller {
 
     @NonNull
     private final CharacterCompositionTypeId _id;
@@ -31,7 +33,7 @@ public final class AddCharacterCompositionDefinitionWithSelectedAcceptationChara
     }
 
     @Override
-    public void load(@NonNull Activity activity, @NonNull Procedure2<String, CharacterCompositionDefinitionRegister> procedure) {
+    public void load(@NonNull ActivityInterface activity, @NonNull Procedure2<String, CharacterCompositionDefinitionRegister> procedure) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final String title = checker.readConceptText(_id.getConceptId(), preferredAlphabet);
@@ -46,13 +48,13 @@ public final class AddCharacterCompositionDefinitionWithSelectedAcceptationChara
     }
 
     @Override
-    public void save(@NonNull Activity activity, @NonNull CharacterCompositionDefinitionRegister register) {
+    public void save(@NonNull ActivityExtensions activity, @NonNull CharacterCompositionDefinitionRegister register) {
         if (DbManager.getInstance().getManager().updateCharacterCompositionDefinition(_id, register)) {
             activity.setResult(Activity.RESULT_OK);
             activity.finish();
         }
         else {
-            Toast.makeText(activity, R.string.createCharacterCompositionDefinitionError, Toast.LENGTH_SHORT).show();
+            activity.showToast(R.string.createCharacterCompositionDefinitionError);
         }
     }
 

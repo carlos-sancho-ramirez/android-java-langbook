@@ -14,7 +14,7 @@ public final class RuleAdapter extends BaseAdapter {
     private final ImmutableMap<RuleId, String> _entries;
     private LayoutInflater _inflater;
 
-    RuleAdapter(ImmutableMap<RuleId, String> entries) {
+    public RuleAdapter(ImmutableMap<RuleId, String> entries) {
         _entries = entries;
     }
 

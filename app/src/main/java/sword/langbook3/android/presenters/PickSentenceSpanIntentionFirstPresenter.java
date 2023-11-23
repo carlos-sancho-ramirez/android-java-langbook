@@ -1,7 +1,5 @@
 package sword.langbook3.android.presenters;
 
-import android.app.Activity;
-
 import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.AcceptationDefinition;
@@ -10,6 +8,7 @@ import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.interf.ActivityExtensions;
 import sword.langbook3.android.models.Conversion;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNull;
@@ -18,7 +17,7 @@ public final class PickSentenceSpanIntentionFirstPresenter extends AbstractPrese
 
     public AcceptationDefinition immediateResult;
 
-    public PickSentenceSpanIntentionFirstPresenter(@NonNull Activity activity) {
+    public PickSentenceSpanIntentionFirstPresenter(@NonNull ActivityExtensions activity) {
         super(activity);
     }
 

@@ -1,40 +1,23 @@
 package sword.langbook3.android;
 
-import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
-import android.widget.ListView;
 
-import sword.collections.ImmutableList;
-import sword.langbook3.android.db.CharacterId;
-import sword.langbook3.android.models.IdentifiableResult;
+import androidx.annotation.NonNull;
 
-public final class CharacterPickerActivity extends Activity {
+import sword.langbook3.android.activities.delegates.CharacterPickerActivityDelegate;
+import sword.langbook3.android.activities.delegates.CharacterPickerActivityDelegate.ArgKeys;
+import sword.langbook3.android.interf.ContextExtensions;
+import sword.langbook3.android.util.ActivityExtensionsAdapter;
 
-    private interface ArgKeys {
-        String CHARACTER_STRING = BundleKeys.CHARACTER_STRING;
-    }
+public final class CharacterPickerActivity extends DelegatorActivity<ActivityExtensionsAdapter> {
 
-    public static void open(Context context, String characters) {
-        final Intent intent = new Intent(context, CharacterPickerActivity.class);
+    public static void open(@NonNull ContextExtensions context, String characters) {
+        final Intent intent = context.newIntent(CharacterPickerActivity.class);
         intent.putExtra(ArgKeys.CHARACTER_STRING, characters);
         context.startActivity(intent);
     }
 
-    private String getCharacterString() {
-        return getIntent().getStringExtra(ArgKeys.CHARACTER_STRING);
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.character_picker_activity);
-
-        final ImmutableList<IdentifiableResult<CharacterId>> items = DbManager.getInstance().getManager().getCharacterPickerItems(getCharacterString());
-        final ListView listView = findViewById(R.id.listView);
-        listView.setAdapter(new CharacterPickerAdapter(items));
-        listView.setOnItemClickListener((parent, view, position, id) ->
-                CharacterDetailsActivity.open(CharacterPickerActivity.this, items.valueAt(position).id));
+    public CharacterPickerActivity() {
+        super(ActivityExtensionsAdapter::new, new CharacterPickerActivityDelegate<>());
     }
 }

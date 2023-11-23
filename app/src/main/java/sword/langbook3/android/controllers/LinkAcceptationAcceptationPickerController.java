@@ -5,16 +5,17 @@ import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
+import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdParceler;
 import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class LinkAcceptationAcceptationPickerController implements AcceptationPickerActivity.Controller {
+public final class LinkAcceptationAcceptationPickerController implements AcceptationPickerActivityDelegate.Controller {
 
     @NonNull
     private final AcceptationId _sourceAcceptation;
@@ -28,17 +29,17 @@ public final class LinkAcceptationAcceptationPickerController implements Accepta
     public void createAcceptation(@NonNull Presenter presenter, String query) {
         final ConceptId concept = DbManager.getInstance().getManager().conceptFromAcceptation(_sourceAcceptation);
         new LinkAcceptationLanguagePickerController(concept, query)
-                .fire(presenter, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+                .fire(presenter, AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
     public void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation) {
-        presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new LinkAcceptationAcceptationConfirmationController(_sourceAcceptation, acceptation));
+        presenter.openAcceptationConfirmation(AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM, new LinkAcceptationAcceptationConfirmationController(_sourceAcceptation, acceptation));
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
-        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivity.REQUEST_CODE_CONFIRM || requestCode == AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION)) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
+        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM || requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION)) {
             activity.setResult(Activity.RESULT_OK);
             activity.finish();
         }

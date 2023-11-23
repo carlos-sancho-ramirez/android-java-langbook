@@ -1,24 +1,21 @@
 package sword.langbook3.android;
 
-import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
-import android.widget.TextView;
 
-public final class AboutActivity extends Activity {
+import androidx.annotation.NonNull;
 
-    public static void open(Context context) {
-        Intent intent = new Intent(context, AboutActivity.class);
+import sword.langbook3.android.activities.delegates.AboutActivityDelegate;
+import sword.langbook3.android.interf.ContextExtensions;
+import sword.langbook3.android.util.ActivityExtensionsAdapter;
+
+public final class AboutActivity extends DelegatorActivity<ActivityExtensionsAdapter> {
+
+    public static void open(@NonNull ContextExtensions context) {
+        final Intent intent = context.newIntent(AboutActivity.class);
         context.startActivity(intent);
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.about_activity);
-
-        final TextView appVersion = findViewById(R.id.appVersion);
-        appVersion.setText("version " + BuildConfig.VERSION_NAME);
+    public AboutActivity() {
+        super(ActivityExtensionsAdapter::new, new AboutActivityDelegate<>());
     }
 }

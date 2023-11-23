@@ -1,40 +1,43 @@
 package sword.langbook3.android.controllers;
 
-import android.app.Activity;
+import static android.app.Activity.RESULT_OK;
+
 import android.content.Intent;
 import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.LanguageAdderActivity;
 import sword.langbook3.android.WordEditorActivity;
+import sword.langbook3.android.activities.delegates.LanguageAdderActivityDelegate;
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdManager;
+import sword.langbook3.android.interf.ActivityExtensions;
+import sword.langbook3.android.interf.ActivityInterface;
 
-import static android.app.Activity.RESULT_OK;
-
-public final class AddLanguageLanguageAdderController implements LanguageAdderActivity.Controller {
+public final class AddLanguageLanguageAdderController implements LanguageAdderActivityDelegate.Controller {
 
     @Override
-    public void complete(@NonNull Activity activity, String languageCode, int alphabetCount) {
+    public void complete(@NonNull ActivityExtensions activity, String languageCode, int alphabetCount) {
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ImmutableSet<ConceptId> concepts = checker.getNextAvailableConceptIds(alphabetCount + 1);
         final LanguageId languageId = LanguageIdManager.conceptAsLanguageId(concepts.first());
         final ImmutableList<AlphabetId> alphabets = concepts.skip(1).map(AlphabetIdManager::conceptAsAlphabetId);
-        final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForLanguage(languageCode, languageId, alphabets);
-        WordEditorActivity.open(activity, LanguageAdderActivity.REQUEST_CODE_NEXT_STEP, controller);
+        final WordEditorActivityDelegate.Controller controller = new AddLanguageWordEditorControllerForLanguage(languageCode, languageId, alphabets);
+        WordEditorActivity.open(activity, LanguageAdderActivityDelegate.REQUEST_CODE_NEXT_STEP, controller);
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode == LanguageAdderActivity.REQUEST_CODE_NEXT_STEP && resultCode == RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode == LanguageAdderActivityDelegate.REQUEST_CODE_NEXT_STEP && resultCode == RESULT_OK) {
             activity.setResult(RESULT_OK);
             activity.finish();
         }
@@ -46,7 +49,7 @@ public final class AddLanguageLanguageAdderController implements LanguageAdderAc
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         // Nothing to be done
     }
 

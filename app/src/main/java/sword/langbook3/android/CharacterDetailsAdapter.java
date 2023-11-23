@@ -1,5 +1,8 @@
 package sword.langbook3.android;
 
+import static sword.langbook3.android.activities.delegates.CharacterCompositionEditorActivityDelegate.bindCompositionType;
+import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
+
 import android.content.Context;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -13,9 +16,7 @@ import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.models.CharacterCompositionPart;
 import sword.langbook3.android.models.CharacterCompositionRepresentation;
 import sword.langbook3.android.models.CharacterDetailsModel;
-
-import static sword.langbook3.android.CharacterCompositionEditorActivity.bindCompositionType;
-import static sword.langbook3.android.models.CharacterCompositionRepresentation.INVALID_CHARACTER;
+import sword.langbook3.android.util.ContextExtensionsAdapter;
 
 public final class CharacterDetailsAdapter extends BaseAdapter {
 
@@ -90,8 +91,8 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
     @Override
     public boolean isEnabled(int position) {
         final boolean isUnicodeNumberPresent = _model.representation.character != INVALID_CHARACTER;
-        return (!isUnicodeNumberPresent && (position > 2 || position >= 2 && _model.compositionType == null) ||
-                (isUnicodeNumberPresent && (position > 3 || position >= 3 && _model.compositionType == null))) &&
+        return (!isUnicodeNumberPresent && (position > 2 || position == 2 && _model.compositionType == null) ||
+                (isUnicodeNumberPresent && (position > 3 || position == 3 && _model.compositionType == null))) &&
                 position != _asFirstHeaderPosition && position != _asSecondHeaderPosition && position != _acceptationsWhereIncludedHeaderPosition;
     }
 
@@ -138,13 +139,14 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
                 (token != null)? "{" + token + '}' : "?";
     }
 
-    static String representChar(CharacterCompositionRepresentation representation) {
+    public static String representChar(CharacterCompositionRepresentation representation) {
         return representChar(representation.character, representation.token);
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         final Context context = parent.getContext();
+        final ContextExtensionsAdapter contextAdapter = new ContextExtensionsAdapter(context);
         final int viewType = getItemViewType(position);
         if (viewType == ViewTypes.CHARACTER) {
             if (convertView == null) {
@@ -175,7 +177,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
             firstTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getResources().getDimension(firstTextSizeRes));
 
             final CharacterId firstId = _model.first.id;
-            firstTextView.setOnClickListener(v -> CharacterDetailsActivity.open(context, firstId));
+            firstTextView.setOnClickListener(v -> CharacterDetailsActivity.open(contextAdapter, firstId));
 
             final TextView secondTextView = convertView.findViewById(R.id.second);
             secondTextView.setText(representChar(_model.second.representation));
@@ -186,7 +188,7 @@ public final class CharacterDetailsAdapter extends BaseAdapter {
             secondTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getResources().getDimension(secondTextSizeRes));
 
             final CharacterId secondId = _model.second.id;
-            secondTextView.setOnClickListener(v -> CharacterDetailsActivity.open(context, secondId));
+            secondTextView.setOnClickListener(v -> CharacterDetailsActivity.open(contextAdapter, secondId));
         }
         else if (viewType == ViewTypes.COMPOSITION_TYPE) {
             if (convertView == null) {

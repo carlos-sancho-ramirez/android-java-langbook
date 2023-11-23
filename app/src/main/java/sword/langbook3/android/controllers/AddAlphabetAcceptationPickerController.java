@@ -8,17 +8,19 @@ import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
 import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
-public final class AddAlphabetAcceptationPickerController implements AcceptationPickerActivity.Controller {
+public final class AddAlphabetAcceptationPickerController implements AcceptationPickerActivityDelegate.Controller {
 
     @NonNull
     private final LanguageId _language;
@@ -31,7 +33,7 @@ public final class AddAlphabetAcceptationPickerController implements Acceptation
     @Override
     public void createAcceptation(@NonNull Presenter presenter, String query) {
         new AddAlphabetLanguagePickerController(_language, query)
-                .fire(presenter, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+                .fire(presenter, AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
@@ -42,13 +44,13 @@ public final class AddAlphabetAcceptationPickerController implements Acceptation
             presenter.displayFeedback(R.string.alreadyUsedAsAlphabet);
         }
         else {
-            presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AddAlphabetAcceptationConfirmationController(_language, acceptation));
+            presenter.openAcceptationConfirmation(AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM, new AddAlphabetAcceptationConfirmationController(_language, acceptation));
         }
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
-        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivity.REQUEST_CODE_CONFIRM || requestCode == AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION)) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
+        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM || requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION)) {
             activity.setResult(Activity.RESULT_OK);
             activity.finish();
         }

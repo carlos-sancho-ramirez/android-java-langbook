@@ -1,5 +1,7 @@
 package sword.langbook3.android;
 
+import static sword.langbook3.android.sqlite.SqliteUtils.sqlType;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -35,8 +37,6 @@ import sword.langbook3.android.db.LangbookDbManagerImpl;
 import sword.langbook3.android.db.LangbookDbSchema;
 import sword.langbook3.android.sdb.ProgressListener;
 import sword.langbook3.android.sqlite.SQLiteDbQuery;
-
-import static sword.langbook3.android.sqlite.SqliteUtils.sqlType;
 
 public final class DbManager extends SQLiteOpenHelper {
 
@@ -420,7 +420,7 @@ public final class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    void importDatabase(Uri uri) {
+    public void importDatabase(Uri uri) {
         _databaseImportTask = new DatabaseImportTask();
         _progressListener = _databaseImportTask;
         _databaseImportTask.execute(uri);
@@ -481,11 +481,11 @@ public final class DbManager extends SQLiteOpenHelper {
         _databaseExportTask.execute(uri);
     }
 
-    boolean isProcessingDatabase() {
+    public boolean isProcessingDatabase() {
         return _databaseImportTask != null || _databaseExportTask != null;
     }
 
-    void setProgressListener(ProgressListener listener) {
+    public void setProgressListener(ProgressListener listener) {
         _externalProgressListener = listener;
         final TaskProgress lastProgress = _lastProgress;
         if (listener != null && lastProgress != null) {
@@ -493,7 +493,7 @@ public final class DbManager extends SQLiteOpenHelper {
         }
     }
 
-    String getDatabasePath() {
+    public String getDatabasePath() {
         return _context.getDatabasePath(DB_NAME).toString();
     }
 

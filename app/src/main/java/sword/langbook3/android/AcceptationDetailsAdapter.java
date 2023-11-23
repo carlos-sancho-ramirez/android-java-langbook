@@ -1,12 +1,15 @@
 package sword.langbook3.android;
 
-import android.app.Activity;
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
 
 import sword.collections.ImmutableIntSet;
 import sword.collections.ImmutableList;
@@ -21,9 +24,8 @@ import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.CorrelationId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.interf.ActivityExtensions;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
-
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class AcceptationDetailsAdapter extends BaseAdapter {
 
@@ -34,7 +36,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         int CHARACTER_COMPOSITION_DEFINITION = 3;
     }
 
-    static abstract class Item {
+    public static abstract class Item {
 
         private final int _type;
         private String _text;
@@ -48,11 +50,11 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             _text = text;
         }
 
-        String getText() {
+        public String getText() {
             return _text;
         }
 
-        abstract void navigate(Activity activity, int requestCode);
+        public abstract void navigate(@NonNull ActivityExtensions activity, int requestCode);
 
         boolean isEnabled() {
             return false;
@@ -66,7 +68,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             return R.color.agentStaticTextColor;
         }
 
-        int getItemType() {
+        public int getItemType() {
             return _type;
         }
     }
@@ -75,14 +77,14 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      * Non-navigable item with different UI representation.
      * Used as title of each section.
      */
-    static final class HeaderItem extends Item {
+    public static final class HeaderItem extends Item {
 
-        HeaderItem(String text) {
+        public HeaderItem(String text) {
             super(ItemTypes.UNKNOWN, text);
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             // This item does not navigate
         }
 
@@ -95,25 +97,25 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      * Item including an staticAcceptation and a text to be displayed.
      * This will open a new {@link AcceptationDetailsActivity} on clicking on the item.
      */
-    static final class AcceptationNavigableItem extends Item {
+    public static final class AcceptationNavigableItem extends Item {
 
         private final AcceptationId _id;
         private final boolean _dynamic;
 
-        AcceptationNavigableItem(AcceptationId id, String text, boolean dynamic) {
+        public AcceptationNavigableItem(AcceptationId id, String text, boolean dynamic) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
             _dynamic = dynamic;
         }
 
-        AcceptationNavigableItem(int itemType, AcceptationId id, String text, boolean dynamic) {
+        public AcceptationNavigableItem(int itemType, AcceptationId id, String text, boolean dynamic) {
             super(itemType, text);
             _id = id;
             _dynamic = dynamic;
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             AcceptationDetailsActivity.open(activity, requestCode, _id);
         }
 
@@ -122,11 +124,11 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             return true;
         }
 
-        boolean isDynamic() {
+        public boolean isDynamic() {
             return _dynamic;
         }
 
-        AcceptationId getId() {
+        public AcceptationId getId() {
             return _id;
         }
 
@@ -136,17 +138,17 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    static final class CharacterPickerNavigableItem extends Item {
+    public static final class CharacterPickerNavigableItem extends Item {
 
         private final String _characterString;
 
-        CharacterPickerNavigableItem(String characterString, String text) {
+        public CharacterPickerNavigableItem(String characterString, String text) {
             super(ItemTypes.UNKNOWN, text);
             _characterString = characterString;
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             if (_characterString.length() == 1) {
                 final CharacterId characterId = DbManager.getInstance().getManager().findCharacter(_characterString.charAt(0));
                 CharacterDetailsActivity.open(activity, characterId);
@@ -166,17 +168,17 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      * Item including an staticAcceptation and a text to be displayed.
      * This will open a new {@link AcceptationDetailsActivity} on clicking on the item.
      */
-    static final class CorrelationNavigableItem extends Item {
+    public static final class CorrelationNavigableItem extends Item {
 
         private final CorrelationId _id;
 
-        CorrelationNavigableItem(CorrelationId id, String text) {
+        public CorrelationNavigableItem(CorrelationId id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             CorrelationDetailsActivity.open(activity, requestCode, _id);
         }
 
@@ -186,17 +188,17 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    static final class AgentNavigableItem extends Item {
+    public static final class AgentNavigableItem extends Item {
 
         private final AgentId _id;
 
-        AgentNavigableItem(AgentId id, String text) {
+        public AgentNavigableItem(AgentId id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             AgentDetailsActivity.open(activity, _id);
         }
 
@@ -206,17 +208,17 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    static final class SentenceNavigableItem extends Item {
+    public static final class SentenceNavigableItem extends Item {
 
         private final SentenceId _id;
 
-        SentenceNavigableItem(SentenceId id, String text) {
+        public SentenceNavigableItem(SentenceId id, String text) {
             super(ItemTypes.UNKNOWN, text);
             _id = id;
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             SentenceDetailsActivity.open(activity, requestCode, _id);
         }
 
@@ -230,30 +232,30 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
      * Item that is displayed as a navigable item but that does not implement the navigate method,
      * preventing any navigation.
      */
-    static final class NonNavigableItem extends Item {
+    public static final class NonNavigableItem extends Item {
 
-        NonNavigableItem(String text) {
+        public NonNavigableItem(String text) {
             super(ItemTypes.UNKNOWN, text);
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             // This item does not navigate
         }
     }
 
-    static final class CharacterCompositionDefinitionItem extends Item {
+    public static final class CharacterCompositionDefinitionItem extends Item {
 
         private final CharacterCompositionDefinitionRegister _register;
 
-        CharacterCompositionDefinitionItem(CharacterCompositionDefinitionRegister register) {
+        public CharacterCompositionDefinitionItem(CharacterCompositionDefinitionRegister register) {
             super(ItemTypes.CHARACTER_COMPOSITION_DEFINITION, "");
             ensureNonNull(register);
             _register = register;
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             // This item does not navigate
         }
 
@@ -268,7 +270,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
     }
 
-    static final class CorrelationArrayItem extends Item {
+    public static final class CorrelationArrayItem extends Item {
 
         private final ImmutableList<CorrelationId> _correlationIds;
         private final ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> _correlations;
@@ -276,7 +278,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         private final AlphabetId _pronunciationAlphabet;
         private final boolean _isNavigable;
 
-        CorrelationArrayItem(
+        public CorrelationArrayItem(
                 ImmutableList<CorrelationId> correlationIds,
                 ImmutableMap<CorrelationId, ImmutableCorrelation<AlphabetId>> correlations,
                 AlphabetId mainAlphabet,
@@ -307,7 +309,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
 
         @Override
-        void navigate(Activity activity, int requestCode) {
+        public void navigate(@NonNull ActivityExtensions activity, int requestCode) {
             // This item does not navigate
         }
 
@@ -316,7 +318,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
             return R.layout.correlation_array_container;
         }
 
-        void updateView(Activity activity, int requestCode, LinearLayout view) {
+        void updateView(ActivityExtensions activity, int requestCode, LinearLayout view) {
             view.removeAllViews();
             final LayoutInflater inflater = LayoutInflater.from(view.getContext());
             for (CorrelationId correlationId : _correlationIds) {
@@ -347,11 +349,11 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
     private final boolean _allItemsEnabled;
     private final ImmutableIntSet _viewTypes;
 
-    private final Activity _activity;
+    private final ActivityExtensions _activityAdapter;
     private final int _correlationArrayRequestCode;
     private LayoutInflater _inflater;
 
-    AcceptationDetailsAdapter(Activity activity, int correlationArrayRequestCode, ImmutableList<Item> items) {
+    public AcceptationDetailsAdapter(ActivityExtensions activity, int correlationArrayRequestCode, ImmutableList<Item> items) {
         final MutableIntSet viewTypeSet = MutableIntArraySet.empty();
         boolean allEnabled = true;
         for (Item item : items) {
@@ -363,7 +365,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         _allItemsEnabled = allEnabled;
         _viewTypes = viewTypeSet.toImmutable();
 
-        _activity = activity;
+        _activityAdapter = activity;
         _correlationArrayRequestCode = correlationArrayRequestCode;
     }
 
@@ -429,7 +431,7 @@ public final class AcceptationDetailsAdapter extends BaseAdapter {
         }
         else if (item instanceof CorrelationArrayItem) {
             final CorrelationArrayItem caItem = (CorrelationArrayItem) item;
-            caItem.updateView(_activity, _correlationArrayRequestCode, (LinearLayout) view);
+            caItem.updateView(_activityAdapter, _correlationArrayRequestCode, (LinearLayout) view);
         }
         else if (item instanceof CharacterCompositionDefinitionItem) {
             view.findViewById(R.id.drawableHolder).setBackground(

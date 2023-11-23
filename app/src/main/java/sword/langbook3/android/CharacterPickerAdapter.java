@@ -10,12 +10,12 @@ import sword.collections.ImmutableList;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.models.IdentifiableResult;
 
-final class CharacterPickerAdapter extends BaseAdapter {
+public final class CharacterPickerAdapter extends BaseAdapter {
 
     private final ImmutableList<IdentifiableResult<CharacterId>> _items;
     private LayoutInflater _inflater;
 
-    CharacterPickerAdapter(ImmutableList<IdentifiableResult<CharacterId>> items) {
+    public CharacterPickerAdapter(ImmutableList<IdentifiableResult<CharacterId>> items) {
         if (items == null) {
             throw new IllegalArgumentException();
         }

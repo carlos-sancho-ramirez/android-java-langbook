@@ -14,7 +14,7 @@ public final class AlphabetAdapter extends BaseAdapter {
     private final ImmutableMap<AlphabetId, String> _entries;
     private LayoutInflater _inflater;
 
-    AlphabetAdapter(ImmutableMap<AlphabetId, String> entries) {
+    public AlphabetAdapter(ImmutableMap<AlphabetId, String> entries) {
         _entries = entries;
     }
 

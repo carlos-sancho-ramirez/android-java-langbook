@@ -1,22 +1,24 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.Procedure;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.SentenceEditorActivity;
-import sword.langbook3.android.SpanEditorActivity;
+import sword.langbook3.android.activities.delegates.SentenceEditorActivityDelegate;
+import sword.langbook3.android.activities.delegates.SpanEditorActivityDelegate;
 import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.db.SentenceIdParceler;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-
-public final class EditSentenceSentenceEditorController implements SentenceEditorActivity.Controller {
+public final class EditSentenceSentenceEditorController implements SentenceEditorActivityDelegate.Controller {
 
     @NonNull
     private final SentenceId _sentence;
@@ -33,13 +35,13 @@ public final class EditSentenceSentenceEditorController implements SentenceEdito
 
     @Override
     public void complete(@NonNull Presenter presenter, @NonNull String text) {
-        final SpanEditorActivity.Controller controller = new EditSentenceSpanEditorController(text, _sentence);
-        presenter.openSpanEditor(SentenceEditorActivity.REQUEST_CODE_ADD_SPAN, controller);
+        final SpanEditorActivityDelegate.Controller controller = new EditSentenceSpanEditorController(text, _sentence);
+        presenter.openSpanEditor(SentenceEditorActivityDelegate.REQUEST_CODE_ADD_SPAN, controller);
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode == SentenceEditorActivity.REQUEST_CODE_ADD_SPAN && resultCode == Activity.RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode == SentenceEditorActivityDelegate.REQUEST_CODE_ADD_SPAN && resultCode == Activity.RESULT_OK) {
             activity.setResult(Activity.RESULT_OK, data);
             activity.finish();
         }

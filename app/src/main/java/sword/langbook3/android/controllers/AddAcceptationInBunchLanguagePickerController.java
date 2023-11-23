@@ -1,15 +1,16 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.WordEditorActivity;
+
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.BunchIdParceler;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.presenters.Presenter;
-
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class AddAcceptationInBunchLanguagePickerController extends AbstractLanguagePickerController {
 
@@ -24,14 +25,14 @@ public final class AddAcceptationInBunchLanguagePickerController extends Abstrac
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         BunchIdParceler.write(dest, _bunch);
         dest.writeString(_searchQuery);
     }
 
     @Override
     void complete(@NonNull Presenter presenter, int requestCode, @NonNull LanguageId language) {
-        final WordEditorActivity.Controller controller = new AddAcceptationInBunchWordEditorController(_bunch, language, _searchQuery);
+        final WordEditorActivityDelegate.Controller controller = new AddAcceptationInBunchWordEditorController(_bunch, language, _searchQuery);
         presenter.openWordEditor(requestCode, controller);
     }
 

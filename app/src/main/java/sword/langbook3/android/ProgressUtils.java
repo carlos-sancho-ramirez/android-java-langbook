@@ -3,7 +3,7 @@ package sword.langbook3.android;
 import sword.langbook3.android.models.Progress;
 
 public final class ProgressUtils {
-    static String getCompletenessString(Progress progress) {
+    public static String getCompletenessString(Progress progress) {
         final int numberOfQuestions = progress.getNumberOfQuestions();
         if (numberOfQuestions == 0) {
             return "0%";
@@ -13,7 +13,7 @@ public final class ProgressUtils {
         return String.format("%.1f%%", completeness);
     }
 
-    static KnowledgeDrawable getDrawable(Progress progress) {
+    public static KnowledgeDrawable getDrawable(Progress progress) {
         return (progress.getAnsweredQuestionsCount() > 0)? new KnowledgeDrawable(progress.getAmountPerScore()) : null;
     }
 

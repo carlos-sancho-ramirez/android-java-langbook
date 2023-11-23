@@ -1,13 +1,16 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.app.Activity;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
+
 import sword.langbook3.android.AcceptationDefinition;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.SpanEditorActivity;
+import sword.langbook3.android.activities.delegates.SpanEditorActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.BunchId;
@@ -15,12 +18,11 @@ import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.ParcelableBunchIdSet;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.models.SentenceSpan;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-
-abstract class AbstractSpanEditorController implements SpanEditorActivity.Controller {
+abstract class AbstractSpanEditorController implements SpanEditorActivityDelegate.Controller {
 
     @NonNull
     final String _text;
@@ -42,7 +44,7 @@ abstract class AbstractSpanEditorController implements SpanEditorActivity.Contro
 
     @Override
     public void pickAcceptation(@NonNull Presenter presenter, @NonNull MutableState state, @NonNull String query) {
-        final Object immediateResult = presenter.fireFixedTextAcceptationPicker(SpanEditorActivity.REQUEST_CODE_PICK_ACCEPTATION, query);
+        final Object immediateResult = presenter.fireFixedTextAcceptationPicker(SpanEditorActivityDelegate.REQUEST_CODE_PICK_ACCEPTATION, query);
         if (immediateResult != null) {
             setPickedAcceptation(state, immediateResult);
         }
@@ -59,8 +61,8 @@ abstract class AbstractSpanEditorController implements SpanEditorActivity.Contro
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state) {
-        if (requestCode == SpanEditorActivity.REQUEST_CODE_PICK_ACCEPTATION && resultCode == Activity.RESULT_OK && data != null) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state) {
+        if (requestCode == SpanEditorActivityDelegate.REQUEST_CODE_PICK_ACCEPTATION && resultCode == Activity.RESULT_OK && data != null) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
             final Object item;
             if (acceptation != null) {

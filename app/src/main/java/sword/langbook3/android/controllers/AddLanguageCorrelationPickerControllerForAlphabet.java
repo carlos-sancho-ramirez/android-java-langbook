@@ -1,14 +1,18 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
+
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableList;
 import sword.collections.MutableList;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.R;
-import sword.langbook3.android.WordEditorActivity;
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.collections.MinimumSizeArrayLengthFunction;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
@@ -22,9 +26,6 @@ import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.models.LanguageCreationResult;
 import sword.langbook3.android.presenters.Presenter;
-
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
 
 public final class AddLanguageCorrelationPickerControllerForAlphabet extends AbstractCorrelationPickerController {
 
@@ -104,7 +105,7 @@ public final class AddLanguageCorrelationPickerControllerForAlphabet extends Abs
             presenter.finish();
         }
         else {
-            final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, _languageCorrelationArray, alphabetCorrelationArrays, R.string.newAuxAlphabetNameActivityTitle);
+            final WordEditorActivityDelegate.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, _languageCorrelationArray, alphabetCorrelationArrays, R.string.newAuxAlphabetNameActivityTitle);
             presenter.openWordEditor(requestCode, controller);
         }
     }

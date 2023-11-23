@@ -1,17 +1,21 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
+
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.collections.Procedure;
 import sword.collections.Set;
-import sword.langbook3.android.ConversionEditorActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.ConversionEditorActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
@@ -30,10 +34,7 @@ import sword.langbook3.android.models.Conversion;
 import sword.langbook3.android.models.ConversionProposal;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
-
-public final class AddAlphabetConversionEditorControllerForNewAcceptation implements ConversionEditorActivity.Controller {
+public final class AddAlphabetConversionEditorControllerForNewAcceptation implements ConversionEditorActivityDelegate.Controller {
 
     @NonNull
     private final LanguageId _language;

@@ -1,6 +1,5 @@
-package sword.langbook3.android;
+package sword.langbook3.android.activities.delegates;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -12,15 +11,24 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
+import sword.langbook3.android.AgentDetailsActivity;
+import sword.langbook3.android.CharacterDetailsActivity;
+import sword.langbook3.android.DbManager;
+import sword.langbook3.android.R;
+import sword.langbook3.android.SearchResultAdapter;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AgentId;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.db.RuleId;
+import sword.langbook3.android.interf.ActivityExtensions;
 import sword.langbook3.android.models.SearchResult;
 
-abstract class SearchActivity extends Activity implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
+abstract class SearchActivityDelegate<Activity extends ActivityExtensions> extends AbstractActivityDelegate<Activity> implements TextWatcher, AdapterView.OnItemClickListener, View.OnClickListener {
 
     static final int MAX_RESULTS = 300;
     static final String AGENT_QUERY_PREFIX = "Agent ";
@@ -29,20 +37,23 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     public static final int REQUEST_CODE_NEW_ACCEPTATION = 2;
     static final int REQUEST_CODE_OPEN_SETTINGS = 3;
 
+    Activity _activity;
+
     private ListView _listView;
     private SearchResultAdapter _listAdapter;
     String _query;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.search_activity);
+    @CallSuper
+    public void onCreate(@NonNull Activity activity, Bundle savedInstanceState) {
+        _activity = activity;
+        activity.setContentView(R.layout.search_activity);
 
-        _listView = findViewById(R.id.listView);
+        _listView = activity.findViewById(R.id.listView);
         _listView.setOnItemClickListener(this);
 
-        findViewById(R.id.addWordButton).setOnClickListener(this);
-        prepareSearchField(findViewById(R.id.searchField));
+        activity.findViewById(R.id.addWordButton).setOnClickListener(this);
+        prepareSearchField(activity.findViewById(R.id.searchField));
     }
 
     private void prepareSearchField(EditText searchField) {
@@ -70,8 +81,7 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
+    public void onResume(@NonNull Activity activity) {
         updateSearchResults();
     }
 
@@ -160,13 +170,13 @@ abstract class SearchActivity extends Activity implements TextWatcher, AdapterVi
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         final Object itemId = _listAdapter.getItem(position).getId();
         if (itemId instanceof CharacterId) {
-            CharacterDetailsActivity.open(this, (CharacterId) itemId);
+            CharacterDetailsActivity.open(_activity, (CharacterId) itemId);
         }
         else if (itemId instanceof AcceptationId) {
             onAcceptationSelected((AcceptationId) itemId);
         }
         else {
-            AgentDetailsActivity.open(this, (AgentId) itemId);
+            AgentDetailsActivity.open(_activity, (AgentId) itemId);
         }
     }
 

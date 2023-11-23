@@ -1,4 +1,4 @@
-package sword.langbook3.android;
+package sword.langbook3.android.activities.delegates;
 
 import android.os.Parcel;
 import android.os.Parcelable;

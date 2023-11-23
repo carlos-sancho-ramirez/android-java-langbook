@@ -1,14 +1,15 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.WordEditorActivity;
+
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.presenters.Presenter;
-
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class AddAlphabetLanguagePickerController extends AbstractLanguagePickerController {
 
@@ -24,12 +25,12 @@ public final class AddAlphabetLanguagePickerController extends AbstractLanguageP
 
     @Override
     void complete(@NonNull Presenter presenter, int requestCode, @NonNull LanguageId language) {
-        final WordEditorActivity.Controller controller = new AddAlphabetWordEditorController(_alphabetLanguage,language, _searchQuery);
+        final WordEditorActivityDelegate.Controller controller = new AddAlphabetWordEditorController(_alphabetLanguage,language, _searchQuery);
         presenter.openWordEditor(requestCode, controller);
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         LanguageIdParceler.write(dest, _alphabetLanguage);
         dest.writeString(_searchQuery);
     }

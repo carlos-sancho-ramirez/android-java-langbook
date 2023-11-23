@@ -1,15 +1,16 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.WordEditorActivity;
+
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.ConceptIdParceler;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.presenters.Presenter;
-
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
 
 public final class LinkAcceptationLanguagePickerController extends AbstractLanguagePickerController {
 
@@ -24,14 +25,14 @@ public final class LinkAcceptationLanguagePickerController extends AbstractLangu
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         ConceptIdParceler.write(dest, _concept);
         dest.writeString(_searchQuery);
     }
 
     @Override
     void complete(@NonNull Presenter presenter, int requestCode, @NonNull LanguageId language) {
-        final WordEditorActivity.Controller controller = new LinkAcceptationWordEditorController(_concept, language, _searchQuery);
+        final WordEditorActivityDelegate.Controller controller = new LinkAcceptationWordEditorController(_concept, language, _searchQuery);
         presenter.openWordEditor(requestCode, controller);
     }
 

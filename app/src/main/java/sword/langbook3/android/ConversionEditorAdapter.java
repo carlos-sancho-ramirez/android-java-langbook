@@ -14,7 +14,7 @@ import sword.collections.Set;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.models.Conversion;
 
-final class ConversionEditorAdapter extends BaseAdapter {
+public final class ConversionEditorAdapter extends BaseAdapter {
 
     private final Conversion<AlphabetId> _conversion;
     private final IntSet _removed;
@@ -24,7 +24,7 @@ final class ConversionEditorAdapter extends BaseAdapter {
     private ImmutableList<Entry> _entries;
     private LayoutInflater _inflater;
 
-    ConversionEditorAdapter(Conversion<AlphabetId> conversion, IntSet removed, Map<String, String> added, Set<String> disabled) {
+    public ConversionEditorAdapter(Conversion<AlphabetId> conversion, IntSet removed, Map<String, String> added, Set<String> disabled) {
         _conversion = conversion;
         _removed = removed;
         _added = added;
@@ -126,11 +126,11 @@ final class ConversionEditorAdapter extends BaseAdapter {
         abstract int getBackgroundColor();
         public abstract boolean toggleDisabledOnClick();
 
-        int getConversionPosition() {
+        public int getConversionPosition() {
             return mPosition;
         }
 
-        String getSource() {
+        public String getSource() {
             return mSource;
         }
 

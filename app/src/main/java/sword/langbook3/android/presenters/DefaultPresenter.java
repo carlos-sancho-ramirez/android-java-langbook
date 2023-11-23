@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
+
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.db.AcceptationId;
@@ -16,11 +18,12 @@ import sword.langbook3.android.db.ParcelableConversion;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
 import sword.langbook3.android.db.SentenceId;
 import sword.langbook3.android.db.SentenceIdBundler;
+import sword.langbook3.android.interf.ActivityExtensions;
 import sword.langbook3.android.models.Conversion;
 
 public final class DefaultPresenter extends AbstractPresenter {
 
-    public DefaultPresenter(@NonNull Activity activity) {
+    public DefaultPresenter(@NonNull ActivityExtensions activity) {
         super(activity);
     }
 
@@ -77,7 +80,7 @@ public final class DefaultPresenter extends AbstractPresenter {
     }
 
     @Override
-    public void setTitle(int title, String param1, String param2) {
+    public void setTitle(@StringRes int title, String param1, String param2) {
         _activity.setTitle(_activity.getString(title, param1, param2));
     }
 }

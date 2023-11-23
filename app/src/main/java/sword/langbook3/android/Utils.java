@@ -1,7 +1,8 @@
 package sword.langbook3.android;
 
-import android.content.Context;
 import android.net.Uri;
+
+import androidx.annotation.NonNull;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -9,7 +10,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-final class Utils {
+import sword.langbook3.android.interf.ContextInterface;
+
+public final class Utils {
 
     private static void copyBetweenStreams(InputStream inStream, OutputStream outStream) throws IOException {
         final byte[] buffer = new byte[4096];
@@ -33,21 +36,21 @@ final class Utils {
         }
     }
 
-    static void copyFile(String originPath, String targetPath) throws IOException {
+    public static void copyFile(String originPath, String targetPath) throws IOException {
         copyFile(new FileInputStream(originPath), targetPath);
     }
 
-    static void copyFile(Context context, Uri originUri, String targetPath) throws IOException {
+    public static void copyFile(@NonNull ContextInterface context, Uri originUri, String targetPath) throws IOException {
         copyFile(context.getContentResolver().openInputStream(originUri), targetPath);
     }
 
-    private static void copyFile(Context context, InputStream inStream, Uri targetUri) throws IOException {
+    private static void copyFile(@NonNull ContextInterface context, InputStream inStream, Uri targetUri) throws IOException {
         try (OutputStream outStream = context.getContentResolver().openOutputStream(targetUri)) {
             copyBetweenStreams(inStream, outStream);
         }
     }
 
-    static void copyFile(Context context, String originPath, Uri targetUri) throws IOException {
+    public static void copyFile(@NonNull ContextInterface context, String originPath, Uri targetUri) throws IOException {
         try (InputStream inStream = new FileInputStream(originPath)) {
             copyFile(context, inStream, targetUri);
         }

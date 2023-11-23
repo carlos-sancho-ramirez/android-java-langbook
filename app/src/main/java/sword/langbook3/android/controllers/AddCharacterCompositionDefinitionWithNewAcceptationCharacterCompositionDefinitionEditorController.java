@@ -1,17 +1,20 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableSet;
 import sword.collections.MutableList;
-import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.CharacterCompositionDefinitionEditorActivityDelegate;
 import sword.langbook3.android.collections.Procedure2;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
@@ -26,13 +29,12 @@ import sword.langbook3.android.db.CorrelationParceler;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LangbookDbManager;
+import sword.langbook3.android.interf.ActivityExtensions;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.models.CharacterCompositionDefinitionArea;
 import sword.langbook3.android.models.CharacterCompositionDefinitionRegister;
 
-import static sword.langbook3.android.db.LangbookDbSchema.CHARACTER_COMPOSITION_DEFINITION_VIEW_PORT;
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-
-public final class AddCharacterCompositionDefinitionWithNewAcceptationCharacterCompositionDefinitionEditorController implements CharacterCompositionDefinitionEditorActivity.Controller {
+public final class AddCharacterCompositionDefinitionWithNewAcceptationCharacterCompositionDefinitionEditorController implements CharacterCompositionDefinitionEditorActivityDelegate.Controller {
 
     @NonNull
     private final ImmutableCorrelation<AlphabetId> _correlation;
@@ -54,7 +56,7 @@ public final class AddCharacterCompositionDefinitionWithNewAcceptationCharacterC
     }
 
     @Override
-    public void load(@NonNull Activity activity, @NonNull Procedure2<String, CharacterCompositionDefinitionRegister> procedure) {
+    public void load(@NonNull ActivityInterface activity, @NonNull Procedure2<String, CharacterCompositionDefinitionRegister> procedure) {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         String title = _correlation.get(preferredAlphabet, null);
         if (title == null) {
@@ -68,10 +70,10 @@ public final class AddCharacterCompositionDefinitionWithNewAcceptationCharacterC
     }
 
     @Override
-    public void save(@NonNull Activity activity, @NonNull CharacterCompositionDefinitionRegister register) {
+    public void save(@NonNull ActivityExtensions activity, @NonNull CharacterCompositionDefinitionRegister register) {
         final LangbookDbManager manager = DbManager.getInstance().getManager();
         if (manager.findCharacterCompositionDefinition(register) != null) {
-            Toast.makeText(activity, R.string.characterCompositionDefinitionAlreadyExistsError, Toast.LENGTH_SHORT).show();
+            activity.showToast(R.string.characterCompositionDefinitionAlreadyExistsError);
         }
         else {
             final MutableList<BunchId> bunchList = _bunchesWhereMustBeIncluded.toList().mutate();
@@ -88,7 +90,7 @@ public final class AddCharacterCompositionDefinitionWithNewAcceptationCharacterC
             }
 
             final Intent intent = new Intent();
-            CharacterCompositionTypeIdBundler.writeAsIntentExtra(intent, CharacterCompositionDefinitionEditorActivity.ResultKeys.CHARACTER_COMPOSITION_TYPE_ID, typeId);
+            CharacterCompositionTypeIdBundler.writeAsIntentExtra(intent, CharacterCompositionDefinitionEditorActivityDelegate.ResultKeys.CHARACTER_COMPOSITION_TYPE_ID, typeId);
             activity.setResult(Activity.RESULT_OK, intent);
             activity.finish();
         }

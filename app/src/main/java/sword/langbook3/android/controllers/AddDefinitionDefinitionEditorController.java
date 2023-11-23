@@ -1,19 +1,23 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.AcceptationDefinition;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.DefinitionEditorActivity;
 import sword.langbook3.android.IntermediateIntentions;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.R;
+import sword.langbook3.android.activities.delegates.DefinitionEditorActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AcceptationIdParceler;
@@ -24,12 +28,10 @@ import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.ParcelableBunchIdSet;
 import sword.langbook3.android.db.ParcelableCorrelationArray;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
-
-public final class AddDefinitionDefinitionEditorController implements DefinitionEditorActivity.Controller {
+public final class AddDefinitionDefinitionEditorController implements DefinitionEditorActivityDelegate.Controller {
 
     @NonNull
     private final AcceptationId _acceptation;
@@ -40,7 +42,7 @@ public final class AddDefinitionDefinitionEditorController implements Definition
     }
 
     @Override
-    public void setTitle(@NonNull Activity activity) {
+    public void setTitle(@NonNull ActivityInterface activity) {
         final AlphabetId preferredAlphabet = LangbookPreferences.getInstance().getPreferredAlphabet();
         final String acceptationText = DbManager.getInstance().getManager().getAcceptationDisplayableText(_acceptation, preferredAlphabet);
         activity.setTitle(activity.getString(R.string.definitionEditorActivityTitle, acceptationText));
@@ -49,7 +51,7 @@ public final class AddDefinitionDefinitionEditorController implements Definition
     @Override
     public void pickBaseConcept(@NonNull Presenter presenter) {
         final ConceptId definingConcept = DbManager.getInstance().getManager().conceptFromAcceptation(_acceptation);
-        IntermediateIntentions.pickDefinitionBase(presenter, DefinitionEditorActivity.REQUEST_CODE_PICK_BASE, definingConcept);
+        IntermediateIntentions.pickDefinitionBase(presenter, DefinitionEditorActivityDelegate.REQUEST_CODE_PICK_BASE, definingConcept);
     }
 
     private static ImmutableSet<ConceptId> getComplementConcepts(@NonNull State state) {
@@ -65,7 +67,7 @@ public final class AddDefinitionDefinitionEditorController implements Definition
         final LangbookDbChecker checker = DbManager.getInstance().getManager();
         final ConceptId definingConcept = checker.conceptFromAcceptation(_acceptation);
         final ImmutableSet<ConceptId> complementConcepts = getComplementConcepts(state);
-        IntermediateIntentions.pickDefinitionComplement(presenter, DefinitionEditorActivity.REQUEST_CODE_PICK_COMPLEMENT, definingConcept, complementConcepts);
+        IntermediateIntentions.pickDefinitionComplement(presenter, DefinitionEditorActivityDelegate.REQUEST_CODE_PICK_COMPLEMENT, definingConcept, complementConcepts);
     }
 
     @Override
@@ -115,7 +117,7 @@ public final class AddDefinitionDefinitionEditorController implements Definition
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, @NonNull MutableState state) {
         if (resultCode == Activity.RESULT_OK) {
             final AcceptationId acceptation = AcceptationIdBundler.readAsIntentExtra(data, BundleKeys.ACCEPTATION);
             final Object item;
@@ -128,11 +130,11 @@ public final class AddDefinitionDefinitionEditorController implements Definition
                 item = acceptation;
             }
 
-            if (requestCode == DefinitionEditorActivity.REQUEST_CODE_PICK_BASE) {
+            if (requestCode == DefinitionEditorActivityDelegate.REQUEST_CODE_PICK_BASE) {
                 state.setBase(item);
             }
             else {
-                ensureValidArguments(requestCode == DefinitionEditorActivity.REQUEST_CODE_PICK_COMPLEMENT);
+                ensureValidArguments(requestCode == DefinitionEditorActivityDelegate.REQUEST_CODE_PICK_COMPLEMENT);
                 state.addComplement(item);
             }
         }

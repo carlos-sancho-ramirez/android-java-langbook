@@ -1,8 +1,5 @@
 package sword.langbook3.android;
 
-import android.app.Activity;
-import android.content.Context;
-
 import androidx.annotation.NonNull;
 import sword.langbook3.android.controllers.AddAcceptationInBunchAcceptationPickerController;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
@@ -29,23 +26,25 @@ import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.ConceptId;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.SentenceId;
+import sword.langbook3.android.interf.ActivityExtensions;
+import sword.langbook3.android.interf.ContextExtensions;
 import sword.langbook3.android.presenters.DefaultPresenter;
 
 public final class Intentions {
 
-    public static void addCharacterCompositionDefinition(@NonNull Activity activity, int requestCode) {
+    public static void addCharacterCompositionDefinition(@NonNull ActivityExtensions activity, int requestCode) {
         AcceptationPickerActivity.open(activity, requestCode, new AddCharacterCompositionDefinitionAcceptationPickerController());
     }
 
-    public static void addLanguage(@NonNull Activity activity, int requestCode) {
+    public static void addLanguage(@NonNull ActivityExtensions activity, int requestCode) {
         LanguageAdderActivity.open(activity, requestCode, new AddLanguageLanguageAdderController());
     }
 
-    public static void addAcceptation(@NonNull Activity activity, int requestCode, String query) {
+    public static void addAcceptation(@NonNull ActivityExtensions activity, int requestCode, String query) {
         new AddAcceptationLanguagePickerController(query).fire(new DefaultPresenter(activity), requestCode);
     }
 
-    public static void addAcceptationInBunch(@NonNull Activity activity, int requestCode, BunchId bunch) {
+    public static void addAcceptationInBunch(@NonNull ActivityExtensions activity, int requestCode, BunchId bunch) {
         AcceptationPickerActivity.open(activity, requestCode, new AddAcceptationInBunchAcceptationPickerController(bunch));
     }
 
@@ -54,7 +53,7 @@ public final class Intentions {
      *
      * @param context Context to be used to start the activity.
      */
-    public static void addAgent(@NonNull Context context) {
+    public static void addAgent(@NonNull ContextExtensions context) {
         AgentEditorActivity.open(context, new AddAgentAgentEditorController());
     }
 
@@ -67,7 +66,7 @@ public final class Intentions {
      * @param context Context to be used to start the activity.
      * @param target Bunch to be used as target bunch in the new created agent.
      */
-    public static void addAgentWithTarget(@NonNull Context context, @NonNull BunchId target) {
+    public static void addAgentWithTarget(@NonNull ContextExtensions context, @NonNull BunchId target) {
         AgentEditorActivity.open(context, new AddAgentAgentEditorControllerWithTarget(target));
     }
 
@@ -80,7 +79,7 @@ public final class Intentions {
      * @param context Context to be used to start the activity.
      * @param source Bunch to be used as source bunch in the new created agent.
      */
-    public static void addAgentWithSource(@NonNull Context context, @NonNull BunchId source) {
+    public static void addAgentWithSource(@NonNull ContextExtensions context, @NonNull BunchId source) {
         AgentEditorActivity.open(context, new AddAgentAgentEditorControllerWithSource(source));
     }
 
@@ -93,7 +92,7 @@ public final class Intentions {
      * @param context Context to be used to start the activity.
      * @param diff Bunch to be used as diff bunch in the new created agent.
      */
-    public static void addAgentWithDiff(@NonNull Context context, @NonNull BunchId diff) {
+    public static void addAgentWithDiff(@NonNull ContextExtensions context, @NonNull BunchId diff) {
         AgentEditorActivity.open(context, new AddAgentAgentEditorControllerWithDiff(diff));
     }
 
@@ -116,7 +115,7 @@ public final class Intentions {
      * @param requestCode Request code in order to update the view on finish.
      * @param language The language that the new alphabet will be linked to.
      */
-    public static void addAlphabet(@NonNull Activity activity, int requestCode, @NonNull LanguageId language) {
+    public static void addAlphabet(@NonNull ActivityExtensions activity, int requestCode, @NonNull LanguageId language) {
         AcceptationPickerActivity.open(activity, requestCode, new AddAlphabetAcceptationPickerController(language));
     }
 
@@ -126,11 +125,11 @@ public final class Intentions {
      * @param requestCode Request code to be used when opening this intention.
      * @param acceptation Acceptation that will be included in the selected bunch.
      */
-    public static void addBunchFromAcceptation(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {
+    public static void addBunchFromAcceptation(@NonNull ActivityExtensions activity, int requestCode, @NonNull AcceptationId acceptation) {
         AcceptationPickerActivity.open(activity, requestCode, new AddBunchFromAcceptationAcceptationPickerController(acceptation));
     }
 
-    public static void addDefinition(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {
+    public static void addDefinition(@NonNull ActivityExtensions activity, int requestCode, @NonNull AcceptationId acceptation) {
         DefinitionEditorActivity.open(activity, requestCode, new AddDefinitionDefinitionEditorController(acceptation));
     }
 
@@ -144,7 +143,7 @@ public final class Intentions {
      * @param requestCode Request code to be used when opening this intention.
      * @param acceptation Acceptation expected to be found in the new sentence.
      */
-    public static void addSentence(@NonNull Activity activity, int requestCode, @NonNull AcceptationId acceptation) {
+    public static void addSentence(@NonNull ActivityExtensions activity, int requestCode, @NonNull AcceptationId acceptation) {
         SentenceEditorActivity.open(activity, requestCode, new AddSentenceSentenceEditorController(acceptation));
     }
 
@@ -155,19 +154,19 @@ public final class Intentions {
      * @param requestCode request code.
      * @param concept Concept for the existing sentence.
      */
-    public static void addSynonymSentence(@NonNull Activity activity, int requestCode, @NonNull ConceptId concept) {
+    public static void addSynonymSentence(@NonNull ActivityExtensions activity, int requestCode, @NonNull ConceptId concept) {
         SentenceEditorActivity.open(activity, requestCode, new AddSynonymSentenceSentenceEditorController(concept));
     }
 
-    public static void editAcceptation(@NonNull Activity activity, AcceptationId acceptation) {
-        WordEditorActivity.open(activity, new EditAcceptationWordEditorController(acceptation));
+    public static void editAcceptation(@NonNull ContextExtensions context, AcceptationId acceptation) {
+        WordEditorActivity.open(context, new EditAcceptationWordEditorController(acceptation));
     }
 
-    public static void editAgent(@NonNull Context context, @NonNull AgentId agent) {
+    public static void editAgent(@NonNull ContextExtensions context, @NonNull AgentId agent) {
         AgentEditorActivity.open(context, new EditAgentAgentEditorController(agent));
     }
 
-    public static void editConversion(@NonNull Activity activity, int requestCode, @NonNull AlphabetId sourceAlphabet, @NonNull AlphabetId targetAlphabet) {
+    public static void editConversion(@NonNull ActivityExtensions activity, int requestCode, @NonNull AlphabetId sourceAlphabet, @NonNull AlphabetId targetAlphabet) {
         ConversionEditorActivity.open(activity, requestCode, new EditConversionConversionEditorController(sourceAlphabet, targetAlphabet));
     }
 
@@ -178,7 +177,7 @@ public final class Intentions {
      * @param requestCode Request code to be used when opening the new intention.
      * @param sentence Identifier for the sentence to be edited.
      */
-    public static void editSentence(@NonNull Activity activity, int requestCode, @NonNull SentenceId sentence) {
+    public static void editSentence(@NonNull ActivityExtensions activity, int requestCode, @NonNull SentenceId sentence) {
         SentenceEditorActivity.open(activity, requestCode, new EditSentenceSentenceEditorController(sentence));
     }
 
@@ -191,7 +190,7 @@ public final class Intentions {
      * @param requestCode identifier to be used when opening the new activity.
      * @param sourceAcceptation Acceptation whose concept has to be shared.
      */
-    public static void linkAcceptation(@NonNull Activity activity, int requestCode, @NonNull AcceptationId sourceAcceptation) {
+    public static void linkAcceptation(@NonNull ActivityExtensions activity, int requestCode, @NonNull AcceptationId sourceAcceptation) {
         AcceptationPickerActivity.open(activity, requestCode, new LinkAcceptationAcceptationPickerController(sourceAcceptation));
     }
 

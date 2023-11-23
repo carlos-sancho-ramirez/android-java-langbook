@@ -6,25 +6,27 @@ import android.os.Parcel;
 
 import androidx.annotation.NonNull;
 import sword.langbook3.android.AcceptationPickerActivity;
+import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
-public final class PickConceptAcceptationPickerController implements AcceptationPickerActivity.Controller {
+public final class PickConceptAcceptationPickerController implements AcceptationPickerActivityDelegate.Controller {
 
     @Override
     public void createAcceptation(@NonNull Presenter presenter, String query) {
         new PickConceptLanguagePickerController(query)
-                .fire(presenter, AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION);
+                .fire(presenter, AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION);
     }
 
     @Override
     public void selectAcceptation(@NonNull Presenter presenter, @NonNull AcceptationId acceptation) {
-        presenter.openAcceptationConfirmation(AcceptationPickerActivity.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
+        presenter.openAcceptationConfirmation(AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM, new AcceptationConfirmationController(acceptation));
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
-        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivity.REQUEST_CODE_NEW_ACCEPTATION || requestCode == AcceptationPickerActivity.REQUEST_CODE_CONFIRM)) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data, AcceptationId confirmDynamicAcceptation) {
+        if (resultCode == Activity.RESULT_OK && (requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_NEW_ACCEPTATION || requestCode == AcceptationPickerActivityDelegate.REQUEST_CODE_CONFIRM)) {
             activity.setResult(Activity.RESULT_OK, data);
             activity.finish();
         }

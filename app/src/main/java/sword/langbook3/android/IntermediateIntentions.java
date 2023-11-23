@@ -12,6 +12,7 @@ import sword.langbook3.android.controllers.PickDefinitionBaseAcceptationPickerCo
 import sword.langbook3.android.controllers.PickDefinitionComplementAcceptationPickerController;
 import sword.langbook3.android.controllers.PickSentenceSpanFixedTextAcceptationPickerController;
 import sword.langbook3.android.db.ConceptId;
+import sword.langbook3.android.interf.ActivityExtensions;
 import sword.langbook3.android.presenters.PickSentenceSpanIntentionFirstPresenter;
 import sword.langbook3.android.presenters.Presenter;
 
@@ -169,7 +170,7 @@ public final class IntermediateIntentions {
      * @return A new acceptation definition matching the given text, or null if user input is required.
      */
     @CheckResult
-    public static AcceptationDefinition pickSentenceSpan(@NonNull Activity activity, int requestCode, String text) {
+    public static AcceptationDefinition pickSentenceSpan(@NonNull ActivityExtensions activity, int requestCode, String text) {
         final PickSentenceSpanIntentionFirstPresenter presenter = new PickSentenceSpanIntentionFirstPresenter(activity);
         new PickSentenceSpanFixedTextAcceptationPickerController(text)
                 .fire(presenter, requestCode);

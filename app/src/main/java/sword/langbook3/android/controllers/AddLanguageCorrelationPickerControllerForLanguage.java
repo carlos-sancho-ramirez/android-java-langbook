@@ -1,12 +1,16 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
+
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableList;
 import sword.langbook3.android.LanguageCodeRules;
 import sword.langbook3.android.R;
-import sword.langbook3.android.WordEditorActivity;
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdParceler;
 import sword.langbook3.android.db.CorrelationParceler;
@@ -15,9 +19,6 @@ import sword.langbook3.android.db.ImmutableCorrelationArray;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
 import sword.langbook3.android.presenters.Presenter;
-
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
 
 public final class AddLanguageCorrelationPickerControllerForLanguage extends AbstractCorrelationPickerController {
 
@@ -48,7 +49,7 @@ public final class AddLanguageCorrelationPickerControllerForLanguage extends Abs
 
     @Override
     void complete(@NonNull Presenter presenter, int requestCode, @NonNull ImmutableCorrelationArray<AlphabetId> selectedOption) {
-        final WordEditorActivity.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, selectedOption, ImmutableList.empty(), R.string.newMainAlphabetNameActivityTitle);
+        final WordEditorActivityDelegate.Controller controller = new AddLanguageWordEditorControllerForAlphabet(_languageCode, _language, _alphabets, selectedOption, ImmutableList.empty(), R.string.newMainAlphabetNameActivityTitle);
         presenter.openWordEditor(requestCode, controller);
     }
 

@@ -1,15 +1,16 @@
 package sword.langbook3.android.controllers;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.Set;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.BunchId;
 import sword.langbook3.android.db.CorrelationArrayParceler;
 import sword.langbook3.android.db.ImmutableCorrelationArray;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
 public final class PickConceptMatchingBunchesPickerController extends AbstractMatchingBunchesPickerController {
@@ -25,7 +26,7 @@ public final class PickConceptMatchingBunchesPickerController extends AbstractMa
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
         // This controller does not start any activity
     }
 

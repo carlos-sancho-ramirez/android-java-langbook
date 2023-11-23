@@ -11,13 +11,13 @@ import sword.collections.ImmutableMap;
 import sword.langbook3.android.db.RuleId;
 import sword.langbook3.android.models.SearchResult;
 
-class SearchResultAdapter extends BaseAdapter {
+public class SearchResultAdapter extends BaseAdapter {
 
     private final ImmutableList<SearchResult> _items;
     private final ImmutableMap<RuleId, String> _ruleTexts;
     private LayoutInflater _inflater;
 
-    SearchResultAdapter(ImmutableList<SearchResult> items, ImmutableMap<RuleId, String> ruleTexts) {
+    public SearchResultAdapter(ImmutableList<SearchResult> items, ImmutableMap<RuleId, String> ruleTexts) {
         if (items == null) {
             throw new IllegalArgumentException();
         }

@@ -1,17 +1,21 @@
 package sword.langbook3.android.controllers;
 
+import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
+import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableMap;
 import sword.collections.Procedure;
 import sword.collections.Set;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.R;
-import sword.langbook3.android.SourceAlphabetPickerActivity;
+import sword.langbook3.android.activities.delegates.SourceAlphabetPickerActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.AlphabetIdManager;
@@ -24,12 +28,10 @@ import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.db.LanguageIdParceler;
+import sword.langbook3.android.interf.ActivityInterface;
 import sword.langbook3.android.presenters.Presenter;
 
-import static sword.langbook3.android.util.PreconditionUtils.ensureNonNull;
-import static sword.langbook3.android.util.PreconditionUtils.ensureValidArguments;
-
-public final class AddAlphabetSourceAlphabetPickerControllerForNewAcceptation implements SourceAlphabetPickerActivity.Controller {
+public final class AddAlphabetSourceAlphabetPickerControllerForNewAcceptation implements SourceAlphabetPickerActivityDelegate.Controller {
 
     @NonNull
     private final LanguageId _language;
@@ -63,7 +65,7 @@ public final class AddAlphabetSourceAlphabetPickerControllerForNewAcceptation im
             @NonNull Presenter presenter, @NonNull AlphabetId sourceAlphabet, @NonNull CreationOption creationOption) {
 
         if (creationOption == CreationOption.DEFINE_CONVERSION) {
-            presenter.openConversionEditor(SourceAlphabetPickerActivity.REQUEST_CODE_NEW_CONVERSION, new AddAlphabetConversionEditorControllerForNewAcceptation(_language, _targetAlphabetAcceptationCorrelationArray, _targetAlphabetAcceptationBunches, sourceAlphabet));
+            presenter.openConversionEditor(SourceAlphabetPickerActivityDelegate.REQUEST_CODE_NEW_CONVERSION, new AddAlphabetConversionEditorControllerForNewAcceptation(_language, _targetAlphabetAcceptationCorrelationArray, _targetAlphabetAcceptationBunches, sourceAlphabet));
         }
         else {
             final LangbookDbManager manager = DbManager.getInstance().getManager();
@@ -85,8 +87,8 @@ public final class AddAlphabetSourceAlphabetPickerControllerForNewAcceptation im
     }
 
     @Override
-    public void onActivityResult(@NonNull Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode == SourceAlphabetPickerActivity.REQUEST_CODE_NEW_CONVERSION && resultCode == Activity.RESULT_OK) {
+    public void onActivityResult(@NonNull ActivityInterface activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode == SourceAlphabetPickerActivityDelegate.REQUEST_CODE_NEW_CONVERSION && resultCode == Activity.RESULT_OK) {
             activity.setResult(Activity.RESULT_OK);
             activity.finish();
         }

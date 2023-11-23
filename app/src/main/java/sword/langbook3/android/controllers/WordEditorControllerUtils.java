@@ -1,6 +1,9 @@
 package sword.langbook3.android.controllers;
 
+import static sword.collections.SortUtils.equal;
+
 import androidx.annotation.NonNull;
+
 import sword.collections.ImmutableHashMap;
 import sword.collections.ImmutableIntKeyMap;
 import sword.collections.ImmutableIntSet;
@@ -18,16 +21,14 @@ import sword.collections.MutableMap;
 import sword.collections.MutableSet;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
-import sword.langbook3.android.WordEditorActivity.Controller.FieldConversion;
-import sword.langbook3.android.WordEditorActivity.Controller.UpdateFieldsResult;
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate.Controller.FieldConversion;
+import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate.Controller.UpdateFieldsResult;
 import sword.langbook3.android.db.AlphabetId;
 import sword.langbook3.android.db.ImmutableCorrelation;
 import sword.langbook3.android.db.LangbookDbChecker;
 import sword.langbook3.android.db.LangbookDbManager;
 import sword.langbook3.android.db.LanguageId;
 import sword.langbook3.android.models.Conversion;
-
-import static sword.collections.SortUtils.equal;
 
 final class WordEditorControllerUtils {
 
