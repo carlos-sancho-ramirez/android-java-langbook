@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.WordEditorActivity;
+import sword.langbook3.android.activities.WordEditorActivity;
 import sword.langbook3.android.activities.delegates.LanguageAdderActivityDelegate;
 import sword.langbook3.android.activities.delegates.WordEditorActivityDelegate;
 import sword.langbook3.android.db.AlphabetId;

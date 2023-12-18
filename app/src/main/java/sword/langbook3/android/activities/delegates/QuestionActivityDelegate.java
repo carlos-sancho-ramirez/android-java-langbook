@@ -21,7 +21,7 @@ import sword.collections.ImmutableList;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableIntValueHashMap;
 import sword.collections.MutableIntValueMap;
-import sword.langbook3.android.AcceptationDetailsActivity;
+import sword.langbook3.android.activities.AcceptationDetailsActivity;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;

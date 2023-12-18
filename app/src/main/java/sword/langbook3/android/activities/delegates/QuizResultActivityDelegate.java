@@ -13,7 +13,7 @@ import sword.collections.ImmutableIntList;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.ProgressUtils;
-import sword.langbook3.android.QuestionActivity;
+import sword.langbook3.android.activities.QuestionActivity;
 import sword.langbook3.android.R;
 import sword.langbook3.android.db.QuizId;
 import sword.langbook3.android.db.QuizIdBundler;

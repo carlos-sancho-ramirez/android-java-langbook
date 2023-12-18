@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menuItemNewAgent"
+        android:title="@string/menuItemNewAgent"
+        app:showAsAction="never">
+
+        <menu
+            android:title="@string/menuItemNewAgent">
+
+            <item
+                android:id="@+id/menuItemNewAgentAsSource"
+                android:title="@string/menuItemNewAgentAsSource"
+                app:showAsAction="never"/>
+
+            <item
+                android:id="@+id/menuItemNewAgentAsDiff"
+                android:title="@string/menuItemNewAgentAsDiff"
+                app:showAsAction="never"/>
+
+            <item
+                android:id="@+id/menuItemNewAgentAsTarget"
+                android:title="@string/menuItemNewAgentAsTarget"
+                app:showAsAction="never"/>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/menuItemNewSentence"
+        android:title="@string/menuItemNewSentence"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menuItemDeleteAcceptation"
+        android:title="@string/menuItemDelete"
+        app:showAsAction="never"/>
+</menu>

@@ -18,7 +18,7 @@ import sword.collections.ImmutableMap;
 import sword.collections.ImmutableSet;
 import sword.langbook3.android.AlphabetsActivityState;
 import sword.langbook3.android.AlphabetsAdapter;
-import sword.langbook3.android.ConversionDetailsActivity;
+import sword.langbook3.android.activities.ConversionDetailsActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.Intentions;
 import sword.langbook3.android.LangbookPreferences;

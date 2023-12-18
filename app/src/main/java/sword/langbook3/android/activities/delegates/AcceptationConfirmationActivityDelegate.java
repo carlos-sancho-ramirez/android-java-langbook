@@ -46,7 +46,7 @@ public final class AcceptationConfirmationActivityDelegate<Activity extends Acti
     @Override
     public boolean onCreateOptionsMenu(@NonNull Activity activity, Menu menu) {
         if (_model != null) {
-            activity.newMenuInflater().inflate(R.menu.acceptation_details_activity_confirm, menu);
+            activity.getMenuInflater().inflate(R.menu.acceptation_details_activity_confirm, menu);
         }
 
         return true;

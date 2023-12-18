@@ -15,12 +15,12 @@ import android.widget.AdapterView;
 import androidx.annotation.NonNull;
 
 import sword.langbook3.android.AcceptationDetailsAdapter;
-import sword.langbook3.android.CharacterCompositionDefinitionEditorActivity;
+import sword.langbook3.android.activities.CharacterCompositionDefinitionEditorActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.Intentions;
-import sword.langbook3.android.QuizSelectorActivity;
+import sword.langbook3.android.activities.QuizSelectorActivity;
 import sword.langbook3.android.R;
-import sword.langbook3.android.SentenceDetailsActivity;
+import sword.langbook3.android.activities.SentenceDetailsActivity;
 import sword.langbook3.android.controllers.CharacterCompositionDefinitionEditorController;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
@@ -129,7 +129,7 @@ public final class AcceptationDetailsActivityDelegate<Activity extends ActivityE
     @Override
     public boolean onCreateOptionsMenu(@NonNull Activity activity, Menu menu) {
         if (_model != null) {
-            final MenuInflater inflater = activity.newMenuInflater();
+            final MenuInflater inflater = activity.getMenuInflater();
 
             inflater.inflate(R.menu.acceptation_details_activity_edit, menu);
 

@@ -72,12 +72,6 @@ public final class ActivityExtensionsAdapter extends AbstractContextExtensionsAd
         return _context.getLayoutInflater();
     }
 
-    @NonNull
-    @Override
-    public MenuInflater newMenuInflater() {
-        return new MenuInflater(_context);
-    }
-
     @Override
     public void setContentView(@LayoutRes int layoutResId) {
         _context.setContentView(layoutResId);

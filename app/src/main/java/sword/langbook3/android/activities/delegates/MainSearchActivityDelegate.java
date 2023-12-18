@@ -17,17 +17,17 @@ import sword.collections.ImmutableIntRange;
 import sword.collections.ImmutableList;
 import sword.collections.ImmutableMap;
 import sword.collections.SortUtils;
-import sword.langbook3.android.AboutActivity;
-import sword.langbook3.android.AcceptationDetailsActivity;
-import sword.langbook3.android.AlphabetsActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.Intentions;
 import sword.langbook3.android.LangbookPreferences;
-import sword.langbook3.android.QuizSelectorActivity;
 import sword.langbook3.android.R;
 import sword.langbook3.android.SearchResultAdapter;
-import sword.langbook3.android.SettingsActivity;
-import sword.langbook3.android.WelcomeActivity;
+import sword.langbook3.android.activities.AboutActivity;
+import sword.langbook3.android.activities.AcceptationDetailsActivity;
+import sword.langbook3.android.activities.AlphabetsActivity;
+import sword.langbook3.android.activities.QuizSelectorActivity;
+import sword.langbook3.android.activities.SettingsActivity;
+import sword.langbook3.android.activities.WelcomeActivity;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.AcceptationIdBundler;
 import sword.langbook3.android.db.AlphabetId;
@@ -61,7 +61,7 @@ public final class MainSearchActivityDelegate<Activity extends ActivityExtension
 
     @Override
     public boolean onCreateOptionsMenu(@NonNull Activity activity, Menu menu) {
-        activity.newMenuInflater().inflate(R.menu.main_search_activity, menu);
+        activity.getMenuInflater().inflate(R.menu.main_search_activity, menu);
         return true;
     }
 

@@ -1,6 +1,14 @@
 package sword.langbook3.android;
 
 import androidx.annotation.NonNull;
+
+import sword.langbook3.android.activities.AcceptationPickerActivity;
+import sword.langbook3.android.activities.AgentEditorActivity;
+import sword.langbook3.android.activities.ConversionEditorActivity;
+import sword.langbook3.android.activities.DefinitionEditorActivity;
+import sword.langbook3.android.activities.LanguageAdderActivity;
+import sword.langbook3.android.activities.SentenceEditorActivity;
+import sword.langbook3.android.activities.WordEditorActivity;
 import sword.langbook3.android.controllers.AddAcceptationInBunchAcceptationPickerController;
 import sword.langbook3.android.controllers.AddAcceptationLanguagePickerController;
 import sword.langbook3.android.controllers.AddAgentAgentEditorController;

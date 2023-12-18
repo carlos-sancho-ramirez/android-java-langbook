@@ -14,12 +14,12 @@ import android.widget.ListView;
 
 import androidx.annotation.NonNull;
 
-import sword.langbook3.android.AcceptationDetailsActivity;
+import sword.langbook3.android.activities.AcceptationDetailsActivity;
 import sword.langbook3.android.BundleKeys;
-import sword.langbook3.android.CharacterCompositionEditorActivity;
-import sword.langbook3.android.CharacterDetailsActivity;
+import sword.langbook3.android.activities.CharacterCompositionEditorActivity;
+import sword.langbook3.android.activities.CharacterDetailsActivity;
 import sword.langbook3.android.CharacterDetailsAdapter;
-import sword.langbook3.android.CharacterRepresentationUpdaterActivity;
+import sword.langbook3.android.activities.CharacterRepresentationUpdaterActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.R;
@@ -97,7 +97,7 @@ public final class CharacterDetailsActivityDelegate<Activity extends ActivityExt
     @Override
     public boolean onCreateOptionsMenu(@NonNull Activity activity, Menu menu) {
         if (_model != null) {
-            final MenuInflater inflater = activity.newMenuInflater();
+            final MenuInflater inflater = activity.getMenuInflater();
             if (_model.representation.character == INVALID_CHARACTER) {
                 inflater.inflate(R.menu.character_details_activity_no_unicode_assigned, menu);
             }

@@ -24,7 +24,7 @@ import sword.collections.ImmutablePair;
 import sword.collections.IntKeyMap;
 import sword.collections.MapGetter;
 import sword.langbook3.android.BundleKeys;
-import sword.langbook3.android.ConversionDetailsActivity;
+import sword.langbook3.android.activities.ConversionDetailsActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
 import sword.langbook3.android.collections.SyncCacheMap;

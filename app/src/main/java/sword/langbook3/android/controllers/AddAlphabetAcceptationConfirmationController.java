@@ -5,7 +5,7 @@ import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.AcceptationConfirmationActivity;
+
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.activities.delegates.AcceptationConfirmationActivityDelegate;
 import sword.langbook3.android.db.AcceptationId;

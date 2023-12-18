@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
 
 import sword.collections.ImmutableList;
 import sword.langbook3.android.BundleKeys;
-import sword.langbook3.android.CharacterDetailsActivity;
+import sword.langbook3.android.activities.CharacterDetailsActivity;
 import sword.langbook3.android.CharacterPickerAdapter;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;

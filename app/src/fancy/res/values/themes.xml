@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Langbook" parent="Theme.MaterialComponents.DayNight">
+        <item name="colorPrimary">#22B733</item>
+        <item name="colorPrimaryDark">#00951E</item>
+        <item name="colorPrimaryVariant">#00951E</item>
+        <item name="colorSecondary">#009B98</item>
+        <item name="colorSecondaryVariant">#017E79</item>
+    </style>
+</resources>

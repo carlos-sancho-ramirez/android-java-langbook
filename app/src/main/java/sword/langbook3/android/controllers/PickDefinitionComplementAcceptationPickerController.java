@@ -8,7 +8,6 @@ import androidx.annotation.NonNull;
 import sword.collections.ImmutableSet;
 import sword.collections.MutableHashSet;
 import sword.collections.MutableSet;
-import sword.langbook3.android.AcceptationPickerActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
 import sword.langbook3.android.activities.delegates.AcceptationPickerActivityDelegate;

@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.Langbook" parent="android:Theme.Holo.Light.DarkActionBar"/>
+</resources>

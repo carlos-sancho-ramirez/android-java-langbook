@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menuItemQuiz"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:title="@string/menuItemQuiz"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/menuItemNewAgent"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="@string/menuItemNewAgent"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/menuItemCheckAlphabets"
+        android:title="@string/menuItemCheckAlphabets"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/menuItemSettings"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="@string/menuItemSettings"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/menuItemAbout"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="@string/menuItemAbout"
+        app:showAsAction="ifRoom"/>
+</menu>

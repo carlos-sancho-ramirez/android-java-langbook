@@ -12,7 +12,6 @@ import sword.collections.ImmutableMap;
 import sword.database.DbQuery;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
-import sword.langbook3.android.FixedTextAcceptationPickerActivity;
 import sword.langbook3.android.LangbookPreferences;
 import sword.langbook3.android.SearchResultAdapter;
 import sword.langbook3.android.db.AcceptationId;

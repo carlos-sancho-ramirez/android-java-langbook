@@ -19,12 +19,12 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import sword.collections.ImmutableSet;
-import sword.langbook3.android.AcceptationDetailsActivity;
+import sword.langbook3.android.activities.AcceptationDetailsActivity;
 import sword.langbook3.android.BundleKeys;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.Intentions;
 import sword.langbook3.android.R;
-import sword.langbook3.android.SentenceDetailsActivity;
+import sword.langbook3.android.activities.SentenceDetailsActivity;
 import sword.langbook3.android.SentenceDetailsAdapter;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.ConceptId;

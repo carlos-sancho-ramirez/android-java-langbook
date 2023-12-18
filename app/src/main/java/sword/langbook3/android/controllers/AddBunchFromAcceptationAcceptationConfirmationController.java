@@ -1,11 +1,10 @@
 package sword.langbook3.android.controllers;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import sword.langbook3.android.AcceptationConfirmationActivity;
+
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
 import sword.langbook3.android.activities.delegates.AcceptationConfirmationActivityDelegate;

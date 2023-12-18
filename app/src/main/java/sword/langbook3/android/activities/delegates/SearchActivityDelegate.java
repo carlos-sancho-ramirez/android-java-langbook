@@ -16,8 +16,8 @@ import androidx.annotation.NonNull;
 
 import sword.collections.ImmutableList;
 import sword.database.DbQuery;
-import sword.langbook3.android.AgentDetailsActivity;
-import sword.langbook3.android.CharacterDetailsActivity;
+import sword.langbook3.android.activities.AgentDetailsActivity;
+import sword.langbook3.android.activities.CharacterDetailsActivity;
 import sword.langbook3.android.DbManager;
 import sword.langbook3.android.R;
 import sword.langbook3.android.SearchResultAdapter;

@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import sword.langbook3.android.activities.CharacterDetailsActivity;
 import sword.langbook3.android.db.AcceptationId;
 import sword.langbook3.android.db.CharacterId;
 import sword.langbook3.android.models.CharacterCompositionPart;
