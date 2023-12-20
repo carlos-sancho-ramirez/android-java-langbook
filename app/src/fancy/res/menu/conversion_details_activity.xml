@@ -4,6 +4,6 @@
     <item
         android:id="@+id/menuItemEdit"
         android:title="@string/menuItemEdit"
-        android:icon="@android:drawable/ic_menu_edit"
+        android:icon="@drawable/ic_edit_24dp"
         app:showAsAction="ifRoom"/>
 </menu>

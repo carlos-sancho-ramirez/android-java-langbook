@@ -4,6 +4,6 @@
     <item
         android:id="@+id/menuItemConfirm"
         android:title="@string/menuItemConfirm"
-        android:icon="@android:drawable/ic_menu_send"
+        android:icon="@drawable/ic_confirm_24dp"
         app:showAsAction="always"/>
 </menu>

@@ -3,30 +3,31 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/menuItemQuiz"
-        android:icon="@android:drawable/ic_menu_edit"
+        android:icon="@drawable/ic_quiz_24dp"
         android:title="@string/menuItemQuiz"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/menuItemNewAgent"
-        android:icon="@android:drawable/ic_menu_add"
+        android:icon="@drawable/ic_add_24dp"
         android:title="@string/menuItemNewAgent"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/menuItemCheckAlphabets"
         android:title="@string/menuItemCheckAlphabets"
+        android:icon="@drawable/ic_abc_24dp"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/menuItemSettings"
-        android:icon="@android:drawable/ic_menu_preferences"
+        android:icon="@drawable/ic_settings_24dp"
         android:title="@string/menuItemSettings"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/menuItemAbout"
-        android:icon="@android:drawable/ic_menu_info_details"
+        android:icon="@drawable/ic_info_24dp"
         android:title="@string/menuItemAbout"
         app:showAsAction="ifRoom"/>
 </menu>
