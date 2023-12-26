@@ -6,7 +6,7 @@ import android.content.Intent;
 
 import androidx.annotation.NonNull;
 
-import sword.langbook3.android.activities.delegates.ConversionDetailsActivityDelegate;
+import sword.langbook3.android.activities.delegates.ConversionEditorActivityDelegate;
 import sword.langbook3.android.activities.delegates.ConversionEditorActivityDelegate.ArgKeys;
 import sword.langbook3.android.activities.delegates.ConversionEditorActivityDelegate.Controller;
 import sword.langbook3.android.interf.ActivityExtensions;
@@ -22,6 +22,6 @@ public final class ConversionEditorActivity extends DelegatorActivity<ActivityEx
     }
 
     public ConversionEditorActivity() {
-        super(ActivityExtensionsAdapter::new, new ConversionDetailsActivityDelegate<>());
+        super(ActivityExtensionsAdapter::new, new ConversionEditorActivityDelegate<>());
     }
 }
